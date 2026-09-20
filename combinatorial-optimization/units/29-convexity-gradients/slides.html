@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>29 · Convexity, gradients, and what continuity changes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="coda">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="LP"><span class="ref-name">unit 01's polygon, as an LP</span>$\max\ 2x + y$ s.t. $x + y \le 4,\ \ x - y \le 1,\ \ x, y \ge 0$ <span class="ref-note">unit 02's running example. Optimum $(2.5, 1.5)$, value 6.5</span><svg viewBox="20 20 350 320" width="170" aria-hidden="true"><line x1="60" y1="24" x2="60" y2="336" class="rule" stroke-width="2"/><line x1="24" y1="300" x2="366" y2="300" class="rule" stroke-width="2"/><polygon points="60,300 120,300 210,210 60,60" class="fill-soft unit" stroke-width="3"/><circle cx="60" cy="300" r="8" class="fill-ink"/><text x="22" y="326" font-size="24">(0,0)</text><circle cx="120" cy="300" r="8" class="fill-ink"/><text x="120" y="326" font-size="24">(1,0)</text><circle cx="210" cy="210" r="11" class="fill-accent"/><text x="222" y="216" font-size="24">(2.5,1.5)</text><circle cx="60" cy="60" r="8" class="fill-ink"/><text x="72" y="66" font-size="24">(0,4)</text></svg></template>
+  <template data-ref="y"><span class="ref-name">the multipliers</span>$y = (1.5,\ 0.5)$ <span class="ref-note">the prices on $x + y \le 4$ and $x - y \le 1$: unit 02's shadow prices, and the KKT multipliers at $(2.5, 1.5)$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<section class="title-slide">
+  <p class="eyebrow">Part VII · coda · the continuous cousin</p>
+  <div class="unit-no">29</div>
+  <h1>Convexity, gradients, and what continuity changes</h1>
+  <p class="lede">Gradients and momentum, projections and linear oracles, and the KKT conditions, which turn out to be the LP duality you already own.</p>
+  <p class="meta"><span>needs 03 (and 02)</span><span>~1½ h slides + 2 h lab</span><span>lab: <code>uv run co lab 29</code></span></p>
+  <aside class="notes">
+    <p>The coda is a deliberate skim: three units that connect the course to continuous optimisation and
+    to machine learning, not a second course. They're placed at the end because, with LP duality and
+    branch and bound behind you, KKT and "learning to branch" are generalisations of things you built.</p>
+    <p>The unit's sentence to remember: complementary slackness is the KKT complementarity condition.
+    Seeing that is most of the unit.</p>
+    <h4>How to read this deck</h4>
+    <p>Three small examples carry it: three gradient steps on a two-variable quadratic with
+    condition number 10; a projection and two Frank–Wolfe steps on a point in three dimensions; and
+    the KKT conditions checked on <span class="ref" data-ref="LP">unit 01's polygon</span>, where the multipliers are the shadow prices of
+    unit 02. Every number was computed with the lab's reference solution. Rates and the lower bound
+    are stated, not proved.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">29 · overview</p>
+  <h2>The route</h2>
+  <div class="cols">
+    <div class="box def"><span class="label">1 · convexity</span>
+      <p class="small">Convex sets and functions, smoothness and strong convexity, subgradients.</p></div>
+    <div class="box def"><span class="label">2 · first-order methods</span>
+      <p class="small">Gradient descent, heavy ball, Nesterov; rates and a lower bound; stochastic gradients.</p></div>
+  </div>
+  <div class="cols">
+    <div class="box def"><span class="label">3 · constraints</span>
+      <p class="small">Projected gradient; Frank–Wolfe, with your simplex method inside.</p></div>
+    <div class="box def"><span class="label">4 · KKT</span>
+      <p class="small">The optimality conditions, and why for an LP they are unit 03.</p></div>
+  </div>
+  <div class="box good"><span class="label">getting around</span>
+    <p class="small">Words with a <span class="term" data-term="KKT conditions">dotted underline</span> are glossary terms: click one for its definition. <kbd>G</kbd> lists every term in the unit, <kbd>N</kbd> shows the notes. Optional extra: <a href="explore.html" target="_blank" rel="noopener">interactive figures</a>, linked from the slides they support by a small ▸ chip; skip them freely.</p>
+  </div>
+  <aside class="notes">
+    <p>The checkpoint: derive the KKT conditions for an LP and show they reduce exactly to complementary
+    slackness. The lab's step 5 computes both as residuals, so you can see they're the same numbers.</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Convexity</h2>
+  <p>Local information that is global.</p>
+</section>
+
+<section>
+  <p class="eyebrow">29 · convexity</p>
+  <h2>Convex, smooth, strongly convex</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">convex function</span></span>
+        <p class="small">$f(\theta x + (1-\theta) y) \le \theta f(x) + (1-\theta) f(y)$. For differentiable $f$, equivalently</p>
+        $$f(y) \ge f(x) + \nabla f(x)^\top (y - x)$$
+        <p class="small">The tangent plane is a global under-estimator, so $\nabla f(x) = 0$ means a <span class="term" data-term="global minimum from a zero gradient">global minimum</span>.</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term">subgradient</span></span>
+        <p class="small">Any $g$ with $f(y) \ge f(x) + g^\top(y - x)$ for all $y$. Unit 11's Lagrangian dual is concave and non-smooth, and subgradient ascent used exactly this.</p>
+      </div>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>property</th><th>definition</th><th>for $\frac12 x^\top Q x$</th></tr></thead>
+        <tbody>
+          <tr><td><span class="term" data-term="\(L\)-smooth">$L$-smooth</span></td><td>$\|\nabla f(x) - \nabla f(y)\| \le L \|x - y\|$</td><td>$L = \lambda_{\max}(Q)$</td></tr>
+          <tr><td><span class="term" data-term="\(\mu\)-strongly convex">$\mu$-strongly convex</span></td><td>$f(y) \ge f(x) + \nabla f(x)^\top(y-x) + \frac\mu2 \|y-x\|^2$</td><td>$\mu = \lambda_{\min}(Q)$</td></tr>
+          <tr><td><span class="term" data-term="condition number \(\kappa\)">condition number</span></td><td>$\kappa = L / \mu$</td><td>eigenvalue spread</td></tr>
+        </tbody>
+      </table>
+      <p class="small">$L$ bounds how far a gradient step can safely go (step $1/L$). $\mu$ bounds how flat the bottom can be. Their ratio $\kappa$ decides how many steps you need.</p>
+      <p class="small">Example: $f = \tfrac12(x^2 + 10y^2)$ has $Q = \mathrm{diag}(1, 10)$, so $L = 10$, $\mu = 1$, $\kappa = 10$: a valley ten times steeper across than along.</p>
+      <p class="small muted">Lab step 1 also builds the <span class="term" data-term="central-difference gradient check">gradient check</span> that every later unit relies on: central differences, error $O(h^2)$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>What continuity changes, compared with Parts I–V. In a combinatorial problem, local optimality
+    (no improving 2-opt move) says nothing about global optimality. For a convex function it says
+    everything. The whole difficulty of unit 26 disappears, and the question becomes purely about speed.</p>
+    <p>LPs are convex too, which is why the simplex method's local optimality test (no improving
+    reduced cost) certifies a global optimum.</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>First-order methods</h2>
+  <p>Only gradients, and how far that gets you.</p>
+</section>
+
+<section>
+  <p class="eyebrow">29 · first-order</p>
+  <h2>Gradient descent, momentum, and the lower bound</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th>method</th><th>update</th><th>rate, $L$-smooth convex</th><th>rate, strongly convex</th></tr></thead>
+        <tbody>
+          <tr><td><span class="term" data-term="gradient descent (GD)">GD</span>, step $1/L$</td><td>$x - \frac1L \nabla f(x)$</td><td>$\frac{L R^2}{2k}$</td><td>$(1 - \frac1\kappa)^k$</td></tr>
+          <tr><td><span class="term" data-term="heavy ball">heavy ball</span> (Polyak 1964)</td><td>$+\ \beta(x_k - x_{k-1})$</td><td>no general guarantee</td><td>$(\frac{\sqrt\kappa - 1}{\sqrt\kappa + 1})^k$ on quadratics</td></tr>
+          <tr><td><span class="term" data-term="Nesterov's accelerated gradient">Nesterov</span> (1983)</td><td>gradient at $x_k + \frac{k-1}{k+2}(x_k - x_{k-1})$</td><td>$\frac{2 L R^2}{(k+1)^2}$</td><td>$(1 - \frac{1}{\sqrt\kappa})^k$ with constant momentum</td></tr>
+        </tbody>
+      </table>
+      <p class="small">$R = \|x_0 - x^*\|$. Heavy ball and Nesterov add <span class="term">momentum</span>; $(1-\frac1\kappa)^k$ is <span class="term">linear convergence</span>. Lab tests check GD's and Nesterov's bounds at <b>every</b> iterate on 12 quadratics.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term" data-term="first-order lower bound">lower bound</span> (Nemirovski & Yudin 1983; Nesterov)</span>
+        <p class="small">Any method whose iterates lie in the span of past gradients has, on some $L$-smooth convex function, error $\Omega(L R^2 / k^2)$ for $k \le n/2$. Nesterov's method is optimal up to constants.</p>
+      </div>
+      <div class="box warn"><span class="label">heavy ball's catch</span>
+        <p class="small">Its optimal parameters need $\mu$ and $L$, and outside quadratics it can fail to converge at all (Lessard, Recht & Packard 2016 give a smooth strongly convex example).</p>
+      </div>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/1" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p>The √κ in accelerated rates is the whole story of momentum. With κ = 10 000 and a target of 1e−8
+    in f, the rates predict about 92 000 iterations for plain GD and about 460 for tuned heavy ball (both
+    printed by <code>then</code>). It measured 542 for heavy ball and over 20 000 for GD.</p>
+    <p><b>Stochastic gradients</b> (the ML case) replace ∇f with an unbiased estimate. The rate drops to
+    O(1/√k) for convex f and O(1/k) for strongly convex f with decreasing steps, which is optimal for
+    general stochastic oracles. For finite sums, variance reduction (SAG, SVRG) recovers linear rates. Unit 30's MLP uses mini-batch gradients.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">29 · first-order · example</p>
+  <h2>Gradient steps, on a κ = 10 quadratic</h2>
+  <p class="small">$f(x, y) = \tfrac12(x^2 + 10y^2)$, gradient $(x,\ 10y)$, $L = 10$, $\mu = 1$. Start at $(1, 1)$, $f = 5.5$.</p>
+  <div class="cols">
+    <div class="box ex"><span class="label">step 1/L = 0.1</span>
+      <table style="margin:0">
+        <thead><tr><th class="num">$k$</th><th>point</th><th class="num">$f$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td>$(1, 1)$</td><td class="num">5.5</td></tr>
+          <tr><td class="num">1</td><td>$(0.9, 0)$</td><td class="num">0.405</td></tr>
+          <tr><td class="num">2</td><td>$(0.81, 0)$</td><td class="num">0.328</td></tr>
+          <tr><td class="num">3</td><td>$(0.729, 0)$</td><td class="num">0.266</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Each step multiplies $x$ by $1 - \tfrac1L = 0.9$ and $y$ by $1 - \tfrac{10}{L} = 0$. The steep direction is solved at once; the flat one crawls at $1 - \tfrac1\kappa$ per step.</p>
+    </div>
+    <div class="box warn"><span class="label">step 0.19, just under 2/L</span>
+      <table style="margin:0">
+        <thead><tr><th class="num">$k$</th><th>point</th><th class="num">$f$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td>$(1, 1)$</td><td class="num">5.5</td></tr>
+          <tr><td class="num">1</td><td>$(0.81, -0.9)$</td><td class="num">4.38</td></tr>
+          <tr><td class="num">2</td><td>$(0.656, 0.81)$</td><td class="num">3.50</td></tr>
+          <tr><td class="num">3</td><td>$(0.531, -0.729)$</td><td class="num">2.80</td></tr>
+        </tbody>
+      </table>
+      <p class="small">A bigger step helps $x$ (factor 0.81) but makes $y$ bounce across the valley (factor $-0.9$). Past $2/L$ it would diverge. This zig-zag is what momentum damps.</p>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/1" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>Why the factors.</b> For a diagonal quadratic, one gradient step with step size $t$ multiplies
+    each coordinate by $1 - t\lambda_i$. With $t = 0.1$: $1 - 0.1 = 0.9$ for $x$ and $1 - 1 = 0$ for $y$.
+    With $t = 0.19$: $0.81$ and $1 - 1.9 = -0.9$. Convergence needs every $|1 - t\lambda_i| &lt; 1$, i.e.
+    $t &lt; 2/L$; the best fixed step balances the extreme eigenvalues, $t = 2/(L + \mu)$, giving factor
+    $(\kappa - 1)/(\kappa + 1) = 9/11$ on both.</p>
+    <p>All iterates are from the reference <code>gradient_descent</code>. The reference
+    <code>nesterov</code> with step 0.1 gives the same first two points and then $(0.709, 0)$ with
+    $f = 0.251$: its momentum has started to push along the flat direction.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">29 · first-order</p>
+  <h2>Measured: iterations to 1e−8</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Lab <code>then</code>, quadratics with n = 100 (relative suboptimality):</p>
+      <table class="dense">
+        <thead><tr><th class="num">κ</th><th class="num">GD</th><th class="num">heavy ball</th><th class="num">Nesterov</th><th class="num">CG</th><th class="num">L-BFGS</th></tr></thead>
+        <tbody>
+          <tr><td class="num">100</td><td class="num">760</td><td class="num"><b>52</b></td><td class="num">435</td><td class="num">103</td><td class="num">94</td></tr>
+          <tr><td class="num">10 000</td><td class="num">&gt; 20 000</td><td class="num"><b>542</b></td><td class="num">12 048</td><td class="num">1 329</td><td class="num">749</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Predicted: GD 917 and 92 099; heavy ball 46 and 461. Nesterov's worst-case bound is 140 043 and 1.3 million: loose by two orders of magnitude.</p>
+      <p class="small"><b><span class="term" data-term="Rosenbrock function">Rosenbrock</span></b> to within 1e−6 of the minimum: GD 34 374, Nesterov 5 019, BFGS 34.</p>
+    </div>
+    <div>
+      <ul class="small">
+        <li><b>Tuned heavy ball wins</b>, and isn't a fair entry: it was given μ and L.</li>
+        <li><b>Nesterov's convex schedule</b> is ahead of GD to 1e−8, but its tail flattens: at κ = 100, GD catches up near machine precision. That schedule doesn't use strong convexity.</li>
+        <li><b><span class="term" data-term="conjugate gradient (CG)">CG</span> and <span class="term">L-BFGS</span></b> build curvature from gradients and need no parameters. On quadratics CG is optimal among Krylov methods.</li>
+      </ul>
+      <p class="small muted">Plot: <code>out/convergence.png</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Unit 28's method applies here too. "Heavy ball is fastest" is a claim about tuned parameters on
+    quadratics, and it won't transfer to a problem whose curvature you don't know. The honest summary: with
+    unknown conditioning and cheap gradients, L-BFGS is the default, and momentum methods matter most when
+    gradients are stochastic or memory is scarce, as in deep learning.</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Constraints</h2>
+  <p>Project, or ask a linear oracle.</p>
+</section>
+
+<section>
+  <p class="eyebrow">29 · constraints</p>
+  <h2>Projected gradient and Frank–Wolfe</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">projected gradient</span></span>
+        <p class="small">$x_{k+1} = \Pi_C(x_k - \frac1L \nabla f(x_k))$, with <span class="term" data-term="projection \(\Pi_C\)">projection</span> $\Pi_C$. Same rates as GD, if projecting is cheap. Onto the <span class="term" data-term="probability simplex">simplex</span>: sort, prefix sums, a threshold, $O(n \log n)$ (lab step 3).</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term" data-term="Frank–Wolfe (conditional gradient)">Frank–Wolfe</span> (1956)</span>
+        <p class="small">$s_k = \arg\min_{s \in C} \nabla f(x_k)^\top s$ (an LP), then $x_{k+1} = x_k + \frac{2}{k+2}(s_k - x_k)$.</p>
+        <ul class="small">
+          <li>No projection, only a <span class="term" data-term="linear minimization oracle">linear oracle</span>: your unit-02 simplex method.</li>
+          <li>A free certificate, the <span class="term">Frank–Wolfe gap</span>: $g_k = \nabla f(x_k)^\top(x_k - s_k) \ge f(x_k) - f^*$.</li>
+          <li>Rate $O(LD^2/k)$, and no faster in general.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <p class="small">Lab <code>then</code>, least squares on the simplex, n = 200, f − f*:</p>
+      <table class="dense">
+        <thead><tr><th>method</th><th class="num">100 it.</th><th class="num">1 000 it.</th><th class="num">5 000 it.</th></tr></thead>
+        <tbody>
+          <tr><td>projected gradient</td><td class="num">6.9e−4</td><td class="num">8.8e−11</td><td class="num">at solver precision</td></tr>
+          <tr><td>Frank–Wolfe</td><td class="num">1.0e−1</td><td class="num">3.5e−3</td><td class="num">1.9e−4</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Over a random polytope (n = 30), your simplex method as the oracle cost 2.1 ms per call, HiGHS 1.2 ms, with identical iterates.</p>
+      <div class="box good"><span class="label">the handshake</span>
+        <p class="small">Frank–Wolfe is where the two halves of this course meet: a continuous loop whose inner step is a combinatorial optimisation. Over matroid, flow or matching polytopes, the oracle is units 13–15.</p>
+      </div>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/2" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p>The measurement is a fair warning. When projection is cheap (a simplex, a box, a ball), projected
+    gradient is simply faster. Frank–Wolfe earns its place where projection is expensive and linear
+    optimisation is cheap: the convex hull of spanning trees, perfect matchings or permutations, where
+    projecting is a hard quadratic problem and the linear oracle is Kruskal, blossom or Hungarian.</p>
+    <p>"Frank–Wolfe iterates are sparse" is often quoted. On the lab's instance, after 1 000 iterations,
+    it had 116 nonzeros against projected gradient's 107. Sparsity after k iterations is at most k + 1
+    vertices, which is only a strong statement when k is small relative to n.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">29 · constraints · example</p>
+  <h2>Projection and Frank–Wolfe, on one point</h2>
+  <p class="small">Find the point of $\{x \ge 0,\ x_1 + x_2 + x_3 \le 1\}$ closest to $p = (0.8,\ 0.6,\ -0.2)$: minimize $f(x) = \tfrac12\|x - p\|^2$.</p>
+  <div class="cols wide-right">
+    <div class="box ex"><span class="label">projection onto the simplex, in one shot</span>
+      <p class="small">Sorted: $0.8, 0.6, -0.2$. Keep the top two and shift them down equally until they sum to 1: $\theta = (0.8 + 0.6 - 1)/2 = 0.2$.</p>
+      <p class="small">$p - 0.2 = (0.6,\ 0.4,\ -0.4)$, negatives clipped to 0: $\Pi(p) = (0.6,\ 0.4,\ 0)$, with $f = 0.06$.</p>
+      <p class="small">Keeping all three would need $\theta = (1.2 - 1)/3 = 0.2/3$ and leave the third coordinate negative, so two is right.</p>
+    </div>
+    <div class="box ex"><span class="label">Frank–Wolfe from the origin</span>
+      <table style="margin:0">
+        <thead><tr><th class="num">$k$</th><th>$x_k$</th><th>$x_k - p$</th><th>$s_k$</th><th class="num">gap</th><th class="num">$f$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td>$(0, 0, 0)$</td><td>$(-0.8, -0.6, 0.2)$</td><td>$(1, 0, 0)$</td><td class="num">0.80</td><td class="num">0.52</td></tr>
+          <tr><td class="num">1</td><td>$(1, 0, 0)$</td><td>$(0.2, -0.6, 0.2)$</td><td>$(0, 1, 0)$</td><td class="num">0.80</td><td class="num">0.22</td></tr>
+          <tr><td class="num">2</td><td>$(\tfrac13, \tfrac23, 0)$</td><td>$(-0.47, 0.07, 0.2)$</td><td>$(1, 0, 0)$</td><td class="num">0.36</td><td class="num">0.13</td></tr>
+        </tbody>
+      </table>
+      <p class="small">The oracle just picks the most negative gradient entry: a corner. Steps $\tfrac22$, then $\tfrac23$. The gap always bounds $f - f^* $: at $k = 2$, $0.13 - 0.06 = 0.07 \le 0.36$.</p>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/2" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>The projection.</b> The reference <code>project_simplex</code> returns $(0.6, 0.4, 0)$. Here the
+    constraint is $\sum x \le 1$ rather than $= 1$, but $p$'s positive part sums to 1.4, so the
+    closest point has the sum at 1 anyway and the two answers agree.</p>
+    <p><b>Frank–Wolfe.</b> Over this polytope the vertices are the origin and the three unit vectors;
+    minimising $g^\top s$ picks the unit vector with the most negative $g_i$, or the origin if none is
+    negative. Step 0: gap $g^\top(x_0 - s_0) = 0 - (-0.8) = 0.8$; step size $2/2 = 1$ jumps to
+    $(1,0,0)$. Step 1: gap $0.2 - (-0.6) = 0.8$; step size $2/3$ gives
+    $(1,0,0) + \tfrac23((0,1,0) - (1,0,0)) = (\tfrac13, \tfrac23, 0)$. Step 3 (not in the table) reaches
+    $(\tfrac23, \tfrac13, 0)$ with $f = 0.064$: the iterates zig-zag between corners toward $(0.6, 0.4, 0)$.</p>
+    <p>All values from the reference <code>frank_wolfe</code> with <code>simplex_lmo([[1,1,1]], [1])</code>,
+    so the oracle really is unit 02's simplex method.</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>KKT</h2>
+  <p>You already know these.</p>
+</section>
+
+<section>
+  <p class="eyebrow">29 · KKT</p>
+  <h2>The KKT conditions, and the LP case</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\min f(x)$ s.t. $g_i(x) \le 0$, with $f$, $g_i$ convex and a Slater point (<span class="term" data-term="Slater's condition">Slater's condition</span>). $x^*$ is optimal iff there are <span class="term" data-term="Lagrange multiplier \(\lambda_i\)">multipliers</span> $\lambda \ge 0$ with the <span class="term">KKT conditions</span></p>
+      $$\begin{aligned} &\nabla f(x^*) + \textstyle\sum_i \lambda_i \nabla g_i(x^*) = 0 \\ &g_i(x^*) \le 0,\ \ \lambda_i \ge 0 \\ &\lambda_i\, g_i(x^*) = 0 \end{aligned}$$
+      <p class="small muted">Karush (1939); Kuhn & Tucker (1951). With linear constraints no Slater point is needed. The lines are <span class="term">stationarity</span>, feasibility and <span class="term">complementarity</span>.</p>
+    </div>
+    <div>
+      <div class="box"><span class="label">the LP case</span>
+        <p class="small">For $\max c^\top x$, $Ax \le b$, $x \ge 0$: multipliers $y \ge 0$ for $Ax \le b$ and $w \ge 0$ for $-x \le 0$. Stationarity: $c = A^\top y - w$, so $w = A^\top y - c \ge 0$: <b>dual feasibility</b>. Complementarity: $y_i (b - Ax)_i = 0$ and $x_j (A^\top y - c)_j = 0$: <b>complementary slackness</b>, exactly unit 03's certificate.</p>
+      </div>
+      <p class="small">Lab <code>then</code>, HiGHS on an LP with m = 30, n = 50: <span class="term" data-term="KKT residuals">residuals</span> 3.6e−13, 0, 3.3e−13, 1.8e−13. <b>Unit 03's exact certificate rejects the same pair</b> rounded to 9 decimals: "primal constraint 12 violated".</p>
+      <div class="box warn"><span class="label">in floating point</span>
+        <p class="small">"Optimal" means "KKT residuals below a tolerance". Every solver has one. An exact certificate needs exact arithmetic, as unit 03 used.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The derivation is the checkpoint, so do it on paper before reading the box. Write max c·x as
+    min −c·x, form the Lagrangian with y for the constraints Ax ≤ b and w for the sign constraints, set the gradient to
+    zero, and read off the conditions. The only extra step is noticing that w is determined by y, so the
+    conditions are about (x, y) alone.</p>
+    <p>For <b>QPs</b> the same conditions hold with stationarity Qx + q + Aᵀλ = 0. Lab step 5 checks CVXPY's primal
+    and dual against them. Unit 31 differentiates through exactly these equations to get gradients of an
+    argmin.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">29 · KKT · example</p>
+  <h2>KKT, on <span class="ref" data-ref="LP">unit 01's polygon</span></h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\max 2x + y$ over $x + y \le 4$, $x - y \le 1$, $x, y \ge 0$. Optimum $(2.5, 1.5)$, value 6.5. Try multipliers $y = (1.5,\ 0.5)$ on the two constraints.</p>
+      <div class="box ex"><span class="label">the four checks</span>
+        <table style="margin:0">
+          <thead><tr><th>condition</th><th>on the example</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>primal feasible</td><td>$4 \le 4$, $\ 1 \le 1$, $\ x, y \ge 0$</td><td>✓</td></tr>
+            <tr><td>stationarity (dual feasible)</td><td>$1.5\,(1,1) + 0.5\,(1,-1) = (2, 1) = c$</td><td>✓</td></tr>
+            <tr><td>complementarity, constraints</td><td>both constraints tight: slack 0 × price</td><td>✓</td></tr>
+            <tr><td>complementarity, variables</td><td>$x, y &gt; 0$ and their reduced costs are 0</td><td>✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the same <span class="ref" data-ref="y">multipliers</span> at a wrong point</span>
+        <p class="small">At the corner $(1, 0)$: constraint $x + y \le 4$ has slack 3 but price 1.5. Complementarity residual $1.5 \times 3 = 4.5$. Everything else is fine.</p>
+        <p class="small">So KKT rejects $(1, 0)$ for exactly the reason unit 03's certificate would: a priced constraint with room left.</p>
+      </div>
+      <p class="small"><span class="ref" data-ref="y">The multipliers</span> $1.5$ and $0.5$ are unit 02's shadow prices: loosening $x + y \le 4$ by one unit raises the optimum by 1.5. In the continuous world they are called Lagrange multipliers, and they are the same numbers.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Stationarity, written out.</b> The implied multipliers for $x \ge 0$ and $y \ge 0$ are
+    $A^\top y - c = (1.5 + 0.5 - 2,\ 1.5 - 0.5 - 1) = (0, 0)$. They are nonnegative (dual feasible), and
+    they multiply $x = 2.5$ and $y = 1.5$ to zero (complementarity for the variables). The constraints' slacks are
+    $4 - 4 = 0$ and $1 - 1 = 0$, so complementarity for the constraints holds whatever the prices.</p>
+    <p>The reference <code>lp_kkt_residuals</code> returns all four residuals 0 at $(2.5, 1.5)$, and
+    <code>slack_rows = 4.5</code> at $(1, 0)$ with the same <span class="ref" data-ref="y">$y$</span>. This is the checkpoint derivation run on
+    numbers: KKT for an LP is complementary slackness.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">29 · lab</p>
+  <h2>Lab 29 — what you build</h2>
+  <div class="lab">
+    <span class="label">about 2 hours · uv run co lab 29</span>
+    <ol>
+      <li><b>Test functions</b> and a central-difference gradient check.</li>
+      <li><b>Gradient descent, heavy ball, Nesterov.</b></li>
+      <li><b>Projection onto the simplex</b>, and projected gradient.</li>
+      <li><b>Frank–Wolfe</b> with your unit-02 simplex method as the oracle.</li>
+      <li><b>KKT residuals</b> for LPs and QPs.</li>
+    </ol>
+  </div>
+<pre><code class="language-bash">uv run co test 29
+uv run co then 29     # rates vs scipy · Rosenbrock · simplex least squares · FW over a polytope · KKT</code></pre>
+  <aside class="notes">
+    <p>The tests check convergence bounds at every iterate rather than just the final point. A method
+    that converges but violates its bound along the way (for example with the wrong momentum sequence)
+    fails, which is the point of knowing the rate.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">29 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <ul>
+      <li>All five lab steps are ✓.</li>
+      <li>You can derive the KKT conditions for a linear program and show they reduce exactly to complementary slackness from unit 03.</li>
+      <li>You can say when Frank–Wolfe beats projected gradient, and when it doesn't.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Boyd & Vandenberghe, <em>Convex Optimization</em> (2004), ch. 5, 9.<br>
+      Nesterov, <em>Lectures on Convex Optimization</em> (2018).<br>
+      Bubeck, <em>Found. Trends ML</em> 8 (2015).<br>
+      Jaggi, <em>ICML</em> 2013.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>30</b> automatic differentiation: where the gradients come from · <b>31</b> where discrete meets differentiable.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>This unit assumed gradients were given. Unit 30 builds the machine that computes them for any
+    program, in time proportional to evaluating it once. That's the fact that makes modern ML possible.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

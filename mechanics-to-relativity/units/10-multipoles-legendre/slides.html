@@ -1,0 +1,1532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 · Real planets are not points: multipoles, Legendre, and secular perturbation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="a">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="earth"><span class="ref-name">the oblate Earth</span>Not a ball: an equatorial bulge, flattening $f = 1/298.257$, equatorial radius $R = 6378.137\ \mathrm{km}$, $GM = 3.986004418\times10^{14}\ \mathrm{m^3\,s^{-2}}$, and $J_2 = 1.08263\times10^{-3}$. <span class="ref-note">$J_2$ is the largest non-spherical gravity coefficient in the solar system by effect. The next two are $J_3 \approx -2.5\times10^{-6}$ and $J_4 \approx -1.6\times10^{-6}$, roughly $430$ and $670$ times smaller</span><svg viewBox="0 0 230 200" width="150" aria-hidden="true"><ellipse cx="115" cy="100" rx="82" ry="62" class="fill-soft unit" stroke-width="3"/><circle cx="115" cy="100" r="62" fill="none" class="rule" stroke-width="2" stroke-dasharray="5 4"/><line x1="115" y1="100" x2="115" y2="38" class="accent" stroke-width="2"/><line x1="115" y1="100" x2="197" y2="100" class="accent" stroke-width="2"/><text x="120" y="60" font-size="15" class="mono">c</text><text x="150" y="94" font-size="15" class="mono">R</text><circle cx="115" cy="100" r="3" class="fill-ink"/></svg></template>
+  <template data-ref="sat"><span class="ref-name">the satellite</span>A circular orbit at $800\ \mathrm{km}$ altitude: $a = 7178.137\ \mathrm{km}$, $e = 0$, mean motion $n = \sqrt{GM/a^3} = 1.038129\times10^{-3}\ \mathrm{s^{-1}}$, period $100.87$ min, $14.275$ orbits a day. <span class="ref-note">Its inclination is the number this deck is built to reach. Asking that its orbital plane turn once a year fixes $i = 98.60^\circ$ — the inclination of every sun-synchronous satellite ever flown</span><svg viewBox="0 0 230 200" width="150" aria-hidden="true"><ellipse cx="115" cy="100" rx="52" ry="40" class="fill-soft unit" stroke-width="2.5"/><circle cx="115" cy="100" r="86" fill="none" class="accent" stroke-width="2.5" stroke-dasharray="7 5"/><circle cx="176" cy="39" r="7" class="fill-accent"/><line x1="115" y1="100" x2="176" y2="39" class="rule" stroke-width="1.5"/><text x="150" y="88" font-size="15" class="mono soft">a</text></svg></template>
+  <template data-ref="J2term"><span class="ref-name">the $J_2$ term</span>$\Phi_2(r,\theta) = \dfrac{GM J_2 R^2}{r^3}\,P_2(\cos\theta)$, with $\theta$ the colatitude from the spin axis. <span class="ref-note">Equivalently $\Phi_2 = G(C-A)P_2(\cos\theta)/r^3$, where $C$ and $A$ are the polar and equatorial moments of inertia: $J_2 = (C-A)/MR^2$. At the satellite it is $8.5\times10^{-4}$ of the monopole term and produces $9.9\ \mathrm{mm\,s^{-2}}$ of acceleration</span></template>
+  <template data-ref="frame"><span class="ref-name">the orbit frame</span>$\hat{\mathbf H} = \vec L/L$ the orbit normal, $\hat{\mathbf n}$ the ascending node (where the orbit crosses the equator going north), $\hat{\mathbf m} = \hat{\mathbf H}\times\hat{\mathbf n}$. <span class="ref-note">Right-handed: $\hat{\mathbf n}\times\hat{\mathbf m} = \hat{\mathbf H}$. Inclination $\cos i = \hat{\mathbf H}\cdot\hat{\mathbf z}$; $\Omega$ is the angle of $\hat{\mathbf n}$ in the equator; $u$, the argument of latitude, is the angle of $\vec r$ from $\hat{\mathbf n}$, so $\vec r = r(\cos u\,\hat{\mathbf n} + \sin u\,\hat{\mathbf m})$ and $z = r\sin i\sin u$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part A · the equation of motion · spine</p>
+  <div class="unit-no">10</div>
+  <h1>Real planets are not points: multipoles, Legendre, and secular perturbation</h1>
+  <p class="lede">One family of polynomials, one expansion of $1/|\vec r - \vec r\,{}'|$, and the first
+  perturbation calculation in the course — which predicts the inclination of a real satellite.</p>
+  <p class="meta"><span>needs 05, 08</span><span>~2½ h slides + 5 h problems</span><span>problems: <code>./mr problems 10</code></span></p>
+  <aside class="notes">
+    <p>Unit 05 gave a ball its field, and unit 08 gave a point mass its orbits. Between
+    them sits the fact that neither idealisation is true: the Earth is flattened by
+    $1$ part in $298$, and the orbit of anything close to it is not a closed ellipse.
+    This unit is the repair, and the repair needs two pieces of mathematics that arrive
+    together.</p>
+    <p>The first is the Legendre polynomials. They are not introduced as "solutions of
+    Legendre's equation" — that is a theorem about them, proved in section 1. They are
+    introduced as the Taylor coefficients of one explicit function, $(1 - 2xt +
+    t^2)^{-1/2}$, because that function is $r/|\vec r - \vec r\,{}'|$ in disguise, and
+    everything else about them falls out of that.</p>
+    <p>The second is perturbation theory for ODEs: osculating elements, and averaging.
+    It is the idea that unit 21 develops properly with asymptotic series, and that
+    unit 37 spends on Mercury. Here it is done once, concretely, on one problem whose
+    answer is checkable against a satellite catalogue.</p>
+    <h4>How to read this deck</h4>
+    <p>Sections 1 and 2 are mathematics with a physical target: the generating
+    function, the polynomials, and the multipole expansion of a potential. Section 3
+    builds the coordinate system perturbation theory is done in. Section 4 is the
+    calculation: the $J_2$ term of the oblate Earth, the torque it exerts on an orbit,
+    and $\dot\Omega$. Section 5 returns to tides as the $\ell = 2$ term and to why the
+    Moon keeps one face towards us.</p>
+    <p>Terms with a dotted underline are glossary entries — click one, or press
+    <kbd>G</kbd> for the whole list. A solid underline is a piece of the running example;
+    hover it. <kbd>N</kbd> opens these notes, where the longer proofs live under
+    <b>Full proof</b>; <kbd>R</kbd> stacks the deck into one readable page.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · overview</p>
+  <h2>One flattened planet, five sections</h2>
+  <div class="cols">
+    <div>
+      <p><span class="ref" data-ref="earth">The Earth is not a ball.</span> It is flattened by $f = 1/298.257$, and the departure of its potential from $-GM/r$ is one part in a thousand.</p>
+      <p class="small">Ignorable? No: it turns <span class="ref" data-ref="sat">a satellite's</span> orbital plane through $360^\circ$ a year. Small and <em>persistent</em> beats large and oscillating.</p>
+      <div class="box good"><span class="label">getting around</span>
+        <p class="small">A <span class="term" data-term="Legendre polynomials">dotted underline</span> is a glossary term — click it, or press <kbd>G</kbd>. A solid underline is the running example: hover it. <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">five sections</span>
+        <ol>
+          <li class="small"><b>The generating function.</b> $(1-2xt+t^2)^{-1/2}$, its coefficients $P_n$, and everything they satisfy.</li>
+          <li class="small"><b>The multipole expansion.</b> Monopole, dipole, quadrupole, each without coordinates. Then <span class="ref" data-ref="J2term">$J_2$</span>.</li>
+          <li class="small"><b>Osculating elements.</b> Six numbers constant for a Kepler orbit, allowed to vary. Secular versus periodic.</li>
+          <li class="small"><b>The precession.</b> $\dot\Omega = -\tfrac32 J_2 (R/a)^2 n\cos i/(1-e^2)^2$, and hence <span class="ref" data-ref="sat">$i = 98.60^\circ$</span>.</li>
+          <li class="small"><b>Tides again.</b> The $\ell = 2$ term, two bulges in one line, and the Moon's locked face.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The target is a single number and it is worth stating now, so that every step can
+    be judged by whether it is getting closer to it. A satellite in a circular orbit
+    $800\ \mathrm{km}$ up, in a plane inclined at $98.60^\circ$ to the equator, has an
+    orbital plane that turns eastward at exactly $0.9856^\circ$ per day. That is
+    $360^\circ$ in a year, which means the plane keeps a fixed angle to the direction of
+    the Sun, which means the satellite crosses the equator at the same local solar time
+    on every pass, for years. Every imaging and weather satellite that needs consistent
+    lighting flies there. The number comes out of $J_2$ and nothing else.</p>
+    <p>Why "small and persistent beats large and oscillating" is the whole moral of
+    sections 3 and 4: the $J_2$ perturbation makes the node wobble back and forth with
+    amplitude $0.0055^\circ$, twice per orbit, and it also makes it drift by
+    $0.069^\circ$ per orbit, always the same way. After a hundred orbits the wobble is
+    still $0.0055^\circ$ and the drift is $6.9^\circ$. Averaging is the technique for
+    throwing away the first and keeping the second, and the point of section 3 is to say
+    precisely what is being thrown away.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The generating function</h2>
+  <p>One function of two variables, and a family of polynomials that is entirely determined by it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">10 · generating function</p>
+  <h2>Where the series has to come from</h2>
+  <div class="cols wide-left">
+    <div>
+      <p>The potential of an extended body is unit 05's integral</p>
+      $$\Phi(\vec r) = -G\int_B \frac{\rho(\vec r\,{}')}{|\vec r - \vec r\,{}'|}\,\mathrm{d}^3r' ,$$
+      <p class="small">and for a body that is not a sphere, symmetry does not evaluate it. So expand instead. Write $r' = |\vec r\,{}'|$, $r = |\vec r\,|$, and let $\psi$ be the angle between them. The law of cosines gives</p>
+      $$|\vec r - \vec r\,{}'|^2 = r^2 - 2rr'\cos\psi + r'^2 ,$$
+      $$\frac{1}{|\vec r - \vec r\,{}'|} = \frac1r\big(1 - 2xt + t^2\big)^{-1/2},$$
+      <p class="small">with $x = \cos\psi \in [-1,1]$ and $t = r'/r$. For a field point outside a ball about the origin that encloses the body, $t &lt; 1$: a small parameter, handed to us by geometry.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 250" width="270" role="img" aria-label="a body, a source point r-prime inside it, a field point r outside, and the angle psi between them">
+        <ellipse cx="90" cy="150" rx="66" ry="50" class="fill-soft unit" stroke-width="2.5"/>
+        <circle cx="90" cy="150" r="4" class="fill-ink"/>
+        <circle cx="118" cy="128" r="5" class="fill-accent"/>
+        <circle cx="248" cy="52" r="6" class="fill-ink"/>
+        <line x1="90" y1="150" x2="118" y2="128" class="accent" stroke-width="2.5"/>
+        <line x1="90" y1="150" x2="248" y2="52" class="ink" stroke-width="2"/>
+        <line x1="118" y1="128" x2="248" y2="52" class="rule" stroke-width="2" stroke-dasharray="5 4"/>
+        <path d="M 112 143 A 26 26 0 0 0 116 133" fill="none" class="ink" stroke-width="1.5"/>
+        <text x="100" y="158" font-size="15" class="mono">ψ</text>
+        <text x="118" y="112" font-size="15" class="mono">r′</text>
+        <text x="176" y="96" font-size="15" class="mono">r</text>
+        <text x="196" y="72" font-size="14" class="mono soft">|r−r′|</text>
+        <text x="40" y="212" font-size="15">the body B</text>
+      </svg>
+      <p class="cap">$\vec r\,{}'$ runs over the body, $\vec r$ is fixed outside it. Only the ratio $t = r'/r$ and the angle $\psi$ appear.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Two things are worth noticing before any mathematics happens. First, the
+    integrand depends on $\vec r$ and $\vec r\,{}'$ only through $r$, $r'$ and the angle
+    between them — that is rotational invariance of the Newtonian kernel, and it is why
+    a one-variable family of polynomials can carry the whole angular dependence.</p>
+    <p>Second, $t = r'/r$ is genuinely small in every application in this unit. For a
+    satellite at $a = 7178\ \mathrm{km}$ and a source point inside the Earth,
+    $t \le 6378/7178 = 0.889$; for the Moon seen from the Earth's interior,
+    $t \le 6378/384400 = 0.0166$. The expansion converges in both cases, but it is only
+    <em>useful</em> in the second: the first needs the $n$-th term to be suppressed by
+    something other than $t^n$, and it is — by the smallness of the body's own
+    asphericity, which is what $J_2 \sim 10^{-3}$ measures.</p>
+    <p>The law of cosines here is just $|\vec r - \vec r\,{}'|^2 = (\vec r - \vec r\,{}')\cdot(\vec r - \vec r\,{}')
+    = r^2 - 2\vec r\cdot\vec r\,{}' + r'^2$ with $\vec r\cdot\vec r\,{}' = rr'\cos\psi$, which is
+    unit 04's definition of the angle between two vectors, not a separate fact.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · generating function</p>
+  <h2>The definition, and that it is legitimate</h2>
+  <div class="box def"><span class="label">definition · the <span class="term">generating function</span></span>
+    <p>For $x \in [-1,1]$ and $|t| &lt; 1$, set $\;g(x,t) = (1 - 2xt + t^2)^{-1/2}$, the positive square root. The <span class="term">Legendre polynomials</span> $P_n$ are defined by</p>
+    $$g(x,t) = \sum_{n=0}^{\infty} P_n(x)\,t^n .$$
+  </div>
+  <div class="cols">
+    <div class="box thm"><span class="label">lemma · the series exists</span>
+      <p class="small">For $|t| &lt; 1$ the series converges to $g$, and $|P_n(x)| \le 1$ on $[-1,1]$. The key is the factorisation, with $x = \cos\varphi$,</p>
+      <p class="small">$1 - 2xt + t^2 = (1 - te^{i\varphi})(1 - te^{-i\varphi}).$</p>
+      <p class="proof-pointer">proof in the notes (N)</p>
+    </div>
+    <div class="box thm"><span class="label">lemma · $P_n$ is a polynomial</span>
+      <p class="small">$P_n$ is a polynomial of degree exactly $n$, with leading coefficient $\binom{2n}{n}2^{-n}$, and it has the parity of $n$: $P_n(-x) = (-1)^nP_n(x)$.</p>
+      <p class="proof-pointer">both proved in the notes (N)</p>
+    </div>
+  </div>
+  <p class="small muted">A definition by generating function names $P_n$ as a Taylor coefficient, which always exists. The first lemma is what makes the series <em>equal</em> to $g$ out to $|t| &lt; 1$, which the physics needs.</p>
+  <aside class="notes">
+    <p>First, what the definition means. For real $t\in(-1,1)$ and $x\in[-1,1]$ the
+    quadratic $1-2xt+t^2 \ge 1 - 2|t| + t^2 = (1-|t|)^2 &gt; 0$, so $g$ is a smooth function
+    of $t$ there, and $P_n(x) := \frac1{n!}\partial_t^ng(x,0)$ is its $n$-th Taylor
+    coefficient. What has to be proved is that the Taylor series actually sums to $g$ on
+    the whole interval $|t| &lt; 1$ — the multipole expansion needs $t$ as large as
+    $0.889$ — and that $|P_n| \le 1$.</p>
+    <h4>Full proof: convergence on $|t| &lt; 1$ and the bound</h4>
+    <p>Let $c_k = \binom{2k}{k}4^{-k}$, the coefficients of the binomial series
+    $(1-s)^{-1/2} = \sum_k c_ks^k$ for real $|s| &lt; 1$ (single-variable real analysis).
+    Squaring that series and comparing with $(1-s)^{-1} = \sum s^k$ gives the coefficient
+    identity $\sum_{j+k=n}c_jc_k = 1$ for every $n$, since two power series that agree on
+    an interval have equal coefficients.</p>
+    <p>Now let $w$ be complex with $|w| &lt; 1$ — complex numbers purely as algebra, in unit
+    06's sense. The series $h(w) = \sum_kc_kw^k$ converges absolutely, because
+    $\sum c_k|w|^k$ does. Absolutely convergent series may be multiplied term by term
+    (Cauchy product), so the coefficient identity gives $h(w)^2 = \sum_n w^n = 1/(1-w)$.</p>
+    <p>Put $w = te^{i\varphi}$ with $t\in(-1,1)$. The $c_k$ are real, so
+    $h(te^{-i\varphi}) = \overline{h(te^{i\varphi})}$ and the product
+    $h(te^{i\varphi})h(te^{-i\varphi}) = |h(te^{i\varphi})|^2$ is real and $\ge 0$. Its
+    square is $\frac{1}{(1-te^{i\varphi})(1-te^{-i\varphi})} = \frac1{1-2t\cos\varphi+t^2}$, by
+    the factorisation, which is checked by multiplying out:
+    $1 - t(e^{i\varphi}+e^{-i\varphi}) + t^2 = 1 - 2t\cos\varphi + t^2$. A non-negative real
+    number whose square is $1/(1-2xt+t^2)$ is $g(x,t)$. So, multiplying the two absolutely
+    convergent series,</p>
+    <p>$g(\cos\varphi,t) = \sum_n t^n\,p_n(\varphi),\qquad p_n(\varphi) = \sum_{j+k=n}c_jc_k\,e^{i(j-k)\varphi} = \sum_{j+k=n}c_jc_k\cos\big((j-k)\varphi\big)$,</p>
+    <p>valid for every $|t| &lt; 1$. A convergent power series is the Taylor series of its
+    sum, so $p_n(\varphi) = P_n(\cos\varphi)$. That proves convergence on the whole
+    interval, and it proves the bound at once:
+    $|P_n(\cos\varphi)| \le \sum_{j+k=n}c_jc_k = 1$.</p>
+    <h4>Full proof: degree and parity</h4>
+    <p>The binomial series $(1-u)^{-1/2} = \sum_{k\ge0}c_ku^k$ with
+    $c_k = \binom{2k}{k}4^{-k} &gt; 0$ converges for $|u| &lt; 1$. Put $u = t(2x - t)$, which is
+    small when $t$ is:
+    $$g = \sum_k c_k\,t^k(2x-t)^k = \sum_k c_k \sum_{j=0}^k \binom kj (2x)^{k-j}(-1)^j t^{k+j}.$$
+    The term $t^{k+j}x^{k-j}$ contributes to $t^n$ when $k+j = n$, and then the power of
+    $x$ is $k - j = n - 2j$. So $P_n$ is a sum of powers $x^{n}, x^{n-2},\dots$, which gives
+    both the degree bound and the parity. The top power comes from $j = 0$, $k = n$, with
+    coefficient $c_n2^n = \binom{2n}{n}2^{-n} \ne 0$, so the degree is exactly $n$.</p>
+    <p>The rearrangement of the double sum is legitimate because for $|t|$ small enough all
+    the terms are dominated by $\sum_k c_k(|t|(2+|t|))^k$, which converges — absolute
+    convergence permits reordering.</p>
+    <p>The bound $|P_n| \le 1$ is what makes term-by-term integration of the multipole
+    series legitimate in section 2: it turns every series in $P_n(x)t^n$ into one
+    dominated by the geometric series $\sum|t|^n$, whatever $x$ is.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · generating function</p>
+  <h2>Everything from one derivative</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Bonnet's recurrence</span></span>
+        <p>$(n+1)P_{n+1}(x) = (2n+1)\,x\,P_n(x) - n\,P_{n-1}(x)$, with $P_0 = 1$, $P_1 = x$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\partial_t g = (x-t)(1-2xt+t^2)^{-3/2}$, so $(1-2xt+t^2)\,\partial_t g = (x-t)\,g$. Put in the series and read off the coefficient of $t^n$:</p>
+        <p class="small">$(n{+}1)P_{n+1} - 2xnP_n + (n{-}1)P_{n-1} = xP_n - P_{n-1}$,</p>
+        <p class="small">which rearranges to the claim. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">two values, free</span>
+        <p class="small">$x = 1$: $\;g = (1-t)^{-1} = \sum t^n$, so $P_n(1) = 1$ for every $n$.</p>
+        <p class="small">$x = -1$: $\;g = (1+t)^{-1}$, so $P_n(-1) = (-1)^n$.</p>
+        <p class="small">These fix the normalisation once and for all, and they are the reason $P_n(1) = 1$ rather than some other convention.</p>
+      </div>
+      <p class="small muted">$P_0$ and $P_1$ come from expanding $g$ by hand to first order; the recurrence supplies the rest with no further analysis.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The coefficient extraction, in full.</b> $\partial_t g = \sum_n nP_nt^{n-1}$, so</p>
+    <p>$(1-2xt+t^2)\sum_n nP_nt^{n-1} = \sum_n nP_nt^{n-1} - 2x\sum_n nP_nt^{n} + \sum_n nP_nt^{n+1}$,</p>
+    <p>whose $t^n$ coefficient is $(n+1)P_{n+1} - 2xnP_n + (n-1)P_{n-1}$. On the right,
+    $(x-t)\sum_nP_nt^n$ has $t^n$ coefficient $xP_n - P_{n-1}$. Equate, and collect the
+    $xP_n$ terms: $(n+1)P_{n+1} = (2n+1)xP_n - nP_{n-1}$.</p>
+    <p><b>Getting $P_0$ and $P_1$.</b> $(1-2xt+t^2)^{-1/2} = 1 + \tfrac12(2xt - t^2) + O(t^2)
+    = 1 + xt + O(t^2)$, so $P_0 = 1$ and $P_1 = x$. The recurrence at $n=1$ then gives
+    $2P_2 = 3x\cdot x - 1$, and so on.</p>
+    <p>Recurrences of this shape — three consecutive members, coefficients linear in the
+    index — are not an accident of this family. Unit 19 will show that every family of
+    polynomials orthogonal with respect to a weight on an interval satisfies one, for a
+    reason with one line of proof: $xP_n$ has degree $n+1$, so it is a combination of
+    $P_0,\dots,P_{n+1}$, and orthogonality kills all but three of the coefficients.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · generating function · example</p>
+  <h2>The first five, and three checks</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 1 · running the recurrence</span>
+        <p class="small">$P_0 = 1$, $P_1 = x$. Then, term by term:</p>
+        <p class="small">$n=1$: $2P_2 = 3x\,P_1 - 1\,P_0 = 3x^2 - 1$, so $P_2 = \tfrac12(3x^2-1)$.</p>
+        <p class="small">$n=2$: $3P_3 = 5x\,P_2 - 2P_1 = \tfrac52(3x^3 - x) - 2x = \tfrac{15x^3 - 5x - 4x}{2}$, so $P_3 = \tfrac12(5x^3 - 3x)$.</p>
+        <p class="small">$n=3$: $4P_4 = 7x\,P_3 - 3P_2 = \tfrac72(5x^4-3x^2) - \tfrac32(3x^2-1) = \tfrac{35x^4 - 21x^2 - 9x^2 + 3}{2}$, so $P_4 = \tfrac18(35x^4 - 30x^2 + 3)$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">three checks</span>
+        <p class="small"><b>Value at 1.</b> $P_2(1) = \tfrac12(3-1) = 1$; $P_3(1) = \tfrac12(5-3)=1$; $P_4(1) = \tfrac18(35-30+3) = 1$. </p>
+        <p class="small"><b>Parity.</b> $P_2, P_4$ even; $P_1, P_3$ odd — as the lemma requires, and so $P_3(0) = 0$, $P_2(0) = -\tfrac12$, $P_4(0) = \tfrac38$.</p>
+        <p class="small"><b>Leading coefficient.</b> $\binom{2n}{n}2^{-n}$ gives $6/4 = \tfrac32$ for $n=2$, $20/8 = \tfrac52$ for $n=3$, $70/16 = \tfrac{35}{8}$ for $n=4$. All three match.</p>
+      </div>
+      <p class="small muted">$P_2(x) = \tfrac12(3x^2-1)$ does all the physics in this unit: it is the angular shape of <span class="ref" data-ref="J2term">the $J_2$ term</span>. It is positive at $x = \pm1$ (the poles) and negative at $x = 0$ (the equator), and it is even — already the statement that there are two tidal bulges and not one.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Worth doing by hand once: get $P_2$ a second way, by expanding the generating
+    function directly to order $t^2$. With $u = t(2x-t)$,
+    $(1-u)^{-1/2} = 1 + \tfrac12u + \tfrac38u^2 + O(u^3)$, and
+    $u = 2xt - t^2$, $u^2 = 4x^2t^2 + O(t^3)$. So
+    $g = 1 + xt - \tfrac12t^2 + \tfrac32x^2t^2 + O(t^3)$, and the coefficient of $t^2$ is
+    $\tfrac12(3x^2-1)$. It agrees, as it must.</p>
+    <p>A numerical sanity check of the whole construction: at $x = \tfrac12$ the first six
+    values are $1, \tfrac12, -\tfrac18, -\tfrac7{16}, -\tfrac{37}{128}, \tfrac{23}{256}$,
+    and $\sum P_n(\tfrac12)t^n$ at $t = \tfrac12$ should equal
+    $(1 - 2\cdot\tfrac12\cdot\tfrac12 + \tfrac14)^{-1/2} = (3/4)^{-1/2} = 1.1547$. The six
+    terms give $1 + 0.25 - 0.03125 - 0.05469 - 0.01807 + 0.00281 = 1.1488$, and the tail is
+    still arriving: the ratio $t = \tfrac12$ makes convergence unhurried.</p>
+    <p>The values are all at most $1$ in modulus, as the lemma on the definition slide
+    promises, and $P_n(\cos\varphi)$ oscillates in sign once $\varphi$ is away from
+    $0$ — the polynomial $P_n$ has $n$ real roots in $(-1,1)$, which is a fact unit 19
+    proves for every orthogonal family at once.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · generating function</p>
+  <h2>Legendre's equation</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p>$P_n$ satisfies <span class="term">Legendre's equation</span></p>
+        $$\big[(1-x^2)\,y'\big]' + n(n+1)\,y = 0,$$
+        <p class="small">equivalently $(1-x^2)y'' - 2xy' + n(n+1)y = 0$, and up to a scalar it is the only polynomial solution.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Existence.</b> Differentiating $g$ directly (notes) gives the identity $(1-x^2)\,\partial_x^2g - 2x\,\partial_xg + t\,\partial_t^2(tg) = 0$. The $t^n$ coefficient of $t\,\partial_t^2(t\cdot t^n)$ is $n(n+1)$, so the $t^n$ coefficient of the identity is Legendre's equation for $P_n$.</p>
+        <p class="small"><b>Uniqueness.</b> If a polynomial solution has degree $m$, its $x^m$ coefficient forces $m(m+1) = n(n+1)$, so $m = n$; two such differ by a multiple that has degree $&lt; n$, hence is $0$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the other solution is not polynomial</span>
+        <p class="small">On $(-1,1)$ the solution space is two-dimensional (unit 06's argument; notes). The second solution $Q_n$ blows up logarithmically at $x = \pm1$ — at the poles of the sphere. Physics discards it by regularity, not by fiat.</p>
+        <p class="small">$Q_0(x) = \tfrac12\ln\frac{1+x}{1-x}$ is the whole story in miniature.</p>
+      </div>
+      <p class="small muted">The form $[(1-x^2)y']' = -\lambda y$ is what makes orthogonality a two-line computation, and it is the course's first <span class="term" data-term="Sturm–Liouville form">Sturm–Liouville problem</span>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the identity for $g$</h4>
+    <p>Write $s = 1 - 2xt + t^2$, so $g = s^{-1/2}$, $\partial_xs = -2t$, $\partial_ts = 2(t-x)$. Then</p>
+    <p>$\partial_xg = t\,s^{-3/2}$, $\quad\partial_x^2g = 3t^2s^{-5/2}$, $\quad\partial_tg = (x-t)s^{-3/2}$,
+    $\quad\partial_t^2g = -s^{-3/2} + 3(x-t)^2s^{-5/2}$,</p>
+    <p>and $\partial_t^2(tg) = 2\partial_tg + t\,\partial_t^2g$. Multiply the whole left-hand side of
+    the identity by $s^{5/2}$:</p>
+    <p>$3t^2(1-x^2) - 2xt\,s + 2t(x-t)\,s - t^2s + 3t^2(x-t)^2
+    = 3t^2\big[1 - x^2 + (x-t)^2\big] - 3t^2s$.</p>
+    <p>The bracket is $1 - 2xt + t^2 = s$, so the total is $0$. The identity is a smooth
+    function of $(x,t)$ that vanishes identically, so all its $t$-derivatives at $t = 0$
+    vanish. Since $P_n = \frac1{n!}\partial_t^ng|_{t=0}$ and $g$ is smooth, $x$- and
+    $t$-derivatives commute (Clairaut, unit 03), so the $n$-th Taylor coefficient of
+    $\partial_x^2g$ is $P_n''$ and that of $\partial_xg$ is $P_n'$; and the $n$-th coefficient of
+    $t\,\partial_t^2(tg)$ is $n(n+1)P_n$, because $t\,\partial_t^2(t^{n+1}) = (n+1)n\,t^n$.</p>
+    <h4>The polynomial solutions, found directly</h4>
+    <p>Try $y = \sum_ka_kx^k$. The coefficient of $x^k$ in $(1-x^2)y'' - 2xy' + n(n+1)y$ is
+    $(k+2)(k+1)a_{k+2} - k(k-1)a_k - 2ka_k + n(n+1)a_k$, so</p>
+    <p>$a_{k+2} = \dfrac{k(k+1) - n(n+1)}{(k+1)(k+2)}\,a_k .$</p>
+    <p>Even and odd coefficients decouple, which is the parity again. The numerator
+    vanishes at $k = n$, so the series with the parity of $n$ stops at $x^n$: that is $P_n$,
+    up to the scalar fixed by $P_n(1) = 1$. The other parity never stops (its numerators are
+    never zero), and $a_{k+2}/a_k \to 1$, so it converges for $|x| &lt; 1$ only; that it
+    genuinely diverges at $x = \pm1$ is the logarithm below.</p>
+    <h4>Why $Q_n$ is singular at the ends</h4>
+    <p>First, why there are exactly two independent solutions. Unit 06 proved that the
+    solutions of a constant-coefficient second-order linear equation form a two-dimensional
+    space, using only Picard–Lindelöf (unit 01): the map from a solution to its data
+    $(y(x_0), y'(x_0))$ is linear, onto by existence and injective by uniqueness. On any
+    closed subinterval of $(-1,1)$ Legendre's equation, divided by $1-x^2$, has continuous
+    coefficients, so the right-hand side is Lipschitz in $(y,y')$ and the same argument
+    applies word for word.</p>
+    <p>For two solutions $y_1, y_2$ of $[(1-x^2)y']' + \lambda y = 0$, the Wronskian
+    $W = y_1y_2' - y_2y_1'$ satisfies $\big[(1-x^2)W\big]' = y_1[(1-x^2)y_2']' -
+    y_2[(1-x^2)y_1']' = -\lambda y_1y_2 + \lambda y_2y_1 = 0$ — Abel's identity from unit 06. So
+    $W = C/(1-x^2)$, and $C \ne 0$ for an independent pair. Since $(y_2/y_1)' = W/y_1^2$,
+    with $y_1 = P_n$ one gets
+    $Q_n = P_n\int^x \frac{C\,\mathrm ds}{(1-s^2)P_n(s)^2}$ on any interval where $P_n \ne 0$.
+    Near $s = 1$ the integrand behaves like $C/(2(1-s))$ since $P_n(1) = 1$, so the integral
+    diverges like $-\tfrac C2\ln(1-x)$. For $n = 0$ this is exactly
+    $Q_0 = \tfrac12\ln\frac{1+x}{1-x}$.</p>
+    <p>This is where "regularity at the poles" enters: the potential of a bounded body is
+    finite everywhere off the body, in particular on the axis, so $Q_n$ cannot appear. Unit 19
+    meets the same argument for the general Sturm–Liouville problem, where the singular
+    endpoints are what quantise $\lambda$ to $n(n+1)$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · generating function</p>
+  <h2>Rodrigues' formula</h2>
+  <div class="box thm"><span class="label">theorem (<span class="term">Rodrigues' formula</span>)</span>
+    $$P_n(x) = \frac{1}{2^n\,n!}\,\frac{\mathrm{d}^n}{\mathrm{d}x^n}\big(x^2-1\big)^n .$$
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small">Call the right-hand side $w_n$. It is a polynomial of degree $n$ (differentiate a degree-$2n$ polynomial $n$ times), and two facts finish the proof:</p>
+      <ul>
+        <li class="small">$w_n$ solves Legendre's equation — Leibniz's rule, in the notes;</li>
+        <li class="small">$w_n(1) = 1$ — alongside.</li>
+      </ul>
+      <p class="small">By the uniqueness half of the previous theorem $w_n = cP_n$, and evaluating at $x = 1$ gives $c = 1$.</p>
+    </div>
+    <div class="box proof"><span class="label">proof of $w_n(1) = 1$</span>
+      <p class="small">$(x^2-1)^n = (x-1)^n(x+1)^n$. Differentiating $n$ times by Leibniz, every term keeps a factor of $(x-1)$ except the one where all $n$ derivatives fall on $(x-1)^n$. At $x = 1$ only that term survives:</p>
+      <p class="small">$\dfrac{\mathrm{d}^n}{\mathrm{d}x^n}(x^2-1)^n\Big|_{x=1} = n!\,(x+1)^n\big|_{x=1} = n!\,2^n$. $\square$</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that $v^{(n)}$ solves Legendre's equation, $v = (x^2-1)^n$</h4>
+    <p>$v' = 2nx(x^2-1)^{n-1}$, so $(x^2-1)\,v' = 2nx\,v$. Differentiate both sides $n+1$ times
+    by Leibniz. On the left only three terms survive, because $(x^2-1)$ has vanishing third
+    derivative:</p>
+    <p>$(x^2-1)v^{(n+2)} + (n+1)(2x)v^{(n+1)} + \tbinom{n+1}{2}\,2\,v^{(n)}$,</p>
+    <p>and on the right only two: $2n\big[xv^{(n+1)} + (n+1)v^{(n)}\big]$. Write $w = v^{(n)}$ and
+    subtract:</p>
+    <p>$(x^2-1)w'' + 2(n+1)xw' + n(n+1)w - 2nxw' - 2n(n+1)w = 0$,</p>
+    <p>that is $(x^2-1)w'' + 2xw' - n(n+1)w = 0$, which is Legendre's equation times $-1$.
+    Nothing but Leibniz's rule has been used. <b>Check at $n = 2$:</b>
+    $\frac{1}{8}\frac{\mathrm d^2}{\mathrm dx^2}(x^4 - 2x^2 + 1) = \frac18(12x^2 - 4) = \tfrac12(3x^2-1)$,
+    which is $P_2$.</p>
+    <p><b>Why the Leibniz argument for $w_n(1)$ works.</b>
+    $\frac{\mathrm d^n}{\mathrm dx^n}(fh) = \sum_k\binom nk f^{(k)}h^{(n-k)}$. With $f = (x-1)^n$,
+    $f^{(k)}$ is a multiple of $(x-1)^{n-k}$, which vanishes at $x = 1$ unless $k = n$. The
+    surviving term is $f^{(n)}h = n!\,(x+1)^n$.</p>
+    <p>Rodrigues' formula is the cheapest route to several things that are awkward from the
+    generating function: an orthogonality proof by repeated integration by parts (problem P3),
+    and the explicit coefficient formula. It is also the form that generalises: Hermite,
+    Laguerre and Chebyshev polynomials each have one, with $(x^2-1)^n$ replaced by the
+    appropriate weight.</p>
+    <p>Olinde Rodrigues published it in 1816; Ivory and Jacobi each rediscovered it within
+    the next dozen years. Legendre had introduced the polynomials in 1782, in exactly the
+    problem of this unit: the attraction of a spheroid.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · generating function</p>
+  <h2>Orthogonality, and the norm</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        $$\int_{-1}^{1}P_m(x)P_n(x)\,\mathrm{d}x = \frac{2}{2n+1}\,\delta_{mn}.$$
+      </div>
+      <div class="box proof"><span class="label">proof of <span class="term">orthogonality</span></span>
+        <p class="small">Using the self-adjoint form and integrating by parts twice,</p>
+        <p class="small">$\displaystyle\big[n(n{+}1) - m(m{+}1)\big]\!\!\int_{-1}^{1}\!\!P_mP_n = \Big[(1-x^2)\big(P_mP_n' - P_nP_m'\big)\Big]_{-1}^{1} = 0,$</p>
+        <p class="small">because $(1-x^2)$ vanishes at both endpoints. For $m \ne n$ the bracket on the left is nonzero, so the integral is zero. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof of the norm</span>
+        <p class="small">Square the generating function and integrate term by term:</p>
+        <p class="small">$\displaystyle\int_{-1}^1 g^2\,\mathrm dx = \sum_{m,n}t^{m+n}\!\!\int_{-1}^1\!\!P_mP_n = \sum_n t^{2n}\!\!\int_{-1}^1\!\!P_n^2 .$</p>
+        <p class="small">But the left side is elementary:</p>
+        <p class="small">$\displaystyle\int_{-1}^1\frac{\mathrm dx}{1-2xt+t^2} = \frac1t\ln\frac{1+t}{1-t} = 2\sum_{n\ge0}\frac{t^{2n}}{2n+1}.$</p>
+        <p class="small">Match coefficients. $\square$</p>
+      </div>
+    </div>
+  </div>
+  <p class="small muted">The $P_n$ are therefore an orthogonal — not orthonormal — family in $L^2[-1,1]$. That they are <em>complete</em> is unit 19's theorem, and it is not needed here.</p>
+  <aside class="notes">
+    <p><b>The two integrations by parts, written out.</b>
+    $\int_{-1}^1 P_n\big[(1-x^2)P_m'\big]'\,\mathrm dx
+    = \big[P_n(1-x^2)P_m'\big]_{-1}^1 - \int_{-1}^1(1-x^2)P_m'P_n'\,\mathrm dx$.
+    The boundary term vanishes. The remaining integral is symmetric in $m$ and $n$, so
+    subtracting the same identity with $m$ and $n$ swapped gives
+    $\int P_n[(1-x^2)P_m']' - \int P_m[(1-x^2)P_n']' = 0$. Substituting the equation
+    turns this into $[-m(m+1) + n(n+1)]\int P_mP_n = 0$.</p>
+    <p><b>The elementary integral.</b> Substitute $s = 1-2xt+t^2$, $\mathrm ds = -2t\,\mathrm dx$:
+    $\int_{-1}^1\frac{\mathrm dx}{1-2xt+t^2} = -\frac1{2t}\big[\ln s\big]_{s=(1+t)^2}^{s=(1-t)^2}
+    = \frac1{2t}\ln\frac{(1+t)^2}{(1-t)^2} = \frac1t\ln\frac{1+t}{1-t}$.
+    And $\ln\frac{1+t}{1-t} = 2(t + t^3/3 + t^5/5 + \cdots)$, so dividing by $t$ gives
+    $2\sum t^{2n}/(2n+1)$. Comparing with $\sum t^{2n}\int P_n^2$ gives the norm.</p>
+    <p>Term-by-term integration of $g^2$ is justified by uniform convergence of
+    $\sum P_n(x)t^n$ on $x\in[-1,1]$ for fixed $|t|&lt;1$: the bound $|P_n| \le 1$ makes
+    $\sum|P_n(x)t^n| \le \sum|t|^n$, a convergent geometric series independent of $x$, so
+    the Weierstrass M-test applies.</p>
+    <p>Orthogonality is what makes the coefficients of a multipole expansion
+    <em>measurable</em>: $J_n$ can be extracted from a measured field by integrating
+    against $P_n$ over the sphere, one coefficient at a time, with no interference from
+    the others. That is how the $J_n$ of the Earth are determined from satellite
+    tracking.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>The multipole expansion</h2>
+  <p>What a body's field looks like from far away — and what each term means without reference to any coordinate system.</p>
+</section>
+
+<section>
+  <p class="eyebrow">10 · multipoles</p>
+  <h2>The expansion, and the first three terms</h2>
+  <div class="box thm"><span class="label">theorem · the <span class="term">multipole expansion</span></span>
+    <p>For a bounded body $B$ contained in the ball $r' \le b$, and any $r &gt; b$,</p>
+    $$\Phi(\vec r) = -\frac{G}{r}\sum_{n=0}^{\infty}\frac{1}{r^{n}}\int_B \rho(\vec r\,{}')\,r'^{\,n}P_n(\cos\psi)\,\mathrm{d}^3r' ,$$
+    <p class="small">with $\psi$ the angle between $\vec r$ and $\vec r\,{}'$. The series converges absolutely, and term-by-term integration is legitimate.</p>
+  </div>
+  <div class="cols three">
+    <div class="box def"><span class="label">$n = 0$ · <span class="term">monopole</span></span>
+      <p class="small">$-GM/r$, with $M = \int_B\rho$. What unit 08 used.</p></div>
+    <div class="box def"><span class="label">$n = 1$ · <span class="term">dipole</span></span>
+      <p class="small">$-G(\hat{\mathbf r}\cdot\vec d\,)/r^2$ with $\vec d = \int_B\rho\,\vec r\,{}' = M\vec R_{\mathrm{cm}}$.</p></div>
+    <div class="box def"><span class="label">$n = 2$ · <span class="term">quadrupole</span></span>
+      <p class="small">$-G\,Q(\hat{\mathbf r},\hat{\mathbf r})/2r^3$, the first term that sees the body's <em>shape</em>.</p></div>
+  </div>
+  <aside class="notes">
+    <p><b>Proof.</b> Substitute the generating function identity of section 1 with
+    $t = r'/r \le b/r &lt; 1$ and $x = \cos\psi$ into Newton's integral. Interchanging
+    sum and integral is justified by the bound $|P_n|\le1$ proved there: for fixed
+    $\vec r$, the $n$-th term of the integrand is at most $\rho(\vec r\,{}')(b/r)^n/r$ in
+    modulus at every source point (the Weierstrass M-test bound), so the tail after $N$
+    terms integrates to at most $\frac Mr(b/r)^N/(1 - b/r)$, which tends to $0$: the
+    integral of the sum is the sum of the integrals. The same bound shows the series of
+    integrals converges absolutely, geometrically in $b/r$.</p>
+    <p><b>The dipole term.</b> $r'\cos\psi = \hat{\mathbf r}\cdot\vec r\,{}'$, so
+    $\int\rho\,r'P_1(\cos\psi) = \hat{\mathbf r}\cdot\int\rho\,\vec r\,{}' =
+    \hat{\mathbf r}\cdot M\vec R_{\mathrm{cm}}$, where $\vec R_{\mathrm{cm}}$ is the centre of
+    mass. Choosing the origin at the centre of mass kills this term exactly, and that is
+    what everybody does. Note what this means physically: to the accuracy of the first
+    two terms, a body attracts as a point mass at its centre of mass. The quadrupole is
+    the first correction, and there is no way to make it go away by moving the origin.</p>
+    <p><b>The quadrupole term.</b>
+    $r'^2P_2(\cos\psi) = \tfrac12\big(3(\hat{\mathbf r}\cdot\vec r\,{}')^2 - r'^2\big)$, which is
+    $\tfrac12 Q(\hat{\mathbf r},\hat{\mathbf r})$ for the bilinear form defined on the next
+    slide. The factor of $\tfrac12$ is carried by the definition of $P_2$, and the
+    various conventions in the literature differ exactly by where that $\tfrac12$ is
+    put — check it before using anyone's formula.</p>
+    <p>Why the expansion is <em>useful</em> and not merely true: each term falls off one
+    power of $r$ faster than the last, so at large distances the series is also an
+    asymptotic ordering by importance. Unit 21 gives the language for that distinction;
+    here the convergent series and the asymptotic ordering happen to coincide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · multipoles</p>
+  <h2>What the quadrupole is</h2>
+  <div class="box def"><span class="label">definition · the <span class="term">quadrupole moment</span></span>
+    <p>The map $Q : \mathbb R^3\times\mathbb R^3 \to \mathbb R$,</p>
+    $$Q(\vec u, \vec v) = \int_B \rho(\vec r\,{}')\Big[3(\vec u\cdot\vec r\,{}')(\vec v\cdot\vec r\,{}') - r'^2\,(\vec u\cdot\vec v)\Big]\mathrm{d}^3r' ,$$
+    <p class="small">a <b>symmetric bilinear form</b> on $\mathbb R^3$. Bilinear and symmetric by inspection; trace-free because $\sum_iQ(\hat e_i,\hat e_i) = \int\rho(3r'^2 - 3r'^2) = 0$.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem · the components transform</span>
+        <p class="small">In an orthonormal basis, $Q_{ij} = Q(\hat e_i,\hat e_j) = \int\rho\,(3x_i'x_j' - r'^2\delta_{ij})$. Under a change of orthonormal basis with matrix $R$, $\;Q' = R^{\!\top}QR$.</p>
+        <p class="small muted">That is the change-of-basis rule for a bilinear form, proved in linear algebra. It is a <em>theorem about the components</em>, not the definition of $Q$.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Being real symmetric, $Q$ is diagonalised by an orthonormal basis: the body's <span class="term">principal axes</span>. Its three eigenvalues sum to zero.</p>
+      <div class="box good"><span class="label">in terms of moments of inertia</span>
+        <p class="small">With $I_{ij} = \int\rho(r'^2\delta_{ij} - x_i'x_j')$ and principal moments $A \le B \le C$,</p>
+        <p class="small">$Q = -3I + (\operatorname{tr}I)\,\mathbb 1$, so $\;Q_{11} = B+C-2A$, $Q_{22} = C+A-2B$, $Q_{33} = A+B-2C$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>This is the habit the whole course keeps, and it is worth seeing it early on
+    an object simple enough to check by hand. The quadrupole moment <em>is</em> a
+    multilinear map — here, a symmetric bilinear form on $\mathbb R^3$, an element of
+    $\mathrm{Sym}^2(\mathbb R^3)^*$. Its matrix $Q_{ij}$ is what you get after choosing a
+    basis, and the rule $Q' = R^\top QR$ is what bilinearity says happens to that
+    matrix when the basis changes. Many books define the quadrupole moment <em>by</em>
+    that rule, which inverts the logic: it makes a computation into a definition and
+    leaves "what is it" unanswered. Unit 16 gives the general account, of which this is
+    the case $(p,q) = (0,2)$ on $\mathbb R^3$.</p>
+    <p><b>The relation to $I$, checked.</b>
+    $-3I_{ij} + (\operatorname{tr}I)\delta_{ij} = \int\rho\big[-3r'^2\delta_{ij} + 3x_i'x_j'\big] + \delta_{ij}\int\rho\,2r'^2
+    = \int\rho\big[3x_i'x_j' - r'^2\delta_{ij}\big] = Q_{ij}$, using
+    $\operatorname{tr}I = \int\rho(3r'^2 - r'^2) = 2\int\rho r'^2$. In principal axes,
+    $I = \operatorname{diag}(A,B,C)$ and $\operatorname{tr}I = A+B+C$, giving the three
+    entries on the slide. Their sum is zero, as it must be.</p>
+    <p>$I_{ij}$ here is only an integral over the body; no rigid-body dynamics is being
+    used or implied. Unit 16 will show it is the inertia tensor and that
+    $\vec L = I\vec\omega$, which is not needed until then.</p>
+    <p><b>Origin dependence.</b> $\vec d$ and $Q$ both depend on where the origin is put.
+    Moving the origin by $\vec c$ changes $\vec d$ to $\vec d - M\vec c$ and changes $Q$ by
+    terms involving $\vec d$ and $\vec c$. If $\vec d = 0$ — origin at the centre of mass —
+    the change in $Q$ is the parallel-axis shift $+M(3c_ic_j - c^2\delta_{ij})$, so $Q$ is
+    origin-independent only for a body of zero total mass and zero dipole. The lowest non-vanishing
+    moment is always the origin-independent one. Problem P5 makes this precise.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · multipoles</p>
+  <h2>An axially symmetric body: the $J_n$</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Take the $z$-axis along the symmetry axis and the origin at the centre of mass, and let $\theta$ be the colatitude of the field point. Then $A = B$, so $Q = (C-A)\operatorname{diag}(1,1,-2)$, and</p>
+      $$Q(\hat{\mathbf r},\hat{\mathbf r}) = (C-A)(1 - 3\cos^2\theta) = -2(C-A)P_2(\cos\theta).$$
+      <div class="box thm"><span class="label">so the quadrupole term is</span>
+        $$\Phi_2 = -\frac{G\,Q(\hat{\mathbf r},\hat{\mathbf r})}{2r^3} = \frac{G(C-A)}{r^3}P_2(\cos\theta) ,$$
+        <p class="small">and writing it in the standard form $\Phi_2 = \dfrac{GM}{r}J_2\Big(\dfrac Rr\Big)^{2}P_2(\cos\theta)$ <b>defines</b></p>
+        $$\boxed{\;J_2 = \frac{C - A}{MR^2}\;}$$
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">the <span class="term">zonal harmonic coefficients</span></span>
+        <p class="small">$\displaystyle\Phi(r,\theta) = -\frac{GM}{r}\Big[1 - \sum_{n\ge2}J_n\Big(\frac Rr\Big)^{n}P_n(\cos\theta)\Big]$</p>
+        <p class="small">with $R$ any agreed reference radius — for the Earth, the equatorial radius.</p>
+      </div>
+      <p class="small">That the $n$-th term of an axially symmetric body's expansion is a multiple of $P_n(\cos\theta)$ for <em>every</em> $n$ is <span class="term" data-term="the addition theorem">cited</span>: it follows from the addition theorem for Legendre polynomials, proved with the spherical harmonics of unit 19. Only $n = 2$ is derived here, and only $n = 2$ is used.</p>
+      <p class="small muted">Sign convention: the minus inside the bracket makes $J_2 &gt; 0$ for an oblate body. Check it before trusting a formula.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The trigonometric step.</b> $\hat{\mathbf r} = (\sin\theta\cos\phi,\
+    \sin\theta\sin\phi,\ \cos\theta)$, and $Q = (C-A)\operatorname{diag}(1,1,-2)$, so
+    $Q(\hat{\mathbf r},\hat{\mathbf r}) = (C-A)(\sin^2\theta\cos^2\phi +
+    \sin^2\theta\sin^2\phi - 2\cos^2\theta) = (C-A)(\sin^2\theta - 2\cos^2\theta)$.
+    Then $\sin^2\theta - 2\cos^2\theta = 1 - 3\cos^2\theta = -2P_2(\cos\theta)$. The
+    $\phi$-dependence cancels, which is the axial symmetry showing up.</p>
+    <p><b>Signs, twice over.</b> $\Phi_2 = -GQ(\hat{\mathbf r},\hat{\mathbf r})/2r^3
+    = -G\cdot(-2(C-A)P_2)/2r^3 = +G(C-A)P_2/r^3$. Matching to
+    $+\frac{GM}{r}J_2(R/r)^2P_2$ gives $GMJ_2R^2 = G(C-A)$, hence
+    $J_2 = (C-A)/MR^2$. For an oblate body $C &gt; A$ and $J_2 &gt; 0$; for a prolate one
+    $J_2 &lt; 0$. At the pole $P_2 = 1$ and $\Phi_2 &gt; 0$: at a given $r$ the potential is
+    <em>raised</em> over the pole relative to a sphere of the same mass, and lowered over the
+    equator, where $P_2 = -\tfrac12$. That is right: the bulge's extra mass lies near the
+    equatorial plane, so a point over the equator is nearer to it than a point over the
+    pole at the same distance from the centre.</p>
+    <p><b>Dimensions.</b> $[C - A] = \mathrm{kg\,m^2}$, $[MR^2] = \mathrm{kg\,m^2}$, so
+    $J_2$ is dimensionless, as a coefficient in a bracket beside $1$ must be. And
+    $[G(C-A)/r^3] = \mathrm{m^3kg^{-1}s^{-2}\cdot kg\,m^2/m^3} = \mathrm{m^2s^{-2}}$, the
+    dimensions of a potential.</p>
+    <p><b>The Earth's numbers.</b> $J_2 = 1.08263\times10^{-3}$, so
+    $C - A = J_2MR^2 = 2.63\times10^{35}\ \mathrm{kg\,m^2}$. With
+    $C \approx 0.3307\,MR^2$ that is $(C-A)/C = 3.27\times10^{-3}$: the Earth's polar and
+    equatorial moments of inertia differ by a third of a percent. $J_3 = -2.53\times10^{-6}$ and
+    $J_4 = -1.62\times10^{-6}$ are smaller by factors of $430$ and $670$, which is why this unit can stop at
+    $n = 2$ and still predict an inclination to a tenth of a degree.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · multipoles · example</p>
+  <h2>The quadrupole of a flattened planet</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 2 · a uniform oblate spheroid</span>
+        <p class="small">Semi-axes $R$ (equatorial) and $c = R(1-f)$ (polar), uniform density, mass $M$. Its principal moments are $C = \tfrac25MR^2$ and $A = \tfrac15M(R^2+c^2)$, so</p>
+        <p class="small">$C - A = \tfrac15M(R^2 - c^2)$, and</p>
+        <p class="small">$J_2 = \dfrac{C-A}{MR^2} = \dfrac{R^2 - c^2}{5R^2} = \dfrac{1 - (1-f)^2}{5} = \dfrac{2f - f^2}{5}.$</p>
+        <p class="small">For <span class="ref" data-ref="earth">the Earth's</span> $f = 1/298.257$: $\;J_2^{\text{unif}} = 1.3389\times10^{-3}$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">that is 23.7% too big</span>
+        <p class="small">The measured value is $1.08263\times10^{-3}$. The model is not wrong about the <em>shape</em> — $f$ was measured — so it is wrong about the <em>interior</em>.</p>
+        <p class="small">A uniform body puts as much mass in the bulge as anywhere. The real Earth is centrally condensed: a dense core contributes to $M$ but almost nothing to $C - A$. Concentrating mass towards the centre lowers $J_2$ at fixed $f$, and $23.7\%$ is a measure of how much.</p>
+      </div>
+      <p class="small muted">Check the same ratio through $C$: for a uniform ball $C = 0.4MR^2$, and for the Earth $C = 0.3307MR^2$ — smaller, in the same direction and by a comparable amount.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the moments come from.</b> For a uniform solid ellipsoid with semi-axes
+    $(a_1,a_2,a_3)$, $I_{11} = \tfrac15M(a_2^2+a_3^2)$ and cyclically. This follows from
+    the linear change of variables that carries the unit ball onto the ellipsoid, which
+    is unit 05's Jacobian argument: $\int_E x_2^2 = a_1a_2a_3\cdot a_2^2\int_{B_1}u_2^2$
+    and $\int_{B_1}u_2^2 = \tfrac13\int_{B_1}r^2 = \tfrac13\cdot\tfrac{4\pi}{5} =
+    \tfrac{4\pi}{15}$. Problem P6 asks for it in full.</p>
+    <p>With $a_1 = a_2 = R$ and $a_3 = c$: $C = I_{33} = \tfrac25MR^2$,
+    $A = I_{11} = \tfrac15M(R^2+c^2)$, and
+    $C - A = \tfrac15M(2R^2 - R^2 - c^2) = \tfrac15M(R^2-c^2)$.</p>
+    <p><b>Dimension check.</b> $J_2$ came out as a ratio of squared lengths: dimensionless.
+    <b>Limit check.</b> $f \to 0$ gives $J_2 \to 0$ — a sphere has no quadrupole, which is
+    unit 05's shell theorem seen from the other side. Small $f$ gives $J_2 \approx 2f/5$,
+    so a $1/298$ flattening would give $1.34\times10^{-3}$: quadrupole and flattening are
+    the same order of smallness, not different ones.</p>
+    <p><b>The number.</b> $(2f - f^2)/5$ with $f = 1/298.257223563$ is
+    $(6.70562\times10^{-3} - 1.12413\times10^{-5})/5 = 1.338876\times10^{-3}$. Dividing by
+    the measured $1.08263\times10^{-3}$ gives $1.23669$, hence $23.7\%$.</p>
+    <p>This overshoot is the standard route to inferring the interior of a planet you
+    cannot drill into. For Jupiter the ratio is far more extreme, and for the Moon
+    almost absent. The formal version is the Radau–Darwin relation, which converts the
+    measured pair $(f, J_2)$ into an estimate of $C/MR^2$, the single most useful
+    number about a planet's radial density profile.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · multipoles</p>
+  <h2>A check that has no free parameters</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">If the Earth were a rotating fluid, its surface would be a level set of the potential <em>in the rotating frame</em>. Take the surface as $r(\theta) = R(1 - f\cos^2\theta)$ and work to first order in $f$, $J_2$ and $q = \omega^2R^3/GM$:</p>
+      $$U = -\frac{GM}{r} + \frac{GMJ_2R^2}{r^3}P_2(\cos\theta) - \tfrac12\omega^2r^2\sin^2\theta .$$
+      <p class="small">Substituting $1/r = (1+f\cos^2\theta)/R$ and collecting the coefficient of $\cos^2\theta$, which must vanish:</p>
+      <div class="box thm"><span class="label"><span class="term">Clairaut's flattening formula</span></span>
+        $$f = \tfrac32 J_2 + \tfrac12 q .$$
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the number</span>
+        <p class="small">$\omega = 7.292115\times10^{-5}\ \mathrm{s^{-1}}$, $R = 6378.137\ \mathrm{km}$, $GM = 3.986004418\times10^{14}$:</p>
+        <p class="small">$q = \omega^2R^3/GM = 3.46139\times10^{-3}$.</p>
+        <p class="small">$f = \tfrac32(1.08263\times10^{-3}) + \tfrac12(3.46139\times10^{-3}) = 3.35464\times10^{-3} = 1/298.09.$</p>
+        <p class="small">Measured: $1/298.257$. The prediction is high by $0.055\%$.</p>
+      </div>
+      <p class="small muted">Nothing was fitted. Rotation rate, mass, radius and $J_2$ are independent measurements, and the shape follows.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full derivation</h4>
+    <p>Write $\mu = \cos\theta$ and keep only first-order terms. On the surface
+    $r = R(1 - f\mu^2)$, so $1/r = R^{-1}(1 + f\mu^2) + O(f^2)$, while in the two terms that
+    already carry a small factor we may set $r = R$. Then</p>
+    <p>$U = -\dfrac{GM}{R}(1+f\mu^2) + \dfrac{GMJ_2}{R}\cdot\dfrac{3\mu^2-1}{2} - \tfrac12\omega^2R^2(1-\mu^2)$.</p>
+    <p>The coefficient of $\mu^2$ is
+    $-\dfrac{GM}{R}f + \dfrac{3GMJ_2}{2R} + \tfrac12\omega^2R^2$, and a level surface
+    requires it to vanish:</p>
+    <p>$f = \tfrac32J_2 + \dfrac{\omega^2R^3}{2GM} = \tfrac32J_2 + \tfrac12q$. $\square$</p>
+    <p><b>Why a level set.</b> A fluid at rest in the rotating frame cannot sustain a force
+    along its free surface: any tangential component of the net force per unit mass would
+    make the surface fluid flow. So $-\nabla U$ is normal to the surface everywhere, which is
+    the statement that the surface is a level set of $U$. The centrifugal potential
+    $-\tfrac12\omega^2\rho^2$, $\rho$ the distance from the axis, is the potential of unit 03's
+    centrifugal force: $-\nabla(-\tfrac12\omega^2\rho^2) = \omega^2\rho\,\hat{\boldsymbol\rho} =
+    -\vec\omega\times(\vec\omega\times\vec r\,)$.</p>
+    <p><b>Dimension check.</b> $q = \omega^2R^3/GM$ has
+    $\mathrm{s^{-2}\,m^3}/(\mathrm{m^3s^{-2}}) = 1$: dimensionless, as $f$ and $J_2$ are.
+    <b>Limit checks.</b> $\omega \to 0$: for a non-rotating self-gravitating fluid the
+    only consistent state is a sphere, $f = J_2 = 0$, and the formula is satisfied by it.
+    $J_2 \to 0$ with $\omega \ne 0$ gives $f = q/2$: a fluid envelope round a point mass,
+    which has no quadrupole of its own (Roche's model). A uniform fluid, at the other extreme,
+    has $J_2 = \tfrac25f$ (worked example 2), and substituting gives $f = \tfrac54q$, which is
+    Maclaurin's result for a slowly rotating homogeneous fluid. The Earth, with
+    $f = 0.97\,q$, sits between the two, as a centrally condensed body should.</p>
+    <p>The $0.055\%$ residual is arithmetic, not physics: it is the second-order terms in
+    $f$, $J_2$ and $q$ that this calculation threw away. The exact theory of a level
+    ellipsoid (Pizzetti in 1894, completed by Somigliana in 1929) keeps them all, and with the
+    same $R$, $GM$, $\omega$ and $f = 1/298.257$ it returns $J_2 = 1.082630\times10^{-3}$ — the
+    measured value to every digit quoted. (Clairaut's interior theory, a differential equation
+    for the flattening $f(r)$ of the level surfaces inside the body, does not help here: at first
+    order it leaves the surface relation exactly as above, whatever the density profile.) The
+    point is that the first-order relation binds three independently measured numbers into one
+    equation, and they agree.</p>
+    <p>Note also what the relation says about causation: a planet does not have a
+    quadrupole "because it spins"; it has one because it is a fluid that spins, and a
+    rigid planet can have any $J_2$ its history gave it. The Moon is the standard
+    counterexample: its $J_2$ is far larger than its present rotation would support, a
+    frozen record of when it was closer to the Earth and spinning faster.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Orbital elements, and how to perturb them</h2>
+  <p>Six numbers that are constant for a Kepler orbit — and a systematic way to let them vary.</p>
+</section>
+
+<section>
+  <p class="eyebrow">10 · elements</p>
+  <h2>Six numbers, as a change of coordinates</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Unit 08 produced, from a state $(\vec r, \vec v\,)$ with $\vec L = \vec r\times\vec v \ne 0$ and energy $E &lt; 0$, two conserved vectors: $\vec L$ and the Laplace–Runge–Lenz vector $\vec A = \vec v\times\vec L - GM\hat{\mathbf r}$. The <span class="term">orbital elements</span> are read off them.</p>
+      <table class="dense">
+        <tbody>
+          <tr><td>$a = -GM/2E$</td><td>semi-major axis — the size</td></tr>
+          <tr><td>$e = |\vec A|/GM$</td><td>eccentricity — the shape</td></tr>
+          <tr><td>$\cos i = \hat{\mathbf H}\cdot\hat{\mathbf z}$</td><td>inclination, $\hat{\mathbf H} = \vec L/L$</td></tr>
+          <tr><td>$\Omega$</td><td>angle of the node $\hat{\mathbf n} \propto \hat{\mathbf z}\times\hat{\mathbf H}$ in the equator</td></tr>
+          <tr><td>$\omega$</td><td>angle from $\hat{\mathbf n}$ to $\hat{\mathbf A}$, in the orbit plane</td></tr>
+          <tr><td>$M = n(t-\tau)$</td><td>mean anomaly, $n = \sqrt{GM/a^3}$ — the clock</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 260" width="265" role="img" aria-label="the equatorial plane, the tilted orbit plane, the node line, the inclination i and the node angle capital Omega">
+        <ellipse cx="150" cy="160" rx="120" ry="40" fill="none" class="rule" stroke-width="2" stroke-dasharray="6 4"/>
+        <ellipse cx="150" cy="150" rx="118" ry="62" fill="none" class="unit" stroke-width="3" transform="rotate(-24 150 150)"/>
+        <line x1="150" y1="160" x2="150" y2="40" class="rule" stroke-width="2"/>
+        <text x="156" y="48" font-size="15" class="mono">ẑ</text>
+        <line x1="34" y1="178" x2="266" y2="142" class="accent" stroke-width="2.5"/>
+        <circle cx="266" cy="142" r="6" class="fill-accent"/>
+        <text x="244" y="130" font-size="15" class="mono">n̂</text>
+        <line x1="150" y1="160" x2="270" y2="182" class="rule" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="256" y="200" font-size="14" class="mono soft">x̂</text>
+        <path d="M 236 152 A 88 88 0 0 0 240 176" fill="none" class="ink" stroke-width="1.5"/>
+        <text x="216" y="172" font-size="14" class="mono">Ω</text>
+        <path d="M 196 152 A 48 48 0 0 0 190 130" fill="none" class="ink" stroke-width="1.5"/>
+        <text x="196" y="132" font-size="14" class="mono">i</text>
+        <circle cx="150" cy="160" r="4" class="fill-ink"/>
+      </svg>
+      <p class="cap">Dashed ellipse: the equator. Solid: <span class="ref" data-ref="frame">the orbit plane</span>. They meet on the node line.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What kind of object this is.</b> The map $(\vec r,\vec v\,)\mapsto(a,e,i,\Omega,\omega,M)$,
+    on the open subset of $\mathbb R^6$ where $E &lt; 0$, $\vec L \ne 0$, $e \ne 0$ and
+    $i \ne 0$, is a change of coordinates on phase space, in unit 03's sense and no more
+    mysterious than polar coordinates. It is injective because a bound Kepler orbit is
+    fixed by its plane ($i,\Omega$), its ellipse in the plane ($a,e,\omega$, via unit 08's
+    $r = p/(1+e\cos\nu)$) and the body's place on it ($M$); writing the inverse out needs
+    Kepler's equation (unit 09) and nothing in this unit uses it. Only the forward map is
+    ever differentiated here, and only through the variation-of-parameters lemma. The excluded sets are
+    where the construction degenerates — a circular orbit has no perigee to measure
+    $\omega$ from, an equatorial orbit has no node to measure $\Omega$ from. Practitioners
+    patch with alternative element sets there, exactly as one patches the polar chart at
+    the origin.</p>
+    <p><b>Why this chart and not another.</b> In these coordinates the unperturbed Kepler
+    flow is
+    $\dot a = \dot e = \dot i = \dot\Omega = \dot\omega = 0$, $\dot M = n(a)$.
+    Five coordinates are constant and the sixth advances uniformly. No other coordinate
+    system on this phase space is anything like as simple, and a perturbation calculation
+    done in these coordinates starts from a solved problem rather than from a hard one.
+    That is the entire strategic idea of section 3, and it is the same idea as the
+    interaction picture, the variation of constants, and action–angle variables (unit 17).</p>
+    <p><b>The node vector.</b> $\hat{\mathbf z}\times\hat{\mathbf H}$ lies in the equatorial
+    plane (perpendicular to $\hat{\mathbf z}$) and in the orbit plane (perpendicular to
+    $\hat{\mathbf H}$), so it lies along the intersection of the two planes. Its length is
+    $\sin i$. Normalising gives $\hat{\mathbf n}$, pointing at the <em>ascending</em> node,
+    the crossing where the body moves from south to north — that choice is what makes the
+    frame right-handed with $\hat{\mathbf m} = \hat{\mathbf H}\times\hat{\mathbf n}$.</p>
+    <p><b>The sixth element.</b> $\tau$, the time of perigee passage, is the one element
+    with the dimensions of time. Unit 09's Kepler equation is what converts $M$ into an
+    actual position; none of that is needed here, because everything in this unit is
+    averaged over one orbit and the phase drops out.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · elements</p>
+  <h2>Osculating elements, and the one lemma</h2>
+  <div class="box def"><span class="label">definition · <span class="term">osculating elements</span></span>
+    <p>Let $\ddot{\vec r} = -\dfrac{GM}{r^3}\vec r + \vec a_{\mathrm p}(\vec r,\vec v,t)$. At each instant, apply the <em>same</em> map to the <em>actual</em> state $(\vec r(t),\vec v(t))$. The resulting $a(t),\dots,M(t)$ are the elements of the Kepler orbit the body would follow if $\vec a_{\mathrm p}$ were switched off now: its <b>osculating orbit</b>.</p>
+  </div>
+  <div class="cols">
+    <div class="box thm"><span class="label">lemma · <span class="term">variation of parameters</span></span>
+      <p class="small">If $c(\vec r,\vec v\,)$ is constant along the Kepler flow, then along the perturbed motion</p>
+      <p class="small">$\dfrac{\mathrm dc}{\mathrm dt} = \nabla_{\!\vec v}\,c\cdot\vec a_{\mathrm p}.$</p>
+      <p class="small"><b>Proof.</b> The chain rule gives $\dot c = \nabla_{\!\vec r}c\cdot\vec v + \nabla_{\!\vec v}c\cdot\ddot{\vec r}$. Split $\ddot{\vec r}$ into the Kepler part and $\vec a_{\mathrm p}$; the Kepler part reassembles the derivative of $c$ along the Kepler flow, which is zero. $\square$</p>
+    </div>
+    <div>
+      <p><b>Only the perturbing acceleration appears.</b> The whole of Kepler's problem has been absorbed into the choice of coordinates, and what is left is first order in the perturbation and therefore small.</p>
+      <p class="small muted">Applied to $c = \vec L$: since $\vec L = \vec r\times\vec v$, $\nabla_{\!\vec v}\vec L\cdot\vec a_{\mathrm p} = \vec r\times\vec a_{\mathrm p}$, the torque. Section 4 uses exactly this.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>"Osculating" is Latin for kissing: the osculating orbit touches the true
+    trajectory to first order in time — same position, same velocity — and then parts
+    company from it. The picture is a true trajectory that is at every instant tangent to
+    a member of a family of ellipses, with the family member slowly changing. Nothing has
+    been approximated at this point: the osculating elements are exact functions of the
+    exact solution, and the lemma is an identity.</p>
+    <p><b>Why the lemma is worth boxing.</b> Without it, one would have to differentiate,
+    say, $\Omega$ as an explicit function of six state variables and substitute the
+    equations of motion — a page of algebra, repeated for each element. The lemma says
+    that the entire Kepler part cancels identically for any conserved quantity, so only a
+    gradient in $\vec v$ contracted with $\vec a_{\mathrm p}$ survives. For the elements
+    built from $\vec L$ the gradient is immediate; for those built from $\vec A$ it is a
+    two-line computation (problem P9).</p>
+    <p>The full set of resulting equations — six ODEs for six elements, driven by the
+    perturbation — are Lagrange's planetary equations when $\vec a_{\mathrm p}$ comes from
+    a potential, and Gauss's form when it does not (drag, thrust, radiation pressure).
+    They are not written out here; the two the running example needs are derived directly
+    in section 4, which is shorter and shows where every term comes from.</p>
+    <p>The same manoeuvre is unit 06's variation of parameters — let the constants of the
+    unperturbed solution move — now applied to a nonlinear problem; quantum mechanics calls
+    it time-dependent perturbation theory. Euler first used it in the 1740s on precisely this problem — the mutual
+    perturbations of the planets, Jupiter and Saturn first — and Lagrange made it a general
+    method in his memoirs of 1808–1810; the question it was sharpened to settle was whether
+    the solar system is stable.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · elements</p>
+  <h2>Secular versus periodic, and averaging</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">The element equations have the form $\dot c = \varepsilon\,F(c, u)$, $F$ periodic in a fast angle $u$ that advances uniformly in time, $\varepsilon \sim J_2$. Split $F$ into its mean and the rest:</p>
+      $$\bar F(c) = \frac{1}{2\pi}\oint F(c,u)\,\mathrm{d}u, \qquad F = \bar F + \widetilde F .$$
+      <div class="box def"><span class="label">the two kinds of term</span>
+        <p class="small">$\bar F$ produces <span class="term">secular</span> change: it accumulates, $\Delta c \sim \varepsilon t$.</p>
+        <p class="small">$\widetilde F$ produces <span class="term">periodic</span> change: it integrates to a bounded wobble of size $\varepsilon$, forever.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">method of averaging</span> · cited</span>
+        <p class="small">Let $\bar c$ solve $\dot{\bar c} = \varepsilon\bar F(\bar c\,)$ with $\bar c(0) = c(0)$. Under standard smoothness and boundedness hypotheses,</p>
+        <p class="small">$|c(t) - \bar c(t)| = O(\varepsilon)$ uniformly for $0 \le t \le K/\varepsilon$.</p>
+        <p class="small muted">Where it is proved: in the notes.</p>
+      </div>
+      <div class="box warn"><span class="label">average over the right variable</span>
+        <p class="small">$\oint\,\cdot\,\mathrm dt$ and $\oint\,\cdot\,\mathrm du$ are different averages. Time is the physical one, so the weight $\mathrm dt = (r^2/L)\,\mathrm du$ must be carried. Dropping it is the commonest error in this calculation.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the averaging theorem is proved.</b> Sanders, Verhulst &amp; Murdock,
+    <em>Averaging Methods in Nonlinear Dynamical Systems</em>, chapter 2: a near-identity
+    change of variables $c = \bar c + \varepsilon w(\bar c,u)$, with $w$ chosen so that
+    $\partial_uw = \widetilde F$, removes the periodic part at the cost of $O(\varepsilon^2)$
+    terms, and Gronwall's inequality (unit 01) bounds what those do over a time
+    $K/\varepsilon$. Unit 21 reaches the same results by the method of multiple scales.</p>
+    <p><b>Why "secular".</b> From <em>saeculum</em>, an age: eighteenth-century astronomers
+    divided the perturbations of the planets into <em>inégalités périodiques</em>, which
+    come back, and <em>inégalités séculaires</em>, which do not within a human lifetime.
+    Whether the secular terms of the solar system are genuinely growing or merely the
+    start of a very long period was the great open problem of the era; Laplace and
+    Lagrange proved that the semi-major axes have no secular terms at first order, which
+    was taken for a century as a proof of stability, and is not one.</p>
+    <p><b>The estimate, made concrete.</b> For the running example $\varepsilon \sim J_2 =
+    1.08\times10^{-3}$ and the fast period is one orbit, $100.9$ minutes. In the theorem's
+    terms the fast angle advances at rate $n$, so the guarantee is accuracy $O(J_2)$ for a time
+    of order $1/(J_2n) = 8.9\times10^5\ \mathrm s$ — about ten days, or $150$ orbits — times a
+    constant $K$ that the theorem does not make large. That is a guarantee, not a forecast: the
+    theorem says nothing about longer times, and the reason the secular rates are nonetheless
+    trusted for years is that they are checked against tracking.</p>
+    <p><b>The warning, made concrete.</b> The node rate will come out proportional to
+    $\oint \frac{\sin^2u}{r}\,\mathrm du$, and the weight matters: $1/r$ varies by a factor
+    $(1+e)/(1-e)$ around an eccentric orbit, so for a Molniya orbit with $e = 0.74$ it
+    varies by a factor of nearly seven. That is where the $(1-e^2)^{-2}$ in the final
+    formula comes from — it is entirely a consequence of the averaging weight, and it is
+    not small.</p>
+    <p>One more distinction, which unit 21 makes properly: the averaged system is not
+    the first term of a convergent series. It is the first term of an <em>asymptotic</em>
+    expansion, and pushing it to higher order eventually makes things worse rather than
+    better. That is the subject of unit 21 and the reason it exists.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>What $J_2$ does to an orbit</h2>
+  <p>One gradient, one torque, one average — and a satellite inclination.</p>
+</section>
+
+<section>
+  <p class="eyebrow">10 · precession</p>
+  <h2>The perturbing acceleration</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Write <span class="ref" data-ref="J2term">the $J_2$ term</span> in Cartesian form, with $k = \tfrac12 GMJ_2R^2$ and $z = r\cos\theta$:</p>
+      $$\Phi_2 = \frac{GMJ_2R^2}{r^3}\,\frac{3\cos^2\theta - 1}{2} = k\Big(\frac{3z^2}{r^5} - \frac{1}{r^3}\Big).$$
+      <p class="small">Differentiate, using $\partial_j r = x_j/r$:</p>
+      <p class="small">$\partial_x\Phi_2 = k\big(3x/r^5 - 15z^2x/r^7\big)$, the same in $y$, and $\partial_z\Phi_2 = k\big(9z/r^5 - 15z^3/r^7\big)$.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">collecting</span>
+        $$\vec a_{\mathrm p} = \frac{3GMJ_2R^2}{2r^5}\Big[\Big(\frac{5z^2}{r^2} - 1\Big)\vec r - 2z\,\hat{\mathbf z}\Big]$$
+        <p class="small">$= -\nabla\Phi_2$.</p>
+      </div>
+      <div class="box good"><span class="label">size, at <span class="ref" data-ref="sat">the satellite</span></span>
+        <p class="small">$|\vec a_{\mathrm p}| \sim \tfrac32 GMJ_2R^2/a^4 = 9.9\ \mathrm{mm\,s^{-2}}$ against a central $GM/a^2 = 7.74\ \mathrm{m\,s^{-2}}$: a ratio of $1.28\times10^{-3}$.</p>
+        <p class="small">Small. But it points the same way relative to the orbit on every pass, and that is what makes it accumulate.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The $z$-component, in full.</b>
+    $\partial_z\big(3z^2r^{-5} - r^{-3}\big) = 6zr^{-5} + 3z^2(-5r^{-6})(z/r) + 3r^{-4}(z/r)
+    = 9z/r^5 - 15z^3/r^7$. Collecting all three components,
+    $\nabla\Phi_2 = k\big[(3r^{-5} - 15z^2r^{-7})\vec r + 6z\,r^{-5}\hat{\mathbf z}\big]$;
+    the $\hat{\mathbf z}$ piece supplies the difference between $9z/r^5$ and $3z/r^5$ in the
+    third slot. Negating and pulling out $3k/r^5 = \tfrac32GMJ_2R^2/r^5$ gives the boxed
+    form.</p>
+    <p><b>Dimension check.</b> $[GMJ_2R^2/r^5]\cdot[\vec r] = \mathrm{m^3s^{-2}\cdot
+    m^2/m^5}\cdot\mathrm m = \mathrm{m\,s^{-2}}$. An acceleration.</p>
+    <p><b>Limit checks.</b> On the equator, $z = 0$, the acceleration is
+    $-\tfrac32GMJ_2R^2\vec r/r^5$: purely radial and inward, the extra pull of the bulge.
+    On the axis, $\vec r = \pm r\hat{\mathbf z}$ and $z = \pm r$, the bracket is
+    $4(\pm r\hat{\mathbf z}) - 2(\pm r)\hat{\mathbf z} = \pm2r\hat{\mathbf z} = 2\vec r$, so the
+    acceleration is $3GMJ_2R^2\,\vec r/r^5$: radially <em>outward</em> along the axis, of
+    magnitude $3GMJ_2R^2/r^4$. Outward is right: over the pole, the equatorial bulge is entirely
+    "below and to the side", and its net pull is weaker than a sphere's, which shows up
+    as a positive correction to the outward direction. And $J_2 \to 0$ gives zero, as it
+    must.</p>
+    <p><b>The ratio.</b> $\tfrac32J_2(R/a)^2$ with $R/a = 6378.137/7178.137 = 0.88855$ gives
+    $\tfrac32(1.08263\times10^{-3})(0.78952) = 1.282\times10^{-3}$. It is the smallness of
+    this ratio that makes first-order perturbation theory legitimate, and it is the fact
+    that the perturbation is <em>not</em> random in direction that makes averaging give a
+    non-zero answer.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · precession</p>
+  <h2>The torque, and what it moves</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">By the lemma, $\dot{\vec L} = \vec r\times\vec a_{\mathrm p}$. The first term of $\vec a_{\mathrm p}$ is along $\vec r$ and contributes nothing:</p>
+      $$\dot{\vec L} = \frac{3GMJ_2R^2}{r^5}\,z\,\big(\hat{\mathbf z}\times\vec r\,\big).$$
+      <p class="small">Now write $\vec L = L\hat{\mathbf H}$ in <span class="ref" data-ref="frame">the orbit frame</span> $\{\hat{\mathbf n}, \hat{\mathbf m}, \hat{\mathbf H}\}$. Differentiating $\hat{\mathbf H} = (\sin i\sin\Omega,\,-\sin i\cos\Omega,\,\cos i)$ gives $\partial_\Omega\hat{\mathbf H} = \sin i\,\hat{\mathbf n}$ and $\partial_i\hat{\mathbf H} = -\hat{\mathbf m}$, so</p>
+      $$\dot{\vec L} = \dot L\,\hat{\mathbf H} + L\sin i\,\dot\Omega\,\hat{\mathbf n} - L\,\dot i\,\hat{\mathbf m}.$$
+    </div>
+    <div>
+      <div class="box thm"><span class="label">three scalar equations</span>
+        <p class="small">$L\sin i\,\dot\Omega = \dot{\vec L}\cdot\hat{\mathbf n}$</p>
+        <p class="small">$-L\,\dot i = \dot{\vec L}\cdot\hat{\mathbf m}$</p>
+        <p class="small">$\dot L = \dot{\vec L}\cdot\hat{\mathbf H}$</p>
+      </div>
+      <p class="small">With $u$ the <span class="term">argument of latitude</span>, $\vec r = r(\cos u\,\hat{\mathbf n} + \sin u\,\hat{\mathbf m})$ and $z = r\sin i\sin u$, the triple products are one line each:</p>
+      <p class="small">$\dot{\vec L}\cdot\hat{\mathbf n} = -\dfrac{3GMJ_2R^2}{r^3}\sin i\cos i\,\sin^2u$,</p>
+      <p class="small">$\dot{\vec L}\cdot\hat{\mathbf m} = +\dfrac{3GMJ_2R^2}{r^3}\sin i\cos i\,\sin u\cos u$,</p>
+      <p class="small">$\dot{\vec L}\cdot\hat{\mathbf H} = -\dfrac{3GMJ_2R^2}{r^3}\sin^2 i\,\sin u\cos u$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The triple products.</b> Since $\{\hat{\mathbf n},\hat{\mathbf m},\hat{\mathbf H}\}$
+    is right-handed, $\hat{\mathbf n}\times\hat{\mathbf m} = \hat{\mathbf H}$,
+    $\hat{\mathbf m}\times\hat{\mathbf H} = \hat{\mathbf n}$,
+    $\hat{\mathbf H}\times\hat{\mathbf n} = \hat{\mathbf m}$. Then
+    $(\hat{\mathbf z}\times\vec r\,)\cdot\hat{\mathbf n} = \hat{\mathbf z}\cdot(\vec r\times\hat{\mathbf n})$
+    by the cyclic property of the scalar triple product (unit 08), and
+    $\vec r\times\hat{\mathbf n} = r\sin u\,(\hat{\mathbf m}\times\hat{\mathbf n}) = -r\sin u\,\hat{\mathbf H}$,
+    so the product is $-r\sin u\cos i$. Multiplying by $3GMJ_2R^2z/r^5$ with
+    $z = r\sin i\sin u$ gives the first line. The other two are the same computation with
+    $\hat{\mathbf m}$ and $\hat{\mathbf H}$ in place of $\hat{\mathbf n}$:
+    $\vec r\times\hat{\mathbf m} = r\cos u\,\hat{\mathbf H}$ and
+    $\vec r\times\hat{\mathbf H} = r(\sin u\,\hat{\mathbf n} - \cos u\,\hat{\mathbf m})$.</p>
+    <p><b>Where the derivatives of $\hat{\mathbf H}$ come from.</b> $\hat{\mathbf H}$ is a unit
+    vector parametrised by $(i,\Omega)$ exactly as a point on a sphere is parametrised by
+    colatitude and longitude, with $i$ the colatitude measured from $\hat{\mathbf z}$ and
+    $\Omega + 90^\circ$ the longitude. The two partial derivatives are the coordinate
+    basis vectors of that chart, of lengths $1$ and $\sin i$ — which is unit 05's spherical
+    Jacobian in another costume, and why $\sin i$ appears in the $\Omega$ equation and not
+    in the $i$ equation.</p>
+    <p><b>Read the three equations before averaging.</b> All three right-hand sides are
+    $O(J_2)$, so all three elements wobble. But two of them carry $\sin u\cos u =
+    \tfrac12\sin2u$, which averages to zero over an orbit, while the first carries
+    $\sin^2u$, whose average is $\tfrac12$ and is not zero. That single observation is the
+    whole result: to first order $J_2$ does not change the orbit's size, shape or tilt —
+    it only turns the orbit plane about the Earth's axis.</p>
+    <p>Why $i$ and $L$ are untouched is worth a physical sentence: the perturbing
+    potential is axially symmetric, so it cannot exert a torque about the axis
+    $\hat{\mathbf z}$; the component $L_z = L\cos i$ is therefore exactly conserved, not
+    merely on average. With $L$ also conserved on average, $i$ follows.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · precession</p>
+  <h2>Averaging, and the result</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">From the first equation, with $L^2 = GMp$ and $p = a(1-e^2)$,</p>
+      $$\dot\Omega = -\frac{3GMJ_2R^2}{L\,r^3}\cos i\,\sin^2 u .$$
+      <p class="small">Average over one orbit in <em>time</em>, using $\mathrm dt = (r^2/L)\,\mathrm du$ and $1/r = (1 + e\cos(u - \omega))/p$:</p>
+      $$\langle\dot\Omega\rangle = -\frac{3GMJ_2R^2\cos i}{T L^2}\int_0^{2\pi}\frac{\sin^2u}{r}\,\mathrm du ,$$
+      <p class="small">and the integral is $\pi/p$, since $\int_0^{2\pi}\sin^2u\,\mathrm du = \pi$ and $\int_0^{2\pi}\sin^2u\cos(u-\omega)\,\mathrm du = 0$.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">nodal precession</span> rate</span>
+        $$\boxed{\;\dot\Omega = -\frac32\,J_2\left(\frac Ra\right)^{\!2}\frac{n\cos i}{(1-e^2)^2}\;}$$
+        <p class="small">with $n = \sqrt{GM/a^3}$, and $\dot i = \dot a = \dot e = 0$ at this order.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $J_2$, $(R/a)^2$, $\cos i$ and $(1-e^2)^{-2}$ are all dimensionless, so $\dot\Omega$ has the dimensions of $n$: $\mathrm{s^{-1}}$.</p>
+        <p class="small"><b>Limits.</b> $J_2 \to 0$: no precession. $i \to 90^\circ$: no precession — a polar orbit passes over the bulge symmetrically and is torqued equally either way. $i &gt; 90^\circ$: the sign flips.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full derivation of the averaging step</h4>
+    <p>$\langle\dot\Omega\rangle = \frac1T\int_0^T\dot\Omega\,\mathrm dt$. Substituting
+    $\mathrm dt = (r^2/L)\mathrm du$ — which is Kepler's second law, $r^2\dot u = L$, from
+    unit 08 — turns $\int \dot\Omega\,\mathrm dt$ into
+    $-\frac{3GMJ_2R^2\cos i}{L^2}\int_0^{2\pi}\frac{\sin^2u}{r}\mathrm du$. With
+    $1/r = (1+e\cos\nu)/p$ and $\nu = u - \omega$ the true anomaly,</p>
+    <p>$\int_0^{2\pi}\frac{\sin^2u}{r}\mathrm du = \frac1p\Big[\int_0^{2\pi}\sin^2u\,\mathrm du
+    + e\int_0^{2\pi}\sin^2u\cos(u-\omega)\,\mathrm du\Big] = \frac{\pi}{p}$,</p>
+    <p>because $\sin^2u = \tfrac12 - \tfrac12\cos2u$ contains only the frequencies $0$ and
+    $2$, and $\cos(u-\omega)$ only the frequency $1$: every product integrates to zero over
+    a full period. (To first order $\omega$ is a constant during the averaging; treating a
+    slowly varying quantity as constant over one fast period is exactly what the averaging
+    theorem licenses.)</p>
+    <p>Then $T = 2\pi/n$, $L^2 = GMp$ and $p = a(1-e^2)$:</p>
+    <p>$\langle\dot\Omega\rangle = -\frac{3GMJ_2R^2\cos i\,\pi\,n}{2\pi\,GM\,p\cdot p}
+    = -\frac{3J_2R^2n\cos i}{2a^2(1-e^2)^2}$, which is the boxed formula.</p>
+    <h4>The periodic part, for comparison</h4>
+    <p>Writing $\sin^2u = \tfrac12 - \tfrac12\cos2u$ and integrating the second piece for a
+    circular orbit gives an oscillation of the node of amplitude
+    $\tfrac34J_2(R/a)^2|\cos i|$. For the running example that is $9.6\times10^{-5}$
+    radians, or $0.0055^\circ$ — a wobble that never grows, beside a drift of
+    $0.0690^\circ$ per orbit that never stops.</p>
+    <p><b>A check against the equations themselves.</b> Integrating
+    $\ddot{\vec r} = -GM\vec r/r^3 + \vec a_{\mathrm p}$ numerically for three days from a
+    circular state at <span class="ref" data-ref="sat">the satellite's</span> $a$ and $i = 98.603^\circ$,
+    and fitting a straight line to the osculating $\Omega(t)$, gives $0.990^\circ$ per day
+    against the formula's $0.9856^\circ$. The $0.4\%$ gap is second order: the initial
+    osculating $a$ is not the orbit's mean $a$, and at the level of $J_2^2$ the distinction
+    matters. Absorbing it would move the predicted inclination by about $0.04^\circ$.</p>
+    <p><b>A third check, against a real orbit.</b> The International Space Station has
+    $a \approx 6798\ \mathrm{km}$ and $i = 51.6^\circ$. The formula gives
+    $\dot\Omega = -4.95^\circ$ per day, so its orbital plane makes a full turn in about
+    $73$ days. That is the published value, and it is the reason its ground track and its
+    visible-pass seasons repeat on roughly that cycle.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · precession · example</p>
+  <h2>The sun-synchronous inclination</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 3 · solving for $i$</span>
+        <p class="small"><b>Demand.</b> A <span class="term">sun-synchronous orbit</span> keeps its plane at a fixed angle to the Earth–Sun line, so the plane must turn eastward once per year:</p>
+        <p class="small">$\dot\Omega = \dfrac{2\pi}{365.2422\times86400\ \mathrm s} = 1.99106\times10^{-7}\ \mathrm{s^{-1}} = 0.98565^\circ/\mathrm{day}$.</p>
+        <p class="small"><b>Orbit.</b> $h = 800$ km, so $a = 6378.137 + 800 = 7178.137$ km, $e = 0$, and</p>
+        <p class="small">$n = \sqrt{GM/a^3} = 1.038129\times10^{-3}\ \mathrm{s^{-1}}$ (period $100.87$ min).</p>
+        <p class="small"><b>Invert.</b> $\cos i = -\dfrac{2\dot\Omega\,a^2}{3J_2R^2\,n} = -\dfrac{2(1.99106{\times}10^{-7})(7178.137)^2}{3(1.08263{\times}10^{-3})(6378.137)^2(1.038129{\times}10^{-3})}$</p>
+        <p class="small">$= -0.149589$, so $\;i = 98.603^\circ$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">it is the right number</span>
+        <p class="small">Every sun-synchronous satellite at $800$ km flies at $98.6^\circ$. The same formula gives $97.79^\circ$ at $600$ km and $99.48^\circ$ at $1000$ km, which is also what they fly at.</p>
+      </div>
+      <div class="box warn"><span class="label">why it must be retrograde</span>
+        <p class="small">$\dot\Omega &gt; 0$ forces $\cos i &lt; 0$. A sun-synchronous orbit is necessarily inclined past $90^\circ$ — it goes round the Earth against the Earth's own rotation, and it does so because of the sign of a cosine.</p>
+      </div>
+      <p class="small muted">There is a ceiling: $|\cos i| \le 1$ caps the altitude at about $5974$ km, beyond which no inclination precesses fast enough.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The arithmetic, carefully.</b> Numerator:
+    $2\times1.99106\times10^{-7}\times(7.178137\times10^6)^2 = 2\times1.99106\times10^{-7}\times5.15256\times10^{13}
+    = 2.05179\times10^{7}$. Denominator:
+    $3\times1.08263\times10^{-3}\times(6.378137\times10^6)^2\times1.038129\times10^{-3}
+    = 3\times1.08263\times10^{-3}\times4.06806\times10^{13}\times1.038129\times10^{-3}
+    = 1.37161\times10^{8}$. The ratio is $0.149589$, and with the minus sign
+    $i = \arccos(-0.149589) = 98.6031^\circ$.</p>
+    <p><b>Which year.</b> The relevant period is the one after which the Earth–Sun
+    direction repeats: the tropical year, $365.2422$ days. Using the sidereal year
+    ($365.2564$ days) instead changes $\dot\Omega$ in the fifth digit and the inclination
+    by about $0.0003^\circ$ — below the accuracy at which $J_2$ alone is meaningful
+    anyway.</p>
+    <p><b>Which radius.</b> "Altitude" here is measured above the equatorial radius, which
+    is also the reference radius in $J_2$. Using the mean radius instead moves $a$ by
+    $7\ \mathrm{km}$ and $i$ by about $0.03^\circ$. The checkpoint asks for a degree, so the
+    ambiguity does not matter; it is worth knowing that it exists.</p>
+    <p><b>The ceiling.</b> Setting $\cos i = -1$ and $e = 0$ gives
+    $\dot\Omega = \tfrac32J_2R^2\sqrt{GM}\,a^{-7/2}$, so
+    $a_{\max} = \big(\tfrac32J_2R^2\sqrt{GM}/\dot\Omega\big)^{2/7} = 12352\ \mathrm{km}$, an
+    altitude of $5974\ \mathrm{km}$. Above that the orbit is simply too slow and too far for
+    the bulge to turn it once a year, whatever its inclination.</p>
+    <p><b>What is really wanted.</b> Strictly, sun-synchronicity is about the local solar
+    time of the equator crossing staying fixed, which is the condition that the node
+    keeps pace with the <em>mean Sun</em>. Real mission design adds the higher $J_n$, the
+    lunisolar perturbations and atmospheric drag, and then adjusts the inclination by a
+    few hundredths of a degree and maintains it with thrusters. The first three digits
+    come from this slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · precession</p>
+  <h2>The other precession: the apse line</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>Step 1 — average the potential.</b> On a nearly circular orbit, $\cos\theta = z/r = \sin i\sin u$, so with $\langle\sin^2u\rangle = \tfrac12$,</p>
+      $$\langle\Phi_2\rangle = \frac{GMJ_2R^2}{r^3}\Big\langle\frac{3\sin^2i\sin^2u - 1}{2}\Big\rangle = \frac{c}{r^3},$$
+      <p class="small">with $c = \tfrac14GMJ_2R^2\big(1 - 3\cos^2 i\big)$.</p>
+      <p class="small"><b>Step 2 — a central-force problem.</b> Unit 08's machinery applies verbatim to $V_{\mathrm{eff}} = -\frac{GM}{r} + \frac{L^2}{2r^2} + \frac{c}{r^3}$. Equating $V_{\mathrm{eff}}'(r_0) = 0$ and computing $\omega_r^2 = V_{\mathrm{eff}}''(r_0)$ against $\omega_u^2 = L^2/r_0^4$:</p>
+      $$\omega_r^2 = n^2 + \frac{3c}{r_0^5},\qquad \omega_u^2 = n^2 - \frac{3c}{r_0^5},$$
+      <p class="small">so the apse line turns, in inertial space, at $\;\omega_u - \omega_r = -3c/(r_0^5n) = \tfrac34 J_2(R/a)^2 n\,(3\cos^2i - 1)$.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">but $\omega$ is measured from the node</span>
+        <p class="small">And the node is moving. $\hat{\mathbf n}$ advances within the orbit plane at rate $\dot\Omega\cos i$, so</p>
+        <p class="small">$\dot\omega = (\omega_u - \omega_r) - \dot\Omega\cos i$.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">apsidal precession</span> rate</span>
+        $$\dot\omega = \frac34\,J_2\left(\frac Ra\right)^{\!2}\frac{n\,(5\cos^2 i - 1)}{(1-e^2)^2}$$
+        <p class="small">since $(3\cos^2i - 1) + 2\cos^2 i = 5\cos^2 i - 1$. The factor $(1-e^2)^{-2}$ is derived at $i = 0$ in problem P9 and cited in general.</p>
+      </div>
+      <p class="small muted">Forgetting the second term gives $3\cos^2i - 1$ and a critical inclination of $54.7^\circ$, which is wrong. The moving frame is not optional.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Why step 1 is allowed</h4>
+    <p>Averaging the potential over $u$ at fixed $r$ throws away the part of $\Phi_2$ that
+    varies as $\cos2u$. Its in-plane force drives the radial motion at frequency $2n$, far from
+    the radial frequency $\omega_r \approx n$, so it produces a bounded forced wobble in $r$
+    (unit 06's non-resonant response) and no secular turning of the apse line; that is the
+    averaging theorem's licence, applied to this term. Its out-of-plane part turns the plane,
+    which is the $\dot\Omega$ already found and is accounted for by the moving-node correction
+    below.</p>
+    <h4>Full derivation of step 2</h4>
+    <p>$V_{\mathrm{eff}}' = GM/r^2 - L^2/r^3 - 3c/r^4 = 0$ at $r_0$ gives
+    $L^2 = GMr_0 - 3c/r_0$. Then
+    $V_{\mathrm{eff}}'' = -2GM/r^3 + 3L^2/r^4 + 12c/r^5$, and substituting $L^2$:</p>
+    <p>$\omega_r^2 = -\frac{2GM}{r_0^3} + \frac{3GM}{r_0^3} - \frac{9c}{r_0^5} + \frac{12c}{r_0^5}
+    = \frac{GM}{r_0^3} + \frac{3c}{r_0^5}$, and
+    $\omega_u^2 = L^2/r_0^4 = \frac{GM}{r_0^3} - \frac{3c}{r_0^5}$.</p>
+    <p>With $n^2 = GM/r_0^3$ and $3c/r_0^5 \ll n^2$, expanding the square roots to first
+    order gives $\omega_r \approx n(1 + \tfrac{3c}{2n^2r_0^5})$ and
+    $\omega_u \approx n(1 - \tfrac{3c}{2n^2r_0^5})$, hence
+    $\omega_u - \omega_r = -3c/(n r_0^5)$. Substituting
+    $c = \tfrac14GMJ_2R^2(1-3\cos^2i)$ and $GM = n^2r_0^3$:
+    $-\tfrac34 n J_2(R/r_0)^2(1 - 3\cos^2i)$, which is the slide's expression.</p>
+    <h4>Full derivation of the node's in-plane motion</h4>
+    <p>$\hat{\mathbf n} = (\cos\Omega,\sin\Omega,0)$, so
+    $\dot{\hat{\mathbf n}} = \dot\Omega(-\sin\Omega,\cos\Omega,0)$. Project onto
+    $\hat{\mathbf m} = (-\cos i\sin\Omega,\ \cos i\cos\Omega,\ \sin i)$:
+    $\dot{\hat{\mathbf n}}\cdot\hat{\mathbf m} = \dot\Omega\cos i(\sin^2\Omega + \cos^2\Omega)
+    = \dot\Omega\cos i$. Since $\hat{\mathbf m}$ is $90^\circ$ ahead of $\hat{\mathbf n}$ in
+    the direction of motion, the node advances along the orbit at angular rate
+    $\dot\Omega\cos i$, and an angle measured <em>from</em> the node decreases by that
+    much. Substituting $\dot\Omega\cos i = -\tfrac32J_2(R/a)^2n\cos^2i$ and subtracting
+    supplies the extra $+2\cos^2i$.</p>
+    <p><b>Consistency check at $i = 0$.</b> There the node is undefined and only the sum
+    $\varpi = \Omega + \omega$ is meaningful. The formulas give
+    $\dot\varpi = \tfrac34J_2(R/a)^2n(5-1) - \tfrac32J_2(R/a)^2n = \tfrac32J_2(R/a)^2n$,
+    which is exactly what step 2 gives directly at $\cos^2i = 1$. The two routes agree,
+    which is a genuine check on the kinematic correction.</p>
+    <p><b>What is derived and what is cited.</b> The derivation above assumed a nearly
+    circular orbit, so it proves the formula at $e \to 0$. At general $e$ the tool is the
+    lemma of section 3 applied to the Laplace–Runge–Lenz vector $\vec A$: problem P9 does it
+    for an equatorial orbit, where $\vec a_{\mathrm p}$ is purely radial, and recovers the
+    $(1-e^2)^{-2}$. The general-inclination, general-$e$ case is the same computation with
+    the non-radial part of $\vec a_{\mathrm p}$ carried along; it is cited from Vallado,
+    <em>Fundamentals of Astrodynamics and Applications</em>, the chapter on general
+    perturbations, and was checked here against a direct numerical integration (next
+    slide's notes).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · precession</p>
+  <h2>The critical inclination</h2>
+  <div class="cols">
+    <div>
+      <p>$\dot\omega = 0$ when $\;5\cos^2i = 1$: the <span class="term">critical inclination</span></p>
+      $$i = \arccos\frac{1}{\sqrt5} = 63.4349^\circ \quad\text{(or }116.5651^\circ\text{)} .$$
+      <p class="small">At that inclination the perigee does not move, so an orbit designed to loiter over one hemisphere keeps loitering there indefinitely rather than drifting to the other.</p>
+      <div class="box good"><span class="label">a Molniya orbit</span>
+        <p class="small">Half a sidereal day: $a = 26562\ \mathrm{km}$, $e = 0.74$, $i = 63.4349^\circ$. Perigee altitude $528$ km, apogee $39839$ km; with perigee in the far south it spends $11.1$ hours of each twelve north of the equator.</p>
+        <p class="small">At $i = 60^\circ$ instead, $\dot\omega = 0.0413^\circ$ per day: perigee swings through a right angle in six years, and apogee wanders off the northern hemisphere within the satellite's working life.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">and the node still moves</span>
+        <p class="small">At the critical inclination $\dot\Omega = -0.1477^\circ$ per day. Nothing cancels it, and nothing needs to: a Molniya orbit cares where its apogee sits relative to the ground, which is governed by $\omega$, not by $\Omega$.</p>
+      </div>
+      <div class="box warn"><span class="label">one Legendre term, two precessions</span>
+        <p class="small">Both rates came from the single $P_2$ term of $\Phi$. The $\ell = 2$ term is responsible for <em>both</em> precessions; they differ because $\dot\Omega$ comes from the part of the torque along $\hat{\mathbf n}$ and $\dot\omega$ from the radial average of the same potential. $\ell = 0$ gives Kepler; $\ell = 1$ vanishes at the centre of mass; $\ell \ge 3$ contributes at the part-per-million level.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The critical inclination is exact in the sense that it is where the first-order
+    secular rate vanishes; at that inclination the second-order and higher terms take
+    over, and the true behaviour near $63.43^\circ$ is a slow libration of $\omega$ rather
+    than a strict standstill. That structure — a resonance where the leading secular term
+    vanishes — is the first hint of what unit 17 calls a resonance island, and the
+    "critical inclination problem" was a well-known headache in the 1960s for exactly
+    that reason.</p>
+    <p><b>The Molniya numbers.</b> A period of half a sidereal day is
+    $T = 43082.05\ \mathrm s$, so $a = (GM(T/2\pi)^2)^{1/3} = 26561.8\ \mathrm{km}$ and
+    $n = 1.45842\times10^{-4}\ \mathrm{s^{-1}}$. With $e = 0.74$: perigee radius
+    $a(1-e) = 6906\ \mathrm{km}$, altitude $528\ \mathrm{km}$; apogee radius
+    $a(1+e) = 46218\ \mathrm{km}$, altitude $39839\ \mathrm{km}$, which is above the
+    geostationary altitude. With $\omega = 270^\circ$ the body is north of the equator while
+    the true anomaly runs from $90^\circ$ to $270^\circ$: on the apogee side of the chord
+    through the Earth perpendicular to the major axis. By Kepler's second law (unit 08) the
+    fraction of the period spent there is the fraction of the ellipse's area on that side,
+    half the ellipse plus the strip between centre and focus:
+    $\tfrac12 + \frac{2}{\pi ab}\int_0^{ae}b\sqrt{1 - x^2/a^2}\,\mathrm dx
+    = \tfrac12 + \frac1\pi\big(e\sqrt{1-e^2} + \arcsin e\big) = 0.924$, or $11.1$ hours of the twelve. The factor $(1-e^2)^{-2} = (1 - 0.5476)^{-2} = 4.886$ multiplies
+    both rates — the eccentricity almost quintuples the precession, which is the averaging
+    weight of section 3 making itself felt.</p>
+    <p>$\dot\Omega$ at the critical inclination: $-\tfrac32(1.08263\times10^{-3})
+    (6378.137/26561.8)^2(1.45842\times10^{-4})(0.44721)(4.886) = -2.984\times10^{-8}\
+    \mathrm{s^{-1}}$, which is $-0.1477^\circ$ per day. At $i = 60^\circ$,
+    $5\cos^2i - 1 = 0.25$ and $\dot\omega = 8.34\times10^{-9}\ \mathrm{s^{-1}} =
+    0.0413^\circ$ per day; $90/0.0413 = 2180$ days, or $6.0$ years, to move perigee through
+    a right angle, and $23.9$ years for a full circuit. A Molniya satellite's working life
+    is several years, so a $60^\circ$ orbit would lose its northern apogee in service.</p>
+    <p><b>Checked against a direct integration.</b> Integrating the $J_2$-perturbed
+    equations of motion numerically for $20$ days from a Molniya state at
+    $i = 63.4349^\circ$ gives a perigee drift below $0.001^\circ$ per day — zero to within
+    the second-order effects the formula leaves out — against $0.455^\circ$ per day at
+    $i = 30^\circ$ from the integration and $0.454^\circ$ from the formula. The node rate from
+    the integration is $-0.146^\circ$ per day against the formula's $-0.148^\circ$, a $1\%$ gap of
+    the same osculating-versus-mean kind as for the satellite.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Tides, as the $\ell = 2$ term</h2>
+  <p>Unit 05's two bulges, re-derived in one line — and why the Moon shows us one face.</p>
+</section>
+
+<section>
+  <p class="eyebrow">10 · tides</p>
+  <h2>Two bulges, because $P_2$ is even</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Expand the potential of a distant mass $M_{\mathrm e}$ at distance $d$ <em>inside</em> the body feeling it, with $\vec r\,{}'$ measured from the body's centre and $\psi$ the angle from the line to $M_{\mathrm e}$:</p>
+      $$\Phi_{\mathrm{ext}}(\vec r\,{}') = -\frac{GM_{\mathrm e}}{d}\sum_{n\ge0}\Big(\frac{r'}{d}\Big)^{n}P_n(\cos\psi).$$
+      <ul>
+        <li class="small">$n=0$: a constant. No force.</li>
+        <li class="small">$n=1$: $-\frac{GM_{\mathrm e}}{d^2}r'\cos\psi$, a <em>uniform</em> field — it accelerates the whole body equally and vanishes in the free-falling frame.</li>
+        <li class="small">$n=2$: $-\frac{GM_{\mathrm e}}{d^3}r'^2P_2(\cos\psi)$. The first term that stretches.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the Hessian is unit 05's tidal tensor</span>
+        <p class="small">$-\frac{GM_{\mathrm e}}{2d^3}\big(3(\hat{\mathbf n}\cdot\vec r\,{}')^2 - r'^2\big)$ has second derivatives — the <span class="term">tidal tensor</span></p>
+        <p class="small">$\partial_i\partial_j\Phi^{(2)}_{\mathrm{ext}} = \frac{GM_{\mathrm e}}{d^3}\big(\delta_{ij} - 3n_in_j\big)$,</p>
+        <p class="small">eigenvalues $(-2,1,1)GM_{\mathrm e}/d^3$: stretch along $\hat{\mathbf n}$, squeeze across it, trace zero.</p>
+      </div>
+      <div class="box thm"><span class="label">why two, in one line</span>
+        <p class="small">$P_2$ is <b>even</b>, so $P_2(\cos\psi) = P_2(\cos(\pi - \psi))$: the near side and the far side get the identical term. One function, two maxima — the same $P_2$ as in <span class="ref" data-ref="J2term">the $J_2$ term</span>, with its axis on the Moon instead of the pole.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Unit 05 got the two bulges by computing $\partial_i\partial_j\Phi$ for a point mass
+    and finding eigenvalues $(-2,1,1)$. That computation and this one are the same
+    computation: the tidal tensor is the Hessian of the $\ell = 2$ term, and its
+    eigenvalue structure is the statement that $P_2(\cos\psi) = \tfrac12(3\cos^2\psi - 1)$
+    is $+1$ at $\psi = 0$ and $\psi = \pi$ and $-\tfrac12$ at $\psi = \pi/2$. The ratio
+    $-2 : 1 : 1$ is the ratio $1 : -\tfrac12 : -\tfrac12$ with the overall sign of the
+    potential, and its trace is zero because $r'^2P_2(\cos\psi)$ is a harmonic polynomial
+    — the external mass is elsewhere, so its potential satisfies Laplace's equation inside
+    the body, term by term (problem P11).</p>
+    <p><b>Checking the Hessian.</b>
+    $\partial_i\partial_j\big[3(\hat{\mathbf n}\cdot\vec r\,{}')^2 - r'^2\big] = 6n_in_j - 2\delta_{ij}$,
+    so multiplying by $-GM_{\mathrm e}/2d^3$ gives
+    $(GM_{\mathrm e}/d^3)(\delta_{ij} - 3n_in_j)$. Its trace is
+    $(GM_{\mathrm e}/d^3)(3 - 3) = 0$. Its eigenvectors are $\hat{\mathbf n}$ with eigenvalue
+    $(1-3) = -2$, and anything perpendicular with eigenvalue $1$.</p>
+    <p><b>Why the $n=1$ term is the one that leaves.</b> It gives a force per unit mass
+    $-\nabla(-GM_{\mathrm e}r'\cos\psi/d^2) = (GM_{\mathrm e}/d^2)\hat{\mathbf n}$, the same
+    vector at every point of the body. In a frame falling freely with the body's centre,
+    that acceleration is subtracted off everywhere. Unit 30 makes this the equivalence
+    principle: the $n=1$ term is exactly what a change of frame can remove, and the
+    $n \ge 2$ terms are exactly what it cannot. The tidal tensor is what survives, and
+    unit 33 will identify it with the Riemann curvature tensor's Newtonian limit.</p>
+    <p>The naive picture — "the Moon pulls the near ocean away from the Earth and the
+    Earth away from the far ocean" — is correct but is not an explanation; it is a
+    restatement. The explanation is that the first non-removable term of the expansion is
+    even in $\cos\psi$, so it cannot distinguish the two ends.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · tides</p>
+  <h2>The energy of a quadrupole in a tidal field</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Turn it around: a body of mass $m$ with a quadrupole $Q$, and a distant point mass $M_{\mathrm e}$ at $d\,\hat{\mathbf n}$. The mutual energy is $M_{\mathrm e}$ times the body's potential at $d\,\hat{\mathbf n}$:</p>
+      $$U = -\frac{GM_{\mathrm e}m}{d} - \frac{GM_{\mathrm e}}{2d^3}\,Q(\hat{\mathbf n},\hat{\mathbf n}) - \cdots$$
+      <p class="small">The second term depends on the body's <em>orientation</em>, so there is a torque.</p>
+      <div class="box thm"><span class="label">the torque</span>
+        <p class="small">For a body with principal moments $A &lt; B$ about axes in the orbit plane, and $\gamma$ the angle by which the long axis is turned ahead of $\hat{\mathbf n}$,</p>
+        $$N = -\frac{\partial U}{\partial\gamma} = -\frac{3GM_{\mathrm e}}{2d^3}(B - A)\sin 2\gamma .$$
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">read it</span>
+        <p class="small">Restoring: $N &lt; 0$ for small $\gamma &gt; 0$. The long axis is pulled back into line with the external mass, and $\gamma = 0$ is a stable equilibrium.</p>
+        <p class="small">Period $\pi$, not $2\pi$: turning the body end-for-end changes nothing, because $Q$ is a <em>quadratic</em> form in $\hat{\mathbf n}$. Two bulges again.</p>
+      </div>
+      <div class="box warn"><span class="label">this is not the tide raising the bulge</span>
+        <p class="small">$Q$ here is a <em>permanent</em> quadrupole. The tide-raised part is a separate, induced one, and dissipation in it is what drove the body to $\gamma = 0$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full derivation of the torque</h4>
+    <p>In principal axes the long axis is $\hat e_1$, and with the long axis turned by $\gamma$
+    ahead of $\hat{\mathbf n}$ the body sees $\hat{\mathbf n} = (\cos\gamma,-\sin\gamma,0)$ in its
+    $1$–$2$ plane, so turning the body by $\delta\gamma$ about its polar axis increases
+    $\gamma$ by $\delta\gamma$. Then
+    $Q(\hat{\mathbf n},\hat{\mathbf n}) = Q_{11}\cos^2\gamma + Q_{22}\sin^2\gamma$ with
+    $Q_{11} = B + C - 2A$ and $Q_{22} = C + A - 2B$ from section 2. Differentiating,</p>
+    <p>$\frac{\mathrm d}{\mathrm d\gamma}Q(\hat{\mathbf n},\hat{\mathbf n})
+    = \sin2\gamma\,(Q_{22} - Q_{11}) = \sin2\gamma\,\big[(C+A-2B) - (B+C-2A)\big]
+    = -3(B-A)\sin2\gamma$.</p>
+    <p>Hence $\partial U/\partial\gamma = -\frac{GM_{\mathrm e}}{2d^3}\cdot(-3(B-A)\sin2\gamma)
+    = \frac{3GM_{\mathrm e}}{2d^3}(B-A)\sin2\gamma$, and $N = -\partial U/\partial\gamma$ is
+    the slide's expression. It is the torque on the body about its polar axis because a rotation
+    by $\delta\gamma$ moves each element by $\delta\gamma\,\hat{\mathbf z}\times\vec r\,{}'$, and the
+    work the forces do in that displacement, $N\,\delta\gamma$, is minus the change in $U$
+    (unit 04). Note that $C$ drops out entirely: only the asymmetry
+    <em>within</em> the orbit plane produces a torque about the spin axis.</p>
+    <p><b>Dimension check.</b> $[GM_{\mathrm e}(B-A)/d^3] = \mathrm{m^3s^{-2}\cdot kg\,m^2/m^3}
+    = \mathrm{kg\,m^2s^{-2}}$: an energy, and a torque has the same dimensions.
+    <b>Limit check.</b> $B = A$ gives $N = 0$: an axially symmetric body feels no torque
+    about its symmetry axis, which is the same statement that made $\dot L_z = 0$ exact in
+    section 4.</p>
+    <p>The expansion of $|\vec d - \vec r\,{}'|^{-1}$ used here is the multipole expansion
+    with the roles of the two points swapped, which is legitimate because $r' &lt; d$: the
+    body is small compared with its distance from $M_{\mathrm e}$. For the Moon,
+    $r'/d \le 1737/384400 = 0.0045$, so the quadrupole term is smaller than the monopole by
+    $(r'/d)^2 = 2\times10^{-5}$, and each further term by another factor $0.0045$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · tides · example</p>
+  <h2>Why the Moon keeps one face towards us</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">worked example 4 · the libration period</span>
+        <p class="small"><b>Set up.</b> Let $\gamma$ be the angle by which the Moon's long axis is turned ahead of the Earth direction. In a frame rotating with the mean motion $n$, rotation about the polar axis obeys $C\ddot\gamma = N$ with $N$ from the previous slide:</p>
+        <p class="small">$C\ddot\gamma = -\dfrac{3GM_{\oplus}}{2d^3}(B-A)\sin2\gamma$.</p>
+        <p class="small"><b>Linearise</b> for small $\gamma$, using $\sin2\gamma \approx 2\gamma$ and $GM_{\oplus}/d^3 \approx n^2$:</p>
+        <p class="small">$\ddot\gamma = -3\,\dfrac{B-A}{C}\,n^2\,\gamma \;\Longrightarrow\; \omega_{\mathrm{lib}} = n\sqrt{3\dfrac{B-A}{C}}$.</p>
+        <p class="small"><b>Numbers.</b> $(B-A)/C = 2.278\times10^{-4}$, so $\sqrt{3(B-A)/C} = 0.026142$, and with $n = 2\pi/27.3216\ \mathrm{d}$:</p>
+        <p class="small">$T_{\mathrm{lib}} = 27.3216/0.026142 = 1045\ \mathrm{days} = 2.86$ years.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $(B-A)/C$ is dimensionless, so $\omega_{\mathrm{lib}}$ has the dimensions of $n$.</p>
+        <p class="small"><b>Limit.</b> $B \to A$ gives $\omega_{\mathrm{lib}} \to 0$: a round Moon has no preferred face and does not librate.</p>
+        <p class="small"><b>Magnitude.</b> $\omega_{\mathrm{lib}} \ll n$, so the Moon rocks slowly about a rotation that is already locked — and the observed <span class="term">free libration</span> in longitude does have a period close to three years.</p>
+      </div>
+      <p class="small"><span class="term">Tidal locking</span> is this pendulum plus friction. Dissipation in the induced tide drains rotational energy at nearly fixed angular momentum until $\gamma$ settles at the bottom of the well.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where $(B-A)/C$ comes from.</b> It is measured — from the Moon's physical
+    librations, tracked by laser ranging to the retroreflectors left there. The standard
+    symbol for it is $\gamma_{\mathrm M} = (B-A)/C = 2.278\times10^{-4}$; the companion
+    $\beta = (C-A)/B = 6.31\times10^{-4}$. Both are far larger than the present tidal
+    field could raise, which is the evidence that the Moon's shape is a frozen relic of a
+    time when it was closer.</p>
+    <p><b>The approximation $GM_\oplus/d^3 \approx n^2$.</b> Exactly,
+    $n^2 = G(M_\oplus + M_{\mathrm M})/d^3$, so using $GM_\oplus$ alone understates $n^2$ by
+    about the mass ratio $1/81$ (the Sun's pull on the lunar orbit shifts it a little further).
+    Numerically $GM_\oplus/d^3 = 7.018\times10^{-12}$ against the observed
+    $n^2 = 7.085\times10^{-12}\ \mathrm{s^{-2}}$: agreement to $0.95\%$, and the libration period shifts by
+    half that. Well inside the accuracy of a linearised rigid-body model of a body with a
+    fluid core.</p>
+    <p><b>Why $C\ddot\gamma = N$ is legitimate here.</b> Rotation about a fixed principal
+    axis is the one case of rigid-body dynamics that needs no machinery: for rotation at
+    rate $\Omega_z$ about the $z$-axis each mass element has $\dot x = -\Omega_zy$,
+    $\dot y = \Omega_zx$, so $L_z = \int\rho\,(x\dot y - y\dot x) = \Omega_z\int\rho\,(x^2+y^2)
+    = C\Omega_z$. Here $\Omega_z = n + \dot\gamma$ and $n$ is constant, and unit 08's $\dot{\vec L} = \vec N$,
+    summed over the mass elements — the internal forces are central and cancel in pairs, their
+    torques with them — applied to that component gives the equation. Unit 16 does the general case, where the axis is not fixed and
+    the inertia tensor has to be carried around.</p>
+    <p><b>Why locking is the endpoint.</b> At fixed total angular momentum, synchronous
+    rotation minimises the energy — spinning faster or slower than the orbit costs
+    rotational kinetic energy with no compensating gain. Dissipation removes energy
+    monotonically, so the system slides to that minimum and stays. The same argument
+    explains Mercury's $3:2$ spin–orbit resonance, which is a different minimum reached
+    because Mercury's eccentricity makes $\gamma = 0$ not the only stable well.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · closing</p>
+  <h2>What this unit seeds</h2>
+  <table class="dense">
+    <tbody>
+      <tr><td><b>19</b> Sturm–Liouville</td><td>Legendre's equation is the first eigenvalue problem of the form $(py')' + \lambda wy = 0$; orthogonality, completeness and the three-term recurrence become one theorem.</td></tr>
+      <tr><td><b>21</b> perturbation theory</td><td>The averaging cited here is reached there by multiple scales, and placed inside the theory of asymptotic expansions.</td></tr>
+      <tr><td><b>23</b> electrostatics</td><td>The same expansion with charge for mass, where the dipole term does <em>not</em> vanish, used as a boundary-value tool — with unit 19's spherical harmonics and the addition theorem.</td></tr>
+      <tr><td><b>30, 33</b> curvature</td><td>The $\ell=2$ term is what no change of frame removes: the tidal tensor, and then the Riemann tensor's Newtonian limit.</td></tr>
+      <tr><td><b>37</b> the three tests</td><td>Mercury's perihelion advances by $43''$ per century. The calculation is this unit's apsidal precession with a $1/r^3$ term of relativistic rather than quadrupolar origin.</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">The technique, in one sentence: <em>expand in a small parameter, average over the fast angle, and keep what does not cancel.</em> Mercury's $43''$ per century in unit 37 is that sentence used once more.</p>
+  <aside class="notes">
+    <p>The historical thread is worth seeing whole. Legendre introduced the polynomials
+    in 1782 to expand the attraction of a spheroid — the problem of this unit, in its
+    original form. Laplace turned them into the theory of spherical harmonics within a
+    decade, for the figure of the Earth and the shape of Saturn's rings. Clairaut's
+    flattening formula is from 1743, forty years earlier, in his <em>Théorie de la figure de la
+    terre</em> — written after he had himself been on the Lapland expedition of 1736–37, one of
+    the two (the other went to Peru) sent to settle whether the Earth is flattened at the poles
+    or drawn out there. The perturbation
+    machinery is Lagrange's and Laplace's, developed to explain the "great inequality" of
+    Jupiter and Saturn, which turned out to be a near-resonance with an $880$-year period.</p>
+    <p>And the unit's own punchline is twentieth century: the sun-synchronous orbit was
+    first proposed in the 1950s and first flown in the 1960s, and it works because
+    somebody noticed that a nuisance — the node drift that ruined every orbit's
+    predictability — is exactly what is needed if you want the Sun angle to stay put. The
+    whole of section 4 is the arithmetic behind that observation.</p>
+    <p>Mercury is the one to look forward to. Unit 08's Binet equation
+    $u'' + u = GM/L^2$ becomes $u'' + u = GM/L^2 + 3GMu^2/c^2$ in general relativity, and
+    the extra term is a $1/r^3$ perturbation of exactly the kind treated on the apsidal
+    precession slide. The oblateness of the Sun contributes to the same number, which is
+    why measuring the solar $J_2$ mattered to the test.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">10 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <ul>
+      <li>From $J_2$ alone you predict the sun-synchronous inclination at a stated altitude to within a degree of the published value.</li>
+      <li>You can say which Legendre term produces each of the two precessions.</li>
+      <li>You can derive $P_n$ from the generating function, prove orthogonality on $[-1,1]$, and identify $J_2$ with $(C-A)/MR^2$.</li>
+    </ul>
+    <p class="small muted">Falsifiable: an inclination below $90^\circ$, a factor of $\tfrac32$ turned into $\tfrac34$, a critical inclination of $54.7^\circ$, or "the $\ell = 1$ term causes the precession" each fails it. Record it with <code>./mr done 10</code>.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Problems</h3>
+      <p class="small"><code>./mr problems 10</code> — twelve problems, about five hours, each with its hint ladder and worked solution folded underneath.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>11</b> the calculus of variations · <b>19</b> Sturm–Liouville, which needs this unit · <b>21</b> perturbation theory done properly · <b>23</b> the same expansion for charge · <b>37</b>, where the apsidal precession becomes $43''$ per century.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint cold, on paper. The honest test is to pick an altitude the
+    slides did not use — $700\ \mathrm{km}$, say — and carry it through: $a = 7078$ km,
+    $n = 1.0602\times10^{-3}\ \mathrm{s^{-1}}$, $\cos i = -0.14242$, $i = 98.19^\circ$.
+    Published sun-synchronous inclinations at $700$ km are $98.2^\circ$.</p>
+    <p>If the derivation stalls, the usual place is the averaging step, and specifically
+    the weight: $\mathrm dt = (r^2/L)\,\mathrm du$, not $\mathrm dt \propto \mathrm du$. Go
+    back to the warning box on "Secular versus periodic, and averaging" and redo the
+    integral with the weight in place; for $e = 0$ it makes no difference to $\dot\Omega$'s
+    leading behaviour but it is where the $(1-e^2)^{-2}$ lives, and omitting it is
+    invisible until an eccentric orbit shows up.</p>
+    <p>The second common stall is the sign of $J_2$ and the sign inside the bracket of
+    $\Phi$. Recover it from physics rather than memory: an oblate body has more mass near
+    its equator, so its potential well is <em>deeper</em> over the equator and shallower
+    over the poles than a sphere's. $P_2(\cos\theta)$ is $-\tfrac12$ at the equator and
+    $+1$ at the pole, and the convention with $J_2 &gt; 0$ makes $\Phi_2$ negative at the
+    equator. Two signs, one physical fact.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

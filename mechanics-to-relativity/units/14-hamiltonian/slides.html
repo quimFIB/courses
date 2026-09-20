@@ -1,0 +1,1861 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 · Hamilton: phase space, and flows that preserve volume</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="b">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="kep"><span class="ref-name">the Kepler problem in phase space</span>$$H = \frac{p_r^2}{2\mu} + \frac{p_\theta^2}{2\mu r^2} - \frac{k}{r}$$ on the phase space of $(r,\theta,p_r,p_\theta)$, with $p_\theta = L$ conserved. Freeze $L$ and what is left is a one-degree-of-freedom system in the half-plane $(r, p_r)$, $r &gt; 0$. <span class="ref-note">Unit 08's Lagrangian, Legendre-transformed. Numbers throughout are Halley's comet, per unit reduced mass: $h = L/\mu = 4.78403\times10^{15}\ \mathrm{m^2\,s^{-1}}$, $\varepsilon = E/\mu = -2.48740\times10^{7}\ \mathrm{J\,kg^{-1}}$, $GM_\odot = 1.32712440\times10^{20}\ \mathrm{m^3\,s^{-2}}$</span></template>
+  <template data-ref="halley"><span class="ref-name">Halley's level curve</span>The closed curve $\tfrac12 v_r^2 + h^2/2r^2 - GM_\odot/r = \varepsilon$ in the $(r, v_r)$ plane, $v_r = p_r/\mu$. <span class="ref-note">It meets $v_r = 0$ at $0.586025$ and $35.0789$ AU, is widest at $r_0 = h^2/GM_\odot = 1.15279$ AU with $|v_r| = 26.829\ \mathrm{km\,s^{-1}}$, and encloses a phase area of $8.81646\times10^{16}\ \mathrm{m^2\,s^{-1}}$ per unit mass, whose derivative in $\varepsilon$ is the period, $75.3052$ yr</span></template>
+  <template data-ref="sep"><span class="ref-name">the separatrix $E = 0$</span>At Halley's $h$: $v_r^2 = 2GM_\odot/r - h^2/r^2$, meeting $v_r = 0$ once, at $r_0/2 = 0.576396$ AU, and running off to $r = \infty$ with $v_r \to 0$. <span class="ref-note">It separates the closed curves ($E &lt; 0$, ellipses) from the open ones ($E &gt; 0$, hyperbolae) and is itself the parabolic orbit. No trajectory crosses it</span></template>
+  <template data-ref="lenz"><span class="ref-name">the Runge–Lenz vector</span>$\vec A = \vec p\times\vec L - \mu k\,\hat r$, conserved for the inverse-square force (unit 08), pointing at perihelion with $\lVert\vec A\rVert = \mu k e$. <span class="ref-note">For Halley $e = 0.96714$. Unit 13 called it the charge of a hidden symmetry; section 3 computes that symmetry's algebra</span></template>
+  <template data-ref="hoop"><span class="ref-name">the bead on the rotating hoop</span>A bead of mass $m$ on a hoop of radius $R$ turning at fixed $\Omega$ about its vertical diameter, $\theta$ measured from the bottom: $L = \tfrac12 mR^2(\dot\theta^2 + \Omega^2\sin^2\theta) + mgR\cos\theta$. <span class="ref-note">Unit 12's example. Its bottom goes unstable at $\Omega^2 = g/R$ in a pitchfork</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part B · the action · spine</p>
+  <div class="unit-no">14</div>
+  <h1>Hamilton: phase space, and flows that preserve volume</h1>
+  <p class="lede">Trade $n$ second-order equations for $2n$ first-order ones, and the new space
+  turns out to carry a bracket, a class of allowed coordinate changes and a preserved volume —
+  none of which configuration space ever showed you.</p>
+  <p class="meta"><span>needs 13, 02</span><span>~2½ h slides + 5 h problems</span><span>problems: <code>./mr problems 14</code></span></p>
+  <aside class="notes">
+    <p>Unit 12 wrote mechanics as the Euler–Lagrange equations of $\int L\,\mathrm dt$, and
+    unit 13 read conservation laws off its symmetries. This unit changes the variables once
+    more: instead of positions and velocities, positions and <em>momenta</em>. Nothing Newton
+    did not know follows from the change, and that is Part B's thesis stated in miniature:
+    the value of a reformulation is entirely in what it makes obvious. Here it makes four
+    things obvious that were hidden before — a phase portrait whose curves are level sets of
+    one function, a bracket under which conserved quantities form an algebra, a large class
+    of coordinate changes that mix $q$ with $p$ and still preserve the equations, and a volume
+    that the motion never changes.</p>
+    <p>The last of those, Liouville's theorem, is why statistical mechanics can exist at all,
+    and why a good numerical method for planetary orbits is not the same thing as an accurate
+    one. The third is the door to unit 15 (Hamilton–Jacobi) and unit 17 (integrability and
+    chaos). The first piece of mathematics, the Legendre transform, returns in unit 27 for
+    relativistic particles, where it nearly fails.</p>
+    <h4>How to read this deck</h4>
+    <p>Five sections. Section 1 builds the Legendre transform properly, as a supremum, with
+    its degenerate case flagged in advance. Section 2 derives Hamilton's equations and draws
+    what they draw. Section 3 introduces the Poisson bracket and uses it to compute the hidden
+    symmetry of the Kepler problem. Section 4 asks which changes of phase-space coordinates are
+    allowed. Section 5 proves Liouville's theorem and says what it is for.</p>
+    <p>Proofs are on the slides where they are one line, and in these notes under
+    <b>Full proof</b> where they are not. Results this unit does not prove are marked
+    <em>cited</em>, with the place where they are proved. Terms with a dotted underline are
+    glossary entries — click one, or press <kbd>G</kbd>. <kbd>N</kbd> opens these notes;
+    <kbd>R</kbd> stacks the deck into one readable page.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · overview</p>
+  <h2>Twice the variables, half the order</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the move</span>
+        <p class="small">Replace the velocity $\dot q$ by the momentum $p = \partial L/\partial\dot q$, and $L$ by its
+        Legendre transform, the <span class="term">Hamiltonian</span> $H(q,p,t)$. The Euler–Lagrange
+        equations become $2n$ first-order equations on <span class="term">phase space</span>:
+        $$\dot q = \frac{\partial H}{\partial p},\qquad \dot p = -\frac{\partial H}{\partial q}.$$</p>
+      </div>
+      <div class="box thm"><span class="label">what it buys</span>
+        <p class="small"><b>1</b> Orbits are level sets of $H$ and never cross. <b>2</b> A bracket
+        $\{f,H\}$ gives every time derivative, and conserved quantities form a Lie algebra.
+        <b>3</b> Changes of coordinates mixing $q$ and $p$ are allowed if they preserve one matrix.
+        <b>4</b> The flow preserves phase-space volume.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label"><span class="ref" data-ref="kep">the running example</span></span>
+        <p class="small">The Kepler problem, with Halley's comet as unit 08 left it. In phase space it becomes:
+        Halley's orbit as <span class="ref" data-ref="halley">a closed curve</span> in the $(r,p_r)$ plane,
+        bounded off from the unbound orbits by <span class="ref" data-ref="sep">the separatrix $E = 0$</span>; the
+        angular momentum and <span class="ref" data-ref="lenz">the Runge–Lenz vector</span> closing under the
+        bracket on the Lie algebra $\mathfrak{so}(4)$; and a phase area of
+        $8.81646\times10^{16}\ \mathrm{m^2\,s^{-1}}$ per unit mass whose derivative is the $75.31$-year period.</p>
+      </div>
+      <div class="box good"><span class="label">getting around</span>
+        <p class="small">A <span class="term" data-term="phase space">dotted underline</span> is a glossary
+        term: click it, or press <kbd>G</kbd>. <kbd>N</kbd> opens the notes, where the longer proofs live.
+        A solid underline, like <span class="ref" data-ref="kep">the running example</span>, shows it on hover.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the momentum and not the velocity.</b> Unit 01 already turned $m\ddot x = F$ into a
+    first-order system on $\mathbb R^{2n}$, with the pair $(x,\dot x)$. That was bookkeeping: it
+    uses no structure. The pair $(q,p)$ carries structure, and the first sign of it was already in
+    unit 12: when $q_i$ is cyclic, it is $p_i$, not $\dot q_i$, that is conserved. The second sign
+    is in unit 06's Abel identity, which showed that the undamped oscillator's flow preserves
+    area in the $(x,\dot x)$ plane; section 5 shows that in $(q,p)$ coordinates <em>every</em>
+    frictionless flow preserves volume, whatever the forces and whatever the coordinates, while
+    in $(q,\dot q)$ coordinates this fails as soon as the kinetic energy depends on $q$.</p>
+    <p><b>The running example, and why this one.</b> The Kepler problem has more conserved
+    quantities than it has any right to — energy, three components of $\vec L$, three of $\vec A$
+    — and unit 13 explained $\vec A$ only as "the charge of a hidden symmetry". The Poisson
+    bracket is the tool that makes the phrase precise: section 3 computes the brackets and
+    finds that they close on the Lie algebra of the rotation group of $\mathbb R^4$ for bound
+    orbits and of the Lorentz group for unbound ones. The numbers are Halley's, carried over
+    from unit 08 without change: $h = q v_q = 4.78403\times10^{15}\ \mathrm{m^2\,s^{-1}}$ and
+    $\varepsilon = \tfrac12 v_q^2 - GM_\odot/q = -2.48740\times10^{7}\ \mathrm{J\,kg^{-1}}$ from the
+    perihelion distance $q = 0.586025$ AU and speed $v_q = 54.5698\ \mathrm{km\,s^{-1}}$.</p>
+    <p><b>A notation warning.</b> $q$ is a generalised coordinate everywhere in this unit
+    except in Halley's perihelion distance, where unit 08's letter is kept; the context always
+    decides. $\mu$ is the reduced mass and $k = GM_\odot\mu$ for gravity, as in unit 08.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The Legendre transform, as convex duality</h2>
+  <p>Trading a variable for the slope of a function, done so that it cannot go wrong silently.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Legendre</p>
+  <h2>Why a transform, and why the naive one is not enough</h2>
+  <div class="cols">
+    <div>
+      <p class="small">We want $p = \partial L/\partial\dot q$ as a new variable in place of $\dot q$. The textbook recipe:</p>
+      <div class="box def"><span class="label">the recipe</span>
+        <p class="small">Solve $p = \partial L/\partial\dot q$ for $\dot q = v(q,p)$, then put
+        $$H(q,p) := p\cdot v - L(q, v).$$</p>
+      </div>
+      <p class="small">Unit 11 met this already: Beltrami's first integral $y'F_{y'} - F$ is exactly this expression,
+      and unit 13's energy function $h = \sum\dot q_i\,\partial L/\partial\dot q_i - L$ is too.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">where the recipe breaks</span>
+        <p class="small">"Solve for $\dot q$" needs $\dot q\mapsto\partial L/\partial\dot q$ to be a bijection. For
+        $L = \tfrac12 m\dot x^2$ it is. For $L = c\,\dot x$ it is constant; for $L = \lvert\dot x\rvert$ it is not
+        injective; for $L = -\sqrt{1-\dot x^2}$ its image is all of $\mathbb R$ while its domain is bounded.</p>
+      </div>
+      <div class="box good"><span class="label">the fix</span>
+        <p class="small">Define the transform by a <b>supremum</b>, which always makes sense, and let convexity
+        decide when the recipe is right. The recipe then becomes a theorem, and its failures become
+        visible instead of silent.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why these four examples.</b> The first is every Newtonian kinetic energy. The second,
+    linear in the velocity, is the shape of the magnetic term $q\,\dot{\vec x}\cdot\vec A$ in unit 12's
+    Lagrangian for a charge, and of any Lagrangian that is already first order. The third is the
+    arc-length integrand of unit 11 read as a Lagrangian; it is homogeneous of degree one in the
+    velocity, and so is the reparametrisation-invariant form of the relativistic free particle in
+    unit 27. The fourth is the other form of that particle, $-mc^2\sqrt{1-v^2/c^2}$, with $m = c = 1$.
+    All four are handled by the one definition on the next slide.</p>
+    <p><b>The name.</b> Legendre used the transform in 1787 for minimal surfaces; Hamilton
+    (1834–35) used it to pass from Lagrange's equations to his own; Fenchel (1949) gave the
+    supremum definition for arbitrary convex functions, which is why the general object is often
+    called the Legendre–Fenchel transform or the convex conjugate. The recipe above is what every
+    mechanics text calls the Legendre transform; this unit's position is that it is a special case
+    of the supremum, valid exactly under the hypotheses of the smooth-duality slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Legendre</p>
+  <h2>The definition, by supremum</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Legendre transform</span></span>
+        <p class="small">For $f:\mathbb R^n\to\mathbb R$, its transform $f^*:\mathbb R^n\to(-\infty,\infty]$ is
+        $$f^*(p) := \sup_{x\in\mathbb R^n}\big(p\cdot x - f(x)\big).$$
+        For $f$ defined only on a convex set $C$, take the supremum over $C$.</p>
+      </div>
+      <div class="box thm"><span class="label">two facts, no hypotheses</span>
+        <p class="small"><b>(a)</b> $f^*$ is convex, whatever $f$ is. <b>(b)</b> The <span class="term">Fenchel–Young inequality</span>:
+        $$f(x) + f^*(p) \;\ge\; p\cdot x\quad\text{for all } x, p.$$</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">(a) Each $p\mapsto p\cdot x - f(x)$ is affine, and a pointwise supremum of affine functions is convex.
+        (b) $f^*(p)$ is at least the value of the bracket at the particular $x$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 240" width="330" role="img" aria-label="a convex parabola, the line through the origin of slope p, and the parallel tangent line whose intercept is minus f star of p">
+          <line x1="8" y1="150" x2="312" y2="150" class="rule" stroke-width="1.2"/>
+          <line x1="50" y1="10" x2="50" y2="232" class="rule" stroke-width="1.2"/>
+          <polyline points="8.0,144.6 14.5,146.1 20.9,147.4 27.4,148.4 33.8,149.2 40.3,149.7 46.8,150.0 53.2,150.0 59.7,149.7 66.2,149.2 72.6,148.4 79.1,147.4 85.5,146.1 92.0,144.6 98.5,142.8 104.9,140.8 111.4,138.5 117.8,135.9 124.3,133.1 130.8,130.0 137.2,126.7 143.7,123.1 150.2,119.3 156.6,115.2 163.1,110.9 169.5,106.3 176.0,101.4 182.5,96.3 188.9,90.9 195.4,85.3 201.8,79.4 208.3,73.3 214.8,66.9 221.2,60.2 227.7,53.3 234.2,46.2 240.6,38.8 247.1,31.1 253.5,23.2 260.0,15.0" fill="none" class="unit" stroke-width="3"/>
+          <line x1="8" y1="177" x2="260" y2="15" class="ink" stroke-width="1.6"/>
+          <line x1="29" y1="197.3" x2="281" y2="35.3" class="accent" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="155" y1="116.3" x2="155" y2="82.5" class="warn" stroke-width="3"/>
+          <circle cx="50" cy="183.8" r="4.5" class="fill-accent"/>
+          <text x="60" y="200" font-size="14" class="mono soft">−f*(p)</text>
+          <text x="162" y="104" font-size="14" class="mono soft">gap = f*(p)</text>
+          <text x="230" y="30" font-size="14" class="mono soft">px</text>
+          <text x="268" y="62" font-size="14" class="mono soft">f</text>
+        </svg>
+        <p class="cap">$f(x) = x^2/2$, $p = 1.5$. The vertical gap between the line $px$ and the graph is largest where
+        the slope of $f$ is $p$; the tangent there (dashed) meets the axis at $-f^*(p)$.</p>
+      </div>
+      <div class="box good"><span class="label">the first one</span>
+        <p class="small">$f(v) = \tfrac12 mv^2$: $pv - \tfrac12 mv^2$ is largest at $v = p/m$, so $f^*(p) = p^2/2m$.
+        Dimensions: $[pv] = \mathrm{kg\,m^2\,s^{-2}}$, an energy ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the picture.</b> For each slope $p$, $f^*(p)$ answers: how far must the line
+    $y = px$ be lowered to become a supporting line of the graph of $f$ — a line touching the graph
+    and lying below it? The lowered line $y = px - f^*(p)$ has intercept $-f^*(p)$. So $f^*$
+    records the graph of $f$ not by its points but by its supporting lines, one per slope. That is
+    the whole idea of duality here: a convex set can be described by the points in it or by the
+    half-planes containing it, and for a convex function the two descriptions carry the same
+    information — which is the involutivity theorem two slides on.</p>
+    <p><b>The value $+\infty$.</b> It is allowed and it carries information. For $f(x) = e^x$ and
+    $p &lt; 0$, $px - e^x\to+\infty$ as $x\to-\infty$, so $f^*(p) = +\infty$: no line of negative slope
+    lies below the exponential. The set where $f^*$ is finite is itself a statement about $f$,
+    namely which slopes $f$ has "at infinity", and this is exactly what goes wrong in the degenerate
+    cases.</p>
+    <p><b>Full proof of the example.</b> $g(v) = pv - \tfrac12 mv^2$ is a downward parabola, with
+    $g'(v) = p - mv$ vanishing only at $v = p/m$, where $g = p^2/m - p^2/2m = p^2/2m$. Being a
+    downward parabola, $g$ has its global maximum there. Dimensionally $[p^2/m] =
+    \mathrm{kg^2\,m^2\,s^{-2}}/\mathrm{kg}$, an energy, as $H$ must be.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Legendre</p>
+  <h2>Young's inequality is a Legendre transform</h2>
+  <div class="cols">
+    <div class="box proof"><span class="label">compute it</span>
+      <p class="small">Let $a &gt; 1$ and $f(x) = \lvert x\rvert^a/a$ on $\mathbb R$. For $p \ge 0$ the supremum of
+      $px - x^a/a$ is over $x \ge 0$ (negative $x$ only lowers it), and the derivative $p - x^{a-1}$ vanishes at
+      $x = p^{1/(a-1)}$. With $b$ defined by $\tfrac1a + \tfrac1b = 1$, so that $\tfrac{1}{a-1} = b - 1$:
+      $$f^*(p) = p\cdot p^{b-1} - \frac{p^{(b-1)a}}{a} = p^b\Big(1 - \frac1a\Big) = \frac{p^b}{b},$$
+      using $(b-1)a = b$. By symmetry $f^*(p) = \lvert p\rvert^b/b$ for all $p$.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Young's inequality</span></span>
+        <p class="small">For $x, p \ge 0$ and $\tfrac1a + \tfrac1b = 1$,
+        $$px \;\le\; \frac{x^a}{a} + \frac{p^b}{b},$$
+        with equality exactly when $p = x^{a-1}$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Fenchel–Young with this $f$ and $f^*$. Equality holds exactly when $x$ attains the supremum
+        defining $f^*(p)$, which for this strictly concave bracket is the single point $x = p^{1/(a-1)}$. ∎</p>
+      </div>
+      <div class="box good"><span class="label">special case</span>
+        <p class="small">$a = b = 2$: $px \le \tfrac12(x^2 + p^2)$, the AM–GM inequality, with equality at $p = x$ ✓.
+        And $a = 2$ with $f = \tfrac12 mv^2$ is the previous slide's kinetic energy.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the exponent algebra.</b> From $\tfrac1a + \tfrac1b = 1$: $b = a/(a-1)$, so
+    $b - 1 = 1/(a-1)$ and $(b-1)a = a/(a-1) = b$. At the critical point $x = p^{b-1}$ the bracket is
+    $p\cdot p^{b-1} - p^{(b-1)a}/a = p^b - p^b/a = p^b/b$. That the critical point is the maximum:
+    $x\mapsto px - x^a/a$ has second derivative $-(a-1)x^{a-2} &lt; 0$ for $x &gt; 0$, so it is
+    strictly concave on $(0,\infty)$, and a critical point of a strictly concave function is its
+    unique global maximum. For $p &lt; 0$ replace $x$ by $-x$. For $p = 0$ the supremum is $0$,
+    attained at $x = 0$, and $0^b/b = 0$ ✓.</p>
+    <p><b>Why this matters beyond the inequality.</b> Young's inequality is the step from which
+    Hölder's inequality follows (put $x = |u|/\lVert u\rVert_a$, $p = |w|/\lVert w\rVert_b$ and
+    integrate), and Hölder is the backbone of the $L^p$ spaces unit 19 touches. It is instructive
+    that the inequality is nothing but the Fenchel–Young inequality for one particular pair: the
+    general inequality says every convex function has a partner for which it holds, and the
+    equality case is always "$p$ is the slope of $f$ at $x$". In mechanics that equality case reads
+    $p = \partial L/\partial\dot q$, the definition of the momentum.</p>
+    <p><b>Dimensions.</b> Only $a = 2$ reads as mechanics: $|v|^a$ is an energy per unit mass for that
+    exponent alone, and only then is $\partial f/\partial v$ a momentum. What survives for general $a$ is
+    the scaling — $f = m^{a-1}|v|^a/a$ has conjugate $|p|^b/(b\,m)$, try it — which at $a = b = 2$ is
+    $\tfrac12mv^2$ and $p^2/2m$ ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Legendre</p>
+  <h2>Involutivity: transforming twice gives $f$ back</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (<span class="term">involutivity</span>)</span>
+        <p class="small">If $f:\mathbb R^n\to\mathbb R$ is convex and differentiable, then $f^{**} = f$. Moreover, for each
+        $x$ the supremum defining $f^*(p)$ at $p = \nabla f(x)$ is attained at that $x$.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma (<span class="term">supporting line</span>)</span>
+        <p class="small">$f$ convex and differentiable $\Rightarrow$ $f(y) \ge f(x) + \nabla f(x)\cdot(y-x)$ for all $x,y$.</p>
+        <p class="proof-pointer">proof in the notes (N)</p>
+      </div>
+      <div class="box warn"><span class="label">without convexity</span>
+        <p class="small">$f^{**}$ is the <span class="term">convex envelope</span> of $f$ — the largest convex function below it —
+        and the transform forgets everything non-convex (problem P3).</p>
+      </div>
+    </div>
+    <div class="box proof"><span class="label">proof of the theorem</span>
+      <p class="small"><b>$f^{**}\le f$.</b> By Fenchel–Young, $p\cdot x - f^*(p)\le f(x)$ for every $p$; take the
+      supremum over $p$.</p>
+      <p class="small"><b>$f^{**}\ge f$.</b> Fix $x$ and put $p = \nabla f(x)$. The lemma says
+      $p\cdot y - f(y) \le p\cdot x - f(x)$ for every $y$, so the supremum is attained at $y = x$:
+      $$f^*(p) = p\cdot x - f(x).$$
+      Hence $f^{**}(x) \ge p\cdot x - f^*(p) = f(x)$. ∎</p>
+      <p class="small muted">The general case — $f$ convex and lower semicontinuous with values in $(-\infty,\infty]$,
+      no differentiability — is the Fenchel–Moreau theorem, <em>cited</em>: Rockafellar, <em>Convex Analysis</em>,
+      Theorem 12.2. Only the differentiable case is used in this course.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the lemma</h4>
+    <p>Fix $x, y$ and put $g(t) = f(x + t(y-x))$ for $t\in\mathbb R$. Then $g$ is convex (the
+    restriction of a convex function to a line) and differentiable, with $g'(0) = \nabla f(x)\cdot(y-x)$
+    by the chain rule of unit 03. For a convex $g$ the difference quotient $t\mapsto(g(t)-g(0))/t$
+    is nondecreasing on $t &gt; 0$: for $0 &lt; s &lt; t$, write $s = (1-\lambda)\cdot0 + \lambda t$ with
+    $\lambda = s/t$; convexity gives $g(s)\le(1-\lambda)g(0) + \lambda g(t)$, which rearranges to
+    $(g(s)-g(0))/s \le (g(t)-g(0))/t$. Letting $s\to0^+$ gives $g'(0)\le (g(t)-g(0))/t$ for every
+    $t &gt; 0$; at $t = 1$ this is $f(y) - f(x) \ge \nabla f(x)\cdot(y-x)$. $\square$</p>
+    <p><b>The picture.</b> The lemma says the tangent plane at $x$ lies below the graph everywhere:
+    a supporting hyperplane. The theorem's proof is then two sentences: every supporting line lies
+    below $f$ (so $f^{**}\le f$), and at each point some supporting line touches (so equality). For a
+    non-convex $f$ the second step fails at every point where no line through $(x, f(x))$ stays
+    below the graph, and there $f^{**}(x) &lt; f(x)$.</p>
+    <p><b>Why it matters for mechanics.</b> Involutivity is what makes the passage from Lagrange
+    to Hamilton reversible: $L$ is recovered from $H$ by the same transform, in $p$ instead of
+    $\dot q$. That symmetry is used in unit 15, where the Hamilton–Jacobi function is built from
+    $H$, and in unit 27, where one goes from $H = \sqrt{p^2c^2 + m^2c^4}$ back to a Lagrangian.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Legendre</p>
+  <h2>The smooth, strictly convex case: gradients are inverse</h2>
+  <div class="cols">
+    <div class="box thm"><span class="label">theorem (smooth duality)</span>
+      <p class="small">Let $f\in C^2(\mathbb R^n)$ with Hessian $\nabla^2 f$ positive definite everywhere, and let
+      $U = \nabla f(\mathbb R^n)$. Then $\nabla f:\mathbb R^n\to U$ is a bijection onto an open set, and on $U$:</p>
+      <p class="small">(i) the supremum defining $f^*(p)$ is attained at the unique $x(p)$ with $\nabla f(x) = p$;<br>
+      (ii) $f^*\in C^2(U)$, with $\nabla f^* = (\nabla f)^{-1}$ and $\nabla^2 f^*(p) = \big(\nabla^2 f(x(p))\big)^{-1}$;<br>
+      (iii) if $f = f(x; y)$ depends on a parameter $y$, then $\dfrac{\partial f^*}{\partial y} = -\dfrac{\partial f}{\partial y}$,
+      evaluated at $x = x(p)$.</p>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof of (ii) and (iii), given (i)</span>
+        <p class="small">$f^*(p) = p\cdot x(p) - f(x(p);y)$, and $x(p)$ is $C^1$ by the inverse function theorem
+        (unit 04). Differentiate:
+        $$\nabla_p f^* = x + (D_px)^{\!\top}\big(p - \nabla_x f\big) = x,$$
+        since the bracket vanishes at $x(p)$. The $y$-derivative is $(D_yx)^{\!\top}(p - \nabla_xf) - \partial_yf = -\partial_y f$.
+        Differentiating $\nabla f^* = x(p)$ once more gives $D_px$, the inverse of $\nabla^2 f$. ∎</p>
+      </div>
+      <div class="box good"><span class="label">check</span>
+        <p class="small">$f = \tfrac12 mv^2$: $\nabla f^*(p) = p/m = v$ ✓, and $(f^*)'' = 1/m = (f'')^{-1}$ ✓.
+        The dimensions of (ii): $[\nabla^2 f] = [f]/[x]^2$ and $[\nabla^2 f^*] = [f]/[p]^2 = [x]^2/[f]$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the first claim and of (i)</h4>
+    <p><b>$\nabla f$ is injective.</b> For $x\ne y$ put $g(t) = f(x+t(y-x))$; then
+    $g''(t) = (y-x)^{\!\top}\nabla^2f\,(y-x) &gt; 0$, so $g'$ is strictly increasing and
+    $g'(1) - g'(0) = (\nabla f(y) - \nabla f(x))\cdot(y-x) &gt; 0$. Hence $\nabla f(y)\ne\nabla f(x)$.</p>
+    <p><b>$U$ is open and the inverse is $C^1$.</b> $D(\nabla f) = \nabla^2f$ is invertible everywhere,
+    so by the inverse function theorem of unit 04 every point of $\mathbb R^n$ has a neighbourhood
+    mapped diffeomorphically onto an open neighbourhood of its image. So $U$ is open, and the
+    global inverse (which exists by injectivity) agrees locally with these local $C^1$ inverses.</p>
+    <p><b>(i).</b> For $p\in U$ let $x(p)$ be the preimage. The function $\phi(x) = p\cdot x - f(x)$ is
+    concave, and $\nabla\phi(x(p)) = 0$. By the supporting-line lemma applied to the convex $-\phi$,
+    $-\phi(y)\ge-\phi(x(p))$ for every $y$: a critical point of a concave function is a global maximum.
+    Uniqueness of the maximiser: any other maximiser would be another critical point, contradicting
+    injectivity.</p>
+    <p><b>What happens off $U$.</b> $f^*$ may be finite there or not. For $f = e^x$, $U = (0,\infty)$,
+    $f^*(0) = 0$ (a supremum approached as $x\to-\infty$ and never attained), and $f^* = +\infty$ on
+    $p &lt; 0$. For $f = \tfrac12 mv^2$, $U = \mathbb R$ and nothing is lost. For the fourth example of
+    the recipe slide, $f(v) = -\sqrt{1-v^2}$ on $(-1,1)$, $U = \mathbb R$ although the domain is
+    bounded — which is why that case is only nearly degenerate.</p>
+    <p><b>(iii) in mechanics.</b> With $x = \dot q$ and the parameters $y = (q, t)$, (iii) says
+    $\partial H/\partial q = -\partial L/\partial q$ and $\partial H/\partial t = -\partial L/\partial t$.
+    Those two identities, with (ii)'s $\partial H/\partial p = \dot q$, are all of Hamilton's equations
+    except the Euler–Lagrange equation itself.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Legendre</p>
+  <h2>The degenerate case, flagged now</h2>
+  <div class="cols three">
+    <div class="box warn"><span class="label">linear: $f(v) = c\,v$</span>
+      <p class="small">$pv - cv$ is unbounded unless $p = c$:
+      $$f^*(p) = \begin{cases}0 & p = c\\ +\infty & \text{else.}\end{cases}$$
+      The momentum is not a variable at all but <b>pinned</b>: a constraint.</p>
+    </div>
+    <div class="box warn"><span class="label">homogeneous: $f(v) = \lvert v\rvert$</span>
+      <p class="small">$pv - |v|$ is $\le 0$ for all $v$ iff $|p|\le 1$:
+      $$f^*(p) = \begin{cases}0 & |p|\le1\\ +\infty & |p| &gt; 1.\end{cases}$$
+      On the allowed set the Hamiltonian is <b>identically zero</b>.</p>
+    </div>
+    <div class="box good"><span class="label">nearly: $f(v) = -\sqrt{1-v^2}$</span>
+      <p class="small">On $|v| &lt; 1$. Here $f'' = (1-v^2)^{-3/2} &gt; 0$ and $f'(v) = v/\sqrt{1-v^2}$ maps $(-1,1)$ onto
+      $\mathbb R$. Solving $p = f'(v)$: $v = p/\sqrt{1+p^2}$, so
+      $$f^*(p) = \frac{p^2+1}{\sqrt{1+p^2}} = \sqrt{1+p^2}.$$</p>
+    </div>
+  </div>
+  <div class="box def"><span class="label">the <span class="term">degenerate Lagrangian</span></span>
+    <p class="small">$L$ is <b>degenerate</b> where $\det\big(\partial^2L/\partial\dot q_i\partial\dot q_j\big) = 0$ — unit 11's Legendre
+    condition failing. Then $\dot q\mapsto p$ is not invertible, some momenta are functions of $q$ alone, and $H$ is defined only
+    on a constraint set. <b>Unit 27</b>: the relativistic free particle is the third column when time is the parameter and the
+    second when any parameter is allowed.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the three transforms.</b> <b>Linear.</b> $pv - cv = (p-c)v$; if $p\ne c$,
+    take $v\to\pm\infty$ with the sign of $p - c$. <b>Absolute value.</b> If $|p|\le1$ then
+    $pv\le|p||v|\le|v|$, so the bracket is $\le 0$, with $0$ at $v = 0$. If $|p| &gt; 1$ take $v = tp$,
+    $t\to\infty$: $pv - |v| = t|p|(|p|-1)\to\infty$. <b>Square root.</b> $f$ is strictly convex on
+    $(-1,1)$ with $f'$ a bijection onto $\mathbb R$ (it is continuous, strictly increasing, and tends
+    to $\pm\infty$ at $\pm1$), so the smooth-duality theorem applies with $U = \mathbb R$. From
+    $p = v/\sqrt{1-v^2}$: $p^2(1-v^2) = v^2$, $v^2 = p^2/(1+p^2)$, and $v$ has the sign of $p$. Then
+    $\sqrt{1-v^2} = 1/\sqrt{1+p^2}$ and $f^*(p) = pv + \sqrt{1-v^2} = (p^2+1)/\sqrt{1+p^2}$.
+    Check with the theorem: $(f^*)'(p) = p/\sqrt{1+p^2} = v$ ✓. Limit: for small $v$,
+    $f \approx -1 + v^2/2$ and $f^* \approx 1 + p^2/2$ — a unit mass, with the constant shifted ✓.</p>
+    <p><b>What "nearly degenerate" means.</b> In the third example $f''\to\infty$ as $|v|\to1$: the
+    velocity saturates while the momentum grows without bound. Transform twice and you get $f$ back
+    (involutivity, with $f^{**}$ restricted to $|v|&lt;1$), so nothing is lost; but a physical theory in
+    which momentum can grow without bound while velocity cannot is a very different theory, and in
+    unit 27 that is special relativity with $m = c = 1$. In the reparametrisation-invariant form of the
+    same particle the Lagrangian is homogeneous of degree one in the velocity, like $|v|$, and its
+    Hamiltonian vanishes identically on a constraint set — the mass shell. Unit 27 handles it.</p>
+    <p><b>Constraints.</b> The systematic treatment of degenerate Lagrangians — primary and
+    secondary constraints, first and second class — is Dirac's, and is <em>cited</em>, not used here:
+    P. A. M. Dirac, <em>Lectures on Quantum Mechanics</em> (1964), lecture 1. Problem P2 shows that
+    a Lagrangian linear in velocities can still have perfectly good Hamiltonian dynamics, in fewer
+    variables than expected.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Legendre</p>
+  <h2>Worked: the Hamiltonians of units 08 and 12</h2>
+  <div class="box ex"><span class="label">two Lagrangians, transformed</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>General quadratic.</b> $L = \tfrac12\dot q^{\!\top}M(q)\dot q - V(q)$ with $M(q)$ symmetric positive
+        definite. The Hessian in $\dot q$ is $M$: non-degenerate. $p = \partial L/\partial\dot q = M\dot q$, so $\dot q = M^{-1}p$ and
+        $$H = p^{\!\top}M^{-1}p - \tfrac12 p^{\!\top}M^{-1}p + V = \tfrac12 p^{\!\top}M(q)^{-1}p + V(q).$$</p>
+        <p class="small"><b><span class="ref" data-ref="kep">Kepler</span>, unit 08.</b> $L = \tfrac12\mu(\dot r^2 + r^2\dot\theta^2) + k/r$:
+        $M = \operatorname{diag}(\mu, \mu r^2)$, $p_r = \mu\dot r$, $p_\theta = \mu r^2\dot\theta$, and
+        $$H = \frac{p_r^2}{2\mu} + \frac{p_\theta^2}{2\mu r^2} - \frac kr .$$</p>
+      </div>
+      <div>
+        <p class="small"><b><span class="ref" data-ref="hoop">The hoop</span>, unit 12.</b>
+        $L = \tfrac12mR^2\dot\theta^2 + \tfrac12mR^2\Omega^2\sin^2\theta + mgR\cos\theta$. Here the middle term has no $\dot\theta$,
+        so it counts as part of $-V$: $M = mR^2$, $p = mR^2\dot\theta$, and
+        $$H = \frac{p^2}{2mR^2} - \tfrac12 mR^2\Omega^2\sin^2\theta - mgR\cos\theta .$$</p>
+        <p class="small"><b>Read it.</b> $T + V = \frac{p^2}{2mR^2} + \tfrac12 mR^2\Omega^2\sin^2\theta - mgR\cos\theta$: the $\Omega^2$ term
+        has the opposite sign. $H$ is unit 13's energy function $h$, conserved because $L$ has no $t$; $T + V$ is not,
+        because the motor turning the hoop does work.</p>
+        <p class="small"><b>Checks.</b> Every term of both $H$s is an energy: $[p_\theta^2/\mu r^2] = (\mathrm{kg\,m^2\,s^{-1}})^2/(\mathrm{kg\,m^2})$ ✓.
+        $\Omega = 0$: the hoop's $H$ is $T + V$, a pendulum ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full working of the general case.</b> $\partial L/\partial\dot q = M\dot q$ because $M$ is
+    symmetric: the derivative of $\tfrac12\dot q^{\!\top}M\dot q$ in the direction $w$ is
+    $\tfrac12(w^{\!\top}M\dot q + \dot q^{\!\top}Mw) = w^{\!\top}M\dot q$. $M$ positive definite makes the
+    map $\dot q\mapsto M\dot q$ a linear bijection of $\mathbb R^n$, so the smooth-duality theorem
+    applies with $U = \mathbb R^n$ and $\dot q = M^{-1}p$. Then
+    $p\cdot\dot q = p^{\!\top}M^{-1}p$ and $\tfrac12\dot q^{\!\top}M\dot q = \tfrac12 p^{\!\top}M^{-1}MM^{-1}p
+    = \tfrac12p^{\!\top}M^{-1}p$, which gives the boxed $H$. In the polar case
+    $M^{-1} = \operatorname{diag}(1/\mu, 1/\mu r^2)$. So whenever $T$ is quadratic in the velocities
+    and $V$ does not depend on them, $H = T + V$ written in terms of momenta — the familiar case.</p>
+    <p><b>Why the hoop is different.</b> The formula $H = T+V$ needs $T$ to be homogeneous
+    quadratic in $\dot q$. The hoop's kinetic energy $\tfrac12 mR^2(\dot\theta^2 + \Omega^2\sin^2\theta)$ has a
+    piece of degree zero in $\dot\theta$, which appears because the constraint (the hoop's position)
+    depends on time. Unit 13 proved that the conserved quantity is then
+    $h = \dot\theta\,\partial L/\partial\dot\theta - L$, and here that is $H$ exactly. Its effective potential
+    $V_{\mathrm{eff}}(\theta) = -\tfrac12 mR^2\Omega^2\sin^2\theta - mgR\cos\theta$ has
+    $V_{\mathrm{eff}}' = mR\sin\theta\,(g - R\Omega^2\cos\theta)$, whose zeros are $\theta = 0$ and, for
+    $\Omega^2 &gt; g/R$, $\cos\theta = g/R\Omega^2$ — unit 12's pitchfork, recovered from $H$ alone.</p>
+    <p><b>The $\theta$ coordinate for Kepler is cyclic.</b> $H$ does not contain $\theta$, so
+    $\dot p_\theta = -\partial H/\partial\theta = 0$: $p_\theta = L$ is conserved, and for the rest of the
+    unit it is frozen at Halley's value. That reduces the problem to the $(r,p_r)$ half-plane, which is
+    where section 2 draws it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Hamilton's equations, and the picture they draw</h2>
+  <p>One first-order system on $\mathbb R^{2n}$, whose orbits are level sets and never cross.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Hamilton</p>
+  <h2>Hamilton's equations</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (<span class="term">Hamilton's equations</span>)</span>
+        <p class="small">Let $L(q,\dot q,t)$ be $C^2$ with $\partial^2L/\partial\dot q^2$ positive definite and
+        $\dot q\mapsto\partial L/\partial\dot q$ a bijection for each $(q,t)$, and let $H$ be its transform in $\dot q$. Then a
+        $C^2$ curve $q(t)$ solves the Euler–Lagrange equations iff $(q(t), p(t))$ with $p = \partial L/\partial\dot q$ solves
+        $$\dot q = \frac{\partial H}{\partial p},\qquad \dot p = -\frac{\partial H}{\partial q}.$$
+        Along solutions, $\dfrac{\mathrm dH}{\mathrm dt} = \dfrac{\partial H}{\partial t} = -\dfrac{\partial L}{\partial t}$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Smooth duality (ii) gives $\partial H/\partial p = \dot q$ — the first equation holds by
+        construction. Part (iii) gives $\partial H/\partial q = -\partial L/\partial q$. So
+        $$\dot p = \frac{\mathrm d}{\mathrm dt}\frac{\partial L}{\partial\dot q}\overset{\text{E–L}}{=}\frac{\partial L}{\partial q} = -\frac{\partial H}{\partial q},$$
+        and each step reverses. Finally $\frac{\mathrm dH}{\mathrm dt} = H_q\dot q + H_p\dot p + H_t = H_qH_p - H_pH_q + H_t$. ∎</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $[H/p] = \mathrm{J}/(\mathrm{kg\,m\,s^{-1}}) = \mathrm{m\,s^{-1}}$ ✓ and
+        $[H/q] = \mathrm N$ ✓. <b>Special case:</b> $H = p^2/2m + V(x)$ gives $\dot x = p/m$, $\dot p = -V'(x)$ — Newton ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The logic, once more slowly.</b> The first equation is not dynamics; it is the inverse of the
+    definition $p = \partial L/\partial\dot q$, delivered by the gradient-inversion half of smooth duality.
+    All the dynamics is in the second equation, which is the Euler–Lagrange equation with its
+    right-hand side rewritten by the passive-variable identity. The converse direction: if
+    $(q,p)$ solves Hamilton's equations, then $\dot q = \partial H/\partial p$ means $p = \partial L/\partial\dot q$
+    (inverting again), and the second equation read backwards is Euler–Lagrange. Regularity: $q$ is
+    $C^2$ if $(q,p)$ is $C^1$ and $H$ is $C^2$, since $\dot q = \partial H/\partial p(q,p,t)$ is then $C^1$.</p>
+    <p><b>The energy statement.</b> $\partial H/\partial t = -\partial L/\partial t$ is part (iii) with
+    the parameter $t$. So $H$ is conserved exactly when $L$ has no explicit $t$, which is unit 13's
+    time-translation theorem in one line. For the hoop, $L$ has no explicit $t$ in the rotating
+    coordinate $\theta$, which is why its $H$ is conserved although energy $T+V$ is not.</p>
+    <p><b>History.</b> Hamilton published the equations in 1834–35, in "On a General Method in
+    Dynamics", as a by-product of his optics; the canonical form was anticipated by Lagrange (1809)
+    and Poisson (1809) for perturbation theory, and the name "canonical equations" is Jacobi's.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Hamilton</p>
+  <h2>One first-order system on $\mathbb R^{2n}$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">standard symplectic matrix</span></span>
+        <p class="small">Write $z = (q,p)\in\mathbb R^{2n}$ and
+        $$J = \begin{pmatrix}0 & I_n\\ -I_n & 0\end{pmatrix},\qquad J^{\!\top} = -J = J^{-1},\quad J^2 = -I.$$
+        Hamilton's equations are $\dot z = J\,\nabla H(z)$. The vector field $X_H := J\nabla H$ is the
+        <span class="term">Hamiltonian vector field</span> of $H$.</p>
+      </div>
+      <div class="box thm"><span class="label">$H$ is conserved, in one line</span>
+        <p class="small">For $H$ with no explicit $t$: $\dfrac{\mathrm dH}{\mathrm dt} = \nabla H^{\!\top}J\nabla H = 0$, because
+        $u^{\!\top}Ju = 0$ for every $u$ when $J$ is antisymmetric.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">trajectories never cross</span>
+        <p class="small">If $H\in C^2$ and has no explicit $t$, two distinct orbits of $X_H$ never meet, and no orbit
+        crosses itself except by closing up into a periodic one.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\nabla H$ is $C^1$, hence locally Lipschitz, so Picard–Lindelöf (unit 01) gives one solution
+        through each point. Two orbits sharing a point are both the solution through it: the same orbit. ∎</p>
+      </div>
+      <div class="box warn"><span class="label">what this is not</span>
+        <p class="small">Unit 01 also wrote a first-order system on $\mathbb R^{2n}$, with $y = (x,\dot x)$. Same count,
+        no structure: the matrix $J$ and the conservation line above are special to $(q,p)$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Checking the matrix.</b> $J\nabla H = \begin{pmatrix}0&amp;I\\-I&amp;0\end{pmatrix}
+    \begin{pmatrix}\partial_qH\\\partial_pH\end{pmatrix} = \begin{pmatrix}\partial_pH\\-\partial_qH\end{pmatrix}$ ✓.
+    $J^{\!\top} = \begin{pmatrix}0&amp;-I\\I&amp;0\end{pmatrix} = -J$, and
+    $J^2 = \begin{pmatrix}-I&amp;0\\0&amp;-I\end{pmatrix}$, so $J^{-1} = -J$.</p>
+    <p><b>Why $u^{\!\top}Ju = 0$.</b> It is a number, so it equals its transpose $u^{\!\top}J^{\!\top}u = -u^{\!\top}Ju$.
+    This is the entire reason Hamiltonian flows conserve $H$: the gradient is rotated a quarter-turn
+    (in each $(q_i,p_i)$ plane) before it is followed, so the motion is always along the level set.
+    Unit 02 called conservative systems "flows preserving a function" and said the structure behind
+    them was symplectic; $J$ is that structure.</p>
+    <p><b>Time-dependent $H$.</b> Uniqueness still holds, but for the non-autonomous system: two
+    solutions cannot pass through the same point <em>at the same time</em>. Projected to phase space
+    their paths can cross at different times — the picture of non-crossing curves is a picture of
+    the autonomous case, or of the extended phase space with $t$ adjoined.</p>
+    <p><b>Periodic orbits.</b> If $z(t_1) = z(t_2)$ with $t_1 &lt; t_2$, then by uniqueness
+    $t\mapsto z(t + t_2 - t_1)$ and $t\mapsto z(t)$ are the same solution, so $z$ is periodic with
+    period dividing $t_2 - t_1$. That is the only way an orbit can meet itself.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Hamilton</p>
+  <h2>The phase-space action principle</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (<span class="term">phase-space action</span>)</span>
+        <p class="small">On curves $(q(t),p(t))$, $t\in[t_0,t_1]$, with $q(t_0)$, $q(t_1)$ fixed and $p$ free at both ends, the functional
+        $$S[q,p] = \int_{t_0}^{t_1}\big(p\cdot\dot q - H(q,p,t)\big)\,\mathrm dt$$
+        is stationary exactly on solutions of Hamilton's equations.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Unit 11's Euler–Lagrange equations for $2n$ dependent variables, with integrand $F = p\cdot\dot q - H$.
+        In $p$: $F_{\dot p} = 0$ and $F_p = \dot q - H_p$, so $0 = \dot q - H_p$. In $q$: $\frac{\mathrm d}{\mathrm dt}F_{\dot q} = \dot p$ and
+        $F_q = -H_q$. The free-end condition for $p$ is $F_{\dot p} = 0$, satisfied identically. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">two things it says</span>
+        <p class="small"><b>1.</b> Put $p = \partial L/\partial\dot q$ back in: $p\cdot\dot q - H = L$, so this is Hamilton's principle
+        of unit 12 with $p$ promoted to an independent variable.</p>
+        <p class="small"><b>2.</b> The integrand is <em>linear</em> in the velocities $(\dot q,\dot p)$ — degenerate in the sense of the
+        previous section — and still gives good first-order equations. Degeneracy is fatal to the transform, not to the
+        variational principle.</p>
+      </div>
+      <div class="box warn"><span class="label">why it is here</span>
+        <p class="small">Section 4 changes coordinates on phase space. An action whose integrand is $p\cdot\dot q - H$ is what
+        tells you which changes are allowed: those altering $p\cdot\dot q$ by a total derivative.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The free-end condition.</b> Unit 11's natural boundary condition at a free end is that
+    $F_{\dot y}$ vanish there, for each free dependent variable $y$. Here the free variable is $p$
+    and $F$ does not contain $\dot p$ at all, so the condition is empty. This is why one may fix
+    only $q$ at the ends: fixing $p$ as well would over-determine the first-order system (it has
+    $2n$ equations and admits only $2n$ boundary conditions).</p>
+    <p><b>A subtlety in the proof.</b> Unit 11's derivation assumed $F$ of class $C^2$ and
+    admissible variations vanishing at the ends. Here the variations $\delta q$ vanish at the ends
+    and $\delta p$ is free; the boundary term produced by integrating by parts is
+    $[F_{\dot q}\cdot\delta q + F_{\dot p}\cdot\delta p]_{t_0}^{t_1} = [p\cdot\delta q]_{t_0}^{t_1} + 0 = 0$.
+    Nothing else changes.</p>
+    <p><b>The same theorem, as unit 15 will use it.</b> Along an actual solution, $S$ as a
+    function of the endpoint $(q_1, t_1)$ has $\partial S/\partial q_1 = p(t_1)$ and
+    $\partial S/\partial t_1 = -H$; that is the Hamilton–Jacobi equation, and it is where the phase-space
+    action goes next.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Hamilton</p>
+  <h2>The pendulum's separatrix, now a level set</h2>
+  <div class="fig">
+    <svg viewBox="0 0 560 300" width="720" role="img" aria-label="level sets of the pendulum Hamiltonian: closed curves around the down position, the dashed separatrix through the saddles at plus and minus pi, and open rotating curves above and below">
+      <line x1="30" y1="150" x2="530" y2="150" class="rule" stroke-width="1.2"/>
+      <line x1="280" y1="20" x2="280" y2="280" class="rule" stroke-width="1.2"/>
+      <polyline points="239.0,150.0 239.1,148.5 239.3,147.0 239.6,145.6 240.0,144.1 240.5,142.6 241.1,141.2 241.8,139.8 242.7,138.4 243.6,137.1 244.7,135.7 245.9,134.5 247.1,133.2 248.5,132.0 249.9,130.9 251.4,129.8 253.0,128.7 254.7,127.8 256.5,126.8 258.3,126.0 260.1,125.2 262.1,124.5 264.1,123.8 266.1,123.3 268.2,122.8 270.3,122.4 272.4,122.0 274.6,121.8 276.7,121.6 278.9,121.5 281.1,121.5 283.3,121.6 285.4,121.8 287.6,122.0 289.7,122.4 291.8,122.8 293.9,123.3 295.9,123.8 297.9,124.5 299.9,125.2 301.7,126.0 303.5,126.8 305.3,127.8 307.0,128.7 308.6,129.8 310.1,130.9 311.5,132.0 312.9,133.2 314.1,134.5 315.3,135.7 316.4,137.1 317.3,138.4 318.2,139.8 318.9,141.2 319.5,142.6 320.0,144.1 320.4,145.6 320.7,147.0 320.9,148.5 321.0,150.0 320.9,151.5 320.7,153.0 320.4,154.4 320.0,155.9 319.5,157.4 318.9,158.8 318.2,160.2 317.3,161.6 316.4,162.9 315.3,164.3 314.1,165.5 312.9,166.8 311.5,168.0 310.1,169.1 308.6,170.2 307.0,171.3 305.3,172.2 303.5,173.2 301.7,174.0 299.9,174.8 297.9,175.5 295.9,176.2 293.9,176.7 291.8,177.2 289.7,177.6 287.6,178.0 285.4,178.2 283.3,178.4 281.1,178.5 278.9,178.5 276.7,178.4 274.6,178.2 272.4,178.0 270.3,177.6 268.2,177.2 266.1,176.7 264.1,176.2 262.1,175.5 260.1,174.8 258.3,174.0 256.5,173.2 254.7,172.2 253.0,171.3 251.4,170.2 249.9,169.1 248.5,168.0 247.1,166.8 245.9,165.5 244.7,164.3 243.6,162.9 242.7,161.6 241.8,160.2 241.1,158.8 240.5,157.4 240.0,155.9 239.6,154.4 239.3,153.0 239.1,151.5 239.0,150.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="206.2,150.0 206.3,147.5 206.6,145.1 207.1,142.6 207.9,140.2 208.8,137.7 209.9,135.3 211.3,133.0 212.8,130.6 214.5,128.3 216.4,126.1 218.5,123.9 220.8,121.7 223.2,119.6 225.8,117.6 228.5,115.7 231.4,113.9 234.4,112.1 237.6,110.5 240.9,108.9 244.2,107.5 247.7,106.2 251.3,105.0 255.0,103.9 258.7,103.0 262.5,102.3 266.3,101.7 270.2,101.2 274.1,100.9 278.0,100.7 282.0,100.7 285.9,100.9 289.8,101.2 293.7,101.7 297.5,102.3 301.3,103.0 305.0,103.9 308.7,105.0 312.3,106.2 315.8,107.5 319.1,108.9 322.4,110.5 325.6,112.1 328.6,113.9 331.5,115.7 334.2,117.6 336.8,119.6 339.2,121.7 341.5,123.9 343.6,126.1 345.5,128.3 347.2,130.6 348.7,133.0 350.1,135.3 351.2,137.7 352.1,140.2 352.9,142.6 353.4,145.1 353.7,147.5 353.8,150.0 353.7,152.5 353.4,154.9 352.9,157.4 352.1,159.8 351.2,162.3 350.1,164.7 348.7,167.0 347.2,169.4 345.5,171.7 343.6,173.9 341.5,176.1 339.2,178.3 336.8,180.4 334.2,182.4 331.5,184.3 328.6,186.1 325.6,187.9 322.4,189.5 319.1,191.1 315.8,192.5 312.3,193.8 308.7,195.0 305.0,196.1 301.3,197.0 297.5,197.7 293.7,198.3 289.8,198.8 285.9,199.1 282.0,199.3 278.0,199.3 274.1,199.1 270.2,198.8 266.3,198.3 262.5,197.7 258.7,197.0 255.0,196.1 251.3,195.0 247.7,193.8 244.2,192.5 240.9,191.1 237.6,189.5 234.4,187.9 231.4,186.1 228.5,184.3 225.8,182.4 223.2,180.4 220.8,178.3 218.5,176.1 216.4,173.9 214.5,171.7 212.8,169.4 211.3,167.0 209.9,164.7 208.8,162.3 207.9,159.8 207.1,157.4 206.6,154.9 206.3,152.5 206.2,150.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="180.0,150.0 180.1,147.0 180.6,144.0 181.3,141.0 182.3,138.0 183.5,135.0 185.1,132.1 186.9,129.1 188.9,126.2 191.3,123.3 193.8,120.4 196.7,117.6 199.7,114.9 203.0,112.2 206.5,109.5 210.2,107.0 214.1,104.5 218.2,102.2 222.5,99.9 227.0,97.8 231.5,95.8 236.3,94.0 241.1,92.4 246.1,90.9 251.1,89.7 256.3,88.6 261.5,87.7 266.7,87.1 272.0,86.6 277.3,86.4 282.7,86.4 288.0,86.6 293.3,87.1 298.5,87.7 303.7,88.6 308.9,89.7 313.9,90.9 318.9,92.4 323.7,94.0 328.5,95.8 333.0,97.8 337.5,99.9 341.8,102.2 345.9,104.5 349.8,107.0 353.5,109.5 357.0,112.2 360.3,114.9 363.3,117.6 366.2,120.4 368.7,123.3 371.1,126.2 373.1,129.1 374.9,132.1 376.5,135.0 377.7,138.0 378.7,141.0 379.4,144.0 379.9,147.0 380.0,150.0 379.9,153.0 379.4,156.0 378.7,159.0 377.7,162.0 376.5,165.0 374.9,167.9 373.1,170.9 371.1,173.8 368.7,176.7 366.2,179.6 363.3,182.4 360.3,185.1 357.0,187.8 353.5,190.5 349.8,193.0 345.9,195.5 341.8,197.8 337.5,200.1 333.0,202.2 328.5,204.2 323.7,206.0 318.9,207.6 313.9,209.1 308.9,210.3 303.7,211.4 298.5,212.3 293.3,212.9 288.0,213.4 282.7,213.6 277.3,213.6 272.0,213.4 266.7,212.9 261.5,212.3 256.3,211.4 251.1,210.3 246.1,209.1 241.1,207.6 236.3,206.0 231.5,204.2 227.0,202.2 222.5,200.1 218.2,197.8 214.1,195.5 210.2,193.0 206.5,190.5 203.0,187.8 199.7,185.1 196.7,182.4 193.8,179.6 191.3,176.7 188.9,173.8 186.9,170.9 185.1,167.9 183.5,165.0 182.3,162.0 181.3,159.0 180.6,156.0 180.1,153.0 180.0,150.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="146.7,150.0 146.9,146.8 147.4,143.5 148.4,140.3 149.7,137.0 151.4,133.7 153.4,130.4 155.8,127.1 158.6,123.8 161.7,120.4 165.1,117.0 168.9,113.6 173.0,110.3 177.4,106.9 182.0,103.6 187.0,100.3 192.2,97.1 197.7,94.0 203.4,91.0 209.3,88.2 215.4,85.5 221.7,83.0 228.2,80.7 234.8,78.6 241.5,76.8 248.4,75.3 255.3,74.0 262.3,73.1 269.4,72.4 276.5,72.1 283.5,72.1 290.6,72.4 297.7,73.1 304.7,74.0 311.6,75.3 318.5,76.8 325.2,78.6 331.8,80.7 338.3,83.0 344.6,85.5 350.7,88.2 356.6,91.0 362.3,94.0 367.8,97.1 373.0,100.3 378.0,103.6 382.6,106.9 387.0,110.3 391.1,113.6 394.9,117.0 398.3,120.4 401.4,123.8 404.2,127.1 406.6,130.4 408.6,133.7 410.3,137.0 411.6,140.3 412.6,143.5 413.1,146.8 413.3,150.0 413.1,153.2 412.6,156.5 411.6,159.7 410.3,163.0 408.6,166.3 406.6,169.6 404.2,172.9 401.4,176.2 398.3,179.6 394.9,183.0 391.1,186.4 387.0,189.7 382.6,193.1 378.0,196.4 373.0,199.7 367.8,202.9 362.3,206.0 356.6,209.0 350.7,211.8 344.6,214.5 338.3,217.0 331.8,219.3 325.2,221.4 318.5,223.2 311.6,224.7 304.7,226.0 297.7,226.9 290.6,227.6 283.5,227.9 276.5,227.9 269.4,227.6 262.3,226.9 255.3,226.0 248.4,224.7 241.5,223.2 234.8,221.4 228.2,219.3 221.7,217.0 215.4,214.5 209.3,211.8 203.4,209.0 197.7,206.0 192.2,202.9 187.0,199.7 182.0,196.4 177.4,193.1 173.0,189.7 168.9,186.4 165.1,183.0 161.7,179.6 158.6,176.2 155.8,172.9 153.4,169.6 151.4,166.3 149.7,163.0 148.4,159.7 147.4,156.5 146.9,153.2 146.7,150.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="30.0,115.6 34.2,118.3 38.3,121.1 42.5,123.9 46.7,126.7 50.8,129.6 55.0,132.4 59.2,135.3 63.3,138.3 67.5,141.2 71.7,144.1 75.8,147.1 80.0,150.0 84.2,147.1 88.3,144.1 92.5,141.2 96.7,138.3 100.8,135.3 105.0,132.4 109.2,129.6 113.3,126.7 117.5,123.9 121.7,121.1 125.8,118.3 130.0,115.6 134.2,112.9 138.3,110.2 142.5,107.6 146.7,105.0 150.8,102.5 155.0,100.0 159.2,97.6 163.3,95.2 167.5,92.9 171.7,90.7 175.8,88.5 180.0,86.4 184.2,84.3 188.3,82.3 192.5,80.4 196.7,78.6 200.8,76.8 205.0,75.2 209.2,73.6 213.3,72.1 217.5,70.6 221.7,69.3 225.8,68.0 230.0,66.9 234.2,65.8 238.3,64.8 242.5,63.9 246.7,63.1 250.8,62.4 255.0,61.7 259.2,61.2 263.3,60.8 267.5,60.4 271.7,60.2 275.8,60.0 280.0,60.0 284.2,60.0 288.3,60.2 292.5,60.4 296.7,60.8 300.8,61.2 305.0,61.7 309.2,62.4 313.3,63.1 317.5,63.9 321.7,64.8 325.8,65.8 330.0,66.9 334.2,68.0 338.3,69.3 342.5,70.6 346.7,72.1 350.8,73.6 355.0,75.2 359.2,76.8 363.3,78.6 367.5,80.4 371.7,82.3 375.8,84.3 380.0,86.4 384.2,88.5 388.3,90.7 392.5,92.9 396.7,95.2 400.8,97.6 405.0,100.0 409.2,102.5 413.3,105.0 417.5,107.6 421.7,110.2 425.8,112.9 430.0,115.6 434.2,118.3 438.3,121.1 442.5,123.9 446.7,126.7 450.8,129.6 455.0,132.4 459.2,135.3 463.3,138.3 467.5,141.2 471.7,144.1 475.8,147.1 480.0,150.0 484.2,147.1 488.3,144.1 492.5,141.2 496.7,138.3 500.8,135.3 505.0,132.4 509.2,129.6 513.3,126.7 517.5,123.9 521.7,121.1 525.8,118.3 530.0,115.6" fill="none" class="warn" stroke-width="2.6" stroke-dasharray="7 5"/>
+<polyline points="30.0,184.4 34.2,181.7 38.3,178.9 42.5,176.1 46.7,173.3 50.8,170.4 55.0,167.6 59.2,164.7 63.3,161.7 67.5,158.8 71.7,155.9 75.8,152.9 80.0,150.0 84.2,152.9 88.3,155.9 92.5,158.8 96.7,161.7 100.8,164.7 105.0,167.6 109.2,170.4 113.3,173.3 117.5,176.1 121.7,178.9 125.8,181.7 130.0,184.4 134.2,187.1 138.3,189.8 142.5,192.4 146.7,195.0 150.8,197.5 155.0,200.0 159.2,202.4 163.3,204.8 167.5,207.1 171.7,209.3 175.8,211.5 180.0,213.6 184.2,215.7 188.3,217.7 192.5,219.6 196.7,221.4 200.8,223.2 205.0,224.8 209.2,226.4 213.3,227.9 217.5,229.4 221.7,230.7 225.8,232.0 230.0,233.1 234.2,234.2 238.3,235.2 242.5,236.1 246.7,236.9 250.8,237.6 255.0,238.3 259.2,238.8 263.3,239.2 267.5,239.6 271.7,239.8 275.8,240.0 280.0,240.0 284.2,240.0 288.3,239.8 292.5,239.6 296.7,239.2 300.8,238.8 305.0,238.3 309.2,237.6 313.3,236.9 317.5,236.1 321.7,235.2 325.8,234.2 330.0,233.1 334.2,232.0 338.3,230.7 342.5,229.4 346.7,227.9 350.8,226.4 355.0,224.8 359.2,223.2 363.3,221.4 367.5,219.6 371.7,217.7 375.8,215.7 380.0,213.6 384.2,211.5 388.3,209.3 392.5,207.1 396.7,204.8 400.8,202.4 405.0,200.0 409.2,197.5 413.3,195.0 417.5,192.4 421.7,189.8 425.8,187.1 430.0,184.4 434.2,181.7 438.3,178.9 442.5,176.1 446.7,173.3 450.8,170.4 455.0,167.6 459.2,164.7 463.3,161.7 467.5,158.8 471.7,155.9 475.8,152.9 480.0,150.0 484.2,152.9 488.3,155.9 492.5,158.8 496.7,161.7 500.8,164.7 505.0,167.6 509.2,170.4 513.3,173.3 517.5,176.1 521.7,178.9 525.8,181.7 530.0,184.4" fill="none" class="warn" stroke-width="2.6" stroke-dasharray="7 5"/>
+<polyline points="30.0,89.9 34.2,91.4 38.3,92.8 42.5,94.2 46.7,95.5 50.8,96.6 55.0,97.7 59.2,98.6 63.3,99.3 67.5,99.9 71.7,100.4 75.8,100.6 80.0,100.7 84.2,100.6 88.3,100.4 92.5,99.9 96.7,99.3 100.8,98.6 105.0,97.7 109.2,96.6 113.3,95.5 117.5,94.2 121.7,92.8 125.8,91.4 130.0,89.9 134.2,88.3 138.3,86.6 142.5,85.0 146.7,83.3 150.8,81.5 155.0,79.8 159.2,78.0 163.3,76.3 167.5,74.6 171.7,72.9 175.8,71.2 180.0,69.5 184.2,67.9 188.3,66.3 192.5,64.7 196.7,63.2 200.8,61.8 205.0,60.4 209.2,59.1 213.3,57.8 217.5,56.6 221.7,55.4 225.8,54.3 230.0,53.3 234.2,52.4 238.3,51.5 242.5,50.8 246.7,50.1 250.8,49.4 255.0,48.9 259.2,48.4 263.3,48.1 267.5,47.8 271.7,47.6 275.8,47.4 280.0,47.4 284.2,47.4 288.3,47.6 292.5,47.8 296.7,48.1 300.8,48.4 305.0,48.9 309.2,49.4 313.3,50.1 317.5,50.8 321.7,51.5 325.8,52.4 330.0,53.3 334.2,54.3 338.3,55.4 342.5,56.6 346.7,57.8 350.8,59.1 355.0,60.4 359.2,61.8 363.3,63.2 367.5,64.7 371.7,66.3 375.8,67.9 380.0,69.5 384.2,71.2 388.3,72.9 392.5,74.6 396.7,76.3 400.8,78.0 405.0,79.8 409.2,81.5 413.3,83.3 417.5,85.0 421.7,86.6 425.8,88.3 430.0,89.9 434.2,91.4 438.3,92.8 442.5,94.2 446.7,95.5 450.8,96.6 455.0,97.7 459.2,98.6 463.3,99.3 467.5,99.9 471.7,100.4 475.8,100.6 480.0,100.7 484.2,100.6 488.3,100.4 492.5,99.9 496.7,99.3 500.8,98.6 505.0,97.7 509.2,96.6 513.3,95.5 517.5,94.2 521.7,92.8 525.8,91.4 530.0,89.9" fill="none" class="unit" stroke-width="1.7" opacity=".6"/>
+<polyline points="30.0,210.1 34.2,208.6 38.3,207.2 42.5,205.8 46.7,204.5 50.8,203.4 55.0,202.3 59.2,201.4 63.3,200.7 67.5,200.1 71.7,199.6 75.8,199.4 80.0,199.3 84.2,199.4 88.3,199.6 92.5,200.1 96.7,200.7 100.8,201.4 105.0,202.3 109.2,203.4 113.3,204.5 117.5,205.8 121.7,207.2 125.8,208.6 130.0,210.1 134.2,211.7 138.3,213.4 142.5,215.0 146.7,216.7 150.8,218.5 155.0,220.2 159.2,222.0 163.3,223.7 167.5,225.4 171.7,227.1 175.8,228.8 180.0,230.5 184.2,232.1 188.3,233.7 192.5,235.3 196.7,236.8 200.8,238.2 205.0,239.6 209.2,240.9 213.3,242.2 217.5,243.4 221.7,244.6 225.8,245.7 230.0,246.7 234.2,247.6 238.3,248.5 242.5,249.2 246.7,249.9 250.8,250.6 255.0,251.1 259.2,251.6 263.3,251.9 267.5,252.2 271.7,252.4 275.8,252.6 280.0,252.6 284.2,252.6 288.3,252.4 292.5,252.2 296.7,251.9 300.8,251.6 305.0,251.1 309.2,250.6 313.3,249.9 317.5,249.2 321.7,248.5 325.8,247.6 330.0,246.7 334.2,245.7 338.3,244.6 342.5,243.4 346.7,242.2 350.8,240.9 355.0,239.6 359.2,238.2 363.3,236.8 367.5,235.3 371.7,233.7 375.8,232.1 380.0,230.5 384.2,228.8 388.3,227.1 392.5,225.4 396.7,223.7 400.8,222.0 405.0,220.2 409.2,218.5 413.3,216.7 417.5,215.0 421.7,213.4 425.8,211.7 430.0,210.1 434.2,208.6 438.3,207.2 442.5,205.8 446.7,204.5 450.8,203.4 455.0,202.3 459.2,201.4 463.3,200.7 467.5,200.1 471.7,199.6 475.8,199.4 480.0,199.3 484.2,199.4 488.3,199.6 492.5,200.1 496.7,200.7 500.8,201.4 505.0,202.3 509.2,203.4 513.3,204.5 517.5,205.8 521.7,207.2 525.8,208.6 530.0,210.1" fill="none" class="unit" stroke-width="1.7" opacity=".6"/>
+<polyline points="30.0,64.8 34.2,65.9 38.3,66.9 42.5,67.8 46.7,68.7 50.8,69.4 55.0,70.1 59.2,70.7 63.3,71.2 67.5,71.6 71.7,71.8 75.8,72.0 80.0,72.1 84.2,72.0 88.3,71.8 92.5,71.6 96.7,71.2 100.8,70.7 105.0,70.1 109.2,69.4 113.3,68.7 117.5,67.8 121.7,66.9 125.8,65.9 130.0,64.8 134.2,63.7 138.3,62.5 142.5,61.3 146.7,60.0 150.8,58.7 155.0,57.4 159.2,56.1 163.3,54.7 167.5,53.4 171.7,52.0 175.8,50.7 180.0,49.4 184.2,48.1 188.3,46.8 192.5,45.5 196.7,44.3 200.8,43.1 205.0,41.9 209.2,40.8 213.3,39.8 217.5,38.8 221.7,37.8 225.8,36.9 230.0,36.0 234.2,35.2 238.3,34.5 242.5,33.8 246.7,33.2 250.8,32.7 255.0,32.2 259.2,31.8 263.3,31.5 267.5,31.3 271.7,31.1 275.8,31.0 280.0,30.9 284.2,31.0 288.3,31.1 292.5,31.3 296.7,31.5 300.8,31.8 305.0,32.2 309.2,32.7 313.3,33.2 317.5,33.8 321.7,34.5 325.8,35.2 330.0,36.0 334.2,36.9 338.3,37.8 342.5,38.8 346.7,39.8 350.8,40.8 355.0,41.9 359.2,43.1 363.3,44.3 367.5,45.5 371.7,46.8 375.8,48.1 380.0,49.4 384.2,50.7 388.3,52.0 392.5,53.4 396.7,54.7 400.8,56.1 405.0,57.4 409.2,58.7 413.3,60.0 417.5,61.3 421.7,62.5 425.8,63.7 430.0,64.8 434.2,65.9 438.3,66.9 442.5,67.8 446.7,68.7 450.8,69.4 455.0,70.1 459.2,70.7 463.3,71.2 467.5,71.6 471.7,71.8 475.8,72.0 480.0,72.1 484.2,72.0 488.3,71.8 492.5,71.6 496.7,71.2 500.8,70.7 505.0,70.1 509.2,69.4 513.3,68.7 517.5,67.8 521.7,66.9 525.8,65.9 530.0,64.8" fill="none" class="unit" stroke-width="1.7" opacity=".6"/>
+<polyline points="30.0,235.2 34.2,234.1 38.3,233.1 42.5,232.2 46.7,231.3 50.8,230.6 55.0,229.9 59.2,229.3 63.3,228.8 67.5,228.4 71.7,228.2 75.8,228.0 80.0,227.9 84.2,228.0 88.3,228.2 92.5,228.4 96.7,228.8 100.8,229.3 105.0,229.9 109.2,230.6 113.3,231.3 117.5,232.2 121.7,233.1 125.8,234.1 130.0,235.2 134.2,236.3 138.3,237.5 142.5,238.7 146.7,240.0 150.8,241.3 155.0,242.6 159.2,243.9 163.3,245.3 167.5,246.6 171.7,248.0 175.8,249.3 180.0,250.6 184.2,251.9 188.3,253.2 192.5,254.5 196.7,255.7 200.8,256.9 205.0,258.1 209.2,259.2 213.3,260.2 217.5,261.2 221.7,262.2 225.8,263.1 230.0,264.0 234.2,264.8 238.3,265.5 242.5,266.2 246.7,266.8 250.8,267.3 255.0,267.8 259.2,268.2 263.3,268.5 267.5,268.7 271.7,268.9 275.8,269.0 280.0,269.1 284.2,269.0 288.3,268.9 292.5,268.7 296.7,268.5 300.8,268.2 305.0,267.8 309.2,267.3 313.3,266.8 317.5,266.2 321.7,265.5 325.8,264.8 330.0,264.0 334.2,263.1 338.3,262.2 342.5,261.2 346.7,260.2 350.8,259.2 355.0,258.1 359.2,256.9 363.3,255.7 367.5,254.5 371.7,253.2 375.8,251.9 380.0,250.6 384.2,249.3 388.3,248.0 392.5,246.6 396.7,245.3 400.8,243.9 405.0,242.6 409.2,241.3 413.3,240.0 417.5,238.7 421.7,237.5 425.8,236.3 430.0,235.2 434.2,234.1 438.3,233.1 442.5,232.2 446.7,231.3 450.8,230.6 455.0,229.9 459.2,229.3 463.3,228.8 467.5,228.4 471.7,228.2 475.8,228.0 480.0,227.9 484.2,228.0 488.3,228.2 492.5,228.4 496.7,228.8 500.8,229.3 505.0,229.9 509.2,230.6 513.3,231.3 517.5,232.2 521.7,233.1 525.8,234.1 530.0,235.2" fill="none" class="unit" stroke-width="1.7" opacity=".6"/>
+      <circle cx="280" cy="150" r="6" class="fill-accent"/>
+      <circle cx="80" cy="150" r="6" class="fill-warn"/>
+      <circle cx="480" cy="150" r="6" class="fill-warn"/>
+      <text x="272" y="176" font-size="15" class="mono">0</text>
+      <text x="474" y="176" font-size="15" class="mono">π</text>
+      <text x="64" y="176" font-size="15" class="mono">−π</text>
+      <text x="290" y="30" font-size="15" class="mono soft">p</text>
+      <text x="515" y="140" font-size="15" class="mono soft">θ</text>
+    </svg>
+    <p class="cap">$H = p^2/2ml^2 - mgl\cos\theta$, unit 02's pendulum without damping, $p$ in units of $m\sqrt{gl^3}$. Closed
+    curves: libration. Open curves: rotation. Dashed: $H = mgl$, $p = \pm 2m\sqrt{gl^3}\cos(\theta/2)$.</p>
+  </div>
+  <div class="cols">
+    <p class="small">For one degree of freedom every orbit lies in a <span class="term">level set</span> of $H$, and a level-set
+    component containing no equilibrium is exactly one orbit. So <b>the portrait is a contour map</b> and needs no integration.</p>
+    <p class="small">Linearising at an equilibrium gives $A = JS$ with $S = \nabla^2H$ symmetric, so $\operatorname{tr}A = 0$ and the
+    eigenvalues are $\pm\sqrt{-\det S}$: a <b>centre</b> when $H$ has a minimum or maximum, a <b>saddle</b> when $\det S &lt; 0$.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The separatrix computed.</b> At the up position $(\pi, 0)$, $H = mgl$. The level set
+    $p^2/2ml^2 = mgl(1 + \cos\theta) = 2mgl\cos^2(\theta/2)$ gives $p = \pm2ml^2\sqrt{g/l}\,\cos(\theta/2)
+    = \pm2m\sqrt{gl^3}\cos(\theta/2)$. Dimensions: $m\sqrt{gl^3}$ is
+    $\mathrm{kg}\sqrt{\mathrm{m\,s^{-2}\,m^3}} = \mathrm{kg\,m^2\,s^{-1}}$, an angular momentum ✓. In unit 02
+    this curve was found by integrating $\ddot\theta = -(g/l)\sin\theta$ once; here it is simply the
+    level set through the saddle. Unit 02 called it the <span class="term">separatrix</span>: the orbits
+    on it take infinite time to reach the saddle, and it divides libration from rotation.</p>
+    <p><b>Full proof of the level-set claim.</b> Every orbit lies in a level set because $H$ is
+    conserved. Conversely, let $C$ be a connected component of $\{H = E\}$ containing no equilibrium, in
+    the plane. Then $\nabla H\ne0$ on $C$, so by the implicit function theorem (unit 04) $C$ is locally a
+    $C^1$ curve, and $X_H = J\nabla H$ is a nonvanishing tangent field along it. An orbit starting on
+    $C$ moves along $C$ with speed $\lVert\nabla H\rVert$ bounded below on compact pieces, so it cannot
+    stop, cannot leave, and (if $C$ is a closed curve) traverses all of it in finite time; if $C$ is
+    not closed, the orbit runs along it in both time directions. Either way the orbit is all of $C$.</p>
+    <p><b>Full proof of the linearisation claim.</b> At an equilibrium $\nabla H = 0$, and
+    $D(J\nabla H) = J\nabla^2H = JS$. For $n = 1$, $\operatorname{tr}(JS) = S_{21}\cdot1 + S_{12}\cdot(-1) = 0$
+    by symmetry, and $\det(JS) = \det J\det S = \det S$. A $2\times2$ matrix with trace $0$ has eigenvalues
+    $\pm\sqrt{-\det}$. In unit 02's trace–determinant plane Hamiltonian systems live on the vertical
+    axis $\tau = 0$ — exactly the line where Hartman–Grobman says nothing. Here the conserved $H$ settles
+    it: a nondegenerate minimum of $H$ is Lyapunov stable by unit 02's direct method with
+    $H - H(z_0)$ as Lyapunov function, and nearby orbits are the closed level curves around it.
+    In $2n$ dimensions the same algebra gives: $JS$ is similar to $SJ = -(JS)^{\!\top}$, so eigenvalues
+    come in pairs $\pm\lambda$, and no equilibrium of a Hamiltonian system is asymptotically stable.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Hamilton</p>
+  <h2>Kepler in the $(r, p_r)$ half-plane</h2>
+  <div class="fig">
+    <svg viewBox="0 0 560 330" width="760" role="img" aria-label="level sets of the reduced Kepler Hamiltonian at fixed angular momentum: nested closed curves around the circular orbit, Halley's long closed curve, the dashed separatrix at zero energy, and open curves at positive energy">
+      <line x1="40" y1="165" x2="545" y2="165" class="rule" stroke-width="1.2"/>
+      <line x1="40" y1="15" x2="40" y2="318" class="rule" stroke-width="1.2"/>
+      <line x1="90" y1="160" x2="90" y2="170" class="rule" stroke-width="1.5"/>
+      <polyline points="78.0,165.0 78.0,163.8 78.0,162.5 78.1,161.3 78.2,160.1 78.3,158.9 78.4,157.7 78.5,156.5 78.7,155.4 78.9,154.3 79.1,153.2 79.3,152.2 79.5,151.1 79.8,150.2 80.1,149.2 80.4,148.3 80.7,147.5 81.1,146.7 81.4,145.9 81.8,145.2 82.2,144.5 82.6,143.9 83.0,143.3 83.5,142.7 83.9,142.3 84.4,141.8 84.9,141.4 85.4,141.0 85.9,140.7 86.4,140.5 87.0,140.2 87.5,140.1 88.1,139.9 88.6,139.8 89.2,139.7 89.8,139.7 90.4,139.7 91.0,139.7 91.6,139.8 92.2,139.9 92.8,140.1 93.4,140.2 94.0,140.4 94.6,140.6 95.2,140.9 95.9,141.1 96.5,141.4 97.1,141.7 97.7,142.1 98.3,142.4 98.9,142.8 99.6,143.2 100.2,143.6 100.7,144.0 101.3,144.5 101.9,144.9 102.5,145.4 103.1,145.9 103.6,146.4 104.2,146.9 104.7,147.4 105.2,147.9 105.7,148.5 106.2,149.0 106.7,149.6 107.2,150.1 107.6,150.7 108.1,151.3 108.5,151.9 108.9,152.4 109.3,153.0 109.7,153.6 110.1,154.3 110.4,154.9 110.7,155.5 111.0,156.1 111.3,156.7 111.6,157.3 111.8,158.0 112.0,158.6 112.2,159.2 112.4,159.9 112.6,160.5 112.7,161.1 112.9,161.8 112.9,162.4 113.0,163.1 113.1,163.7 113.1,164.4 113.1,165.0 113.1,165.6 113.1,166.3 113.0,166.9 112.9,167.6 112.9,168.2 112.7,168.9 112.6,169.5 112.4,170.1 112.2,170.8 112.0,171.4 111.8,172.0 111.6,172.7 111.3,173.3 111.0,173.9 110.7,174.5 110.4,175.1 110.1,175.7 109.7,176.4 109.3,177.0 108.9,177.6 108.5,178.1 108.1,178.7 107.6,179.3 107.2,179.9 106.7,180.4 106.2,181.0 105.7,181.5 105.2,182.1 104.7,182.6 104.2,183.1 103.6,183.6 103.1,184.1 102.5,184.6 101.9,185.1 101.3,185.5 100.7,186.0 100.2,186.4 99.6,186.8 98.9,187.2 98.3,187.6 97.7,187.9 97.1,188.3 96.5,188.6 95.9,188.9 95.2,189.1 94.6,189.4 94.0,189.6 93.4,189.8 92.8,189.9 92.2,190.1 91.6,190.2 91.0,190.3 90.4,190.3 89.8,190.3 89.2,190.3 88.6,190.2 88.1,190.1 87.5,189.9 87.0,189.8 86.4,189.5 85.9,189.3 85.4,189.0 84.9,188.6 84.4,188.2 83.9,187.7 83.5,187.3 83.0,186.7 82.6,186.1 82.2,185.5 81.8,184.8 81.4,184.1 81.1,183.3 80.7,182.5 80.4,181.7 80.1,180.8 79.8,179.8 79.5,178.9 79.3,177.8 79.1,176.8 78.9,175.7 78.7,174.6 78.5,173.5 78.4,172.3 78.3,171.1 78.2,169.9 78.1,168.7 78.0,167.5 78.0,166.2 78.0,165.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="73.6,165.0 73.6,162.6 73.6,160.3 73.7,158.0 73.9,155.7 74.1,153.4 74.3,151.2 74.5,149.1 74.8,147.0 75.2,145.0 75.5,143.1 76.0,141.3 76.4,139.6 76.9,138.0 77.4,136.5 78.0,135.1 78.6,133.8 79.2,132.6 79.8,131.5 80.5,130.5 81.3,129.7 82.0,128.9 82.8,128.2 83.6,127.6 84.4,127.1 85.3,126.7 86.2,126.4 87.1,126.1 88.1,125.9 89.0,125.8 90.0,125.8 91.0,125.8 92.0,125.9 93.1,126.1 94.1,126.3 95.2,126.5 96.3,126.8 97.4,127.2 98.5,127.6 99.6,128.0 100.7,128.4 101.8,128.9 102.9,129.4 104.1,130.0 105.2,130.5 106.4,131.1 107.5,131.7 108.6,132.4 109.8,133.0 110.9,133.7 112.0,134.4 113.1,135.1 114.2,135.8 115.3,136.5 116.4,137.2 117.5,138.0 118.5,138.7 119.6,139.5 120.6,140.2 121.6,141.0 122.6,141.7 123.5,142.5 124.5,143.3 125.4,144.1 126.3,144.9 127.1,145.7 128.0,146.5 128.8,147.3 129.6,148.1 130.3,148.9 131.0,149.7 131.7,150.5 132.4,151.3 133.0,152.1 133.6,152.9 134.2,153.7 134.7,154.5 135.2,155.3 135.6,156.1 136.0,156.9 136.4,157.7 136.7,158.5 137.0,159.3 137.3,160.1 137.5,161.0 137.7,161.8 137.8,162.6 137.9,163.4 138.0,164.2 138.0,165.0 138.0,165.8 137.9,166.6 137.8,167.4 137.7,168.2 137.5,169.0 137.3,169.9 137.0,170.7 136.7,171.5 136.4,172.3 136.0,173.1 135.6,173.9 135.2,174.7 134.7,175.5 134.2,176.3 133.6,177.1 133.0,177.9 132.4,178.7 131.7,179.5 131.0,180.3 130.3,181.1 129.6,181.9 128.8,182.7 128.0,183.5 127.1,184.3 126.3,185.1 125.4,185.9 124.5,186.7 123.5,187.5 122.6,188.3 121.6,189.0 120.6,189.8 119.6,190.5 118.5,191.3 117.5,192.0 116.4,192.8 115.3,193.5 114.2,194.2 113.1,194.9 112.0,195.6 110.9,196.3 109.8,197.0 108.6,197.6 107.5,198.3 106.4,198.9 105.2,199.5 104.1,200.0 102.9,200.6 101.8,201.1 100.7,201.6 99.6,202.0 98.5,202.4 97.4,202.8 96.3,203.2 95.2,203.5 94.1,203.7 93.1,203.9 92.0,204.1 91.0,204.2 90.0,204.2 89.0,204.2 88.1,204.1 87.1,203.9 86.2,203.6 85.3,203.3 84.4,202.9 83.6,202.4 82.8,201.8 82.0,201.1 81.3,200.3 80.5,199.5 79.8,198.5 79.2,197.4 78.6,196.2 78.0,194.9 77.4,193.5 76.9,192.0 76.4,190.4 76.0,188.7 75.5,186.9 75.2,185.0 74.8,183.0 74.5,180.9 74.3,178.8 74.1,176.6 73.9,174.3 73.7,172.0 73.6,169.7 73.6,167.4 73.6,165.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="70.6,165.0 70.7,161.2 70.8,157.5 70.9,153.8 71.2,150.2 71.4,146.8 71.8,143.4 72.2,140.2 72.7,137.2 73.3,134.3 73.9,131.7 74.6,129.2 75.3,127.0 76.1,124.9 76.9,123.1 77.8,121.4 78.8,120.0 79.8,118.7 80.9,117.6 82.0,116.7 83.2,116.0 84.5,115.4 85.7,115.0 87.1,114.7 88.4,114.5 89.9,114.4 91.3,114.4 92.8,114.6 94.3,114.8 95.9,115.1 97.5,115.5 99.2,115.9 100.8,116.4 102.5,117.0 104.2,117.6 106.0,118.3 107.8,119.0 109.5,119.7 111.3,120.4 113.2,121.2 115.0,122.0 116.8,122.8 118.7,123.7 120.5,124.5 122.4,125.4 124.3,126.2 126.1,127.1 128.0,128.0 129.8,128.9 131.7,129.8 133.5,130.7 135.3,131.6 137.1,132.5 138.9,133.5 140.7,134.4 142.4,135.3 144.1,136.2 145.8,137.1 147.5,138.0 149.1,138.9 150.8,139.8 152.3,140.7 153.9,141.6 155.4,142.5 156.8,143.4 158.2,144.3 159.6,145.2 160.9,146.1 162.2,147.0 163.4,147.8 164.6,148.7 165.8,149.6 166.8,150.5 167.9,151.3 168.8,152.2 169.7,153.1 170.6,153.9 171.4,154.8 172.1,155.6 172.8,156.5 173.4,157.4 174.0,158.2 174.4,159.1 174.9,159.9 175.2,160.8 175.5,161.6 175.7,162.5 175.9,163.3 176.0,164.2 176.0,165.0 176.0,165.8 175.9,166.7 175.7,167.5 175.5,168.4 175.2,169.2 174.9,170.1 174.4,170.9 174.0,171.8 173.4,172.6 172.8,173.5 172.1,174.4 171.4,175.2 170.6,176.1 169.7,176.9 168.8,177.8 167.9,178.7 166.8,179.5 165.8,180.4 164.6,181.3 163.4,182.2 162.2,183.0 160.9,183.9 159.6,184.8 158.2,185.7 156.8,186.6 155.4,187.5 153.9,188.4 152.3,189.3 150.8,190.2 149.1,191.1 147.5,192.0 145.8,192.9 144.1,193.8 142.4,194.7 140.7,195.6 138.9,196.5 137.1,197.5 135.3,198.4 133.5,199.3 131.7,200.2 129.8,201.1 128.0,202.0 126.1,202.9 124.3,203.8 122.4,204.6 120.5,205.5 118.7,206.3 116.8,207.2 115.0,208.0 113.2,208.8 111.3,209.6 109.5,210.3 107.8,211.0 106.0,211.7 104.2,212.4 102.5,213.0 100.8,213.6 99.2,214.1 97.5,214.5 95.9,214.9 94.3,215.2 92.8,215.4 91.3,215.6 89.9,215.6 88.4,215.5 87.1,215.3 85.7,215.0 84.5,214.6 83.2,214.0 82.0,213.3 80.9,212.4 79.8,211.3 78.8,210.0 77.8,208.6 76.9,206.9 76.1,205.1 75.3,203.0 74.6,200.8 73.9,198.3 73.3,195.7 72.7,192.8 72.2,189.8 71.8,186.6 71.4,183.2 71.2,179.8 70.9,176.2 70.8,172.5 70.7,168.8 70.6,165.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="68.6,165.0 68.7,159.4 68.8,154.0 69.1,148.6 69.4,143.4 69.9,138.5 70.5,133.9 71.2,129.6 72.0,125.7 72.9,122.1 73.8,118.9 74.9,116.1 76.1,113.6 77.4,111.5 78.8,109.8 80.2,108.4 81.8,107.2 83.5,106.4 85.2,105.7 87.0,105.3 88.9,105.2 90.9,105.2 93.0,105.3 95.1,105.6 97.3,106.0 99.6,106.5 102.0,107.2 104.4,107.9 106.9,108.6 109.4,109.5 112.0,110.3 114.6,111.3 117.3,112.2 120.1,113.2 122.8,114.2 125.7,115.2 128.5,116.3 131.4,117.3 134.3,118.4 137.2,119.5 140.2,120.5 143.2,121.6 146.1,122.7 149.1,123.7 152.1,124.8 155.1,125.8 158.1,126.9 161.1,127.9 164.1,128.9 167.1,129.9 170.0,131.0 173.0,132.0 175.9,132.9 178.8,133.9 181.6,134.9 184.4,135.9 187.2,136.8 190.0,137.8 192.6,138.7 195.3,139.7 197.9,140.6 200.4,141.5 202.9,142.4 205.3,143.3 207.7,144.2 209.9,145.1 212.2,146.0 214.3,146.9 216.4,147.7 218.3,148.6 220.3,149.4 222.1,150.3 223.8,151.1 225.5,152.0 227.0,152.8 228.5,153.6 229.9,154.5 231.2,155.3 232.3,156.1 233.4,156.9 234.4,157.7 235.3,158.6 236.1,159.4 236.8,160.2 237.4,161.0 237.8,161.8 238.2,162.6 238.5,163.4 238.6,164.2 238.7,165.0 238.6,165.8 238.5,166.6 238.2,167.4 237.8,168.2 237.4,169.0 236.8,169.8 236.1,170.6 235.3,171.4 234.4,172.3 233.4,173.1 232.3,173.9 231.2,174.7 229.9,175.5 228.5,176.4 227.0,177.2 225.5,178.0 223.8,178.9 222.1,179.7 220.3,180.6 218.3,181.4 216.4,182.3 214.3,183.1 212.2,184.0 209.9,184.9 207.7,185.8 205.3,186.7 202.9,187.6 200.4,188.5 197.9,189.4 195.3,190.3 192.6,191.3 190.0,192.2 187.2,193.2 184.4,194.1 181.6,195.1 178.8,196.1 175.9,197.1 173.0,198.0 170.0,199.0 167.1,200.1 164.1,201.1 161.1,202.1 158.1,203.1 155.1,204.2 152.1,205.2 149.1,206.3 146.1,207.3 143.2,208.4 140.2,209.5 137.2,210.5 134.3,211.6 131.4,212.7 128.5,213.7 125.7,214.8 122.8,215.8 120.1,216.8 117.3,217.8 114.6,218.7 112.0,219.7 109.4,220.5 106.9,221.4 104.4,222.1 102.0,222.8 99.6,223.5 97.3,224.0 95.1,224.4 93.0,224.7 90.9,224.8 88.9,224.8 87.0,224.7 85.2,224.3 83.5,223.6 81.8,222.8 80.2,221.6 78.8,220.2 77.4,218.5 76.1,216.4 74.9,213.9 73.8,211.1 72.9,207.9 72.0,204.3 71.2,200.4 70.5,196.1 69.9,191.5 69.4,186.6 69.1,181.4 68.8,176.0 68.7,170.6 68.6,165.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="67.0,165.0 67.1,156.7 67.4,148.5 67.9,140.7 68.6,133.4 69.4,126.7 70.4,120.7 71.7,115.4 73.1,110.9 74.6,107.1 76.4,104.1 78.3,101.6 80.4,99.8 82.7,98.5 85.2,97.7 87.8,97.2 90.6,97.1 93.5,97.3 96.6,97.8 99.9,98.4 103.3,99.2 106.8,100.2 110.5,101.2 114.3,102.4 118.2,103.6 122.3,104.8 126.5,106.1 130.8,107.4 135.2,108.7 139.7,110.1 144.4,111.4 149.1,112.7 153.9,114.1 158.7,115.4 163.7,116.7 168.7,117.9 173.8,119.2 178.9,120.4 184.1,121.7 189.3,122.9 194.6,124.0 199.9,125.2 205.2,126.3 210.6,127.4 215.9,128.5 221.2,129.6 226.6,130.7 231.9,131.7 237.2,132.7 242.5,133.7 247.8,134.7 253.0,135.7 258.2,136.6 263.4,137.6 268.4,138.5 273.5,139.4 278.4,140.3 283.3,141.2 288.1,142.0 292.8,142.9 297.4,143.7 301.9,144.5 306.3,145.4 310.6,146.2 314.8,147.0 318.9,147.8 322.8,148.5 326.7,149.3 330.3,150.1 333.9,150.8 337.3,151.6 340.5,152.3 343.6,153.1 346.6,153.8 349.3,154.5 352.0,155.2 354.4,156.0 356.7,156.7 358.8,157.4 360.8,158.1 362.5,158.8 364.1,159.5 365.5,160.2 366.7,160.9 367.7,161.6 368.6,162.3 369.2,162.9 369.7,163.6 370.0,164.3 370.1,165.0 370.0,165.7 369.7,166.4 369.2,167.1 368.6,167.7 367.7,168.4 366.7,169.1 365.5,169.8 364.1,170.5 362.5,171.2 360.8,171.9 358.8,172.6 356.7,173.3 354.4,174.0 352.0,174.8 349.3,175.5 346.6,176.2 343.6,176.9 340.5,177.7 337.3,178.4 333.9,179.2 330.3,179.9 326.7,180.7 322.8,181.5 318.9,182.2 314.8,183.0 310.6,183.8 306.3,184.6 301.9,185.5 297.4,186.3 292.8,187.1 288.1,188.0 283.3,188.8 278.4,189.7 273.5,190.6 268.4,191.5 263.4,192.4 258.2,193.4 253.0,194.3 247.8,195.3 242.5,196.3 237.2,197.3 231.9,198.3 226.6,199.3 221.2,200.4 215.9,201.5 210.6,202.6 205.2,203.7 199.9,204.8 194.6,206.0 189.3,207.1 184.1,208.3 178.9,209.6 173.8,210.8 168.7,212.1 163.7,213.3 158.7,214.6 153.9,215.9 149.1,217.3 144.4,218.6 139.7,219.9 135.2,221.3 130.8,222.6 126.5,223.9 122.3,225.2 118.2,226.4 114.3,227.6 110.5,228.8 106.8,229.8 103.3,230.8 99.9,231.6 96.6,232.2 93.5,232.7 90.6,232.9 87.8,232.8 85.2,232.3 82.7,231.5 80.4,230.2 78.3,228.4 76.4,225.9 74.6,222.9 73.1,219.1 71.7,214.6 70.4,209.3 69.4,203.3 68.6,196.6 67.9,189.3 67.4,181.5 67.1,173.3 67.0,165.0" fill="none" class="unit" stroke-width="1.7"/>
+<polyline points="540.0,136.7 539.9,136.7 539.4,136.7 538.7,136.6 537.6,136.6 536.3,136.5 534.7,136.5 532.8,136.4 530.6,136.3 528.1,136.2 525.4,136.1 522.3,135.9 519.0,135.8 515.5,135.6 511.6,135.5 507.5,135.3 503.2,135.1 498.5,134.9 493.7,134.7 488.6,134.4 483.3,134.2 477.7,133.9 472.0,133.7 466.0,133.4 459.8,133.1 453.4,132.7 446.9,132.4 440.1,132.0 433.2,131.7 426.2,131.3 418.9,130.9 411.6,130.5 404.0,130.0 396.4,129.6 388.7,129.1 380.8,128.6 372.8,128.1 364.8,127.5 356.7,127.0 348.5,126.4 340.2,125.8 332.0,125.1 323.6,124.5 315.3,123.8 306.9,123.1 298.5,122.3 290.2,121.5 281.8,120.7 273.5,119.9 265.2,119.0 256.9,118.1 248.7,117.2 240.6,116.2 232.6,115.2 224.6,114.2 216.8,113.1 209.0,112.0 201.4,110.8 193.9,109.6 186.5,108.3 179.3,107.1 172.2,105.7 165.3,104.4 158.5,103.0 152.0,101.6 145.6,100.1 139.4,98.6 133.4,97.2 127.7,95.7 122.1,94.2 116.8,92.8 111.7,91.5 106.9,90.3 102.3,89.3 97.9,88.4 93.8,87.8 90.0,87.6 86.4,87.9 83.1,88.7 80.0,90.2 77.3,92.6 74.8,95.9 72.6,100.4 70.7,106.1 69.1,113.2 67.8,121.5 66.7,131.1 66.0,141.7 65.6,153.2 65.4,165.0 65.6,176.8 66.0,188.3 66.7,198.9 67.8,208.5 69.1,216.8 70.7,223.9 72.6,229.6 74.8,234.1 77.3,237.4 80.0,239.8 83.1,241.3 86.4,242.1 90.0,242.4 93.8,242.2 97.9,241.6 102.3,240.7 106.9,239.7 111.7,238.5 116.8,237.2 122.1,235.8 127.7,234.3 133.4,232.8 139.4,231.4 145.6,229.9 152.0,228.4 158.5,227.0 165.3,225.6 172.2,224.3 179.3,222.9 186.5,221.7 193.9,220.4 201.4,219.2 209.0,218.0 216.8,216.9 224.6,215.8 232.6,214.8 240.6,213.8 248.7,212.8 256.9,211.9 265.2,211.0 273.5,210.1 281.8,209.3 290.2,208.5 298.5,207.7 306.9,206.9 315.3,206.2 323.6,205.5 332.0,204.9 340.2,204.2 348.5,203.6 356.7,203.0 364.8,202.5 372.8,201.9 380.8,201.4 388.7,200.9 396.4,200.4 404.0,200.0 411.6,199.5 418.9,199.1 426.2,198.7 433.2,198.3 440.1,198.0 446.9,197.6 453.4,197.3 459.8,196.9 466.0,196.6 472.0,196.3 477.7,196.1 483.3,195.8 488.6,195.6 493.7,195.3 498.5,195.1 503.2,194.9 507.5,194.7 511.6,194.5 515.5,194.4 519.0,194.2 522.3,194.1 525.4,193.9 528.1,193.8 530.6,193.7 532.8,193.6 534.7,193.5 536.3,193.5 537.6,193.4 538.7,193.4 539.4,193.3 539.9,193.3 540.0,193.3" fill="none" class="accent" stroke-width="3.2"/>
+<polyline points="540.0,130.1 539.9,130.1 539.4,130.1 538.7,130.1 537.6,130.1 536.3,130.0 534.7,130.0 532.8,129.9 530.6,129.8 528.1,129.7 525.4,129.6 522.3,129.5 519.0,129.4 515.4,129.3 511.6,129.2 507.5,129.0 503.1,128.8 498.5,128.7 493.7,128.5 488.6,128.3 483.2,128.1 477.7,127.9 471.9,127.6 465.9,127.4 459.8,127.1 453.4,126.9 446.8,126.6 440.1,126.3 433.1,126.0 426.1,125.6 418.8,125.3 411.4,124.9 403.9,124.5 396.3,124.1 388.5,123.7 380.7,123.3 372.7,122.8 364.6,122.3 356.5,121.8 348.3,121.3 340.1,120.8 331.8,120.2 323.4,119.6 315.1,119.0 306.7,118.4 298.3,117.7 289.9,117.0 281.6,116.3 273.2,115.5 264.9,114.7 256.7,113.9 248.5,113.0 240.4,112.1 232.3,111.2 224.3,110.2 216.5,109.2 208.7,108.2 201.1,107.1 193.6,105.9 186.2,104.8 178.9,103.5 171.9,102.3 164.9,101.0 158.2,99.7 151.6,98.3 145.2,96.9 139.1,95.5 133.1,94.1 127.3,92.7 121.8,91.3 116.4,89.9 111.3,88.7 106.5,87.5 101.9,86.5 97.5,85.7 93.4,85.2 89.6,85.0 86.0,85.3 82.7,86.2 79.6,87.8 76.9,90.2 74.4,93.7 72.2,98.3 70.3,104.2 68.7,111.4 67.4,120.1 66.3,130.0 65.6,141.0 65.1,152.8 65.0,165.0 65.1,177.2 65.6,189.0 66.3,200.0 67.4,209.9 68.7,218.6 70.3,225.8 72.2,231.7 74.4,236.3 76.9,239.8 79.6,242.2 82.7,243.8 86.0,244.7 89.6,245.0 93.4,244.8 97.5,244.3 101.9,243.5 106.5,242.5 111.3,241.3 116.4,240.1 121.8,238.7 127.3,237.3 133.1,235.9 139.1,234.5 145.2,233.1 151.6,231.7 158.2,230.3 164.9,229.0 171.9,227.7 178.9,226.5 186.2,225.2 193.6,224.1 201.1,222.9 208.7,221.8 216.5,220.8 224.3,219.8 232.3,218.8 240.4,217.9 248.5,217.0 256.7,216.1 264.9,215.3 273.2,214.5 281.6,213.7 289.9,213.0 298.3,212.3 306.7,211.6 315.1,211.0 323.4,210.4 331.8,209.8 340.1,209.2 348.3,208.7 356.5,208.2 364.6,207.7 372.7,207.2 380.7,206.7 388.5,206.3 396.3,205.9 403.9,205.5 411.4,205.1 418.8,204.7 426.1,204.4 433.1,204.0 440.1,203.7 446.8,203.4 453.4,203.1 459.8,202.9 465.9,202.6 471.9,202.4 477.7,202.1 483.2,201.9 488.6,201.7 493.7,201.5 498.5,201.3 503.1,201.2 507.5,201.0 511.6,200.8 515.4,200.7 519.0,200.6 522.3,200.5 525.4,200.4 528.1,200.3 530.6,200.2 532.8,200.1 534.7,200.0 536.3,200.0 537.6,199.9 538.7,199.9 539.4,199.9 539.9,199.9 540.0,199.9" fill="none" class="warn" stroke-width="2.4" stroke-dasharray="7 5"/>
+<polyline points="540.0,105.7 539.9,105.7 539.4,105.7 538.7,105.6 537.6,105.6 536.3,105.6 534.7,105.6 532.8,105.5 530.6,105.5 528.1,105.4 525.3,105.4 522.2,105.3 518.9,105.2 515.3,105.2 511.5,105.1 507.3,105.0 503.0,104.9 498.3,104.8 493.5,104.7 488.4,104.6 483.0,104.4 477.4,104.3 471.6,104.2 465.6,104.0 459.4,103.9 453.0,103.7 446.4,103.5 439.7,103.3 432.7,103.1 425.6,102.9 418.3,102.7 410.9,102.4 403.4,102.2 395.7,101.9 387.9,101.7 380.0,101.4 372.0,101.1 363.9,100.8 355.8,100.4 347.5,100.1 339.3,99.7 330.9,99.3 322.6,98.9 314.2,98.5 305.7,98.0 297.3,97.6 288.9,97.1 280.5,96.5 272.2,96.0 263.8,95.4 255.5,94.8 247.3,94.2 239.1,93.5 231.1,92.8 223.1,92.0 215.2,91.3 207.4,90.5 199.7,89.6 192.2,88.7 184.7,87.8 177.5,86.8 170.4,85.8 163.4,84.8 156.7,83.7 150.1,82.5 143.7,81.4 137.4,80.2 131.4,79.0 125.7,77.8 120.1,76.7 114.7,75.5 109.6,74.5 104.7,73.5 100.1,72.7 95.7,72.1 91.6,71.7 87.8,71.8 84.2,72.3 80.8,73.4 77.8,75.4 75.0,78.2 72.5,82.2 70.3,87.5 68.4,94.2 66.8,102.6 65.5,112.5 64.4,124.0 63.7,136.9 63.2,150.7 63.1,165.0 63.2,179.3 63.7,193.1 64.4,206.0 65.5,217.5 66.8,227.4 68.4,235.8 70.3,242.5 72.5,247.8 75.0,251.8 77.8,254.6 80.8,256.6 84.2,257.7 87.8,258.2 91.6,258.3 95.7,257.9 100.1,257.3 104.7,256.5 109.6,255.5 114.7,254.5 120.1,253.3 125.7,252.2 131.4,251.0 137.4,249.8 143.7,248.6 150.1,247.5 156.7,246.3 163.4,245.2 170.4,244.2 177.5,243.2 184.7,242.2 192.2,241.3 199.7,240.4 207.4,239.5 215.2,238.7 223.1,238.0 231.1,237.2 239.1,236.5 247.3,235.8 255.5,235.2 263.8,234.6 272.2,234.0 280.5,233.5 288.9,232.9 297.3,232.4 305.7,232.0 314.2,231.5 322.6,231.1 330.9,230.7 339.3,230.3 347.5,229.9 355.8,229.6 363.9,229.2 372.0,228.9 380.0,228.6 387.9,228.3 395.7,228.1 403.4,227.8 410.9,227.6 418.3,227.3 425.6,227.1 432.7,226.9 439.7,226.7 446.4,226.5 453.0,226.3 459.4,226.1 465.6,226.0 471.6,225.8 477.4,225.7 483.0,225.6 488.4,225.4 493.5,225.3 498.3,225.2 503.0,225.1 507.3,225.0 511.5,224.9 515.3,224.8 518.9,224.8 522.2,224.7 525.3,224.6 528.1,224.6 530.6,224.5 532.8,224.5 534.7,224.4 536.3,224.4 537.6,224.4 538.7,224.4 539.4,224.3 539.9,224.3 540.0,224.3" fill="none" class="unit" stroke-width="1.7" opacity=".6"/>
+<polyline points="540.0,77.7 539.9,77.7 539.4,77.7 538.7,77.7 537.6,77.7 536.3,77.7 534.6,77.7 532.7,77.6 530.5,77.6 528.0,77.6 525.2,77.5 522.2,77.5 518.8,77.4 515.2,77.4 511.3,77.3 507.2,77.3 502.8,77.2 498.1,77.1 493.2,77.1 488.1,77.0 482.7,76.9 477.1,76.8 471.3,76.7 465.3,76.6 459.0,76.5 452.6,76.4 446.0,76.2 439.2,76.1 432.2,76.0 425.0,75.8 417.7,75.7 410.3,75.5 402.7,75.3 395.0,75.1 387.2,74.9 379.2,74.7 371.2,74.5 363.1,74.3 354.9,74.1 346.6,73.8 338.3,73.5 329.9,73.3 321.5,73.0 313.0,72.6 304.6,72.3 296.1,72.0 287.7,71.6 279.2,71.2 270.8,70.8 262.4,70.4 254.1,69.9 245.9,69.4 237.7,68.9 229.5,68.4 221.5,67.8 213.6,67.2 205.7,66.6 198.0,66.0 190.4,65.3 183.0,64.5 175.7,63.8 168.5,63.0 161.6,62.1 154.7,61.3 148.1,60.4 141.7,59.4 135.4,58.5 129.4,57.5 123.6,56.5 118.0,55.6 112.6,54.6 107.5,53.8 102.6,53.0 97.9,52.4 93.5,52.0 89.4,51.9 85.5,52.1 81.9,52.9 78.6,54.4 75.5,56.7 72.7,60.1 70.2,64.7 68.0,71.0 66.1,79.0 64.4,88.9 63.1,100.9 62.1,114.8 61.3,130.4 60.9,147.4 60.7,165.0 60.9,182.6 61.3,199.6 62.1,215.2 63.1,229.1 64.4,241.1 66.1,251.0 68.0,259.0 70.2,265.3 72.7,269.9 75.5,273.3 78.6,275.6 81.9,277.1 85.5,277.9 89.4,278.1 93.5,278.0 97.9,277.6 102.6,277.0 107.5,276.2 112.6,275.4 118.0,274.4 123.6,273.5 129.4,272.5 135.4,271.5 141.7,270.6 148.1,269.6 154.7,268.7 161.6,267.9 168.5,267.0 175.7,266.2 183.0,265.5 190.4,264.7 198.0,264.0 205.7,263.4 213.6,262.8 221.5,262.2 229.5,261.6 237.7,261.1 245.9,260.6 254.1,260.1 262.4,259.6 270.8,259.2 279.2,258.8 287.7,258.4 296.1,258.0 304.6,257.7 313.0,257.4 321.5,257.0 329.9,256.7 338.3,256.5 346.6,256.2 354.9,255.9 363.1,255.7 371.2,255.5 379.2,255.3 387.2,255.1 395.0,254.9 402.7,254.7 410.3,254.5 417.7,254.3 425.0,254.2 432.2,254.0 439.2,253.9 446.0,253.8 452.6,253.6 459.0,253.5 465.3,253.4 471.3,253.3 477.1,253.2 482.7,253.1 488.1,253.0 493.2,252.9 498.1,252.9 502.8,252.8 507.2,252.7 511.3,252.7 515.2,252.6 518.8,252.6 522.2,252.5 525.2,252.5 528.0,252.4 530.5,252.4 532.7,252.4 534.6,252.3 536.3,252.3 537.6,252.3 538.7,252.3 539.4,252.3 539.9,252.3 540.0,252.3" fill="none" class="unit" stroke-width="1.7" opacity=".6"/>
+      <circle cx="90" cy="165" r="5.5" class="fill-accent"/>
+      <text x="84" y="188" font-size="14" class="mono">r₀</text>
+      <text x="525" y="185" font-size="14" class="mono soft">r</text>
+      <text x="48" y="28" font-size="14" class="mono soft">p<tspan font-size="10" dy="4">r</tspan></text>
+      <text x="250" y="300" font-size="13" class="mono soft">thick: Halley, closing at 30.4 r₀ →</text>
+      <text x="360" y="30" font-size="13" class="mono soft">E &gt; 0</text>
+          </svg>
+    <p class="cap">$\tfrac12 v_r^2 + h^2/2r^2 - GM_\odot/r = \varepsilon$ at Halley's $h$, with $r$ in units of $r_0 = h^2/GM_\odot$
+    and $v_r = p_r/\mu$ in units of $GM_\odot/h$, out to $r = 10r_0$. Solid thick: <span class="ref" data-ref="halley">Halley</span>.
+    Dashed: <span class="ref" data-ref="sep">$E = 0$</span>. Faint: two hyperbolic orbits.</p>
+  </div>
+  <p class="small">Every closed curve is a bound orbit and every open one is a flyby, and none of them touches another: the whole
+  of unit 08's classification of orbits by energy, read off one contour map.</p>
+  <aside class="notes">
+    <p><b>How the figure is made.</b> $H$ at fixed $L$ is
+    $H(r,p_r) = p_r^2/2\mu + V_{\mathrm{eff}}(r)$ with $V_{\mathrm{eff}} = L^2/2\mu r^2 - k/r$, unit 08's
+    effective potential. Dividing by $\mu$ and writing $x = r/r_0$, $y = v_r/(GM_\odot/h)$, the level set
+    $\varepsilon$ becomes $\tfrac12y^2 + \tfrac1{2x^2} - \tfrac1x = \varepsilon/(GM_\odot/h)^2$, and the curves
+    drawn are the values $-0.45, -0.38, -0.30, -0.22, -0.14$, Halley's $-0.0323228$, $0$, $0.18$ and $0.5$
+    of that dimensionless energy. The minimum value is $-\tfrac12$, at $(x,y) = (1,0)$: the circular orbit.</p>
+    <p><b>Why the curves are lopsided.</b> Near $r = 0$ the centrifugal term $L^2/2\mu r^2$ is a wall;
+    at large $r$ the potential flattens to zero, so a bound orbit with energy just below zero spends
+    most of its phase-space length far out at small $|p_r|$. Kepler's second law says it also spends
+    most of its time there.</p>
+    <p><b>Where unit 08 was.</b> Unit 08 read all this from the graph of $V_{\mathrm{eff}}$, with the
+    energy as a horizontal line. The phase portrait is that graph unfolded: each horizontal line
+    $E$ becomes the curve $p_r = \pm\sqrt{2\mu(E - V_{\mathrm{eff}})}$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Hamilton</p>
+  <h2>Worked: Halley's curve, and the separatrix</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label"><span class="ref" data-ref="halley">Halley's level curve</span>, in numbers</span>
+      <p class="small"><b>Given</b> (unit 08): $h = 4.78403\times10^{15}\ \mathrm{m^2\,s^{-1}}$, $\varepsilon = -2.48740\times10^{7}\ \mathrm{J\,kg^{-1}}$,
+      $GM_\odot = 1.32712440\times10^{20}\ \mathrm{m^3\,s^{-2}}$. Per unit mass, $\varepsilon = \tfrac12 v_r^2 + V(r)$ with
+      $V(r) = h^2/2r^2 - GM_\odot/r$.</p>
+      <p class="small"><b>Step 1 — the equilibrium.</b> $V'(r) = -h^2/r^3 + GM_\odot/r^2 = 0$ at
+      $r_0 = h^2/GM_\odot = 1.72455\times10^{11}$ m $= 1.15279$ AU, where $V(r_0) = -(GM_\odot)^2/2h^2 = -3.84774\times10^{8}\ \mathrm{J\,kg^{-1}}$.
+      It is a minimum of $H$: a centre, the circular orbit.</p>
+      <p class="small"><b>Step 2 — where the curve meets $v_r = 0$.</b> $\varepsilon = V(r)$, i.e.
+      $2\varepsilon r^2 + 2GM_\odot r - h^2 = 0$: $r = 0.586025$ and $35.0789$ AU, unit 08's perihelion and aphelion.</p>
+      <p class="small"><b>Step 3 — its widest point.</b> $v_r^2 = 2(\varepsilon - V)$ is largest where $V$ is least, at $r_0$:
+      $|v_r| = \sqrt{2(\varepsilon - V(r_0))} = 26.829\ \mathrm{km\,s^{-1}}$.</p>
+      <p class="small"><b>Step 4 — the <span class="ref" data-ref="sep">separatrix</span>.</b> At $\varepsilon = 0$:
+      $v_r^2 = 2GM_\odot/r - h^2/r^2$, zero at $r = h^2/2GM_\odot = r_0/2 = 0.576396$ AU and again only as $r\to\infty$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $[h^2/GM] = \mathrm{m^4s^{-2}}/\mathrm{m^3s^{-2}} = \mathrm m$ ✓.</p>
+        <p class="small"><b>Unit 08:</b> $\varepsilon/V(r_0) = 0.0646457 = 1 - e^2$ with $e = 0.96714$ ✓, and
+        $r_0$ is the semi-latus rectum $p = 1.72455\times10^{11}$ m ✓.</p>
+        <p class="small"><b>Limit:</b> as $\varepsilon\to V(r_0)$ the curve shrinks to the point $(r_0, 0)$ ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">a separatrix without a saddle</span>
+        <p class="small">The pendulum's separatrix runs into a saddle. This one runs into nothing in the finite plane: its
+        "saddle" is at $r = \infty$, $p_r = 0$. What it separates is still the same — bounded from unbounded.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The arithmetic.</b> $h^2 = 2.28869\times10^{31}$, so $r_0 = 2.28869\times10^{31}/1.32712\times10^{20}
+    = 1.72455\times10^{11}$ m, and in AU ($1.495978707\times10^{11}$ m) $1.15279$. $V(r_0) = -(GM)^2/2h^2
+    = -1.76126\times10^{40}/4.57738\times10^{31} = -3.84774\times10^{8}$. Then
+    $\varepsilon - V(r_0) = 3.59900\times10^{8}$, $2\times$ that is $7.19800\times10^{8}$, and its root is
+    $2.68291\times10^{4}\ \mathrm{m\,s^{-1}}$. The quadratic of step 2 is unit 08's turning-point equation,
+    solved there with the same roots.</p>
+    <p><b>Why $\varepsilon/V(r_0) = 1 - e^2$.</b> Unit 08 has $e^2 = 1 + 2EL^2/\mu k^2$; per unit mass
+    $e^2 = 1 + 2\varepsilon h^2/(GM)^2 = 1 - \varepsilon/V(r_0)$. Halley's orbit sits at $6.46\%$ of the
+    depth of the well: very nearly on the separatrix, which is why its level curve in the figure
+    hugs the dashed one near the Sun and why the comet's aphelion is so far out.</p>
+    <p><b>The separatrix at infinity.</b> Substitute $u = 1/r$: then near $u = 0$ the reduced
+    system has an equilibrium at $(u, p_r) = (0, 0)$ which is degenerate (not a hyperbolic saddle), and
+    the $E = 0$ curve is the orbit asymptotic to it. That is the precise sense in which "the saddle is
+    at infinity". The parabolic orbit takes infinite time to get there, like a pendulum on its separatrix.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Poisson brackets: the algebra of observables</h2>
+  <p>One bilinear operation that gives every time derivative, and turns conserved quantities into a Lie algebra.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · brackets</p>
+  <h2>The Poisson bracket</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Poisson bracket</span></span>
+        <p class="small">For $f, g\in C^\infty(\mathbb R^{2n})$,
+        $$\{f,g\} := \sum_{i=1}^n\Big(\frac{\partial f}{\partial q_i}\frac{\partial g}{\partial p_i} - \frac{\partial f}{\partial p_i}\frac{\partial g}{\partial q_i}\Big) = \nabla f^{\!\top}J\,\nabla g .$$</p>
+      </div>
+      <div class="box thm"><span class="label">properties</span>
+        <p class="small"><b>1</b> bilinear; <b>2</b> antisymmetric, $\{g,f\} = -\{f,g\}$; <b>3</b> Leibniz,
+        $\{f, gh\} = \{f,g\}h + g\{f,h\}$; <b>4</b> the <span class="term">Jacobi identity</span>,
+        $$\{f,\{g,h\}\} + \{g,\{h,f\}\} + \{h,\{f,g\}\} = 0.$$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof of 1–3</span>
+        <p class="small">1: $\nabla$ is linear. 2: $J^{\!\top} = -J$. 3: $\nabla(gh) = h\nabla g + g\nabla h$. ∎ &nbsp;(4: next slide.)</p>
+      </div>
+      <div class="box def"><span class="label">the <span class="term">fundamental Poisson brackets</span></span>
+        <p class="small">$$\{q_i, q_j\} = 0,\quad \{p_i, p_j\} = 0,\quad \{q_i, p_j\} = \delta_{ij}.$$
+        Bilinearity and Leibniz reduce every bracket of polynomials to these.</p>
+      </div>
+      <div class="box good"><span class="label">dimensions</span>
+        <p class="small">$[\{f,g\}] = [f][g]/[q][p]$, and $[q][p]$ is an <b>action</b>, $\mathrm{J\,s}$. So $[\{f,H\}] = [f]/\mathrm s$ —
+        a rate, which is what it will turn out to be.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>A sign convention to watch.</b> Landau–Lifshitz define the bracket with the opposite sign,
+    $\{f,g\}_{\mathrm{LL}} = \sum(\partial_pf\,\partial_qg - \partial_qf\,\partial_pg)$; Goldstein, Arnold and
+    this course use the one on the slide, for which $\{q,p\} = 1$ and $\dot f = \{f,H\}$. Every bracket
+    identity in a text using the other convention changes sign. Unit 17 and the quantum commutator
+    $[\hat f,\hat g] = i\hbar\{f,g\}$ (Dirac's correspondence, mentioned only) use this one.</p>
+    <p><b>The fundamental brackets computed.</b> $\{q_i,p_j\} = \sum_k(\partial q_i/\partial q_k)(\partial p_j/\partial p_k)
+    - 0 = \sum_k\delta_{ik}\delta_{jk} = \delta_{ij}$; $\{q_i,q_j\}$ and $\{p_i,p_j\}$ have a vanishing factor in
+    every term. As matrices: the brackets of the coordinate functions $z_a$ are $\{z_a, z_b\} = J_{ab}$.</p>
+    <p><b>History.</b> Poisson introduced the bracket in 1809, in a memoir on the variation of the
+    elements of planetary orbits — the same perturbation problem that later gave unit 10 its secular
+    theory. Jacobi proved the identity that bears his name in lectures of 1842–43, published
+    posthumously in 1866.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · brackets</p>
+  <h2>The Jacobi identity, and what it makes of observables</h2>
+  <div class="cols">
+    <div class="box proof"><span class="label">proof of the Jacobi identity</span>
+      <p class="small">Let $D_f := \{f,\cdot\,\}$. It is a first-order differential operator:
+      $D_f = \sum_i\big(\partial_{q_i}f\,\partial_{p_i} - \partial_{p_i}f\,\partial_{q_i}\big)$. Rewrite the first two terms of the sum:
+      $$\begin{aligned}\{f,\{g,h\}\} + \{g,\{h,f\}\} &= D_fD_gh - D_gD_fh\\ &= [D_f, D_g]\,h.\end{aligned}$$
+      The commutator of two first-order operators is first order — the second derivatives of $h$ cancel by Clairaut. The third
+      term, $-D_{\{f,g\}}h$, is first order in $h$ too. So <b>the Jacobi sum contains no second derivative of $h$</b>, and by its cyclic
+      symmetry none of $f$ or $g$. But every term of it contains exactly one second derivative. So it is $0$. ∎</p>
+    </div>
+    <div>
+      <div class="box def"><span class="label">a <span class="term">Lie algebra</span></span>
+        <p class="small">A real vector space with a bilinear, antisymmetric bracket satisfying Jacobi. So
+        $\big(C^\infty(\mathbb R^{2n}),\{\,,\}\big)$ is one — infinite-dimensional.</p>
+        <p class="small">A three-dimensional example: $\mathfrak{so}(3)$, unit 03's antisymmetric $3\times3$ matrices, under the
+        commutator $[X,Y] = XY - YX$. Unit 03's hat map is then an isomorphism of Lie algebras,
+        $\widehat{\vec a\times\vec b} = [\hat a,\hat b]$ — one line, in the notes.</p>
+      </div>
+      <div class="box good"><span class="label">Jacobi, reread</span>
+        <p class="small">It says $[D_f, D_g] = D_{\{f,g\}}$: the map $f\mapsto D_f$ turns brackets of functions into commutators of
+        operators. That is the sense in which functions on phase space <em>generate</em> motions.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the two claims used</h4>
+    <p><b>The commutator is first order.</b> Write $D_f = \sum_a u_a\partial_a$ and $D_g = \sum_b w_b\partial_b$,
+    where $u_a$, $w_b$ are functions (the components of $-J\nabla f$ and $-J\nabla g$, though only their being
+    functions matters) and $\partial_a = \partial/\partial z_a$. Then
+    $D_fD_gh = \sum_{a,b}u_a(\partial_aw_b)\partial_bh + \sum_{a,b}u_aw_b\,\partial_a\partial_bh$, and the second sum is
+    symmetric under exchanging the roles of $u$ and $w$ once $\partial_a\partial_bh = \partial_b\partial_ah$ (Clairaut, unit 03,
+    for $h\in C^2$). So in $D_fD_gh - D_gD_fh$ the second-derivative sums cancel and
+    $[D_f,D_g]h = \sum_b\big(\sum_a(u_a\partial_aw_b - w_a\partial_au_b)\big)\partial_bh$.</p>
+    <p><b>Every term has exactly one second derivative.</b> Expand $\{f,\{g,h\}\}$: it is a sum of
+    terms $(\partial f)\,\partial(\partial g\,\partial h)$, and the outer derivative falls on exactly one of the two
+    inner factors, giving (first derivative of $f$)(second derivative of $g$)(first derivative of $h$) or
+    (first derivative of $f$)(first derivative of $g$)(second derivative of $h$). The same holds for
+    the other two terms. Now group the Jacobi sum by which function is differentiated twice. The group
+    in which $h$ is differentiated twice is zero, by the first claim; by cyclic symmetry so are the
+    groups for $f$ and for $g$. There is no other group. $\square$</p>
+    <p><b>Jacobi, reread, derived.</b> From the identity, $D_fD_gh - D_gD_fh = -\{h,\{f,g\}\} = \{\{f,g\},h\}
+    = D_{\{f,g\}}h$ for every $h$.</p>
+    <h4>Full proof that the hat map is an isomorphism of Lie algebras</h4>
+    <p>Unit 03 gave the hat map as a linear isomorphism $\mathbb R^3\to\mathfrak{so}(3)$, $\hat a\vec v = \vec a\times\vec v$;
+    that it also carries $\times$ to the commutator is this line. For every $\vec v$, by BAC–CAB (unit 08),
+    $$[\hat a,\hat b]\vec v = \vec a\times(\vec b\times\vec v) - \vec b\times(\vec a\times\vec v)
+    = \big(\vec b(\vec a\cdot\vec v) - \vec v(\vec a\cdot\vec b)\big) - \big(\vec a(\vec b\cdot\vec v) - \vec v(\vec a\cdot\vec b)\big)
+    = \vec b(\vec a\cdot\vec v) - \vec a(\vec b\cdot\vec v),$$
+    and BAC–CAB again gives $(\vec a\times\vec b)\times\vec v = -\vec v\times(\vec a\times\vec b) =
+    \vec b(\vec v\cdot\vec a) - \vec a(\vec v\cdot\vec b)$, the same vector. So
+    $[\hat a,\hat b] = \widehat{\vec a\times\vec b}$. $\square$</p>
+    <p><b>Why a Lie algebra is the right word.</b> The antisymmetric matrices with the commutator
+    are the Lie algebra of the rotation group (unit 03 proved $R^{\!\top}\dot R$ antisymmetric for a moving
+    rotation). In general a Lie algebra is what a group of symmetries looks like infinitesimally, and
+    Jacobi is the one axiom that encodes associativity of the group. So when conserved quantities are
+    found to close under the bracket, they are identifying the symmetry group — which is how the
+    rest of this section uses them.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · brackets</p>
+  <h2>Time evolution is a bracket with $H$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Along any solution of Hamilton's equations, for $f(q,p,t)$,
+        $$\frac{\mathrm df}{\mathrm dt} = \{f, H\} + \frac{\partial f}{\partial t}.$$</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Chain rule, then Hamilton: $\dot f = \sum(f_{q_i}\dot q_i + f_{p_i}\dot p_i) + f_t = \sum(f_{q_i}H_{p_i} - f_{p_i}H_{q_i}) + f_t$. ∎</p>
+      </div>
+      <div class="box good"><span class="label">special cases</span>
+        <p class="small">$f = q_i$: $\dot q_i = \{q_i,H\} = H_{p_i}$ ✓. $f = p_i$: $\dot p_i = -H_{q_i}$ ✓. $f = H$: $\dot H = H_t$ ✓.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">corollaries</span>
+        <p class="small"><b>1.</b> A time-independent $f$ is conserved iff $\{f,H\} = 0$.</p>
+        <p class="small"><b>2.</b> <span class="term">Poisson's theorem</span>: if $f$ and $g$ are conserved, so is $\{f,g\}$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof of 2</span>
+        <p class="small">Jacobi, rearranged: $\{\{f,g\},H\} = \{f,\{g,H\}\} + \{g,\{H,f\}\} = \{f,0\} + \{g,0\} = 0$. ∎</p>
+      </div>
+      <div class="box warn"><span class="label">what Poisson's theorem does not promise</span>
+        <p class="small">$\{f,g\}$ may be zero, a constant, or a function of $f$, $g$ and $H$. It is a new conserved quantity only
+        sometimes; for Kepler it is never new, and that is the point — the set closes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof of Poisson's theorem with every sign.</b> Jacobi with $(f,g,H)$ cycled so that
+    $H$ sits innermost in each term: $\{f,\{g,H\}\} + \{g,\{H,f\}\} + \{H,\{f,g\}\} = 0$. The first two
+    vanish because $\{g,H\} = 0$ and $\{H,f\} = -\{f,H\} = 0$, and the bracket of anything with the zero
+    function is zero. So $\{H,\{f,g\}\} = 0$, i.e. $\{\{f,g\},H\} = 0$. For time-dependent conserved $f$,
+    $g$ the same argument with $\partial_t$ included works: $\partial_t\{f,g\} = \{\partial_tf,g\} + \{f,\partial_tg\}$.</p>
+    <p><b>The history of that caveat.</b> Poisson (1809) presented the theorem as a way to generate
+    new integrals from old ones; Jacobi saw that it usually produces nothing new, and the real
+    content, understood only with Lie's work in the 1870s–80s, is that the conserved quantities of a
+    system form a Lie algebra under the bracket. The Kepler computation that follows is the standard
+    illustration.</p>
+    <p><b>Where this goes.</b> In unit 17, $n$ conserved quantities with pairwise vanishing brackets
+    ("in involution") make a system integrable — the Liouville–Arnold theorem — and unit 08 already
+    noticed that Kepler has more than that.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · brackets</p>
+  <h2>Noether's converse, now cheap</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the flow a function <span class="term" data-term="generator">generates</span></span>
+        <p class="small">Any $f$ is a Hamiltonian: its flow solves $z' = J\nabla f(z)$ in a parameter $s$, and along it
+        $\mathrm dg/\mathrm ds = \{g, f\}$ for every $g$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem (Hamiltonian Noether, both ways)</span>
+        <p class="small">For time-independent $f$ and $H$: $f$ is conserved by the flow of $H$ $\iff$ $H$ is invariant under the flow
+        of $f$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The first is $\{f,H\} = 0$, the second $\{H,f\} = 0$. Antisymmetry. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">two generators</span>
+        <p class="small"><b>Translation.</b> $f = \vec a\cdot\vec p$: $\{\vec r, f\} = \vec a$, $\{\vec p, f\} = \vec 0$. Its flow is $\vec r\mapsto\vec r + s\vec a$.</p>
+        <p class="small"><b>Rotation.</b> $f = \vec a\cdot\vec L$ with $\vec L = \vec r\times\vec p$: since $\vec a\cdot\vec L = \vec p\cdot(\vec a\times\vec r)
+        = \vec r\cdot(\vec p\times\vec a)$,
+        $$\{\vec r, \vec a\cdot\vec L\} = \vec a\times\vec r,\qquad \{\vec p, \vec a\cdot\vec L\} = -\,\vec p\times\vec a = \vec a\times\vec p .$$
+        Both rotate about $\vec a$ at unit rate (unit 03's $\dot{\vec x} = \vec\omega\times\vec x$).</p>
+      </div>
+      <div class="box warn"><span class="label">why unit 13's converse failed and this one does not</span>
+        <p class="small">Unit 13 allowed only symmetries moving points of configuration space. The flow of $f$ may mix $q$ and $p$.
+        Allow that, and every conserved quantity has its symmetry.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The rotation brackets in full.</b> $\{r_i, f\} = \partial f/\partial p_i$ and
+    $\{p_i, f\} = -\partial f/\partial r_i$ (the definition with one argument a coordinate). With
+    $f = \vec p\cdot(\vec a\times\vec r)$, $\partial f/\partial\vec p = \vec a\times\vec r$. With
+    $f = \vec r\cdot(\vec p\times\vec a)$ — the same number, by the cyclic property of the scalar triple
+    product from unit 08 — $\partial f/\partial\vec r = \vec p\times\vec a$, so $\{\vec p, f\} = -\vec p\times\vec a =
+    \vec a\times\vec p$. The flow $\vec r' = \vec a\times\vec r$ is rotation about $\vec a$ with angular velocity
+    $\vec a$: unit 03's hat map, $\hat a\vec r$, so $\vec r(s)$ is $\vec r(0)$ turned about $\vec a$ through the angle
+    $s\lVert\vec a\rVert$ — unit 03's rotating frame with $\vec\omega = \vec a$, read as an equation of motion.</p>
+    <p><b>What "Noether's converse" means here.</b> Unit 13 proved: a one-parameter group of
+    transformations of configuration space leaving the action (quasi-)invariant gives a conserved
+    quantity. The converse there is false as stated: the Runge–Lenz vector is conserved, and no
+    transformation of configuration space alone produces it. In phase space every conserved $f$
+    generates a flow preserving $H$; section 4 will show that the flow is also canonical, so it maps
+    solutions to solutions. For $\vec a\cdot\vec A$, that flow changes $\vec r$ at a rate depending on
+    $\vec p$: it is not induced by any map of configuration space, which is the precise meaning of
+    "hidden". It moves a Kepler ellipse to another of the <em>same energy</em> with a different
+    eccentricity.</p>
+    <p><b>Completeness.</b> "The flow of $f$" presumes the solutions of $z' = J\nabla f$ exist for all
+    $s$; for $\vec a\cdot\vec p$ and $\vec a\cdot\vec L$ they obviously do. When they do not, the statement
+    holds for the local flow, which is all the infinitesimal statement $\{f,H\} = 0$ needs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · brackets</p>
+  <h2>Every vector rotates the same way under $\vec L$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Levi-Civita symbol</span></span>
+        <p class="small">$\varepsilon_{ijk} := \vec e_i\cdot(\vec e_j\times\vec e_k) = \det[\vec e_i\,\vec e_j\,\vec e_k]$: the sign of the
+        permutation $(i,j,k)$ of $(1,2,3)$, and $0$ if two indices agree. Then $\vec e_i\times\vec e_j = \sum_k\varepsilon_{ijk}\vec e_k$.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma</span>
+        <p class="small">Let $\vec V(\vec r,\vec p)$ be built from $\vec r$ and $\vec p$ by sums, cross products and multiplication by functions of
+        $\vec r\cdot\vec r$, $\vec r\cdot\vec p$, $\vec p\cdot\vec p$. Then $\{\vec V, \vec a\cdot\vec L\} = \vec a\times\vec V$, and so
+        $$\{\vec a\cdot\vec L,\ \vec b\cdot\vec V\} = (\vec a\times\vec b)\cdot\vec V .$$</p>
+        <p class="proof-pointer">proof in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the first two brackets of <span class="ref" data-ref="kep">Kepler</span></span>
+        <p class="small">Both $\vec L = \vec r\times\vec p$ and <span class="ref" data-ref="lenz">$\vec A = \vec p\times\vec L - \mu k\,\vec r/\lvert\vec r\rvert$</span>
+        qualify. Put $\vec a = \vec e_i$, $\vec b = \vec e_j$:
+        $$\{L_i, L_j\} = \sum_k\varepsilon_{ijk}L_k,\qquad \{L_i, A_j\} = \sum_k\varepsilon_{ijk}A_k .$$</p>
+        <p class="small">So the three $L_i$ close on unit 03's $\mathfrak{so}(3)$: $\{L_1,L_2\} = L_3$ and cyclically. And
+        $\vec A$ transforms as a vector — which is all the second bracket says.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $[L]^2/[\text{action}] = [L]$ ✓. <b>Special case:</b> from the definition, with
+        $L_3 = xp_y - yp_x$, $\{x, L_3\} = \partial L_3/\partial p_x = -y$; the lemma gives $(\vec e_3\times\vec r)_1 = -y$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the lemma</h4>
+    <p>Let $D := \{\,\cdot\,, \vec a\cdot\vec L\}$, acting componentwise on vectors. It is a derivation
+    (Leibniz, in the first slot by antisymmetry): $D(fg) = (Df)g + f(Dg)$. The previous slide gives
+    $D\vec r = \vec a\times\vec r$ and $D\vec p = \vec a\times\vec p$. Three closure steps:</p>
+    <p><b>Scalars.</b> For vectors $\vec u,\vec w$ with $D\vec u = \vec a\times\vec u$, $D\vec w = \vec a\times\vec w$:
+    $D(\vec u\cdot\vec w) = (\vec a\times\vec u)\cdot\vec w + \vec u\cdot(\vec a\times\vec w) = \vec a\cdot(\vec u\times\vec w) +
+    \vec a\cdot(\vec w\times\vec u) = 0$, by the triple product (unit 08). So $D$ kills $\vec r\cdot\vec r$,
+    $\vec r\cdot\vec p$, $\vec p\cdot\vec p$, and by the chain rule any function $\phi$ of them.</p>
+    <p><b>Scalar multiples.</b> $D(\phi\vec u) = (D\phi)\vec u + \phi\,\vec a\times\vec u = \vec a\times(\phi\vec u)$.</p>
+    <p><b>Cross products.</b> $D(\vec u\times\vec w) = (\vec a\times\vec u)\times\vec w + \vec u\times(\vec a\times\vec w)$. By
+    BAC–CAB (unit 08), $(\vec a\times\vec u)\times\vec w = -\vec w\times(\vec a\times\vec u) = -\vec a(\vec w\cdot\vec u) + \vec u(\vec w\cdot\vec a)$
+    and $\vec u\times(\vec a\times\vec w) = \vec a(\vec u\cdot\vec w) - \vec w(\vec u\cdot\vec a)$. The sum is
+    $\vec u(\vec a\cdot\vec w) - \vec w(\vec a\cdot\vec u) = \vec a\times(\vec u\times\vec w)$.</p>
+    <p>Sums are immediate. By induction on how $\vec V$ is built, $D\vec V = \vec a\times\vec V$. Then
+    $\{\vec b\cdot\vec V, \vec a\cdot\vec L\} = \vec b\cdot(\vec a\times\vec V) = (\vec b\times\vec a)\cdot\vec V$, and
+    antisymmetry gives the boxed form. With $\vec a = \vec e_i$, $\vec b = \vec e_j$:
+    $(\vec e_i\times\vec e_j)\cdot\vec V = \sum_k\varepsilon_{ijk}V_k$. $\square$</p>
+    <p><b>The special-case check, written plainly.</b> $\{x, L_3\} = \partial L_3/\partial p_x = -y$, and
+    $(\vec e_3\times\vec r)_1 = (-y, x, 0)_1 = -y$ ✓.</p>
+    <p><b>The symbol.</b> $\varepsilon_{ijk}$ is only notation here for the components of the cross
+    product; unit 16 explains in what sense it is and is not a tensor, and unit 28 distinguishes the
+    Levi-Civita symbol from the Levi-Civita tensor.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · brackets</p>
+  <h2>Worked: the bracket of Runge–Lenz with itself</h2>
+  <div class="box ex"><span class="label">$\{A_i, A_j\} = -2\mu H\sum_k\varepsilon_{ijk}L_k$</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 1 — a better form.</b> BAC–CAB: $\vec p\times(\vec r\times\vec p) = p^2\vec r - (\vec r\cdot\vec p)\vec p$, so
+        $$\vec A = \alpha\,\vec r - \beta\,\vec p,\qquad \alpha = p^2 - \frac{\mu k}{r},\quad \beta = \vec r\cdot\vec p .$$</p>
+        <p class="small"><b>Step 2 — the brackets needed</b>, each from the definition:
+        $\{r_i,\alpha\} = 2p_i$, $\ \{p_i,\beta\} = -p_i$, $\ \{r_i,\beta\} = r_i$, $\ \{\alpha, p_j\} = \mu k\,r_j/r^3$, and
+        $$\{\alpha,\beta\} = \frac{\mu k}{r} - 2p^2 .$$</p>
+        <p class="small"><b>Step 3 — expand</b> $\{\alpha r_i - \beta p_i,\ \alpha r_j - \beta p_j\}$ by Leibniz. Only the part antisymmetric in
+        $i,j$ survives; write $\Lambda_{ij} = r_ip_j - r_jp_i = \sum_k\varepsilon_{ijk}L_k$.</p>
+      </div>
+      <div>
+        <p class="small">$\{\alpha r_i,\alpha r_j\} = \alpha(\{r_i,\alpha\}r_j - \{r_j,\alpha\}r_i) = -2\alpha\Lambda_{ij}$.<br>
+        $\{\beta p_i,\beta p_j\} = \beta(\{p_i,\beta\}p_j - \{p_j,\beta\}p_i) = 0$.<br>
+        The cross terms: $\{\alpha r_i,\beta p_j\} = \alpha\beta\delta_{ij} + \alpha r_ip_j + \beta\mu k\,r_ir_j/r^3 + \{\alpha,\beta\}r_ip_j$, whose
+        antisymmetric part is $(\alpha + \{\alpha,\beta\})\Lambda_{ij} = -p^2\Lambda_{ij}$, entering with a minus sign.</p>
+        <p class="small"><b>Step 4 — add.</b>
+        $$\{A_i,A_j\} = (-2\alpha + p^2)\Lambda_{ij} = \Big(\frac{2\mu k}{r} - p^2\Big)\Lambda_{ij} = -2\mu H\,\Lambda_{ij}.$$</p>
+        <p class="small"><b>Checks.</b> $[\{A,A\}] = (\mathrm{M^2L^3T^{-2}})^2/\mathrm{ML^2T^{-1}} = \mathrm{M^3L^4T^{-3}} = [\mu HL]$ ✓.
+        <b>Special case</b> $k = 0$: then $\alpha = p^2$ and the same steps give $-p^2\Lambda_{ij}$, which is $-2\mu H\Lambda_{ij}$ for $H = p^2/2\mu$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2 in full.</b> $\{r_i, g\} = \partial g/\partial p_i$ and $\{p_i, g\} = -\partial g/\partial r_i$.
+    $\partial\alpha/\partial p_i = 2p_i$. $\partial\beta/\partial r_i = p_i$, so $\{p_i,\beta\} = -p_i$.
+    $\partial\beta/\partial p_i = r_i$. $\{\alpha, p_j\} = \partial\alpha/\partial r_j = \mu k\,r_j/r^3$ (the derivative of
+    $-\mu k/r$). For $\{\alpha,\beta\} = \sum_i(\partial_{r_i}\alpha\,\partial_{p_i}\beta - \partial_{p_i}\alpha\,\partial_{r_i}\beta)
+    = \sum_i(\mu k\,r_i/r^3\cdot r_i - 2p_i\cdot p_i) = \mu k/r - 2p^2$.</p>
+    <p><b>Step 3 in full.</b> Leibniz in both slots, with $\{r_i,r_j\} = 0$ and $\{\alpha,\alpha\} = 0$:
+    $\{\alpha r_i,\alpha r_j\} = \alpha\{r_i,\alpha\}r_j + \alpha\{\alpha,r_j\}r_i = 2\alpha(p_ir_j - p_jr_i) = -2\alpha\Lambda_{ij}$.
+    Similarly with $\{p_i,p_j\} = 0$: $\{\beta p_i,\beta p_j\} = \beta(-p_ip_j + p_jp_i) = 0$. The cross terms
+    are $-\{\alpha r_i,\beta p_j\} - \{\beta p_i,\alpha r_j\} = -\{\alpha r_i,\beta p_j\} + \{\alpha r_j,\beta p_i\}$, i.e. minus
+    the antisymmetric part $X_{ij} - X_{ji}$ of $X_{ij} = \{\alpha r_i,\beta p_j\}$. Expanding $X_{ij}$:
+    $\alpha\beta\{r_i,p_j\} + \alpha p_j\{r_i,\beta\} + \beta r_i\{\alpha,p_j\} + r_ip_j\{\alpha,\beta\}$
+    $= \alpha\beta\delta_{ij} + \alpha r_ip_j + \beta\mu k\,r_ir_j/r^3 + \{\alpha,\beta\}r_ip_j$. The first and third
+    terms are symmetric in $i,j$ and drop out of $X_{ij} - X_{ji} = (\alpha + \{\alpha,\beta\})\Lambda_{ij}$, and
+    $\alpha + \{\alpha,\beta\} = p^2 - \mu k/r + \mu k/r - 2p^2 = -p^2$. So the cross terms contribute
+    $+p^2\Lambda_{ij}$.</p>
+    <p><b>Step 4.</b> Total $(-2\alpha + p^2)\Lambda_{ij} = (-p^2 + 2\mu k/r)\Lambda_{ij} = -2\mu(p^2/2\mu - k/r)\Lambda_{ij}$,
+    and $p^2/2\mu - k/r = H$. Finally $\Lambda_{ij} = r_ip_j - r_jp_i = \sum_k\varepsilon_{ijk}L_k$: for $(i,j) = (1,2)$
+    it is $xp_y - yp_x = L_3$, and the rest follow by cyclic relabelling and antisymmetry.</p>
+    <p>Nothing here is deeper than Leibniz applied twice and the two brackets of step 2; the length is
+    bookkeeping, and the only place to go wrong is a sign, which the special case $k = 0$ catches.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · brackets</p>
+  <h2>The algebra closes: $\mathfrak{so}(4)$, $\mathfrak e(3)$, $\mathfrak{so}(3,1)$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">rescale by the energy</span>
+        <p class="small">On $H &lt; 0$ put $\vec M = \vec A/\sqrt{-2\mu H}$; on $H &gt; 0$ put $\vec M = \vec A/\sqrt{2\mu H}$. Since $\{\vec A, H\} = \vec 0$ the
+        factor passes through the bracket, and
+        $$\{L_i,L_j\} = \varepsilon_{ijk}L_k,\qquad \{L_i,M_j\} = \varepsilon_{ijk}M_k,$$
+        $$\{M_i,M_j\} = \pm\,\varepsilon_{ijk}L_k,$$
+        with $+$ for bound orbits and $-$ for unbound (sum over $k$). At $H = 0$: $\{A_i,A_j\} = 0$.</p>
+      </div>
+      <div class="box def"><span class="label">the matrix algebras</span>
+        <p class="small">In $4\times4$ matrices let $\ell_i = \hat e_i$ (unit 03's hat, in the top-left block), $m_i = E_{i4} - E_{4i}$,
+        $k_i = E_{i4} + E_{4i}$. Then $[\ell_i,\ell_j] = \varepsilon_{ijk}\ell_k$, $[\ell_i,m_j] = \varepsilon_{ijk}m_k$, $[m_i,m_j] = \varepsilon_{ijk}\ell_k$:
+        <span class="term">$\mathfrak{so}(4)$</span>, antisymmetric matrices. And $[\ell_i,k_j] = \varepsilon_{ijk}k_k$, $[k_i,k_j] = -\varepsilon_{ijk}\ell_k$:
+        <span class="term">$\mathfrak{so}(3,1)$</span>, the $X$ with $X^{\!\top}\eta + \eta X = 0$, $\eta = \operatorname{diag}(1,1,1,-1)$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what <span class="term">hidden symmetry</span> meant</span>
+        <p class="small"><b>Bound Kepler orbits</b> have the symmetry algebra of rotations of $\mathbb R^4$ — a space the comet never
+        moves in. <b>Unbound ones</b> have the Lorentz algebra of unit 26. At <span class="ref" data-ref="sep">the separatrix</span>, $E = 0$, the
+        algebra is $\mathfrak e(3)$, rotations and translations of $\mathbb R^3$: the one between.</p>
+        <p class="small">Unit 13's "SO(4) generator" is this: the flow of $\vec a\cdot\vec A$, preserving $H$, carrying an ellipse to others of the
+        same energy and different eccentricity.</p>
+      </div>
+      <div class="box warn"><span class="label">two different algebras</span>
+        <p class="small">$\mathfrak{so}(4)\not\cong\mathfrak{so}(3,1)$: in $\mathfrak{so}(3,1)$, $\operatorname{ad}k_1 = [k_1,\cdot\,]$ has real eigenvalues $\pm1$;
+        in $\mathfrak{so}(4)$ every $\operatorname{ad}X$ has imaginary ones. Proof in the notes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Passing the factor through.</b> For $g = g(H)$, Leibniz gives
+    $\{A_ig, A_jg\} = g^2\{A_i,A_j\} + gA_j\{A_i,g\} + gA_i\{g,A_j\} + A_iA_j\{g,g\}$, and
+    $\{A_i, g(H)\} = g'(H)\{A_i,H\} = 0$ because $\vec A$ is conserved (unit 08 proved $\dot{\vec A} = 0$, which
+    by the time-evolution theorem is $\{\vec A,H\} = 0$). So $\{M_i,M_j\} = \{A_i,A_j\}/(-2\mu H) =
+    \varepsilon_{ijk}L_k$ for $H&lt;0$, and $= -\varepsilon_{ijk}L_k$ for $H &gt; 0$. Likewise $\{L_i,M_j\} = g\{L_i,A_j\}
+    = \varepsilon_{ijk}M_k$, using $\{L_i,H\} = 0$. Dimensions: $[A/\sqrt{\mu H}] = \mathrm{M^2L^3T^{-2}}/\mathrm{MLT^{-1}}
+    = \mathrm{ML^2T^{-1}}$, an angular momentum, as it must be to sit beside $\vec L$ ✓.</p>
+    <p><b>The matrix relations.</b> $E_{ab}$ is the matrix with a $1$ in row $a$, column $b$, and
+    $E_{ab}E_{cd} = \delta_{bc}E_{ad}$. The $\ell_i$ satisfy $[\ell_i,\ell_j] = \varepsilon_{ijk}\ell_k$ because the hat map
+    is a Lie algebra isomorphism $(\mathbb R^3,\times)\to\mathfrak{so}(3)$ — $\widehat{\vec a\times\vec b} = [\hat a,\hat b]$, proved in
+    the notes of the Jacobi slide — so $[\hat e_i,\hat e_j] = \widehat{\vec e_i\times\vec e_j} = \sum_k\varepsilon_{ijk}\hat e_k$.
+    For one mixed relation: $\ell_1 = E_{32} - E_{23}$, $m_2 = E_{24} - E_{42}$, and
+    $[\ell_1, m_2] = (E_{32}-E_{23})(E_{24}-E_{42}) - (E_{24}-E_{42})(E_{32}-E_{23}) = E_{34} - E_{43} = m_3$ ✓.
+    For one $m$–$m$ relation: $[m_1,m_2] = (E_{14}-E_{41})(E_{24}-E_{42}) - (E_{24}-E_{42})(E_{14}-E_{41}) = -E_{12} + E_{21} = \ell_3$ ✓
+    (since $\ell_3 = \hat e_3 = E_{21} - E_{12}$). The $k$ relations are the same computation with plus
+    signs, and $[k_1,k_2] = E_{12} - E_{21} = -\ell_3$. The rest follow by cyclic relabelling. The signs of
+    $m_i$ and $k_i$ can be flipped freely: the relations are linear in each $m$ or $k$ on the left
+    exactly when they are on the right.</p>
+    <h4>Full proof that the two are not isomorphic</h4>
+    <p>An isomorphism $\phi$ satisfies $\operatorname{ad}\phi(X) = \phi\circ\operatorname{ad}X\circ\phi^{-1}$, so the set of
+    spectra of the maps $\operatorname{ad}X$ is an invariant. In $\mathfrak{so}(4)$, with the inner product
+    $\langle X,Y\rangle = \operatorname{tr}(X^{\!\top}Y)$, each $\operatorname{ad}X$ is antisymmetric:
+    $\langle[X,Y],Z\rangle = -\langle Y,[X,Z]\rangle$ by cyclicity of the trace and $X^{\!\top} = -X$; so its eigenvalues are
+    purely imaginary. In $\mathfrak{so}(3,1)$, on the span of $k_2$ and $\ell_3$: $[k_1,k_2] = -\ell_3$ and $[k_1,\ell_3] = -[\ell_3,k_1] = -k_2$, so $\operatorname{ad}k_1$ has matrix
+    $\begin{pmatrix}0&amp;-1\\-1&amp;0\end{pmatrix}$ there, with eigenvalues $\pm1$. $\square$</p>
+    <p><b>So what.</b> For bound orbits $\vec J^\pm = (\vec L\pm\vec M)/2$ satisfy
+    $\{J^\pm_i,J^\pm_j\} = \varepsilon_{ijk}J^\pm_k$ and $\{J^+_i,J^-_j\} = 0$: two commuting copies of
+    $\mathfrak{so}(3)$, i.e. $\mathfrak{so}(4)\cong\mathfrak{so}(3)\oplus\mathfrak{so}(3)$. Pauli used exactly this in 1926
+    to get the hydrogen spectrum, with its $n^2$-fold degeneracy, before Schrödinger's equation was
+    solved — cited: W. Pauli, <em>Z. Physik</em> 36, 336 (1926). Classically, the extra symmetry is why
+    every bound Kepler orbit closes and why the period depends on the energy alone.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Canonical transformations</h2>
+  <p>Which changes of phase-space coordinates keep Hamilton's equations — and a way to make them from one function.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · canonical</p>
+  <h2>The symplectic form, and the maps that keep it</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">symplectic group</span></span>
+        <p class="small">A matrix $M\in\mathbb R^{2n\times2n}$ is <b>symplectic</b> if $M^{\!\top}JM = J$. They form a group
+        $\mathrm{Sp}(2n,\mathbb R)$: if $M, N$ are, $(MN)^{\!\top}J(MN) = N^{\!\top}JN = J$, and $M^{-1}$ exists since $(\det M)^2 = 1$.</p>
+      </div>
+      <div class="box def"><span class="label">the <span class="term">symplectic form</span></span>
+        <p class="small">The antisymmetric, nondegenerate bilinear form on $\mathbb R^{2n}$
+        $$\omega(u,v) := \sum_i\big(u_{p_i}v_{q_i} - u_{q_i}v_{p_i}\big) = -\,u^{\!\top}Jv .$$
+        $M$ is symplectic iff $\omega(Mu,Mv) = \omega(u,v)$ for all $u,v$. Unit 34 writes $\omega = \sum_i\mathrm dp_i\wedge\mathrm dq_i$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">a <span class="term">canonical transformation</span></span>
+        <p class="small">A $C^1$ diffeomorphism $\Phi:(q,p)\mapsto(Q,P)$ between open subsets of $\mathbb R^{2n}$ whose Jacobian $D\Phi(z)$ is
+        symplectic at every $z$.</p>
+      </div>
+      <div class="box good"><span class="label">$n = 1$: area</span>
+        <p class="small">For $2\times2$ matrices $M^{\!\top}JM = (\det M)J$. So in the plane symplectic means $\det M = 1$, and
+        $\omega(u,v) = -\det[u\ v]$ is minus the signed area of the parallelogram on $u, v$. <b>Canonical = area- and orientation-preserving.</b></p>
+      </div>
+      <div class="box warn"><span class="label">in $2n\ge4$ it is more</span>
+        <p class="small">Preserving $\omega$ preserves the area of the projection onto each $(q_i,p_i)$ plane, summed. Much stronger than
+        preserving volume: in $(q_1,q_2,p_1,p_2)$, $\operatorname{diag}(2,1,\tfrac12,1)$ is symplectic; $\operatorname{diag}(2,\tfrac12,1,1)$ has determinant $1$ and is not.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Mathematics first.</b> A symplectic form on a real vector space is a bilinear form that is
+    antisymmetric ($\omega(u,v) = -\omega(v,u)$) and nondegenerate ($\omega(u,\cdot) = 0$ only for $u = 0$).
+    Antisymmetry of $\omega$ here: $u^{\!\top}Jv$ is a number, equal to its transpose $v^{\!\top}J^{\!\top}u = -v^{\!\top}Ju$.
+    Nondegeneracy: $J$ is invertible. The linear-algebra theorem (<em>cited</em>: every symplectic form on
+    $\mathbb R^{2n}$ has this matrix in a suitable basis — the linear Darboux theorem, e.g. Arnold,
+    <em>Mathematical Methods of Classical Mechanics</em>, §41) says there is only one such form up to
+    change of basis, so nothing is lost by using this one. Unit 34 promotes $\omega$ to a
+    differential 2-form on a manifold, and there $\omega = \mathrm d\big(\sum p_i\,\mathrm dq_i\big)$ up to sign
+    convention, which is the content of the generating-function slide.</p>
+    <p><b>Why $\omega(Mu,Mv) = \omega(u,v)$ is the condition.</b> $\omega(Mu,Mv) = -u^{\!\top}M^{\!\top}JMv$,
+    and this equals $-u^{\!\top}Jv$ for all $u,v$ iff $M^{\!\top}JM = J$.</p>
+    <p><b>The $2\times2$ identity.</b> For $M = \begin{pmatrix}a&amp;b\\c&amp;d\end{pmatrix}$,
+    $M^{\!\top}JM = \begin{pmatrix}0&amp;ad-bc\\-(ad-bc)&amp;0\end{pmatrix}$, by multiplying out.</p>
+    <p><b>The two diagonal examples</b>, with coordinates ordered $(q_1,q_2,p_1,p_2)$ as everywhere in
+    this unit. For $D = \operatorname{diag}(d_1,d_2,d_3,d_4)$, $D^{\!\top}JD$ is $J$ with its two $1$s replaced by
+    $d_1d_3$ and $d_2d_4$ (and the $-1$s likewise). So $D$ is symplectic iff $d_1d_3 = d_2d_4 = 1$: each
+    position may be stretched only if <em>its own</em> momentum is shrunk by the same factor.
+    $\operatorname{diag}(2,1,\tfrac12,1)$ passes. $\operatorname{diag}(2,\tfrac12,1,1)$ stretches $q_1$ and shrinks $q_2$:
+    determinant $1$, so volume is preserved, but $d_1d_3 = 2$, so it is not symplectic. The area of the
+    projection onto the $(q_1,p_1)$ plane doubles and that onto $(q_2,p_2)$ halves; volume, a product,
+    does not notice, and $\omega$, a sum of the two, does.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · canonical</p>
+  <h2>Three tests that are one test</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">For a $C^1$ diffeomorphism $\Phi$ with Jacobian $M = D\Phi$, these are equivalent:</p>
+        <p class="small"><b>(i)</b> $M^{\!\top}JM = J$ everywhere (canonical);<br>
+        <b>(ii)</b> $\Phi$ preserves brackets: $\{f\circ\Phi, g\circ\Phi\} = \{f,g\}\circ\Phi$ for all $f, g$ — equivalently, the new
+        coordinates have the fundamental brackets $\{Q_i,Q_j\} = \{P_i,P_j\} = 0$, $\{Q_i,P_j\} = \delta_{ij}$;<br>
+        <b>(iii)</b> for every $K$, $\Phi$ carries solutions of Hamilton's equations for $H = K\circ\Phi$ to solutions for $K$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Lemma:</b> $M^{\!\top}JM = J\iff MJM^{\!\top} = J$ (invert both sides and use $J^{-1} = -J$).</p>
+        <p class="small"><b>(ii).</b> By the chain rule $\nabla(f\circ\Phi) = M^{\!\top}\nabla f$, so
+        $\{f\circ\Phi,g\circ\Phi\} = \nabla f^{\!\top}\,MJM^{\!\top}\,\nabla g$. This is $\nabla f^{\!\top}J\nabla g$ for all $f, g$ iff $MJM^{\!\top} = J$. The
+        fundamental brackets are the entries of $MJM^{\!\top}$.</p>
+        <p class="small"><b>(iii).</b> If $\dot z = J\nabla H$ and $w = \Phi(z)$, then $\dot w = M\dot z = MJM^{\!\top}\nabla K(w)$. This is
+        $J\nabla K$ for every $K$ iff $MJM^{\!\top} = J$. ∎</p>
+      </div>
+      <div class="box warn"><span class="label">"for every $K$" matters</span>
+        <p class="small">$Q = \lambda q$, $P = \lambda p$ is not canonical for $\lambda^2\ne1$, yet maps the oscillator's equations to Hamilton's with
+        $K = \lambda^2H$. One Hamiltonian cannot certify a map (problem P6).</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The lemma, fully.</b> If $M^{\!\top}JM = J$ then $\det M\ne0$ (take determinants: $(\det M)^2\det J
+    = \det J$ and $\det J = 1$). Invert: $M^{-1}J^{-1}M^{-\top} = J^{-1}$, i.e. $-M^{-1}JM^{-\top} = -J$, so
+    $J = MJM^{\!\top}$ after multiplying by $M$ on the left and $M^{\!\top}$ on the right. The converse is
+    the same argument with $M^{\!\top}$ in place of $M$.</p>
+    <p><b>The fundamental brackets as entries.</b> With $f = w_a$ and $g = w_b$ (coordinate functions
+    in the target), $f\circ\Phi$ is the $a$-th new coordinate as a function of $z$, and
+    $\{w_a\circ\Phi, w_b\circ\Phi\} = e_a^{\!\top}MJM^{\!\top}e_b$. Requiring these to equal $J_{ab}$ for all $a,b$ is
+    $MJM^{\!\top} = J$. So checking the $n(2n-1)$ independent fundamental brackets is a complete test —
+    in the plane, a single one: $\{Q,P\} = 1$.</p>
+    <p><b>(iii) with "every $K$".</b> If $MJM^{\!\top}\nabla K = J\nabla K$ at a point for every $K$, take $K$ linear
+    with $\nabla K = e_a$ to get $MJM^{\!\top}e_a = Je_a$ for each $a$. Conversely (i) makes the transformed
+    equations Hamiltonian for every $K$ — which is the physical reason for the definition: a
+    canonical transformation is one you may use without knowing in advance which Hamiltonian you
+    will apply it to.</p>
+    <p><b>Time-dependent maps.</b> If $\Phi$ depends on $t$, (iii) holds with $K$ replaced by
+    $K + \partial F/\partial t$ for the generating function $F$ of the next slide; <em>cited</em>, Goldstein,
+    Poole and Safko, <em>Classical Mechanics</em>, 3rd ed., §9.1, and used only in unit 15.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · canonical</p>
+  <h2>Generating functions: a canonical map from one function</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">A $C^2$ diffeomorphism $\Phi$ on a simply connected domain is canonical iff there is a function $F$ with
+        $$\sum_i p_i\,\mathrm dq_i - \sum_i P_i\,\mathrm dQ_i = \mathrm dF,$$
+        i.e. $p\cdot\dot q - P\cdot\dot Q = \frac{\mathrm d}{\mathrm dt}F$ along every curve.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The left side is a covector field $a(z) = (p, 0) - M^{\!\top}(P,0)$ on $\mathbb R^{2n}$. By the Poincaré lemma (unit 04) it is a gradient iff
+        $Da - Da^{\!\top} = 0$. Compute: for $(p,0)$ this antisymmetric part is $J$; for $M^{\!\top}(P,0)$ it is $M^{\!\top}JM$ (second derivatives of $Q$ cancel by
+        Clairaut). So $Da - Da^{\!\top} = J - M^{\!\top}JM$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">the four <span class="term">generating function</span>s</span>
+        <p class="small">Write $F$ in whichever $2n$ of $(q,p,Q,P)$ are independent:</p>
+        <table class="dense">
+          <tr><th>type</th><th>variables</th><th>equations</th></tr>
+          <tr><td>$F_1$</td><td>$q, Q$</td><td>$p = \partial_qF_1$, $\ P = -\partial_QF_1$</td></tr>
+          <tr><td>$F_2 = F_1 + P\cdot Q$</td><td>$q, P$</td><td>$p = \partial_qF_2$, $\ Q = \partial_PF_2$</td></tr>
+          <tr><td>$F_3 = F_1 - p\cdot q$</td><td>$p, Q$</td><td>$q = -\partial_pF_3$, $\ P = -\partial_QF_3$</td></tr>
+          <tr><td>$F_4 = F_1 + P\cdot Q - p\cdot q$</td><td>$p, P$</td><td>$q = -\partial_pF_4$, $\ Q = \partial_PF_4$</td></tr>
+        </table>
+      </div>
+      <div class="box good"><span class="label">three to know</span>
+        <p class="small">$F_2 = q\cdot P$: the identity. $F_1 = q\cdot Q$: $Q = p$, $P = -q$ — position and momentum are interchangeable.
+        $F_2 = f(q)\cdot P$: the <span class="term">point transformation</span> $Q = f(q)$, $p = Df(q)^{\!\top}P$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the curl computation</h4>
+    <p>Covectors on $\mathbb R^{2n}$ are written as $2n$-component columns, ordered $(q\text{-slots}, p\text{-slots})$.
+    $\sum p_i\,\mathrm dq_i$ is the covector field $\theta(z) = (p, 0)$: component $i\le n$ is $p_i = z_{n+i}$, the
+    rest are $0$. So $(D\theta)_{ij} = \partial\theta_i/\partial z_j = 1$ exactly when $i\le n$ and $j = n+i$:
+    $D\theta = \begin{pmatrix}0&amp;I\\0&amp;0\end{pmatrix}$ and $D\theta - D\theta^{\!\top} = J$. Next, $\sum P_k\,\mathrm dQ_k$
+    in the $z$ coordinates is $b_i(z) = \sum_{k}\Theta_k(\Phi(z))\,\partial\Phi_k/\partial z_i$ with $\Theta(w) = (P,0)$ —
+    the chain rule for $\mathrm dQ_k$. Differentiate:
+    $\partial_jb_i = \sum_{k,l}(\partial_l\Theta_k)(\Phi)\,M_{lj}M_{ki} + \sum_k\Theta_k\,\partial_i\partial_j\Phi_k$. The last sum is
+    symmetric in $i,j$ (Clairaut, $\Phi\in C^2$), so $Db - Db^{\!\top} = M^{\!\top}(D\Theta - D\Theta^{\!\top})M = M^{\!\top}JM$.
+    Unit 04's Poincaré lemma, in $\mathbb R^N$: a $C^1$ covector field on a simply connected (there: star-shaped
+    suffices) domain is a gradient iff its derivative matrix is symmetric. $\square$</p>
+    <p><b>Where the table comes from.</b> For $F_1(q,Q)$: $\mathrm dF_1 = \partial_qF_1\cdot\mathrm dq + \partial_QF_1\cdot\mathrm dQ$,
+    and matching with $p\cdot\mathrm dq - P\cdot\mathrm dQ$ gives the first row; this needs $(q,Q)$ to be
+    independent coordinates, i.e. $\det(\partial^2F_1/\partial q\partial Q)\ne0$ so that $p = \partial_qF_1(q,Q)$ can be solved
+    for $Q$ by the implicit function theorem. $F_2 = F_1 + P\cdot Q$ gives
+    $\mathrm dF_2 = p\cdot\mathrm dq - P\cdot\mathrm dQ + P\cdot\mathrm dQ + Q\cdot\mathrm dP = p\cdot\mathrm dq + Q\cdot\mathrm dP$,
+    whence row two; rows three and four are the same bookkeeping. Each passage is a partial
+    Legendre transform — section 1's operation, done in some of the variables — which is why
+    it adds a product like $P\cdot Q$.</p>
+    <p><b>The point transformation.</b> $F_2 = \sum_kf_k(q)P_k$: $Q_k = \partial F_2/\partial P_k = f_k(q)$ and
+    $p_i = \partial F_2/\partial q_i = \sum_k(\partial f_k/\partial q_i)P_k$. Every change of configuration coordinates
+    lifts to a canonical transformation this way, which is unit 12's form-invariance in the Hamiltonian
+    language; but the class of canonical maps is far larger.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · canonical</p>
+  <h2>Worked: Cartesian to polar is canonical</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label"><span class="ref" data-ref="kep">Kepler</span>'s coordinates, justified</span>
+      <p class="small"><b>Step 1 — the generating function.</b> A point transformation, type 2:
+      $F_2(x,y,P_r,P_\theta) = P_r\sqrt{x^2+y^2} + P_\theta\,\theta(x,y)$, with $\theta$ the polar angle (locally smooth off the origin).</p>
+      <p class="small"><b>Step 2 — read off.</b> $r = \partial F_2/\partial P_r = \sqrt{x^2+y^2}$, $\theta = \partial F_2/\partial P_\theta$ ✓, and with
+      $\partial_x\theta = -y/r^2$, $\partial_y\theta = x/r^2$:
+      $$p_x = P_r\frac xr - P_\theta\frac{y}{r^2},\qquad p_y = P_r\frac yr + P_\theta\frac{x}{r^2}.$$</p>
+      <p class="small"><b>Step 3 — invert.</b> Dot with $(x,y)/r$ and with $(-y,x)$:
+      $$P_r = \frac{xp_x + yp_y}{r} = \hat r\cdot\vec p,\qquad P_\theta = xp_y - yp_x = L_z .$$</p>
+      <p class="small"><b>Step 4 — second route, the brackets.</b> $\{r, P_r\} = \tfrac xr\cdot\tfrac xr + \tfrac yr\cdot\tfrac yr = 1$,
+      $\{\theta, P_\theta\} = (-\tfrac{y}{r^2})(-y) + \tfrac{x}{r^2}x = 1$, $\{r,P_\theta\} = \tfrac xr(-y) + \tfrac yr x = 0$, $\{\theta, P_r\} = 0$.</p>
+      <p class="small"><b>Step 5 — the Hamiltonian.</b> $p_x^2 + p_y^2 = P_r^2 + P_\theta^2/r^2$ (orthogonal parts along $\hat r$ and $\hat\theta$), so
+      $H = P_r^2/2\mu + P_\theta^2/2\mu r^2 - k/r$ — the Legendre transform's answer from section 1 ✓.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $[F_2] = [P_r][r] = \mathrm{J\,s}$, an action, as every generating function must be ✓.</p>
+        <p class="small"><b>The last bracket</b>, $\{P_r, P_\theta\} = 0$, needs a line more: notes.</p>
+        <p class="small"><b>Two routes agree:</b> Legendre in polar coordinates, or canonical transformation of the Cartesian $H$. The
+        Hamiltonian formalism is coordinate-free in the same sense as unit 12's.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 3 in full.</b> $xp_x + yp_y = P_r(x^2+y^2)/r + P_\theta(-xy + xy)/r^2 = P_rr$. And
+    $xp_y - yp_x = P_r(xy - xy)/r + P_\theta(x^2+y^2)/r^2 = P_\theta$.</p>
+    <p><b>The brackets, from the definition.</b> On the $(x,y,p_x,p_y)$ phase space,
+    $\{f,g\} = f_xg_{p_x} + f_yg_{p_y} - f_{p_x}g_x - f_{p_y}g_y$. For $f = r$ or $\theta$, $f_{p_x} = f_{p_y} = 0$, so only
+    the first two terms survive; $\partial P_r/\partial p_x = x/r$, $\partial P_r/\partial p_y = y/r$,
+    $\partial P_\theta/\partial p_x = -y$, $\partial P_\theta/\partial p_y = x$. That gives the four values on the slide.
+    $\{r,\theta\} = 0$ because neither depends on momenta.</p>
+    <p><b>$\{P_r,P_\theta\} = 0$.</b> Put $s = xp_x + yp_y$, so $P_r = s/r$. Then
+    $\partial_xP_r = p_x/r - xs/r^3$, $\partial_yP_r = p_y/r - ys/r^3$, and $\partial_xP_\theta = p_y$, $\partial_yP_\theta = -p_x$.
+    The bracket is
+    $(p_x/r - xs/r^3)(-y) + (p_y/r - ys/r^3)(x) - (x/r)(p_y) - (y/r)(-p_x)
+    = -yp_x/r + xp_y/r - xp_y/r + yp_x/r + (xy - xy)s/r^3 = 0$ ✓. Together with $\{r,\theta\} = 0$
+    all six fundamental brackets hold, so by the three-tests theorem the map is canonical — by an
+    argument independent of the generating function.</p>
+    <p><b>The general lesson.</b> Any change of configuration coordinates $Q = f(q)$ extends to phase
+    space by $p = Df^{\!\top}P$, and the extension is canonical. That is why, in practice, one may write
+    the Lagrangian in any coordinates and Legendre-transform there: the result is the same
+    Hamiltonian as transforming a Cartesian one.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · canonical</p>
+  <h2>The motion itself is a canonical transformation</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Let $H\in C^2$ and let $\varphi_t$ be its flow: $\varphi_t(z)$ is the state at time $t$ of the solution starting at $z$.
+        Then for each $t$, $\varphi_t$ is a canonical transformation.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Let $Y(t) = D\varphi_t(z)$. It solves $\dot Y = JS(t)Y$, $Y(0) = I$, with $S = \nabla^2H(\varphi_t z)$ symmetric
+        (<em>cited</em>, below). Then
+        $$\tfrac{\mathrm d}{\mathrm dt}(Y^{\!\top}JY) = Y^{\!\top}\big(S^{\!\top}J^{\!\top}J + JJS\big)Y = Y^{\!\top}(S - S)Y = 0,$$
+        using $J^{\!\top}J = I$, $J^2 = -I$. So $Y^{\!\top}JY = J$ for all $t$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">cited: the <span class="term">variational equation</span></span>
+        <p class="small">For a $C^1$ vector field $X$, the flow is $C^1$ in the initial point, and $Y = D\varphi_t(z)$ solves $\dot Y = DX(\varphi_t z)\,Y$.
+        Hirsch, Smale and Devaney, <em>Differential Equations, Dynamical Systems, and an Introduction to Chaos</em>, §17.6. Unit 17
+        makes it central.</p>
+      </div>
+      <div class="box good"><span class="label">what it is for</span>
+        <p class="small"><b>Unit 15:</b> if motion is a canonical transformation, look for the one that makes it trivial — new
+        coordinates in which $K = 0$. Its generating function is the Hamilton–Jacobi $S$.</p>
+        <p class="small"><b>Section 5:</b> symplectic maps have determinant $1$, so the flow preserves volume.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The derivative computed.</b> $\dot Y^{\!\top}JY + Y^{\!\top}J\dot Y = (JSY)^{\!\top}JY + Y^{\!\top}JJSY
+    = Y^{\!\top}S^{\!\top}J^{\!\top}JY + Y^{\!\top}J^2SY = Y^{\!\top}SY - Y^{\!\top}SY = 0$, with $S^{\!\top} = S$,
+    $J^{\!\top}J = -J\cdot J = I$ and $J^2 = -I$. At $t = 0$, $Y^{\!\top}JY = J$. A $C^1$ matrix function
+    with zero derivative is constant.</p>
+    <p><b>Why the variational equation is plausible</b> (the proof is cited): formally, differentiate
+    $\partial_t\varphi_t(z) = X(\varphi_t(z))$ in $z$ and exchange the order of derivatives — the chain rule
+    gives $\partial_tD\varphi_t = DX(\varphi_t)D\varphi_t$. What needs proof is that $D\varphi_t$ exists and that the
+    exchange is legitimate; the standard argument applies Gronwall's inequality (unit 01) to the
+    difference quotient, and that is the section cited.</p>
+    <p><b>With $H = X_H$'s Hamiltonian.</b> $DX_H = D(J\nabla H) = J\nabla^2H = JS$, which is where the
+    symmetric $S$ comes from.</p>
+    <p><b>Numerical meaning.</b> A time-stepping method for mechanics replaces $\varphi_h$ by some
+    approximating map $\psi_h$. If $\psi_h$ is itself symplectic it inherits every consequence of this
+    theorem that does not depend on $H$ — in particular the volume preservation of section 5. Such a
+    method is a <span class="term">symplectic integrator</span>; section 5 puts a number on the alternative.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Liouville: clouds that deform without shrinking</h2>
+  <p>The flow preserves volume — in three lines — and statistical mechanics, and good integrators, rest on it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Liouville</p>
+  <h2>Divergence, and how determinants evolve</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">divergence</span></span>
+        <p class="small">For a $C^1$ vector field $X$ on an open subset of $\mathbb R^N$,
+        $$\operatorname{div}X := \operatorname{tr}DX = \sum_{a=1}^N\frac{\partial X_a}{\partial z_a}.$$
+        Unit 05 gives it a meaning as flux per unit volume; here only this definition is used.</p>
+      </div>
+      <div class="box thm"><span class="label"><span class="term">Liouville's formula</span></span>
+        <p class="small">If $\dot Y = A(t)Y$ for $N\times N$ matrices, then
+        $$\frac{\mathrm d}{\mathrm dt}\det Y = \operatorname{tr}A(t)\,\det Y .$$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$Y(t+\epsilon) = (I + \epsilon A + o(\epsilon))Y(t)$, and expanding the determinant by permutations,
+        $\det(I + \epsilon A + o(\epsilon)) = 1 + \epsilon\operatorname{tr}A + o(\epsilon)$: the identity permutation gives
+        $\prod(1 + \epsilon A_{aa}) + o(\epsilon)$; every other one has at least two off-diagonal factors, each $O(\epsilon)$. Multiply by
+        $\det Y(t)$ and let $\epsilon\to0$. ∎</p>
+      </div>
+      <div class="box good"><span class="label">special case</span>
+        <p class="small">$N = 2$, $A = \begin{pmatrix}0&1\\-\omega_0^2&-\gamma\end{pmatrix}$: $\det Y = W$, the Wronskian, and the formula is unit 06's
+        Abel identity $W(t) = W(0)e^{-\gamma t}$ ✓.</p>
+      </div>
+      <div class="box thm"><span class="label">for a flow</span>
+        <p class="small">With the variational equation: $\det D\varphi_t(z) = \exp\displaystyle\int_0^t\operatorname{div}X(\varphi_s z)\,\mathrm ds$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The determinant expansion, carefully.</b> $\det B = \sum_\sigma\operatorname{sgn}\sigma\prod_aB_{a\sigma(a)}$.
+    For $B = I + \epsilon A + R$ with $R = o(\epsilon)$: the identity permutation contributes
+    $\prod_a(1 + \epsilon A_{aa} + R_{aa}) = 1 + \epsilon\sum_aA_{aa} + o(\epsilon)$. A permutation $\sigma\ne\mathrm{id}$ moves at
+    least two indices, so its product contains at least two off-diagonal entries, each of size
+    $O(\epsilon)$, and the product is $O(\epsilon^2)$. Hence $\det B = 1 + \epsilon\operatorname{tr}A + o(\epsilon)$, and
+    $(\det Y(t+\epsilon) - \det Y(t))/\epsilon = (\operatorname{tr}A + o(1))\det Y(t)$ by multiplicativity of $\det$.
+    The first step, $Y(t+\epsilon) = Y + \epsilon AY + o(\epsilon) = (I + \epsilon A + o(\epsilon)Y^{-1})Y$, uses $Y(t)$ invertible.
+    For the flow $Y(0) = I$, and the set of $t$ where $\det Y(t)\ne0$ is open and contains $0$; on it the
+    formula gives $\det Y = \exp\int\operatorname{tr}A$, which stays away from $0$ on bounded intervals, so the set is
+    also closed and is everything.</p>
+    <p><b>Integrating.</b> $\det Y$ solves the scalar linear equation $u' = a(t)u$ with $u(0) = 1$, whose
+    unique solution (unit 00) is $\exp\int_0^ta$. With $A(t) = DX(\varphi_tz)$, $\operatorname{tr}A = \operatorname{div}X(\varphi_tz)$.</p>
+    <p><b>The name.</b> Joseph Liouville proved the formula in 1838 in a note on the "variation
+    of arbitrary constants", and applied it to mechanics in the same year; Abel's identity (1827) is
+    its second-order case. The mechanical theorem next is also Liouville's, and was proved by Jacobi
+    in the form used today.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Liouville</p>
+  <h2>Liouville's theorem, in three lines</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Liouville's theorem</span></span>
+        <p class="small">Let $H\in C^2$ and $D$ a bounded region of phase space. Then the flow of $H$ preserves volume:
+        $$\operatorname{vol}\varphi_t(D) = \operatorname{vol}D\quad\text{for all } t.$$</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>1.</b> $\operatorname{div}X_H = \sum_i\Big(\dfrac{\partial}{\partial q_i}\dfrac{\partial H}{\partial p_i} - \dfrac{\partial}{\partial p_i}\dfrac{\partial H}{\partial q_i}\Big) = 0$ by Clairaut.<br>
+        <b>2.</b> By Liouville's formula, $\det D\varphi_t\equiv e^0 = 1$.<br>
+        <b>3.</b> By change of variables, $\operatorname{vol}\varphi_t(D) = \int_D\lvert\det D\varphi_t\rvert = \operatorname{vol}D$. ∎</p>
+      </div>
+      <p class="small muted">Step 3's change-of-variables formula is proved in unit 05, outside this unit's needs: <em>cited</em> here.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">a second proof of step 2</span>
+        <p class="small">$\operatorname{div}X_H = \operatorname{tr}(JS)$ and $\operatorname{tr}(JS) = \operatorname{tr}\big((JS)^{\!\top}\big) = \operatorname{tr}(-SJ) = -\operatorname{tr}(JS)$. Or: $\varphi_t$ is
+        canonical, and in the plane symplectic already means $\det = 1$.</p>
+      </div>
+      <div class="box warn"><span class="label">in which coordinates</span>
+        <p class="small">In $(q,p)$. In $(q,\dot q)$ it fails whenever the kinetic matrix $M(q)$ varies: $\mathrm dp = M\,\mathrm d\dot q + \dots$ has
+        Jacobian $\det M(q)$, which changes along the orbit.</p>
+      </div>
+      <div class="box good"><span class="label">limits</span>
+        <p class="small"><b>Damping</b> $\dot p = -V' - \gamma p$: $\operatorname{div} = -\gamma$, volume $\times e^{-\gamma t}$ (units 02, 06). <b>$\gamma = 0$</b> recovers the theorem ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1 in full.</b> $X_H = (\partial H/\partial p, -\partial H/\partial q)$, so
+    $\operatorname{div}X_H = \sum_i\partial_{q_i}(\partial_{p_i}H) + \sum_i\partial_{p_i}(-\partial_{q_i}H)$, and each pair cancels
+    for $H\in C^2$ by Clairaut (unit 03). The trace argument on the right is the same fact without
+    coordinates: the trace of a product of an antisymmetric and a symmetric matrix is zero.</p>
+    <p><b>Symplectic implies $\det = 1$ in general.</b> From $M^{\!\top}JM = J$ one gets $\det M = \pm1$
+    at once. That it is $+1$ follows for flows from continuity in $t$ (it starts at $1$ and cannot jump),
+    which is all that is needed here; for an arbitrary symplectic matrix it is <em>cited</em> (the
+    Pfaffian identity $\operatorname{Pf}(M^{\!\top}JM) = \det M\operatorname{Pf}J$; Arnold, §41).</p>
+    <p><b>The converse, in the plane.</b> A divergence-free $C^1$ vector field $(f,g)$ on a simply
+    connected planar domain is Hamiltonian: $\partial_qf + \partial_pg = 0$ says the field $(-g, f)$ has zero
+    curl, so by unit 04's Poincaré lemma $(-g,f) = \nabla H$ for some $H$, i.e. $f = \partial_pH$, $g = -\partial_qH$.
+    In the plane, "area-preserving" and "Hamiltonian" are the same thing. In $2n\ge4$ they are not:
+    volume preservation is one condition, symplecticity is $n(2n-1)$.</p>
+    <p><b>The warning about $(q,\dot q)$.</b> The map $(q,\dot q)\mapsto(q, p = M(q)\dot q)$ has Jacobian
+    determinant $\det M(q)$. Volume in $(q,p)$ is conserved; so volume in $(q,\dot q)$ at time $t$ is the
+    original times $\det M(q_0)/\det M(q_t)$ locally, which is not $1$ when $M$ depends on $q$ — for
+    Kepler in polar coordinates, $\det M = \mu^2r^2$. The momentum is the variable in which the
+    statement is true.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Liouville</p>
+  <h2>What a cloud of initial conditions does</h2>
+  <div class="cols wide-left">
+    <div class="fig">
+      <svg viewBox="0 0 500 230" width="560" role="img" aria-label="a rectangle of initial conditions in the q p plane and its image under free flight, a parallelogram of the same area sheared to the right">
+        <line x1="30" y1="200" x2="490" y2="200" class="rule" stroke-width="1.2"/>
+        <line x1="30" y1="20" x2="30" y2="215" class="rule" stroke-width="1.2"/>
+        <polygon points="30,130 90,130 90,60 30,60" class="fill-soft unit" stroke-width="2.5"/>
+        <polygon points="210,130 270,130 450,60 390,60" class="fill-soft accent" stroke-width="2.5"/>
+        <line x1="90" y1="95" x2="200" y2="95" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="42" y="100" font-size="15" class="mono">t = 0</text>
+        <text x="300" y="100" font-size="15" class="mono">t = 3</text>
+        <text x="470" y="194" font-size="15" class="mono soft">q</text>
+        <text x="38" y="34" font-size="15" class="mono soft">p</text>
+      </svg>
+      <p class="cap">Free particle, $q\mapsto q + pt/m$, with $m = 1$. The rectangle $[0,1]\times[1,2]$ becomes a parallelogram of the same area $1$:
+      the top edge, moving faster, has been <b>sheared</b> ahead.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">three flows, one area</span>
+        <p class="small"><b>Free:</b> $\begin{pmatrix}1&t/m\\0&1\end{pmatrix}$, $\det = 1$ — pure shear; the cloud grows ever longer and thinner.</p>
+        <p class="small"><b>Oscillator:</b> $\begin{pmatrix}\cos\omega t&\frac{\sin\omega t}{m\omega}\\-m\omega\sin\omega t&\cos\omega t\end{pmatrix}$, $\det = 1$ — it
+        turns, and every period it comes back.</p>
+        <p class="small"><b>Nonlinear</b> (pendulum, <span class="ref" data-ref="kep">Kepler</span>): each orbit has its own period, so the cloud
+        is sheared <em>along</em> the orbits and wound into a filament of constant area.</p>
+      </div>
+      <div class="box thm"><span class="label">no attractors</span>
+        <p class="small">A Hamiltonian flow has no asymptotically stable equilibrium and no attracting limit cycle: a ball in the basin would
+        have to shrink.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The figure's numbers.</b> $m = 1$, $t = 3$: the corners $(0,1),(1,1),(1,2),(0,2)$ go to
+    $(3,1),(4,1),(7,2),(6,2)$. The base is $1$, the height $1$: area $1$ ✓. Problem P9 follows such a
+    rectangle with real numbers for a cloud of atoms, and finds that the spread of momentum
+    <em>at a fixed position</em> shrinks as $1/t$ even though the total spread does not — a statement
+    that only makes sense because area is conserved.</p>
+    <p><b>The oscillator matrix.</b> The solution with $q(0) = q_0$, $p(0) = p_0$ is
+    $q = q_0\cos\omega t + (p_0/m\omega)\sin\omega t$, $p = -m\omega q_0\sin\omega t + p_0\cos\omega t$; the
+    determinant is $\cos^2 + \sin^2 = 1$. In the coordinates $(\sqrt{m\omega}\,q, p/\sqrt{m\omega})$ it is a rigid
+    rotation, and the rectangle turns without deforming; in $(q,p)$ it deforms but keeps its area
+    (problem P10).</p>
+    <h4>Full proof of "no attractors"</h4>
+    <p>Suppose $z_0$ is asymptotically stable: there is a ball $B$ around it with $\varphi_t(z)\to z_0$ for
+    every $z\in B$. Given $\delta &gt; 0$, the functions $1[\varphi_t(z)\notin B_\delta(z_0)]$ tend to $0$ pointwise on
+    $B$ as $t\to\infty$, so by dominated convergence (<em>cited</em>: any real-analysis text, e.g. Rudin,
+    <em>Real and Complex Analysis</em>, 1.34) $\operatorname{vol}\{z\in B:\varphi_t(z)\notin B_\delta\}\to0$. Hence
+    $\operatorname{vol}\varphi_t(B)\le\operatorname{vol}B_\delta + o(1)$, which is less than $\operatorname{vol}B$ once $\delta$ is small and $t$ large —
+    contradicting Liouville. The same argument, with a thin tube around the cycle, excludes attracting
+    limit cycles. Unit 02's damped pendulum spirals into its down position precisely because
+    friction breaks the theorem.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Liouville</p>
+  <h2>Why statistical mechanics is possible</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Liouville equation</span></span>
+        <p class="small">Let a probability density $\rho_0$ on phase space be carried by the flow: the probability of $\varphi_t(D)$ at time $t$
+        equals that of $D$ at time $0$. Then $\rho(\varphi_tz, t) = \rho_0(z)$, and
+        $$\frac{\partial\rho}{\partial t} + \{\rho, H\} = 0.$$</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Equal probabilities in equal volumes (Liouville) force equal densities, $\rho(\varphi_tz,t) = \rho_0(z)$. Differentiate in $t$
+        with the time-evolution theorem: $\partial_t\rho + \{\rho,H\} = 0$ at $\varphi_tz$, which is any point. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">stationary clouds</span>
+        <p class="small">$\rho$ is time-independent iff $\{\rho, H\} = 0$ — iff $\rho$ is conserved. So <b>any $\rho = g(H)$ is an equilibrium
+        distribution</b>: uniform on a shell of energy (Gibbs's microcanonical), or $\propto e^{-H/k_BT}$ (canonical).</p>
+      </div>
+      <div class="box warn"><span class="label">why this needed Liouville</span>
+        <p class="small">"Equally likely" means "uniform in some measure", and it must be a measure the dynamics does not change.
+        Liouville says phase-space volume is one. In $(q,\dot q)$ it is not, so there "uniform" would not stay uniform.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof, with the volumes.</b> For a small region $D$ around $z$, probability
+    $\approx\rho_0(z)\operatorname{vol}D$ at time $0$ and $\approx\rho(\varphi_tz,t)\operatorname{vol}\varphi_t(D)$ at time $t$. Equality of
+    probabilities with $\operatorname{vol}\varphi_t(D) = \operatorname{vol}D$ gives the densities equal, in the limit of
+    shrinking $D$ (for continuous $\rho$). Then $0 = \frac{\mathrm d}{\mathrm dt}\rho(\varphi_tz,t) =
+    \partial_t\rho + \{\rho,H\}$, by the time-evolution theorem applied to $f = \rho$.</p>
+    <p><b>The ensembles.</b> Gibbs (1902) built statistical mechanics on exactly this: a stationary
+    density on phase space, of the form $g(H)$, chosen by further argument — uniform on an energy
+    shell for an isolated system, $e^{-H/k_BT}$ for a system in contact with a heat bath. Liouville's
+    theorem does not say which $g$ nature uses, or why a system out of equilibrium approaches one;
+    that is ergodic theory and the second law, and it is not in this course.</p>
+    <p><b>A caution about "filaments".</b> The fine-grained density is carried unchanged by the flow
+    for ever, so its information content never changes. What changes is the density averaged over
+    cells of any fixed size: the filaments of the previous slide become finer than the cells, and the
+    averaged density spreads out. That is the old Gibbs picture of how a reversible dynamics can look
+    irreversible.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Liouville</p>
+  <h2>Why a method for orbits should be symplectic</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Oscillator with $m = \omega = 1$, time step $h$: $\dot q = p$, $\dot p = -q$.</p>
+      <div class="box warn"><span class="label">Euler's method</span>
+        <p class="small">$q' = q + hp$, $p' = p - hq$: the step is $\begin{pmatrix}1&h\\-h&1\end{pmatrix}$, with determinant $1 + h^2$. Every step
+        multiplies area — and $q^2 + p^2$, i.e. the energy — by $1 + h^2$.</p>
+        <p class="small">At $h = 0.01$: $628.3$ steps per period, energy up by a factor $1.06484$ per period: $6.5\%$, orbit after orbit.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">symplectic Euler</span>
+        <p class="small">Update $p$ first and use it: $p' = p - hq$, $q' = q + hp'$. The step is
+        $\begin{pmatrix}1-h^2&h\\-h&1\end{pmatrix}$, with $M^{\!\top}JM = J$ and $\det = 1$: a canonical map.</p>
+        <p class="small">It conserves exactly the nearby quadratic $q^2 - hqp + p^2$, so the energy error stays of size $h$ for ever — no drift.</p>
+      </div>
+      <div class="box thm"><span class="label">the moral</span>
+        <p class="small">Same cost, same order of accuracy per step. One respects Liouville and one does not, and over many periods that
+        is the only difference that matters.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $\lVert(q + hp, p - hq)\rVert^2 = (1+h^2)(q^2+p^2)$, so the energy $\tfrac12(q^2+p^2)$
+    grows by exactly $1 + h^2$ per step. One period is $2\pi/h = 628.32$ steps at $h = 0.01$, and
+    $(1.0001)^{628.32} = 1.06484$. The amplitude grows by the square root, $1.03191$ per period. After
+    a hundred periods the energy is up by a factor $535$; at $h = 0.1$ it is up by $1.869$ in a single
+    period.</p>
+    <p><b>The symplectic step.</b> Substituting $p' = p - hq$ into $q' = q + hp'$ gives
+    $q' = (1-h^2)q + hp$. With $M = \begin{pmatrix}1-h^2&amp;h\\-h&amp;1\end{pmatrix}$, $\det M = 1 - h^2 + h^2 = 1$, which in
+    the plane is the whole symplectic condition. The invariant: seek $S$ symmetric with
+    $M^{\!\top}SM = S$; the solution is $S \propto\begin{pmatrix}1&amp;-h/2\\-h/2&amp;1\end{pmatrix}$, i.e. the quadratic form
+    $q^2 - hqp + p^2$ is conserved exactly (problem P12 verifies it). Its level sets are ellipses
+    within $O(h)$ of the true circles, so the numerical orbit stays on a closed curve near the true one.</p>
+    <p><b>Honest limits.</b> A symplectic method conserves a modified Hamiltonian close to $H$ — here
+    exactly, in general to all orders of an asymptotic series (<em>cited</em>: Hairer, Lubich and
+    Wanner, <em>Geometric Numerical Integration</em>, 2nd ed., chapter IX). It does not make the phase
+    along the orbit accurate; that error still grows linearly. Methods of this kind are why long
+    integrations of the Solar System, over hundreds of millions of years, are trustworthy at all.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · Liouville</p>
+  <h2>Worked: Halley's phase area, and its period</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">the <span class="term">phase area</span> of <span class="ref" data-ref="halley">Halley's curve</span></span>
+      <p class="small"><b>Step 1 — a theorem.</b> For $H = p^2/2m + V(x)$ with closed orbits, the area enclosed by the orbit of energy $E$,
+      $A(E) = \oint p\,\mathrm dx$, satisfies $\mathrm dA/\mathrm dE = T(E)$, the period. (Proof in the notes.)</p>
+      <p class="small"><b>Step 2 — the area.</b> With $p_r^2 = 2\mu E + 2\mu k/r - L^2/r^2 = 2\mu|E|(r - r_-)(r_+ - r)/r^2$ and the substitution
+      $r = a - c\cos\phi$, $a = \tfrac{r_++r_-}{2}$, $c = \tfrac{r_+-r_-}{2}$ (notes):
+      $$A(E) = 2\int_{r_-}^{r_+}\!p_r\,\mathrm dr = 2\pi\Big(k\sqrt{\frac{\mu}{-2E}} - L\Big).$$</p>
+      <p class="small"><b>Step 3 — differentiate.</b>
+      $$T = \frac{\mathrm dA}{\mathrm dE} = \pi k\sqrt{\frac\mu2}\,(-E)^{-3/2},$$
+      which is Kepler's third law $T = 2\pi\sqrt{\mu a^3/k}$ with $a = k/2|E|$ ✓.</p>
+      <p class="small"><b>Step 4 — Halley</b>, per unit mass: $A/\mu = 2\pi\big(GM_\odot/\sqrt{2|\varepsilon|} - h\big) = 8.81646\times10^{16}\ \mathrm{m^2\,s^{-1}}$,
+      and $T = \pi GM_\odot/\big(\sqrt2\,|\varepsilon|^{3/2}\big) = 75.3052$ yr.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $[A] = [p][r] = \mathrm{J\,s}$, an action; $[\mathrm dA/\mathrm dE] = \mathrm s$ ✓.</p>
+        <p class="small"><b>Limit $E\to E_{\min} = -\mu k^2/2L^2$:</b> $k\sqrt{\mu/2|E_{\min}|} = L$, so $A\to0$: the curve shrinks to the circular orbit ✓.</p>
+        <p class="small"><b>Limit $E\to0^-$:</b> $A\to\infty$ and $T\to\infty$ — the separatrix encloses no finite area ✓.</p>
+        <p class="small"><b>Unit 08:</b> $75.31$ yr ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">and the cloud</span>
+        <p class="small">$T$ depends on $E$, so a cloud of comets spread in energy shears along the orbit, as the cloud slide said: fixed area,
+        ever longer filament. Halley's meteor streams are such a filament.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of $\mathrm dA/\mathrm dE = T$</h4>
+    <p>$A(E) = 2\int_{x_-(E)}^{x_+(E)}p_E(x)\,\mathrm dx$ with $p_E = \sqrt{2m(E - V)}$, assuming simple
+    turning points ($V'(x_\pm)\ne0$). For $E' &gt; E$, exact algebra gives $p_{E'} - p_E = 2m(E'-E)/(p_{E'}+p_E)$. So
+    $$\frac{A(E') - A(E)}{E'-E} = 2\int_{x_-(E)}^{x_+(E)}\frac{2m\,\mathrm dx}{p_{E'} + p_E} + \frac{2}{E'-E}\int_{\text{ends}}p_{E'}\,\mathrm dx,$$
+    where "ends" are the two intervals between $x_\pm(E)$ and $x_\pm(E')$. On them $p_{E'}\le\sqrt{2m(E'-E)}$ and
+    their length is $O(E'-E)$ (because $V'(x_\pm)\ne0$), so the second term is $O(\sqrt{E'-E})\to0$. The first
+    integrand increases to $m/p_E$ as $E'\downarrow E$ and is dominated by it, and $m/p_E$ is integrable because
+    $p_E$ vanishes like a square root at simple turning points; by monotone convergence (<em>cited</em>:
+    Rudin, <em>Real and Complex Analysis</em>, 1.26) the first term
+    tends to $2\int m\,\mathrm dx/p_E = 2\int\mathrm dx/|\dot x| = T$. $E' &lt; E$ is the same. $\square$</p>
+    <h4>Full computation of $A(E)$</h4>
+    <p>$2\mu Er^2 + 2\mu kr - L^2 = -2\mu|E|(r-r_-)(r_+-r)$ with $r_-+r_+ = k/|E|$ and $r_-r_+ = L^2/2\mu|E|$ (Vieta).
+    So $\int_{r_-}^{r_+}p_r\,\mathrm dr = \sqrt{2\mu|E|}\int_{r_-}^{r_+}\sqrt{(r-r_-)(r_+-r)}\,\mathrm dr/r$. Put
+    $r = a - c\cos\phi$, $\phi\in[0,\pi]$: $(r-r_-)(r_+-r) = c^2\sin^2\phi$ and $\mathrm dr = c\sin\phi\,\mathrm d\phi$, so the
+    integral is $\int_0^\pi c^2\sin^2\phi\,\mathrm d\phi/(a - c\cos\phi)$. Write
+    $c^2\sin^2\phi = (a - c\cos\phi)(a + c\cos\phi) - (a^2 - c^2)$: the integral becomes
+    $\int_0^\pi(a + c\cos\phi)\,\mathrm d\phi - (a^2-c^2)\int_0^\pi\mathrm d\phi/(a - c\cos\phi) = \pi a - \pi\sqrt{a^2-c^2}$, using
+    $\int_0^\pi\mathrm d\phi/(a - c\cos\phi) = \pi/\sqrt{a^2-c^2}$ (substitute $t = \tan(\phi/2)$: the integral becomes
+    $\int_0^\infty 2\,\mathrm dt/\big((a-c) + (a+c)t^2\big) = \pi/\sqrt{(a-c)(a+c)}$). With $a = k/2|E|$ and
+    $a^2 - c^2 = r_-r_+ = L^2/2\mu|E|$: $\int p_r\,\mathrm dr = \pi\big(k\sqrt{\mu/2|E|} - L\big)$. Double it. $\square$</p>
+    <p><b>The numbers.</b> $2|\varepsilon| = 4.97479\times10^{7}$, root $7053.22$; $GM_\odot/7053.22 = 1.88159\times10^{16}$;
+    minus $h = 0.478403\times10^{16}$ gives $1.40318\times10^{16}$; times $2\pi$: $8.81646\times10^{16}\ \mathrm{m^2\,s^{-1}}$.
+    The period: $|\varepsilon|^{3/2} = 1.24056\times10^{11}$, so $T = \pi\times1.32712\times10^{20}/(1.41421\times1.24056\times10^{11})
+    = 2.37645\times10^{9}$ s $= 75.3052$ yr (Julian year, $365.25$ d). A finite-difference derivative of $A$ in $\varepsilon$
+    agrees to six figures.</p>
+    <p><b>Why the area is the natural variable.</b> $A/2\pi$ is the radial <em>action</em>, and unit 17
+    uses action variables as the coordinates in which integrable motion is uniform rotation. That
+    $T = \mathrm dA/\mathrm dE$ is a first taste: the frequency is the derivative of the energy with respect to
+    the action.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · close</p>
+  <h2>Kepler in phase space, closed</h2>
+  <div class="cols">
+    <div class="box good"><span class="label"><span class="ref" data-ref="kep">the running example</span>, start to finish</span>
+      <p class="small"><b>1.</b> Legendre-transforming unit 08's Lagrangian gave $H = p_r^2/2\mu + p_\theta^2/2\mu r^2 - k/r$, and $\theta$ cyclic froze $p_\theta = L$.</p>
+      <p class="small"><b>2.</b> At Halley's $L$ the $(r,p_r)$ portrait is a contour map: a centre at $r_0 = 1.15279$ AU, Halley's curve from $0.586025$
+      to $35.0789$ AU and $26.829\ \mathrm{km\,s^{-1}}$ wide, the separatrix $E = 0$ from $0.576396$ AU to infinity.</p>
+      <p class="small"><b>3.</b> $\{L_i,L_j\} = \varepsilon_{ijk}L_k$, $\{L_i,A_j\} = \varepsilon_{ijk}A_k$, $\{A_i,A_j\} = -2\mu H\varepsilon_{ijk}L_k$: $\mathfrak{so}(4)$,
+      $\mathfrak e(3)$, $\mathfrak{so}(3,1)$ as $E$ crosses zero.</p>
+      <p class="small"><b>4.</b> Polar coordinates came from $F_2 = P_r r + P_\theta\theta$, and gave the same $H$.</p>
+      <p class="small"><b>5.</b> Halley's curve encloses $8.81646\times10^{16}\ \mathrm{m^2\,s^{-1}}$ per unit mass, and $\mathrm dA/\mathrm dE$ is its $75.3052$-year period.</p>
+    </div>
+    <div>
+      <h3>What this unit hands on</h3>
+      <p class="small"><b>15</b> — the motion is a canonical transformation; find the one that trivialises it, and its $F_2$ is the Hamilton–Jacobi $S$.</p>
+      <p class="small"><b>17</b> — brackets in involution, action variables like $A/2\pi$, and area-preserving maps.</p>
+      <p class="small"><b>26, 27</b> — the Legendre transform of a Lagrangian with bounded velocities, and its degenerate twin.</p>
+      <p class="small"><b>34</b> — $\omega = \sum\mathrm dp_i\wedge\mathrm dq_i$ as a differential form, and the generating-function theorem as $\mathrm d^2 = 0$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Every number above was computed from unit 08's two perihelion measurements and
+    $GM_\odot$ and nothing else: $r_0 = h^2/GM_\odot$; the turning points from the quadratic
+    $2\varepsilon r^2 + 2GM_\odot r - h^2 = 0$; the width $\sqrt{2(\varepsilon + (GM_\odot)^2/2h^2)}$; the separatrix's
+    perihelion $h^2/2GM_\odot$; the area $2\pi(GM_\odot/\sqrt{2|\varepsilon|} - h)$; the period $\pi GM_\odot/(\sqrt2\,|\varepsilon|^{3/2})$.</p>
+    <p><b>What is proved and what is cited.</b> Proved on the slides or in these notes: the Legendre
+    transform's convexity, Young, involutivity for differentiable convex functions, smooth duality,
+    Hamilton's equations, the phase-space action principle, non-crossing, the bracket's properties
+    including Jacobi, the time-evolution theorem and Poisson's theorem, all the Kepler brackets, the
+    non-isomorphism of $\mathfrak{so}(4)$ and $\mathfrak{so}(3,1)$, the three-tests theorem, the
+    generating-function theorem, Liouville's formula and theorem up to the change of variables,
+    the Liouville equation, $\mathrm dA/\mathrm dE = T$ and the area of a Kepler orbit. Cited: Fenchel–Moreau
+    in general, the variational equation, the change-of-variables formula (unit 05), the linear Darboux
+    theorem, the dominated and monotone convergence theorems, and the modified-Hamiltonian theory of
+    symplectic integrators.</p>
+    <p><b>Reading.</b> Arnold, <em>Mathematical Methods of Classical Mechanics</em>, chapter 3 (§§14–16:
+    Legendre transform, Hamilton's equations, Liouville) is at this level and in this spirit; chapter 8
+    (§§37–40) has the symplectic structure and brackets but uses differential forms from chapter 7,
+    which this course reaches only in unit 34 — read §§37–40 for the statements and skip the proofs
+    that use forms. Goldstein, Poole and Safko, <em>Classical Mechanics</em>, chapters 8–9, for the
+    generating-function tables and many worked canonical transformations; §9.8 on the Runge–Lenz
+    algebra uses this unit's bracket convention but a different normalisation of $\vec A$, so the
+    constants in front of the brackets are not this unit's. Rockafellar, <em>Convex Analysis</em>,
+    §12, for the Legendre–Fenchel transform in full generality.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>You can, on paper and without the deck,</p>
+    <ul>
+      <li><b>prove a given transformation canonical by two independent routes</b> — two of $M^{\!\top}JM = J$, the fundamental
+      brackets, a generating function;</li>
+      <li><b>perform a Legendre transform including its degenerate case</b>, saying for a linear or degree-one $f$ exactly what $f^*$ is; and</li>
+      <li><b>prove Liouville's theorem from Hamilton's equations in three lines</b>.</li>
+    </ul>
+    <p class="small muted">Falsifiable: two routes that are secretly one, a degenerate case answered "$H$ is undefined", or a Liouville
+    proof assuming a linear flow, each fails. Record it with <code>./mr done 14</code>.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Problems</h3>
+      <p class="small"><code>./mr problems 14</code> — 13 problems, about 5 hours, hints and solutions folded under each.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>15</b> Hamilton–Jacobi · <b>16</b> tensors · <b>17</b> integrability and chaos · <b>26</b> Minkowski space.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint cold. For the first part, take $Q = \arctan(m\omega q/p)$, $P = (p^2 + m^2\omega^2q^2)/2m\omega$
+    and check your routes against problem P7: $\{Q,P\} = 1$ and $F_1 = \tfrac12m\omega q^2\cot Q$. For the second,
+    $f(v) = \tfrac12 mv^2 + cv$ (answer: $(p-c)^2/2m$) and $f(v) = c\,v$ (answer: $0$ at $p = c$, $+\infty$ elsewhere —
+    the momentum is pinned). For the third, the three lines are on the Liouville slide; the second line
+    needs Liouville's formula, and knowing why is part of the checkpoint.</p>
+    <p>If the first part stalls, it is usually because the brackets were computed as the entries of
+    $MJM^{\!\top}$ from the same Jacobian — correct, but not independent of $M^{\!\top}JM = J$. Independence means
+    the second route starts from something else: a generating function, or the brackets computed
+    from the formulas for $Q$ and $P$ directly. If the third stalls, reread the determinant slide.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

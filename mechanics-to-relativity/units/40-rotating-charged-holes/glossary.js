@@ -1,0 +1,552 @@
+// Generated from GLOSSARY.org by `mr glossary`; edit the Org file, not this one.
+window.GLOSSARY = [
+{
+"term_html": "ergosphere",
+"html": "The region \\(r_+ \\lt r \\lt r_{\\mathrm E}(\\theta)\\) where \\(g_{tt} \\gt 0\\), so \\(\\partial_t\\) is spacelike and no observer can hold \\(r, \\theta, \\varphi\\) fixed. Not a sphere: it is pinched to zero thickness at the poles and thickest at the equator. Escape from it is still possible; only standing still is not.",
+"section": "Rotation: the Kerr metric",
+"slide": "Worked example 1 — the ergosphere, and the end of standing still",
+"keys": [
+"ergosphere"
+]
+},
+{
+"term_html": "surface gravity",
+"html": "The constant \\(\\kappa\\) defined on a Killing horizon by \\(\\nabla^\\mu(\\xi_\\nu\\xi^\\nu) = -(2\\kappa/c)\\,\\xi^\\mu\\); equivalently the non-affinity of the horizon generators, \\(\\xi^\\nu\\nabla_\\nu\\xi^\\mu = (\\kappa/c)\\,\\xi^\\mu\\), with \\(\\xi\\) normalised to \\(\\xi\\cdot\\xi\\to-c^2\\) at infinity. Physically the redshifted proper acceleration of a stationary observer at the horizon: the force per unit mass applied at infinity, an acceleration in \\(\\mathrm{m\\,s^{-2}}\\).",
+"section": "Rotation: the Kerr metric",
+"slide": "Surface gravity",
+"keys": [
+"surface gravity"
+]
+},
+{
+"term_html": "Hawking temperature",
+"html": "\\(T_{\\mathrm H} = \\hbar\\kappa/2\\pi ck_{\\mathrm B}\\), the temperature of the thermal radiation a black hole emits. Cited, not derived here: it needs quantum field theory in curved spacetime.",
+"section": "Rotation: the Kerr metric",
+"slide": "Bekenstein and Hawking: the analogy becomes an identity",
+"keys": [
+"hawking temperature"
+]
+},
+{
+"term_html": "Kerr metric",
+"html": "The unique (by the uniqueness theorems) stationary, axisymmetric, asymptotically flat vacuum solution with a horizon, written in Boyer–Lindquist coordinates with parameters \\(M\\) and \\(a = J/Mc\\). It solves \\(R_{\\mu\\nu} = 0\\) for every \\(M\\) and \\(a\\); at \\(a = 0\\) it is Schwarzschild and at \\(M = 0\\) it is flat.",
+"section": "Rotation: the Kerr metric",
+"slide": "Kerr's solution, written down",
+"keys": [
+"kerr metric"
+]
+},
+{
+"term_html": "Boyer–Lindquist coordinates",
+"html": "The chart \\((t, r, \\theta, \\varphi)\\) in which the Kerr metric has only one off-diagonal component, \\(g_{t\\varphi}\\), and the \\(a \\to 0\\) limit is manifestly Schwarzschild. Like unit 36's Schwarzschild chart it breaks down at the horizons \\(\\Delta = 0\\).",
+"section": "Rotation: the Kerr metric",
+"slide": "Kerr's solution, written down",
+"keys": [
+"boyer–lindquist coordinates"
+]
+},
+{
+"term_html": "oblate spheroidal coordinates",
+"html": "\\(x = \\sqrt{r^2+a^2}\\sin\\theta\\cos\\varphi\\), \\(y = \\sqrt{r^2+a^2}\\sin\\theta\\sin\\varphi\\), \\(z = r\\cos\\theta\\) on flat \\(\\mathbb R^3\\). The \\(M \\to 0\\) limit of Kerr is Minkowski in these; they are why \\(r = 0\\) is a disc and its rim \\(r = 0, \\theta = \\pi/2\\) is the ring singularity.",
+"section": "Rotation: the Kerr metric",
+"slide": "Kerr's solution, written down",
+"keys": [
+"oblate spheroidal coordinates"
+]
+},
+{
+"term_html": "zero-angular-momentum observer",
+"html": "An observer with \\(p_\\varphi = 0\\). In Kerr it is nonetheless carried round the hole at \\(\\omega = -g_{t\\varphi}/g_{\\varphi\\varphi}\\), which is the local standard of \"not rotating\". Abbreviated ZAMO.",
+"section": "Rotation: the Kerr metric",
+"slide": "What the cross term does: space is dragged",
+"keys": [
+"zero-angular-momentum observer"
+]
+},
+{
+"term_html": "frame dragging",
+"html": "The effect that \\(\\omega \\ne 0\\): a rotating mass drags the local inertial frames round with it. Not a force — the worldline is a geodesic and the metric's notion of non-rotation is itself rotating.",
+"section": "Rotation: the Kerr metric",
+"slide": "What the cross term does: space is dragged",
+"keys": [
+"frame dragging"
+]
+},
+{
+"term_html": "Lense–Thirring precession",
+"html": "The far-field limit \\(\\omega \\to 2GJ/c^2r^3\\), derived by Lense and Thirring in 1918. Measured by Gravity Probe B in Earth orbit at \\(37.2 \\pm 7.2\\) mas/yr against a prediction of 39.2.",
+"section": "Rotation: the Kerr metric",
+"slide": "What the cross term does: space is dragged",
+"keys": [
+"lense–thirring precession"
+]
+},
+{
+"term_html": "event horizon",
+"html": "The boundary of the past of future null infinity: the surface from which no causal curve escapes. Defined globally, so locating it requires the entire future. In Kerr it is the outer root \\(r_+\\) of \\(\\Delta\\), a null hypersurface because \\(g^{rr} = \\Delta/\\Sigma\\) vanishes there.",
+"section": "Rotation: the Kerr metric",
+"slide": "Two horizons, and a bound on spin",
+"keys": [
+"event horizon"
+]
+},
+{
+"term_html": "Kerr bound",
+"html": "\\(|a| \\le r_g\\), equivalently \\(|J| \\le GM^2/c\\). Beyond it \\(\\Delta \\gt 0\\) everywhere, there is no horizon, and the ring singularity is naked. Every attempt to spin a hole past it has failed.",
+"section": "Rotation: the Kerr metric",
+"slide": "Two horizons, and a bound on spin",
+"keys": [
+"kerr bound"
+]
+},
+{
+"term_html": "extremal",
+"html": "The case \\(a = r_g\\), where \\(r_+ = r_-\\), \\(\\kappa = 0\\) and the two horizons merge. The Penrose ceiling of 29.3\\% is attained here, and the third law says the state is unreachable.",
+"section": "Rotation: the Kerr metric",
+"slide": "Two horizons, and a bound on spin",
+"keys": [
+"extremal"
+]
+},
+{
+"term_html": "cosmic censorship",
+"html": "Penrose's 1969 conjecture that generic collapse from regular initial data never produces a naked singularity. Still a conjecture; the area theorem and the predictability of the exterior both rest on it.",
+"section": "Rotation: the Kerr metric",
+"slide": "Two horizons, and a bound on spin",
+"keys": [
+"cosmic censorship"
+]
+},
+{
+"term_html": "stationary observer",
+"html": "One with constant \\(r, \\theta\\) and \\(\\varphi = \\varphi_0 + \\Omega t\\), so \\(u \\propto \\partial_t + \\Omega\\partial_\\varphi\\). Exists iff \\(\\Omega_- \\lt \\Omega \\lt \\Omega_+\\), the roots of \\(g_{tt} + 2\\Omega g_{t\\varphi} + \\Omega^2g_{\\varphi\\varphi}\\). Inside the ergosphere that window excludes \\(\\Omega = 0\\).",
+"section": "Rotation: the Kerr metric",
+"slide": "Inside the ergosphere: a window of allowed rotations",
+"keys": [
+"stationary observer"
+]
+},
+{
+"term_html": "angular velocity of the horizon",
+"html": "\\(\\Omega_{\\mathrm H} = ac/(r_+^2+a^2)\\), the single value of \\(\\Omega\\) the window collapses to at \\(r_+\\). Independent of \\(\\theta\\): the horizon rotates rigidly.",
+"section": "Rotation: the Kerr metric",
+"slide": "Inside the ergosphere: a window of allowed rotations",
+"keys": [
+"angular velocity of the horizon"
+]
+},
+{
+"term_html": "Killing horizon",
+"html": "A null hypersurface on which a Killing vector field \\(\\xi\\) is null and non-vanishing. A coordinate-free definition; \\(\\xi\\) is then tangent to the surface and generates it. Kerr's \\(r = r_+\\) is the Killing horizon of \\(\\xi_{\\mathrm H} = \\partial_t + \\Omega_{\\mathrm H}\\partial_\\varphi\\).",
+"section": "Killing horizons and surface gravity",
+"slide": "Killing horizon: the definition",
+"keys": [
+"killing horizon"
+]
+},
+{
+"term_html": "horizon generator",
+"html": "The Killing field \\(\\xi_{\\mathrm H}\\) itself, whose integral curves are the null geodesics ruling the horizon. Its non-affinity is \\(\\kappa\\); it is future-directed and null there, which is the whole content of the horizon inequality.",
+"section": "Killing horizons and surface gravity",
+"slide": "Killing horizon: the definition",
+"keys": [
+"horizon generator"
+]
+},
+{
+"term_html": "rigidity theorem",
+"html": "Hawking 1972, cited: in a stationary, analytic, asymptotically flat spacetime obeying the dominant energy condition, the event horizon is a Killing horizon, and if the spacetime is not static it is axisymmetric with \\(\\xi = \\partial_t + \\Omega_{\\mathrm H}\\partial_\\varphi\\). The analyticity hypothesis has no physical justification and removing it is open.",
+"section": "Killing horizons and surface gravity",
+"slide": "Killing horizon: the definition",
+"keys": [
+"rigidity theorem"
+]
+},
+{
+"term_html": "bifurcate Killing horizon",
+"html": "One containing a two-surface on which \\(\\xi\\) vanishes — the crossing point in unit 36's Kruskal diagram. On such a horizon the zeroth law is a theorem of pure geometry; a hole formed by collapse has no bifurcation surface, so its zeroth law needs an energy condition.",
+"section": "Killing horizons and surface gravity",
+"slide": "Killing horizon: the definition",
+"keys": [
+"bifurcate killing horizon"
+]
+},
+{
+"term_html": "Penrose process",
+"html": "Send a particle into the ergosphere and split it so that one fragment has \\(E \\lt 0\\) and falls in; the other escapes with more energy than went in. The hole loses both mass and spin. Penrose 1969.",
+"section": "The Penrose process",
+"slide": "The process, and the inequality that caps it",
+"keys": [
+"penrose process"
+]
+},
+{
+"term_html": "horizon inequality",
+"html": "\\(\\delta(Mc^2) \\ge \\Omega_{\\mathrm H}\\delta J\\) for anything crossing the horizon, because \\(-g(\\xi_{\\mathrm H}, p) \\ge 0\\) for future-directed causal \\(p\\). Every bound in this section follows from it.",
+"section": "The Penrose process",
+"slide": "The process, and the inequality that caps it",
+"keys": [
+"horizon inequality"
+]
+},
+{
+"term_html": "irreducible mass",
+"html": "\\(M_{\\mathrm{irr}} = (c^2/G)\\sqrt{A/16\\pi} = M\\sqrt{r_+/2r_g}\\), the part of the mass no classical process can extract. \\(\\delta M_{\\mathrm{irr}} \\ge 0\\) is equivalent to the horizon inequality and to \\(\\delta A \\ge 0\\).",
+"section": "The Penrose process",
+"slide": "Irreducible mass: the part you cannot have",
+"keys": [
+"irreducible mass"
+]
+},
+{
+"term_html": "Christodoulou mass formula",
+"html": "\\(M^2 = M_{\\mathrm{irr}}^2 + (cJ/2GM_{\\mathrm{irr}})^2\\). A Pythagorean split of the mass into what is locked in the horizon and what is stored in the rotation; its differential is the first law of black-hole mechanics.",
+"section": "The Penrose process",
+"slide": "Irreducible mass: the part you cannot have",
+"keys": [
+"christodoulou mass formula"
+]
+},
+{
+"term_html": "rotational energy",
+"html": "\\((M - M_{\\mathrm{irr}})c^2\\), the extractable part. As a fraction, \\(\\eta = 1 - \\sqrt{(1+\\sqrt{1-a_*^2})/2}\\): 15.27\\% at \\(a_* = 0.9\\), and \\(1 - 1/\\sqrt2 = 29.29\\%\\) at extremality.",
+"section": "The Penrose process",
+"slide": "Worked example 3 — the ceiling: 29.3 per cent",
+"keys": [
+"rotational energy"
+]
+},
+{
+"term_html": "superradiance",
+"html": "A wave mode \\(e^{-i\\omega t + im\\varphi}\\) with \\(\\omega \\lt m\\Omega_{\\mathrm H}\\) is reflected off a Kerr hole amplified, the hole losing energy and angular momentum. Follows from the horizon inequality and \\(\\mathrm dE/\\mathrm dL = \\omega/m\\); no quantum mechanics needed. Zel'dovich 1971.",
+"section": "The Penrose process",
+"slide": "Fields do it better: superradiance",
+"keys": [
+"superradiance"
+]
+},
+{
+"term_html": "Blandford–Znajek process",
+"html": "The astrophysical Penrose process: a magnetic field anchored in an accretion disc threads the horizon and the hole drives a Poynting-flux jet. The leading model for relativistic jets from active galactic nuclei. Blandford and Znajek 1977.",
+"section": "The Penrose process",
+"slide": "Fields do it better: superradiance",
+"keys": [
+"blandford–znajek process"
+]
+},
+{
+"term_html": "Reissner–Nordström metric",
+"html": "\\(\\mathrm ds^2 = -f c^2\\mathrm dt^2 + f^{-1}\\mathrm dr^2 + r^2\\mathrm d\\Omega^2\\) with \\(f = 1 - r_s/r + r_Q^2/r^2\\), the charged static hole. Derived exactly as in unit 36 with Maxwell's traceless stress tensor as the source.",
+"section": "Charge, and no hair",
+"slide": "Reissner–Nordström",
+"keys": [
+"reissner–nordström metric"
+]
+},
+{
+"term_html": "charge radius",
+"html": "\\(r_Q^2 = GQ^2/4\\pi\\varepsilon_0c^4\\), the length built from the charge. Horizons at \\(r_\\pm = r_g \\pm \\sqrt{r_g^2-r_Q^2}\\); extremality at \\(r_Q = r_g\\), i.e. \\(|Q| = M\\sqrt{4\\pi\\varepsilon_0G}\\).",
+"section": "Charge, and no hair",
+"slide": "Reissner–Nordström",
+"keys": [
+"charge radius"
+]
+},
+{
+"term_html": "Kerr–Newman metric",
+"html": "Charge and spin together: Kerr with \\(\\Delta = r^2 - 2r_gr + a^2 + r_Q^2\\) and a vector potential \\(A = -Qr(c\\,\\mathrm dt - a\\sin^2\\theta\\,\\mathrm d\\varphi)/4\\pi\\varepsilon_0\\Sigma\\). Newman et al. 1965; the most general stationary electrovac hole.",
+"section": "Charge, and no hair",
+"slide": "Reissner–Nordström",
+"keys": [
+"kerr–newman metric"
+]
+},
+{
+"term_html": "no-hair theorem",
+"html": "Cited: a four-dimensional, asymptotically flat, stationary Einstein–Maxwell black hole with connected non-degenerate horizon and regular exterior is Kerr–Newman, fixed by \\((M, J, Q)\\). Israel 1967/68, Carter 1971, Robinson 1975, Hawking 1972. Fails with Yang–Mills matter, in five dimensions, and possibly without analyticity.",
+"section": "Charge, and no hair",
+"slide": "No hair: three numbers, and that is the whole list",
+"keys": [
+"no-hair theorem"
+]
+},
+{
+"term_html": "Killing tensor",
+"html": "A symmetric \\((0,2)\\)-tensor field \\(K\\) — a field of symmetric bilinear maps \\(T_p\\mathcal M\\times T_p\\mathcal M\\to\\mathbb R\\), unit 16's definition — with \\(\\nabla_{(\\lambda}K_{\\mu\\nu)} = 0\\). Then \\(K_{\\mu\\nu}p^\\mu p^\\nu\\) is conserved along geodesics, by a one-line proof. Rank 1 is a Killing vector; the metric is always one.",
+"section": "Carter's constant",
+"slide": "Killing tensors: the object that does it",
+"keys": [
+"killing tensor"
+]
+},
+{
+"term_html": "hidden symmetry",
+"html": "A symmetry of the geodesic flow on \\(T^*\\mathcal M\\) that is not generated by any isometry of \\(\\mathcal M\\). A Killing tensor supplies one; the Runge–Lenz vector of the Kepler problem is the other classic example.",
+"section": "Carter's constant",
+"slide": "Killing tensors: the object that does it",
+"keys": [
+"hidden symmetry"
+]
+},
+{
+"term_html": "Carter's constant",
+"html": "\\(Q = p_\\theta^2 + \\cos^2\\theta[a^2(\\mu^2c^2 - E^2/c^2) + L^2/\\sin^2\\theta]\\), the separation constant of the Kerr Hamilton–Jacobi equation and the fourth constant of geodesic motion. Equals \\(L_{\\text{tot}}^2 - L_z^2\\) when \\(a = 0\\); zero exactly on equatorial orbits. Carter 1968.",
+"section": "Carter's constant",
+"slide": "Worked example 4 — separating the Kerr Hamilton–Jacobi equation",
+"keys": [
+"carter's constant"
+]
+},
+{
+"term_html": "separation constant",
+"html": "What unit 15's additive ansatz produces when a Hamilton–Jacobi equation splits: a function of \\(r\\) plus a function of \\(\\theta\\) vanishing identically forces each to be a constant. Here that constant is \\(Q\\).",
+"section": "Carter's constant",
+"slide": "Worked example 4 — separating the Kerr Hamilton–Jacobi equation",
+"keys": [
+"separation constant"
+]
+},
+{
+"term_html": "Liouville–Arnold theorem",
+"html": "Unit 17's: a Hamiltonian system on a \\(2n\\)-dimensional phase space with \\(n\\) independent constants in involution has compact level sets that are \\(n\\)-tori, carries action–angle variables, and moves quasi-periodically. Applied here with \\(n = 4\\) and \\((H, E, L, Q)\\).",
+"section": "Carter's constant",
+"slide": "Four constants: Liouville–Arnold, and no chaos",
+"keys": [
+"liouville–arnold theorem"
+]
+},
+{
+"term_html": "action–angle variables",
+"html": "The coordinates the theorem provides, in which the actions are constant and the angles advance linearly. For Kerr the three non-trivial frequencies are radial, polar and azimuthal, and their differences are the perihelion and nodal precessions.",
+"section": "Carter's constant",
+"slide": "Four constants: Liouville–Arnold, and no chaos",
+"keys": [
+"action–angle variables"
+]
+},
+{
+"term_html": "dust",
+"html": "Matter with zero pressure, \\(T_{\\mu\\nu} = \\rho u_\\mu u_\\nu\\) (unit 35). The Oppenheimer–Snyder collapse is a uniform ball of it.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "",
+"keys": [
+"dust"
+]
+},
+{
+"term_html": "Oppenheimer–Snyder collapse",
+"html": "The exact solution for a uniform dust ball collapsing from rest: closed FLRW dust inside (unit 39), Schwarzschild outside (Birkhoff, unit 36), matched at the surface. Proper time to the singularity \\((\\pi/2)\\sqrt{R_0^3/2GM}\\) — 29.5 minutes for a solar mass from the Sun's radius. Oppenheimer and Snyder 1939.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Oppenheimer–Snyder: collapse, solved exactly",
+"keys": [
+"oppenheimer–snyder collapse"
+]
+},
+{
+"term_html": "apparent horizon",
+"html": "The boundary of the trapped region on a given spacelike slice, defined by \\(\\theta_{\\text{out}} = 0\\). Local and computable from one slice, unlike the event horizon; it forms inside a collapsing star and coincides with the event horizon only once the hole has settled.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Oppenheimer–Snyder: collapse, solved exactly",
+"keys": [
+"apparent horizon"
+]
+},
+{
+"term_html": "null congruence",
+"html": "A family of null geodesics filling a region, one through each point, given as the integral curves of a null geodesic vector field.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Congruences, and what expansion means",
+"keys": [
+"null congruence"
+]
+},
+{
+"term_html": "expansion",
+"html": "\\(\\theta\\), the trace of the projected \\(\\nabla k\\) on the two-dimensional screen; equivalently \\(\\theta = \\dot{\\mathcal A}/\\mathcal A\\) for the cross-sectional area of a bundle. Units of inverse length.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Congruences, and what expansion means",
+"keys": [
+"expansion"
+]
+},
+{
+"term_html": "shear",
+"html": "\\(\\sigma_{\\mu\\nu}\\), the trace-free symmetric part of the same projection: a bundle distorted without change of area. Focuses, never defocuses.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Congruences, and what expansion means",
+"keys": [
+"shear"
+]
+},
+{
+"term_html": "twist",
+"html": "\\(\\omega_{\\mu\\nu}\\), the antisymmetric part. Vanishes exactly when the congruence is hypersurface orthogonal, by unit 31's Frobenius theorem — which is automatic for the null normals of a closed 2-surface. The only term in Raychaudhuri's equation with a defocusing sign.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Congruences, and what expansion means",
+"keys": [
+"twist"
+]
+},
+{
+"term_html": "Raychaudhuri's equation",
+"html": "\\(\\mathrm d\\theta/\\mathrm d\\lambda = -\\tfrac12 \\theta^2 - \\sigma^2 + \\omega^2 - R_{\\mu\\nu}k^\\mu k^\\nu\\) for a null congruence. Pure geometry until Einstein's equation turns the last term into matter. Raychaudhuri 1955.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Raychaudhuri, and focusing",
+"keys": [
+"raychaudhuri's equation"
+]
+},
+{
+"term_html": "focusing theorem",
+"html": "If \\(\\omega = 0\\) and \\(R_{\\mu\\nu}k^\\mu k^\\nu\\ge0\\), a congruence with \\(\\theta_0 \\lt 0\\) reaches \\(\\theta = -\\infty\\) within affine parameter \\(2/|\\theta_0|\\). Proved in three lines by studying \\(u = 1/\\theta\\).",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Raychaudhuri, and focusing",
+"keys": [
+"focusing theorem"
+]
+},
+{
+"term_html": "caustic",
+"html": "The point where \\(\\theta \\to -\\infty\\): neighbouring geodesics of the congruence cross and the bundle's cross-section closes. Nothing physical goes wrong there; it is a focus, and the singularity theorems turn it into incompleteness only with a global argument.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Raychaudhuri, and focusing",
+"keys": [
+"caustic"
+]
+},
+{
+"term_html": "null energy condition",
+"html": "\\(T_{\\mu\\nu}k^\\mu k^\\nu \\ge 0\\) for every null \\(k\\); for a perfect fluid, \\(\\rho c^2 + p \\ge 0\\). The weakest of the four, the one Penrose's theorem and the area theorem use, and the one Hawking radiation violates.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "The four energy conditions",
+"keys": [
+"null energy condition"
+]
+},
+{
+"term_html": "weak energy condition",
+"html": "\\(T_{\\mu\\nu}u^\\mu u^\\nu \\ge 0\\) for every timelike \\(u\\): every observer measures non-negative energy density. For a perfect fluid, \\(\\rho \\ge 0\\) and \\(\\rho c^2 + p \\ge 0\\).",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "The four energy conditions",
+"keys": [
+"weak energy condition"
+]
+},
+{
+"term_html": "strong energy condition",
+"html": "\\((T_{\\mu\\nu} - \\tfrac12Tg_{\\mu\\nu})u^\\mu u^\\nu \\ge 0\\), equivalently \\(R_{\\mu\\nu}u^\\mu u^\\nu \\ge 0\\): gravity attracts. For a perfect fluid, \\(\\rho c^2 + p \\ge 0\\) and \\(\\rho c^2 + 3p \\ge 0\\). Violated by a positive cosmological constant, by inflation, and by the measured acceleration of the expansion.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "The four energy conditions",
+"keys": [
+"strong energy condition"
+]
+},
+{
+"term_html": "dominant energy condition",
+"html": "The weak condition plus the requirement that \\(-T^\\mu{}_\\nu u^\\nu\\) be causal — energy does not flow faster than light. For a perfect fluid, \\(\\rho c^2 \\ge |p|\\). The strongest of the four.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "The four energy conditions",
+"keys": [
+"dominant energy condition"
+]
+},
+{
+"term_html": "trapped surface",
+"html": "A compact spacelike 2-surface without boundary whose two orthogonal null congruences both have \\(\\theta \\lt 0\\): even the outgoing light front shrinks. None exists in flat space; every sphere inside a Schwarzschild horizon is one. Marginally trapped when \\(\\theta_{\\text{out}} = 0\\).",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Trapped surfaces, and Penrose's theorem",
+"keys": [
+"trapped surface"
+]
+},
+{
+"term_html": "Penrose singularity theorem",
+"html": "Cited: a globally hyperbolic spacetime with a non-compact Cauchy surface, satisfying the NEC and containing a closed trapped surface, is future null geodesically incomplete. Uses no symmetry, which is why it destroyed the hope that Schwarzschild's singularity was an artefact. Penrose 1965; Nobel Prize 2020.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Trapped surfaces, and Penrose's theorem",
+"keys": [
+"penrose singularity theorem"
+]
+},
+{
+"term_html": "geodesic incompleteness",
+"html": "The conclusion of the singularity theorems: some geodesic cannot be extended past a finite affine parameter. It does not assert that a curvature invariant diverges, nor where, nor that the singularity is hidden. Those are separate questions.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Trapped surfaces, and Penrose's theorem",
+"keys": [
+"geodesic incompleteness"
+]
+},
+{
+"term_html": "Hawking's cosmological theorem",
+"html": "Cited: with the SEC, no closed timelike curves, and a compact spacelike slice of everywhere-negative expansion, the spacetime is past timelike geodesically incomplete. A positive \\(\\Lambda\\) violates exactly its energy condition, and de Sitter space is the complete counterexample. Hawking 1967.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Hawking's theorem, and where \\(\\Lambda\\) hits it",
+"keys": [
+"hawking's cosmological theorem"
+]
+},
+{
+"term_html": "first law of black-hole mechanics",
+"html": "\\(\\delta(Mc^2) = (\\kappa c^2/8\\pi G) \\delta A + \\Omega_{\\mathrm H}\\delta J + \\Phi_{\\mathrm H}\\delta Q\\). Proved here by differentiating the Christodoulou formula, and checked numerically on the running hole.",
+"section": "The four laws, and the edge",
+"slide": "The four laws of black-hole mechanics",
+"keys": [
+"first law of black-hole mechanics"
+]
+},
+{
+"term_html": "zeroth law",
+"html": "\\(\\kappa\\) is constant over the horizon of a stationary black hole. Cited: Bardeen, Carter and Hawking 1973 with the dominant energy condition; Rácz and Wald 1996 for bifurcate horizons, where it is pure geometry.",
+"section": "The four laws, and the edge",
+"slide": "The four laws of black-hole mechanics",
+"keys": [
+"zeroth law"
+]
+},
+{
+"term_html": "area theorem",
+"html": "Hawking 1971, cited: the horizon area never decreases in a classical process obeying the NEC. Proved by the focusing theorem — a generator with \\(\\theta \\lt 0\\) would reach a caustic and leave the horizon, which it cannot.",
+"section": "The four laws, and the edge",
+"slide": "Why the area cannot decrease",
+"keys": [
+"area theorem"
+]
+},
+{
+"term_html": "third law",
+"html": "\\(\\kappa = 0\\) cannot be reached by any finite sequence of processes (Israel 1986). The Nernst form — entropy tending to zero with temperature — is false for black holes: an extremal hole has \\(\\kappa = 0\\) and a large area.",
+"section": "The four laws, and the edge",
+"slide": "Why the area cannot decrease",
+"keys": [
+"third law"
+]
+},
+{
+"term_html": "Bekenstein–Hawking entropy",
+"html": "\\(S_{\\mathrm{BH}} = k_{\\mathrm B}c^3A/4G\\hbar\\). Bekenstein argued in 1972 that the horizon must carry an entropy proportional to \\(A\\), or the second law fails; Hawking's 1974 temperature fixes the coefficient at \\(1/4\\), since \\(T_{\\mathrm H}\\delta S_{\\mathrm{BH}}\\) must equal the first law's \\((\\kappa c^2/8\\pi G)\\delta A\\), and \\(\\hbar\\) cancels.",
+"section": "The four laws, and the edge",
+"slide": "Why the area cannot decrease",
+"keys": [
+"bekenstein–hawking entropy"
+]
+},
+{
+"term_html": "generalised second law",
+"html": "The statement that \\(S_{\\text{outside}} + S_{\\mathrm{BH}}\\) never decreases. It is what replaces the classical area theorem once the hole radiates and \\(A\\) can fall.",
+"section": "The four laws, and the edge",
+"slide": "Why the area cannot decrease",
+"keys": [
+"generalised second law"
+]
+},
+{
+"term_html": "information paradox",
+"html": "Hawking radiation depends only on \\((M, J, Q)\\), so a hole formed from any two configurations of equal mass evaporates identically and the difference between them is lost — which unitary quantum mechanics forbids. Unresolved after fifty years.",
+"section": "The four laws, and the edge",
+"slide": "Where this course stops, precisely",
+"keys": [
+"information paradox"
+]
+}
+];

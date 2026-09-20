@@ -1,0 +1,1761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>00 · Newton's second law is an ODE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="a">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="pend"><span class="ref-name">the plane pendulum</span>A bob of mass $m$ on a rigid massless rod of length $l$, swinging in a vertical plane; $\theta$ is measured from straight down, and the bob is released from rest at $\theta_0$. <span class="ref-note">Numbers throughout: $l = 1.000$ m, $g = 9.81\ \mathrm{m\,s^{-2}}$, so $2\pi\sqrt{l/g} = 2.0061$ s</span><svg viewBox="0 0 200 190" width="170" aria-hidden="true"><line x1="20" y1="30" x2="180" y2="30" class="rule" stroke-width="2"/><line x1="100" y1="30" x2="100" y2="160" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/><line x1="100" y1="30" x2="155" y2="140" class="unit" stroke-width="3"/><circle cx="155" cy="140" r="11" class="fill-unit"/><circle cx="100" cy="30" r="4" class="fill-ink"/><path d="M 100 90 A 60 60 0 0 1 127 85" fill="none" class="accent" stroke-width="2"/><text x="104" y="78" font-size="16">θ</text><line x1="155" y1="140" x2="155" y2="178" class="accent" stroke-width="2.5"/><text x="160" y="176" font-size="14" class="soft">mg</text><text x="118" y="45" font-size="14" class="soft">l</text></svg></template>
+  <template data-ref="eom"><span class="ref-name">its equation of motion</span>$$\ddot\theta = -\frac{g}{l}\,\sin\theta,\qquad \theta(0) = \theta_0,\ \dot\theta(0) = 0$$<span class="ref-note">Derived on <i>The pendulum, from the laws</i> by eliminating the rod's tension. A force of the form $F(x)$: case 3 of the three integrable cases</span></template>
+  <template data-ref="dimform"><span class="ref-name">its dimensional form</span>$$T = \sqrt{l/g}\;f(\theta_0)$$<span class="ref-note">Two lines of linear algebra, no calculus. The mass has dropped out; $f$ is the one thing left for the calculus to find, and $f(0) = 2\pi$</span></template>
+  <template data-ref="V"><span class="ref-name">its potential</span>$$V(\theta) = mgl\,(1 - \cos\theta), \qquad E = mgl\,(1 - \cos\theta_0)$$<span class="ref-note">A well on $(-\pi, \pi)$ with a maximum $2mgl$ at $\theta = \pm\pi$. Turning points where $V = E$</span></template>
+  <template data-ref="K"><span class="ref-name">its exact period</span>$$T = 4\sqrt{l/g}\;K\!\big(\sin(\theta_0/2)\big), \qquad K(k) = \int_0^{\pi/2}\frac{\mathrm{d}\varphi}{\sqrt{1 - k^2\sin^2\varphi}}$$<span class="ref-note">So $f(\theta_0) = 4K(\sin(\theta_0/2))$. At $\theta_0 = 23^\circ$ it exceeds $2\pi$ by 1.02 per cent</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== 1 -->
+<section class="title-slide">
+  <p class="eyebrow">Part A · the equation of motion · spine</p>
+  <div class="unit-no">00</div>
+  <h1>Newton's second law is an ODE — and dimensions tell you the answer's shape before you solve it</h1>
+  <p class="lede">Three forces can be integrated in closed form, and one page of linear algebra
+  fixes the form of the answer to almost anything else.</p>
+  <p class="meta"><span>needs nothing</span><span>~2 h slides + 5 h problems</span><span>problems: <code>./mr problems 00</code></span></p>
+  <aside class="notes">
+    <p>This is the first unit of the course and it assumes no physics at all. What it does
+    assume is that you are comfortable with proofs, with linear algebra over $\mathbb{R}$,
+    and with single-variable real analysis: limits, the mean value theorem, Taylor's theorem
+    with remainder, uniform convergence, and improper integrals with the comparison test.
+    Everything else — vector calculus, ODE theory, complex analysis, variational calculus,
+    tensors, differential geometry — arrives later, pulled in by a problem that stalls
+    without it.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through every section: <span class="ref" data-ref="pend">the plane pendulum</span>. It is
+    done twice, and the second time is not the important one. Dimensional analysis will
+    settle the whole structure of its period in two lines; the calculus is then left to
+    determine a single function of a single dimensionless variable, and nothing else. That
+    division of labour is the habit this unit is trying to install.</p>
+    <p>Words with a dotted underline are glossary terms: click one for its definition,
+    <kbd>G</kbd> for the whole index. A solid underline, like the one on "the plane
+    pendulum" above, names a piece of the running example and shows it on hover.
+    <kbd>N</kbd> opens the notes, where the longer proofs are. Proofs that fit on a line
+    are on the slide.</p>
+    <p>Nothing here is stated without proof or without a label saying where the proof is.
+    There are exactly two imported results in this unit, both flagged in place: the value
+    of the Sedov constant for a blast wave, and the standard properties of the complete
+    elliptic integral, which is named but not developed.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 2 -->
+<section>
+  <p class="eyebrow">00 · overview</p>
+  <h2>Two ways to answer one question</h2>
+  <p class="small">A bob on a rod, released from rest at an angle $\theta_0$. <b>How long does it take to swing back?</b></p>
+  <div class="cols">
+    <div class="box def"><span class="label">route 1 · two lines, no calculus</span>
+      <p class="small">The quantities available are $T, l, g, m, \theta_0$. They span three
+      independent <span class="term">base dimension</span>s, so exactly two independent
+      <span class="term">dimensionless group</span>s exist: $T^2g/l$ and $\theta_0$. Hence</p>
+      <p class="small center"><span class="ref" data-ref="dimform">$T = \sqrt{l/g}\ f(\theta_0)$</span></p>
+      <p class="small">The mass is gone. A pendulum twice as long is $\sqrt2$ times slower. Section 2.</p>
+    </div>
+    <div class="box def"><span class="label">route 2 · the differential equation</span>
+      <p class="small">Newton's second law gives <span class="ref" data-ref="eom">$\ddot\theta = -(g/l)\sin\theta$</span>, a second-order ODE. It reduces to
+      <span class="term">quadrature</span> because the force depends on position alone, and the answer is</p>
+      <p class="small center"><span class="ref" data-ref="K">$T = 4\sqrt{l/g}\,K(\sin\tfrac{\theta_0}{2})$</span></p>
+      <p class="small">Sections 3–5. All of that work bought exactly one function: $f = 4K(\sin(\cdot/2))$.</p>
+    </div>
+  </div>
+  <div class="box good"><span class="label">the plan</span>
+    <p class="small"><b>1</b> what the three laws assert · <b>2</b> dimensions, and the theorem behind them
+    · <b>3</b> the three forces that integrate · <b>4</b> reading the motion off the potential
+    · <b>5</b> the pendulum, exactly, and the amplitude at which the schoolbook formula is 1 per cent wrong.</p>
+  </div>
+  <aside class="notes">
+    <p>The two routes are not competitors. Route 1 costs nothing and is almost never wrong;
+    route 2 is expensive and is available for perhaps a dozen force laws in the whole of
+    mechanics. The professional habit is to run route 1 first, always, and to use its answer
+    as a check on route 2. In this course you will be asked for the dimensional form before
+    you are allowed to integrate anything.</p>
+    <p>A warning about the word "period". A pendulum released from rest at $\theta_0$ swings
+    to $-\theta_0$ and back; $T$ is the time for the whole round trip, four times the time
+    from $\theta_0$ to $0$. Keep the factor of four in view: it is the commonest slip in the
+    problems.</p>
+    <p>Numbers in this deck are all computed, not quoted. Where a pendulum is given numbers
+    they are $l = 1.000$ m and $g = 9.81\ \mathrm{m\,s^{-2}}$, for which
+    $2\pi\sqrt{l/g} = 2.0061$ s.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>What the three laws assert</h2>
+  <p>One of them is a definition, one is a scheme rather than an equation, and one is false as usually stated.</p>
+</section>
+
+<!-- ================================================================== 3 -->
+<section>
+  <p class="eyebrow">00 · the laws</p>
+  <h2>The first law is a definition, not a special case</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Newton's first law</span></span>
+        <p class="small">There exist frames of reference — <span class="term">inertial frame</span>s —
+        in which a body subject to no force moves with constant velocity.</p>
+      </div>
+      <p class="small">Read as "$F = 0 \Rightarrow a = 0$" it is the case $F = 0$ of the second law and
+      says nothing. Read as above it is an <b>existence claim about frames</b>, and it is what
+      makes the second law falsifiable: without it, any observed acceleration could be
+      explained by declaring a force.</p>
+      <div class="box warn"><span class="label">the circularity, honestly</span>
+        <p class="small">"No force" and "inertial frame" are defined in terms of each other. The
+        escape is empirical, not logical: a frame far from all matter works, and the same frames
+        then work for every experiment. General relativity (unit 30) removes the circle by
+        making free fall, not uniform motion, the primitive.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Given one inertial frame, every frame moving uniformly relative to it is
+      inertial too. If $\vec r' = \vec r - \vec u\,t$ with $\vec u$ constant, then differentiating
+      twice componentwise,</p>
+      $$\ddot{\vec r}{\,}' = \ddot{\vec r},$$
+      <p class="small">so accelerations agree. That family of changes of frame is the
+      <span class="term">Galilean group</span>, and unit 25 shows that Maxwell's equations do not
+      survive it — which is where relativity starts.</p>
+      <div class="box good"><span class="label">check</span>
+        <p class="small">A rotating frame is <b>not</b> inertial: a free body appears to accelerate.
+        Unit 03 computes what appears in its place.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Newton's own statement (Principia, 1687, Law I) is "Every body perseveres in its state
+    of rest, or of uniform motion in a right line, unless it is compelled to change that state
+    by forces impressed thereon." Newton had absolute space and did not need the existence
+    claim; the modern reading is due to Lange (1885) and Thomson, who defined an inertial
+    frame as one in which three mutually non-collinear free particles move in straight lines.</p>
+    <p><b>Why this matters for the rest of the course.</b> Everything in Parts A to C is written
+    in an inertial frame, and every time the frame is changed you must ask whether the new one
+    is inertial. Unit 03 does rotating frames and derives the terms that appear (centrifugal,
+    Coriolis) rather than asserting them; unit 30 shows that in a gravitational field <em>no</em>
+    global inertial frame exists, which is the equivalence principle and the reason spacetime
+    has to curve.</p>
+    <p><b>On "differentiating componentwise".</b> A motion is a map $\vec r : I \to \mathbb{R}^3$
+    from a time interval. Its derivative is defined by the limit of difference quotients in
+    $\mathbb{R}^3$, which — because the norm is equivalent to the max of the coordinates — exists
+    exactly when each of the three coordinate functions is differentiable, and then equals the
+    triple of their derivatives. That is all the multivariable calculus this unit uses, and it
+    is a theorem of single-variable analysis, not of unit 03's.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 4 -->
+<section>
+  <p class="eyebrow">00 · the laws</p>
+  <h2>The second law is a scheme</h2>
+  <div class="box thm"><span class="label"><span class="term">Newton's second law</span></span>
+    <p>In an inertial frame, a body of mass $m$ under a total force $\vec F$ obeys
+    $\;\vec F = m\,\ddot{\vec r}$. Equivalently $\vec F = \dot{\vec p}$ with
+    <span class="term">momentum</span> $\vec p = m\dot{\vec r}$.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small">As written this is not one equation but a <b>template</b>. It becomes an
+      equation only once someone supplies $\vec F$ as a function of the things the body can
+      depend on — position, velocity, time:</p>
+      $$m\,\ddot{\vec r} = \vec F(\vec r, \dot{\vec r}, t).$$
+      <p class="small">That is a second-order ordinary differential equation, and the whole of
+      Part A is one long answer to "which one, and how do you solve it?".</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">dimension check</span>
+        <p class="small">$[m\ddot r] = \mathsf{M}\,\mathsf{L}\,\mathsf{T}^{-2}$, so force has
+        dimension $\mathsf{MLT^{-2}}$ — the newton is $\mathrm{kg\,m\,s^{-2}}$ <em>by definition</em>,
+        not by measurement. Force is not an independent base dimension; that choice is made here
+        and never revisited.</p>
+      </div>
+      <div class="box warn"><span class="label">what is <em>not</em> claimed</span>
+        <p class="small">That a solution exists, or is unique. Both are true under a Lipschitz
+        hypothesis on $\vec F$ and are proved in <b>unit 01</b>. Nothing in this unit may lean on
+        uniqueness; where it looks as if it does, the notes say so.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Is $F = ma$ a definition of force or a law of nature?</b> Neither on its own. Taken with a
+    stock of independently specified force laws — gravity, springs, drag, the Lorentz force — the
+    package is falsifiable and has been falsified (at high speed, unit 27; at small scale, not in
+    this course). Taken alone, it defines force in terms of acceleration and is empty. Mach's
+    analysis is the standard treatment; Eddington's joke is that the second law says "force
+    equals mass times acceleration, where force is what makes mass accelerate".</p>
+    <p><b>Mass, briefly.</b> Two notions are in play. <em>Inertial</em> mass is the $m$ here, the
+    body's resistance to acceleration. <em>Gravitational</em> mass is the coupling constant in the
+    law of gravitation. That they are equal is an experimental fact, tested to about one part in
+    $10^{13}$ by torsion balances and by lunar laser ranging, and to about one part in $10^{15}$ by the
+    MICROSCOPE satellite (final result, 2022); it is the empirical content of the
+    equivalence principle. Unit 30 builds general relativity on it. In this unit the coincidence
+    shows up as the mass dropping out of every free-fall answer.</p>
+    <p><b>The momentum form is the better one.</b> $\vec F = \dot{\vec p}$ survives to variable-mass
+    problems and to relativity, where $\vec p = \gamma m \vec v$ and $\vec F = m\vec a$ is simply
+    false (unit 27). Prefer it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 5 -->
+<section>
+  <p class="eyebrow">00 · the laws</p>
+  <h2>Force laws are input, not theorem</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A <span class="term">force law</span> is an extra, independent physical
+      hypothesis. Mechanics does not derive it; mechanics takes it and integrates it. The ones
+      this unit uses, all in one dimension:</p>
+      <table class="dense">
+        <thead><tr><th>law</th><th>form</th><th>type</th></tr></thead>
+        <tbody>
+          <tr><td>uniform gravity near the ground</td><td>$-mg$</td><td>constant</td></tr>
+          <tr><td>Hooke's law</td><td>$-kx$</td><td>$F(x)$</td></tr>
+          <tr><td>linear (Stokes) drag</td><td>$-b v$</td><td>$F(v)$</td></tr>
+          <tr><td>quadratic (Newton) drag</td><td>$-c\,v|v|$</td><td>$F(v)$</td></tr>
+          <tr><td>a driving force</td><td>$F_0\cos\omega t$</td><td>$F(t)$</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">Each is an approximation with a stated range of validity, not an identity.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">which drag, and when</span>
+        <p class="small">Linear drag is the low-Reynolds-number regime — small, slow, viscous.
+        Quadratic drag is the high-Reynolds regime — large, fast, inertial. A human in air is
+        firmly quadratic; a $1\ \mathrm{\mu m}$ droplet in oil is firmly linear. Using the wrong
+        one is not a small error, it is a different power law.</p>
+      </div>
+      <div class="box good"><span class="label">why $v|v|$ and not $v^2$</span>
+        <p class="small">Drag opposes motion. $-cv^2$ would <em>push</em> a body moving in the
+        $-x$ direction further in that direction. Writing $-c\,v|v|$ keeps the sign right for
+        both directions and agrees with $-cv^2$ for $v > 0$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the two drag laws come from.</b> Both are dimensional statements about the force on
+    a body of size $a$ moving at speed $v$ through a fluid of density $\rho$ and viscosity $\mu$.
+    With $\mu$ dominant the only combination with the dimensions of force is $\mu a v$, giving
+    Stokes' $6\pi\mu a v$ for a sphere; with $\rho$ dominant it is $\rho a^2 v^2$, giving
+    $\tfrac12 C_D \rho A v^2$. Which dominates is decided by the Reynolds number
+    $\mathrm{Re} = \rho a v/\mu$, itself a dimensionless group in the sense of section 2. That is
+    dimensional analysis doing the whole job, and it is worth returning to this note after the
+    Buckingham slide.</p>
+    <p><b>Hooke's law</b> is the first two terms of a Taylor expansion of any smooth force about a
+    stable equilibrium, which is why it is ubiquitous rather than fundamental. Unit 06 makes that
+    precise and unit 07 does the many-variable version.</p>
+    <p>Gravity as $-mg$ is the leading term of the inverse-square law near the surface. With
+    $R_\oplus = 6371$ km, the fractional change in $g$ over a 100 m fall is $2\times 100/R_\oplus
+    = 3.1 \times 10^{-5}$, so treating $g$ as constant is good to four significant figures over a
+    building. Unit 08 does the exact problem.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 6 -->
+<section>
+  <p class="eyebrow">00 · the laws</p>
+  <h2>The third law, and what it does not say</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Newton's third law</span></span>
+        <p class="small">The force exerted by body 1 on body 2 is equal and opposite to that
+        exerted by 2 on 1: $\vec F_{12} = -\vec F_{21}$.</p>
+      </div>
+      <div class="box thm"><span class="label">consequence: <span class="term">conservation of momentum</span></span>
+        <p class="small">For an isolated pair, $\dot{\vec p}_1 + \dot{\vec p}_2 = \vec F_{12} + \vec F_{21} = \vec 0$,
+        so $\vec p_1 + \vec p_2$ is constant.</p>
+        <p class="small muted"><b>Proof:</b> that is the whole proof — add the two second laws and
+        use the third. It extends to $N$ bodies because the internal forces cancel in pairs.</p>
+      </div>
+      <div class="box warn"><span class="label">it is false for fields</span>
+        <p class="small">Two charges in relative motion exert forces on each other that are
+        <em>not</em> equal and opposite: the field carries momentum and takes time to get there.
+        Unit 24 exhibits the failure and unit 29 repairs it, by deriving momentum conservation
+        from a symmetry instead of from the third law.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">The lesson to carry forward: momentum conservation is the durable statement
+      and the third law is a special case of it, not the other way round.</p>
+      <div class="box good"><span class="label">dimension check</span>
+        <p class="small">$[\,p\,] = \mathsf{MLT^{-1}}$ and $[\,F\,] = \mathsf{MLT^{-2}}$, so
+        $\vec F = \dot{\vec p}$ balances. </p>
+      </div>
+      <p class="small muted">Unit 13 proves Noether's theorem: momentum conservation follows from
+      the invariance of the laws under translations in space. That is the version that survives
+      into field theory and relativity.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Strong and weak forms.</b> The <em>weak</em> third law is the statement above. The
+    <em>strong</em> third law adds that the mutual forces lie along the line joining the bodies;
+    that is what is needed for angular momentum conservation, and it holds for gravity and
+    electrostatics but not for the magnetic force between current elements. Unit 08 needs the
+    strong form and says so.</p>
+    <p><b>The concrete failure.</b> Charge 1 at the origin moving along $x$, charge 2 on the $y$
+    axis moving along $y$. The magnetic force on each from the other is computed in unit 24; they
+    are perpendicular, not antiparallel, so their sum is not zero. Total momentum is still
+    conserved once the momentum stored in the electromagnetic field is counted, and that quantity
+    falls out of Noether's theorem in unit 29 rather than being postulated.</p>
+    <p>For this unit the third law is used exactly once — to say that the pendulum's rod and bob
+    exert equal and opposite forces, which is why the tension can be treated as a single unknown
+    scalar. It is eliminated on the next slide and never appears again.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 7 -->
+<section>
+  <p class="eyebrow">00 · the laws · example</p>
+  <h2>The pendulum, from the laws</h2>
+  <div class="box ex"><span class="label">worked example 1 · eliminating a <span class="term">constraint force</span></span>
+    <div class="cols wide-left">
+      <div>
+        <p class="small">Put the pivot at the origin, $y$ upwards. The rod is rigid, so the bob's position is
+        $\vec r(t) = \big(l\sin\theta(t),\, -l\cos\theta(t)\big)$ for a single unknown function $\theta$.
+        Differentiate componentwise, twice, with the product and chain rules:</p>
+        <p class="small">$\dot x = l\cos\theta\ \dot\theta$, $\quad\ddot x = l\cos\theta\,\ddot\theta - l\sin\theta\,\dot\theta^{\,2}$,</p>
+        <p class="small">$\dot y = l\sin\theta\ \dot\theta$, $\quad\ddot y = l\sin\theta\,\ddot\theta + l\cos\theta\,\dot\theta^{\,2}$.</p>
+        <p class="small">Two forces act: gravity $(0, -mg)$, and the rod's pull along its own length towards
+        the pivot, $\;-T(\sin\theta, -\cos\theta)$, with $T(t)$ <b>unknown</b>. Newton's second law, componentwise:</p>
+        <p class="small">$m\big(l\cos\theta\,\ddot\theta - l\sin\theta\,\dot\theta^{\,2}\big) = -T\sin\theta$,</p>
+        <p class="small">$m\big(l\sin\theta\,\ddot\theta + l\cos\theta\,\dot\theta^{\,2}\big) = -mg + T\cos\theta$.</p>
+      </div>
+      <div>
+        <p class="small">Take $\cos\theta$ times the first plus $\sin\theta$ times the second. On the right,
+        $-T\sin\theta\cos\theta + T\sin\theta\cos\theta = 0$: <b>the tension cancels.</b> On the left
+        $\dot\theta^{\,2}$ cancels too and $\cos^2+\sin^2 = 1$, leaving $ml\,\ddot\theta = -mg\sin\theta$:</p>
+        $$\boxed{\ \ddot\theta = -\tfrac{g}{l}\sin\theta\ }$$
+        <p class="small">Mass gone, tension gone, one second-order ODE in one unknown: <span class="ref" data-ref="eom">the running example</span>. The notes recover $T$.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small">Dimensions: $[g/l] = \mathsf{T^{-2}}$ and $\theta$ is dimensionless, so both sides are
+    $\mathsf{T^{-2}}$. Limit: for small $|\theta|$, $\sin\theta \approx \theta$ gives
+    $\ddot\theta = -(g/l)\theta$, solved by $\theta_0\cos(\sqrt{g/l}\,t)$ with period $2\pi\sqrt{l/g}$ — the
+    schoolbook answer, obtained rather than asserted.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Why the cancellation was inevitable.</b> The combination taken is $\cos\theta$ times the $x$
+    equation plus $\sin\theta$ times the $y$ equation, which is the component of $\vec F = m\vec a$ along
+    the unit vector $(\cos\theta, \sin\theta)$ — the direction tangent to the circle. The rod's force is
+    perpendicular to that direction by construction, so it has no tangential component and must drop out.
+    A constraint force does no work and enters no tangential equation: that observation, promoted to a
+    principle, is d'Alembert's, and unit 12 turns it into Lagrangian mechanics, where this entire slide
+    becomes one line.</p>
+    <p><b>Check the second combination.</b> $\sin\theta\times$(first) gives
+    $m l \sin\theta\cos\theta\,\ddot\theta - ml\sin^2\theta\,\dot\theta^2 = -T\sin^2\theta$;
+    $\cos\theta\times$(second) gives
+    $ml\sin\theta\cos\theta\,\ddot\theta + ml\cos^2\theta\,\dot\theta^2 = -mg\cos\theta + T\cos^2\theta$.
+    Subtract the second from the first: $-ml\dot\theta^2 = mg\cos\theta - T$, so
+    $T = ml\dot\theta^2 + mg\cos\theta$. At the bottom of a swing released from $\theta_0$, energy
+    (section 3) gives $l\dot\theta^2 = 2g(1 - \cos\theta_0)$, so $T = mg(3 - 2\cos\theta_0)$: at
+    $\theta_0 = \pi/2$ the rod carries three times the bob's weight at the bottom. A rod released from
+    horizontal and a string released from horizontal behave identically; released from <em>above</em>
+    horizontal they do not, because a string cannot push.</p>
+    <p><b>What has been assumed.</b> That the rod is rigid and massless, that the bob is a point, that the
+    pivot is frictionless, and that the motion stays in one vertical plane. Each is a modelling choice.
+    Unit 16 does the pendulum with a distributed mass (the compound pendulum) and finds the same equation
+    with $l$ replaced by an effective length $I/(m d)$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Dimensions, before any calculus</h2>
+  <p>A change of units is a group action; dimensional analysis is the study of its orbits. The theorem is a rank argument.</p>
+</section>
+
+<!-- ================================================================== 8 -->
+<section>
+  <p class="eyebrow">00 · dimensions</p>
+  <h2>Units as a group action</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Fix $d$ <span class="term">base dimension</span>s; for mechanics $d = 3$ and they
+      are mass $\mathsf M$, length $\mathsf L$, time $\mathsf T$. A quantity $q$ has a
+      <span class="term">dimension</span> vector $D_{\cdot q} \in \mathbb{Q}^d$ recording its exponents.</p>
+      <div class="box def"><span class="label">rescaling</span>
+        <p class="small">Change the base units so that a measurement in base dimension $i$ is multiplied
+        by $\lambda_i$ — shrink the metre by $100$ and $\lambda_{\mathsf L} = 100$. For
+        $\lambda = (\lambda_1,\dots,\lambda_d) \in (\mathbb{R}_{&gt;0})^d$ this replaces the number $q$ by</p>
+        $$q \;\longmapsto\; \Big(\textstyle\prod_i \lambda_i^{\,D_{iq}}\Big)\, q .$$
+        <p class="small">This is an action of the group $(\mathbb{R}_{&gt;0})^d$ on measured values,
+        and $\lambda \mapsto \log\lambda$ turns it into the additive action of $\mathbb{R}^d$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the hypothesis, stated as a hypothesis</span>
+        <p class="small"><span class="term">dimensional homogeneity</span>: a physical law relating
+        $q_1,\dots,q_n$ holds in one consistent system of units if and only if it holds in all of them.
+        Formally, if $f(q) = 0$ then $f(\lambda^D q) = 0$ for every $\lambda$.</p>
+      </div>
+      <p class="small">This is <b>not a theorem</b>. It is an assumption about what counts as a physical
+      law: that nature does not know which metre stick you own. Everything in this section is a
+      consequence of it.</p>
+      <div class="box warn"><span class="label">where it can fail</span>
+        <p class="small">If a law secretly involves a dimensional constant you left out of the list —
+        $c$, $\hbar$, $G$, a material property — the assumption is violated for <em>your</em> list, not
+        for nature's. Every failed dimensional argument is a missing variable.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\mathbb{Q}^d$ and not $\mathbb{R}^d$.</b> Nothing forbids irrational exponents formally,
+    but every quantity that occurs in practice has rational exponents, and rationality is what lets the
+    kernel of the dimension matrix be spanned by integer vectors after clearing denominators — which is
+    what makes the dimensionless groups <em>monomials</em> with a chance of being recognisable.</p>
+    <p><b>Which dimensions are "base" is a convention.</b> SI takes seven (mass, length, time, current,
+    temperature, amount, luminous intensity). Mechanics needs three. Gaussian units make charge
+    derived; natural units set $c = \hbar = 1$ and collapse length and time into one dimension. The
+    theorem below does not care: it only cares about the rank of the resulting matrix. What does change
+    is the <em>count</em> of dimensionless groups, and here is the trap: choosing fewer base dimensions
+    gives a smaller rank and therefore <em>more</em> groups, which is a weaker conclusion. Take as many
+    independent base dimensions as you honestly can.</p>
+    <p><b>Angles.</b> An angle in radians is a ratio of two lengths and is dimensionless, which is why
+    $\theta_0$ appears as a group in its own right on the next slides. That is also why
+    $\sin\theta$ makes sense and $\sin(3\ \mathrm{metres})$ does not: the argument of a transcendental
+    function must be dimensionless, because the function is defined by a power series and the terms
+    would otherwise have different dimensions. Use this as a free error-check on every formula you write.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 9 -->
+<section>
+  <p class="eyebrow">00 · dimensions</p>
+  <h2>The dimension matrix and its kernel</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">List the relevant quantities $q_1,\dots,q_n$ and build the
+      <span class="term">dimension matrix</span> $D \in \mathbb{Q}^{d\times n}$, one column per quantity,
+      one row per base dimension.</p>
+      <div class="box thm"><span class="label">lemma · the kernel is the answer</span>
+        <p class="small">The monomial $\prod_j q_j^{a_j}$ is dimensionless if and only if $Da = 0$.</p>
+        <p class="small muted"><b>Proof.</b> Its dimension vector is $\sum_j a_j D_{\cdot j} = Da$, and a
+        quantity is dimensionless exactly when its dimension vector is zero. $\square$</p>
+      </div>
+      <p class="small">So the dimensionless monomials are $\ker D$, a subspace of dimension
+      $n - r$ with $r = \operatorname{rank} D$. Picking a basis of $\ker D$ picks a set of
+      <span class="term">dimensionless group</span>s $\pi_1,\dots,\pi_{n-r}$, and every dimensionless
+      monomial is a product of powers of them.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the pendulum's matrix</span>
+        <p class="small">Quantities $T, l, g, m, \theta_0$:</p>
+        $$D = \begin{array}{c|ccccc} & T & l & g & m & \theta_0\\\hline
+        \mathsf M & 0&0&0&1&0\\ \mathsf L & 0&1&1&0&0\\ \mathsf T & 1&0&-2&0&0\end{array}$$
+        <p class="small">Columns $m, l, T$ are the standard basis vectors of $\mathbb{Q}^3$, so
+        $r = 3$ and $\dim\ker D = 5 - 3 = 2$.</p>
+      </div>
+      <p class="small">Solving $Da = 0$: the $\mathsf M$ row forces $a_m = 0$, the $\mathsf L$ row gives
+      $a_l = -a_g$, the $\mathsf T$ row gives $a_T = 2a_g$. Free parameters $a_g$ and $a_{\theta_0}$:</p>
+      $$\pi_1 = \frac{T^2 g}{l}\ \ (a_g = 1), \qquad \pi_2 = \theta_0 .$$
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The basis is not unique, and that is fine.</b> $\pi_1' = \pi_1\pi_2^2$ is an equally good first
+    group. What is canonical is the subspace $\ker D$, not the basis; every choice gives the same
+    physics, and a good choice is one whose groups have names (Reynolds number, Mach number, fine
+    structure constant). When you compare two textbooks' groups, check whether one set is a
+    multiplicative basis change of the other before concluding that someone is wrong.</p>
+    <p><b>Why "list the relevant quantities" is the hard step.</b> The mathematics below is mechanical;
+    the physics is entirely in the list. Put in one quantity too many and you get a spurious extra
+    group and a weaker conclusion. Leave one out and you get a false statement. There is no algorithm
+    for the list — it is where judgement lives, and it is what the problems drill.</p>
+    <p><b>Checking rank by hand.</b> Row-reduce $D$, or spot that some subset of columns is already
+    triangular. Here $m$ is the only quantity carrying $\mathsf M$, so its column is independent of the
+    rest; after deleting the $\mathsf M$ row and the $m$ column, $l$ is the only remaining quantity
+    carrying $\mathsf L$ alone, and so on. A quantity with a dimension nothing else has always
+    contributes to the rank, and it always drops out of the answer — which is exactly why the
+    pendulum's period cannot depend on $m$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 10 -->
+<section>
+  <p class="eyebrow">00 · dimensions</p>
+  <h2>The Buckingham pi theorem</h2>
+  <div class="box thm"><span class="label"><span class="term">Buckingham pi theorem</span></span>
+    <p>Let $f(q_1,\dots,q_n) = 0$ be a dimensionally homogeneous relation, $D$ its
+    dimension matrix, $r = \operatorname{rank} D$. Then there are $n - r$ independent dimensionless
+    groups $\pi_1,\dots,\pi_{n-r}$, and a function $F$ of $n-r$ variables with</p>
+    $$f(q_1,\dots,q_n) = 0 \iff F(\pi_1,\dots,\pi_{n-r}) = 0 .$$
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Proof, in one sentence.</b> Reorder so that columns $1..r$ of $D$ are independent;
+      because $D_{[1..r]}^{\!\top}$ has rank $r$ it is surjective onto $\mathbb{R}^r$, so units can be chosen
+      making $q_1 = \dots = q_r = 1$; homogeneity says the relation is unchanged, and in those units every
+      remaining $q_j$ <em>is</em> its dimensionless group. $\square$</p>
+      <p class="proof-pointer">full proof in the notes (N)</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">two checks</span>
+        <p class="small"><b>Count.</b> $r \le \min(d, n)$, so there is at least one group whenever $n &gt; d$;
+        and $n - r = 0$ means the relation is vacuous — you have not put in enough quantities.</p>
+        <p class="small"><b>Special case.</b> $n - r = 1$ is the powerful case: a single group, so
+        $\pi_1 = \text{const}$, and the law is determined up to one pure number. The blast wave below
+        is of this kind.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Write the action additively: with $\mu_i = \log\lambda_i$ and $Q_j = \log q_j$ (assume all
+    $q_j &gt; 0$), rescaling sends $Q \mapsto Q + D^{\!\top}\mu$.</p>
+    <p><b>Step 1.</b> Reorder the quantities so that the first $r$ columns of $D$ are linearly
+    independent; call that $d\times r$ block $B$. Since $\operatorname{rank}B = r$, the map
+    $\mathbb{R}^d \to \mathbb{R}^r$, $\mu \mapsto B^{\!\top}\mu$, is surjective (its matrix has rank $r$
+    and $r$ rows). Hence there is $\mu^\star$ with $B^{\!\top}\mu^\star = -(Q_1,\dots,Q_r)$, that is, a
+    choice of units in which $q_1 = \dots = q_r = 1$.</p>
+    <p><b>Step 2.</b> For $j &gt; r$, the column $D_{\cdot j}$ lies in the span of $B$'s columns — the
+    first $r$ columns span the column space, since the rank is $r$. So there is a unique
+    $c^{(j)} \in \mathbb{R}^r$ with $D_{\cdot j} = B\,c^{(j)}$. Put</p>
+    $$\pi_j \;=\; q_j \prod_{i \le r} q_i^{-c^{(j)}_i}, \qquad j = r+1,\dots,n .$$
+    <p>Its exponent vector is $e_j - \sum_i c^{(j)}_i e_i$, and $D$ applied to it is
+    $D_{\cdot j} - Bc^{(j)} = 0$: each $\pi_j$ is dimensionless. These $n - r$ exponent vectors are
+    linearly independent, because the $j$-th has a $1$ in coordinate $j$ and zeros in the other
+    coordinates $&gt; r$; and $\dim\ker D = n - r$ by rank–nullity. So they are a <em>basis</em> of
+    $\ker D$, and every dimensionless monomial is a product of powers of the $\pi_j$.</p>
+    <p><b>Step 3.</b> In the units of step 1 the values are $(1,\dots,1,\pi_{r+1},\dots,\pi_n)$ — the
+    $j$-th becomes $q_j\prod q_i^{-c_i^{(j)}}$, which is exactly $\pi_j$. Define
+    $F(\pi_{r+1},\dots,\pi_n) := f(1,\dots,1,\pi_{r+1},\dots,\pi_n)$. Homogeneity gives
+    $f(q) = 0 \iff f(\lambda^{\star D}q) = 0 \iff F(\pi) = 0$. $\square$</p>
+    <p><b>History.</b> The counting argument is Vaschy's (1892) and Buckingham's (1914); Riabouchinsky
+    and Bridgman sharpened the statement. Bridgman's <em>Dimensional Analysis</em> (1922) is still the
+    clearest book-length treatment, and Barenblatt's <em>Scaling</em> (2003) is the modern one, including
+    the cases where the naive argument fails because a group tends to zero or infinity and the limit is
+    not uniform — "incomplete similarity", which is where anomalous exponents come from.</p>
+    <p><b>The positivity assumption.</b> Taking logs needs $q_j &gt; 0$. For quantities that can change
+    sign, apply the theorem to $|q_j|$ and carry the signs separately; nothing essential changes, since
+    a sign is itself dimensionless.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 11 -->
+<section>
+  <p class="eyebrow">00 · dimensions · example</p>
+  <h2>The pendulum, dimensionally</h2>
+  <div class="box ex"><span class="label">worked example 2 · two lines, no calculus</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. The list.</b> What can the period depend on? The rod's length $l$, gravity
+        $g$, the bob's mass $m$, the release angle $\theta_0$. Not the rod's material (it is rigid and
+        massless by assumption), not the time of day.</p>
+        <p class="small"><b>2. The matrix.</b> $n = 5$, $d = 3$, $r = 3$, so $n - r = 2$ groups, computed
+        two slides ago: $\pi_1 = T^2g/l$ and $\pi_2 = \theta_0$.</p>
+        <p class="small"><b>3. Buckingham.</b> The relation is $F(T^2g/l,\ \theta_0) = 0$. Solving for the
+        first argument — legitimate whenever $T$ is determined by the rest, which it is —</p>
+        $$\frac{T^2g}{l} = f(\theta_0)^2 \quad\Longrightarrow\quad
+        \boxed{\ T = \sqrt{l/g}\ f(\theta_0)\ }$$
+      </div>
+      <div>
+        <p class="small">Everything except the single function $f$ is now settled, and three separate
+        physical facts have been proved without touching the equation of motion:</p>
+        <ul class="small">
+          <li><b>No mass dependence.</b> $m$ is the only quantity carrying $\mathsf M$, so its exponent
+          must vanish. A lead bob and a cork bob keep the same time.</li>
+          <li><b>Length scaling.</b> $T \propto \sqrt{l}$ at fixed amplitude: quadruple the rod, double
+          the period.</li>
+          <li><b>Amplitude enters only through $\theta_0$</b> — a dimensionless angle, so no combination
+          of $l$ and $g$ can trade against it.</li>
+        </ul>
+        <p class="small muted">What is <em>not</em> settled: the function $f$. Sections 3–5 compute it,
+        and that is all they compute.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small">Dimensions: $[\sqrt{l/g}] = (\mathsf L/\mathsf{LT^{-2}})^{1/2} = \mathsf T$. ✓
+    Limit: the small-angle solution on "The pendulum, from the laws" gives $T \to 2\pi\sqrt{l/g}$, so $f(0) = 2\pi$ — a value
+    the dimensional argument could never have produced, and a value the calculus must reproduce.
+    Number: $l = 1.000$ m, $g = 9.81\ \mathrm{m\,s^{-2}}$ gives $\sqrt{l/g} = 0.31928$ s and
+    $2\pi\sqrt{l/g} = 2.0061$ s.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The step that needs care</b> is "solving for the first argument". Buckingham gives
+    $F(\pi_1,\pi_2) = 0$; writing $\pi_1 = f(\pi_2)^2$ assumes that for each $\theta_0$ the relation
+    determines $\pi_1$ uniquely. Physically that is the statement that the period is a well-defined
+    function of the amplitude, which is true here and provable once unit 01 gives uniqueness of
+    solutions. Where it fails — multiple branches, hysteresis — the honest conclusion stays
+    $F(\pi_1,\pi_2)=0$.</p>
+    <p><b>A pendulum on the Moon.</b> $g_{\mathrm{Moon}} = 1.62\ \mathrm{m\,s^{-2}}$, so the same
+    pendulum runs slower by $\sqrt{9.81/1.62} = 2.461$: a seconds pendulum on Earth becomes a
+    4.92-second pendulum there. No calculus was used, and the answer is exact within the model.</p>
+    <p><b>Historically this is how $g$ was measured.</b> Kater's reversible pendulum (1817) turns
+    $T = 2\pi\sqrt{l/g}$ into a determination of $g$ to five significant figures, because periods and
+    lengths are both easy to measure precisely. The 1-per-cent amplitude correction of section 5 is
+    exactly the correction Kater had to make — and the reason the definition of the metre as the length
+    of a seconds pendulum, proposed in 1668 and again in 1790, was abandoned: $g$ varies with latitude,
+    so the metre would have too.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 12 -->
+<section>
+  <p class="eyebrow">00 · dimensions</p>
+  <h2>Mechanical similarity: scaling the equation, not the units</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">mechanical similarity</span></span>
+        <p class="small">Suppose $m\ddot x = F(x)$ with $F$ homogeneous of degree $k$, that is
+        $F(\alpha x) = \alpha^k F(x)$ for all $\alpha &gt; 0$. If $x(t)$ is a solution, so is</p>
+        $$\tilde x(t) := \alpha\, x(t/\beta) \quad\text{provided}\quad \beta^2 = \alpha^{\,1-k}.$$
+        <p class="small muted"><b>Proof.</b> $m\ddot{\tilde x}(t) = (m\alpha/\beta^2)\,\ddot x(t/\beta)
+        = (\alpha/\beta^2)F(x(t/\beta))$, while $F(\tilde x(t)) = \alpha^k F(x(t/\beta))$. These agree
+        for all $t$ exactly when $\alpha/\beta^2 = \alpha^k$. $\square$</p>
+      </div>
+      <p class="small">So geometrically similar motions of size ratio $\alpha$ have time ratio
+      $\alpha^{(1-k)/2}$: <b>$\;T \propto a^{(1-k)/2}$</b> for amplitude $a$.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>$F$</th><th>$k$</th><th>$T \propto$</th><th>name</th></tr></thead>
+        <tbody>
+          <tr><td>$-\kappa x$ (spring)</td><td>1</td><td>$a^0$</td><td><span class="term">isochronous</span></td></tr>
+          <tr><td>const (free fall)</td><td>0</td><td>$a^{1/2}$</td><td>Galileo</td></tr>
+          <tr><td>$-x/|x|^3$ (gravity)</td><td>$-2$</td><td>$a^{3/2}$</td><td>Kepler III</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">check, with a number</span>
+        <p class="small">Kepler: Mars' semi-major axis is $1.5237$ AU, so its year should be
+        $1.5237^{3/2} = 1.8808$ of ours. The measured sidereal period is $1.8808$ yr. Two lines of
+        algebra, no orbit solved — unit 08 does that.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The inverse-square case, componentwise.</b> With $m\ddot x_i = -GMm\,x_i/|x|^3$ for $i = 1,2,3$,
+    put $\tilde x(t) = \alpha x(t/\beta)$. Then $\ddot{\tilde x}_i = (\alpha/\beta^2)\ddot x_i(t/\beta)$
+    and the right-hand side becomes $-GM\alpha x_i/(\alpha^3|x|^3)$, so the requirement is
+    $\alpha/\beta^2 = \alpha^{-2}$, that is $\beta^2 = \alpha^3$ — Kepler's third law, $T^2 \propto a^3$,
+    with no vector calculus and no orbit. Note it also proves that <em>every</em> orbit of a given
+    semi-major axis has the same period, whatever its eccentricity, which is the non-obvious half of
+    Kepler III.</p>
+    <p><b>How this relates to Buckingham.</b> Buckingham scales the <em>units</em> and leaves the physics
+    alone; similarity scales the <em>solution</em> and leaves the units alone. They are two readings of
+    the same invariance, and either can be derived from the other for a given problem. Similarity is
+    sharper when you have the equation, because it uses the actual form of $F$; Buckingham is available
+    when you do not.</p>
+    <p><b>Landau and Lifshitz</b> open <em>Mechanics</em> (§10) with this argument and get Kepler III,
+    the isochrony of the harmonic oscillator, and the virial theorem out of it in two pages. It is also
+    the seed of the renormalisation group: a scaling transformation that maps solutions to solutions,
+    with the exponent as the invariant.</p>
+    <p><b>The pendulum is not covered</b>, because $\sin\theta$ is not homogeneous of any degree. That
+    is precisely why the period depends on amplitude, and why section 5 has work to do.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 13 -->
+<section>
+  <p class="eyebrow">00 · dimensions · example</p>
+  <h2>Taylor's blast wave: a classified number from a photograph</h2>
+  <div class="box ex"><span class="label">worked example 3 · one group, one photograph</span>
+    <div class="cols wide-left">
+      <div>
+        <p class="small"><b>The list.</b> Energy $E$ released at a point in still air of density $\rho$
+        at $t = 0$ drives a shock of radius $R(t)$. Early on the ambient pressure and viscosity are
+        negligible against the shock's own: the list is $R, E, \rho, t$, and nothing else.</p>
+        <p class="small"><b>The matrix.</b> $R: (0,1,0)$, $E: (1,2,-2)$, $\rho: (1,-3,0)$, $t: (0,0,1)$ in
+        $(\mathsf M,\mathsf L,\mathsf T)$; the last three columns have determinant $-5$, so $r = 3$ and
+        $n - r = 1$: a <b>single</b> group. $Da = 0$ gives $a_E + a_\rho = 0$, $a_t = 2a_E$,
+        $a_R = -5a_E$, so with $a_E = 1$,</p>
+        $$\pi = \frac{E t^2}{\rho R^5} = \text{const} \ \Longrightarrow\
+        \boxed{\ R(t) = C\left(\frac{E t^2}{\rho}\right)^{1/5}}$$
+      </div>
+      <div>
+        <p class="small"><b>The test</b>, on Taylor's table of frame times and radii from the declassified
+        Trinity films. A log–log fit over the five late frames (15–62 ms, radii 106.5–185 m) gives the
+        exponent <b>0.391</b> against the predicted $2/5$. The law is right.</p>
+        <p class="small"><b>The yield.</b> Invert with $\rho = 1.25\ \mathrm{kg\,m^{-3}}$ and
+        $C = 1.033$ (<em>cited</em>: the Sedov self-similar solution for $\gamma = 1.4$; dimensions cannot
+        supply it). At $t = 25$ ms, $R = 130$ m,</p>
+        <p class="small">$E = \rho R^5/(C^5t^2) = 6.31\times10^{13}\ \mathrm{J} = \mathbf{15.1}$ kt,
+        and the five late frames give 14.1–15.5 kt.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks, and the honest gap</span>
+    <p class="small">Dimensions: $[Et^2/\rho] = (\mathsf{ML^2T^{-2}})(\mathsf{T^2})/(\mathsf{ML^{-3}})
+    = \mathsf L^5$. ✓ Limit: $R \to 0$ as $t \to 0$. ✓ Against reality: the declassified yield is
+    <b>21 kt</b>, so this is 28 per cent low — but $E \propto R^5$, so reading the fireball edge at 139 m
+    rather than 130 m, a 7 per cent difference on a 1945 photograph, gives exactly 21 kt.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The story.</b> G. I. Taylor did this in 1947 from photographs published in <em>Life</em>
+    magazine, which carried a scale bar and frame times because nobody thought a radius and a clock
+    could be secret. The yield was classified. He published the method in 1950 (Proc. Roy. Soc. A 201,
+    159 and 175) and, by several accounts, irritated the authorities considerably.</p>
+    <p><b>Why the estimate is low, in order of importance.</b> (1) The radius is read from a photograph
+    of a luminous, irregular fireball whose edge is not the shock front; a few per cent there is 20-odd
+    per cent in $E$. (2) Trinity was fired at 1470 m altitude, where $\rho \approx 1.0$, not
+    $1.25\ \mathrm{kg\,m^{-3}}$ — that lowers the estimate further, and the two errors do not cancel.
+    (3) Some of the energy goes into radiation and into the ground rather than into the blast wave, so
+    the $E$ this measures is the blast energy, not the total yield. What dimensional analysis delivered
+    is the <em>exponent</em>, and it delivered it exactly; the prefactor was always going to be a
+    measurement problem.</p>
+    <p><b>The two-fifths law in five words:</b> the shock decelerates because it sweeps up mass.
+    $R \propto t^{2/5}$ means $\dot R \propto t^{-3/5}$, so the front slows without limit — and the
+    solution must fail once $\dot R$ approaches the ambient sound speed, because then the ambient
+    pressure, which was dropped from the list, stops being negligible. That is the standard signal that
+    a dimensional argument has a domain of validity: it holds while the neglected group is small.</p>
+    <p><b>Numbers.</b> Frame by frame, with $\rho = 1.25$ and $C = 1.033$: 15.5 kt at 15 ms,
+    15.1 at 25 ms, 14.1 at 34 ms, 14.8 at 53 ms, 14.3 at 62 ms. With $C = 1$, which is what you would
+    assume knowing only that $C$ is a pure number of order one, the same frames give 16.6–18.2 kt.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 14 -->
+<section>
+  <p class="eyebrow">00 · dimensions</p>
+  <h2>What dimensional analysis cannot do</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">1 · it never gives a pure number</span>
+        <p class="small">$f(\theta_0)$, the $C$ in the blast wave, the $2\pi$ in the small-angle period:
+        all invisible to it. When there is one group, you get the law up to one constant. When there are
+        two, you get an unknown function of one variable — much less.</p>
+      </div>
+      <div class="box warn"><span class="label">2 · the answer is only as good as the list</span>
+        <p class="small">Omit a relevant quantity and the conclusion is false. Include an irrelevant one
+        and the conclusion is weaker than it needed to be, with a spurious group that the true law does
+        not depend on.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">3 · a small group is not always a negligible one</span>
+        <p class="small">"$\pi \ll 1$, so drop it" assumes the limit $\pi \to 0$ exists and is non-zero.
+        When it does not, the exponent of $\pi$ is not $0$ and not predicted by any counting argument.
+        Barenblatt calls that incomplete similarity; unit 21 meets it as a singular perturbation.</p>
+      </div>
+      <div class="box good"><span class="label">what it always does</span>
+        <p class="small">It checks. Every equation you write has both sides of the same dimension or it
+        is wrong, and that test costs seconds and catches most algebra slips. Use it on every line of
+        every problem in this course.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>An instructive failure.</b> Ask for the period of the pendulum but forget $g$. Then the
+    quantities are $T, l, m, \theta_0$ with rank 3 and $4 - 3 = 1$ group, namely $\theta_0$ — and the
+    "conclusion" is $F(\theta_0) = 0$, which fixes $\theta_0$ and says nothing about $T$. The
+    machinery returned a vacuous statement rather than a wrong one. That is the usual symptom of a
+    missing variable, and it is why you should always look at what the groups <em>are</em>, not just
+    how many there are.</p>
+    <p><b>An instructive over-inclusion.</b> Add the bob's radius $a$ to the pendulum list. Now $n = 6$,
+    $r = 3$, and there are three groups: $T^2g/l$, $\theta_0$ and $a/l$. The conclusion becomes
+    $T = \sqrt{l/g}\,f(\theta_0, a/l)$, which is true but weaker. It is also honest: a real bob does have
+    a size, and unit 16 shows the correction is $O((a/l)^2)$.</p>
+    <p><b>The 1D-versus-3D point.</b> Dimensional analysis knows nothing about the dimension of space,
+    and it cannot tell you that the gravitational potential goes as $1/r$ in three dimensions and
+    $\log r$ in two. Unit 23 derives that dependence rather than asserting it, and the mechanism is
+    geometry, not dimensions.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Three forces you can integrate</h2>
+  <p>A second-order ODE reduces to two integrations in exactly three cases. Everything solvable in this course begins here.</p>
+</section>
+
+<!-- ================================================================== 15 -->
+<section>
+  <p class="eyebrow">00 · quadrature</p>
+  <h2>Newton II as a second-order ODE</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Restrict to one dimension for the rest of the unit: $m\ddot x = F$. A general force
+      depends on all three of $x, \dot x, t$, and then nothing can be done in closed form. But if it
+      depends on <b>only one</b> of them, the equation reduces to <span class="term">quadrature</span>:
+      the answer is an integral of a known function, whether or not that integral has a name.</p>
+      <table class="dense">
+        <thead><tr><th></th><th>force</th><th>the move</th><th>what you integrate</th></tr></thead>
+        <tbody>
+          <tr><td><b>1</b></td><td>$F(t)$</td><td>none needed</td><td>twice, in $t$</td></tr>
+          <tr><td><b>2</b></td><td>$F(v)$</td><td>treat $v$ as the unknown</td><td>separate, then invert</td></tr>
+          <tr><td><b>3</b></td><td>$F(x)$</td><td>multiply by $\dot x$</td><td>energy, then separate</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box def"><span class="label">quadrature</span>
+        <p class="small">A problem is <em>reduced to quadrature</em> when its solution has been expressed
+        in terms of integrals of known functions and their inverses. That is the classical notion of
+        "solved", and it is weaker than "has a formula": $\int e^{-x^2}\mathrm dx$ counts.</p>
+      </div>
+      <div class="box good"><span class="label">why exactly two integrations</span>
+        <p class="small">A second-order ODE needs two constants. Each integration supplies one, fixed by
+        $x(0)$ and $\dot x(0)$. Any method that produces fewer has lost a solution; any that produces
+        more has invented one.</p>
+      </div>
+      <p class="small muted">The pendulum, <span class="ref" data-ref="eom">$\ddot\theta = -(g/l)\sin\theta$</span>, is case 3.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the three cases and no others.</b> Each move removes one variable from the problem.
+    In case 1 the right-hand side already involves neither of the unknowns, so it is two direct
+    integrations. In case 2 the unknown $x$ itself does not appear, so $v$ satisfies a
+    <em>first</em>-order equation. In case 3 the trick of multiplying by $\dot x$ makes both sides exact
+    derivatives, which produces a first integral; the independent variable $t$ does not appear, which is
+    what makes that possible. A force $F(x, v)$ has neither property in general, and a force
+    $F(x, t)$ has neither. Unit 02 says what can still be learned in those cases without a formula.</p>
+    <p><b>"Reduced to quadrature" as a historical standard.</b> For eighteenth- and
+    nineteenth-century mechanics this <em>was</em> the definition of solving a problem, and the great
+    theorems — Liouville's on integrable systems (unit 17), Jacobi's on the Hamilton–Jacobi equation
+    (unit 15) — are theorems about when a reduction to quadrature exists. Unit 17 also shows how rare
+    it is: the generic system is not integrable, and the honest twentieth-century answer to "solve it"
+    is unit 02's qualitative theory.</p>
+    <p>All three cases are exercised in the problem sheet, each with its own characteristic trap.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 16 -->
+<section>
+  <p class="eyebrow">00 · quadrature · case 1</p>
+  <h2>Case 1: $F(t)$, integrate twice</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$m\ddot x = F(t)$ with $F$ continuous. Integrate from $0$ to $t$:</p>
+      $$\dot x(t) = v_0 + \frac1m\int_0^t F(s)\,\mathrm{d}s,$$
+      $$x(t) = x_0 + v_0 t + \frac1m\int_0^t\!\!\int_0^{s} F(u)\,\mathrm{d}u\,\mathrm{d}s .$$
+      <p class="small">Both steps are the fundamental theorem of calculus, and both constants are fixed
+      by the data. Case 1 is always solvable; the only difficulty is whether the integral has a name.</p>
+      <div class="box good"><span class="label">the single-integral form</span>
+        <p class="small">Swapping the order over the triangle $0 \le u \le s \le t$,</p>
+        $$x(t) = x_0 + v_0t + \frac1m\int_0^t (t-u)F(u)\,\mathrm{d}u,$$
+        <p class="small">the first appearance of a <b>Green's function</b>: the kernel $(t-u)/m$ is
+        unit 24's retarded propagator in one dimension.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the trap in case 1</span>
+        <p class="small">A force whose <em>average is zero</em> does not give motion whose average is zero.
+        Both constants of integration survive, and the first integration leaves a term $v_0 t$ that no
+        amount of oscillation cancels.</p>
+      </div>
+      <p class="small">If $F$ is periodic with mean zero then $\dot x$ is periodic about $v_0$, and $x$
+      drifts at rate $v_0$ plus a bounded oscillation about a shifted centre. "It is pushed back and
+      forth, so it returns to where it started" is false; the next slide computes by how much.</p>
+      <div class="box good"><span class="label">dimension check</span>
+        <p class="small">$\big[\tfrac1m\int(t-u)F\,\mathrm du\big] =
+        \mathsf M^{-1}\,\mathsf T\,\mathsf{MLT^{-2}}\,\mathsf T = \mathsf L$. ✓</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The swap of integration order needs no Fubini</b> — which is just as well, because multiple
+    integrals do not arrive until unit 05. One line of single-variable integration by parts does it. Put
+    $P(s) = \int_0^s F(u)\,\mathrm du$, so that $P' = F$ and $P(0) = 0$; then</p>
+    $$\int_0^t\!\!\int_0^s F(u)\,\mathrm du\,\mathrm ds = \int_0^t P(s)\,\mathrm ds
+    = \big[sP(s)\big]_0^t - \int_0^t sF(s)\,\mathrm ds = \int_0^t (t-s)F(s)\,\mathrm ds,$$
+    <p>using $tP(t) = \int_0^t tF(s)\,\mathrm ds$ in the last step. Seen from unit 05 this is Fubini on
+    the triangle $\{0 \le u \le s \le t\}$; seen from here it is the product rule, and nothing in this
+    unit is borrowed.</p>
+    <p><b>Why this is the easiest case and also the least interesting.</b> The force does not respond to
+    where the body is or how fast it is going, so there is no feedback, and every phenomenon that makes
+    mechanics interesting — equilibria, oscillation, resonance, instability, chaos — requires feedback.
+    Case 1 is the trivial fibre of the theory. It becomes interesting only when combined with cases 2 or
+    3, which is unit 06's forced oscillator: $m\ddot x + b\dot x + kx = F(t)$, where the same Green's
+    function reappears with an oscillatory kernel.</p>
+    <p><b>Continuity of $F$ is more than needed.</b> Riemann or Lebesgue integrability suffices for the
+    formula, and the resulting $x$ is then $C^1$ with $\ddot x = F/m$ almost everywhere. Impulsive forces
+    — $F$ a delta — need unit 20's distributions to be handled honestly, and the formula above continues
+    to hold with $x$ merely continuous and $\dot x$ jumping by the impulse divided by $m$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 17 -->
+<section>
+  <p class="eyebrow">00 · quadrature · example</p>
+  <h2>A periodic push, and where the body ends up</h2>
+  <div class="box ex"><span class="label">worked example 4 · $F(t) = F_0\cos\omega t$, from rest at the origin</span>
+    <div class="cols">
+      <div>
+        <p class="small">$m = 0.500$ kg, $F_0 = 2.00$ N, $\omega = 4.00\ \mathrm{s^{-1}}$,
+        $x(0) = 0$, $\dot x(0) = 0$.</p>
+        <p class="small"><b>First integration.</b>
+        $\displaystyle \dot x(t) = 0 + \frac{1}{m}\int_0^t F_0\cos\omega s\,\mathrm ds
+        = \frac{F_0}{m\omega}\sin\omega t .$</p>
+        <p class="small"><b>Second integration.</b>
+        $\displaystyle x(t) = 0 + \frac{F_0}{m\omega}\int_0^t \sin\omega s\,\mathrm ds
+        = \frac{F_0}{m\omega^2}\big(1 - \cos\omega t\big).$</p>
+        <p class="small">Numbers: $F_0/(m\omega^2) = 2.00/(0.500\times16.0) = 0.250$ m. The body
+        oscillates between $x = 0$ and $x = 0.500$ m with period
+        $2\pi/\omega = 1.571$ s, and its mean position is $0.250$ m — <b>not</b> the origin.</p>
+      </div>
+      <div>
+        <div class="box warn"><span class="label">both traps, in one example</span>
+          <p class="small"><b>(i)</b> Writing $x = -\frac{F_0}{m\omega^2}\cos\omega t$ solves the ODE but
+          violates $x(0) = 0$. The constant is not optional.</p>
+          <p class="small"><b>(ii)</b> The force averages to zero over a period, yet the body never returns
+          to the origin except at $t = 2\pi n/\omega$, and its time-average displacement is $+0.250$ m.
+          Zero mean force means zero mean <em>acceleration</em>, and nothing more.</p>
+        </div>
+        <p class="small">With $\dot x(0) = v_0 \neq 0$ the picture changes qualitatively: $x$ acquires the
+        term $v_0t$ and the motion is unbounded. Same force, different behaviour — the initial data are
+        half the problem.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small">Dimensions: $[F_0/(m\omega^2)] = \mathsf{MLT^{-2}}/(\mathsf M\,\mathsf{T^{-2}}) = \mathsf L$. ✓
+    Limit $\omega \to 0$: $1 - \cos\omega t \to \omega^2t^2/2$, so
+    $x \to F_0t^2/(2m)$ — constant force, uniform acceleration, Galileo. ✓ The $\omega^{-2}$ divergence
+    as $\omega\to0$ is therefore not a singularity; it is cancelled by the bracket.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The $\omega\to0$ check done carefully.</b> $1 - \cos u = u^2/2 - u^4/24 + O(u^6)$, so
+    $\frac{F_0}{m\omega^2}(1-\cos\omega t) = \frac{F_0t^2}{2m} - \frac{F_0\omega^2t^4}{24m} + O(\omega^4)$.
+    The limit is uniform on compact $t$-intervals, so the free-fall answer is recovered along with the
+    first correction. This kind of check — take a parameter to a limit where you already know the answer —
+    is worth doing on every result in this course, and unit 21 makes it into a method.</p>
+    <p><b>Dimensionally, in advance.</b> The list is $x, F_0, m, \omega, t$ with $r = 3$, so $5 - 3 = 2$
+    groups: $x m\omega^2/F_0$ and $\omega t$. Buckingham therefore predicts
+    $x = \frac{F_0}{m\omega^2}\,h(\omega t)$ before any integration, and all the calculus did was find
+    $h(u) = 1 - \cos u$. The habit again: the shape is free, the function costs work.</p>
+    <p><b>Why the mean displacement is exactly the amplitude.</b> Because the body starts at rest at the
+    extreme of its oscillation rather than at the centre. Start it at rest at
+    $x(0) = -F_0/(m\omega^2)$ instead and the solution is $-\frac{F_0}{m\omega^2}\cos\omega t$, centred on
+    the origin. No choice of $\dot x(0)$ can do the same: a nonzero $v_0$ adds the term $v_0t$ and the
+    motion is not bounded at all, so $v_0 = 0$ is forced and the centre is set by $x(0)$ alone. The mean
+    position is a property of the initial data, not of the force.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 18 -->
+<section>
+  <p class="eyebrow">00 · quadrature · case 2</p>
+  <h2>Case 2: $F(v)$, separate then invert</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">$m\dot v = F(v)$: the position never appears, so this is a <b>first</b>-order
+      equation for $v$. On any interval where $F(v) \neq 0$, <span class="term">separation of variables</span>
+      gives</p>
+      $$t = m\int_{v_0}^{v}\frac{\mathrm{d}w}{F(w)} \;=:\; G(v),$$
+      <p class="small">an <span class="term">implicit solution</span>: it gives $t$ as a function of $v$,
+      the wrong way round. Then $x$ comes from one more integration, $x = x_0 + \int_0^t v$.</p>
+      <div class="box thm"><span class="label">when the inversion is legitimate</span>
+        <p class="small">$G$ is $C^1$ with $G'(v) = m/F(v) \ne 0$ on the interval, so $G$ is strictly
+        monotone there, hence injective with a $C^1$ inverse (inverse function theorem in one variable).
+        So $v = G^{-1}(t)$ exists and is differentiable — on that interval.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the trap in case 2</span>
+        <p class="small">Everything stops at a zero of $F$. If $F(v_\infty) = 0$ then $v \equiv v_\infty$
+        is a solution, the integral $\int^{v_\infty}\mathrm dw/F(w)$ typically diverges, and
+        $v_\infty$ is reached only as $t \to \infty$.</p>
+        <p class="small">Dividing by $F(v)$ silently assumed $F(v) \ne 0$. Check the zeros <em>first</em>
+        and treat them separately.</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term">terminal velocity</span></span>
+        <p class="small">A zero of the total force, $F(v_\infty) = 0$, approached but not attained. For
+        gravity plus drag it is where the drag balances the weight.</p>
+      </div>
+      <p class="small muted">A useful variant when you want $v(x)$ rather than $v(t)$: the chain rule gives
+      $\dot v = \frac{\mathrm dv}{\mathrm dx}\dot x = v\,\frac{\mathrm dv}{\mathrm dx}$, so
+      $m v\,\mathrm dv = F(v)\,\mathrm dx$, separable again.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The inverse function theorem in one variable, since it is doing real work here.</b> If
+    $G : I \to \mathbb{R}$ is $C^1$ on an interval with $G' &gt; 0$ throughout, then $G$ is strictly
+    increasing (mean value theorem), hence a bijection onto $G(I)$, which is an interval; the inverse is
+    continuous (a continuous strictly monotone bijection between intervals has continuous inverse) and
+    differentiable with $(G^{-1})'(t) = 1/G'(G^{-1}(t))$, by the usual difference-quotient argument. All
+    of that is single-variable analysis. Unit 03 proves the $n$-dimensional version, which is a genuinely
+    harder theorem.</p>
+    <p><b>Uniqueness is unit 01's, not ours.</b> The argument above shows the separated formula defines
+    <em>a</em> solution. That it is the <em>only</em> one through the given initial data needs
+    Picard–Lindelöf, and the hypothesis that fails at a zero of $F$ is exactly the one that can fail
+    elsewhere: $m\dot v = 3v^{2/3}$ with $v(0) = 0$ has both $v \equiv 0$ and $v = (t/m)^3$, because
+    $v^{2/3}$ is not Lipschitz at $0$. Separation of variables happily produces the second and never
+    mentions the first. Unit 01 is about exactly this.</p>
+    <p><b>Why $v\,\mathrm dv/\mathrm dx$ is worth remembering.</b> It converts any $F(v)$ or $F(x)$ problem
+    into one with $x$ as the independent variable, which is what you want when the question is "how far",
+    not "how long". It is also the mechanism behind case 3: multiplying by $\dot x$ is the same
+    substitution wearing a different hat.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 19 -->
+<section>
+  <p class="eyebrow">00 · quadrature · example</p>
+  <h2>Falling with drag, both laws</h2>
+  <div class="box ex"><span class="label">worked example 5 · $m\dot v = mg - \text{drag}$, dropped from rest, $v$ measured downward</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Linear drag</b>, $m\dot v = mg - bv$. Zero of the force:
+        $v_\infty = mg/b$. Separate, with $\tau := m/b$:</p>
+        <p class="small">$\displaystyle t = \int_0^v \frac{m\,\mathrm dw}{mg - bw}
+        = -\tau\ln\!\Big(1 - \frac{v}{v_\infty}\Big)$</p>
+        <p class="small">Invert (legitimate for $0 \le v &lt; v_\infty$, where the integrand is finite and positive):</p>
+        $$\begin{aligned} v(t) &= v_\infty\big(1 - e^{-t/\tau}\big)\\
+        x(t) &= v_\infty\big(t - \tau(1 - e^{-t/\tau})\big)\end{aligned}$$
+        <p class="small">A $2.00$ g bead with $b = 1.00\times10^{-2}\ \mathrm{kg\,s^{-1}}$ has
+        $v_\infty = 1.962\ \mathrm{m\,s^{-1}}$, $\tau = 0.200$ s, and reaches $99$ per cent of
+        $v_\infty$ at $t = \tau\ln 100 = 0.921$ s.</p>
+      </div>
+      <div>
+        <p class="small"><b>Quadratic drag</b>, $m\dot v = mg - cv^2$ for $v &gt; 0$. Zero:
+        $v_\infty = \sqrt{mg/c}$. Separate:</p>
+        <p class="small">$\displaystyle t = \int_0^v\frac{m\,\mathrm dw}{mg - cw^2}
+        = \frac{v_\infty}{g}\,\operatorname{artanh}\frac{v}{v_\infty}$</p>
+        $$\begin{aligned} v(t) &= v_\infty\tanh\frac{gt}{v_\infty}\\
+        x(t) &= \frac{v_\infty^2}{g}\ln\cosh\frac{gt}{v_\infty}\end{aligned}$$
+        <p class="small">A skydiver, $m = 80.0$ kg, $v_\infty = 55.0\ \mathrm{m\,s^{-1}}$, so
+        $c = 0.259\ \mathrm{kg\,m^{-1}}$: $99$ per cent of $v_\infty$ at
+        $t = (v_\infty/g)\operatorname{artanh}0.99 = 14.84$ s, having fallen $604$ m. Without drag
+        she would be doing $146\ \mathrm{m\,s^{-1}}$.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small">Dimensions: $[\tau] = \mathsf T$ and
+    $[\sqrt{mg/c}] = (\mathsf{MLT^{-2}}/\mathsf{ML^{-1}})^{1/2} = \mathsf{LT^{-1}}$. ✓ Limit
+    $t \ll \tau$: $1 - e^{-t/\tau} \approx t/\tau$ and $\tanh u \approx u$ both give $v \approx gt$,
+    free fall. ✓ Limit $t \to \infty$: both tend to $v_\infty$, never reaching it. ✓</p>
+  </div>
+  <aside class="notes">
+    <p><b>The second integral, linear case.</b> $\int_0^t v_\infty(1 - e^{-s/\tau})\mathrm ds
+    = v_\infty[s + \tau e^{-s/\tau}]_0^t = v_\infty(t + \tau e^{-t/\tau} - \tau)$, which is the formula
+    given. For $t \gg \tau$ it is $v_\infty(t - \tau)$: the body ends up moving at $v_\infty$ but lagging
+    a fixed distance $v_\infty\tau$ behind where it would be had it always moved at $v_\infty$.</p>
+    <p><b>The second integral, quadratic case.</b>
+    $\int_0^t v_\infty\tanh(gs/v_\infty)\mathrm ds = \frac{v_\infty^2}{g}\big[\ln\cosh(gs/v_\infty)\big]_0^t$,
+    since $\frac{\mathrm d}{\mathrm du}\ln\cosh u = \tanh u$ and $\ln\cosh 0 = 0$. For large $t$ this is
+    $\frac{v_\infty^2}{g}(gt/v_\infty - \ln 2) = v_\infty t - \frac{v_\infty^2\ln2}{g}$, the same
+    structure: asymptotically uniform motion with a constant lag, here $214$ m.</p>
+    <p><b>The partial fractions.</b> $\frac{m}{mg - cw^2} = \frac{1}{g}\cdot\frac{1}{1 - (w/v_\infty)^2}$,
+    and $\int_0^v \frac{\mathrm dw}{1-(w/v_\infty)^2} = v_\infty\operatorname{artanh}(v/v_\infty)$ for
+    $|v| &lt; v_\infty$. The artanh blows up at $v = v_\infty$: that is the divergent integral promised
+    on the previous slide, and it is the analytic statement that terminal velocity is never attained in
+    finite time.</p>
+    <p><b>Numbers, all computed.</b> Linear: $v_\infty = mg/b = 0.00200\times9.81/0.0100
+    = 1.962\ \mathrm{m\,s^{-1}}$, $\tau = m/b = 0.200$ s, $\tau\ln100 = 0.9210$ s. Quadratic:
+    $c = mg/v_\infty^2 = 80.0\times9.81/55.0^2 = 0.2594\ \mathrm{kg\,m^{-1}}$;
+    $\operatorname{artanh}0.99 = 2.6467$, times $v_\infty/g = 5.6065$ s gives $14.838$ s;
+    $x = (55.0^2/9.81)\ln\cosh(2.6467) = 604$ m; free fall would give $gt = 145.6\ \mathrm{m\,s^{-1}}$.
+    A real skydiver in a stable spread reaches about $55\ \mathrm{m\,s^{-1}}$, so the model is not a toy.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 20 -->
+<section>
+  <p class="eyebrow">00 · quadrature · case 3</p>
+  <h2>Case 3: $F(x)$ — where energy comes from</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">$m\ddot x = F(x)$. The trick is to multiply by $\dot x$, because then <b>both sides
+      become exact derivatives</b>:</p>
+      $$m\ddot x\,\dot x = \frac{\mathrm d}{\mathrm dt}\Big(\tfrac12 m\dot x^2\Big), \qquad
+      F(x)\,\dot x = \frac{\mathrm d}{\mathrm dt}\Big(\int^{x(t)}\!\! F\Big)$$
+      <p class="small">by the chain rule, in both cases. Define the
+      <span class="term">potential energy</span> $V$ by $V'(x) = -F(x)$, that is
+      $V(x) = -\int_{x_{\text{ref}}}^x F(s)\,\mathrm ds$. Then</p>
+      <div class="box thm"><span class="label">conservation of energy, in one dimension</span>
+        <p class="small">$\displaystyle \frac{\mathrm d}{\mathrm dt}\Big(\tfrac12 m\dot x^2 + V(x)\Big) =
+        m\ddot x\dot x + V'(x)\dot x = \big(m\ddot x - F(x)\big)\dot x = 0,$</p>
+        <p class="small">so $E := \tfrac12 m\dot x^2 + V(x)$ is constant along every solution. That is
+        the entire proof.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label"><span class="term">first integral</span></span>
+        <p class="small">A function of $(x,\dot x, t)$ that is constant along every solution. Each one
+        found lowers the order of the problem by one — here from second order to first, which is what
+        makes the remaining step a quadrature.</p>
+      </div>
+      <p class="small">Solve for the velocity and separate again:</p>
+      $$\dot x = \pm\sqrt{\tfrac2m\big(E - V(x)\big)},$$
+      $$t - t_0 = \pm\int_{x_0}^{x}\frac{\mathrm ds}{\sqrt{\tfrac2m(E - V(s))}} .$$
+      <p class="small muted">Two constants, as required: $E$ from the first integration, $t_0$ from the
+      second. The sign is chosen by the direction of travel and flips at every turning point.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "multiply by $\dot x$" is not a trick.</b> It is the search for an
+    <em>integrating factor</em>, and the reason $\dot x$ works is that the equation has no explicit $t$
+    in it: the system is invariant under time translation, and Noether's theorem (unit 13) says that this
+    symmetry has a conserved quantity attached to it, which is the energy. Every conservation law in this
+    course will eventually be re-derived that way. For now, notice only that case 1 has the opposite
+    property — $F(t)$ is <em>not</em> time-translation invariant — and correspondingly has no energy
+    integral.</p>
+    <p><b>The reference point.</b> $V$ is determined only up to an additive constant, because only $V'$
+    appears. Changing $x_{\text{ref}}$ changes $V$ and $E$ by the same constant and changes nothing
+    physical. Fix it once per problem and say what you fixed; most of the sign errors in this subject
+    come from not doing so.</p>
+    <p><b>Examples of $V$.</b> Uniform gravity $F = -mg$ gives $V = mgx$. Hooke $F = -kx$ gives
+    $V = \tfrac12kx^2$. The pendulum, with $x \to \theta$, $m \to ml^2$ and generalised force
+    $-mgl\sin\theta$, gives $V(\theta) = mgl(1 - \cos\theta)$, taking the bottom as the reference —
+    that is <span class="ref" data-ref="V">the running example's potential</span>, and section 4 reads the
+    entire motion off its graph.</p>
+    <p><b>Dimension and limit checks on $E$.</b> $[\tfrac12 mv^2] = \mathsf M(\mathsf{LT^{-1}})^2 =
+    \mathsf{ML^2T^{-2}}$, and $[V] = [\int F\,\mathrm dx] = \mathsf{MLT^{-2}}\cdot\mathsf L$, the same. ✓
+    Limit $F \equiv 0$: $V$ constant, so $\dot x$ constant — Newton's first law recovered. ✓</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 21 -->
+<section>
+  <p class="eyebrow">00 · quadrature</p>
+  <h2>Two warnings about energy</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">1 · this is a one-dimensional theorem</span>
+        <p class="small">In three dimensions the step "$\int F\,\mathrm dx$ depends only on the endpoint"
+        is <b>false in general</b>. Whether a force field has a potential is a question about line
+        integrals and closed loops, and it is settled in <b>unit 04</b>. Nothing here licenses
+        $\vec F = -\nabla V$; that symbol has not been defined and will not be until unit 04.</p>
+      </div>
+      <div class="box warn"><span class="label">2 · it fails as soon as $F$ depends on $v$</span>
+        <p class="small">With drag, $\frac{\mathrm d}{\mathrm dt}(\tfrac12m\dot x^2 + V) = F_{\text{drag}}\dot x
+        \le 0$. Energy decreases. Nothing is conserved, and the quadrature of case 3 is unavailable —
+        which is why the falling-with-drag problem had to be done by case 2 instead.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what survives, and where</span>
+        <p class="small">In one dimension, every continuous $F(x)$ has a potential: define
+        $V(x) = -\int_{x_0}^x F$. That is the fundamental theorem of calculus and it has no
+        three-dimensional analogue.</p>
+        <p class="small">So the whole of section 4 — turning points, bounded motion, period integrals —
+        is available for <em>any</em> position-dependent force in one dimension, and is genuinely
+        special to one dimension. Unit 08 recovers it in three dimensions for central forces, by finding
+        enough conserved quantities to reduce the problem back to one.</p>
+      </div>
+      <p class="small muted">Dimension check on the drag statement: $[F\dot x] = \mathsf{MLT^{-2}\cdot LT^{-1}}
+      = \mathsf{ML^2T^{-3}}$, a power — energy per time. ✓</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The three-dimensional obstruction, in advance.</b> Take $F_1 = -y$, $F_2 = x$ in the plane.
+    Carrying a body once anticlockwise round the unit circle, this force is always tangent to the motion
+    and does positive work every time; no function $V$ can have the property that the work equals
+    $V(\text{start}) - V(\text{end})$, because the start and end coincide while the work is
+    $2\pi \neq 0$. Unit 04 turns this observation into the theorem that a force field is conservative if
+    and only if its work around every closed loop vanishes, and finds a local test (vanishing curl) that
+    is sufficient on simply connected regions and not otherwise.</p>
+    <p><b>Where the energy goes.</b> "Energy decreases" means mechanical energy decreases; it becomes heat
+    in the fluid, and the total is conserved once thermodynamics is included. This course does not do
+    thermodynamics, so in it drag is simply a non-conservative force and energy is simply not conserved.
+    Say that, rather than gesturing at heat.</p>
+    <p><b>A useful special case that does survive:</b> $F(x, v) = F_{\text{cons}}(x) + F_{\text{drag}}(v)$
+    still gives $\dot E = F_{\text{drag}}\dot x$, so $E$ is a <em>Lyapunov function</em> — non-increasing
+    rather than constant. Unit 02 builds a whole qualitative theory on exactly that observation, and it
+    is how the damped oscillator is shown to settle without solving it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Reading the motion off the potential</h2>
+  <p>Where the body can go, whether it comes back, and how long it takes — from the graph of $V$, before any integral is evaluated.</p>
+</section>
+
+<!-- ================================================================== 22 -->
+<section>
+  <p class="eyebrow">00 · potentials</p>
+  <h2>Turning points, wells and barriers</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">$\tfrac12m\dot x^2 = E - V(x) \ge 0$, so the motion is confined to
+      $\{x : V(x) \le E\}$. Everything follows from that one inequality.</p>
+      <ul class="small">
+        <li>A <span class="term">turning point</span> is a point with $V(a) = E$: the speed is zero there.</li>
+        <li>An <span class="term">equilibrium</span> is a point with $V'(x_\star) = 0$, so $F = 0$ and
+        $x \equiv x_\star$ is a solution. It is <b>stable</b> if $V$ has a strict local minimum there and
+        <b>unstable</b> if a strict local maximum.</li>
+        <li>Motion in a component of $\{V \le E\}$ bounded on both sides by turning points is
+        <span class="term">bounded motion</span>, and periodic unless an endpoint is itself an
+        equilibrium; a component unbounded on one side gives
+        <span class="term">unbounded motion</span> — the body escapes.</li>
+      </ul>
+      <p class="small muted">Which component you are in is decided by the initial position, not by $E$
+      alone: the same energy can give a bounded orbit in one well and an unbounded one elsewhere.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 260" width="380" role="img" aria-label="a potential with two wells, an energy level cutting it in four turning points, and the classically forbidden regions shaded">
+        <line x1="30" y1="230" x2="380" y2="230" class="rule" stroke-width="1.5"/>
+        <line x1="40" y1="20" x2="40" y2="240" class="rule" stroke-width="1.5"/>
+        <path d="M 50 40 C 90 210, 130 215, 165 120 C 190 55, 215 60, 240 135 C 270 220, 320 215, 370 60" fill="none" class="unit" stroke-width="3"/>
+        <line x1="40" y1="150" x2="378" y2="150" class="accent" stroke-width="2" stroke-dasharray="7 4"/>
+        <text x="46" y="143" font-size="15" style="fill:var(--accent)">E</text>
+        <circle cx="72" cy="150" r="5" class="fill-accent"/>
+        <circle cx="151" cy="150" r="5" class="fill-accent"/>
+        <circle cx="228" cy="150" r="5" class="fill-accent"/>
+        <circle cx="299" cy="150" r="5" class="fill-accent"/>
+        <text x="95" y="196" font-size="14" class="soft">well A</text>
+        <text x="245" y="196" font-size="14" class="soft">well B</text>
+        <text x="160" y="105" font-size="14" class="soft">barrier</text>
+        <text x="336" y="122" font-size="14" class="soft">escape</text>
+        <text x="352" y="250" font-size="14" class="mono soft">x</text>
+        <text x="22" y="30" font-size="14" class="mono soft">V</text>
+      </svg>
+      <p class="cap">Four turning points at this $E$. A body in well A is trapped there for ever; one
+      released to the right of the last turning point escapes. Raise $E$ above the barrier and the two
+      wells merge into one.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why a strict local minimum is stable.</b> Start at $x_\star + \varepsilon$ with small energy
+    $E$ slightly above $V(x_\star)$. The set $\{V \le E\}$ has a component containing $x_\star$ that
+    shrinks to $\{x_\star\}$ as $E \downarrow V(x_\star)$, by continuity of $V$ and the strictness of
+    the minimum. So the motion stays in a small neighbourhood for all time — which is precisely Lyapunov
+    stability, with $E$ as the Lyapunov function. Unit 02 proves the general theorem (Lagrange–Dirichlet)
+    and shows that the converse needs care.</p>
+    <p><b>Why a strict local maximum is unstable</b> is less obvious than it looks, and the honest
+    statement needs the machinery of unit 02. The heuristic: arbitrarily close to the top there are
+    points from which the body accelerates away, and it never returns because it would have to arrive at
+    the top with zero speed, which takes infinite time (next slide but one).</p>
+    <p><b>The barrier is impassable, classically.</b> A body in well A with the $E$ drawn can never
+    reach well B, however long you wait, because $\dot x^2 &lt; 0$ is not available. Quantum mechanics
+    removes that conclusion (tunnelling), and the fact that this course's mechanics forbids it absolutely
+    is worth noticing as a place where the classical theory is not merely approximate but qualitatively
+    different.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 23 -->
+<section>
+  <p class="eyebrow">00 · potentials</p>
+  <h2>The period integral</h2>
+  <div class="box thm"><span class="label">period of a bounded motion</span>
+    <p class="small">Let the motion at energy $E$ run between consecutive turning points $a &lt; b$ with
+    $V &lt; E$ on $(a,b)$, $V(a) = V(b) = E$, and both endpoints <b>genuine</b>: $V'(a) \ne 0 \ne V'(b)$.
+    Then the motion is periodic with period</p>
+    $$T(E) \;=\; \sqrt{2m}\int_a^b \frac{\mathrm dx}{\sqrt{E - V(x)}} .$$
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Proof.</b> On $(a,b)$ the body moves right with
+      $\dot x = \sqrt{\tfrac2m(E-V)}$, so the time from $a$ to $b$ is
+      $\int_a^b \mathrm dx/\dot x$, which is half the expression above. At $b$ the velocity is zero and
+      the force $-V'(b) &lt; 0$ pushes it back; the return leg is the mirror image and takes the same
+      time, because the integrand depends on $x$ only. Hence the total is $T(E)$, and the motion repeats.
+      $\square$</p>
+      <p class="small muted">The integral is <b>improper</b> at both ends, where the integrand blows up.
+      That it converges is the content of the next slide, and it is exactly what "genuine" buys: drop
+      that hypothesis and the pendulum's separatrix is a counterexample — $V &lt; E$ strictly between
+      $-\pi$ and $\pi$, yet the motion never returns.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Dimensions: $\sqrt{\mathsf M}\cdot\mathsf L/\sqrt{\mathsf{ML^2T^{-2}}} = \mathsf T$. ✓</p>
+        <p class="small">Harmonic oscillator, $V = \tfrac12kx^2$, turning points $\pm a$ with
+        $E = \tfrac12ka^2$:</p>
+        <p class="small">$T = \sqrt{2m}\int_{-a}^{a}\frac{\mathrm dx}{\sqrt{\tfrac12 k(a^2-x^2)}}
+        = 2\sqrt{\tfrac{m}{k}}\big[\arcsin\tfrac xa\big]_{-a}^{a} = 2\pi\sqrt{m/k}$,</p>
+        <p class="small">independent of $a$ — the isochrony that mechanical similarity predicted from homogeneity
+        of degree 1, now confirmed by the integral. ✓</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The harmonic computation in full.</b> $E - V = \tfrac12k(a^2 - x^2)$, so
+    $T = \sqrt{2m}\int_{-a}^a \big(\tfrac k2\big)^{-1/2}(a^2-x^2)^{-1/2}\mathrm dx
+    = 2\sqrt{m/k}\int_{-a}^a\frac{\mathrm dx}{\sqrt{a^2-x^2}}$. The substitution $x = a\sin u$ turns the
+    integral into $\int_{-\pi/2}^{\pi/2}\mathrm du = \pi$, giving $T = 2\pi\sqrt{m/k}$. Note the
+    substitution also shows why the improper integral converges: near $x = a$ the integrand behaves like
+    $(a-x)^{-1/2}$, which is integrable.</p>
+    <p><b>"The return leg takes the same time" deserves a word.</b> Formally, if $x(t)$ solves
+    $m\ddot x = F(x)$ then so does $x(-t)$, since the equation has no first derivative in it; the motion
+    is reversible. The outward and return legs are related by that symmetry, so they take equal times.
+    This is the first appearance of time-reversal symmetry, and it is exactly what drag destroys.</p>
+    <p><b>Periodicity needs a moment's care.</b> Having returned to $a$ with zero velocity, the body is in
+    the same state $(x,\dot x) = (a, 0)$ it started in, so — granted uniqueness of solutions, which is
+    unit 01's theorem — the subsequent motion repeats the previous one. Without uniqueness one could
+    imagine the body doing something else the second time round. This is the second of the two places in
+    the unit where a later result is borrowed — the first was reading $F(\pi_1,\pi_2) = 0$ as
+    $\pi_1 = f(\pi_2)^2$ on <i>The pendulum, dimensionally</i> — and both are borrowed knowingly.</p>
+    <p><b>$T(E)$ is a function worth studying.</b> Unit 14 shows it is $\mathrm dI/\mathrm dE$ where $I$
+    is the area enclosed in phase space — the action variable — which makes the period computable without
+    solving anything, and is the beginning of the theory of integrable systems.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 24 -->
+<section>
+  <p class="eyebrow">00 · potentials</p>
+  <h2>When is the time finite?</h2>
+  <div class="box thm"><span class="label">convergence at a turning point</span>
+    <p class="small">Let $V$ be $C^2$ near $a$ with $V(a) = E$ and $V &lt; E$ just to the right. The time
+    to travel from a nearby point to $a$,
+    $\ \displaystyle\int_{a}^{a+\delta}\frac{\mathrm dx}{\sqrt{\tfrac2m(E-V(x))}}$, is</p>
+    <ul class="small">
+      <li><b>finite</b> if $V'(a) \neq 0$ — a genuine turning point; the body arrives, stops, returns;</li>
+      <li><b>infinite</b> if $V'(a) = 0$ and $V''(a) &lt; 0$ — a barrier top; the body takes for ever.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Proof.</b> Taylor with remainder about $a$. If $V'(a) = -c$ with $c &gt; 0$
+      then $E - V(x) = c(x-a) + O((x-a)^2)$, so the integrand is
+      $\asymp (x-a)^{-1/2}$, and $\int_0^\delta u^{-1/2}\mathrm du = 2\sqrt\delta$ converges.
+      If $V'(a) = 0$ and $V''(a) = -2\kappa &lt; 0$ then $E - V(x) = \kappa(x-a)^2 + O((x-a)^3)$, so the
+      integrand is $\asymp (x-a)^{-1}$, and $\int_0^\delta u^{-1}\mathrm du$ diverges. Comparison test in
+      both directions. $\square$</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the consequence, and a number</span>
+        <p class="small">A motion that ends at an unstable equilibrium is not periodic: it is a
+        <span class="term">separatrix</span>, taking infinite time to arrive. For
+        <span class="ref" data-ref="pend">the pendulum</span> that is the swing that just reaches the
+        top.</p>
+        <p class="small">The divergence is logarithmic, so it is slow: with $l = 1.000$ m the period is
+        $2.006$ s at $\theta_0 \to 0$, $7.826$ s at $\theta_0 = 179^\circ$, and $13.71$ s at
+        $\theta_0 = 179.99^\circ$. Each extra factor of ten in $\pi - \theta_0$ costs only about
+        $2.9$ s.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, with the constants</h4>
+    <p><b>Case $V'(a) \ne 0$.</b> Since $V &lt; E$ to the right of $a$ and $V(a) = E$, necessarily
+    $V'(a) \le 0$; assume $V'(a) = -c &lt; 0$. Taylor's theorem with Lagrange remainder gives
+    $E - V(x) = c(x-a) - \tfrac12V''(\xi)(x-a)^2$ for some $\xi$ between $a$ and $x$. With
+    $M = \sup_{[a,a+\delta]}|V''|$ and $\delta$ small enough that $M\delta \le c$, we get
+    $\tfrac12 c(x-a) \le E - V(x) \le \tfrac32 c(x-a)$. So the integrand lies between
+    $\sqrt{m/(3c)}\,(x-a)^{-1/2}$ and $\sqrt{m/c}\,(x-a)^{-1/2}$, and
+    $\int_a^{a+\delta}(x-a)^{-1/2}\mathrm dx = 2\sqrt\delta$. Finite, by comparison.</p>
+    <p><b>Case $V'(a) = 0$, $V''(a) = -2\kappa &lt; 0$.</b> Taylor to second order with remainder:
+    $E - V(x) = \kappa(x-a)^2 + R(x)$ with $|R(x)| \le M'|x-a|^3$ near $a$ (using $V \in C^3$; for
+    $V \in C^2$ use the Peano form, $E - V(x) = \kappa(x-a)^2(1 + o(1))$, which suffices). Then for
+    small $\delta$, $E - V(x) \le 2\kappa(x-a)^2$, so the integrand is at least
+    $\sqrt{m/(4\kappa)}\,(x-a)^{-1}$, and $\int_a^{a+\delta}(x-a)^{-1}\mathrm dx = \infty$. Infinite, by
+    comparison. $\square$</p>
+    <p><b>The intermediate cases.</b> If $V'(a) = V''(a) = 0$ but $V'''(a) \ne 0$, the integrand is
+    $\asymp (x-a)^{-3/2}$ and the time is again infinite; in general the time is finite exactly when
+    $E - V$ vanishes to order $&lt; 2$ at $a$. The threshold is order 2, and the threshold is exactly the
+    condition $F(a) = 0$, that is, $a$ being an equilibrium. The clean statement: <em>the time to reach
+    a point is infinite if and only if that point is an equilibrium.</em></p>
+    <p><b>The logarithm, explicitly.</b> For the pendulum, the asymptotic $K(k) \to \ln(4/\sqrt{1-k^2})$
+    as $k \to 1$ (<em>cited</em>: a standard property of the complete elliptic integral, DLMF 19.12.1;
+    not proved here) gives, with $k = \sin(\theta_0/2)$ and $\sqrt{1-k^2} =
+    \cos(\theta_0/2)$, $\;T \approx 4\sqrt{l/g}\,\ln\!\big(4/\cos(\theta_0/2)\big)$ as
+    $\theta_0 \to \pi$. At $\theta_0 = 179^\circ$ this predicts $7.826$ s and the exact value is
+    $7.826$ s; at $179.99^\circ$ it predicts $13.707$ s against an exact $13.707$ s. Each factor of ten
+    in $\cos(\theta_0/2)$ adds $4\sqrt{l/g}\ln 10 = 2.941$ s.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 25 -->
+<section>
+  <p class="eyebrow">00 · potentials · example</p>
+  <h2>The pendulum's potential, read off</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small"><span class="ref" data-ref="V">$V(\theta) = mgl(1-\cos\theta)$</span>, and the bob
+      released from rest at $\theta_0$ has $E = mgl(1 - \cos\theta_0)$. Everything about the motion is
+      now visible without solving anything:</p>
+      <ul class="small">
+        <li>$\theta = 0$ is a strict minimum: a stable equilibrium. $V''(0) = mgl &gt; 0$.</li>
+        <li>$\theta = \pm\pi$ are strict maxima, value $2mgl$: unstable equilibria.</li>
+        <li>$E &lt; 2mgl$: turning points at $\pm\theta_0$ with $V'(\theta_0) = mgl\sin\theta_0 \ne 0$.
+        Bounded, periodic — <b>swinging</b>.</li>
+        <li>$E &gt; 2mgl$: no turning point, $\dot\theta$ never vanishes. Unbounded in $\theta$ —
+        <b>whirling</b> over the top, forever in the same direction.</li>
+        <li>$E = 2mgl$ exactly: the separatrix. Infinite time, by the previous slide.</li>
+      </ul>
+      <p class="small muted">Two qualitatively different motions and a critical energy dividing them,
+      all read off a graph. This is unit 02's subject, arriving early.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 250" width="330" role="img" aria-label="the pendulum potential mgl(1-cos theta) over minus 2pi to 2pi, with a swinging energy level, the separatrix at 2mgl, and a whirling level above it">
+        <line x1="20" y1="215" x2="345" y2="215" class="rule" stroke-width="1.5"/>
+        <line x1="182" y1="18" x2="182" y2="228" class="rule" stroke-width="1.5"/>
+        <path d="M 30 40 Q 60 40 71 90 Q 91 195 111 195 Q 131 195 151 145 Q 171 40 182 40 Q 193 40 213 145 Q 233 195 253 195 Q 273 195 293 90 Q 304 40 334 40" fill="none" class="unit" stroke-width="3"/>
+        <line x1="25" y1="168" x2="340" y2="168" class="accent" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="28" y="162" font-size="13" style="fill:var(--accent)">swinging</text>
+        <line x1="25" y1="40" x2="340" y2="40" class="warn" stroke-width="2"/>
+        <text x="28" y="34" font-size="13" style="fill:var(--warn)">separatrix, E = 2mgl</text>
+        <line x1="25" y1="26" x2="340" y2="26" class="good" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="256" y="22" font-size="13" style="fill:var(--good)">whirling</text>
+        <circle cx="127" cy="168" r="4.5" class="fill-accent"/>
+        <circle cx="237" cy="168" r="4.5" class="fill-accent"/>
+        <text x="175" y="238" font-size="13" class="mono soft">0</text>
+        <text x="66" y="238" font-size="13" class="mono soft">−π</text>
+        <text x="288" y="238" font-size="13" class="mono soft">π</text>
+      </svg>
+      <p class="cap">One period of $V$. Below the separatrix the level line closes on itself; above it,
+      it runs off to the right for ever.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Deriving $V$.</b> The equation is $ml^2\ddot\theta = -mgl\sin\theta$, so with $\theta$ as the
+    coordinate the "mass" is $ml^2$ and the "force" is $-mgl\sin\theta$; then
+    $V(\theta) = -\int_0^\theta(-mgl\sin s)\,\mathrm ds = mgl(1-\cos\theta)$, taking $V(0) = 0$.
+    Geometrically this is $mg h$ with $h = l(1-\cos\theta)$ the height of the bob above the lowest point,
+    which is the check that the abstraction did not go wrong.</p>
+    <p><b>The whirling case is only unbounded in $\theta$, not in space</b>: the bob goes round and round.
+    Whether you call that periodic depends on whether you regard the configuration space as $\mathbb R$
+    or as the circle $\mathbb R/2\pi\mathbb Z$. On the circle both motions are periodic and the
+    separatrix is the boundary between two families of closed curves. That is the first hint that
+    configuration spaces want to be manifolds rather than copies of $\mathbb R^n$, which is unit 31.</p>
+    <p><b>The critical energy as a number.</b> With $m = 0.100$ kg and $l = 1.000$ m,
+    $2mgl = 1.962$ J, and the speed needed at the bottom to just reach the top is
+    $v = \sqrt{4gl} = 6.264\ \mathrm{m\,s^{-1}}$ — from $\tfrac12mv^2 = 2mgl$. Any less and it swings;
+    any more and it whirls; exactly that, and it approaches the top asymptotically and never arrives.</p>
+    <p><b>Why "just barely" is physically unobservable.</b> The separatrix is a single energy out of a
+    continuum, and any real system has friction and measurement error. What is observable is the
+    <em>divergence</em> of the period near it, which is the slow logarithm of the previous slide — and
+    which is why a pendulum clock's escapement keeps the amplitude small and fixed.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>The pendulum, exactly</h2>
+  <p>Case 3 carried to the end: a first integral, a substitution, an elliptic integral, a series, and one number.</p>
+</section>
+
+<!-- ================================================================== 26 -->
+<section>
+  <p class="eyebrow">00 · the pendulum</p>
+  <h2>The first integral, and the period as an integral</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Multiply <span class="ref" data-ref="eom">$\ddot\theta = -(g/l)\sin\theta$</span> by
+      $\dot\theta$ and integrate, exactly as in case 3:</p>
+      $$\tfrac12\dot\theta^2 - \tfrac{g}{l}\cos\theta = \text{const}.$$
+      <p class="small">Released from rest at $\theta_0$, the constant is $-(g/l)\cos\theta_0$, so</p>
+      $$\dot\theta^{\,2} = \frac{2g}{l}\big(\cos\theta - \cos\theta_0\big).$$
+      <p class="small">The quarter period is the time from $\theta_0$ to $0$:</p>
+      $$T = 4\sqrt{\frac{l}{2g}}\int_0^{\theta_0}\frac{\mathrm d\theta}{\sqrt{\cos\theta - \cos\theta_0}} .$$
+    </div>
+    <div>
+      <div class="box good"><span class="label">two checks before going on</span>
+        <p class="small"><b>Dimensions.</b> $\sqrt{l/g}$ is a time and the integral is dimensionless
+        (an angle over the square root of a pure number). ✓</p>
+        <p class="small"><b>Convergence.</b> At $\theta = \theta_0$ the integrand blows up, but
+        $V'(\theta_0) = mgl\sin\theta_0 \ne 0$ for $0 &lt; \theta_0 &lt; \pi$, so the previous slide's
+        theorem gives a finite integral. At $\theta_0 = \pi$ it diverges, and the pendulum takes for
+        ever. ✓</p>
+      </div>
+      <p class="small muted">This is already the answer, in the classical sense: reduced to quadrature.
+      What follows is cosmetics — but the cosmetics turn the integral into a tabulated function and
+      then into a usable series.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the factor 4 comes from.</b> The motion is $\theta_0 \to 0 \to -\theta_0 \to 0 \to
+    \theta_0$. The four legs take equal times: the first and second by the reflection symmetry
+    $\theta \to -\theta$ of the equation (since $\sin$ is odd), the return legs by time-reversal
+    symmetry as on the period-integral slide. So $T$ is four times the time from $\theta_0$ to $0$.</p>
+    <p><b>Consistency with the general formula.</b> The period integral slide gives
+    $T = \sqrt{2m}\int_a^b\mathrm dx/\sqrt{E - V}$. Here the coordinate is $\theta$, the effective mass
+    is $ml^2$, $V = mgl(1-\cos\theta)$, $E = mgl(1-\cos\theta_0)$, and $a, b = \mp\theta_0$:
+    $T = \sqrt{2ml^2}\int_{-\theta_0}^{\theta_0}\frac{\mathrm d\theta}{\sqrt{mgl(\cos\theta - \cos\theta_0)}}
+    = \sqrt{\tfrac{2l}{g}}\int_{-\theta_0}^{\theta_0}\frac{\mathrm d\theta}{\sqrt{\cos\theta-\cos\theta_0}}$,
+    and the integrand is even, so that is
+    $2\sqrt{\tfrac{2l}{g}}\int_{0}^{\theta_0} = 4\sqrt{\tfrac{l}{2g}}\int_0^{\theta_0}$ — the formula on
+    the slide. Every $m$ cancels, as the dimensional argument promised two sections ago.</p>
+    <p><b>The sign of the square root.</b> Going from $\theta_0$ down to $0$, $\dot\theta &lt; 0$, so
+    $\dot\theta = -\sqrt{(2g/l)(\cos\theta - \cos\theta_0)}$ and
+    $\mathrm dt = -\mathrm d\theta/|\dot\theta|$; integrating from $\theta_0$ down to $0$ flips the limits
+    and the sign back, which is why the formula has no minus in it. Getting this wrong produces a
+    negative period, which is at least a visible error.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 27 -->
+<section>
+  <p class="eyebrow">00 · the pendulum</p>
+  <h2>The half-angle substitution and the elliptic integral</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Step 1.</b> $1 - \cos\theta = 2\sin^2(\theta/2)$, so
+      $\cos\theta - \cos\theta_0 = 2\big(\sin^2\tfrac{\theta_0}2 - \sin^2\tfrac\theta2\big)$. Write
+      $k := \sin(\theta_0/2) \in (0,1)$. Then</p>
+      $$T = 2\sqrt{\tfrac lg}\int_0^{\theta_0}\frac{\mathrm d\theta}{\sqrt{k^2 - \sin^2(\theta/2)}} .$$
+      <p class="small"><b>Step 2.</b> Substitute $\sin(\theta/2) = k\sin\varphi$, which maps
+      $\theta \in [0,\theta_0]$ bijectively onto $\varphi \in [0,\pi/2]$. Differentiating,
+      $\tfrac12\cos(\theta/2)\,\mathrm d\theta = k\cos\varphi\,\mathrm d\varphi$, and
+      $\cos(\theta/2) = \sqrt{1 - k^2\sin^2\varphi}$, while
+      $\sqrt{k^2 - \sin^2(\theta/2)} = k\cos\varphi$. The $k\cos\varphi$ cancels:</p>
+      $$\frac{\mathrm d\theta}{\sqrt{k^2 - \sin^2(\theta/2)}}
+      = \frac{2\,\mathrm d\varphi}{\sqrt{1 - k^2\sin^2\varphi}} .$$
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the exact period</span>
+        <p class="small">$\displaystyle T = 4\sqrt{\frac lg}\,K(k), \qquad k = \sin\frac{\theta_0}{2},$</p>
+        <p class="small">where $\displaystyle K(k) = \int_0^{\pi/2}\frac{\mathrm d\varphi}{\sqrt{1-k^2\sin^2\varphi}}$
+        is the <span class="term">complete elliptic integral of the first kind</span>.</p>
+      </div>
+      <p class="small">$K$ is <em>not</em> an elementary function — that is a theorem of differential
+      Galois theory, <em>cited</em>, not proved here. It is a tabulated special function, like $\sin$ or
+      $\log$; naming it is the answer, not an evasion.</p>
+      <div class="box good"><span class="label">check</span>
+        <p class="small">$k \to 0$: the integrand $\to 1$, so $K \to \pi/2$ and
+        $T \to 2\pi\sqrt{l/g}$. The small-angle formula is the $k = 0$ value, and
+        $f(\theta_0) = 4K(\sin(\theta_0/2))$ with $f(0) = 2\pi$, as "The pendulum,
+        dimensionally" demanded. ✓</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why that substitution and not another.</b> The integrand has square-root branch points where
+    $\sin(\theta/2) = \pm k$, i.e. at the turning points. The substitution $\sin(\theta/2) = k\sin\varphi$
+    is designed to put those at $\varphi = \pm\pi/2$ where $\cos\varphi$ vanishes to exactly the order
+    that cancels the singularity — this is the standard device for an integral with two branch points,
+    and it is the same move that rationalises $\int\mathrm dx/\sqrt{a^2-x^2}$ with $x = a\sin u$. The
+    general theory says that an integral of a rational function of $x$ and $\sqrt{Q(x)}$ with $Q$ of
+    degree 3 or 4 is an elliptic integral, reducible to Legendre's three normal forms; degree 2 is the
+    elementary case.</p>
+    <p><b>Checking the bijection.</b> On $[0,\theta_0]$, $\sin(\theta/2)$ increases from $0$ to $k$
+    (since $\theta_0 &lt; \pi$ means $\theta/2 &lt; \pi/2$), and $\sin\varphi$ increases from $0$ to $1$
+    on $[0,\pi/2]$. Both are strictly increasing, so the correspondence is a $C^1$ bijection with $C^1$
+    inverse, and the change of variables is legitimate — including at the endpoint, where both sides are
+    improper and the equality of improper integrals follows by taking limits of the proper ones.</p>
+    <p><b>Conventions.</b> Some references write $K(m)$ with $m = k^2$, and most numerical tables of
+    $K$ are tabulated that way. Confusing $K(k)$ with $K(k^2)$ is the single commonest error in this
+    corner of the subject. Here $k = \sin(\theta_0/2)$ is the <em>modulus</em>, and $\theta_0$ itself is
+    sometimes called the modular angle.</p>
+    <p><b>History.</b> These integrals were studied because of exactly this problem and the arc length of
+    an ellipse, by Fagnano, Euler and Legendre; Abel and Jacobi then inverted them, which produced
+    elliptic functions, doubly periodic functions, and eventually the whole theory of Riemann surfaces.
+    A pendulum is where a large part of nineteenth-century complex analysis came from.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 28 -->
+<section>
+  <p class="eyebrow">00 · the pendulum</p>
+  <h2>Expanding $K$: the amplitude correction</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>Step 1: binomial series.</b> For $|u| &lt; 1$,
+      $(1-u)^{-1/2} = \sum_{n\ge0}\binom{2n}{n}\frac{u^n}{4^n}$, convergent, and uniformly so on
+      $|u| \le k^2 &lt; 1$. Put $u = k^2\sin^2\varphi$ and integrate term by term — legitimate by uniform
+      convergence:</p>
+      $$\begin{aligned} K(k) &= \sum_{n\ge0}\binom{2n}{n}\frac{k^{2n}}{4^n}
+      \int_0^{\pi/2}\!\!\sin^{2n}\varphi\,\mathrm d\varphi\\
+      &= \frac\pi2\sum_{n\ge0}\left[\binom{2n}{n}4^{-n}\right]^2 k^{2n},\end{aligned}$$
+      <p class="small">using Wallis' formula $\int_0^{\pi/2}\sin^{2n} = \frac\pi2\binom{2n}{n}4^{-n}$.
+      So $\;\frac{2}{\pi}K = 1 + \frac{k^2}{4} + \frac{9k^4}{64} + \cdots$.</p>
+      <p class="small"><b>Step 2: re-expand in $\theta_0$.</b> Since $k^2 = \frac{\theta_0^2}{4} -
+      \frac{\theta_0^4}{48}+\cdots$,</p>
+      $$\frac{T}{2\pi\sqrt{l/g}} = 1 + \frac{\theta_0^2}{16} + \frac{11\,\theta_0^4}{3072}
+      + \frac{173\,\theta_0^6}{737280} + \cdots$$
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">$\theta_0 \to 0$ gives $1$. ✓ Every term is positive, so a real pendulum is
+        always <b>slower</b> than the schoolbook formula — as it must be, since $|\sin\theta| \le
+        |\theta|$ makes the restoring force weaker than the linear one at every angle. ✓</p>
+        <p class="small">At $\theta_0 = 30^\circ = 0.5236$ rad: two terms give $1.017135$, three give
+        $1.0174039$, and the exact ratio is $1.0174088$. The series is doing its job.</p>
+      </div>
+      <div class="box warn"><span class="label">the $\theta_0^4$ coefficient</span>
+        <p class="small">$-\frac1{192} + \frac{9}{1024} = \frac{-1024 + 1728}{196608} = \frac{11}{3072}$.
+        Both steps contribute: two series, both carried to the same order.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Wallis' formula, since it is used.</b> $I_n := \int_0^{\pi/2}\sin^{n}\varphi\,\mathrm d\varphi$
+    satisfies $I_n = \frac{n-1}{n}I_{n-2}$ by integration by parts, with $I_0 = \pi/2$. Iterating on even
+    indices, $I_{2n} = \frac{(2n-1)!!}{(2n)!!}\cdot\frac\pi2 = \frac{(2n)!}{4^n(n!)^2}\cdot\frac\pi2
+    = \frac\pi2\binom{2n}{n}4^{-n}$.</p>
+    <p><b>Justifying term-by-term integration.</b> On $|u| \le k^2 &lt; 1$ the binomial series has terms
+    bounded by $\binom{2n}{n}4^{-n}k^{2n} \le k^{2n}$ (since $\binom{2n}{n} \le 4^n$), so by the
+    Weierstrass M-test it converges uniformly in $\varphi$; a uniformly convergent series of continuous
+    functions on a compact interval may be integrated term by term. The restriction $k &lt; 1$ is exactly
+    $\theta_0 &lt; \pi$, and the series diverges at the separatrix, where the period is infinite — the
+    analysis and the physics fail together, which is a good sign.</p>
+    <p><b>The $\theta_0^4$ coefficient, done slowly.</b> $\frac{2}\pi K = 1 + \frac{k^2}4 + \frac{9k^4}{64}
+    + O(k^6)$. With $k^2 = \frac{\theta_0^2}{4} - \frac{\theta_0^4}{48} + O(\theta_0^6)$ and
+    $k^4 = \frac{\theta_0^4}{16} + O(\theta_0^6)$: the $\frac{k^2}{4}$ term contributes
+    $\frac{\theta_0^2}{16} - \frac{\theta_0^4}{192}$, and $\frac{9k^4}{64}$ contributes
+    $\frac{9\theta_0^4}{1024}$. Summing the $\theta_0^4$ parts over the common denominator
+    $196608 = 192\times1024$ gives $(-1024 + 1728)/196608 = 704/196608 = 11/3072$.</p>
+    <p><b>Is the series convergent or asymptotic?</b> Convergent, with radius of convergence $k = 1$ in
+    the $k$ variable — this is one of the few series in this course that is genuinely convergent. Unit 21
+    is about the far more common situation where it is not, and where the series is still the right
+    answer.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 29 -->
+<section>
+  <p class="eyebrow">00 · the pendulum</p>
+  <h2>The number: where the schoolbook formula breaks</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>Question.</b> At what amplitude is $T = 2\pi\sqrt{l/g}$ wrong by 1 per cent?</p>
+      <p class="small"><b>Estimate, from the leading term.</b> $\theta_0^2/16 = 0.01$ gives
+      $\theta_0 = 0.400$ rad $= 22.92^\circ$.</p>
+      <p class="small"><b>Exactly,</b> solving $\frac2\pi K(\sin(\theta_0/2)) = 1.01$ numerically:
+      $\theta_0 = 0.39818$ rad $= \mathbf{22.81^\circ}$. The quartic term moves the answer by a tenth of
+      a degree, which is the honest measure of how good the leading term is.</p>
+      <table class="dense">
+        <thead><tr><th class="num">$\theta_0$</th><th class="num">$T$ (s), $l=1.000$ m</th><th class="num">error</th><th class="num">clock loses</th></tr></thead>
+        <tbody>
+          <tr><td class="num">$2^\circ$</td><td class="num">2.00622</td><td class="num">0.0076 %</td><td class="num">6.6 s/day</td></tr>
+          <tr><td class="num">$5^\circ$</td><td class="num">2.00702</td><td class="num">0.048 %</td><td class="num">41 s/day</td></tr>
+          <tr><td class="num">$10^\circ$</td><td class="num">2.00989</td><td class="num">0.19 %</td><td class="num">2.7 min/day</td></tr>
+          <tr><td class="num">$23^\circ$</td><td class="num">2.02646</td><td class="num">1.02 %</td><td class="num">14.6 min/day</td></tr>
+          <tr><td class="num">$90^\circ$</td><td class="num">2.36784</td><td class="num">18.0 %</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box good"><span class="label">why this number mattered</span>
+        <p class="small">A pendulum clock whose amplitude drifts from $5^\circ$ to $10^\circ$ loses
+        about two extra minutes a day. Huygens understood this in 1673 and solved it by making the bob
+        swing on a cycloid rather than a circle, which is exactly isochronous — the
+        <b>tautochrone</b>, the same curve that unit 11 derives as the brachistochrone.</p>
+        <p class="small">The practical fix is cheaper: keep the amplitude small and constant. That is what
+        an escapement is for.</p>
+      </div>
+      <p class="small muted">All five rows computed from $T = 4\sqrt{l/g}\,K(\sin(\theta_0/2))$ with
+      $l = 1.000$ m, $g = 9.81\ \mathrm{m\,s^{-2}}$; "clock loses" is the error times 86 400 s.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The one per cent is a statement about $f$, not about the pendulum.</b> $T/2\pi\sqrt{l/g}$ is
+    $f(\theta_0)/2\pi$, a dimensionless function of a dimensionless variable — exactly the object "The pendulum,
+    dimensionally" said dimensional analysis leaves undetermined. Everything on this slide is a property of that one
+    function, and nothing on it could have been guessed from dimensions.</p>
+    <p><b>How the exact root was found.</b> Newton's method on
+    $h(\theta) = \frac2\pi K(\sin(\theta/2)) - 1.01$, started from the leading-term estimate $0.4$,
+    converges in three iterations to $\theta_0 = 0.3981768$ rad $= 22.8138^\circ$. For comparison the
+    0.1-per-cent amplitude is $7.24^\circ$ and the 0.01-per-cent amplitude is $2.29^\circ$: the error
+    scales as $\theta_0^2$, so each factor of ten in accuracy costs a factor of $\sqrt{10}$ in amplitude.</p>
+    <p><b>The seconds pendulum.</b> A clock ticking once per second has $T = 2$ s, so
+    $l = gT^2/(4\pi^2) = g/\pi^2 = 0.9940$ m at $g = 9.81$. This is why the metre was very nearly defined
+    as the length of a seconds pendulum, and why it was not: $g$ ranges from about $9.780$ at the equator
+    to $9.832$ at the poles, a 0.5 per cent spread, which would have made the metre a function of
+    latitude.</p>
+    <p><b>Huygens' cycloidal pendulum</b> worked in principle and failed in practice: the flexible
+    suspension needed to make the bob follow a cycloid introduced more error through friction and
+    stiffness than the circular-arc correction it removed. The lesson is a general one about corrections
+    that cost more than they save, and it is the reason the escapement approach won.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 30 -->
+<section>
+  <p class="eyebrow">00 · the pendulum</p>
+  <h2>What the calculus bought</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">two lines of linear algebra gave</span>
+        <p class="small">$T = \sqrt{l/g}\;f(\theta_0)$</p>
+        <ul class="small">
+          <li>no dependence on $m$;</li>
+          <li>$T \propto \sqrt l$ exactly;</li>
+          <li>amplitude enters only as an angle;</li>
+          <li>$g$ enters only as $g^{-1/2}$.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">five slides of calculus gave</span>
+        <p class="small">$f(\theta_0) = 4K(\sin(\theta_0/2))$</p>
+        <ul class="small">
+          <li>$f(0) = 2\pi$;</li>
+          <li>$f$ increasing, with $f(\theta_0) \to \infty$ as $\theta_0 \to \pi$;</li>
+          <li>$f = 2\pi(1 + \theta_0^2/16 + \cdots)$;</li>
+          <li>the $1$-per-cent amplitude, $22.81^\circ$.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">the division of labour, and the habit</span>
+    <p class="small">Every quantity in the problem was pinned down by counting; one function of one
+    variable was left, and all the analysis went into it. That ratio is typical, not lucky. From here on,
+    in this course: <b>write the dimensional form of the answer before you integrate anything.</b> It
+    costs two lines, it tells you which limits to check, and it catches the algebra error you are about
+    to make.</p>
+  </div>
+  <aside class="notes">
+    <p><b>When the ratio is less favourable.</b> With three or more groups, Buckingham leaves an unknown
+    function of two or more variables, and that is close to knowing nothing — a function of two variables
+    cannot be tabulated on a page or fitted from a handful of experiments. The art of experimental design
+    is largely the art of arranging for $n - r$ to be small: hold some groups fixed, or find a regime in
+    which one of them is irrelevant. Barenblatt's book is about exactly when you may do the latter.</p>
+    <p><b>Where this unit leaves you.</b> You can now solve every one-dimensional problem whose force
+    depends on one variable, and you can write down the shape of the answer to problems you cannot solve.
+    What you cannot yet do: say anything about $m\ddot x = F(x,\dot x)$ — no first integral, no
+    quadrature, and this is the generic case. Unit 01 proves that a solution exists and is unique anyway,
+    and unit 02 shows how much can be learned about it without a formula. That pair is where mechanics
+    stops being a catalogue of tricks.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 31 -->
+<section>
+  <p class="eyebrow">00 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>Given any force of the form $F(t)$, $F(v)$ or $F(x)$:</p>
+    <ul>
+      <li>you <b>classify</b> which of the three it is <em>before</em> starting;</li>
+      <li>you write the <b>dimensional form</b> of the answer and name the dimensionless group the
+      calculus is left to determine;</li>
+      <li>you <b>reduce to quadrature</b> and produce the explicit solution or the period integral,
+      with that case's trap handled — the constants in case 1, the zero of $F$ in case 2, the root's
+      sign and the improper endpoint in case 3.</li>
+    </ul>
+    <p class="small">Failing it is unambiguous: a wrong classification, a dimensional form that does
+    not check, or a quadrature that loses a constant.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Landau &amp; Lifshitz, <em>Mechanics</em>, §10 and §§11–12.<br>
+      Barenblatt, <em>Scaling</em>, ch. 1.<br>
+      Taylor, Proc. Roy. Soc. A <b>201</b> (1950) 159, 175.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>01</b> determinism: why a solution exists and is unique, which this unit
+      assumed twice and said so · <b>03</b> motion in space · then <b>02</b>, equations with no
+      formula.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on a force this deck has not touched: $m\ddot x = -k/x^2$ for $x &gt; 0$,
+    a body falling towards a centre from rest at $x = a$. Classification: case 3. Dimensional form: the
+    quantities are $t, a, m, k$ with $r = 3$ and $n - r = 1$, so $t = C\sqrt{ma^3/k}$ with $C$ a pure
+    number — the fall time scales as $a^{3/2}$, which is mechanical similarity with $k = -2$ again.
+    Quadrature: $V = -k/x$, $E = -k/a$, and
+    $t = \sqrt{m/2}\int_x^a \mathrm ds/\sqrt{k/s - k/a}$, which the substitution $s = a\sin^2 u$ evaluates
+    to give $C = \pi/(2\sqrt2)$. Then check: the answer is the half-period of a degenerate Kepler orbit,
+    and unit 08 gets the same number from Kepler's third law.</p>
+    <p>The problem sheet is 11 problems and about five hours. Attempt each one before opening its
+    hints, and open the solutions only afterwards — they are written to be read after a real attempt, and
+    they are the only assessment this course has.</p>
+    <p>In the reading: Landau &amp; Lifshitz's §§1–5 are the Lagrangian formalism, which is unit 12.
+    Start at §10 and come back to the opening sections after that unit, not before.</p>
+    <p>When the checkpoint is met: <code>./mr done 00</code>.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

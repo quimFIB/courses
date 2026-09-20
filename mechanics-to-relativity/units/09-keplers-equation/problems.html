@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 · Problems — Where is the planet at time t? Kepler's equation and the birth of Bessel functions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="a">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part A · unit 09 · problems</p>
+<h1>Where is the planet at time t? Kepler's equation and the birth of Bessel functions</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u09">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> You derive the Bessel-function solution of Kepler's equation
+from its Fourier coefficients and use it to place a planet to five digits — and you can state exactly
+where it diverges while owing unit 20 the reason.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper, with a calculator for the numerical ones. Angles
+are in radians unless marked with a degree sign. \(E\) is the eccentric anomaly, \(M\) the mean anomaly,
+\(\theta\) the true anomaly, \(e\) the eccentricity; \(\mathrm e\) in roman is Euler's number.</p>
+<p>Data: Mars \(a = 1.523679\) AU, \(e = 0.0934\), \(T = 686.980\) d. Earth \(e = 0.016709\).
+Halley's comet \(e = 0.967\). Bessel values \(J_0(1) = 0.7651977\), \(J_1(1) = 0.4400506\),
+\(J_2(1) = 0.1149035\), \(J_3(1) = 0.0195634\), \(J_4(1) = 0.0024766\), \(J_5(1) = 0.0002498\),
+\(J_6(1) = 0.0000209\). The tail bound of the deck:
+\(|J_n(x)| \le \frac{(|x|/2)^n}{n!}\exp\frac{x^2}{4(n+1)}\).</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Kepler&#x27;s equation from the quadrature">P1</a></li>
+<li><a class="routine" href="#p2" title="The equation of the centre">P2</a></li>
+<li><a class="routine" href="#p3" title="Proof: the fixed-point iteration">P3</a></li>
+<li><a class="medium" href="#p4" title="Proof: Newton, and a comet at perihelion">P4</a></li>
+<li><a class="medium" href="#p5" title="Lagrange at fourth order">P5</a></li>
+<li><a class="medium" href="#p6" title="What the generating function knows">P6</a></li>
+<li><a class="hard" href="#p7" title="Frobenius by hand">P7</a></li>
+<li><a class="hard" href="#p8" title="When the roots differ by an integer">P8</a></li>
+<li><a class="routine" href="#p9" title="Mars, another day">P9</a></li>
+<li><a class="medium" href="#p10" title="Far from the origin">P10</a></li>
+<li><a class="hard" href="#p11" title="Halley&#x27;s comet">P11</a></li>
+<li><a class="medium" href="#p12" title="Proof: Bessel&#x27;s equation from Bessel&#x27;s integral">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The timetable</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Kepler's equation from the quadrature <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: substitution in an integral, unit 08's quadrature, dimensions</p>
+<div class="statement">
+<p>Unit 08 left the timetable of a bound Kepler orbit as</p>
+\[ t - \tau = \int_{a(1-e)}^{r}\frac{\mathrm dr'}{\sqrt{2\varepsilon + 2GM_\odot/r' - h^2/r'^2}},
+\qquad 2\varepsilon = -\frac{GM_\odot}{a},\quad h^2 = GM_\odota(1-e^2), \]
+<p>for the outbound half of the orbit.</p>
+<ol>
+<li>Show that the quantity under the root equals \(\dfrac{GM_\odot}{ar'^2}\big(a^2e^2 - (r'-a)^2\big)\).</li>
+<li>Substitute \(r' = a(1 - e\cos E')\) and show that the integral becomes
+\(\sqrt{a^3/GM_\odot}\,(E - e\sin E)\).</li>
+<li>Conclude \(E - e\sin E = M\), using unit 08's third law. Check the dimensions of
+\(\sqrt{a^3/GM_\odot}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are pure algebra; part 3 is one line. The substitution is chosen to turn a
+difference of squares under a root into a perfect square.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Put everything under the root over \(ar'^2/GM_\odot\): \(2\varepsilon r'^2 + 2GM_\odotr' - h^2\) with the given
+values is \(\frac{GM_\odot}{a}\big(-r'^2 + 2ar' - a^2(1-e^2)\big)\). Then complete the square in \(r'\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(r' - a = -ae\cos E'\), so \(a^2e^2 - (r'-a)^2 = a^2e^2\sin^2E'\), and
+\(\mathrm dr' = ae\sin E'\,\mathrm dE'\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The eccentric anomaly is exactly the substitution that rationalises this
+integral: the root of a quadratic becomes \(\sin E'\), and it cancels against the \(\mathrm dr'\).</p>
+<p><strong>1.</strong> Multiply by \(r'^2\):
+\(2\varepsilon r'^2 + 2GM_\odotr' - h^2 = -\frac{GM_\odot}{a}r'^2 + 2GM_\odotr' - GM_\odota(1-e^2)
+= \frac{GM_\odot}{a}\big(-r'^2 + 2ar' - a^2 + a^2e^2\big) = \frac{GM_\odot}{a}\big(a^2e^2 - (r'-a)^2\big)\).
+Divide by \(r'^2\).</p>
+<p><strong>2.</strong> With \(r' = a(1 - e\cos E')\): the root is
+\(\sqrt{GM_\odot/a}\,\frac{ae\sin E'}{r'}\) (positive, as \(\sin E' \ge 0\) on the outbound half
+\(0 \le E' \le \pi\)), and \(\mathrm dr' = ae\sin E'\,\mathrm dE'\). The limits \(r' = a(1-e)\) and
+\(r' = r\) correspond to \(E' = 0\) and \(E' = E\). So
+\[ t - \tau = \int_0^E \frac{ae\sin E'\,\mathrm dE'}{\sqrt{GM_\odot/a}\;ae\sin E'/r'}
+ = \sqrt{\frac{a}{GM_\odot}}\int_0^E a(1 - e\cos E')\,\mathrm dE'
+ = \sqrt{\frac{a^3}{GM_\odot}}\,(E - e\sin E). \]</p>
+<p><strong>3.</strong> Unit 08: \(T = 2\pi\sqrt{a^3/GM_\odot}\), so \(\sqrt{a^3/GM_\odot} = 1/n\) with
+\(n = 2\pi/T\), and \(n(t-\tau) = M = E - e\sin E\). The inbound half follows by the reflection
+symmetry of the orbit (or by taking the other sign of the root with \(\pi \le E' \le 2\pi\)).</p>
+<p><strong>Check.</strong> \([a^3/GM_\odot] = \mathsf L^3/(\mathsf L^3\mathsf T^{-2}) = \mathsf T^2\), so
+\(\sqrt{a^3/GM_\odot}\) is a time ✓. Limit \(e \to 0\): \(t - \tau = \sqrt{a^3/GM_\odot}\,E\), uniform circular
+motion at angular rate \(\sqrt{GM_\odot/a^3}\) ✓. For Mars, \(\sqrt{a^3/GM_\odot} = T/2\pi = 109.34\) days.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> The equation of the centre <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the half-angle relation, first-order expansion in \(e\), a number</p>
+<div class="statement">
+<ol>
+<li>Using \(\tan\frac\theta2 = \sqrt{\frac{1+e}{1-e}}\tan\frac E2\), show that
+\(\frac{p}{1 + e\cos\theta} = a(1 - e\cos E)\) when \(p = a(1 - e^2)\).</li>
+<li>Show that \(\theta = E + e\sin E + O(e^2)\), and hence that
+\(\theta - M = 2e\sin M + O(e^2)\). The difference \(\theta - M\) is called the equation of the
+centre.</li>
+<li>For the Earth, give the amplitude of the equation of the centre in degrees, and convert it to
+minutes of time at the Earth's rotation rate of \(1^\circ\) per 4 minutes. (This is the part of the
+"equation of time" — sundial minus clock — that comes from the orbit's eccentricity.)</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>An identity, then two Taylor expansions to first order in \(e\), then a number of about two
+degrees.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 1 express \(\cos\theta\) through \(u = \tan^2\frac\theta2\):
+\(\cos\theta = \frac{1-u}{1+u}\). For part 2 write \(k = \sqrt{(1+e)/(1-e)} = 1 + e + O(e^2)\) and
+differentiate \(\theta = 2\arctan(k\tan\frac E2)\) with respect to \(k\) at \(k = 1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\frac{\partial\theta}{\partial k}\Big|_{k=1} = \frac{2\tan(E/2)}{1 + \tan^2(E/2)} = \sin E\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The true and eccentric anomalies differ at first order by \(e\sin E\), and the
+eccentric and mean anomalies differ by another \(e\sin E\): the two corrections add.</p>
+<p><strong>1.</strong> With \(t = \tan^2\frac E2\), \(u = \frac{1+e}{1-e}t\) and
+\(\cos\theta = \frac{1-u}{1+u} = \frac{(1-e) - (1+e)t}{(1-e) + (1+e)t}\). Using
+\(\cos E = \frac{1-t}{1+t}\):
+\(1 + e\cos\theta = \frac{(1-e)+(1+e)t + e(1-e) - e(1+e)t}{(1-e)+(1+e)t}
+= \frac{(1-e^2)(1+t)}{(1-e)+(1+e)t}\). And
+\((1-e)+(1+e)t = (1+t) - e(1-t) = (1+t)(1 - e\cos E)\). So
+\(1 + e\cos\theta = \frac{1-e^2}{1 - e\cos E}\), and \(\frac{a(1-e^2)}{1+e\cos\theta} = a(1 - e\cos E)\).</p>
+<p><strong>2.</strong> \(\theta(k) = 2\arctan(k\tan\frac E2)\) has \(\theta(1) = E\) and
+\(\theta'(1) = \frac{2\tan(E/2)}{1+\tan^2(E/2)} = 2\sin\frac E2\cos\frac E2 = \sin E\). With
+\(k - 1 = e + O(e^2)\), \(\theta = E + e\sin E + O(e^2)\). From the deck,
+\(E = M + e\sin M + O(e^2)\), so \(e\sin E = e\sin M + O(e^2)\) and
+\(\theta = M + 2e\sin M + O(e^2)\).</p>
+<p><strong>3.</strong> Amplitude \(2e = 0.033418\) rad \(= 1.9147^\circ\), and at 4 minutes per
+degree, \(7.659\) minutes of time. The exact maximum of \(\theta - M\) for the Earth, found by solving
+Kepler's equation, is \(1.91477^\circ\) at \(M = 88.80^\circ\): the first-order answer is good to
+\(6\times10^{-5}\) degrees, because the second-order term \(\frac54e^2\sin 2M\) vanishes at
+\(M = 90^\circ\), right where the maximum sits.</p>
+<p><strong>Check.</strong> \(e = 0\) gives \(\theta = M\) ✓. Sign: just after perihelion
+(\(0 \lt M \lt \pi\)) the planet is ahead of the mean position, \(\theta \gt M\), as Kepler's second
+law requires ✓. Dimensions: angles throughout ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Proof: the fixed-point iteration <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: a proof, the mean value theorem, Banach's theorem (unit 01), an a priori count</p>
+<div class="statement">
+<p>Let \(0 \le e \lt 1\) and \(\Phi(E) = M + e\sin E\).</p>
+<ol>
+<li>Prove that \(\Phi\) is a contraction of \(\mathbb R\) and that \(E_{k+1} = \Phi(E_k)\),
+\(E_0 = M\), satisfies \(|E_k - E| \le e^{k+1}\).</li>
+<li>For Mars, how many iterations does this bound say are enough for an error below \(10^{-8}\)?</li>
+<li>The deck's table showed the error falling by \(0.035\) per step, not \(0.0934\). Prove that
+\(\lim_k (E_{k+1} - E)/(E_k - E) = e\cos E\) whenever \(E_k \ne E\) for all \(k\), and say how many
+iterations Mars actually needs.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two short proofs and two integers. Everything comes from the mean value theorem applied to
+\(\sin\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(|\sin E - \sin E'| \le |E - E'|\). The starting error is controlled by Kepler's equation itself:
+\(E - M = e\sin E\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(E_{k+1} - E = \Phi(E_k) - \Phi(E) = e\cos(\xi_k)\,(E_k - E)\) for some
+\(\xi_k\) between \(E_k\) and \(E\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The contraction constant is a worst case over the whole line; the actual rate
+is the derivative at the fixed point.</p>
+<p><strong>1.</strong> By the mean value theorem, \(|\Phi(E) - \Phi(E')| = e|\cos\xi||E - E'| \le e|E - E'|\),
+and \(e \lt 1\): a contraction of the complete space \(\mathbb R\). Banach's theorem (unit 01) gives a
+unique fixed point \(E\) — the solution of Kepler's equation — and
+\(|E_k - E| = |\Phi(E_{k-1}) - \Phi(E)| \le e|E_{k-1} - E| \le \cdots \le e^k|E_0 - E|\). Finally
+\(|E_0 - E| = |M - E| = e|\sin E| \le e\). \(\square\)</p>
+<p><strong>2.</strong> Need \(0.0934^{k+1} \lt 10^{-8}\): \(0.0934^7 = 6.2\times10^{-8}\) is not enough,
+\(0.0934^8 = 5.8\times10^{-9}\) is, so \(k + 1 = 8\): <strong>seven iterations</strong>.</p>
+<p><strong>3.</strong> From the hint, \(\frac{E_{k+1} - E}{E_k - E} = e\cos\xi_k\) with \(\xi_k\) between
+\(E_k\) and \(E\). As \(E_k \to E\), \(\xi_k \to E\), and \(\cos\) is continuous, so the ratio tends to
+\(e\cos E\). \(\square\) For Mars at the deck's epoch, \(e\cos E = 0.0934\times0.3772 = 0.0352\), and
+the errors are \(3.4\times10^{-3},\ 1.2\times10^{-4},\ 4.2\times10^{-6},\ 1.5\times10^{-7},\ 5.2\times10^{-9}\):
+<strong>five iterations</strong> reach \(10^{-8}\).</p>
+<p><strong>Check.</strong> The a priori count (seven) is at least the actual count (five), as a bound
+must be ✓. Limit \(e \to 0\): \(E_0 = M\) is already exact ✓. Near aphelion \(\cos E \lt 0\) and the
+errors alternate in sign — the iterates spiral in rather than creep up, which is worth seeing once on a
+calculator at \(M = 3\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Proof: Newton, and a comet at perihelion <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Taylor's theorem with remainder, a proof, why local convergence is local</p>
+<div class="statement">
+<ol>
+<li>Let \(f(E) = E - e\sin E - M\) with \(0 \le e \lt 1\), and \(E\) its root. Prove that Newton's
+iterates satisfy \(|E_{k+1} - E| \le \frac{e}{2(1-e)}|E_k - E|^2\).</li>
+<li>For which starting errors does part 1 guarantee that the error decreases? Evaluate for Mars and
+for Halley's comet.</li>
+<li>Halley's comet at \(M = 0.05\) has \(E = 0.579681\). Compute the first Newton step from
+\(E_0 = M\), and explain in one sentence what went wrong and why it still converges.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A two-line inequality, a radius, and one number that overshoots badly.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Expand \(f(E)\) about \(E_k\) with the Lagrange form of the remainder. Bound \(|f''| = |e\sin|\le e\)
+and \(|f'| = |1 - e\cos| \ge 1 - e\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(0 = f(E) = f(E_k) + f'(E_k)(E - E_k) + \tfrac12f''(\xi)(E - E_k)^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Newton's step is exact for the tangent line; the error is the curvature term,
+which is quadratic in the distance.</p>
+<p><strong>1.</strong> Divide the hint's line by \(f'(E_k) \ne 0\) and use
+\(E_{k+1} = E_k - f(E_k)/f'(E_k)\):
+\(E_{k+1} - E = \frac{f''(\xi)}{2f'(E_k)}(E_k - E)^2\). Since \(|f''(\xi)| = e|\sin\xi| \le e\) and
+\(|f'(E_k)| = 1 - e\cos E_k \ge 1 - e\), the bound follows. \(\square\)</p>
+<p><strong>2.</strong> Writing \(C = e/2(1-e)\), the error decreases when \(C|E_k - E| \lt 1\), i.e.
+\(|E_k - E| \lt 1/C = 2(1-e)/e\). Mars: \(2(0.9066)/0.0934 = 19.4\) rad — every sensible start. Halley:
+\(2(0.033)/0.967 = 0.068\) rad — about four degrees. And \(E_0 = M\) is up to \(e\) away from \(E\).</p>
+<p><strong>3.</strong> \(f(E_0) = -e\sin 0.05 = -0.048330\) and \(f'(E_0) = 1 - 0.967\cos 0.05 = 0.034208\),
+so \(E_1 = 0.05 + 0.048330/0.034208 = 1.462803\) — more than twice the answer. The tangent at
+\(E_0\) is nearly flat because \(f'(0) = 1 - e\) is small near perihelion, so a small residual is
+divided by a small slope. It still converges because \(f\) is increasing and convex on
+\([0,\pi]\) (\(f'' = e\sin E \ge 0\)): from any point to the right of the root, Newton's steps decrease
+monotonically to it. The iterates are \(1.4628,\ 0.9588,\ 0.6949,\ 0.5949,\ 0.5800,\ 0.579682,\ 0.5796815\):
+seven steps, the last three quadratic.</p>
+<p><strong>Check.</strong> Part 1 at \(e \to 0\): \(C \to 0\) and Newton is exact in one step, correct
+since \(f\) is then linear ✓. Dimensions: \(C\) multiplies a squared angle to give an angle, so it is per
+radian ✓. Mars check against the deck: \(0.0515\times(3.29\times10^{-4})^2 = 5.6\times10^{-9}\), observed
+\(4.9\times10^{-9}\) ✓.</p>
+<h4>Another way</h4>
+<p>The monotone argument of part 3 is the one-variable version of a general fact: for convex increasing
+\(f\), Newton from the right overshoots nothing, because the tangent lies below the graph. Starting at
+\(E_0 = \pi\) always puts you on that side for \(M \in [0,\pi]\) (\(f(\pi) = \pi - M \ge 0\)), and every
+iterate then stays in \([E, \pi]\), where \(f\) is convex: the iterates decrease monotonically, are bounded
+below by \(E\), and their limit is a fixed point of the Newton map, that is, the root. That is global
+convergence from \(E_0 = \pi\), proved, and why it is a popular choice.</p>
+</div></details>
+</section>
+
+<h2 class="group">Series, Fourier and Bessel</h2>
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Lagrange at fourth order <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Lagrange inversion, linearising powers of sines, matching two series</p>
+<div class="statement">
+<ol>
+<li>Use Lagrange inversion to find the \(e^4\) term of \(E(M)\).</li>
+<li>Using \(J_n(x) = \sum_k \frac{(-1)^k(x/2)^{n+2k}}{k!(n+k)!}\), expand \(\frac2nJ_n(ne)\) for
+\(n = 2\) and \(n = 4\) through \(e^4\), and check that the Fourier–Bessel expansion reproduces your
+answer.</li>
+<li>For Mars at \(M = 1.097532\), by how much does adding the \(e^4\) term improve the third-order value
+\(1.184068\)? (The true value is \(1.1840325\).)</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is \(e^4\) times a combination of \(\sin 2M\) and \(\sin 4M\) — the deck's pattern says
+no other harmonics can appear.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>You need \(\frac{1}{4!}\frac{\mathrm d^3}{\mathrm dM^3}\sin^4M\). Linearise
+\(\sin^4M\) first, into a constant plus \(\cos 2M\) and \(\cos 4M\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\sin^4M = \frac{3 - 4\cos 2M + \cos 4M}{8}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Lagrange collects by power of \(e\), Fourier–Bessel by harmonic; the same
+coefficient must appear in both.</p>
+<p><strong>1.</strong> \(\frac{\mathrm d^3}{\mathrm dM^3}\cos 2M = 8\sin 2M\) and
+\(\frac{\mathrm d^3}{\mathrm dM^3}\cos 4M = 64\sin 4M\), so
+\(\frac{\mathrm d^3}{\mathrm dM^3}\sin^4M = \frac{-32\sin 2M + 64\sin 4M}{8} = 8\sin 4M - 4\sin 2M\).
+Divide by \(4! = 24\):</p>
+\[ \frac{e^4}{6}\big(2\sin 4M - \sin 2M\big). \]
+<p><strong>2.</strong> \(J_2(x) = \frac{x^2}{8} - \frac{x^4}{96} + \cdots\), so
+\(\frac22J_2(2e) = \frac{4e^2}{8} - \frac{16e^4}{96} = \frac{e^2}{2} - \frac{e^4}{6}\). And
+\(J_4(x) = \frac{x^4}{384} + \cdots\), so \(\frac24J_4(4e) = \frac{256e^4}{768} = \frac{e^4}{3}\). The
+\(e^4\) terms are \(-\frac{e^4}{6}\sin 2M + \frac{e^4}{3}\sin 4M = \frac{e^4}{6}(2\sin 4M - \sin 2M)\)
+✓. (The odd harmonics contribute only odd powers of \(e\), since \(J_n(ne)\) is \(e^n\) times a series in
+\(e^2\).)</p>
+<p><strong>3.</strong> \(\frac{e^4}{6} = 1.26834\times10^{-5}\), \(\sin 4M = -0.948521\),
+\(\sin 2M = 0.811392\): the term is \(1.26834\times10^{-5}\times(-1.897042 - 0.811392) = -3.4352\times10^{-5}\).
+Adding it to \(1.1840680\) gives \(1.1840337\): the error falls from \(3.5\times10^{-5}\) to
+\(1.1\times10^{-6}\), a factor of about \(30\).</p>
+<p><strong>Check.</strong> At \(M = \pi/2\), \(\sin 2M = \sin 4M = 0\): the \(e^4\) term vanishes, as every
+even-order term must there, since \(E(\pi/2) - \pi/2\) is odd in \(e\) (replacing \(e\) by \(-e\) and
+\(E\) by \(\pi - E\) preserves Kepler's equation at \(M = \pi/2\)) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> What the generating function knows <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: generating functions, coefficient comparison, the addition theorem</p>
+<div class="statement">
+<p>Let \(G(x,t) = \exp\big(\frac x2(t - \frac1t)\big) = \sum_{n\in\mathbb Z}J_n(x)t^n\).</p>
+<ol>
+<li>Prove \(J_n(-x) = (-1)^nJ_n(x)\) from \(G\) alone.</li>
+<li>Put \(t = i\) to show \(\cos x = J_0(x) - 2J_2(x) + 2J_4(x) - \cdots\) and
+\(\sin x = 2J_1(x) - 2J_3(x) + 2J_5(x) - \cdots\). Check both at \(x = 1\) with the preamble's values.</li>
+<li>Prove the addition theorem \(J_n(x + y) = \sum_{k\in\mathbb Z}J_k(x)J_{n-k}(y)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is "find a property of \(G\), then compare coefficients of \(t^n\)".</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: \(G(-x,t) = G(x,-t)\)? Part 2: \(\frac12(i - 1/i) = i\). Part 3: \(G\) is an exponential in
+\(x\), so \(G(x+y,t) = G(x,t)G(y,t)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\mathrm e^{ix} = \sum_nJ_n(x)i^n = J_0 + \sum_{m\ge1}(i^m + (-1)^mi^{-m})J_m\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A functional equation for \(G\) becomes, coefficient by coefficient, an identity
+for every \(J_n\) at once.</p>
+<p><strong>1.</strong> \(G(-x,t) = \exp\big(\frac x2(-t + \frac1t)\big) = G(x,-t) = \sum J_n(x)(-1)^nt^n\).
+Comparing coefficients with \(\sum J_n(-x)t^n\) gives \(J_n(-x) = (-1)^nJ_n(x)\). \(\square\)
+(Coefficient comparison is legitimate for absolutely convergent Laurent series agreeing for all
+\(t \ne 0\): the deck's orthogonality argument with \(t = \mathrm e^{i\vartheta}\).)</p>
+<p><strong>2.</strong> At \(t = i\), \(G = \mathrm e^{ix}\). Using \(J_{-m} = (-1)^mJ_m\), the pair
+\(m, -m\) contributes \((i^m + (-1)^m i^{-m})J_m = (i^m + i^m)J_m = 2i^mJ_m\), since
+\((-1)^mi^{-m} = (-1/i)^m = i^m\). So \(\mathrm e^{ix} = J_0 + 2\sum_{m\ge1}i^mJ_m\). Real part (even
+\(m\), \(i^m = (-1)^{m/2}\)): \(\cos x = J_0 - 2J_2 + 2J_4 - \cdots\). Imaginary part (odd \(m\)):
+\(\sin x = 2J_1 - 2J_3 + 2J_5 - \cdots\).</p>
+<p>At \(x = 1\): \(0.7651977 - 0.2298070 + 0.0049532 - 0.0000418 = 0.5403021\), against
+\(\cos 1 = 0.5403023\) ✓. And \(0.8801012 - 0.0391268 + 0.0004996 = 0.8414740\), against
+\(\sin 1 = 0.8414710\); the next term \(-2J_7(1) = -3.0\times10^{-6}\) closes the gap ✓.</p>
+<p><strong>3.</strong> \(G(x+y,t) = G(x,t)G(y,t)\). The product of two absolutely convergent Laurent series
+is their Cauchy product: the coefficient of \(t^n\) on the right is \(\sum_kJ_k(x)J_{n-k}(y)\), and on
+the left \(J_n(x+y)\). \(\square\)</p>
+<p><strong>Check.</strong> Part 3 with \(y = 0\): \(J_{n-k}(0) = \delta_{nk}\), leaving \(J_n(x)\) ✓. Numerically,
+\(J_2(1.5) = 0.2320877\) and \(\sum_kJ_k(1)J_{2-k}(0.5)\) gives the same to seven figures.</p>
+</div></details>
+</section>
+
+<h2 class="group">Frobenius</h2>
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Frobenius by hand <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the Frobenius method, the indicial equation, the logarithmic solution, the Wronskian</p>
+<div class="statement">
+<p>Bessel's equation of order zero is \(x^2y'' + xy' + x^2y = 0\).</p>
+<ol>
+<li>Substitute \(y = \sum_k a_kx^{k+r}\), \(a_0 = 1\). Find the indicial equation and its roots, and
+solve the recursion. Show that you get exactly one solution, \(J_0\), and say how the method told you
+there is no second series.</li>
+<li>Try \(y_2 = J_0(x)\ln x + \sum_{k\ge1}b_kx^k\). Show that \(L[J_0\ln x] = 2xJ_0'\), where
+\(L = x^2\frac{\mathrm d^2}{\mathrm dx^2} + x\frac{\mathrm d}{\mathrm dx} + x^2\), and find \(b_1, \ldots, b_4\).</li>
+<li>Prove by induction that \(b_{2j} = (-1)^{j+1}H_j/(4^j(j!)^2)\) and \(b_{\text{odd}} = 0\), with
+\(H_j = 1 + \frac12 + \cdots + \frac1j\).</li>
+<li>Evaluate \(y_2(1)\) to five decimals, and check that the Wronskian \(J_0y_2' - J_0'y_2\) equals
+\(1/x\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 gives a double root, so one series. Part 2 is a new recursion with a source term. The number
+in part 4 is about \(0.23\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For the substitution, \(x^2y'' + xy' = \sum(k+r)^2a_kx^{k+r}\). For part 2, differentiate
+\(J_0\ln x\) twice with the product rule; the terms with \(\ln x\) reassemble into \(\ln x\cdot L[J_0] = 0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>With \(w = \sum b_mx^m\), \(L[w] = \sum_m(m^2b_m + b_{m-2})x^m\), and you need
+\(L[w] = -2xJ_0' = \sum_{j\ge1}\frac{(-1)^{j+1}4j}{4^j(j!)^2}x^{2j}\).</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line of the recursion: coefficient of \(x^{2j}\), \(4j^2b_{2j} + b_{2j-2} = \frac{(-1)^{j+1}4j}{4^j(j!)^2}\),
+with \(b_0 = 0\).</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The recursion's first equation is the indicial equation; a double root means the
+recursion has nowhere else to go, and the missing solution needs a new ingredient, \(\ln x\), whose
+derivative \(1/x\) supplies exactly the power series can't.</p>
+<p><strong>1.</strong> Substituting: \(\sum_k (k+r)^2a_kx^{k+r} + \sum_ka_kx^{k+r+2} = 0\). Coefficient of
+\(x^r\): \(r^2 = 0\), the indicial equation, with the <strong>double</strong> root \(r = 0\). Then
+\((1+r)^2a_1 = 0\) gives \(a_1 = 0\), and \((k+r)^2a_k = -a_{k-2}\) gives, at \(r = 0\),
+\(a_{2j} = -a_{2j-2}/(4j^2)\), so \(a_{2j} = (-1)^j/(4^j(j!)^2)\): the series of \(J_0\). The method
+detects the missing solution by itself: the indicial equation has only one root to offer, and at that root
+every coefficient is forced. There is no second choice of \(r\) and no free coefficient — so no second
+Frobenius series.</p>
+<p><strong>2.</strong> \(y = J_0\ln x\): \(y' = J_0'\ln x + J_0/x\), \(y'' = J_0''\ln x + 2J_0'/x - J_0/x^2\).
+Then \(x^2y'' + xy' + x^2y = \ln x\,(x^2J_0'' + xJ_0' + x^2J_0) + 2xJ_0' - J_0 + J_0 = 2xJ_0'\). So
+\(L[y_2] = 0\) requires \(L[w] = -2xJ_0'\). From \(J_0 = \sum\frac{(-1)^jx^{2j}}{4^j(j!)^2}\),
+\(-2xJ_0' = \sum_{j\ge1}\frac{(-1)^{j+1}4j}{4^j(j!)^2}x^{2j}\): only even powers. Comparing:</p>
+<ul>
+<li>\(x^1\): \(b_1 = 0\). Odd powers generally: \(m^2b_m + b_{m-2} = 0\) with \(b_1 = 0\), so all vanish.</li>
+<li>\(x^2\): \(4b_2 + 0 = \frac{4}{4} = 1\), so \(b_2 = \frac14\).</li>
+<li>\(x^4\): \(16b_4 + \frac14 = \frac{-8}{16\cdot4} = -\frac18\), so \(b_4 = -\frac{3}{128}\).</li>
+</ul>
+<p>(\(b_3 = 0\).) So \(y_2 = J_0\ln x + \frac{x^2}{4} - \frac{3x^4}{128} + \cdots\).</p>
+<p><strong>3.</strong> Suppose \(b_{2j-2} = (-1)^jH_{j-1}/(4^{j-1}((j-1)!)^2)\) (true for \(j = 1\) with
+\(H_0 = 0\)). Then \(-b_{2j-2} = \frac{(-1)^{j+1}H_{j-1}\cdot4j^2}{4^j(j!)^2}\), and
+\[ 4j^2b_{2j} = \frac{(-1)^{j+1}}{4^j(j!)^2}\big(4j + 4j^2H_{j-1}\big)
+= \frac{(-1)^{j+1}4j^2}{4^j(j!)^2}\Big(\frac1j + H_{j-1}\Big) = \frac{(-1)^{j+1}4j^2H_j}{4^j(j!)^2}. \]
+Divide by \(4j^2\). \(\square\) This agrees with the deck's \(\partial_r\) derivation.</p>
+<p><strong>4.</strong> At \(x = 1\), \(\ln 1 = 0\), so \(y_2(1) = \sum_j b_{2j}\):
+\(0.25 - 0.0234375 + 0.0007957 - 0.0000140 + \cdots = 0.22734\). For the Wronskian, Abel's identity
+(unit 06) on \(y'' + \frac1xy' + y = 0\) gives \(W = C/x\). Near \(0\): \(J_0 = 1 + O(x^2)\),
+\(J_0' = O(x)\), \(y_2 = \ln x + O(x^2)\), \(y_2' = \frac1x + O(x\ln x)\), so
+\(W = \frac1x + O(x\ln x)\), and \(C = 1\).</p>
+<p><strong>Check.</strong> \(y_2\) is unbounded as \(x \to 0^+\), as the deck's Wronskian theorem demands ✓.
+The standard \(Y_0\) is \(\frac2\pi\big(y_2 + (\gamma - \ln 2)J_0\big)\); with \(Y_0(1) = 0.0882570\) and
+\(\gamma - \ln 2 = -0.1159315\), \(y_2(1) = \frac\pi2(0.0882570) + 0.1159315\times0.7651977 = 0.227344\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> When the roots differ by an integer <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the Frobenius obstruction, detecting when a logarithm is forced and when it is not</p>
+<div class="statement">
+<p>Bessel's equation of order \(\nu\) is \(x^2y'' + xy' + (x^2 - \nu^2)y = 0\); \(\nu\) need not be an
+integer.</p>
+<ol>
+<li>\(\nu = 1\). The indicial roots are \(\pm1\). Run the recursion from \(r = -1\) with \(a_0 = 1\) and
+show it breaks down. Then try \(y_2 = cJ_1(x)\ln x + x^{-1}\sum_{k\ge0}b_kx^k\) with \(b_0 = 1\), and show
+that \(c\) is forced to be \(-1\).</li>
+<li>\(\nu = \frac12\). The roots are \(\pm\frac12\), which also differ by an integer. Run the recursion
+from \(r = -\frac12\) and show that nothing breaks. Identify both solutions in closed form.</li>
+<li>In one sentence: what did the recursion check, in each case, that the difference of the roots alone
+could not tell you?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The obstruction, if any, sits at \(k = r_1 - r_2\): \(k = 2\) for \(\nu = 1\) and \(k = 1\) for
+\(\nu = \frac12\). What matters is what the right-hand side of the recursion is there.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For \(r = -\nu\) the recursion reads \(k(k - 2\nu)a_k = -a_{k-2}\), with \(a_{-1} = 0\). For part 1's
+logarithmic trial, \(L[J_1\ln x] = 2xJ_1'\) as in P7, and \(L[x^{m-1}] = ((m-1)^2 - 1)x^{m-1} + x^{m+1}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1's logarithmic case: the coefficient of \(x^1\) is \(0\cdot b_2 + b_0 + 2c\cdot\frac12 = 0\),
+since \(xJ_1' = \frac x2 + O(x^3)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> At \(k = r_1 - r_2\) the recursion reads \(0\cdot a_k = (\text{something})\). If
+the something is zero, \(a_k\) is merely free and a second series exists; if not, no series exists and a
+logarithm must absorb the mismatch.</p>
+<p><strong>1.</strong> With \(r = -1\): \(k(k-2)a_k = -a_{k-2}\). At \(k = 1\): \(-a_1 = 0\), so \(a_1 = 0\).
+At \(k = 2\): \(0\cdot a_2 = -a_0 = -1\). Impossible: no Frobenius series starts at \(x^{-1}\). (Setting
+\(a_0 = 0\) instead just restarts the series at \(x^1\), i.e. at the other root, and returns \(J_1\).)</p>
+<p>Logarithmic trial. \(L[cJ_1\ln x] = 2cxJ_1'\) (the \(\ln x\) terms cancel since \(L[J_1] = 0\), as in
+P7). \(L\big[\sum b_kx^{k-1}\big] = \sum_kb_k\big[((k-1)^2 - 1)x^{k-1} + x^{k+1}\big]\). Collect powers:</p>
+<ul>
+<li>\(x^{-1}\): \(b_0((-1)^2 - 1) = 0\) — automatically satisfied.</li>
+<li>\(x^0\): \(b_1(0 - 1) = 0\), so \(b_1 = 0\).</li>
+<li>\(x^1\): \(b_2(1 - 1) + b_0 + 2c\cdot\frac12 = 0\), so \(c = -b_0 = -1\).</li>
+</ul>
+<p>So \(c = -1 \ne 0\): the logarithm is <strong>forced</strong>, and \(b_2\) is left free (changing it
+adds a multiple of \(J_1\)). The second solution is \(-J_1(x)\ln x + x^{-1}(1 + b_2x^2 + \cdots)\),
+unbounded like \(1/x\), as the deck's Wronskian theorem predicted.</p>
+<p><strong>2.</strong> With \(r = -\frac12\): \((k - \frac12)^2 - \frac14 = k(k-1)\), so
+\(k(k-1)a_k = -a_{k-2}\). At \(k = 1\): \(0\cdot a_1 = -a_{-1} = 0\). No contradiction: \(a_1\) is
+<strong>free</strong>. Taking \(a_0 = 1, a_1 = 0\): \(a_{2j} = -a_{2j-2}/(2j(2j-1))\), so
+\(a_{2j} = (-1)^j/(2j)!\) and \(y = x^{-1/2}\cos x\). Taking \(a_0 = 0, a_1 = 1\):
+\(a_{2j+1} = (-1)^j/(2j+1)!\) and \(y = x^{-1/2}\sin x\), which is the \(r = +\frac12\) solution. Two
+series, no logarithm.</p>
+<p><strong>3.</strong> The recursion checked whether the coefficient chain actually reaches the index
+\(k = r_1 - r_2\) with a nonzero value: for \(\nu = 1\) it does (\(a_0\) feeds \(a_2\)), for
+\(\nu = \frac12\) it does not (the odd chain starts from \(a_{-1} = 0\)).</p>
+<p><strong>Check.</strong> \(x^{-1/2}\cos x\) in the equation with \(\nu = \frac12\): the deck's Liouville
+substitution turns it into \(u'' + u = 0\) with \(u = \cos x\) ✓ (P10 does this in general).</p>
+</div></details>
+</section>
+
+<h2 class="group">Mars, and the limits</h2>
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Mars, another day <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the Fourier–Bessel expansion, the tail bound, a number to five figures, Newton as a cross-check</p>
+<div class="statement">
+<p>Place Mars \(300\) days after perihelion.</p>
+<ol>
+<li>Compute \(M\). Before summing anything, decide from the tail bound how many terms of
+\(E = M + \sum\frac2nJ_n(ne)\sin nM\) give \(E\) to five significant figures.</li>
+<li>Sum them and find \(E\), \(r\) and \(\theta\).</li>
+<li>Cross-check with two Newton steps from \(E_0 = M\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three numbers: \(E\) (about \(2.8\)), \(r\) in AU (a bit over \(1.6\), since this is past
+quadrature and heading for aphelion), and \(\theta\) in degrees.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The deck bounded the tail after three terms by \(2.8\times10^{-5}\), for every \(M\). Is that enough
+when \(E \approx 2.8\)? The \(J_n(ne)\) values are the deck's; only the sines change.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(M = 2\pi\times300/686.980 = 2.743829\), and
+\(\sin M,\ \sin 2M,\ \sin 3M = 0.387358,\ -0.714233,\ 0.929587\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The Bessel coefficients depend on \(e\) only, so a second epoch costs three sines.
+The tail bound says in advance whether three terms suffice.</p>
+<p><strong>1.</strong> \(M = 2.743829\) rad \(= 157.2098^\circ\). Five significant figures of
+\(E \approx 2.8\) means error \(\le 5\times10^{-5}\); the three-term tail is at most \(2.8\times10^{-5}\).
+<strong>Three terms.</strong></p>
+<p><strong>2.</strong> With coefficients \(0.0932982,\ 0.00434911,\ 0.00030405\):
+\(0.0932982\times0.387358 = 0.0361398\); \(0.00434911\times(-0.714233) = -0.0031063\);
+\(0.00030405\times0.929587 = 0.0002826\). Sum \(0.0333161\), so \(E = 2.777145\).</p>
+<p>\(r = a(1 - e\cos E) = 1.523679\times(1 + 0.0934\times0.934321) = 1.656644\) AU.
+\(\tan\frac E2 = 5.42688\), times \(1.098201\) is \(5.95981\), and
+\(\theta = 2\arctan 5.95981 = 160.950^\circ\).</p>
+<p><strong>3.</strong> Newton from \(E_0 = 2.743829\): \(f(E_0) = -e\sin M = -0.036179\),
+\(f'(E_0) = 1 - e\cos M = 1.086108\), \(E_1 = 2.777140\); one more step gives
+\(E_2 = 2.7771218\), correct to \(5\times10^{-12}\). So \(E = 2.777122\), \(r = 1.656643\) AU,
+\(\theta = 160.949^\circ\).</p>
+<p><strong>Check.</strong> The series error is \(2.3\times10^{-5}\), inside the promised
+\(2.8\times10^{-5}\) ✓; \(r\) agrees to \(1.2\times10^{-6}\) AU and \(\theta\) to \(0.0012^\circ\), both within
+half a unit of the fifth figure ✓. Limit: past quadrature \(\theta \gt E \gt M\), and all three approach
+\(\pi\) together at aphelion ✓. Dimensions: \(r\) inherits AU from \(a\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Far from the origin <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Liouville substitution, an exact special case, using a cited asymptotic honestly</p>
+<div class="statement">
+<ol>
+<li>Show that \(y = u/\sqrt x\) turns Bessel's equation of order \(\nu\) into
+\(u'' + \big(1 - \frac{\nu^2 - 1/4}{x^2}\big)u = 0\).</li>
+<li>Deduce that for \(\nu = \frac12\) every solution is exactly \(A x^{-1/2}\cos(x - \varphi)\).</li>
+<li>Using the cited form \(J_0(x) \approx \sqrt{2/\pi x}\cos(x - \pi/4)\), estimate \(J_0(20)\) (true value
+\(0.1670247\)) and the first four zeros of \(J_0\) (true: \(2.404826,\ 5.520078,\ 8.653728,\ 11.791534\)).
+How does the error in the zeros behave?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A computation with the product rule, a one-line consequence, and a small table of numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Compute \(y'\) and \(y''\) for \(y = x^{-1/2}u\) and collect powers of \(x\). The zeros of the
+approximation are where \(x - \pi/4 = (k - \frac12)\pi\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(y' = x^{-1/2}u' - \frac12x^{-3/2}u\), \(y'' = x^{-1/2}u'' - x^{-3/2}u' + \frac34x^{-5/2}u\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Dividing out the \(x^{-1/2}\) amplitude decay leaves an oscillator whose frequency
+tends to \(1\); for \(\nu = \frac12\) the perturbation vanishes identically.</p>
+<p><strong>1.</strong> \(x^2y'' = x^{3/2}u'' - x^{1/2}u' + \frac34x^{-1/2}u\) and
+\(xy' = x^{1/2}u' - \frac12x^{-1/2}u\). Sum: \(x^{3/2}u'' + \frac14x^{-1/2}u\). Add
+\((x^2 - \nu^2)x^{-1/2}u\) and divide by \(x^{3/2}\):
+\(u'' + \big(1 + \frac{1/4 - \nu^2}{x^2}\big)u = 0\). \(\square\)</p>
+<p><strong>2.</strong> \(\nu^2 = \frac14\) kills the perturbation: \(u'' + u = 0\), so \(u = A\cos(x - \varphi)\)
+exactly (unit 06), and \(y = Ax^{-1/2}\cos(x - \varphi)\) — P8's \(x^{-1/2}\cos x\) and \(x^{-1/2}\sin x\).</p>
+<p><strong>3.</strong> \(\sqrt{2/(20\pi)} = 0.178412\) and \(\cos(20 - \pi/4) = 0.934107\), product
+\(0.166656\), against \(0.167025\): error \(3.7\times10^{-4}\), i.e. \(0.2\%\). Zeros of the approximation:
+\((k - \frac14)\pi = 2.356194,\ 5.497787,\ 8.639380,\ 11.780972\). Errors \(0.0486,\ 0.0223,\ 0.0143,\ 0.0106\),
+shrinking roughly like \(1/x\): error times \((k - \frac14)\pi\) is \(0.1146,\ 0.1226,\ 0.1240,\ 0.1244\) —
+creeping up towards \(\frac18\).</p>
+<p><strong>Check.</strong> The \(O(x^{-3/2})\) error in \(J_0\) shifts each zero by \(O(1/x)\), because near a
+zero the cosine has slope about \(\sqrt{2/\pi x}\): error over slope is \(x^{-3/2}/x^{-1/2} = x^{-1}\) ✓.
+The limit \(\frac18\) is the next term of the asymptotic series, \(j_k \approx \beta + \frac{1}{8\beta}\) with
+\(\beta = (k - \frac14)\pi\) — a result of unit 20's methods, visible here as a number.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Halley's comet <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: honest convergence, estimating a radius of convergence from coefficients, the Laplace limit</p>
+<div class="statement">
+<p>At \(M = \pi/2\), Lagrange's series is \(E = \frac\pi2 + \sum_k c_ke^k\) with only odd \(k\):</p>
+<table>
+<tr><th>\(k\)</th><th>\(c_k\)</th><th>\(k\)</th><th>\(c_k\)</th></tr>
+<tr><td>1</td><td>\(1\)</td><td>13</td><td>\(3.538832\)</td></tr>
+<tr><td>3</td><td>\(-0.5\)</td><td>15</td><td>\(-6.510188\)</td></tr>
+<tr><td>5</td><td>\(0.541667\)</td><td>17</td><td>\(12.298595\)</td></tr>
+<tr><td>7</td><td>\(-0.751389\)</td><td>19</td><td>\(-23.718704\)</td></tr>
+<tr><td>9</td><td>\(1.179191\)</td><td>21</td><td>\(46.506102\)</td></tr>
+<tr><td>11</td><td>\(-1.992890\)</td><td></td><td></td></tr>
+</table>
+<ol>
+<li>Check \(c_3\) and \(c_5\) against Lagrange's formula.</li>
+<li>For Halley's comet, \(e = 0.967\), the true value is \(E = 2.295064\). Compute the partial sums through
+\(e^5, e^9, e^{13}, e^{17}, e^{21}\). What happens?</li>
+<li>Estimate the radius of convergence \(\rho\) from the table: first from the ratios
+\(|c_k/c_{k-2}| \approx \rho^{-2}\), then by extrapolating those ratios linearly in \(1/k\) to
+\(1/k = 0\) using \(k = 19\) and \(21\). Compare with the Laplace limit \(0.6627434\).</li>
+<li>Say precisely which series fails here and which does not, and what is owed to unit 20.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 2 is a list of five numbers that should wander further and further from \(2.295\). Part 3 ends in a
+number close to, but not exactly, \(0.66\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: \(c_k = \frac1{k!}\frac{\mathrm d^{k-1}}{\mathrm dM^{k-1}}\sin^kM\) at \(M = \pi/2\). Part 3: if
+\(c_k \sim Ck^\alpha\rho^{-k}\), the ratio \(c_k/c_{k-2}\) is \(\rho^{-2}(1 + O(1/k))\), and a straight line in
+\(1/k\) removes the \(O(1/k)\) term.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>For \(c_3\), \(\sin^3M = \frac14(3\sin M - \sin 3M)\) differentiated twice is
+\(\frac14(-3\sin M + 9\sin 3M)\); at \(M = \pi/2\), \(\sin 3M = -1\).</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line of part 3: \(|c_{19}/c_{17}| = 1.928570\), \(|c_{21}/c_{19}| = 1.960735\).</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A power series converges geometrically inside its radius and its terms grow
+geometrically outside it. The coefficients themselves carry the radius; extrapolating their ratios
+(a Domb–Sykes plot) reads it off without any theory.</p>
+<p><strong>1.</strong> \(c_3 = \frac16\cdot\frac14(-3\cdot1 + 9\cdot(-1)) = \frac{-12}{24} = -\frac12\) ✓.
+For \(c_5\): \(\sin^5M = \frac{10\sin M - 5\sin 3M + \sin 5M}{16}\); four derivatives multiply
+\(\sin jM\) by \(j^4\), giving \(\frac{10\sin M - 405\sin 3M + 625\sin 5M}{16}\). At \(M = \pi/2\)
+(\(\sin M = 1,\ \sin 3M = -1,\ \sin 5M = 1\)) this is \(\frac{10 + 405 + 625}{16} = 65\), and
+\(65/5! = 65/120 = \frac{13}{24} = 0.541667\) ✓.</p>
+<p><strong>2.</strong> With \(e = 0.967\), the partial sums through \(e^1, e^3, \ldots\) are
+\(2.5378,\ 2.0857,\ 2.5437,\ 1.9496,\ 2.8214,\ 1.4436,\ 3.7314,\ -0.2040,\ 6.7479,\ -5.7891,\ 17.1970\).
+Through \(e^5, e^9, e^{13}, e^{17}, e^{21}\): \(2.5437,\ 2.8214,\ 3.7314,\ 6.7479,\ 17.1970\). The terms
+alternate in sign and grow; the partial sums oscillate about the true \(2.2951\) with growing amplitude.
+Divergence.</p>
+<p><strong>3.</strong> Naive: \(|c_{21}/c_{19}| = 1.9607\), so \(\rho \approx 1/\sqrt{1.9607} = 0.714\) — too
+big, and the ratios are still climbing (\(1.8396, 1.8891, 1.9286, 1.9607\) for \(k = 15\) to \(21\)).
+Extrapolate: the line through \((1/19, 1.928570)\) and \((1/21, 1.960735)\) has slope
+\(0.032165/(1/21 - 1/19) = -6.417\), and at \(1/k = 0\) it gives \(1.960735 + 6.417/21 = 2.26631\). So
+\(\rho \approx 1/\sqrt{2.26631} = 0.6643\), within \(0.25\%\) of the Laplace limit.</p>
+<p><strong>4.</strong> What fails is Lagrange's series in <strong>powers of \(e\)</strong>, for \(e\) above
+\(0.6627\). The Fourier–Bessel series in harmonics of \(M\) converges for Halley — to \(2.29498\) after
+\(199\) terms, error \(8.5\times10^{-5}\) — slowly, but it converges, for every \(e \lt 1\). Newton's method
+from \(E_0 = \pi/2\) reaches \(10^{-10}\) in four steps. This unit proved Lagrange's series converges for
+\(e \lt 0.6599\); what is owed to unit 20 is the reason for the exact edge: the nearest complex
+singularity of \(E(e)\), at \(e = \pm0.6627i\) when \(M = \pi/2\), caps the radius.</p>
+<p><strong>Check.</strong> The terms at \(e = 0.967\) should grow by about \((0.967/0.6627)^2 = 2.13\) every two
+orders: \(|c_{21}e^{21}|/|c_{19}e^{19}| = 1.9607\times0.935 = 1.83\), approaching \(2.13\) as the ratios do ✓.
+At \(e = 0.6\) (inside) the same sums converge, to \(2.0913\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Proof: Bessel's equation from Bessel's integral <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a proof, differentiation under the integral, spotting an exact derivative</p>
+<div class="statement">
+<p>Let \(n\) be an integer and \(y(x) = \frac1\pi\int_0^\pi\cos(n\vartheta - x\sin\vartheta)\,\mathrm d\vartheta\).</p>
+<ol>
+<li>Prove directly from this integral, without the power series, that
+\(x^2y'' + xy' + (x^2 - n^2)y = 0\).</li>
+<li>Locate the single step where "\(n\) is an integer" is used, and say what goes wrong for
+\(n = \frac12\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The combination \(x^2y'' + xy' + (x^2 - n^2)y\) will turn out to be the integral of an exact
+\(\vartheta\)-derivative, so it equals a boundary term.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(\phi = n\vartheta - x\sin\vartheta\) and note \(\partial_\vartheta\phi = n - x\cos\vartheta\).
+Differentiate \((n + x\cos\vartheta)\sin\phi\) with respect to \(\vartheta\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(y' = \frac1\pi\int_0^\pi\sin\vartheta\sin\phi\,\mathrm d\vartheta\) and
+\(y'' = -\frac1\pi\int_0^\pi\sin^2\vartheta\cos\phi\,\mathrm d\vartheta\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The ODE's left side, under the integral sign, is minus a total derivative in
+\(\vartheta\); integrating it leaves the endpoint values, which vanish exactly when \(n\) is an integer.</p>
+<p><strong>1.</strong> Differentiating under the integral is legitimate (the integrand is smooth in
+\((x,\vartheta)\) on \(\mathbb R\times[0,\pi]\)): with \(\partial_x\phi = -\sin\vartheta\), the hint's
+formulas follow. Then</p>
+\[ x^2y'' + xy' + (x^2 - n^2)y = \frac1\pi\int_0^\pi\Big[(x^2 - x^2\sin^2\vartheta - n^2)\cos\phi
++ x\sin\vartheta\sin\phi\Big]\mathrm d\vartheta
+= \frac1\pi\int_0^\pi\Big[(x^2\cos^2\vartheta - n^2)\cos\phi + x\sin\vartheta\sin\phi\Big]\mathrm d\vartheta. \]
+<p>Now \(\frac{\mathrm d}{\mathrm d\vartheta}\big[(n + x\cos\vartheta)\sin\phi\big]
+= -x\sin\vartheta\sin\phi + (n + x\cos\vartheta)(n - x\cos\vartheta)\cos\phi
+= -\big[(x^2\cos^2\vartheta - n^2)\cos\phi + x\sin\vartheta\sin\phi\big]\). So the integral is</p>
+\[ -\frac1\pi\Big[(n + x\cos\vartheta)\sin\phi\Big]_0^\pi = -\frac1\pi\Big((n - x)\sin(n\pi) - (n + x)\sin 0\Big)
+= -\frac{(n - x)\sin n\pi}{\pi}, \]
+<p>which is \(0\) for integer \(n\). \(\square\)</p>
+<p><strong>2.</strong> Only the last line: \(\sin n\pi = 0\). For \(n = \frac12\) the residual is
+\(-(\frac12 - x)/\pi\), not zero, so the integral does not solve Bessel's equation of order \(\frac12\) —
+whose solutions P8 found to be \(x^{-1/2}\cos x\) and \(x^{-1/2}\sin x\). The power series (with Gamma
+functions) extends to non-integer order; Bessel's integral, in this form, does not.</p>
+<p><strong>Check.</strong> Special case \(x = 0\): \(y(0) = \delta_{n0}\), and the equation at \(x = 0\) reads
+\(-n^2y(0) = 0\) ✓ for every integer \(n\). Numerically, at \(n = 0\), \(x = 1\): \(J_0'' = -J_0 - J_0'/x\)
+gives \(J_0''(1) = -0.765198 + 0.440051 = -0.325147\), consistent with \(J_0' = -J_1\) differentiated,
+\(-J_1'(1) = -(J_0(1) - J_1(1)) = -0.325147\) ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./mr done 09</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

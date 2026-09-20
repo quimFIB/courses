@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · Where things are: curves, frames, and the frame that lies to you</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="a">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="pendulum"><span class="ref-name">the running example</span>Foucault's pendulum in the Panthéon, Paris: a bob on a wire of length $L = 67\ \mathrm{m}$, swung with an amplitude of a few metres — take $6\ \mathrm m$ throughout — at latitude $\lambda = 48.8462^\circ$ N. <span class="ref-note">Own frequency $\omega_0 = \sqrt{g/L} = 0.3826\ \mathrm{s^{-1}}$, one swing every $16.42\ \mathrm{s}$. Its plane of swing turns once every $31.79\ \mathrm{h}$ — the number this unit is built to predict</span><svg viewBox="0 0 220 200" width="150" aria-hidden="true"><line x1="110" y1="14" x2="110" y2="150" class="rule" stroke-width="2" stroke-dasharray="4 4"/><line x1="110" y1="14" x2="62" y2="146" class="unit" stroke-width="3"/><circle cx="62" cy="146" r="11" class="fill-unit"/><ellipse cx="110" cy="160" rx="62" ry="17" fill="none" class="accent" stroke-width="2"/><path d="M 48 160 A 62 17 0 0 1 172 160" fill="none" class="warn" stroke-width="3"/><text x="150" y="188" font-size="15" class="soft">plane turns</text><text x="118" y="90" font-size="15" class="mono soft">L = 67 m</text></svg></template>
+  <template data-ref="omega"><span class="ref-name">$\vec\omega$, the Earth's angular velocity</span>$\omega_{\mathrm E} = 2\pi / (86\,164.09\ \mathrm{s}) = 7.2921 \times 10^{-5}\ \mathrm{s^{-1}}$, along the polar axis, pointing out of the north pole. <span class="ref-note">The sidereal day, not the solar day: what $R(t)$ turns against is the fixed stars. The solar day is longer by a factor 1.00274</span></template>
+  <template data-ref="lat"><span class="ref-name">the local frame at latitude $\lambda$</span>$\hat x$ east, $\hat y$ north, $\hat z$ up. In it $\vec\omega = \omega(0,\ \cos\lambda,\ \sin\lambda)$. <span class="ref-note">Only the vertical part $\omega \sin\lambda$ turns a horizontal plane. At the Panthéon, $\omega\sin\lambda = 5.4906 \times 10^{-5}\ \mathrm{s^{-1}}$</span><svg viewBox="0 0 220 210" width="150" aria-hidden="true"><circle cx="105" cy="105" r="78" fill="none" class="rule" stroke-width="2"/><line x1="105" y1="12" x2="105" y2="198" class="rule" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="27" y1="105" x2="183" y2="105" class="rule" stroke-width="1.5"/><line x1="156" y1="54" x2="200" y2="10" class="unit" stroke-width="3"/><line x1="156" y1="54" x2="182" y2="28" class="accent" stroke-width="3"/><circle cx="156" cy="54" r="6" class="fill-unit"/><text x="122" y="42" font-size="16" class="mono">λ</text><path d="M 138 105 A 33 33 0 0 0 128 82" fill="none" class="ink" stroke-width="1.5"/><text x="60" y="30" font-size="16" class="mono soft">ω↑</text></svg></template>
+  <template data-ref="R"><span class="ref-name">$R(t)$, the frame's attitude</span>The rotation taking a vector's components in the ground frame to its components in the inertial frame: $x_{\mathrm{in}} = R(t)\,x_{\mathrm{rot}}$, $R(t) \in SO(3)$. <span class="ref-note">Everything in this unit is one object differentiated: $\Omega = R^{\!\top}\dot R$ gives $\vec\omega$, $\Omega^2$ gives centrifugal, $2\Omega\dot x$ gives Coriolis, $\dot\Omega$ gives Euler</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part A · the equation of motion · spine</p>
+  <div class="unit-no">03</div>
+  <h1>Where things are: curves, frames, and the frame that lies to you</h1>
+  <p class="lede">Differentiation in several variables, the frame a curve carries with it, and
+  the exact price of doing mechanics in a room that is turning.</p>
+  <p class="meta"><span>needs 00</span><span>~2½ h slides + 5 h problems</span><span>problems: <code>./mr problems 03</code></span></p>
+  <aside class="notes">
+    <p>Unit 00 solved $m\ddot x = F$ in one dimension. Three dimensions are not three
+    copies of that: the force at a point depends on where the point is, and "where"
+    is now a vector. So the first half of this unit builds the calculus of maps
+    $\mathbb R^n \to \mathbb R^m$ — the derivative as a linear map, the chain rule as
+    composition, Clairaut's theorem — and the geometry of a single curve in space.</p>
+    <p>The second half asks a question unit 00 could not even phrase. Newton's law
+    holds in an <em>inertial</em> frame. The room you are in is bolted to a planet that
+    turns once a day. What exactly goes wrong, and by how much? The answer is three
+    extra terms, each of which falls out of differentiating $x_{\mathrm{in}} = R(t)\,x_{\mathrm{rot}}$
+    twice. Nothing is postulated; the fictitious forces are theorems about
+    $\tfrac{\mathrm d}{\mathrm dt}$.</p>
+    <h4>How to read this deck</h4>
+    <p>One object runs through it: Foucault's pendulum in the Panthéon. Sections 1 and 2
+    give it a trajectory to be a curve of; section 3 gives the building it hangs in an
+    attitude matrix $R(t)$; sections 4 and 5 turn that into the number $31.79$ hours.
+    Proofs are on the slides where they are one line, and in these notes under
+    <b>Full proof</b> where they are not. Nothing here is asserted without one of the two.</p>
+    <p>Terms with a dotted underline are glossary entries — click one, or press
+    <kbd>G</kbd> for the whole list. <kbd>N</kbd> opens these notes, <kbd>R</kbd> stacks
+    the deck into one readable page.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · overview</p>
+  <h2>One pendulum, five sections</h2>
+  <div class="cols">
+    <div>
+      <p><span class="ref" data-ref="pendulum">A 67-metre pendulum</span> hangs in the Panthéon. Released, it swings in a vertical plane — and that plane slowly turns, once every $31.79$ hours.</p>
+      <p class="small">Nothing pushes it sideways. The claim of this unit: the turning is not a force at all, but what differentiation looks like from a room that is itself turning — at a rate of <span class="ref" data-ref="omega">$\omega_{\mathrm E}$</span> times $\sin\lambda$, and nothing else.</p>
+      <div class="box good"><span class="label">getting around</span>
+        <p class="small">A <span class="term" data-term="partial derivative">dotted underline</span> is a glossary term — click it, or press <kbd>G</kbd>. A solid underline like <span class="ref" data-ref="pendulum">the pendulum</span> is a piece of the running example: hover it. <kbd>N</kbd> shows the notes.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">1 · derivatives in $\mathbb R^n$</span>
+        <p class="small">The derivative is the best linear approximation. The chain rule is composition.</p></div>
+      <div class="box def"><span class="label">2 · curves</span>
+        <p class="small">Arc length, curvature, and the frame a curve carries. Acceleration has exactly two parts.</p></div>
+      <div class="box def"><span class="label">3 · frames that turn</span>
+        <p class="small">$R(t) \in SO(3)$, the antisymmetry of $R^{\!\top}\dot R$, and where $\vec\omega$ comes from.</p></div>
+      <div class="box def"><span class="label">4 · the price, and 5 · the number</span>
+        <p class="small">Coriolis, centrifugal, Euler — three theorems, not three forces. Then $31.79$ h, against "about 32 h" observed.</p></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The problem sheet follows the same order: problems 1–3 are the several-variable
+    calculus, 4–7 the curve geometry, 8–9 the frame algebra, 10–13 the consequences with
+    numbers. Three of them — 5, 8 and 13 — are proofs rather than computations.</p>
+    <p>Foucault hung his first public pendulum in the Panthéon in March 1851, after a
+    trial in the cellar of his house in the rue d'Assas and a second in the Paris
+    Observatory. The point he was making was not subtle and not new — everyone had
+    believed the Earth turned for two centuries — but it was the first demonstration
+    that used no astronomy at all. You can do it indoors, at night, with the shutters
+    closed.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Differentiating in several variables</h2>
+  <p>The derivative is a linear map. Everything else on this slide deck is that sentence, applied.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · derivatives</p>
+  <h2>Partials are not enough</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For $f : \mathbb R^n \to \mathbb R$, the <span class="term">partial derivative</span> at $a$ is
+        $$\partial_i f(a) = \lim_{h \to 0} \frac{f(a + h e_i) - f(a)}{h},$$
+        the ordinary derivative of $f$ along the $i$-th coordinate line. The <span class="term">directional derivative</span> along $u$ replaces $e_i$ by $u$.</p>
+      </div>
+      <p class="small">Each one restricts $f$ to a line and asks a single-variable question. That is exactly the weakness.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">both partials exist, $f$ is not even continuous</span>
+        <p class="small">$$f(x,y) = \frac{xy}{x^2 + y^2}, \qquad f(0,0) = 0.$$
+        On each axis $f \equiv 0$, so $\partial_1 f(0) = \partial_2 f(0) = 0$. On the line $y = x$, $f \equiv \tfrac12$. So $f$ has no limit at the origin.</p>
+      </div>
+      <p class="small">Even <em>all</em> directional derivatives is not enough: $g(x,y) = x^3/(x^2+y^2)$, $g(0,0)=0$, has $D_u g(0) = u_1^3$ for every unit $u$ — which is not linear in $u$, so $g$ is not differentiable.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The second example, in full.</b> For a unit vector $u = (u_1, u_2)$,
+    $\frac{g(tu) - g(0)}{t} = \frac{1}{t}\cdot\frac{t^3u_1^3}{t^2(u_1^2+u_2^2)} = u_1^3$,
+    so every directional derivative exists and equals $u_1^3$. If $g$ were differentiable
+    at $0$ with derivative $\Lambda$, then $D_ug(0) = \Lambda u$ would be linear in $u$;
+    $u_1^3$ is not. Note $g$ is continuous at the origin, since $|g| \le |x|$: continuity
+    plus all directional derivatives still does not give differentiability.</p>
+    <p><b>Why this matters here and not in unit 00.</b> In one variable there is one
+    difference quotient and it either converges or does not. In several variables
+    "differentiable" has to mean something stronger than "differentiable along every
+    line", because a function can be smooth along every line through a point and still
+    be badly behaved on a curve through it. The definition on the next slide is the
+    right one, and the counterexamples above are the reason it is phrased that way.</p>
+    <p>These two functions come back as problem 1.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · derivatives</p>
+  <h2>The derivative is a linear map</h2>
+  <div class="box def"><span class="label">definition · the <span class="term">total derivative</span></span>
+    <p>$f : U \subseteq \mathbb R^n \to \mathbb R^m$ is <b>differentiable</b> at $a \in U$ if there is a linear map $Df(a) : \mathbb R^n \to \mathbb R^m$ with
+    $$f(a + h) = f(a) + Df(a)\,h + r(h), \qquad \frac{\lVert r(h)\rVert}{\lVert h\rVert} \longrightarrow 0 \ \text{ as } h \to 0 .$$
+    $Df(a)$ is the <b>linear map that best approximates $f$ near $a$</b>. It is a map, not a number and not a matrix.</p>
+  </div>
+  <div class="cols">
+    <div class="box thm"><span class="label">uniqueness</span>
+      <p class="small">There is at most one such $Df(a)$.</p>
+      <p class="small muted"><b>Proof.</b> If $\Lambda_1, \Lambda_2$ both work then $(\Lambda_1-\Lambda_2)h = o(\lVert h\rVert)$. Put $h = tu$, $t \to 0$: $(\Lambda_1-\Lambda_2)u = 0$ for every $u$. $\square$</p>
+    </div>
+    <div>
+      <p class="small">The physics motive: a force field $F : \mathbb R^3 \to \mathbb R^3$ near a point of equilibrium <em>is</em> its derivative, to first order — a $3\times3$ matrix. Every "small oscillations" calculation in this course is that sentence.</p>
+      <p class="small muted">For <span class="ref" data-ref="pendulum">the pendulum</span> that matrix is $-m\omega_0^2 I$ on the horizontal plane; section 5 starts there.</p>
+      <p class="small muted">Differentiable $\Rightarrow$ continuous: $\lVert f(a+h)-f(a)\rVert \le \lVert Df(a)\rVert\lVert h\rVert + \lVert r(h)\rVert \to 0$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the definition.</b> "$r(h)/\lVert h\rVert \to 0$" is the whole content:
+    the error is not merely small, it is small <em>compared with $\lVert h \rVert$</em>, and
+    in every direction at once, uniformly. That last clause is what the previous slide's
+    counterexamples fail. The one-variable case is included: $Df(a)$ is multiplication by
+    $f'(a)$.</p>
+    <p><b>On the norm.</b> Which norm on $\mathbb R^n$ does not matter — all norms on a
+    finite-dimensional space are equivalent, so the condition
+    $r(h) = o(\lVert h\rVert)$ is the same statement in any of them. The learner has the
+    metric-space topology this needs.</p>
+    <p><b>Why "linear map" and not "matrix" is worth insisting on.</b> The matrix depends on
+    the basis; the map does not. This distinction is quietly doing nothing here and will
+    be doing everything in unit 16, where a tensor is defined as a multilinear map and
+    the component transformation law becomes a theorem about change of basis. The habit
+    starts now: define the object, then compute its components.</p>
+    <p>The operator norm $\lVert \Lambda \rVert = \sup_{\lVert u \rVert = 1}\lVert \Lambda u\rVert$
+    is finite for a linear map on a finite-dimensional space, which is what the
+    continuity argument on the slide uses.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · derivatives</p>
+  <h2>The Jacobian, and when partials suffice</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">components</span>
+        <p class="small">If $f$ is differentiable at $a$ then every $\partial_j f_i(a)$ exists, and the matrix of $Df(a)$ in the standard bases is the <span class="term">Jacobian matrix</span>
+        $$\big[Df(a)\big]_{ij} = \partial_j f_i(a).$$</p>
+        <p class="small muted"><b>Proof.</b> Put $h = te_j$ in the definition and divide by $t$: $\big(f(a+te_j)-f(a)\big)/t \to Df(a)e_j$, whose $i$-th entry is $\partial_j f_i(a)$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">converse, with a hypothesis</span>
+        <p class="small">If every $\partial_j f_i$ exists on a neighbourhood of $a$ and is <b>continuous</b> at $a$, then $f$ is differentiable at $a$. Such an $f$ is called <span class="term" data-term="continuously differentiable">$C^1$</span>.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <p class="small">So in practice: compute partials, check they are continuous, and you may use the Jacobian as the derivative. The counterexamples exist to keep the check honest, not to make life hard.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the $C^1$ criterion</h4>
+    <p>Take $m = 1$ (do each component separately). Write $h = (h_1,\dots,h_n)$ and walk
+    from $a$ to $a + h$ one coordinate at a time: with
+    $p_k = a + \sum_{j \le k} h_j e_j$, so $p_0 = a$ and $p_n = a + h$,
+    $$f(a+h) - f(a) = \sum_{k=1}^{n}\big(f(p_k) - f(p_{k-1})\big).$$
+    Each bracket changes one coordinate only, so the single-variable mean value theorem
+    gives $f(p_k) - f(p_{k-1}) = h_k\,\partial_k f(q_k)$ for some $q_k$ on the segment
+    between $p_{k-1}$ and $p_k$; in particular $\lVert q_k - a \rVert \le \lVert h\rVert$.
+    Hence
+    $$f(a+h) - f(a) - \sum_k h_k \partial_k f(a) = \sum_k h_k\big(\partial_k f(q_k) - \partial_k f(a)\big),$$
+    whose absolute value is at most $\lVert h\rVert \sum_k |\partial_k f(q_k) - \partial_k f(a)|$.
+    By continuity of the partials at $a$, the sum tends to $0$ as $h \to 0$. So the
+    remainder is $o(\lVert h\rVert)$ and $Df(a)h = \sum_k h_k \partial_k f(a)$. $\square$</p>
+    <p>The hypothesis is not vacuous: $x^2\sin(1/x)$ extended by $0$ is differentiable
+    everywhere with a discontinuous derivative, so "differentiable" is strictly weaker
+    than $C^1$ even in one variable. In several variables the gap is the one the
+    previous slide exhibited.</p>
+    <p>Every map in this course is $C^\infty$ where it is used, so this theorem is the
+    licence to stop worrying. It is invoked silently from here on.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · derivatives</p>
+  <h2>The chain rule, once</h2>
+  <div class="box thm"><span class="label">theorem · the <span class="term">multivariable chain rule</span></span>
+    <p>If $f$ is differentiable at $a$ and $g$ is differentiable at $f(a)$, then $g \circ f$ is differentiable at $a$ and
+    $$D(g\circ f)(a) \;=\; Dg\big(f(a)\big) \circ Df(a) .$$
+    <b>The derivative of a composite is the composite of the derivatives.</b> In matrices: multiply the Jacobians, in that order.</p>
+    <p class="proof-pointer">full proof in the notes (N)</p>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small">Written in components it is the familiar page of subscripts,
+      $$\partial_k (g_i \circ f)(a) = \sum_{j} \partial_j g_i\big(f(a)\big)\, \partial_k f_j(a),$$
+      which is just the $(i,k)$ entry of a matrix product. Learn the line above; derive this one when you need it.</p>
+    </div>
+    <div class="box good"><span class="label">the case used constantly below</span>
+      <p class="small">$\gamma : \mathbb R \to \mathbb R^n$ a curve, $f : \mathbb R^n \to \mathbb R$: then
+      $$\frac{\mathrm d}{\mathrm dt}\,f(\gamma(t)) = Df(\gamma(t))\,\dot\gamma(t).$$
+      A $1\times n$ matrix times an $n\times 1$ one: a number.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the chain rule</h4>
+    <p>Write $A = Df(a)$, $B = Dg(b)$ with $b = f(a)$. By definition
+    $f(a+h) = b + Ah + r(h)$ with $r(h) = o(\lVert h\rVert)$, and
+    $g(b+k) = g(b) + Bk + s(k)$ with $s(k) = o(\lVert k\rVert)$. Put $k = k(h) = Ah + r(h)$.
+    Then
+    $$g(f(a+h)) = g(b) + B\big(Ah + r(h)\big) + s(k(h)) = g(b) + BAh + \underbrace{B\,r(h) + s(k(h))}_{\text{claim: } o(\lVert h\rVert)} .$$
+    The first term: $\lVert B r(h)\rVert \le \lVert B\rVert\,\lVert r(h)\rVert = o(\lVert h\rVert)$.
+    The second: $\lVert k(h)\rVert \le (\lVert A\rVert + 1)\lVert h\rVert$ for $h$ small,
+    so $k \to 0$ with $h$, and given $\varepsilon &gt; 0$ we have
+    $\lVert s(k)\rVert \le \varepsilon \lVert k \rVert \le \varepsilon(\lVert A\rVert+1)\lVert h\rVert$
+    once $\lVert h \rVert$ is small enough. Hence the whole remainder is $o(\lVert h\rVert)$,
+    and by uniqueness $D(g\circ f)(a) = BA$. $\square$</p>
+    <p>The one place to be careful is that $s$ must be evaluated at $k(h)$, which is not
+    simply $Ah$; the bound $\lVert k(h)\rVert = O(\lVert h \rVert)$ is what makes that
+    harmless.</p>
+    <p><b>Where this is used in this unit.</b> Twice, both times invisibly: to differentiate
+    $t \mapsto R(t)x(t)$ (a bilinear map composed with a curve, hence a product rule), and
+    to change to polar coordinates on the problem sheet. It is used visibly from unit 04
+    onwards, where $\tfrac{\mathrm d}{\mathrm dt}V(\gamma(t)) = \nabla V \cdot \dot\gamma$ is
+    the whole reason potential energy works.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · derivatives</p>
+  <h2>Clairaut, and the function that breaks it</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Clairaut's theorem</span></span>
+        <p class="small">If $\partial_1\partial_2 f$ and $\partial_2\partial_1 f$ exist on a neighbourhood of $a$ and are continuous at $a$, then
+        $$\partial_1\partial_2 f(a) = \partial_2\partial_1 f(a).$$</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <p class="small">Partial derivatives commute — <em>when</em> the second derivatives are continuous. This is the hypothesis that will later make $\mathrm d^2 = 0$ in unit 34 and kill half the candidate terms in unit 33's curvature identities.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">and when they are not</span>
+        <p class="small">$$f(x,y) = \frac{xy(x^2-y^2)}{x^2+y^2}, \qquad f(0,0) = 0 .$$
+        Then $\partial_1 f(0,y) = -y$ and $\partial_2 f(x,0) = x$, so
+        $$\partial_2\partial_1 f(0,0) = -1, \qquad \partial_1\partial_2 f(0,0) = +1 .$$</p>
+      </div>
+      <p class="small muted">Both mixed partials exist everywhere; neither is continuous at the origin. The theorem is not being evaded, its hypothesis is being failed.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of Clairaut's theorem</h4>
+    <p>Fix $a = (a_1,a_2)$ and for small $h, k$ define the second difference
+    $$\Delta(h,k) = f(a_1+h,a_2+k) - f(a_1+h,a_2) - f(a_1,a_2+k) + f(a_1,a_2).$$
+    It is symmetric under swapping the roles of the two coordinates — the same four
+    values with the same signs. Read it one way: with
+    $\varphi(s) = f(s, a_2+k) - f(s, a_2)$ we have $\Delta = \varphi(a_1+h)-\varphi(a_1)
+    = h\,\varphi'(\xi) = h\big(\partial_1 f(\xi, a_2+k) - \partial_1 f(\xi, a_2)\big)$
+    by the mean value theorem, and a second application in the other variable gives
+    $\Delta = hk\,\partial_2\partial_1 f(\xi,\eta)$ for some $(\xi,\eta)$ in the
+    rectangle. Reading it the other way gives $\Delta = hk\,\partial_1\partial_2 f(\xi',\eta')$
+    with $(\xi',\eta')$ in the same rectangle. Divide by $hk$ and let $(h,k) \to (0,0)$;
+    both interior points tend to $a$, and by continuity of the two mixed partials at $a$
+    the limits are $\partial_2\partial_1 f(a)$ and $\partial_1\partial_2 f(a)$. $\square$</p>
+    <p><b>The counterexample, computed.</b> For $y \ne 0$,
+    $\partial_1 f(0,y) = \lim_{h\to0} \frac{1}{h}\cdot\frac{hy(h^2-y^2)}{h^2+y^2}
+    = \frac{y(-y^2)}{y^2} = -y$; it is $0$ at $y = 0$ too, so $\partial_1 f(0,y) = -y$
+    for all $y$ and $\partial_2\partial_1 f(0,0) = -1$. The function is antisymmetric,
+    $f(y,x) = -f(x,y)$, so $\partial_2 f(x,0) = +x$ and $\partial_1\partial_2 f(0,0) = +1$.
+    This is problem 2, where you also check that the mixed partials are genuinely
+    discontinuous at the origin rather than merely unequal there.</p>
+    <p>The example is Peano's, from 1884; Clairaut had stated the theorem in 1740 without
+    the hypothesis, and Schwarz gave the modern proof. Some books call it Schwarz's
+    theorem for that reason.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Curves</h2>
+  <p>A trajectory is a map $\mathbb R \to \mathbb R^3$. It carries a frame of its own, and that frame splits acceleration in two.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves</p>
+  <h2>Vector-valued functions and two product rules</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">A <span class="term">vector-valued function</span> $\gamma : I \to \mathbb R^3$ on an interval is differentiable iff each component is, and then $\dot\gamma = (\dot\gamma_1,\dot\gamma_2,\dot\gamma_3)$. This <em>is</em> the total derivative of $\gamma$: the linear map $t \mapsto t\,\dot\gamma$.</p>
+      </div>
+      <p class="small">For a trajectory, $\vec v = \dot\gamma$ is the <b>velocity</b>, $v = \lVert\vec v\rVert$ the <b>speed</b>, $\vec a = \ddot\gamma$ the acceleration.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">product rules</span>
+        <p class="small">For differentiable $u, w : I \to \mathbb R^3$ and scalar $f$,
+        $$(f u)^{\textstyle\cdot} = \dot f u + f\dot u, \qquad (u\cdot w)^{\textstyle\cdot} = \dot u\cdot w + u\cdot\dot w,$$
+        and the same for any bilinear map in place of $\cdot$ — including the cross product of section 3, where the <b>order must be kept</b>.</p>
+        <p class="small muted"><b>Proof.</b> Every bilinear $B$ on finite-dimensional spaces satisfies $B(u(t+h),w(t+h)) - B(u,w) = B(\Delta u, w) + B(u, \Delta w) + B(\Delta u, \Delta w)$; divide by $h$ and let $h \to 0$, the last term going as $h$. $\square$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why bilinearity is the right level of generality.</b> Writing the dot-product rule
+    out in components proves it, but proves it once per bilinear operation. The
+    argument on the slide proves it for all of them at once — dot, cross, matrix
+    product, the action of a matrix on a vector — and the only thing it needs is that
+    $B$ is bilinear and continuous, which every bilinear map on a finite-dimensional
+    space is. The $B(\Delta u, \Delta w)$ term is $O(h^2)$ because
+    $\lVert B(p,q)\rVert \le C \lVert p\rVert \lVert q\rVert$ for some constant $C$
+    depending only on $B$.</p>
+    <p><b>Order matters for the cross product</b>, since $u \times w = -w\times u$. The
+    rule reads $(u\times w)^{\textstyle\cdot} = \dot u \times w + u \times \dot w$, and
+    swapping either factor's position changes the sign. Nearly every sign error in
+    rotating-frame mechanics is a swapped cross product.</p>
+    <p>Notation: an overdot always means $\mathrm d/\mathrm dt$ in this course, and
+    $\vec{\ }$ marks a 3-vector. Later units drop both when the objects stop being
+    3-vectors.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves</p>
+  <h2>Constant speed means sideways acceleration</h2>
+  <div class="box thm"><span class="label">lemma</span>
+    <p>For a differentiable $u : I \to \mathbb R^3$: $\ \lVert u\rVert$ is constant $\iff u \cdot \dot u = 0$ on $I$.</p>
+    <p class="small muted"><b>Proof.</b> $\tfrac{\mathrm d}{\mathrm dt}\lVert u \rVert^2 = \tfrac{\mathrm d}{\mathrm dt}(u\cdot u) = 2\,u\cdot\dot u$ by the product rule. A differentiable function on an interval is constant iff its derivative vanishes, and $\lVert u\rVert$ is constant iff $\lVert u\rVert^2$ is. $\square$</p>
+  </div>
+  <div class="cols">
+    <div>
+      <p><b>Applied to velocity:</b> a particle moves at constant speed $\iff$ its acceleration is perpendicular to its velocity at every instant.</p>
+      <p class="small">That is the whole content of "circular motion has centripetal acceleration". No circle has been assumed — only $v = \text{const}$.</p>
+      <p class="small muted"><span class="ref" data-ref="pendulum">The pendulum</span> is the opposite case: at the bottom of its swing $\dot v = 0$ and all of $\vec a$ is normal; towards the ends $v^2/\rho$ dies away and what is left is tangential.</p>
+    </div>
+    <div>
+      <p><b>Applied to a unit vector:</b> if $\lVert e(t)\rVert = 1$ then $\dot e \perp e$. A unit vector can only turn.</p>
+      <p class="small">Used three times below: for $\hat T$, for $\hat N$, and for the columns of a rotation matrix — which is where the antisymmetry of $R^{\!\top}\dot R$ comes from.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>This one-line lemma is the smallest true statement in the unit and the most used.
+    It is problem 5's first half; the second half asks you to get from it to the
+    two-term decomposition of acceleration without quoting the Frenet formulas.</p>
+    <p><b>A dimension check on the applied version.</b> $u \cdot \dot u$ has units of
+    $[u]^2/\mathrm T$. For $u = \vec v$ that is $\mathrm{m^2\,s^{-3}}$ — which is, up to
+    the mass, power. Constant speed means the force does no work, and unit 04 will say
+    exactly that. The lemma is the kinematic shadow of a statement about energy that
+    cannot yet be phrased.</p>
+    <p><b>A trap.</b> "$\vec a \perp \vec v$" is an instantaneous statement and does not by
+    itself make the path a circle: a helix has constant speed and acceleration
+    everywhere perpendicular to velocity, and it is not closed, let alone circular.
+    Its <em>curvature</em> is constant too, so even that is not the missing condition:
+    constant curvature forces a circle only for a curve that also stays in a plane,
+    which is what problem 13 proves.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves</p>
+  <h2>Arc length and the unit tangent</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For a $C^1$ curve $\gamma$ on $[a,b]$ the <span class="term">arc length</span> is
+        $$s(t) = \int_a^t \lVert\dot\gamma(\tau)\rVert\,\mathrm d\tau ,$$
+        so $\dot s = v \ge 0$. If $v &gt; 0$ throughout, $s$ is strictly increasing, hence invertible, and $\tilde\gamma = \gamma\circ t(s)$ is the <span class="term">unit-speed parametrisation</span>: $\lVert\tilde\gamma'(s)\rVert = 1$.</p>
+      </div>
+      <p class="small">The <span class="term">unit tangent</span> is $\hat T = \vec v / v = \mathrm d\gamma/\mathrm ds$. It depends on the curve and the direction of travel, not on how fast you go.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">check</span>
+        <p class="small">By the one-variable chain rule and the inverse function rule, $\tilde\gamma'(s) = \dot\gamma\,\frac{\mathrm dt}{\mathrm ds} = \dot\gamma/v$, of norm 1. ✓</p>
+      </div>
+      <p class="small muted">Inverting $s(t)$ is exactly unit 00's move: there we inverted $t(x)$ to get $x(t)$ after a quadrature. Here we invert $s(t)$ to reparametrise. In both cases monotonicity is what licenses it, and in both cases the inverse rarely has a formula.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why arc length is the right parameter.</b> A curve is a set of points; a
+    parametrisation is a way of walking along it. Curvature ought to be a property of the
+    set, so it must be defined using a parameter fixed by the set itself. Arc length is
+    that parameter, unique up to the choice of starting point and direction.</p>
+    <p><b>That the integral is the length.</b> The definition above is a definition, and it
+    deserves a word of justification: for a partition $a = t_0 &lt; \dots &lt; t_N = b$
+    the inscribed polygon has length $\sum \lVert \gamma(t_i)-\gamma(t_{i-1})\rVert$, and
+    each term is $\lVert \int_{t_{i-1}}^{t_i}\dot\gamma\rVert$, which for a $C^1$ curve
+    tends to $\int \lVert \dot\gamma \rVert$ as the mesh goes to zero. The supremum over
+    partitions — the honest definition of length — agrees with the integral for $C^1$
+    curves. <em>Cited</em>: this is the rectifiability theorem, proved in any real
+    analysis text (Rudin, <i>Principles</i>, Thm 6.27); nothing later in this course
+    depends on the proof.</p>
+    <p><b>Dimensions.</b> $[s] = \mathrm L$, $[\mathrm d/\mathrm ds] = \mathrm L^{-1}$,
+    $\hat T$ dimensionless. Every formula below can be checked by counting how many
+    $\mathrm d/\mathrm ds$ it carries.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves</p>
+  <h2>Curvature, and the frame a curve carries</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">At a point where $\hat T' \ne 0$ (primes are $\mathrm d/\mathrm ds$):
+        $$\kappa = \lVert \hat T'\rVert, \qquad \hat N = \hat T'/\kappa, \qquad \hat B = \hat T \times \hat N .$$
+        $\kappa$ is the <span class="term">curvature</span> and the <span class="term">radius of curvature</span> is $\rho = 1/\kappa$. $(\hat T, \hat N, \hat B)$ is the <span class="term">Frenet–Serret frame</span>: an orthonormal, right-handed basis attached to each point of the curve.</p>
+      </div>
+      <p class="small">$\hat T' \perp \hat T$ by the lemma, so $\hat N$ really is perpendicular to $\hat T$: the <span class="term">principal normal</span>. $\hat B$ is the <span class="term">binormal</span>, and $\hat T, \hat N$ span the <span class="term">osculating plane</span> — the plane the curve is momentarily bending in.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 250" width="280" role="img" aria-label="a curve with its unit tangent, principal normal and osculating circle">
+        <path d="M 20 210 Q 120 30 280 70" fill="none" class="unit" stroke-width="3"/>
+        <circle cx="150" cy="184" r="96" fill="none" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <circle cx="150" cy="184" r="4" class="fill-ink"/>
+        <line x1="150" y1="184" x2="139" y2="89" class="ink" stroke-width="1.5"/>
+        <circle cx="139" cy="89" r="5" class="fill-accent"/>
+        <line x1="139" y1="89" x2="219" y2="76" class="accent" stroke-width="3"/>
+        <text x="222" y="72" font-size="17" class="mono">T</text>
+        <text x="152" y="140" font-size="17" class="mono">N</text>
+        <text x="96" y="196" font-size="15" class="mono soft">ρ = 1/κ</text>
+      </svg>
+      <p class="cap">The osculating circle: same point, same tangent, same curvature. $\hat N$ points at its centre.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\kappa = \lVert\hat T'\rVert$ deserves the name.</b> $\hat T$ is a unit vector,
+    so $\hat T'$ measures only how fast the direction of travel turns, per unit of
+    distance travelled. For a circle of radius $\rho$ traversed at unit speed, $\hat T$
+    goes once round the unit sphere per circuit, of length $2\pi\rho$, so
+    $\lVert \hat T'\rVert = 2\pi/(2\pi\rho) = 1/\rho$. Hence the name "radius of
+    curvature", and hence $\rho = 1/\kappa$ is the radius of the circle that best fits
+    the curve there.</p>
+    <p><b>Dimensions.</b> $[\kappa] = \mathrm L^{-1}$, $[\rho] = \mathrm L$. A straight line
+    has $\kappa = 0$ and $\rho = \infty$, and the frame is undefined — which is correct,
+    since a straight line does not single out any perpendicular direction.</p>
+    <p><b>The degenerate points.</b> $\hat N$ and $\hat B$ are undefined wherever
+    $\kappa = 0$, and can jump across an isolated zero of $\kappa$. That is a real
+    nuisance in differential geometry and irrelevant here: every trajectory in this
+    unit has $\kappa &gt; 0$ where the frame is used. Unit 32 replaces this entire
+    apparatus with a connection, which has no such defect.</p>
+    <p>The frame is named for Jean Frédéric Frenet (1847) and Joseph Serret (1851), who
+    found it independently.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves</p>
+  <h2>The Frenet–Serret formulas</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p>Along a unit-speed curve with $\kappa &gt; 0$, with $\tau = -\hat B'\cdot\hat N$ the <span class="term">torsion</span>:
+    $$\hat T' = \kappa\,\hat N, \qquad \hat N' = -\kappa\,\hat T + \tau\,\hat B, \qquad \hat B' = -\tau\,\hat N .$$</p>
+  </div>
+  <div class="box proof"><span class="label">proof</span>
+    <p class="small">Each of $\hat T', \hat N', \hat B'$ is expanded in the orthonormal basis $(\hat T,\hat N,\hat B)$, so the whole content is the matrix $M$ with $M_{ij} = (\text{$i$-th vector})' \cdot (\text{$j$-th vector})$. Differentiating $e_i \cdot e_j = \delta_{ij}$ gives $e_i'\cdot e_j + e_i \cdot e_j' = 0$: <b>$M$ is antisymmetric</b>, so only three entries are free. $\hat T' = \kappa\hat N$ is the definition of $\kappa, \hat N$, which fixes $M_{12} = \kappa$ and $M_{13} = \hat T'\cdot\hat B = 0$. Naming $M_{23} = \tau$ leaves nothing else. $\square$</p>
+  </div>
+  <p class="small muted">The <span class="term">Frenet–Serret formulas</span> say: the frame rotates, and the rotation is described by two numbers. That antisymmetry argument is the same one that will produce $\vec\omega$ in section 3 — <b>watch for it returning</b>.</p>
+  <aside class="notes">
+    <p><b>Reading the proof again.</b> Three orthonormal vectors evolving in $s$ are three
+    columns of an orthogonal matrix $Q(s)$, and $M = Q^{\!\top}Q'$ is antisymmetric for
+    exactly the reason given. An antisymmetric $3\times3$ matrix has three independent
+    entries; the definition of $\hat N$ forces one of them to vanish and names another
+    $\kappa$, leaving $\tau$. So a space curve has exactly two local invariants, and
+    <em>cited</em>: the fundamental theorem of curves says $\kappa(s) &gt; 0$ and $\tau(s)$
+    determine the curve up to a rigid motion (do Carmo, <i>Differential Geometry of
+    Curves and Surfaces</i>, §1-5).</p>
+    <p><b>Torsion, in words.</b> $\tau$ measures the rate at which the curve leaves its
+    osculating plane. $\tau \equiv 0$ iff the curve is planar: if $\tau = 0$ then
+    $\hat B' = 0$, so $\hat B$ is a fixed vector $\hat B_0$, and
+    $(\gamma \cdot \hat B_0)' = \hat T\cdot\hat B_0 = 0$, so $\gamma$ lies in a fixed
+    plane. Dimensions: $[\tau] = \mathrm L^{-1}$, like $\kappa$.</p>
+    <p><b>Sign conventions.</b> Some books define $\tau$ with the opposite sign
+    ($\hat B' = +\tau\hat N$). The convention here — the common one, and do Carmo's —
+    makes a right-handed helix have $\tau &gt; 0$. Check any formula you import against a
+    right-handed helix before believing it.</p>
+    <p>Notice what is <em>not</em> claimed: nothing about $\kappa$ or $\tau$ requires the
+    curve to be a trajectory, and neither of them knows about time. The next slide puts
+    time back.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves</p>
+  <h2>Acceleration has exactly two parts</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p>For any trajectory with $v = \lVert\vec v\rVert &gt; 0$,
+    $$\vec a \;=\; \dot v\,\hat T \;+\; \frac{v^2}{\rho}\,\hat N .$$
+    Speeding up is tangential; turning is normal. There is no third component: $\vec a \cdot \hat B = 0$ always.</p>
+    <p class="small muted">The two pieces are the <span class="term">tangential and normal acceleration</span>.<br><b>Proof.</b> $\vec v = v\hat T$, so $\vec a = \dot v \hat T + v\dot{\hat T}$; and $\dot{\hat T} = \hat T' \dot s = \kappa v \hat N$ by the chain rule and Frenet. $\square$</p>
+  </div>
+  <div class="cols three">
+    <div class="box good"><span class="label">dimensions</span>
+      <p class="small">$[\dot v] = \mathrm{L\,T^{-2}}$ ✓. $[v^2/\rho] = \mathrm{L^2T^{-2}/L} = \mathrm{L\,T^{-2}}$ ✓.</p></div>
+    <div class="box good"><span class="label">limit: straight line</span>
+      <p class="small">$\rho \to \infty$ leaves $\vec a = \dot v\hat T$: one-dimensional motion, unit 00. ✓</p></div>
+    <div class="box good"><span class="label">limit: circle at constant speed</span>
+      <p class="small">$\dot v = 0$, $\rho = r$: $\vec a = (v^2/r)\hat N$, pointing at the centre. ✓</p></div>
+  </div>
+  <p class="small">The <span class="term">centripetal acceleration</span> of school physics is a corollary, not a postulate — and it has arrived without assuming the orbit is a circle.</p>
+  <aside class="notes">
+    <p><b>The physics.</b> Multiply by $m$: the component of force along the motion changes
+    the speed, the component across it changes the direction, and nothing changes the
+    binormal component because there is nothing there to change. A car's engine and
+    brakes act along $\hat T$; its tyres act along $\hat N$; and the friction budget is
+    shared between them, which is the entire content of the "friction circle" that
+    racing drivers are taught.</p>
+    <p><b>A third check, with a number.</b> A car at $30\ \mathrm{m\,s^{-1}}$ on a bend of
+    radius $400\ \mathrm m$ has $v^2/\rho = 900/400 = 2.25\ \mathrm{m\,s^{-2}}$, which is
+    $0.229\,g$ — brisk but comfortable, and consistent with the way real motorway bends
+    are laid out. Problem 7 does this from the shape of the road instead of from a
+    stated radius.</p>
+    <p><b>Where this reappears.</b> The split is the reason the central-force problem of
+    unit 08 reduces to two scalar equations, and the reason unit 32 can define a
+    geodesic as a curve with no normal acceleration at all: in curved spacetime
+    "free fall" is exactly $\dot v\hat T$ with the $\hat N$ term absent, once $\hat N'$
+    is measured with a connection rather than a partial derivative.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves · example</p>
+  <h2>Worked: a helical ramp</h2>
+  <div class="box ex"><span class="label">worked example 1</span>
+    <div class="cols">
+      <div>
+        <p class="small">A trolley is hauled up a helical ramp: $\gamma(t) = (3\cos 2t,\ 3\sin 2t,\ 1.5\,t)$ in metres, $t$ in seconds.</p>
+        <p class="small"><b>1 · velocity and speed.</b> $\dot\gamma = (-6\sin 2t,\ 6\cos 2t,\ 1.5)$, so
+        $v = \sqrt{36 + 2.25} = \sqrt{38.25} = 6.1847\ \mathrm{m\,s^{-1}}$, <b>constant</b>.</p>
+        <p class="small"><b>2 · unit tangent.</b> $\hat T = \dot\gamma / v = (-0.9701\sin 2t,\ 0.9701\cos 2t,\ 0.2425)$.</p>
+        <p class="small"><b>3 · acceleration.</b> $\ddot\gamma = (-12\cos 2t,\ -12\sin 2t,\ 0)$, of magnitude $12\ \mathrm{m\,s^{-2}}$, horizontal, pointing at the axis.</p>
+      </div>
+      <div>
+        <p class="small"><b>4 · the split.</b> $\dot v = 0$, so all of $\vec a$ is normal: $\hat N = \ddot\gamma/12 = (-\cos 2t, -\sin 2t, 0)$ and $v^2/\rho = 12$, giving
+        $$\rho = \frac{38.25}{12} = 3.1875\ \mathrm m, \qquad \kappa = 0.31373\ \mathrm{m^{-1}} .$$</p>
+        <p class="small"><b>5 · torsion.</b> $\hat B = \hat T\times\hat N = (0.2425\sin 2t,\ -0.2425\cos 2t,\ 0.9701)$, and $\hat B' = \dot{\hat B}/v$ gives $\tau = 0.078431\ \mathrm{m^{-1}}$.</p>
+        <p class="small muted"><b>Checks.</b> $\rho = 3.1875 &gt; 3$: the helix is <em>less</em> curved than its shadow circle, as it must be. $\kappa^2+\tau^2 = \big((R\omega^2)^2 + (c\omega)^2\big)/(R^2\omega^2+c^2)^2 = \omega^2/v^2$ ✓, and $\tau \to 0$ as the rise $c \to 0$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 5 in full.</b> With $\gamma = (R\cos\omega t, R\sin\omega t, ct)$ and
+    $v^2 = R^2\omega^2+c^2$: $\hat B = \hat T \times \hat N$ works out to
+    $(c\sin\omega t, -c\cos\omega t, R\omega)/v$, so
+    $\dot{\hat B} = \omega c(\cos\omega t, \sin\omega t, 0)/v = -\omega c\,\hat N/v$, and
+    $\hat B' = \dot{\hat B}/v = -(\omega c/v^2)\hat N$. Since $\hat B' = -\tau\hat N$,
+    $\tau = \omega c/v^2 = c\omega/(R^2\omega^2+c^2)$. With $R = 3$, $\omega = 2$,
+    $c = 1.5$: $\tau = 3/38.25 = 0.078431\ \mathrm{m^{-1}}$, and likewise
+    $\kappa = R\omega^2/v^2 = 12/38.25 = 0.31373\ \mathrm{m^{-1}}$.</p>
+    <p><b>Numbers, all recomputed.</b> $v = \sqrt{38.25} = 6.18466\ \mathrm{m\,s^{-1}}$;
+    $\rho = 3.18750\ \mathrm m$; the ramp rises $2\pi c/\omega = 4.7124\ \mathrm m$ per
+    turn while the trolley travels $2\pi v/\omega = 19.4297\ \mathrm m$ along the ramp.</p>
+    <p><b>Why $\rho &gt; R$.</b> Flattening the helix onto the horizontal plane gives a circle
+    of radius $R = 3\ \mathrm m$. Stretching it vertically straightens it, so its radius
+    of curvature must increase; the exact factor is $v^2/(R\omega)^2 = 38.25/36 = 1.0625$.
+    A helix with a very steep rise is nearly a straight line, with $\rho \to \infty$.</p>
+    <p>Problem 6 is this example with different constants and no worked steps.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · curves</p>
+  <h2>Three dimensions are not three one-dimensional problems</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A projectile with drag: $m\vec{\dot v} = m\vec g - b\lVert\vec v\rVert^{\,n-1}\vec v$.</p>
+      <div class="box good"><span class="label">$n = 1$: linear drag decouples</span>
+        <p class="small">$m\dot v_i = mg_i - b v_i$ for each $i$ separately: three copies of unit 00's $F(v)$ case, each solved by separation of variables. The horizontal motion knows nothing about the vertical.</p>
+      </div>
+      <div class="box warn"><span class="label">$n = 2$: quadratic drag does not</span>
+        <p class="small">$m\dot v_x = -b\sqrt{v_x^2+v_z^2}\,v_x$ contains $v_z$. Falling faster slows the horizontal motion. No separation, no closed form, and unit 02's qualitative methods or unit 21's asymptotics are what is left.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Which case is real? The dimensionless <span class="term">Reynolds number</span> $\mathcal R = \rho_{\text{air}} v d/\mu$ decides: $\mathcal R \lesssim 1$ gives linear drag, $\mathcal R \gtrsim 10^3$ quadratic. For a $22\ \mathrm{cm}$ football at $20\ \mathrm{m\,s^{-1}}$, $\mathcal R \approx 3\times 10^5$ — firmly quadratic.</p>
+      <p class="small"><b>The lesson for this unit:</b> going to three dimensions is not bookkeeping. It is why a geometric language — curves, frames, linear maps — is worth building before the equations get harder.</p>
+      <p class="small muted">The <span class="term">terminal velocity</span> limit still works in both cases: set $\vec{\dot v} = 0$ and solve. For $n=1$, $\vec v_\infty = m\vec g/b$; for $n = 2$, $v_\infty = \sqrt{mg/b}$, straight down.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The Reynolds number, computed.</b> With $\rho_{\text{air}} = 1.2\ \mathrm{kg\,m^{-3}}$,
+    $\mu = 1.8\times10^{-5}\ \mathrm{Pa\,s}$, $d = 0.22\ \mathrm m$, $v = 20\ \mathrm{m\,s^{-1}}$:
+    $\mathcal R = 1.2\times20\times0.22/1.8\times10^{-5} = 2.9\times10^5$. Quoted above as
+    $3\times10^5$. A falling mist droplet, $d = 20\ \mu\mathrm m$ at
+    $0.01\ \mathrm{m\,s^{-1}}$, gives $\mathcal R = 0.013$: linear, which is why Stokes'
+    law describes fog and not footballs.</p>
+    <p><b>Why $n=1$ separates and $n=2$ does not.</b> The drag force is antiparallel to
+    $\vec v$ in both cases, but only in the linear case is its magnitude a function of
+    one component at a time. Coupling through $\lVert \vec v\rVert$ is the generic
+    situation; the decoupled case is the accident.</p>
+    <p>This slide is the only place drag appears in this unit. Unit 21 returns to the
+    quadratic projectile as a perturbation problem, and gets the range correction as an
+    asymptotic series in the small parameter $bv_0/(mg)$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Frames that turn</h2>
+  <p>One time-dependent orthogonal matrix, differentiated once. Everything after this is bookkeeping.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · frames</p>
+  <h2>What a frame is, and what $SO(3)$ is</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">A <span class="term">frame</span> is an orthonormal, right-handed basis of $\mathbb R^3$ together with an origin. An <span class="term">inertial frame</span> is one in which Newton's second law holds in the form $m\vec a = \vec F$ with $\vec F$ built only from real interactions.</p>
+      </div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">$$SO(3) = \{R \in \mathbb R^{3\times3} : R^{\!\top}R = I,\ \det R = +1\},$$ a group under matrix multiplication: the <span class="term">special orthogonal group</span>. $R^{\!\top}R = I$ says $R$ preserves the inner product; $\det R = +1$ says it preserves orientation.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Two frames sharing an origin are related by exactly one $R \in SO(3)$: if $x_{\mathrm{rot}}$ are a vector's components in one and $x_{\mathrm{in}}$ in the other, then
+      $$\boxed{\;x_{\mathrm{in}} = R\,x_{\mathrm{rot}}\;}$$
+      <span class="ref" data-ref="R">and if the frames move relative to each other, $R = R(t)$.</span></p>
+      <div class="box warn"><span class="label">one vector, two lists</span>
+        <p class="small">$x_{\mathrm{in}}$ and $x_{\mathrm{rot}}$ are <b>the same arrow</b> written in two bases. Nothing physical changes when $R$ acts; what changes is the list of numbers. Keeping that straight is half of this section.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\det = +1$ and not $-1$.</b> $O(3)$ has two connected components. A frame that
+    moves continuously from another cannot change handedness on the way, so a
+    physically realisable relative motion lives in the identity component,
+    $SO(3)$. The learner's group theory says the rest: $SO(3)$ is a normal subgroup of
+    index 2 in $O(3)$, with quotient $\{\pm1\}$ recording handedness.</p>
+    <p><b>Does an inertial frame exist?</b> Strictly, no: the laboratory rotates with the
+    Earth, the Earth orbits the Sun, the Sun orbits the galaxy. What the definition
+    means in practice is "inertial to the accuracy you need", and this unit's business
+    is to compute exactly how large the error is for the first of those. Unit 30
+    reopens the question and answers it differently: there <em>is</em> no global inertial
+    frame in the presence of gravity, only local ones, and that is the equivalence
+    principle.</p>
+    <p><b>The convention.</b> Different books put $R$ or $R^{\!\top}$ in
+    $x_{\mathrm{in}} = R x_{\mathrm{rot}}$. Fix one and never change it; every sign in
+    section 4 depends on this choice. Here: <b>$R$ maps rotating-frame components to
+    inertial-frame components.</b> With the other convention every $\Omega$ below picks
+    up a minus sign and $\vec\omega$ reverses.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · frames</p>
+  <h2>$\Omega = R^{\!\top}\dot R$ is antisymmetric</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p>Let $R : I \to SO(3)$ be differentiable. Then $\Omega(t) = R(t)^{\!\top}\dot R(t)$ is <span class="term" data-term="antisymmetric matrix">antisymmetric</span>: $\Omega^{\!\top} = -\Omega$.</p>
+    <p class="small muted"><b>Proof.</b> Differentiate $R^{\!\top}R = I$ with the product rule: $\dot R^{\!\top}R + R^{\!\top}\dot R = 0$, i.e. $(R^{\!\top}\dot R)^{\!\top} = -R^{\!\top}\dot R$. $\square$</p>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">$$\mathfrak{so}(3) = \{A \in \mathbb R^{3\times3} : A^{\!\top} = -A\},$$
+        <span class="term" data-term="so(3)">the space of antisymmetric matrices</span>, of dimension 3: the diagonal vanishes and the three entries above it are free.</p>
+      </div>
+      <p class="small">$\dot R$ is not in $SO(3)$ and is not a rotation. But $R^{\!\top}\dot R$ lies in a 3-dimensional space — and three numbers is exactly what an <span class="term">angular velocity vector</span> should be.</p>
+    </div>
+    <div>
+      <p class="small">This is the lemma on "constant speed" again, in disguise: the columns of $R$ are unit vectors, so each column's derivative is perpendicular to it — the diagonal of $\Omega$ vanishes — and each pair is orthogonal, which pairs up the off-diagonal entries.</p>
+      <p class="small muted">Same argument as the Frenet proof, third appearance. The moving-frame trade: <em>orthonormality plus differentiation gives antisymmetry.</em></p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The other one.</b> $\tilde\Omega = \dot R R^{\!\top}$ is antisymmetric too, by the
+    same computation applied to $RR^{\!\top} = I$, and $\tilde\Omega = R\Omega R^{\!\top}$.
+    They are the <em>body</em> and <em>space</em> angular velocities, and they differ: $\Omega$
+    has components in the rotating frame, $\tilde\Omega$ in the inertial one. Problem 8
+    proves $\tilde\Omega$ corresponds to $R\vec\omega$, which is exactly the statement
+    that $\vec\omega$ is a genuine vector rather than a triple of numbers that happens
+    to have three entries.</p>
+    <p><b>Group-theoretic context, for the reader who wants it.</b> $\mathfrak{so}(3)$ is the
+    tangent space to $SO(3)$ at the identity — its Lie algebra — and $\Omega$ is
+    $\dot R$ transported back to the identity by left translation. None of that
+    language is needed here, and it is not used again until unit 31. What is needed is
+    the dimension count: a curve in $SO(3)$ has, at each instant, three degrees of
+    freedom of velocity, no more.</p>
+    <p><b>Why $R^{\!\top}\dot R$ and not $\dot R$ alone.</b> $\dot R$ is a general
+    $3\times3$ matrix with nine entries and no structure. Multiplying by $R^{\!\top}$
+    undoes the rotation already accumulated and leaves only the rate, which is where
+    the structure is.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · frames</p>
+  <h2>$\mathfrak{so}(3)$ is $\mathbb R^3$: the hat map and the cross product</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition · the <span class="term">hat map</span></span>
+        <p class="small">$$\widehat{\ \cdot\ } : \mathbb R^3 \to \mathfrak{so}(3), \qquad \hat\omega = \begin{pmatrix} 0 & -\omega_3 & \omega_2 \\ \omega_3 & 0 & -\omega_1 \\ -\omega_2 & \omega_1 & 0\end{pmatrix},$$
+        and the <span class="term">cross product</span> is the bilinear map $\ \vec u \times \vec w := \hat u\,w$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$\widehat{\ \cdot\ }$ is a linear isomorphism $\mathbb R^3 \to \mathfrak{so}(3)$. Consequently <b>every</b> antisymmetric $3\times3$ matrix is "cross with a unique vector".</p>
+        <p class="small muted"><b>Proof.</b> Linear by inspection; injective since $\hat\omega = 0$ forces every $\omega_i = 0$; and $\dim\mathbb R^3 = \dim\mathfrak{so}(3) = 3$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Immediate consequences, each one line from the matrix:</p>
+      <ul class="small">
+        <li>$\vec u\times\vec w = -\vec w\times\vec u$, so $\vec u\times\vec u = 0$;</li>
+        <li>$\vec u \cdot (\vec u \times \vec w) = 0$, since $u^{\!\top}\hat u\,w = -u^{\!\top}\hat u^{\!\top}w = 0$;</li>
+        <li>$\lVert \vec u\times\vec w\rVert = \lVert\vec u\rVert\lVert\vec w\rVert\sin\theta$;</li>
+        <li>$\hat e_1 e_2 = e_3$: right-handed.</li>
+      </ul>
+      <p class="small muted">The further identities — $\vec u\times(\vec w\times \vec z)$ and friends — arrive in unit 08, where they earn their keep. Only the four above are used here.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Definition first, formula second.</b> The cross product is usually introduced by a
+    mnemonic determinant. Here it is defined as the action of the unique antisymmetric
+    matrix attached to a vector, which is why it exists only in three dimensions:
+    $\dim\mathfrak{so}(n) = n(n-1)/2$, and that equals $n$ only when $n = 3$. In every
+    other dimension "the axis of a rotation" is not a vector, and the cross product
+    does not exist. Unit 28 meets the general object — an antisymmetric
+    $(0,2)$-tensor — and unit 34 names it a 2-form.</p>
+    <h4>Full proof of the norm identity</h4>
+    <p>Expand $\lVert \hat u w\rVert^2$ directly: it equals
+    $(u_2w_3-u_3w_2)^2 + (u_3w_1-u_1w_3)^2 + (u_1w_2-u_2w_1)^2$, and multiplying out and
+    adding $(\vec u\cdot\vec w)^2 = (u_1w_1+u_2w_2+u_3w_3)^2$ gives
+    $\lVert\vec u\rVert^2\lVert\vec w\rVert^2$ — every cross term cancels. This is
+    Lagrange's identity, $\lVert\vec u\times\vec w\rVert^2 + (\vec u\cdot\vec w)^2
+    = \lVert\vec u\rVert^2\lVert\vec w\rVert^2$. With
+    $\vec u\cdot\vec w = \lVert\vec u\rVert\lVert\vec w\rVert\cos\theta$ it gives
+    $\lVert\vec u\times\vec w\rVert = \lVert\vec u\rVert\lVert\vec w\rVert|\sin\theta|$,
+    and $\theta \in [0,\pi]$ makes the modulus unnecessary. $\square$</p>
+    <p><b>Dimensions.</b> $\times$ multiplies dimensions like a product:
+    $[\vec\omega\times\vec r] = \mathrm{T^{-1}\,L} = \mathrm{L\,T^{-1}}$, a velocity, as
+    the next slide needs.</p>
+    <p><b>Handedness.</b> The cross product changes sign under a reflection, which is why it
+    is sometimes called a pseudovector. The honest statement is that $\hat u$ is the
+    real object and the vector $\vec u$ is its image under an isomorphism that depends
+    on an orientation. Unit 28 makes this precise.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · frames · example</p>
+  <h2>Worked: reading $\vec\omega$ off $R$</h2>
+  <div class="box ex"><span class="label">worked example 2</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>A turntable.</b> A frame turning about $\hat z$ at rate $\alpha$:
+        $$R(t) = \begin{pmatrix}\cos\alpha t & -\sin\alpha t & 0\\ \sin\alpha t & \cos\alpha t & 0 \\ 0&0&1\end{pmatrix}.$$</p>
+        <p class="small">$\dot R$ is $\alpha$ times the same matrix with $\cos \to -\sin$, $\sin\to\cos$. Then
+        $$\Omega = R^{\!\top}\dot R = \alpha\begin{pmatrix}0&-1&0\\1&0&0\\0&0&0\end{pmatrix} = \widehat{\alpha \hat z},$$
+        using $\cos^2 + \sin^2 = 1$ in every entry. So $\vec\omega = \alpha\hat z$: <b>magnitude the spin rate, direction the axis</b>, right-hand rule included.</p>
+      </div>
+      <div>
+        <p class="small"><b>The Earth.</b> Same shape, with $\hat z$ the polar axis and
+        $$\alpha = \omega_{\mathrm E} = \frac{2\pi}{86\,164.09\ \mathrm s} = 7.2921\times10^{-5}\ \mathrm{s^{-1}} .$$</p>
+        <p class="small"><span class="ref" data-ref="omega">Note the number in the denominator</span>: the <b>sidereal</b> day, $23\ \mathrm h\ 56\ \mathrm{min}\ 4.09\ \mathrm s$, not $86\,400\ \mathrm s$. $R(t)$ measures the ground against the fixed stars, and the Earth's orbit costs one extra turn per year: $366.24$ rotations in $365.24$ days.</p>
+        <p class="small muted"><b>Check.</b> $86\,400/86\,164.09 = 1.002738 = 1 + 1/365.25$ ✓. Using the solar day would put the Foucault period out by $0.27\%$ — about $5$ minutes in $32$ hours, which is inside the measurement error but outside the arithmetic's.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The computation in full.</b> Write $c = \cos\alpha t$, $s = \sin\alpha t$. Then
+    $R = \begin{pmatrix} c&-s&0\\ s&c&0\\0&0&1\end{pmatrix}$ and
+    $\dot R = \alpha\begin{pmatrix} -s&-c&0\\ c&-s&0\\0&0&0\end{pmatrix}$, so
+    $R^{\!\top}\dot R = \alpha\begin{pmatrix} c&s&0\\ -s&c&0\\0&0&1\end{pmatrix}
+    \begin{pmatrix} -s&-c&0\\ c&-s&0\\0&0&0\end{pmatrix}
+    = \alpha\begin{pmatrix} -cs+sc & -c^2-s^2 & 0\\ s^2+c^2 & sc - cs & 0 \\ 0&0&0\end{pmatrix}
+    = \alpha\begin{pmatrix} 0&-1&0\\ 1&0&0\\ 0&0&0\end{pmatrix}$. Comparing with the hat
+    matrix, $\omega_3 = \alpha$ and $\omega_1 = \omega_2 = 0$.</p>
+    <p><b>Notice what did not happen.</b> $\Omega$ came out constant even though $R$ did not.
+    That is the point of conjugating by $R^{\!\top}$: it strips off the accumulated
+    rotation. For a frame turning about a moving axis, $\Omega$ depends on $t$ and
+    $\vec\omega$ is a genuine curve in $\mathbb R^3$; the Euler term in section 4 is
+    precisely $\dot{\vec\omega} \ne 0$.</p>
+    <p><b>Sidereal versus solar, carefully.</b> In one year the Earth makes $N$ rotations
+    against the stars and $N - 1$ noon-to-noon days, because the orbit carries the
+    Sun's direction once round. Hence
+    $T_{\text{sid}} = T_{\text{sol}}\cdot\frac{365.24}{366.24} = 86\,400\times0.997270
+    = 86\,164.1\ \mathrm s$ ✓. Every rotating-frame number in this unit uses
+    $\omega_{\mathrm E} = 7.2921\times10^{-5}\ \mathrm{s^{-1}}$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · frames</p>
+  <h2>The transport theorem</h2>
+  <div class="box thm"><span class="label">theorem · the <span class="term">transport theorem</span></span>
+    <p>Let $u(t)$ be the rotating-frame components of a vector, $R(t) \in SO(3)$, and $\vec\omega$ the vector with $\hat\omega = R^{\!\top}\dot R$. Then the inertial-frame rate of change, <b>expressed in rotating-frame components</b>, is
+    $$\left(\frac{\mathrm d\vec u}{\mathrm dt}\right)_{\!\text{in}} = \left(\frac{\mathrm d\vec u}{\mathrm dt}\right)_{\!\text{rot}} + \vec\omega\times\vec u .$$</p>
+    <p class="small muted"><b>Proof.</b> The inertial components are $Ru$; differentiate: $(Ru)^{\textstyle\cdot} = \dot Ru + R\dot u = R(R^{\!\top}\dot R\,u + \dot u) = R(\dot u + \vec\omega\times\vec u)$. Multiplying back by $R^{\!\top}$ gives the statement. $\square$</p>
+  </div>
+  <div class="cols three">
+    <div class="box good"><span class="label">dimensions</span>
+      <p class="small">$[\vec\omega\times\vec u] = [u]/\mathrm T$ ✓, matching both derivatives.</p></div>
+    <div class="box good"><span class="label">limit $\vec\omega \to 0$</span>
+      <p class="small">The two derivatives agree: a non-rotating frame tells the truth. ✓</p></div>
+    <div class="box good"><span class="label">test $\vec u = \vec\omega$</span>
+      <p class="small">$\vec\omega\times\vec\omega = 0$, so $\dot{\vec\omega}$ is the <b>same in both frames</b>. ✓</p></div>
+  </div>
+  <aside class="notes">
+    <p><b>What the theorem is really saying.</b> "The rate of change of a vector" is not
+    well defined until you say which frame's basis is being held fixed. A vector
+    painted on the turntable has $(\mathrm d/\mathrm dt)_{\text{rot}} = 0$ and
+    $(\mathrm d/\mathrm dt)_{\text{in}} = \vec\omega\times\vec u$, which is exactly the
+    velocity of a point rigidly carried round: magnitude $\omega r_\perp$, direction
+    perpendicular to both. That special case is worth memorising; the theorem is that
+    special case plus linearity.</p>
+    <p><b>It applies to any vector</b>, not just position: velocity, angular momentum, a
+    magnetic field. Applying it to $\vec v$ is how the next slide gets the second
+    derivative, and applying it to the angular momentum of a rigid body is how unit 16
+    gets Euler's equations.</p>
+    <p><b>The third check is not a triviality.</b> It says the angular acceleration needs no
+    frame label — a fact used silently in every textbook and proved here in four
+    characters.</p>
+    <p><b>Notation warning.</b> The right-hand side mixes two things that look alike:
+    $(\mathrm d\vec u/\mathrm dt)_{\text{rot}}$ means "differentiate the component list
+    $u(t)$", full stop. The subscripts are not decoration, and dropping them is how the
+    theorem gets misremembered as $\dot u = \dot u + \omega\times u$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>The frame that lies to you</h2>
+  <p>Differentiate $x_{\mathrm{in}} = R(t)x_{\mathrm{rot}}$ twice, and read off what the room has added.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the price</p>
+  <h2>Differentiate twice</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Write $x$ for $x_{\mathrm{rot}}$, so <span class="ref" data-ref="R">$x_{\mathrm{in}} = R(t)x$</span>. Differentiating twice with the product rule:
+      $$\ddot x_{\mathrm{in}} = \ddot R x + 2\dot R\dot x + R\ddot x .$$
+      Multiply by $R^{\!\top}$ to get inertial acceleration in rotating components:
+      $$R^{\!\top}\ddot x_{\mathrm{in}} = \big(R^{\!\top}\ddot R\big)x + 2\Omega\dot x + \ddot x .$$</p>
+      <div class="box thm"><span class="label">the one identity needed</span>
+        <p class="small">$$R^{\!\top}\ddot R = \dot\Omega + \Omega^2 .$$</p>
+        <p class="small muted"><b>Proof.</b> $\dot\Omega = \tfrac{\mathrm d}{\mathrm dt}(R^{\!\top}\dot R) = \dot R^{\!\top}\dot R + R^{\!\top}\ddot R$, and $\dot R^{\!\top}\dot R = (R\Omega)^{\!\top}(R\Omega) = \Omega^{\!\top}\Omega = -\Omega^2$ using $\dot R = R\Omega$ and antisymmetry. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Substituting, and translating every $\Omega$ into a cross product:</p>
+      <p class="small">$$R^{\!\top}\ddot x_{\mathrm{in}} = \ddot x + 2\vec\omega\times\dot{\vec x} + \vec\omega\times(\vec\omega\times\vec x) + \dot{\vec\omega}\times\vec x .$$</p>
+      <p class="small">Newton's law in the inertial frame is $m\,\ddot x_{\mathrm{in}} = F_{\mathrm{in}}$; multiplying by $R^{\!\top}$ turns both sides into rotating components. Rearranged, that is the boxed result on the next slide.</p>
+      <p class="small muted">Four terms, and every one of them came from the product rule. Nothing was postulated.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The step that is easy to fumble.</b> $\Omega^2 x = \hat\omega(\hat\omega x)
+    = \vec\omega\times(\vec\omega\times\vec x)$, and $\dot\Omega x = \dot{\hat\omega}x
+    = \widehat{\dot{\vec\omega}}\,x = \dot{\vec\omega}\times\vec x$ because the hat map is
+    linear, so it commutes with $\mathrm d/\mathrm dt$.</p>
+    <p><b>A second route, for cross-checking.</b> Apply the transport theorem twice instead.
+    With $\vec v_{\text{in}} = \dot{\vec x} + \vec\omega\times\vec x$ (transport applied
+    to $\vec x$), apply transport again to $\vec v_{\text{in}}$:
+    $$\vec a_{\text{in}} = \frac{\mathrm d}{\mathrm dt}\big(\dot{\vec x}+\vec\omega\times\vec x\big) + \vec\omega\times\big(\dot{\vec x}+\vec\omega\times\vec x\big)
+    = \ddot{\vec x} + \dot{\vec\omega}\times\vec x + 2\vec\omega\times\dot{\vec x} + \vec\omega\times(\vec\omega\times\vec x),$$
+    the same four terms. The factor 2 in the Coriolis term appears because
+    $\vec\omega\times\dot{\vec x}$ arises once from each application. That is problem 9,
+    and it is worth doing both ways once: the matrix route shows where the terms come
+    from, the transport route shows why there are exactly four.</p>
+    <p><b>A frame that also translates.</b> If the origins differ by $d(t)$, add
+    $-m\ddot d$ to the right-hand side of the next slide's equation. Nothing else
+    changes, because translation commutes with the whole calculation. A lift
+    accelerating upwards is that term alone, and it is the seed of unit 30's
+    equivalence principle.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the price</p>
+  <h2>The rotating-frame equation</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p>In a frame whose attitude relative to an inertial frame is $R(t)$, with $\hat\omega = R^{\!\top}\dot R$, a particle of mass $m$ obeys
+    $$m\,\vec a_{\mathrm{rot}} \;=\; \vec F \;\underbrace{-\;2m\,\vec\omega\times\vec v_{\mathrm{rot}}}_{\text{\small Coriolis}} \;\underbrace{-\;m\,\vec\omega\times(\vec\omega\times\vec r)}_{\text{\small centrifugal}} \;\underbrace{-\;m\,\dot{\vec\omega}\times\vec r}_{\text{\small Euler}} ,$$
+    with $\vec F$ the real force in rotating-frame components. The three extra terms are the <span class="term">fictitious forces</span>.</p>
+  </div>
+  <div class="cols three">
+    <div class="box good"><span class="label">dimensions</span>
+      <p class="small">$m\omega v = \mathrm{M\,T^{-1}\,L\,T^{-1}}$ ✓; $m\omega^2 r$ ✓; $m\dot\omega r$ ✓. All $\mathrm{M\,L\,T^{-2}}$.</p></div>
+    <div class="box good"><span class="label">limit $\vec\omega\to0$</span>
+      <p class="small">All three vanish: $m\vec a = \vec F$ returns. ✓</p></div>
+    <div class="box good"><span class="label">case: at rest, $\vec\omega$ constant</span>
+      <p class="small">Only centrifugal survives, magnitude $m\omega^2 r_\perp$, pointing away from the axis. ✓</p></div>
+  </div>
+  <div class="box warn"><span class="label">they are not forces</span>
+    <p class="small">Nothing exerts them; no third-law partner exists; they are proportional to $m$ for the same reason weight is, which is a hint unit 30 will collect. They are the price of writing $\mathrm d/\mathrm dt$ in a basis that is itself moving.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Every symbol, once.</b> $\vec r$ is the particle's position in rotating-frame
+    components; $\vec v_{\mathrm{rot}} = \dot{\vec r}$ and $\vec a_{\mathrm{rot}} =
+    \ddot{\vec r}$ are its component-wise derivatives — what an observer holding a
+    stopwatch and a ruler <em>in the room</em> measures; $\vec F$ is the real force
+    (gravity, tension, normal force), written in the same basis.</p>
+    <p><b>Why the names.</b> Coriolis published the $2\vec\omega\times\vec v$ term in 1835 in
+    a paper about waterwheels, not about weather. "Centrifugal" is Huygens' word, from
+    1659. The Euler term has no agreed name; some books call it the azimuthal or
+    transverse force.</p>
+    <p><b>The structure worth remembering.</b> Coriolis depends on velocity but not
+    position; centrifugal on position but not velocity; Euler on position and on
+    $\dot{\vec\omega}$ only. So on a steadily rotating Earth the Euler term is zero,
+    and the two that remain split cleanly by what they depend on.</p>
+    <p><b>A number for the third check.</b> On the equator, $r_\perp = R_{\mathrm E} =
+    6.378\times10^6\ \mathrm m$ and $\omega_{\mathrm E}^2 R_{\mathrm E} =
+    0.033916\ \mathrm{m\,s^{-2}}$, which is $0.346\%$ of $g$. Small, and not zero:
+    it is the next slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the price</p>
+  <h2>Centrifugal: what a plumb line points at</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">A mass hanging at rest at latitude $\lambda$: $\vec v_{\mathrm{rot}} = 0$ and $\dot{\vec\omega} = 0$, so only the <span class="term">centrifugal force</span> survives. It has magnitude $m\omega^2 R\cos\lambda$ and points away from the <b>polar axis</b>, not from the centre.</p>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small"><span class="term">Effective gravity</span> is what a plumb line and a spring balance actually measure:
+        $$\vec g_{\text{eff}} = \vec g_{\text{true}} - \vec\omega\times(\vec\omega\times\vec r).$$
+        It is not radial and its magnitude is latitude-dependent.</p>
+      </div>
+      <p class="small muted">"Vertical" is <em>defined</em> by $\vec g_{\text{eff}}$ — a building is plumb to the local effective vertical, so the deviation is invisible from inside. Which is why the effect shows up in the shape of the planet instead.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">numbers</span>
+        <p class="small">At the equator: $\omega_{\mathrm E}^2R_{\mathrm E} = 0.0339\ \mathrm{m\,s^{-2}}$, straight up, so $g$ is reduced by $0.346\%$.</p>
+        <p class="small">At $45^\circ$: the horizontal component is $\omega^2R\sin\lambda\cos\lambda = 0.01696\ \mathrm{m\,s^{-2}}$, tilting the plumb line by
+        $$\frac{0.01696}{9.81} = 1.73\times10^{-3}\ \text{rad} = 0.099^\circ,$$
+        about $5.9$ arcminutes, towards the equator. That is problem 11.</p>
+      </div>
+      <p class="small">Measured $g$ runs from $9.780\ \mathrm{m\,s^{-2}}$ at the equator to $9.832$ at the poles. Rotation explains $0.034$ of the $0.052$ gap; the rest is the equatorial bulge that the rotation itself produced.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $R\cos\lambda$.</b> The distance from the polar axis, not from the centre, is
+    $R\cos\lambda$. Decompose $-\vec\omega\times(\vec\omega\times\vec r)$ in the
+    <span class="ref" data-ref="lat">local east-north-up frame</span>: its vertical
+    component is $\omega^2R\cos^2\lambda$ and its northward component is
+    $-\omega^2R\sin\lambda\cos\lambda$. At the poles and the equator the horizontal part
+    vanishes, and it peaks at $45^\circ$, where $\sin\lambda\cos\lambda = \tfrac12$.</p>
+    <p><b>The bulge.</b> A fluid Earth settles until its surface is perpendicular to
+    $\vec g_{\text{eff}}$ everywhere — otherwise water would flow. That surface is an
+    oblate spheroid, flattening $1/298$, equatorial radius $21\ \mathrm{km}$ larger than
+    polar. The extra mass near the equator then pulls $g$ back up there, which is why
+    rotation accounts for only about two thirds of the measured equator-to-pole
+    difference. Unit 10 computes the bulge's own gravitational field from its
+    quadrupole moment, and gets the famous $J_2$ coefficient.</p>
+    <p><b>Recomputed.</b> $\omega_{\mathrm E}^2R_{\mathrm E} = (7.292116\times10^{-5})^2
+    \times 6.378137\times10^6 = 0.0339157\ \mathrm{m\,s^{-2}}$; as a fraction of
+    $9.81$, $0.34573\%$; the $45^\circ$ tilt is $1.72863\times10^{-3}\ \mathrm{rad}
+    = 0.09904^\circ = 5.94'$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the price</p>
+  <h2>Coriolis: the force that turns cyclones</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">In the <span class="ref" data-ref="lat">local frame</span>, $\vec\omega = \omega(0,\cos\lambda,\sin\lambda)$. For a <b>horizontal</b> velocity $\vec v = (v_x, v_y, 0)$,
+      $$-2\vec\omega\times\vec v = 2\omega\sin\lambda\,(v_y,\,-v_x,\,0) \;+\; 2\omega\cos\lambda\,(0,0,v_x).$$
+      The first part rotates $\vec v$ by $-90^\circ$ in the horizontal plane: in the northern hemisphere, a <span class="term">Coriolis force</span> always to the <b>right</b> of the motion, of magnitude $2m\omega\sin\lambda\,v$. The second is vertical — the <span class="term">Eötvös effect</span> — and is absorbed into $g_{\text{eff}}$.</p>
+      <p class="small muted">Only $\omega\sin\lambda$, the vertical component of $\vec\omega$, turns a horizontal plane. Hold onto that: it is the whole of section 5.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">a storm, in numbers</span>
+        <p class="small">A $30\ \mathrm{m\,s^{-1}}$ wind at $45^\circ$ N: Coriolis acceleration $2\omega v\sin\lambda = 3.09\times10^{-3}\ \mathrm{m\,s^{-2}}$. Left alone it would bend the air onto an <span class="term">inertial circle</span> of radius
+        $$\frac{v}{2\omega\sin\lambda} = 291\ \mathrm{km}.$$</p>
+        <p class="small">Air pushed inward by a low-pressure centre and deflected right instead circulates anticlockwise (northern hemisphere), clockwise in the south, and not at all at the equator, where $\sin\lambda = 0$.</p>
+      </div>
+      <p class="small muted">The <span class="term">Rossby number</span> $\mathcal{R}o = v/(2\omega\sin\lambda\,L)$ compares inertia with Coriolis: $0.29$ for a $1000\ \mathrm{km}$ storm, $\sim 10^4$ for water leaving a bath. Bathtubs are not Coriolis.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The cross product, done slowly.</b> With $\vec\omega = \omega(0,\cos\lambda,\sin\lambda)$
+    and $\vec v = (v_x,v_y,0)$:
+    $\vec\omega\times\vec v = \omega(\cos\lambda\cdot 0 - \sin\lambda\cdot v_y,\
+    \sin\lambda\cdot v_x - 0,\ 0 - \cos\lambda\cdot v_x)
+    = \omega(-v_y\sin\lambda,\ v_x\sin\lambda,\ -v_x\cos\lambda)$. Multiply by $-2$ to
+    get the slide's expression.</p>
+    <p><b>Why "right" is not a convention.</b> Take $\vec v$ due north, $(0,v,0)$, in the
+    northern hemisphere. The horizontal Coriolis term is
+    $2\omega\sin\lambda(v, 0, 0)$: due east, which is to the right of north. The sign
+    flips with $\sin\lambda$, so it is to the left in the southern hemisphere.</p>
+    <p><b>Numbers, recomputed.</b> $2\omega v\sin 45^\circ$ with $v = 30$:
+    $3.0937\times10^{-3}\ \mathrm{m\,s^{-2}}$; radius $v/(2\omega\sin45^\circ) =
+    290.9\ \mathrm{km}$; Rossby number with $L = 10^6\ \mathrm m$: $0.291$.</p>
+    <p><b>The bathtub.</b> With $v \sim 0.1\ \mathrm{m\,s^{-1}}$ and $L \sim 0.1\ \mathrm m$,
+    $\mathcal{R}o \sim 10^4$: Coriolis is four orders of magnitude below the residual
+    swirl left by filling the bath. It <em>has</em> been measured, in 1962, by Shapiro at
+    MIT — in a symmetric tank, filled and then left still for 24 hours. The
+    circulation is real and it is about $10^{-4}$ of the relevant scale.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the price</p>
+  <h2>Euler: only while the frame is spinning up</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$-m\dot{\vec\omega}\times\vec r$: the <span class="term">Euler force</span>. Zero whenever $\vec\omega$ is constant, so it plays no part in anything on Earth over a day. It is what throws you backwards when a roundabout starts.</p>
+      <div class="box ex"><span class="label">a roundabout</span>
+        <p class="small">A playground roundabout of radius $2\ \mathrm m$ brought from rest to $1$ revolution per $4\ \mathrm s$ in $8\ \mathrm s$: $\dot\omega = (2\pi/4)/8 = 0.196\ \mathrm{s^{-2}}$, so a child at the rim feels a tangential $\dot\omega r = 0.393\ \mathrm{m\,s^{-2}}$ — and, once up to speed, a centrifugal $\omega^2 r = 4.93\ \mathrm{m\,s^{-2}}$, half a $g$ outwards.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">recap of the three</span>
+        <table class="dense">
+          <thead><tr><th>term</th><th>depends on</th><th>on Earth</th></tr></thead>
+          <tbody>
+            <tr><td>Coriolis $-2m\vec\omega\times\vec v$</td><td>velocity</td><td>weather, Foucault</td></tr>
+            <tr><td>centrifugal $-m\vec\omega\times(\vec\omega\times\vec r)$</td><td>position</td><td>$g_{\text{eff}}$, the bulge</td></tr>
+            <tr><td>Euler $-m\dot{\vec\omega}\times\vec r$</td><td>$\dot{\vec\omega}$</td><td>nothing</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted">$\dot{\vec\omega}$ for the Earth is not exactly zero — precession of the equinoxes, $26\,000$ years — but $|\dot{\vec\omega}|/\omega^2 \sim 10^{-7}$, far below anything this unit computes.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The roundabout numbers.</b> One revolution per $4\ \mathrm s$ is
+    $\omega = 2\pi/4 = 1.5708\ \mathrm{s^{-1}}$. Reaching it in $8\ \mathrm s$ gives
+    $\dot\omega = 0.19635\ \mathrm{s^{-2}}$, so $\dot\omega r = 0.3927\ \mathrm{m\,s^{-2}}$
+    at $r = 2\ \mathrm m$; and $\omega^2 r = 4.9348\ \mathrm{m\,s^{-2}}$, which is
+    $0.503\,g$. The tangential push lasts only while the roundabout speeds up; the
+    outward one lasts as long as it turns. That matches the experience exactly, and it
+    is the cheapest available test of the boxed equation.</p>
+    <p><b>Precession, for the estimate.</b> The Earth's axis traces a cone in
+    $25\,772$ years, so the <em>direction</em> of $\vec\omega$ turns at
+    $2\pi/(25\,772\times3.156\times10^7\ \mathrm s) = 7.72\times10^{-12}\ \mathrm{s^{-1}}$,
+    giving $|\dot{\vec\omega}| \approx \omega_{\mathrm E}\times7.72\times10^{-12} =
+    5.63\times10^{-16}\ \mathrm{s^{-2}}$. Against $\omega_{\mathrm E}^2 =
+    5.32\times10^{-9}\ \mathrm{s^{-2}}$ that is a ratio of $1.06\times10^{-7}$: the Euler
+    term on Earth is seven orders of magnitude below the centrifugal one, and nothing in
+    this unit can see it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the price · example</p>
+  <h2>Worked: falling east</h2>
+  <div class="box ex"><span class="label">worked example 3</span>
+    <div class="cols">
+      <div>
+        <p class="small">Drop a mass from rest from $h = 100\ \mathrm m$ <b>at the equator</b>. Where does it land?</p>
+        <p class="small"><b>1 · set up.</b> Local frame east-north-up. At $\lambda = 0$, $\vec\omega = \omega(0,1,0)$. Centrifugal is already inside $g_{\text{eff}}$, and $\dot{\vec\omega} = 0$, so
+        $$\vec a = -g\hat z - 2\vec\omega\times\vec v .$$</p>
+        <p class="small"><b>2 · iterate once.</b> To zeroth order $\vec v = (0,0,-gt)$. Then
+        $$-2\vec\omega\times\vec v = -2\omega(0,1,0)\times(0,0,-gt) = (2\omega g t,\,0,\,0),$$
+        eastward — because the ground below is moving east more slowly than the released mass was.</p>
+      </div>
+      <div>
+        <p class="small"><b>3 · integrate.</b> $\ddot x = 2\omega g t$ with $x(0) = \dot x(0) = 0$ gives $x = \tfrac13\omega g t^3$.</p>
+        <p class="small"><b>4 · put in numbers.</b> $t = \sqrt{2h/g} = \sqrt{200/9.81} = 4.5152\ \mathrm s$, so
+        $$x = \tfrac13(7.2921\times10^{-5})(9.81)(4.5152)^3 = 0.02195\ \mathrm m,$$
+        <b>2.20 cm to the east</b>. At latitude $\lambda$, multiply by $\cos\lambda$.</p>
+        <p class="small muted"><b>Checks.</b> Dimensions: $\omega g t^3 = \mathrm{T^{-1}LT^{-2}T^3} = \mathrm L$ ✓. Sign: east, and eastward at every latitude, since $\cos\lambda &gt; 0$ ✓. Limit $\omega\to0$: no deflection ✓. Size: $x/h = 2\times10^{-4}$, so the one-step iteration is justified ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why iterating once is legitimate.</b> The exact equation is
+    $\ddot{\vec r} = -g\hat z - 2\vec\omega\times\dot{\vec r}$, a linear system this
+    course cannot yet solve in closed form. But the correction is controlled by the
+    dimensionless $\omega t \approx 3\times10^{-4}$: feeding the first-order eastward
+    velocity back in produces a term smaller by that factor again, of order
+    $10^{-5}\ \mathrm m$. Unit 21 gives this move a name — regular perturbation — and a
+    theory. Here it is honest because the small parameter has been identified and the
+    next term has been bounded.</p>
+    <p><b>The physical reading, which is exact and not a hand-wave.</b> Released from
+    $100\ \mathrm m$ up, the mass has the eastward speed of a point $100\ \mathrm m$
+    <em>further from the axis</em>, namely $\omega(R+h)$, while the ground has
+    $\omega R$. Over $t$ seconds the excess $\omega h$ carries it
+    $\omega h t = 7.29\times10^{-5}\times100\times4.515 = 3.29\ \mathrm{cm}$ east — which
+    is larger than the right answer, because the mass also falls inwards and loses some
+    of that lead. The exact bookkeeping is the $\tfrac13$ in $\tfrac13\omega gt^3$
+    against the naive $\omega h t = \tfrac12\omega gt^3$: the deflection is two thirds
+    of the angular-momentum estimate.</p>
+    <p><b>History.</b> Newton proposed the experiment to Hooke in 1679 and got the direction
+    right. It was first measured convincingly by Ferdinand Reich in 1831, down a
+    $158\ \mathrm m$ mineshaft in Freiberg: $106$ drops, mean deflection $28\ \mathrm{mm}$
+    east, against a predicted $27.5\ \mathrm{mm}$. This is problem 10, at another
+    latitude.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>The Foucault pendulum</h2>
+  <p>The running example, closed: one number, predicted from $R^{\!\top}\dot R$ alone.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · foucault</p>
+  <h2>The pendulum's two horizontal equations</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">A <span class="term">Foucault pendulum</span> is a bob on a wire of length $L$, free to swing in any vertical plane. Displace it horizontally by $\vec r = (x,y)$, with $\lVert\vec r\rVert \ll L$. The wire's tension is $T \approx mg$, and its horizontal component is $-T\vec r/L$: a restoring force $-m\omega_0^2\vec r$ with $\omega_0^2 = g/L$.</p>
+      <p class="small">Adding the horizontal Coriolis term and writing $\omega_z = \omega\sin\lambda$:
+      $$\ddot{\vec r} = -\omega_0^2\,\vec r \;-\; 2\omega_z\,\hat z\times\dot{\vec r}. $$
+      In components, $\ \ddot x = -\omega_0^2x + 2\omega_z\dot y$, $\ \ddot y = -\omega_0^2 y - 2\omega_z\dot x$.</p>
+      <p class="small muted">$\omega_0 = \sqrt{g/L}$ is forced by dimensions alone (unit 00): $g$ and $L$ admit exactly one frequency. That the motion is sinusoidal is unit 06's business, and is not needed here.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what has been dropped, and why</span>
+        <p class="small"><b>Centrifugal</b>: constant, absorbed into $g_{\text{eff}}$ and hence into $\omega_0$.</p>
+        <p class="small"><b>Vertical Coriolis</b> $2\omega\cos\lambda\,\dot x$: changes the tension by a relative $2\omega\cos\lambda\,v/g = 2.3\times10^{-5}$ at the Panthéon's peak speed $2.30\ \mathrm{m\,s^{-1}}$. Ignorable.</p>
+        <p class="small"><b>Vertical motion</b> of the bob: second order in the amplitude.</p>
+      </div>
+      <p class="small">What survives is one number, $\omega_z = \omega\sin\lambda$ — <span class="ref" data-ref="lat">the component of $\vec\omega$ along the local vertical</span>. The horizontal part of $\vec\omega$ cannot turn a horizontal plane.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The tension, more carefully.</b> With the wire at angle $\theta$ to the vertical,
+    the vertical balance is $T\cos\theta = mg$ (to lowest order in $\dot\theta^2$) and
+    the horizontal force is $-T\sin\theta\,\hat r = -mg\tan\theta\,\hat r$. For small
+    $\theta$, $\tan\theta \approx \lVert \vec r\rVert/L$, giving $-mg\vec r/L$. The
+    neglected corrections are relative $O(\theta_0^2)$, and $\theta_0 = 6/67 = 0.0896$ gives
+    $\theta_0^2 = 0.8\%$ — far larger than the Coriolis corrections above. The frequency
+    shift they produce is smaller, $\theta_0^2/16 = 0.05\%$ (the standard anharmonic
+    result, derived in unit 21), but it depends on amplitude, and that is why real
+    Foucault pendulums need long wires and small swings: an amplitude-dependent frequency
+    makes an elliptical orbit precess on its own, with no connection to the Earth's
+    rotation at all.</p>
+    <p><b>Numbers.</b> $L = 67\ \mathrm m$ gives $\omega_0 = \sqrt{9.81/67} =
+    0.38265\ \mathrm{s^{-1}}$ and a swing period of $16.420\ \mathrm s$. At amplitude
+    $A = 6\ \mathrm m$ the peak speed is $A\omega_0 = 2.296\ \mathrm{m\,s^{-1}}$, which is
+    the number used in the Eötvös estimate. And
+    $\omega_z/\omega_0 = 5.4906\times10^{-5}/0.38265 = 1.435\times10^{-4}$: the two
+    timescales are separated by four orders of magnitude, which is what makes the next
+    slide's argument clean.</p>
+    <p><b>Notation.</b> $\hat z\times\dot{\vec r}$ for a horizontal $\dot{\vec r} =
+    (\dot x,\dot y,0)$ is $(-\dot y,\dot x,0)$: a $+90^\circ$ rotation. The minus sign
+    in front makes the deflection clockwise from above in the northern hemisphere.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · foucault</p>
+  <h2>Undo the rotation, and Coriolis is gone</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p>View the motion from a frame $F$ turning at $\vec\Omega_F = -\omega_z\hat z$ relative to the ground. In $F$ the equation is
+    $$\ddot{\vec r}_F = -(\omega_0^2 + \omega_z^2)\,\vec r_F$$
+    — <b>no Coriolis term</b>. So a swing that starts as a line stays in that line's vertical plane in $F$, and relative to the ground the plane turns at $-\omega_z\hat z$: clockwise from above in the northern hemisphere, at $\omega\sin\lambda$.</p>
+  </div>
+  <div class="cols wide-left">
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">Apply the transport theorem with the ground frame in the "inertial" role. With $\vec\Omega_F = -\omega_z\hat z$ constant, $\vec a_{\text{ground}} = \vec a_F + 2\vec\Omega_F\times\vec v_F + \vec\Omega_F\times(\vec\Omega_F\times\vec r)$ and $\vec v_{\text{ground}} = \vec v_F + \vec\Omega_F\times\vec r$. Substitute both into $\vec a_{\text{ground}} = -\omega_0^2\vec r - 2\omega_z\hat z\times\vec v_{\text{ground}}$:</p>
+      <p class="small">$2\vec\Omega_F\times\vec v_F = -2\omega_z\hat z\times\vec v_F$ on the left cancels $-2\omega_z\hat z\times\vec v_F$ on the right. What is left uses $\hat z\times(\hat z\times\vec r) = -\vec r$ for horizontal $\vec r$: the two remaining terms are $-\omega_z^2\vec r_F$ on the left and $-2\omega_z^2\vec r_F$ on the right. Collecting, $\ddot{\vec r}_F = -(\omega_0^2+\omega_z^2)\vec r_F$. $\square$</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">why "a fixed plane"</span>
+        <p class="small">Let $\hat n$ be horizontal with $\hat n\cdot\vec r_F(0) = \hat n\cdot\dot{\vec r}_F(0) = 0$, and $f = \hat n\cdot\vec r_F$. Then $\ddot f = -\omega_1^2 f$, writing $\omega_1^2 = \omega_0^2+\omega_z^2$, with $f(0)=\dot f(0) = 0$. Unit 00's trick — multiply by $\dot f$ and integrate — gives $\dot f^2 + \omega_1^2f^2 = 0$, constant and equal to $0$. So $f\equiv 0$. ✓</p>
+      </div>
+      <p class="small muted">The correction $\omega_z^2$ is a relative $(\omega_z/\omega_0)^2 = 2.1\times10^{-8}$ on the swing frequency. It is written down because it is free, and then never used again.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this argument and not a substitution.</b> The usual route puts
+    $x + \mathrm iy = w\,\mathrm e^{-\mathrm i\omega_z t}$ and reads off the answer. That
+    is unit 06's machinery and it is not available yet. The route above uses only this
+    unit's own transport theorem — applied a second time, to a frame invented purely to
+    kill a term — and it makes the reason transparent: <em>the Coriolis term is the
+    signature of a rotating frame, so it can be removed by rotating back.</em> Unit 06
+    will do it the other way as an exercise in complex exponentials, and get the same
+    $\omega_0^2 + \omega_z^2$.</p>
+    <p><b>The cancellation, written out.</b> Left-hand side after substituting:
+    $\vec a_F - 2\omega_z\hat z\times\vec v_F + \omega_z^2\hat z\times(\hat z\times\vec r)$.
+    Right-hand side: $-\omega_0^2\vec r - 2\omega_z\hat z\times\vec v_F
+    - 2\omega_z\hat z\times(-\omega_z\hat z\times\vec r)$. The middle terms are
+    identical and cancel. With $\hat z\times(\hat z\times\vec r) = -\vec r$, the left
+    keeps $-\omega_z^2\vec r$ and the right keeps $-2\omega_z^2\vec r$, so
+    $\vec a_F = -\omega_0^2\vec r - 2\omega_z^2\vec r + \omega_z^2\vec r$.</p>
+    <p><b>The energy trick is unit 00's, exactly.</b> There it turned $m\ddot x = F(x)$ into a
+    first integral by multiplying by $\dot x$. Here the same multiplication proves a
+    uniqueness statement without any theory of ODEs: $\dot f^2 + \omega_1^2 f^2$ is a
+    non-negative constant that starts at zero. Unit 01's Picard–Lindelöf would also do
+    it, and is not a prerequisite of this unit.</p>
+    <p><b>Sign, once more.</b> Seen from above in the northern hemisphere, $\omega_z &gt; 0$
+    and the plane turns by $-\omega_z t$: clockwise. In Buenos Aires it is
+    anticlockwise. At the equator it does not turn at all, and there is a pendulum in
+    Quito built to show exactly that.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · foucault · example</p>
+  <h2>Worked: 31.8 hours at the Panthéon</h2>
+  <div class="box ex"><span class="label">worked example 4 — the running example, closed</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1 · the rate.</b> <span class="ref" data-ref="pendulum">The Panthéon</span> is at $\lambda = 48.8462^\circ$ N, so
+        $$\omega_z = \omega_{\mathrm E}\sin\lambda = 7.29212\times10^{-5}\times0.752946$$
+        $$= 5.49057\times10^{-5}\ \mathrm{s^{-1}} .$$</p>
+        <p class="small"><b>2 · the <span class="term">Foucault period</span>.</b>
+        $$T = \frac{2\pi}{\omega_z} = 1.14436\times10^{5}\ \mathrm s = \mathbf{31.79\ h},$$
+        i.e. $11.33^\circ$ per hour, clockwise seen from above.</p>
+      </div>
+      <div>
+        <p class="small"><b>3 · what you would see.</b> One swing takes $16.42\ \mathrm s$, in which the plane turns $\omega_zT_0 = 9.0\times10^{-4}\ \mathrm{rad} = 0.052^\circ$. At the $6\ \mathrm m$ end of the swing that moves the turning point sideways by $5.4\ \mathrm{mm}$ — a couple of centimetres a minute, visible against a scale.</p>
+        <p class="small muted"><b>Checks.</b> $T = T_{\text{sid}}/\sin\lambda$, so $T &gt; 23.93\ \mathrm h$ always ✓. At the pole, $T = 23.93\ \mathrm h$ — the Earth simply turns under a fixed plane ✓. At the equator, $T = \infty$ ✓. Foucault reported "about 32 hours" in 1851 ✓.</p>
+      </div>
+    </div>
+  </div>
+  <p class="small">Every ingredient came from $R^{\!\top}\dot R$: no new physics entered after slide "The rotating-frame equation".</p>
+  <aside class="notes">
+    <p><b>Every number, recomputed.</b> $\omega_{\mathrm E} = 2\pi/86\,164.0905
+    = 7.292116\times10^{-5}\ \mathrm{s^{-1}}$; $\sin(48.8462^\circ) = 0.7529458$;
+    $\omega_z = 5.490568\times10^{-5}\ \mathrm{s^{-1}}$;
+    $T = 114\,435.98\ \mathrm s = 31.7878\ \mathrm h$; $360^\circ/31.7878\ \mathrm h
+    = 11.3251^\circ\,\mathrm h^{-1}$. One swing period $2\pi/\omega_0 = 16.4204\ \mathrm s$,
+    in which the plane turns $9.0157\times10^{-4}\ \mathrm{rad}$; the end of a
+    $6\ \mathrm m$ half-amplitude swing therefore shifts by
+    $6\times9.0157\times10^{-4} = 5.41\ \mathrm{mm}$ between successive arrivals at
+    the same end, one full period apart — about $20\ \mathrm{mm}$ a minute.</p>
+    <p><b>Why "about 32 hours" is the right thing to compare with.</b> The figure quoted for
+    Paris in the contemporary accounts is $31\ \mathrm h\ 47\ \mathrm{min}$, and
+    $31.7878\ \mathrm h$ is $31\ \mathrm h\ 47.3\ \mathrm{min}$. The rounder "about 32
+    hours" is what the popular retellings repeat. A modern pendulum cannot do much better than a
+    few percent, because air drag, wire torsion and the elliptical drift of the next
+    slide all contaminate the measurement.</p>
+    <p><b>The formula is worth memorising in this form:</b> $T = (\text{one sidereal
+    day})/\sin\lambda$. Everything else on this deck exists to prove that the
+    denominator is $\sin\lambda$ and not, say, $\cos\lambda$ or 1.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · foucault</p>
+  <h2>What Foucault actually saw</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box warn"><span class="label">the pendulum does not swing in a plane</span>
+        <p class="small">Released <b>from rest relative to the ground</b>, the bob is not at rest in $F$: $\vec v_F(0) = -\vec\Omega_F\times\vec r(0) = \omega_z\hat z\times\vec r(0)$, of size $\omega_z A$. So in $F$ the orbit is a thin ellipse, not a segment, with</p>
+        <p class="small">$$\frac{\text{minor}}{\text{major}} \approx \frac{\omega_z}{\omega_0} = 1.4\times10^{-4},$$
+        which at $A = 6\ \mathrm m$ is a minor semi-axis of $0.86\ \mathrm{mm}$. <span class="small muted">(That the orbit is an ellipse is unit 06's isotropic oscillator; only its aspect ratio is needed here, and it follows from the initial data.)</span></p>
+      </div>
+    </div>
+    <div>
+      <p class="small">The bob never passes through the centre. Foucault knew, and launched his pendulum by <b>burning a thread</b> holding it aside — the only way to release it with no sideways velocity at all.</p>
+      <p class="small">Even then, the amplitude-dependent frequency of a real pendulum — a $0.05\%$ shift here — makes any residual ellipse precess on its own, in a direction set by which way the bob was nudged. Every serious installation fights this: the Paris pendulum uses a "Charron ring", a metal collar that the wire touches at the bottom of each swing and which bleeds off the elliptical component.</p>
+      <p class="small muted">The physics on the previous two slides is exact to the order stated. This slide is why a demonstration is harder than a derivation.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The initial velocity, from the transport theorem.</b> $\vec v_{\text{ground}} =
+    \vec v_F + \vec\Omega_F\times\vec r$. Setting $\vec v_{\text{ground}}(0) = 0$ with
+    $\vec\Omega_F = -\omega_z\hat z$ gives $\vec v_F(0) = \omega_z\hat z\times\vec r(0)$,
+    perpendicular to the displacement and of magnitude $\omega_z A =
+    5.4906\times10^{-5}\times 6 = 3.29\times10^{-4}\ \mathrm{m\,s^{-1}}$. For an
+    oscillator of frequency $\omega_1 \approx \omega_0$, a transverse velocity $u$ at the
+    turning point produces a transverse excursion $u/\omega_0 =
+    8.6\times10^{-4}\ \mathrm m$ — the $0.86\ \mathrm{mm}$ quoted.</p>
+    <p><b>Why the ellipse is a problem and not a curiosity.</b> An anharmonic pendulum's
+    frequency depends on amplitude, so the two perpendicular components of an
+    elliptical orbit run at slightly different rates, and the ellipse's axis rotates at
+    a rate proportional to its area: $\tfrac38\,ab\,\omega_0/L^2$ for semi-axes $a$ and
+    $b$. <em>Cited</em>: that is Airy's result of 1851, and it is the anharmonic
+    perturbation theory of unit 21 applied to two coupled coordinates. At the Panthéon,
+    a $1\ \mathrm{cm}$ minor axis against the $6\ \mathrm m$ major one gives
+    $1.92\times10^{-6}\ \mathrm{s^{-1}}$ — $3.5\%$ of the Foucault rate, already fatal
+    to a careful measurement — and since it grows in proportion to the minor axis it
+    reaches the Foucault rate itself at about $30\ \mathrm{cm}$. The $0.86\ \mathrm{mm}$
+    ellipse forced by the release above contributes only $0.3\%$. The Charron ring works
+    by interrupting the orbit once per swing near the centre, where the elliptical
+    component is fastest.</p>
+    <p><b>Honest labelling.</b> The claim that the orbit is exactly an ellipse requires
+    solving $\ddot{\vec r} = -\omega_1^2\vec r$, which needs unit 06. What is proved
+    here is the previous slide's statement — the swing <em>plane</em> is fixed in $F$
+    when the initial velocity is along the initial displacement — plus the size of the
+    initial transverse velocity, which is exact.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · summary</p>
+  <h2>What to keep</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">the four lines worth memorising</span>
+        <p class="small">$D(g\circ f)(a) = Dg(f(a))\circ Df(a)$</p>
+        <p class="small">$\vec a = \dot v\hat T + (v^2/\rho)\hat N$</p>
+        <p class="small">$\Omega = R^{\!\top}\dot R \in \mathfrak{so}(3)$, and $\Omega u = \vec\omega\times\vec u$</p>
+        <p class="small">$(\mathrm d/\mathrm dt)_{\text{in}} = (\mathrm d/\mathrm dt)_{\text{rot}} + \vec\omega\times$</p>
+      </div>
+      <p class="small muted">The last two are one fact. Everything in sections 4 and 5 is that fact applied twice and then counted.</p>
+    </div>
+    <div>
+      <p class="small"><b>What this unlocks.</b></p>
+      <ul class="small">
+        <li><b>04</b>: the derivative of a scalar field is a covector; the gradient is what an inner product makes of it.</li>
+        <li><b>08</b>: the cross product, with its identities, conserving angular momentum.</li>
+        <li><b>16</b>: $\mathfrak{so}(3)$ again, as the configuration velocity of a rigid body, with $\Omega$ contracted against an inertia tensor.</li>
+        <li><b>25–26</b>: the same question one dimension up — what survives a change of frame — where the group is Lorentz rather than $SO(3)$.</li>
+        <li><b>30</b>: fictitious forces proportional to $m$, taken seriously.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The thread from here to unit 30 is worth naming now. The three terms of section 4
+    are proportional to $m$, so they accelerate every body identically, and a local
+    observer cannot distinguish them from gravity by any experiment. Einstein's move
+    was to read that backwards: if gravity is locally indistinguishable from a
+    fictitious force, perhaps it <em>is</em> one — an artefact of insisting on
+    coordinates that are not free-falling. Unit 30 makes that precise, and units 31–33
+    replace $R^{\!\top}\dot R$ with a connection, which is the same idea with the
+    assumption of a global frame removed.</p>
+    <p>If one thing survives from this unit, make it the transport theorem. It is three
+    symbols, it is proved in one line, and units 16, 22 and 30 each open by using it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>Starting only from $x_{\mathrm{in}} = R(t)\,x_{\mathrm{rot}}$ with $R \in SO(3)$, and with nothing else on the page, you can:</p>
+    <ul>
+      <li>derive $m\vec a_{\mathrm{rot}} = \vec F - 2m\vec\omega\times\vec v_{\mathrm{rot}} - m\vec\omega\times(\vec\omega\times\vec r) - m\dot{\vec\omega}\times\vec r$, identifying $\vec\omega$ from $R^{\!\top}\dot R$ and saying why that matrix is antisymmetric;</li>
+      <li>predict the Foucault period at a latitude you are given, <b>to within an hour</b>.</li>
+    </ul>
+    <p class="small muted">Falsifiable both ways: a missing factor of 2, a wrong sign, or $\cos\lambda$ in place of $\sin\lambda$ each fails it. Record it with <code>./mr done 03</code>.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Problems</h3>
+      <p class="small"><code>./mr problems 03</code> — 13 problems, about 5 hours. Hints and worked solutions fold under each problem on the same page.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>04</b> work and line integrals (needs this unit) · <b>05</b> flux and gravity · <b>16</b> rigid bodies, where $\mathfrak{so}(3)$ returns · <b>25</b> the same question for Maxwell.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint cold, on paper, before looking at anything. A good self-test:
+    do it for Edinburgh, $55.95^\circ$ N. The answer is
+    $23.9345/\sin(55.95^\circ) = 28.90$ hours; anything between $28$ and $30$ passes.
+    If the derivation stalls, the usual place is $R^{\!\top}\ddot R = \dot\Omega +
+    \Omega^2$ — go back to "Differentiate twice" and redo it from
+    $\dot R = R\Omega$.</p>
+    <p>Unit 04 starts where this one leaves the derivative: $Df(a)$ for a scalar field is
+    a linear map $\mathbb R^3 \to \mathbb R$, an element of the dual space, and the
+    gradient is its image under the isomorphism supplied by the inner product. That
+    distinction is planted in unit 04 and cashed in unit 16.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="glossary.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

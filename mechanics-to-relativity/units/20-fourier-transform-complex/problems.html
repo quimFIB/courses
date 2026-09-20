@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>20 · Problems — The Fourier transform, complex analysis, and why causality is a statement about poles</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="c">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part C · unit 20 · problems</p>
+<h1>The Fourier transform, complex analysis, and why causality is a statement about poles</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u20">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you compute a retarded Green's
+function by contour integration from its frequency response and prove it vanishes for \(t \lt 0\) by
+closing the contour in the half-plane with no poles and bounding the arc, not by inspecting the answer;
+you evaluate a real integral by steepest descent, justifying every arc and connecting segment by an
+explicit estimate; and you settle unit 09's Laplace limit — Lagrange's series for Kepler's equation
+converges for every \(M\) when \(e \lt 0.6627434\) and diverges at \(M = \pi/2\) when \(e \gt 0.6627434\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about seven hours. Work them on paper first. Conventions as in the deck:
+\(\hat f(\omega) = \int f(t)e^{i\omega t}\,\mathrm dt\), \(f(t) = \frac1{2\pi}\int\hat f(\omega)e^{-i\omega t}\,\mathrm d\omega\),
+a single frequency is \(e^{-i\omega t}\), and the residue theorem carries \(+2\pi i\) anticlockwise.</p>
+<p>The running example: unit 06's galvanometer, \(\ddot\theta + \gamma\dot\theta + \omega_0^2\theta = \tau(t)/I\),
+with \(\omega_0 = 8\ \mathrm{s^{-1}}\), \(\gamma = 0.4\ \mathrm{s^{-1}}\), \(\omega_\mathrm d = \sqrt{\omega_0^2 - \gamma^2/4} = 7.9974996\ \mathrm{s^{-1}}\),
+susceptibility \(\chi(\omega) = 1/(\omega_0^2 - \omega^2 - i\gamma\omega)\) with poles
+\(\omega_\pm = \pm\omega_\mathrm d - i\gamma/2\), and Green's function
+\(G(t) = e^{-\gamma t/2}\sin(\omega_\mathrm dt)/\omega_\mathrm d\) for \(t \gt 0\), zero before. Its coil has
+moment of inertia \(I = 1.0\times10^{-8}\ \mathrm{kg\,m^2}\) and turns a current into a torque \(\alpha i\) with
+\(\alpha = 2.0\times10^{-3}\ \mathrm{N\,m\,A^{-1}}\).</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Three transforms and a sum">P1</a></li>
+<li><a class="medium" href="#p2" title="The uncertainty relation, sharp and not">P2</a></li>
+<li><a class="routine" href="#p3" title="Distributions by hand">P3</a></li>
+<li><a class="routine" href="#p4" title="Holomorphic or not">P4</a></li>
+<li><a class="medium" href="#p5" title="Plancherel for the galvanometer, by residues">P5</a></li>
+<li><a class="medium" href="#p6" title="Fresnel by octant">P6</a></li>
+<li><a class="hard" href="#p7" title="Kramers–Kronig">P7</a></li>
+<li><a class="medium" href="#p8" title="A keyhole">P8</a></li>
+<li><a class="medium" href="#p9" title="Switching on: the Bromwich contour">P9</a></li>
+<li><a class="hard" href="#p10" title="The Laplace limit, finally">P10</a></li>
+<li><a class="medium" href="#p11" title="Bessel's constants by stationary phase">P11</a></li>
+<li><a class="hard" href="#p12" title="Steepest descent: the transform of e^{-t^4}">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The transform and distributions</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Three transforms and a sum <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: transforms from the definition, the inversion theorem, the convolution theorem, a number</p>
+<div class="statement">
+<ol>
+<li>Compute the transforms of \(f_1(t) = e^{-a|t|}\) (\(a \gt 0\)) and of the box \(f_2 = \mathbf 1_{[-1,1]}\).</li>
+<li>Check the inversion theorem for \(f_1\) at \(t = 0\), evaluating \(\frac1{2\pi}\int\hat f_1\,\mathrm d\omega\) directly.</li>
+<li>Show that \(f_2 * f_2\) is the triangle \(\Lambda(t) = \max(2 - |t|, 0)\), and write down \(\hat\Lambda\) without integrating.</li>
+<li>Apply the inversion theorem to \(\Lambda\) at \(t = 0\) to evaluate \(\displaystyle\int_{-\infty}^\infty\frac{\sin^2x}{x^2}\,\mathrm dx\). Why may the theorem be applied to \(\Lambda\) but not to \(f_2\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two functions of \(\omega\), then a number, then a function of \(t\) and its transform, then a number
+that should look familiar. Only parts 1 and 3 need an integral computed from a definition.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Split \(f_1\)'s integral at \(0\) and use \(\int_0^\infty e^{-ct}\mathrm dt = 1/c\) for
+\(\operatorname{Re}c \gt 0\). For part 3, the convolution theorem says \(\hat\Lambda = \hat f_2^{\,2}\).
+The inversion theorem wants \(f\) continuous and both \(f\) and \(\hat f\) absolutely integrable.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\hat f_1(\omega) = \int_0^\infty e^{-(a - i\omega)t}\mathrm dt + \int_{-\infty}^0e^{(a + i\omega)t}\mathrm dt
+= \frac{1}{a - i\omega} + \frac{1}{a + i\omega}\). For part 4, \(\Lambda(0) = 2\) and
+\(\hat\Lambda(\omega) = 4\sin^2\omega/\omega^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Compute two transforms from the definition; then let the convolution theorem
+build a third, smoother one, for which the inversion theorem is legitimate at every point.</p>
+<p><strong>1.</strong> \(\hat f_1 = \frac{1}{a - i\omega} + \frac{1}{a + i\omega} = \frac{2a}{a^2 + \omega^2}\).
+\(\hat f_2 = \int_{-1}^1e^{i\omega t}\mathrm dt = \frac{e^{i\omega} - e^{-i\omega}}{i\omega} = \frac{2\sin\omega}{\omega}\)
+(value \(2\) at \(\omega = 0\)).</p>
+<p><strong>2.</strong> \(\frac1{2\pi}\int\frac{2a\,\mathrm d\omega}{a^2 + \omega^2} = \frac{a}{\pi}\cdot\frac{1}{a}\big[\arctan\frac\omega a\big]_{-\infty}^\infty = \frac a\pi\cdot\frac\pi a = 1 = f_1(0)\) ✓.
+The theorem applies: \(f_1\) is continuous (with a kink), integrable, and \(\hat f_1\sim2a/\omega^2\) is integrable.</p>
+<p><strong>3.</strong> \((f_2*f_2)(t) = \int\mathbf 1_{[-1,1]}(s)\mathbf 1_{[-1,1]}(t - s)\,\mathrm ds\) is the length of
+\([-1,1]\cap[t-1, t+1]\), which is \(2 - |t|\) for \(|t|\le2\) and \(0\) otherwise: \(\Lambda\). By the
+convolution theorem (both factors bounded and integrable), \(\hat\Lambda = \hat f_2^{\,2} = 4\sin^2\omega/\omega^2\).</p>
+<p><strong>4.</strong> \(\Lambda\) is continuous and integrable, and \(\hat\Lambda\le\min(4, 4/\omega^2)\) is integrable.
+So inversion at \(t = 0\):
+\[ 2 = \Lambda(0) = \frac1{2\pi}\int\frac{4\sin^2\omega}{\omega^2}\,\mathrm d\omega
+\quad\Longrightarrow\quad \int_{-\infty}^\infty\frac{\sin^2x}{x^2}\,\mathrm dx = \pi = 3.14159 . \]
+For \(f_2\) the theorem does not apply: \(f_2\) is discontinuous and \(\hat f_2 = 2\sin\omega/\omega\) is not
+absolutely integrable (the deck's inversion slide). Convolving with itself smoothed one jump into a kink, and
+squared the decay from \(1/\omega\) to \(1/\omega^2\) — the dictionary between smoothness and decay.</p>
+<p><strong>Check.</strong> Dimensions: with \(t\) a time and \(f\) dimensionless, \(\hat f_1 = 2a/(a^2 + \omega^2)\) has
+dimension \(\mathrm T\) ✓. Limit: \(a\to0\) makes \(f_1\to1\) and \(\hat f_1\to\) a spike of area
+\(\int2a/(a^2 + \omega^2) = 2\pi\) — the table's \(\hat1 = 2\pi\delta\) ✓. Number: Plancherel on \(f_2\) (by the
+cited \(L^2\) extension) gives \(\int|f_2|^2 = 2 = \frac1{2\pi}\int4\sin^2\omega/\omega^2\), the same identity ✓.</p>
+<h4>Another way</h4>
+<p>\(\int\sin^2x/x^2 = \int\frac{1 - \cos2x}{2x^2}\); integrate by parts once to get \(\int\frac{\sin2x}{x}\mathrm dx = \pi\),
+which is worked example 2 of the deck.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> The uncertainty relation, sharp and not <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the uncertainty relation's equality case, Plancherel for a derivative, moments by complex exponentials, a number</p>
+<div class="statement">
+<ol>
+<li>For \(f(t) = Ce^{-at^2}\), \(a \gt 0\), normalised so \(\int|f|^2 = 1\), compute \(\Delta t\) and \(\Delta\omega\) and show
+\(\Delta t\,\Delta\omega = \frac12\).</li>
+<li>For the galvanometer's \(G\), show that \(\bar\omega = 0\) and \(\Delta\omega = \omega_0\) <strong>exactly</strong>, using
+\(\int\dot G^2 = \frac1{2\pi}\int\omega^2|\chi|^2\) and the equation \(G\) satisfies for \(t \gt 0\).</li>
+<li>Given \(\Delta t^2 = \frac1{\gamma^2} - \frac{1}{2\omega_0^2} + \frac{\gamma^2}{4\omega_0^4}\) (derive it if you have time;
+the solution does), evaluate \(\Delta t\,\Delta\omega\) for the galvanometer and compare with \(Q = \omega_0/\gamma\).</li>
+<li>Explain in two sentences why a sharply resonant real signal is so far from the bound.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is two Gaussian integrals. Part 2 is an integration by parts, no transform needed. Part 3 is
+arithmetic. Part 4 is about <em>where</em> \(|\chi|^2\) puts its weight on the frequency axis.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 1 use worked example 1 with scaling: \(\hat f\) is a Gaussian in \(\omega\), and
+\(\int u^2e^{-cu^2}\mathrm du = \frac{1}{2c}\int e^{-cu^2}\mathrm du\). For part 2, \(|\chi(\omega)|^2\) is even.
+Compute \(\int_0^\infty\dot G^2\) by parts, then use \(\ddot G = -\gamma\dot G - \omega_0^2G\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\int_0^\infty\dot G^2\,\mathrm dt = [G\dot G]_0^\infty - \int_0^\infty G\ddot G\,\mathrm dt\), and the
+boundary term vanishes at both ends.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The Gaussian meets the bound; a damped ringing signal carries most of its
+frequency spread in the distance between its two spectral peaks, not in their width.</p>
+<p><strong>1.</strong> \(|f|^2 = C^2e^{-2at^2}\), so \(\Delta t^2 = \int t^2e^{-2at^2}/\int e^{-2at^2} = \frac{1}{4a}\).
+By worked example 1 and scaling, \(\hat f\propto e^{-\omega^2/4a}\), so \(|\hat f|^2\propto e^{-\omega^2/2a}\) and
+\(\Delta\omega^2 = \frac{1}{2\cdot(1/2a)} = a\). Then \(\Delta t\,\Delta\omega = \sqrt{a/4a} = \frac12\) ✓. Both means are
+\(0\) by symmetry.</p>
+<p><strong>2.</strong> \(G\) is real, so \(\chi(-\omega) = \overline{\chi(\omega)}\) and \(|\chi|^2\) is even: \(\bar\omega = 0\). \(G\) is
+continuous and piecewise \(C^1\), so \(\widehat{\dot G} = -i\omega\chi\) (the jump formula adds no delta because \(G\) does
+not jump), and Plancherel gives \(\frac1{2\pi}\int\omega^2|\chi|^2 = \int\dot G^2\). Now
+\[ \int_0^\infty\dot G^2 = [G\dot G]_0^\infty - \int_0^\infty G\ddot G
+ = \int_0^\infty G(\gamma\dot G + \omega_0^2G) = \gamma\big[\tfrac12G^2\big]_0^\infty + \omega_0^2\int_0^\infty G^2 = \omega_0^2\int_0^\infty G^2, \]
+using \(G(0) = 0\) and decay at infinity. So \(\Delta\omega^2 = \int\dot G^2/\int G^2 = \omega_0^2\): \(\Delta\omega = 8\ \mathrm{s^{-1}}\), for every \(\gamma\).</p>
+<p><strong>3.</strong> \(\Delta t^2 = 6.25 - 0.0078125 + 0.0000098 = 6.2421973\ \mathrm{s^2}\), \(\Delta t = 2.49844\) s, and
+\[ \Delta t\,\Delta\omega = 19.9875 = \sqrt{Q^2 - \tfrac12 + \tfrac1{4Q^2}}\quad(Q = 20). \]
+<strong>Derivation of \(\Delta t^2\).</strong> Write \(G^2 = \frac{e^{-\gamma t}}{2\omega_\mathrm d^2}(1 - \cos2\omega_\mathrm dt)\) and use
+\(\int_0^\infty t^ne^{-\gamma t}\mathrm dt = n!/\gamma^{n+1}\) and \(\int_0^\infty t^ne^{-\gamma t}\cos2\omega_\mathrm dt\,\mathrm dt = \operatorname{Re}\,n!/w^{n+1}\) with
+\(w = \gamma - 2i\omega_\mathrm d\), \(|w|^2 = \gamma^2 + 4\omega_\mathrm d^2 = 4\omega_0^2\). The moments \(m_n = \int t^nG^2\) are then
+\(m_0 = \frac{1}{2\omega_\mathrm d^2}\big(\frac1\gamma - \frac{\gamma}{4\omega_0^2}\big) = \frac{1}{2\gamma\omega_0^2}\),
+\(m_1 = \frac{1}{2\omega_\mathrm d^2}\big(\frac1{\gamma^2} - \frac{\gamma^2 - 4\omega_\mathrm d^2}{16\omega_0^4}\big)\),
+\(m_2 = \frac{1}{\omega_\mathrm d^2}\big(\frac1{\gamma^3} - \frac{\gamma^3 - 12\gamma\omega_\mathrm d^2}{64\omega_0^6}\big)\), and
+simplifying with \(4\omega_\mathrm d^2 = 4\omega_0^2 - \gamma^2\): \(\bar t = m_1/m_0 = \frac1\gamma + \frac{\gamma}{2\omega_0^2}\) and
+\(\Delta t^2 = m_2/m_0 - \bar t^2\) as stated. (Numerically \(\bar t = 2.503125\) s.)</p>
+<p><strong>4.</strong> \(|\chi|^2\) has two narrow peaks, at \(\pm\omega_\mathrm d\), each of width about \(\gamma\). The spread about
+\(\bar\omega = 0\) is dominated by the distance \(\omega_\mathrm d\) of the peaks from the origin, while \(\Delta t\approx1/\gamma\) is the
+ringing time: the product is about \(\omega_0/\gamma = Q\). The uncertainty relation constrains the <em>width</em> of a
+spectral line only when the spread is measured about the line, which for a real signal means working with one
+of the two peaks (the analytic signal), not both.</p>
+<p><strong>Check.</strong> Dimensions: \(\Delta t\) in s, \(\Delta\omega\) in s\(^{-1}\), product a number ✓. The bound holds for every
+underdamped \(Q \gt \frac12\): \(Q^2 - \frac12 + \frac1{4Q^2}\) is smallest at \(Q = 1/\sqrt2\), where it equals \(\frac12\), so the
+product is at least \(0.707 \gt 0.5\) ✓. The hypotheses: \(G\) is only piecewise \(C^1\), but the deck's proof uses only
+one integration by parts and Plancherel for \(\dot G\), both valid here.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Distributions by hand <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: distributional derivatives, the jump formula, a proof, the ballistic galvanometer as \(L\theta = \)const\(\cdot\delta\), a number</p>
+<div class="statement">
+<ol>
+<li>Compute the first and second distributional derivatives of \(|t|\).</li>
+<li>Prove that \(t\,\delta' = -\delta\), where \(\langle t\,T,\varphi\rangle := \langle T, t\varphi\rangle\).</li>
+<li>For \(a\ne0\) define \(\delta(at)\) so that it agrees with the change of variable for functions, and show \(\delta(at) = \delta/|a|\).</li>
+<li>A capacitor discharges a charge \(q = 1\ \mu\mathrm C\) through the galvanometer in a time far shorter than its period.
+Model the torque as \(\alpha q\,\delta(t)\), solve for \(\theta(t)\) using \(LG = \delta\) and the uniqueness of the causal
+solution, and give the first maximum of \(\theta\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two distributions, one identity between distributions, one definition-plus-identity, one function of time and a
+number in radians.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The jump formula does part 1 in two lines. For parts 2 and 3, test against an arbitrary \(\varphi\) and use only
+the definitions. For part 3, compute \(\int f(at)\varphi(t)\mathrm dt\) for a function \(f\) by substitution first.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\langle t\,\delta',\varphi\rangle = \langle\delta', t\varphi\rangle = -\langle\delta,(t\varphi)'\rangle = -(t\varphi)'(0)\).
+For part 4, divide the equation by \(I\): \(L\theta = (\alpha q/I)\,\delta\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Every statement about a distribution is a statement about what it does to test functions;
+write that down and the proof follows.</p>
+<p><strong>1.</strong> \(|t|\) is continuous and \(C^1\) off \(0\) with derivative \(\operatorname{sgn}t\): no jump, so
+\(|t|' = \operatorname{sgn}t\). \(\operatorname{sgn}\) jumps by \(2\) at \(0\) and has classical derivative \(0\) elsewhere, so
+\(|t|'' = 2\delta\).</p>
+<p><strong>2.</strong> \(-(t\varphi)'(0) = -(\varphi(0) + 0\cdot\varphi'(0)) = -\varphi(0) = \langle-\delta,\varphi\rangle\). \(\square\)</p>
+<p><strong>3.</strong> For a function, \(\int f(at)\varphi(t)\,\mathrm dt = \frac1{|a|}\int f(u)\varphi(u/a)\,\mathrm du\) (\(u = at\); the
+modulus because a negative \(a\) reverses the limits). So define \(\langle T(a\,\cdot),\varphi\rangle := \frac1{|a|}\langle T,\varphi(\cdot/a)\rangle\).
+For \(T = \delta\): \(\frac1{|a|}\varphi(0) = \langle\delta/|a|,\varphi\rangle\). \(\square\)</p>
+<p><strong>4.</strong> The equation is \(\ddot\theta + \gamma\dot\theta + \omega_0^2\theta = (\alpha q/I)\,\delta(t)\) with the coil at rest
+before \(t = 0\). \(\theta = (\alpha q/I)G\) satisfies it, since \(L\) is linear and \(LG = \delta\); it is causal; and the causal
+solution is unique (deck, notes to the \(LG = \delta\) slide). With \(\alpha q/I = (2.0\times10^{-3})(10^{-6})/10^{-8} = 0.2\ \mathrm{rad\,s^{-1}}\),
+\[ \theta(t) = 0.2\,e^{-0.2t}\,\frac{\sin(7.9975\,t)}{7.9975}\ \mathrm{rad},\qquad t \gt 0 . \]
+The first maximum is where \(\dot G = 0\), \(\tan\omega_\mathrm dt = 2\omega_\mathrm d/\gamma = 39.987\), at \(t = 0.193285\) s, where
+\(G = 0.120260\) s: \(\theta_{\max} = 0.2\times0.120260 = 0.024052\) rad \(= 1.378^\circ\), unit 06's number ✓.</p>
+<p><strong>Check.</strong> Dimensions: \([\alpha q/I] = \mathrm{N\,m\,A^{-1}\,C}/\mathrm{kg\,m^2} = \mathrm{s^{-1}}\) (an angular velocity), times
+\([G] = \mathrm s\): radians ✓. Limit: \(\gamma\to0\) gives \(\theta_{\max}\to0.2/8 = 0.025\) rad, the undamped amplitude \(v_0/\omega_0\),
+slightly above the damped \(0.02405\) ✓. Part 1 check: pair \(|t|'' = 2\delta\) with a \(\varphi\) that equals \(1\) on
+\([-1,1]\): \(\int|t|\varphi''\) — integrate by parts twice on each half — gives \(2\varphi(0) = 2\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Holomorphy and contour integrals</h2>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Holomorphic or not <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: Cauchy–Riemann, building a holomorphic function from its real part, Cauchy's integral formula, a number</p>
+<div class="statement">
+<ol>
+<li>Where is each of these complex-differentiable: \(z^2\), \(\bar z\), \(|z|^2\), \(e^{\bar z}\), \(\operatorname{Re}z\)?</li>
+<li>Find all real \(v(x,y)\) such that \(u + iv\) is holomorphic on \(\mathbb C\), where \(u = x^3 - 3xy^2\). Recognise \(u + iv\).</li>
+<li>Evaluate \(\oint\chi(\omega)\,\mathrm d\omega\) anticlockwise round the circle \(|\omega - 8| = 1\), for the galvanometer's \(\chi\), using
+only Cauchy's integral formula. Then round \(|\omega| = 10\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is five verdicts, each a set of points. Part 2 is a family of functions differing by a constant. Part 3 is
+two complex numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write each function as \(u + iv\) and test Cauchy–Riemann; the converse theorem (continuous partials) settles the
+points where it holds. For part 2, \(v_y = u_x\) determines \(v\) up to a function of \(x\) alone; \(v_x = -u_y\) pins
+that down. For part 3, which poles lie inside each circle?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 3, first line: \(\chi(\omega) = \frac{g(\omega)}{\omega - \omega_+}\) with \(g(\omega) = \frac{-1}{\omega - \omega_-}\), holomorphic on and
+inside \(|\omega - 8| = 1\) because \(|\omega_- - 8|\approx16\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Cauchy–Riemann is a local test; Cauchy's formula turns a contour integral round an
+isolated pole into a function value.</p>
+<p><strong>1.</strong> \(z^2 = x^2 - y^2 + 2ixy\): \(u_x = 2x = v_y\), \(u_y = -2y = -v_x\) — everywhere (it is a polynomial).
+\(\bar z\): \(u_x = 1\ne-1 = v_y\) — nowhere. \(|z|^2 = x^2 + y^2\), \(v = 0\): CR needs \(2x = 0\) and \(2y = 0\) — only at \(0\), and there
+it is differentiable (\(|h|^2/h\to0\)). \(e^{\bar z} = e^x(\cos y - i\sin y)\): \(u_x = e^x\cos y\), \(v_y = -e^x\cos y\), equal only where
+\(\cos y = 0\); \(u_y = -e^x\sin y\), \(-v_x = e^x\sin y\), equal only where \(\sin y = 0\) — never both: nowhere.
+\(\operatorname{Re}z = x\): \(u_x = 1\ne0 = v_y\) — nowhere.</p>
+<p><strong>2.</strong> \(u_x = 3x^2 - 3y^2 = v_y\) gives \(v = 3x^2y - y^3 + c(x)\). Then \(v_x = 6xy + c'(x)\) must equal
+\(-u_y = 6xy\), so \(c' = 0\): \(v = 3x^2y - y^3 + C\). And \(u + iv = (x + iy)^3 + iC = z^3 + iC\).</p>
+<p><strong>3.</strong> \(|\omega_+ - 8| = |{-0.0025} - 0.2i| = 0.2000\lt1\), and \(\omega_-\) is far outside. So by Cauchy's formula
+\[ \oint_{|\omega - 8| = 1}\frac{g(\omega)}{\omega - \omega_+}\,\mathrm d\omega = 2\pi i\,g(\omega_+) = \frac{-2\pi i}{\omega_+ - \omega_-} = \frac{-2\pi i}{2\omega_\mathrm d} = -\frac{\pi i}{\omega_\mathrm d} = -0.392822\,i\ \mathrm{s}. \]
+Round \(|\omega| = 10\) both poles are inside. Partial fractions,
+\(\chi = \frac{-1}{2\omega_\mathrm d}\big(\frac1{\omega - \omega_+} - \frac1{\omega - \omega_-}\big)\), give \(\frac{-2\pi i}{2\omega_\mathrm d}(1 - 1) = 0\).
+Equivalently: \(|\chi|\le1/(R^2 - \gamma R - \omega_0^2)\) on \(|\omega| = R\), so the integral is \(O(1/R)\); it is the same for every
+\(R \gt 8\) (the annulus between two such circles contains no pole), so it is \(0\).</p>
+<p><strong>Check.</strong> Dimensions: \([\chi][\omega] = \mathrm{s^2\,s^{-1}} = \mathrm s\) ✓. Limit \(\gamma\to0\): \(\omega_+\to8\), and the
+integral tends to \(-\pi i/8 = -0.392699i\), close to the damped value ✓. Part 2 check: \(z^3\) at \(z = 1 + i\) is \(-2 + 2i\); \(u(1,1) = 1 - 3 = -2\),
+\(v(1,1) = 3 - 1 = 2\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Plancherel for the galvanometer, by residues <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the residue theorem on a semicircle, residues at simple poles, an ML arc bound, Plancherel checked, a number</p>
+<div class="statement">
+<p>Let \(D(\omega) = (\omega_0^2 - \omega^2)^2 + \gamma^2\omega^2 = |\omega_0^2 - \omega^2 - i\gamma\omega|^2\) for real \(\omega\).</p>
+<ol>
+<li>Prove \(\displaystyle\int_{-\infty}^\infty\frac{\mathrm d\omega}{D(\omega)} = \frac{\pi}{\gamma\omega_0^2}\) by closing in the upper half-plane.</li>
+<li>Prove \(\displaystyle\int_{-\infty}^\infty\frac{\omega^2\,\mathrm d\omega}{D(\omega)} = \frac\pi\gamma\) the same way.</li>
+<li>Evaluate the first for the galvanometer and confirm Plancherel: \(\frac1{2\pi}\int|\chi|^2 = \int G^2 = 1/(2\gamma\omega_0^2)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two closed-form real integrals and one number. The integrands are rational with four simple poles, two above the
+axis and two below.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For real \(\omega\), \(D = h(\omega)h(-\omega)\) with \(h(\omega) = \omega_0^2 - \omega^2 - i\gamma\omega\). The zeros of \(h(-\omega)\) are
+\(-\omega_\pm\), in the upper half-plane. At a zero \(p\) of \(h(-\omega)\), \(h(p) = h(p) - h(-p)\), and the even terms cancel; or use
+\(\omega_0^2 - \omega_\pm^2 = i\gamma\omega_\pm\) to simplify.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(h(-\omega) = -(\omega + \omega_+)(\omega + \omega_-)\), so at \(\omega = -\omega_+\) the residue of \(1/(h(\omega)h(-\omega))\) is
+\(\frac{1}{h(-\omega_+)}\cdot\frac{-1}{\omega_- - \omega_+}\), and \(h(-\omega_+) = \omega_0^2 - \omega_+^2 + i\gamma\omega_+ = 2i\gamma\omega_+\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Factor \(D\) into a function with poles below and its mirror with poles above; close
+upwards and collect the two mirror poles.</p>
+<p><strong>The factorisation.</strong> For real \(\omega\), \(\overline{h(\omega)} = \omega_0^2 - \omega^2 + i\gamma\omega = h(-\omega)\), so \(D = h(\omega)h(-\omega)\),
+and \(D(\omega) = h(\omega)h(-\omega)\) continues as a polynomial to all of \(\mathbb C\). \(h(\nu) = -(\nu - \omega_+)(\nu - \omega_-)\), so
+\(h(-\omega) = -(\omega + \omega_+)(\omega + \omega_-)\), zero at \(-\omega_\pm = \mp\omega_\mathrm d + i\gamma/2\) (upper half-plane).</p>
+<p><strong>The residues.</strong> Since \(h(\omega_\pm) = 0\), \(\omega_0^2 - \omega_\pm^2 = i\gamma\omega_\pm\), hence
+\(h(-\omega_\pm) = \omega_0^2 - \omega_\pm^2 + i\gamma\omega_\pm = 2i\gamma\omega_\pm\). At \(-\omega_+\):
+\(\operatorname{Res}\frac1D = \frac{1}{h(-\omega_+)}\cdot\frac{-1}{-\omega_+ + \omega_-} = \frac{1}{2i\gamma\omega_+\cdot2\omega_\mathrm d}\), using
+\(\omega_+ - \omega_- = 2\omega_\mathrm d\). At \(-\omega_-\): \(\frac{1}{h(-\omega_-)}\cdot\frac{-1}{-\omega_- + \omega_+} = \frac{-1}{2i\gamma\omega_-\cdot2\omega_\mathrm d}\).
+Sum:
+\[ \frac{1}{4i\gamma\omega_\mathrm d}\Big(\frac1{\omega_+} - \frac1{\omega_-}\Big) = \frac{1}{4i\gamma\omega_\mathrm d}\cdot\frac{\omega_- - \omega_+}{\omega_+\omega_-}
+ = \frac{1}{4i\gamma\omega_\mathrm d}\cdot\frac{-2\omega_\mathrm d}{-\omega_0^2} = \frac{1}{2i\gamma\omega_0^2}, \]
+with \(\omega_+\omega_- = (\omega_\mathrm d - i\gamma/2)(-\omega_\mathrm d - i\gamma/2) = -\omega_\mathrm d^2 - \gamma^2/4 = -\omega_0^2\).</p>
+<p><strong>1.</strong> On the upper semicircle of radius \(R\), \(|D|\ge(R^2 - \gamma R - \omega_0^2)^2\ge R^4/4\) once \(R\ge12\), so
+the arc contributes at most \(\pi R\cdot4/R^4\to0\). The residue theorem:
+\(\int\frac{\mathrm d\omega}{D} = 2\pi i\cdot\frac{1}{2i\gamma\omega_0^2} = \frac{\pi}{\gamma\omega_0^2}\). \(\square\)</p>
+<p><strong>2.</strong> The numerator \(\omega^2\) multiplies the two residues by \(\omega_+^2\) and \(\omega_-^2\) (evaluated at \(-\omega_\pm\), the square
+is the same): sum \(\frac{1}{4i\gamma\omega_\mathrm d}(\omega_+ - \omega_-) = \frac{2\omega_\mathrm d}{4i\gamma\omega_\mathrm d} = \frac{1}{2i\gamma}\). The arc is
+\(O(R\cdot R^2/R^4)\to0\). So \(\int\omega^2/D = \pi/\gamma\). \(\square\)</p>
+<p><strong>3.</strong> \(\pi/(0.4\times64) = 0.1227185\ \mathrm{s^3}\), and \(0.1227185/2\pi = 0.01953125\ \mathrm{s^3} = 1/(2\times0.4\times64)\) ✓ — Plancherel,
+the two sides computed by unrelated means.</p>
+<p><strong>Check.</strong> Dimensions: \([D] = \mathrm s^{-4}\), so \(\int\mathrm d\omega/D\) is \(\mathrm s^3\), as is \(\pi/\gamma\omega_0^2\) ✓; and
+\(\int\omega^2/D\) is \(\mathrm s\), as is \(\pi/\gamma\) ✓. Limit: \(\gamma\to0\) makes both blow up like \(1/\gamma\) — the resonance peak of
+height \(1/\gamma^2\omega_0^2\) and width \(\gamma\) ✓. Part 2 is the deck's \(f\)-sum rule: \(\gamma\int_0^\infty\omega^2/D = \pi/2\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Fresnel by octant <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a sector contour, Jordan's inequality as an honest arc estimate, the constant in stationary phase, a number</p>
+<div class="statement">
+<ol>
+<li>Show that \(\int_0^\infty\cos(x^2)\,\mathrm dx\) and \(\int_0^\infty\sin(x^2)\,\mathrm dx\) converge.</li>
+<li>Integrate \(e^{iz^2}\) round the boundary of the sector \(0\le\arg z\le\pi/4\), \(|z|\le R\), bound the arc explicitly, and
+deduce
+\[ \int_0^\infty\cos(x^2)\,\mathrm dx = \int_0^\infty\sin(x^2)\,\mathrm dx = \sqrt{\frac\pi8}. \]</li>
+<li>Deduce \(\int_{-\infty}^\infty e^{i\lambda u^2/2}\,\mathrm du = \sqrt{2\pi/\lambda}\,e^{i\pi/4}\) for \(\lambda \gt 0\): the constant the deck's stationary-phase
+theorem uses.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>One convergence proof, one number (the same for both integrals), one formula. The contour is a slice of pizza
+with its point at the origin.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For convergence substitute \(u = x^2\) and integrate by parts once. On the ray \(z = re^{i\pi/4}\),
+\(iz^2 = -r^2\): a Gaussian. On the arc \(z = Re^{i\theta}\), \(|e^{iz^2}| = e^{-R^2\sin2\theta}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the arc estimate: \(\big|\int_\text{arc}\big|\le\int_0^{\pi/4}e^{-R^2\sin2\theta}R\,\mathrm d\theta\le\int_0^{\pi/4}e^{-4R^2\theta/\pi}R\,\mathrm d\theta\),
+by Jordan's inequality \(\sin2\theta\ge\frac{2}{\pi}\cdot2\theta\) for \(2\theta\in[0,\pi/2]\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Rotate the line of integration by \(45^\circ\), where the oscillating exponential becomes a
+decaying Gaussian; the only cost is an arc, and Jordan's inequality pays it.</p>
+<p><strong>1.</strong> With \(u = x^2\), \(\int_1^X\cos(x^2)\,\mathrm dx = \int_1^{X^2}\frac{\cos u}{2\sqrt u}\,\mathrm du
+= \big[\frac{\sin u}{2\sqrt u}\big]_1^{X^2} + \int_1^{X^2}\frac{\sin u}{4u^{3/2}}\,\mathrm du\); the boundary term converges and the integral
+converges absolutely. Same for \(\sin\).</p>
+<p><strong>2.</strong> \(e^{iz^2}\) is entire and the sector is convex, so the boundary integral is \(0\):
+\[ \int_0^Re^{ix^2}\mathrm dx + \int_\text{arc}e^{iz^2}\mathrm dz - \int_0^Re^{-r^2}e^{i\pi/4}\,\mathrm dr = 0, \]
+the ray traversed inwards, with \(z = re^{i\pi/4}\), \(z^2 = ir^2\), \(\mathrm dz = e^{i\pi/4}\mathrm dr\). <strong>The arc:</strong>
+\(z = Re^{i\theta}\), \(\mathrm dz = iRe^{i\theta}\mathrm d\theta\), \(|e^{iz^2}| = |e^{iR^2(\cos2\theta + i\sin2\theta)}| = e^{-R^2\sin2\theta}\). By concavity of
+\(\sin\) on \([0,\pi/2]\), \(\sin2\theta\ge4\theta/\pi\) for \(0\le\theta\le\pi/4\), so
+\[ \Big|\int_\text{arc}\Big|\le R\int_0^{\pi/4}e^{-4R^2\theta/\pi}\,\mathrm d\theta\le R\cdot\frac{\pi}{4R^2} = \frac{\pi}{4R}\to0 . \]
+Let \(R\to\infty\): \(\int_0^\infty e^{ix^2}\mathrm dx = e^{i\pi/4}\int_0^\infty e^{-r^2}\mathrm dr = \frac{\sqrt\pi}{2}\cdot\frac{1 + i}{\sqrt2}\). Real and
+imaginary parts: both \(\frac{\sqrt\pi}{2\sqrt2} = \sqrt{\pi/8} = 0.626657\).</p>
+<p><strong>3.</strong> Evenness gives \(\int_{-\infty}^\infty e^{ix^2}\mathrm dx = \sqrt\pi\,e^{i\pi/4}\). Substitute \(x = u\sqrt{\lambda/2}\):
+\(\int e^{i\lambda u^2/2}\mathrm du = \sqrt{2/\lambda}\,\sqrt\pi\,e^{i\pi/4} = \sqrt{2\pi/\lambda}\,e^{i\pi/4}\). \(\square\)</p>
+<p><strong>Check.</strong> Part 3 is the analytic continuation slide's \(\sqrt{2\pi/a}\) at \(a = -i\lambda\), on the boundary of its
+half-plane: \(\sqrt{2\pi/(-i\lambda)} = \sqrt{2\pi/\lambda}\,e^{i\pi/4}\) with the principal root ✓ — which is why the limit needed an
+argument. Numerically \(\int_0^{30}\cos(x^2)\,\mathrm dx\) is within \(0.02\) of \(0.6267\), the boundary term \(\sin(900)/60\) being the
+error's size ✓. Dimensions: if \(x\) carries a unit, \(x^2\) must be made dimensionless, and \(\sqrt{2\pi/\lambda}\) carries the unit of \(u\) ✓.</p>
+<h4>Another way</h4>
+<p>Continue \(\int e^{-au^2/2}\mathrm du = \sqrt{2\pi/a}\) to \(a = \varepsilon - i\lambda\) and let \(\varepsilon\to0^+\), justifying the limit by
+the same substitution-and-parts bound as in part 1, uniform in \(\varepsilon\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Causality</h2>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Kramers–Kronig <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: dispersion relations from analyticity by an indented contour, exact checks on the oscillator, a proof that refraction implies absorption</p>
+<div class="statement">
+<ol>
+<li>Let \(\chi\) be holomorphic on \(\operatorname{Im}\omega \gt 0\), continuous and \(C^1\) up to the real axis, with
+\(\max_{|\omega| = R,\,\operatorname{Im}\omega\ge0}|\chi|\to0\). Prove, for real \(\omega\), that
+\(\chi(\omega) = \frac{1}{i\pi}\,\mathrm{PV}\!\int\frac{\chi(\omega')}{\omega' - \omega}\,\mathrm d\omega'\), by integrating
+\(\chi(\omega')/(\omega' - \omega)\) round an upper semicircle indented at \(\omega\). Deduce the two real relations.</li>
+<li>For the galvanometer, verify the relation for \(\chi'\) exactly at \(\omega = 0\), and verify the sum rule
+\(\int_0^\infty\omega\chi''\,\mathrm d\omega = \pi/2\) exactly. (P5's integrals may be used.)</li>
+<li>Prove: if a medium's \(\varepsilon(\omega) - 1\) satisfies the hypotheses of part 1 and \(\operatorname{Im}\varepsilon(\omega) = 0\) for every real
+\(\omega\), then \(n = \sqrt\varepsilon = 1\) at every frequency. State the physical conclusion.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a proof with one contour; the answer is a principal-value identity. Part 2 is two exact numbers,
+\(1/64\) and \(\pi/2\). Part 3 is two lines once part 1 is in hand.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Inside the indented semicircle there are no singularities. Four pieces: two straight segments (together a
+principal-value integral in the limit), the big arc (Jordan is not even needed — why?), and the small arc (the
+indentation lemma, clockwise).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>On the big arc \(|\chi(\omega')/(\omega' - \omega)|\le M_R/(R - |\omega|)\), and the arc has length \(\pi R\): that is \(O(M_R)\to0\).
+The small arc, clockwise over angle \(\pi\), contributes \(-i\pi\chi(\omega)\) in the limit.</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line: \(0 = \int_{|\omega' - \omega| \gt \varepsilon,\,|\omega'|\lt R}\frac{\chi(\omega')}{\omega' - \omega}\mathrm d\omega' + \int_{c_\varepsilon} + \int_{C_R}\).
+For part 2, \(\chi''(\omega')/\omega' = \gamma/D(\omega')\).</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Cauchy's theorem applied to \(\chi(\omega')/(\omega' - \omega)\) says the whole real-axis integral
+is carried by the pole at \(\omega' = \omega\), and a pole on the contour gives half a residue.</p>
+<p><strong>1.</strong> The integrand is holomorphic inside the indented half-disc (the only singularity, \(\omega' = \omega\), is
+cut out), continuous up to its boundary, so its boundary integral is \(0\) (Cauchy, applied to the region raised by
+\(\eta\) and \(\eta\to0\), as in the deck's (b) ⇒ (a)). <strong>Big arc:</strong> at most \(\pi R\,M_R/(R - |\omega|)\to0\), since \(M_R\to0\).
+<strong>Small arc</strong> \(c_\varepsilon\), clockwise over angle \(\pi\): \(\chi\) is \(C^1\), so \(\chi(\omega') = \chi(\omega) + O(\omega' - \omega)\), and
+\(\int_{c_\varepsilon}\frac{\chi(\omega)}{\omega' - \omega}\mathrm d\omega' = -i\pi\chi(\omega)\) exactly while the remainder is
+\(O(\varepsilon)\). Letting \(\varepsilon\to0\), \(R\to\infty\):
+\[ \mathrm{PV}\!\int\frac{\chi(\omega')}{\omega' - \omega}\,\mathrm d\omega' - i\pi\chi(\omega) = 0 . \]
+That is the claim. Writing \(\chi = \chi' + i\chi''\) and taking real and imaginary parts of
+\(i\pi(\chi' + i\chi'') = \mathrm{PV}\int\frac{\chi' + i\chi''}{\omega' - \omega}\):
+\(\chi' = \frac1\pi\mathrm{PV}\int\frac{\chi''}{\omega' - \omega}\) and \(\chi'' = -\frac1\pi\mathrm{PV}\int\frac{\chi'}{\omega' - \omega}\). \(\square\)</p>
+<p><strong>The galvanometer meets the hypotheses.</strong> \(\chi\) is rational with poles only at \(\omega_\pm\), below the axis; it is
+holomorphic on a neighbourhood of the closed upper half-plane and \(|\chi|\le2/R^2\) there for \(R\ge12\).</p>
+<p><strong>2.</strong> \(\chi'' = \gamma\omega/D\) is odd and \(\chi'\) even, so at \(\omega = 0\) the first relation reads
+\(\chi'(0) = \frac1\pi\int\frac{\chi''(\omega')}{\omega'}\mathrm d\omega'\) (no principal value is needed: \(\chi''/\omega' = \gamma/D\) is smooth).
+Then \(\frac\gamma\pi\int\frac{\mathrm d\omega'}{D} = \frac\gamma\pi\cdot\frac{\pi}{\gamma\omega_0^2} = \frac1{\omega_0^2} = \frac1{64} = 0.015625\ \mathrm{s^2}\),
+which is \(\chi(0)\) ✓. <strong>Sum rule:</strong> \(\int_0^\infty\omega\chi''\,\mathrm d\omega = \gamma\int_0^\infty\frac{\omega^2}{D}\mathrm d\omega = \frac\gamma2\cdot\frac\pi\gamma = \frac\pi2\) ✓,
+for every \(\gamma\) and \(\omega_0\).</p>
+<p><strong>3.</strong> Apply part 1 to \(\chi_\varepsilon = \varepsilon - 1\). If \(\operatorname{Im}\chi_\varepsilon\equiv0\) on the real axis, the first real relation
+gives \(\operatorname{Re}\chi_\varepsilon(\omega) = \frac1\pi\mathrm{PV}\int\frac{0}{\omega' - \omega} = 0\) for every \(\omega\). So \(\varepsilon\equiv1\) and \(n\equiv1\).
+\(\square\) <strong>Physically:</strong> a medium that refracts at even one frequency (\(n\ne1\) there) must absorb at some frequency. Glass
+is transparent in the visible <em>because</em> its absorption is elsewhere — in the ultraviolet and the infrared — and
+the static sum rule \(n(0)^2 - 1 = \frac2\pi\int_0^\infty\operatorname{Im}\varepsilon\,\frac{\mathrm d\omega}{\omega}\) says how much.</p>
+<p><strong>Check.</strong> Dimensions: \([\chi''\,\mathrm d\omega'/(\omega' - \omega)] = [\chi]\) ✓. Limit: in part 2, \(\gamma\to0\) leaves
+\(\chi(0) = 1/\omega_0^2\) unchanged while the absorption collapses to delta functions at \(\pm\omega_0\) of weight \(\pi/2\omega_0\):
+\(\frac2\pi\cdot\frac{\pi}{2\omega_0}\cdot\frac{1}{\omega_0} = \frac1{\omega_0^2}\) ✓. Numbers at \(\omega = 7\): \(\chi(7) = 0.06442192 + 0.01202542i\) and the two
+principal values reproduce both parts to seven figures (deck, worked example 4).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> A keyhole <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: branch cuts, choosing a branch and stating it, the keyhole contour, both circle estimates, a number</p>
+<div class="statement">
+<p>For \(0 \lt a \lt 1\) prove
+\[ \int_0^\infty\frac{x^{a-1}}{1 + x}\,\mathrm dx = \frac{\pi}{\sin\pi a}, \]
+checking the case \(a = \frac12\) by an elementary substitution, and evaluate the integral at \(a = \frac13\).</p>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A function of \(a\), then a check, then a number. The integrand is multivalued in the complex plane; the only
+pole is at \(z = -1\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Cut along \([0,\infty)\) and take \(z^{a-1} = |z|^{a-1}e^{i(a-1)\arg z}\) with \(0 \lt \arg z \lt 2\pi\). The keyhole: a large circle
+\(C_R\), a small circle \(c_\varepsilon\), and the two edges of the cut. On the lower edge \(\arg z = 2\pi\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: the two edges give \((1 - e^{2\pi i(a-1)})\int_\varepsilon^R\frac{x^{a-1}}{1+x}\mathrm dx = (1 - e^{2\pi ia})\int_\varepsilon^R\dots\), and the
+residue at \(z = -1 = e^{i\pi}\) is \(e^{i\pi(a-1)} = -e^{i\pi a}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The two edges of a branch cut carry the same integral multiplied by different phases;
+their difference is a nonzero multiple of the integral you want, and the residue theorem supplies it.</p>
+<p><strong>The branch.</strong> \(z^{a-1} := e^{(a-1)\log z}\) with \(\log z = \ln|z| + i\arg z\), \(\arg z\in(0,2\pi)\), holomorphic on
+\(\mathbb C\setminus[0,\infty)\). The keyhole runs along the upper edge from \(\varepsilon\) to \(R\) (\(\arg = 0\)), round \(C_R\) anticlockwise,
+back along the lower edge from \(R\) to \(\varepsilon\) (\(\arg = 2\pi\)), and round \(c_\varepsilon\) clockwise.</p>
+<p><strong>Edges.</strong> Upper: \(\int_\varepsilon^R\frac{x^{a-1}}{1+x}\). Lower: \(-\int_\varepsilon^R\frac{x^{a-1}e^{2\pi i(a-1)}}{1+x} = -e^{2\pi ia}\int_\varepsilon^R\frac{x^{a-1}}{1+x}\).</p>
+<p><strong>Circles.</strong> On \(C_R\): \(|z^{a-1}/(1+z)|\le R^{a-1}/(R - 1)\), length \(2\pi R\): total \(O(R^{a-1})\to0\) as \(a \lt 1\). On
+\(c_\varepsilon\): \(\le\varepsilon^{a-1}/(1 - \varepsilon)\cdot2\pi\varepsilon = O(\varepsilon^a)\to0\) as \(a \gt 0\).</p>
+<p><strong>Residue</strong> at \(z = -1\), where \(\arg z = \pi\): \((e^{i\pi})^{a-1} = e^{i\pi a}e^{-i\pi} = -e^{i\pi a}\), a simple pole of \(1/(1+z)\).
+So
+\[ (1 - e^{2\pi ia})\,I = 2\pi i\,(-e^{i\pi a})\quad\Longrightarrow\quad I = \frac{-2\pi i}{e^{-i\pi a} - e^{i\pi a}} = \frac{-2\pi i}{-2i\sin\pi a} = \frac{\pi}{\sin\pi a}. \]
+\(\square\)</p>
+<p><strong>Check \(a = \frac12\).</strong> \(x = u^2\): \(\int_0^\infty\frac{u^{-1}\cdot2u\,\mathrm du}{1 + u^2} = 2\cdot\frac\pi2 = \pi = \pi/\sin\frac\pi2\) ✓.
+<strong>Number:</strong> \(a = \frac13\) gives \(\pi/\sin60^\circ = 2\pi/\sqrt3 = 3.62760\); direct quadrature agrees to six figures ✓.
+<strong>Limits:</strong> as \(a\to0^+\) or \(a\to1^-\) the integral diverges (at \(0\), respectively at \(\infty\)), and so does \(\pi/\sin\pi a\) ✓.
+<strong>Symmetry:</strong> \(x\to1/x\) maps the \(a\) integral to the \(1 - a\) integral, and \(\sin\pi a = \sin\pi(1 - a)\) ✓.</p>
+<h4>Another way</h4>
+<p>This is \(\Gamma(a)\Gamma(1 - a)\) (write \(\frac1{1+x} = \int_0^\infty e^{-(1+x)s}\mathrm ds\) and swap), so the result is Euler's reflection
+formula \(\Gamma(a)\Gamma(1-a) = \pi/\sin\pi a\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Switching on: the Bromwich contour <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Laplace transform of an initial value problem, the Bromwich inversion by residues, closing left and right, a number</p>
+<div class="statement">
+<p>At \(t = 0\) a steady current is switched on through the galvanometer, which was at rest, so that
+\(\ddot\theta + \gamma\dot\theta + \omega_0^2\theta = u_0H(t)\) with \(\theta(0) = \dot\theta(0) = 0\).</p>
+<ol>
+<li>Find \(\Theta(s) = \mathcal L[\theta](s)\) and locate its poles.</li>
+<li>Invert by the Bromwich integral, closing the contour to the left for \(t \gt 0\) and to the right for \(t \lt 0\); justify both arcs.</li>
+<li>Find the time and size of the first maximum, as a multiple of the final deflection \(u_0/\omega_0^2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A rational function of \(s\) with three simple poles; then a function of \(t\), zero for \(t \lt 0\); then a time and a
+number close to \(2\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\mathcal L[\ddot\theta] = s^2\Theta - s\theta(0) - \dot\theta(0)\) and \(\mathcal L[H] = 1/s\). The poles are \(0\) and \(s_\pm = -\gamma/2\pm i\omega_\mathrm d\).
+\(|e^{st}| = e^{t\operatorname{Re}s}\) decides which side to close on.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\Theta(s) = \dfrac{u_0}{s(s^2 + \gamma s + \omega_0^2)}\), and the residue at \(s_+\) of \(\Theta e^{st}\) is
+\(\dfrac{u_0e^{s_+t}}{s_+(s_+ - s_-)} = \dfrac{u_0e^{s_+t}}{2i\omega_\mathrm d s_+}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The Laplace transform turns the switched-on problem into algebra; the Bromwich line
+lies to the right of every pole, which makes the answer causal automatically.</p>
+<p><strong>1.</strong> Transforming, \((s^2 + \gamma s + \omega_0^2)\Theta = u_0/s\), so \(\Theta = u_0/[s(s^2 + \gamma s + \omega_0^2)]\): poles at
+\(0\) and \(s_\pm = -0.2\pm7.9975i\). Take the Bromwich line at \(c = 1 \gt 0\).</p>
+<p><strong>2. Arcs.</strong> On a semicircle of radius \(R\) centred at \(c\), \(|\Theta|\le2u_0/R^3\) for large \(R\). For \(t \gt 0\), on the <em>left</em>
+semicircle \(\operatorname{Re}s\le c\), so \(|e^{st}|\le e^{ct}\): the arc is at most \(\pi R\cdot e^{ct}\cdot2u_0/R^3\to0\). For \(t \lt 0\), on
+the <em>right</em> semicircle \(\operatorname{Re}s\ge c\), so \(|e^{st}|\le e^{ct}\) again (now \(t \lt 0\)): the arc vanishes, and there are no poles to
+the right of the line, so \(\theta(t) = 0\) for \(t \lt 0\) — causality again, from the position of the poles.</p>
+<p><strong>Residues, \(t \gt 0\)</strong> (anticlockwise, since closing left keeps the inside on the left):
+at \(0\), \(u_0/\omega_0^2\). At \(s_\pm\), \(\frac{u_0e^{s_\pm t}}{s_\pm(\pm2i\omega_\mathrm d)}\) — complex conjugates, summing to
+\(2\operatorname{Re}\frac{u_0e^{s_+t}}{2i\omega_\mathrm ds_+}\). With \(\frac{1}{s_+} = \frac{\bar s_+}{\omega_0^2}\) (since \(|s_+|^2 = \omega_0^2\)) and
+\(\bar s_+ = -\gamma/2 - i\omega_\mathrm d\):
+\[ 2\operatorname{Re}\frac{u_0e^{-\gamma t/2}e^{i\omega_\mathrm dt}(-\gamma/2 - i\omega_\mathrm d)}{2i\omega_\mathrm d\omega_0^2}
+ = -\frac{u_0}{\omega_0^2}e^{-\gamma t/2}\Big(\cos\omega_\mathrm dt + \frac{\gamma}{2\omega_\mathrm d}\sin\omega_\mathrm dt\Big). \]
+So
+\[ \theta(t) = \frac{u_0}{\omega_0^2}\Big[1 - e^{-\gamma t/2}\Big(\cos\omega_\mathrm dt + \frac{\gamma}{2\omega_\mathrm d}\sin\omega_\mathrm dt\Big)\Big],\qquad t \gt 0 . \]</p>
+<p><strong>3.</strong> \(\dot\theta = \frac{u_0}{\omega_\mathrm d}e^{-\gamma t/2}\sin\omega_\mathrm dt\) (\(= u_0G\), as it must be: the step response is the integral of
+the impulse response). First zero at \(t = \pi/\omega_\mathrm d = 0.392822\) s, where
+\(\theta = \frac{u_0}{\omega_0^2}\big(1 + e^{-\pi\gamma/2\omega_\mathrm d}\big) = 1.92444\,\frac{u_0}{\omega_0^2}\): an overshoot of \(92.4\%\).</p>
+<p><strong>Check.</strong> \(\theta(0) = \frac{u_0}{\omega_0^2}(1 - 1) = 0\) and \(\dot\theta(0) = 0\) ✓. \(t\to\infty\): \(u_0/\omega_0^2\), the static deflection,
+which is also \(\lim_{s\to0}s\Theta(s)\) ✓. Dimensions: \([u_0] = \mathrm{rad\,s^{-2}}\), so \(u_0/\omega_0^2\) is in radians ✓. Critical damping
+\(\gamma\to2\omega_0\) sends the overshoot factor \(e^{-\pi\gamma/2\omega_\mathrm d}\to0\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Unit 09's debts, and asymptotics</h2>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> The Laplace limit, finally <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: Rouché's theorem, holomorphy of a function defined by a contour integral, Lagrange inversion by residues, radius of convergence as distance to a singularity, a proof and a number</p>
+<div class="statement">
+<p>Kepler's equation \(E - e\sin E = M\) (unit 09) has, for real \(M\) and \(0\le e \lt 1\), a unique real solution \(E(e)\), and
+Lagrange's series writes it as a power series in \(e\):
+\(E = M + \sum_{n\ge1}\frac{e^n}{n!}\frac{\mathrm d^{n-1}}{\mathrm dM^{n-1}}\sin^nM\). Let \(x_* \gt 0\) solve \(x\tanh x = 1\) and
+\(\lambda = 1/\sinh x_*\).</p>
+<ol>
+<li>Show \(|\sin(x + iy)|\le\cosh y\), and that \(\max_{r \gt 0}r/\cosh r = \lambda\), attained at \(r = x_*\).</li>
+<li>For real \(M\) and complex \(|e| \lt \lambda\), show that \(z - M - e\sin z\) has exactly one zero \(E(e)\) in the disc \(|z - M| \lt x_*\).</li>
+<li>Show that \(E(e) = \frac1{2\pi i}\oint_{|z - M| = x_*}\frac{z(1 - e\cos z)}{z - M - e\sin z}\,\mathrm dz\), that it is holomorphic in \(|e| \lt \lambda\), and that
+it agrees with Kepler's real solution for real \(e\). Conclude that Lagrange's series converges for every \(M\) when \(|e| \lt \lambda\).</li>
+<li>(Lagrange by residues.) Expand the integrand of part 3 to recover Lagrange's coefficients.</li>
+<li>At \(M = \pi/2\), follow \(E(is)\) for \(0\le s \lt \lambda\) and show \(|\mathrm dE/\mathrm de|\to\infty\) as \(s\to\lambda\). Conclude that the series
+diverges at \(M = \pi/2\) for every real \(e \gt \lambda\). Evaluate \(x_*\) and \(\lambda\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a number, \(\lambda\approx0.66\), with two halves to its proof: a disc of radius \(\lambda\) on which the
+solution is holomorphic in \(e\) (so the series converges there), and a singular point on its boundary (so it
+converges nowhere beyond). Rouché gives the first, a blow-up of \(\mathrm dE/\mathrm de\) the second.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(|\sin(x + iy)|^2 = \sin^2x + \sinh^2y\). For Rouché compare \(f = z - M\) (one zero, at \(M\)) with \(g = -e\sin z\) on the
+circle of radius \(r\); you need \(|e|\cosh r \lt r\), and the best \(r\) is the one maximising \(r/\cosh r\). Part 3 is the
+argument principle weighted by \(z\): the residue of \(zf'/f\) at a simple zero \(z_0\) of \(f\) is \(z_0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>For part 4 write \(z - M - e\sin z = (z - M)(1 - w)\) with \(w = \frac{e\sin z}{z - M}\), \(|w| \lt 1\) on the circle, so
+\(\frac{f'}{f} = \frac{1}{z - M} + \frac{\mathrm d}{\mathrm dz}\log(1 - w)\) with a single-valued logarithm; integrate by parts. For part 5, put
+\(E = \frac\pi2 + iy\), \(e = is\) and use \(\sin(\frac\pi2 + iy) = \cosh y\), \(\cos(\frac\pi2 + iy) = -i\sinh y\).</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line of part 5: \(E - e\sin E = \frac\pi2 + iy - is\cosh y\), so \(E(is) = \frac\pi2 + iy(s)\) where \(y = s\cosh y\); and
+\(\frac{\mathrm dE}{\mathrm de} = \frac{\sin E}{1 - e\cos E} = \frac{\cosh y}{1 - s\sinh y}\).</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A power series converges on the largest disc on which its sum is holomorphic. Rouché
+builds that disc — radius \(\lambda\), for every \(M\) at once — and at \(M = \pi/2\) two roots of Kepler's equation collide on
+its edge, at \(e = \pm i\lambda\), so no larger disc exists.</p>
+<p><strong>1.</strong> \(\sin(x + iy) = \sin x\cosh y + i\cos x\sinh y\), so \(|\sin|^2 = \sin^2x(1 + \sinh^2y) + \cos^2x\sinh^2y = \sin^2x + \sinh^2y\le\cosh^2y\).
+\(\phi(r) = r/\cosh r\) has \(\phi' = (\cosh r - r\sinh r)/\cosh^2r\), positive for \(r\tanh r \lt 1\) and negative after
+(\(r\tanh r\) is increasing), so the maximum is at \(x_*\), with value \(x_*/\cosh x_* = 1/\sinh x_*\) because \(x_* = \coth x_*\).</p>
+<p><strong>2.</strong> On \(|z - M| = x_*\), \(|\operatorname{Im}z|\le x_*\), so \(|e\sin z|\le|e|\cosh x_* \lt \lambda\cosh x_* = x_* = |z - M|\). By Rouché,
+\(z - M - e\sin z\) has as many zeros inside as \(z - M\): exactly one. \(\square\)</p>
+<p><strong>3.</strong> With \(f_e(z) = z - M - e\sin z\), \(f_e' = 1 - e\cos z\), and \(zf_e'/f_e\) has, at the simple zero \(E(e)\) (simple: a double
+zero would count twice), residue \(E(e)\cdot1\); no other singularity inside. So the formula holds. The integrand is jointly
+continuous in \((e, z)\) for \(|e| \lt \lambda\), \(z\) on the circle (its denominator does not vanish there, by part 2's inequality), and
+holomorphic in \(e\); swapping a triangle integral in \(e\) with the \(z\)-integral (both over compact sets) and using Goursat
+shows, by Morera, that \(E(e)\) is holomorphic on \(|e| \lt \lambda\). For real \(e\in[0,\lambda)\), Kepler's real solution satisfies
+\(|E - M| = |e\sin E|\le e \lt x_*\), so it lies in the disc and is the unique root there: the two agree. A function holomorphic on
+\(|e| \lt \lambda\) equals its Taylor series there (deck, "What the integral formula buys"), and the Taylor series of \(E(e)\)
+at \(e = 0\) is Lagrange's series (part 4 computes its coefficients from the contour formula and finds Lagrange's). So the series converges for
+\(|e| \lt \lambda\), for every real \(M\). \(\square\)</p>
+<p><strong>4.</strong> On the circle \(|w| = |e\sin z|/|z - M| \le q \lt 1\), so \(\log(1 - w) = -\sum_{n\ge1}w^n/n\) converges uniformly and is
+single-valued. Then \(\frac{f'}{f} = \frac{1}{z - M} - \frac{\mathrm d}{\mathrm dz}\sum_n\frac{w^n}{n}\), and
+\[ E = \frac{1}{2\pi i}\oint\frac{z\,\mathrm dz}{z - M} - \frac{1}{2\pi i}\oint z\,\frac{\mathrm d}{\mathrm dz}\sum_n\frac{w^n}{n}\,\mathrm dz
+ = M + \sum_{n\ge1}\frac1n\cdot\frac{1}{2\pi i}\oint\frac{e^n\sin^nz}{(z - M)^n}\,\mathrm dz, \]
+integrating by parts round the closed curve (the boundary term vanishes because \(w^n\) is single-valued). Cauchy's formula for
+the \((n-1)\)-th derivative turns the last integral into \(\frac{e^n}{(n-1)!}\frac{\mathrm d^{n-1}}{\mathrm dM^{n-1}}\sin^nM\). With the \(\frac1n\): Lagrange's
+\(\frac{e^n}{n!}\frac{\mathrm d^{n-1}}{\mathrm dM^{n-1}}\sin^nM\). \(\square\)</p>
+<p><strong>5.</strong> At \(M = \frac\pi2\), \(e = is\): \(E = \frac\pi2 + iy\) solves Kepler's equation iff \(y = s\cosh y\). The function \(y/\cosh y\) increases
+from \(0\) to \(\lambda\) on \([0, x_*]\) (part 1), so it has a continuous increasing inverse \(y(s)\) on \([0,\lambda]\) with \(y(\lambda) = x_*\).
+For \(s \lt \lambda\), \(\frac\pi2 + iy(s)\) lies in the disc \(|z - \frac\pi2| \lt x_*\), so it <em>is</em> \(E(is)\) (uniqueness, part 2). Differentiating Kepler's
+equation, \(\frac{\mathrm dE}{\mathrm de} = \frac{\sin E}{1 - e\cos E} = \frac{\cosh y}{1 - s\sinh y}\), and as \(s\to\lambda\), \(s\sinh y(s)\to\lambda\sinh x_* = 1\): the
+derivative blows up. If Lagrange's series at \(M = \frac\pi2\) had radius \(\rho \gt \lambda\), its sum would be holomorphic on \(|e| \lt \rho\), equal to
+\(E(e)\) on \(|e| \lt \lambda\) (identity theorem), with bounded derivative near \(e = i\lambda\) — a contradiction. So the radius is exactly
+\(\lambda\), and a power series diverges at every point outside its disc of convergence, in particular at every real \(e \gt \lambda\). \(\square\)</p>
+<p><strong>Numbers.</strong> Newton on \(x\tanh x = 1\) from \(x = 1.2\): \(x_* = 1.1996786\), \(\sinh x_* = 1.5088796\), so
+\[ \lambda = 1/\sinh x_* = \sqrt{x_*^2 - 1} = 0.6627434 . \]</p>
+<p><strong>Check.</strong> \(\lambda^2 = x_*^2 - 1\) because \(\cosh^2 - \sinh^2 = 1\) with \(\cosh x_* = x_*\sinh x_*\), agreeing with unit 09's form ✓. The
+singular point \(E = \frac\pi2 + ix_*\), \(e = i\lambda\) satisfies \(1 - e\cos E = 1 - \lambda\sinh x_* = 0\): exactly unit 09's "implicit function
+theorem fails" point ✓. Unit 09's cruder real bound gave convergence to \(0.6599\), just inside \(0.6627\) ✓. Mars (\(e = 0.0934\)) is deep
+inside; Halley (\(e = 0.967\)) far outside, where unit 09 saw the terms grow by \((0.967/0.6627)^2\approx2.1\) per two orders ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Bessel's constants by stationary phase <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: stationary phase with two stationary points, endpoint contributions and their cancellation, unit 09's debt, numbers</p>
+<div class="statement">
+<p>Bessel's integral (unit 09) is \(J_n(x) = \frac{1}{2\pi}\int_{-\pi}^{\pi}e^{i(n\theta - x\sin\theta)}\,\mathrm d\theta\) for integer \(n\).</p>
+<ol>
+<li>Apply the deck's stationary-phase theorem, with \(\lambda = x\), to show
+\(J_n(x) = \sqrt{\frac{2}{\pi x}}\cos\big(x - \frac{n\pi}{2} - \frac\pi4\big) + O(1/x)\).</li>
+<li>Compare with \(J_0(10) = -0.245936\) and \(J_0(20) = 0.167025\), and predict the first two positive zeros of \(J_0\)
+(true values \(2.40483\), \(5.52008\)).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A formula with two constants, \(\sqrt{2/\pi}\) and the phase \(n\pi/2 + \pi/4\); then three numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The phase is \(\psi(\theta) = -\sin\theta\), stationary at \(\theta = \pm\frac\pi2\). The theorem as stated handles one stationary point
+on an interval, so split \([-\pi, \pi]\) at \(0\) and at \(\pm\pi\); ask what the endpoint terms of the integration by parts do.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: at \(\theta = \frac\pi2\), \(\psi = -1\), \(\psi'' = \sin\frac\pi2 = 1 \gt 0\), and \(g = \frac{e^{in\pi/2}}{2\pi}\): contribution
+\(\frac{e^{in\pi/2}}{2\pi}\sqrt{\frac{2\pi}{x}}\,e^{-ix + i\pi/4}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The integrand oscillates fast everywhere except where \(\sin\theta\) is stationary, at the top and
+bottom of the circle; each of those two points contributes a Fresnel integral, and they are complex conjugates.</p>
+<p><strong>1.</strong> On \([0,\pi]\) the only stationary point is \(\frac\pi2\); on \([-\pi,0]\) it is \(-\frac\pi2\); \(\psi'' = \sin\theta = \pm1\ne0\) there.
+<strong>Endpoints:</strong> the \(O(1/x)\) boundary terms \(\big[\frac{g e^{ix\psi}}{ix\psi'}\big]\) at \(\theta = 0\) from the two halves are equal and opposite,
+and those at \(\pm\pi\) cancel by periodicity — so they cancel, and in any case they are \(O(1/x)\). <strong>Stationary points:</strong> at \(\frac\pi2\),
+\(\psi = -1\), \(\psi'' = 1\): \(\frac{e^{in\pi/2}}{2\pi}\sqrt{\frac{2\pi}{x}}e^{-ix + i\pi/4}\). At \(-\frac\pi2\), \(\psi = 1\), \(\psi'' = -1\):
+\(\frac{e^{-in\pi/2}}{2\pi}\sqrt{\frac{2\pi}{x}}e^{ix - i\pi/4}\), the conjugate. Sum:
+\[ J_n(x) = \frac{1}{2\pi}\sqrt{\frac{2\pi}{x}}\cdot2\cos\Big(x - \frac{n\pi}{2} - \frac\pi4\Big) + O(1/x) = \sqrt{\frac{2}{\pi x}}\cos\Big(x - \frac{n\pi}2 - \frac\pi4\Big) + O(1/x). \]</p>
+<p><strong>2.</strong> \(x = 10\): \(\sqrt{2/10\pi} = 0.252313\), \(\cos(10 - \pi/4) = -0.977994\), product \(-0.246761\) against \(-0.245936\) (error
+\(8.3\times10^{-4}\)). \(x = 20\): \(0.166656\) against \(0.167025\) (error \(3.7\times10^{-4}\)). Zeros of the cosine: \(x - \frac\pi4 = (k - \frac12)\pi\),
+\(x = (k - \frac14)\pi\): \(2.35619\) and \(5.49779\), against \(2.40483\) and \(5.52008\) — low by \(2.0\%\) and \(0.40\%\), improving as \(x\) grows ✓.</p>
+<p><strong>Check.</strong> The errors are smaller than the \(O(1/x)\) allowed: because the endpoint terms cancel exactly, the true error is
+\(O(x^{-3/2})\) (cited in the deck: Watson's <i>Treatise</i>, §7.21), and the two errors above fall by \(2.2\) when \(x\) doubles, between
+\(2\) and \(2^{3/2}\). Dimensions: \(x\) is a pure number; so is \(J_n\) ✓. Unit 09 proved the \(x^{-1/2}\) decay and unit frequency but
+could not fix \(\sqrt{2/\pi}\) or \(\frac{n\pi}2 + \frac\pi4\); both are now proved.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Steepest descent: the transform of \(e^{-t^4}\) <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: locating saddles, choosing the admissible ones, a contour shift with every side estimated, Laplace's method with a complex exponent, numbers</p>
+<div class="statement">
+<p>Let \(F(\lambda) = \int_{-\infty}^\infty e^{-t^4}\cos(\lambda t)\,\mathrm dt\). It decays faster than any power of \(\lambda\) (why?), but how fast?</p>
+<ol>
+<li>Write \(F\) as \(\int e^{-t^4 + i\lambda t}\,\mathrm dt\), rescale \(t = a\tau\) with \(a = (\lambda/4)^{1/3}\), and find the saddles of the exponent.</li>
+<li>Show that the two saddles in the upper half-plane lie on one horizontal line, and move the contour onto it. Bound the two vertical
+sides explicitly.</li>
+<li>Show that on the new line the real part of the exponent has exactly two maxima, at the saddles, and deduce
+\[ F(\lambda)\sim\frac{2}{a}\sqrt{\frac\pi6}\;e^{-3a^4/2}\cos\Big(\frac{3\sqrt3}{2}a^4 - \frac\pi6\Big). \]</li>
+<li>Compare with the exact values \(F(10) = -2.6942\times10^{-3}\) and \(F(20) = -2.1669\times10^{-6}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is exponentially small in \(\lambda^{4/3}\) and oscillates in sign. Steepest descent will give it as the real part
+of one saddle's contribution, doubled.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(t = a\tau\) and \(\lambda = 4a^3\), the exponent is \(a^4\varphi(\tau)\), \(\varphi(\tau) = -\tau^4 + 4i\tau\). Saddles: \(\tau^3 = i\). Two of the
+three cube roots have imaginary part \(\frac12\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>On the side \(\tau = \pm X + iy\), \(0\le y\le\frac12\): \(\operatorname{Re}\varphi = -(X^4 - 6X^2y^2 + y^4) - 4y\le-X^4 + \frac32X^2\). On the line
+\(\tau = \sigma + \frac i2\): \(\operatorname{Re}\varphi = -\sigma^4 + \frac32\sigma^2 - \frac{33}{16}\).</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line of part 3: at \(\tau_0 = e^{i\pi/6}\), \(\varphi(\tau_0) = \tau_0(-\tau_0^3 + 4i) = 3i\tau_0 = 3e^{2\pi i/3}\) and \(\varphi''(\tau_0) = -12\tau_0^2 = -12e^{i\pi/3}\);
+the contribution is \(a\,e^{a^4\varphi(\tau_0)}\sqrt{2\pi/(-a^4\varphi''(\tau_0))}\).</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> On the real axis the integrand oscillates and cancels itself almost completely; lifted to the
+horizontal line through the two saddles it has two honest peaks, and Laplace's method reads the answer off them.</p>
+<p><strong>Why faster than any power.</strong> \(e^{-t^4}\) is Schwartz, so the dictionary gives \(\widehat{f^{(k)}} = (-i\lambda)^k\hat f\) with the left
+side bounded: \(\hat f = O(\lambda^{-k})\) for every \(k\). The sine part vanishes by oddness, so \(F = \int e^{-t^4 + i\lambda t}\mathrm dt\).</p>
+<p><strong>1.</strong> \(t = a\tau\): \(-t^4 + i\lambda t = -a^4\tau^4 + 4ia^4\tau = a^4\varphi(\tau)\), and \(F = a\int e^{a^4\varphi(\tau)}\mathrm d\tau\), a large-parameter
+integral with \(\Lambda = a^4\). \(\varphi' = -4\tau^3 + 4i = 0\) at \(\tau^3 = i\): \(\tau_0 = e^{i\pi/6}\), \(\tau_1 = e^{5i\pi/6}\), \(\tau_2 = -i\).</p>
+<p><strong>2.</strong> \(\operatorname{Im}\tau_0 = \operatorname{Im}\tau_1 = \frac12\): both on the line \(\operatorname{Im}\tau = \frac12\). (\(\tau_2\) is below the axis, where
+\(\operatorname{Re}\varphi\) at the saddle is \(+3\): a huge contribution that must cancel — not admissible, as in the deck's worked example 5.)
+Rectangle \(-X, X, X + \frac i2, -X + \frac i2\), integrand entire. On the sides, from rung 3, the integrand is at most
+\(e^{a^4(-X^4 + 3X^2/2)}\), over a length \(\frac12\): \(\to0\) as \(X\to\infty\). So \(F = a\int_{-\infty}^\infty e^{a^4\varphi(\sigma + i/2)}\,\mathrm d\sigma\).
+(Expanding: \((\sigma + \frac i2)^4 = \sigma^4 + 2i\sigma^3 - \frac32\sigma^2 - \frac i2\sigma + \frac1{16}\), and \(4i(\sigma + \frac i2) = 4i\sigma - 2\), giving the
+real part in rung 3.)</p>
+<p><strong>3.</strong> \(\frac{\mathrm d}{\mathrm d\sigma}(-\sigma^4 + \frac32\sigma^2) = -4\sigma^3 + 3\sigma = 0\) at \(\sigma = 0, \pm\frac{\sqrt3}2\); the maxima are at
+\(\pm\frac{\sqrt3}{2}\), i.e. at \(\tau_0\) and \(\tau_1\), with \(\operatorname{Re}\varphi = -\frac{9}{16} + \frac98 - \frac{33}{16} = -\frac32\), while at \(\sigma = 0\) it is
+\(-\frac{33}{16}\). Near each maximum \(\varphi(\sigma + \frac i2) = \varphi(\tau_k) + \frac12\varphi''(\tau_k)(\sigma - \sigma_k)^2 + O(|\sigma - \sigma_k|^3)\), and
+\(\operatorname{Re}(-\varphi''(\tau_0)) = 12\cos\frac\pi3 = 6 \gt 0\): Laplace's method with a complex exponent (proof as in the deck, with
+\(\sqrt{2\pi/(-\Lambda\varphi'')}\) the principal root, since \(\int e^{-\Lambda c u^2/2}\mathrm du = \sqrt{2\pi/\Lambda c}\) for \(\operatorname{Re}c \gt 0\) by analytic continuation).
+Contribution of \(\tau_0\):
+\[ a\,e^{3a^4e^{2\pi i/3}}\sqrt{\frac{2\pi}{12a^4e^{i\pi/3}}} = \frac1a\sqrt{\frac\pi6}\,e^{-\frac32a^4}e^{i\frac{3\sqrt3}{2}a^4 - i\frac\pi6}. \]
+Since \(\tau_1 = -\bar\tau_0\) and \(\varphi(-\bar\tau) = \overline{\varphi(\tau)}\), the other saddle gives the complex conjugate; the sum is twice the real
+part — the stated formula. \(\square\)</p>
+<p><strong>4.</strong> \(\lambda = 10\): \(a = 1.357209\), \(a^4 = 3.3930\), formula \(-2.7848\times10^{-3}\) against \(-2.6942\times10^{-3}\) (\(3.4\%\)).
+\(\lambda = 20\): \(a = 1.709976\), \(a^4 = 8.5499\), formula \(-2.1764\times10^{-6}\) against \(-2.1669\times10^{-6}\) (\(0.44\%\)). The relative error falls
+roughly like \(1/a^4\), as the next Laplace term would.</p>
+<p><strong>Check.</strong> Decay rate \(e^{-\frac32(\lambda/4)^{4/3}}\): faster than any power, slower than a Gaussian's \(e^{-\lambda^2/4}\) — right, because
+the rate is set by how far the contour can be lifted: here the saddles sit at height \(a/2\propto\lambda^{1/3}\), while
+for \(e^{-t^2}\) the single saddle is at \(i\lambda/2\), and lifting by \(\lambda/2\) buys \(e^{-\lambda^2/4}\) ✓. Dimensions: all quantities dimensionless ✓.
+Sign changes: zeros where \(\frac{3\sqrt3}2a^4 - \frac\pi6 = (k + \frac12)\pi\), infinitely many, as a real transform of an even function
+may have ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./mr done 20</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

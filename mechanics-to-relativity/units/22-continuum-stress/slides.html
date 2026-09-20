@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>22 · Continuum mechanics: the stress tensor, and conservation laws in local form</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="c">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="air"><span class="ref-name">the running example</span>Still air at $20\,{}^\circ\mathrm C$ and one atmosphere: $p_0 = 101\,325$ Pa, $T = 293.15$ K, molar mass $M = 28.965\ \mathrm{g\,mol^{-1}}$, so $\rho_0 = p_0M/RT = 1.204\ \mathrm{kg\,m^{-3}}$; adiabatic index $\gamma = 1.400$. <span class="ref-note">Question: how fast does a small disturbance travel through it? Laplace's answer $\sqrt{\gamma p_0/\rho_0} = 343.2\ \mathrm{m\,s^{-1}}$ agrees with measurement; Newton's $\sqrt{p_0/\rho_0} = 290.1\ \mathrm{m\,s^{-1}}$ is $15.5\%$ low</span><svg viewBox="0 0 300 70" width="210" aria-hidden="true"><line x1="10" y1="35" x2="290" y2="35" class="rule" stroke-width="1" stroke-dasharray="3 4"/><path d="M10,35 C40,5 70,5 100,35 C130,65 160,65 190,35 C220,5 250,5 280,35" fill="none" class="accent" stroke-width="3"/><text x="226" y="64" font-size="14" class="soft">p′ = c²ρ′</text></svg></template>
+  <template data-ref="rest"><span class="ref-name">the air, at rest</span>Stress $\sigma = -p_0 I$: on every surface, whatever its orientation, the traction is $-p_0\vec n$, a push of $101\,325$ newtons on each square metre. <span class="ref-note">A sound wave is a small disturbance of exactly this state: $p = p_0 + p'$, $\rho = \rho_0 + \rho'$, $\vec v = \vec v\,{}'$, all primed quantities small</span></template>
+  <template data-ref="lin"><span class="ref-name">the linearised equations</span>$\partial_t\rho' + \rho_0\,\nabla\!\cdot\vec v = 0, \quad \rho_0\,\partial_t\vec v = -\nabla p', \quad p' = c^2\rho'$ <span class="ref-note">continuity, Euler, and a closure. Eliminating $\vec v$ gives $\partial_t^2\rho' = c^2\nabla^2\rho'$ with $c^2 = \mathrm dp/\mathrm d\rho$ at $\rho_0$ — and the whole question is along which curve that derivative is taken</span></template>
+  <template data-ref="newton"><span class="ref-name">Newton's closure</span>Boyle's law $p \propto \rho$, compressions at constant temperature: $c^2 = p_0/\rho_0$, $c = 290.1\ \mathrm{m\,s^{-1}}$ at $20\,{}^\circ\mathrm C$ ($280.0$ at $0\,{}^\circ\mathrm C$). <span class="ref-note">Laplace's closure $p \propto \rho^\gamma$, compressions too fast to exchange heat: $c^2 = \gamma p_0/\rho_0$, $c = 343.2\ \mathrm{m\,s^{-1}}$ ($331.3$ at $0\,{}^\circ\mathrm C$). The ratio is $\sqrt{1.4} = 1.183$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part C · fields and the crisis · spine</p>
+  <div class="unit-no">22</div>
+  <h1>Continuum mechanics: the stress tensor, and conservation laws in local form</h1>
+  <p class="lede">A deformable body has no single "force on it", only a force on every surface inside it — and proving that this force is bilinear in the surface is the course's first tensor that is <em>derived</em> rather than defined.</p>
+  <p class="meta"><span>needs 16, 05, 18</span><span>~2½ h slides + 5 h problems</span><span>problems: <code>./mr problems 22</code></span></p>
+  <aside class="notes">
+    <p>Unit 18 took a chain of masses to the continuum in one dimension and found a field, a wave
+    equation, and a local conservation law $\partial_t e + \partial_x S = 0$. This unit does the same in
+    three dimensions for a solid or a fluid, and three things change.</p>
+    <ul>
+      <li><b>The flux of momentum is not a vector.</b> In one dimension the string's tension is a number.
+      In three, the force across a small surface depends on how the surface is turned, and section 1
+      proves — from Newton's second law and nothing else — that the dependence is linear. The object
+      that results is unit 16's (0,2)-tensor, met this time as a <em>field</em>, and met because it was
+      forced on us.</li>
+      <li><b>The engine is unit 05's divergence theorem.</b> Every conservation law in this unit is first
+      stated as a budget for a finite region — what is inside changes only by what crosses the boundary
+      — and then converted into a partial differential equation by one application of the divergence
+      theorem and one localisation lemma. Section 2 does this twice, for mass and for momentum, and a
+      third time for angular momentum, where it yields the symmetry of stress.</li>
+      <li><b>The equations do not close by themselves.</b> Conservation laws give four equations for ten
+      unknowns. The missing six are a statement about the material, and section 3 shows that isotropy
+      cuts a linear material's 36 possible constants down to two.</li>
+    </ul>
+    <h4>How to read this deck</h4>
+    <p>One gas runs through the unit: <span class="ref" data-ref="air">still air at $20\,{}^\circ\mathrm C$</span>.
+    Section 1 finds its stress; section 2 writes the two conservation laws it obeys; section 3 finds that
+    those laws need one more equation, an equation of state; section 4 linearises everything about rest,
+    obtains the wave equation, and computes the speed of sound twice — Newton's way, which is wrong by
+    $15.5\%$, and Laplace's, which is right; section 5 sees the same computation as the $\mu = 0$ case of
+    elastic waves in a solid, and uses the difference between solids and fluids to find the Earth's liquid
+    core.</p>
+    <p>Proofs are on the slides where they are one line and in these notes under <b>Full proof</b> where
+    they are not; results imported from elsewhere are marked <em>cited</em>, with where to find the proof.
+    Terms with a dotted underline are in the glossary (<kbd>G</kbd>); <kbd>N</kbd> opens these notes.</p>
+    <p><b>What you are assumed to have.</b> Unit 05's divergence theorem, change of variables and Jacobian;
+    unit 16's definition of a tensor as a multilinear map, its components, the transformation law as a
+    theorem, the Einstein summation convention, symmetric and antisymmetric parts, and the spectral theorem
+    producing principal axes; unit 18's wave equation, d'Alembert's travelling waves, Leibniz's rule and
+    local conservation law; unit 03's chain rule, $SO(3)$ and $\mathfrak{so}(3)$ with the hat map; unit 04's
+    gradient, curl and the Riesz isomorphism; unit 01's existence theorem for flows; unit 00's dimensional
+    analysis. The thermodynamics needed — the ideal-gas law and the first law for a gas — is physics,
+    not mathematics, and is stated where it is used.</p>
+    <p><b>Conventions.</b> Cartesian coordinates with an orthonormal basis throughout, so, as unit 16
+    explained, the distinction between upper and lower indices is invisible and all indices are written
+    down; repeated indices are summed. $\partial_j = \partial/\partial x_j$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · overview</p>
+  <h2>One gas, one number, two closures</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the object</span>
+        <p class="small"><span class="ref" data-ref="air">Still air at $20\,{}^\circ\mathrm C$</span>: $p_0 = 101\,325$ Pa, $\rho_0 = 1.204\ \mathrm{kg\,m^{-3}}$. A <span class="term">continuum</span>: mass, momentum and force described by fields, with the molecules forgotten.</p></div>
+      <div class="box def"><span class="label">the question</span>
+        <p class="small">How fast does a small pressure disturbance travel through it? Measured: $343\ \mathrm{m\,s^{-1}}$. Newton, 1687, from first principles: $15\%$ too slow — the truth is $18\%$ above his value. The error stood until Laplace, 1816.</p></div>
+      <div class="box def"><span class="label">the route</span>
+        <p class="small"><b>§1</b> the force inside a body is a tensor &nbsp; <b>§2</b> integral budgets become PDEs &nbsp; <b>§3</b> the PDEs need a material law &nbsp; <b>§4</b> linearise: sound &nbsp; <b>§5</b> solids, and the Earth's core.</p></div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the one thing to watch</span>
+        <p class="small">Every step of the sound calculation is forced by conservation laws <em>except one</em>: how pressure follows density. That single physical hypothesis is where Newton went wrong, and the number $\sqrt{1.4} = 1.183$ is its signature.</p></div>
+      <div class="box good"><span class="label">getting around</span>
+        <p class="small">A <span class="term" data-term="stress tensor">dotted underline</span> is a glossary term: click it, or press <kbd>G</kbd>. <kbd>N</kbd> opens the notes, where the longer proofs live. A solid underline, like <span class="ref" data-ref="air">the running example</span>, shows a piece of it on hover.</p></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The continuum hypothesis, stated honestly.</b> Air is molecules, about $2.5\times10^{25}$ of them
+    per cubic metre, with a mean free path near $0.07\ \mu\mathrm m$ (cited: any kinetic-theory table,
+    e.g. the CRC Handbook). A field such as $\rho(\vec x, t)$ means the mass in a small ball around $\vec x$
+    divided by its volume, for balls large compared with the mean free path and small compared with the
+    scale on which anything interesting varies. A sound wave at audible frequencies has a wavelength of
+    centimetres to metres, so the separation of scales is some seven orders of magnitude and the
+    continuum description is excellent. Section 4 will find the single place where it would stop being so,
+    and it is exactly where Newton's hypothesis would have become right.</p>
+    <p><b>The "18%".</b> The measured speed exceeds Newton's prediction by the factor $\sqrt\gamma = 1.183$;
+    equivalently Newton's value is $1/1.183 = 0.845$ of the truth, $15.5\%$ low. Both statements are
+    about the same ratio. The popular figure "$280\ \mathrm{m\,s^{-1}}$" is Newton's formula evaluated at
+    $0\,{}^\circ\mathrm C$, where the correct value is $331.3\ \mathrm{m\,s^{-1}}$; at the running example's
+    $20\,{}^\circ\mathrm C$ the pair is $290.1$ against $343.2$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Stress: the force on a surface</h2>
+  <p>Newton's second law, applied to a shrinking tetrahedron, proves that the force across a surface is linear in its normal.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · stress</p>
+  <h2>The force on a piece of a body is not a vector</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Cut an imaginary region $P$ out of a deformable body. Two kinds of force act on it:</p>
+      <div class="box def"><span class="label">definitions</span>
+        <p class="small">A <span class="term">body force</span> acts on the bulk: $\int_P \rho\,\vec b\,\mathrm dV$, with $\vec b$ per unit mass (gravity: $\vec b = \vec g$).</p>
+        <p class="small">A <span class="term">surface force</span> is exerted across $\partial P$ by the material outside: $\oint_{\partial P}\vec t\,\mathrm dA$. The force per unit area $\vec t$ is the <span class="term">traction</span>, in pascals.</p>
+      </div>
+      <div class="box thm"><span class="label">hypothesis · <span class="term">Cauchy's postulate</span></span>
+        <p class="small">$\vec t$ at a point depends on the surface through that point only via its outward unit normal: $\vec t = \vec t(\vec x, t, \vec n)$, continuous in $(\vec x, \vec n)$ jointly.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">So "the force at a point" is a <b>function on the unit sphere</b>, $\vec n \mapsto \vec t(\vec n)$ — a priori a vector-valued function of a direction, not a vector.</p>
+      <div class="box"><span class="label">why nothing simpler will do</span>
+        <p class="small">A steel bar pulled at its ends: across a cut perpendicular to the bar, the material pulls along the bar. Across a cut <em>parallel</em> to the bar, it exerts nothing at all. Same point, two surfaces, two tractions.</p>
+      </div>
+      <p class="small">The balance law for every region $P$ that moves with the material:</p>
+      $$\frac{\mathrm d}{\mathrm dt}\int_P \rho\vec v\,\mathrm dV = \oint_{\partial P}\vec t\,\mathrm dA + \int_P\rho\,\vec b\,\mathrm dV$$
+      <p class="small muted">Newton's second law, for a piece of stuff rather than a particle.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the balance law is Newton's second law.</b> Chop $P$ into small parcels, each obeying
+    $m\ddot{\vec x} = \vec F$. Forces between parcels inside $P$ cancel in pairs by the third law. What is
+    left is the force from outside $P$: long-range forces act throughout the volume (the body force) and
+    short-range forces — molecular forces with a range of nanometres — act only through a thin layer at
+    the boundary, which in the continuum limit becomes a surface integral. That last step is the physical
+    content of the word "surface force", and it is an idealisation: it is exactly what fails for a
+    ferrofluid in a magnetic field, where section 2 will need a correction.</p>
+    <p><b>About the postulate.</b> Cauchy (1822–23) assumed that $\vec t$ depends on the surface only through
+    $\vec n$ — not on its curvature, for instance. A theorem of Noll (1959) derives this from the balance
+    law itself under mild hypotheses (cited: Truesdell, <em>A First Course in Rational Continuum
+    Mechanics</em>, vol. 1, the chapter on the stress theorem). We take it as a hypothesis, and everything
+    below is proved from it. Continuity in $\vec n$, not only in $\vec x$, is part of the hypothesis: the pillbox
+    proof uses the bound it gives, and the tetrahedron proof uses it for normals with a zero component.</p>
+    <p><b>The $\frac{\mathrm d}{\mathrm dt}$ of an integral over a moving region</b> is made precise in
+    section 2 by the Reynolds transport theorem. For section 1 only one consequence is needed: the left
+    side is at most (bounded density × bounded acceleration) × volume.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · stress</p>
+  <h2>Action and reaction across a surface</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma · the volume estimate</span>
+        <p class="small">If $\rho$, the acceleration and $\vec b$ are bounded near $\vec x_0$, there is $C$ with</p>
+        $$\Big|\oint_{\partial P}\vec t\,\mathrm dA\Big| \le C\,\mathrm{vol}(P)$$
+        <p class="small">for every small region $P$ near $\vec x_0$. <b>Proof:</b> the balance law, and each volume integral is at most sup × volume. $\square$</p>
+      </div>
+      <p class="small">Surface forces scale like area, volume terms like length cubed. Shrink a region and the <b>surface forces must balance among themselves</b>, to leading order.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">lemma · Newton's third law for tractions</span>
+        $$\vec t(\vec x, -\vec n) = -\,\vec t(\vec x, \vec n)$$
+        <p class="small"><b>Proof sketch.</b> A flat pillbox, faces of area $A$ with normals $\pm\vec n$, thickness $h$. As $h \to 0$ the side contributes $O(h\sqrt A)$ and the volume is $Ah$, so the estimate gives $A\big(\vec t(\vec n) + \vec t(-\vec n)\big) = o(A)$. Divide by $A$, let $A \to 0$. $\square$</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <p class="small muted">The third law between particles is an assumption; here, for tractions, it is a <b>theorem</b>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Fix $\vec x_0$ and a unit vector $\vec n$. Let $D_r$ be the disc of radius $r$ centred at $\vec x_0$
+    in the plane perpendicular to $\vec n$, and let $P_{r,h}$ be the cylinder $D_r \times [-h/2, h/2]$
+    along $\vec n$. Its boundary has a top face (outward normal $\vec n$), a bottom face (outward normal
+    $-\vec n$) and a curved side of area $2\pi r h$. By the volume estimate,</p>
+    $$\Big|\int_{\text{top}}\vec t(\vec x,\vec n)\,\mathrm dA + \int_{\text{bottom}}\vec t(\vec x,-\vec n)\,\mathrm dA + \int_{\text{side}}\vec t\,\mathrm dA\Big| \le C\pi r^2 h .$$
+    <p>By the postulate's joint continuity, $|\vec t|$ is bounded by some $K$ on the compact set of pairs $(\vec x,\vec n)$ with $|\vec x - \vec x_0| \le 1$ (say) and $|\vec n| = 1$; so the side term is at most
+    $2\pi r h K$. Let $h \to 0$ with $r$ fixed: the side term and the right side vanish, and the top and
+    bottom faces converge to $D_r$ itself, giving $\int_{D_r}\big(\vec t(\vec x,\vec n) + \vec t(\vec x,-\vec n)\big)\,\mathrm dA = 0$
+    for every $r$. Divide by $\pi r^2$ and let $r \to 0$: by continuity the average converges to the
+    value at $\vec x_0$, so $\vec t(\vec x_0,\vec n) + \vec t(\vec x_0,-\vec n) = 0$. $\square$</p>
+    <p><b>Why this matters.</b> The third law for point particles is an axiom, and a slightly suspicious
+    one (magnetic forces between moving charges violate its strong form). The traction version is
+    different in kind: it follows from the second law applied to a region too thin to have any mass. A
+    thin enough slab cannot sustain a net force, because it has nothing to accelerate.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · stress</p>
+  <h2>Cauchy's theorem</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">theorem · <span class="term">Cauchy's stress theorem</span> (1823)</span>
+        <p class="small">Under the postulate and the balance law, at each point there is a unique linear map $\sigma:\mathbb R^3 \to \mathbb R^3$ with</p>
+        $$\vec t(\vec n) = \sigma\,\vec n \quad\text{for every unit } \vec n, \qquad t_i = \sigma_{ij}\,n_j ,$$
+        <p class="small">and its matrix is built from three tractions: $\sigma_{ij} = \vec e_i\cdot\vec t(\vec e_j)$. Column $j$ of $\sigma$ is the traction on a surface facing $+\vec e_j$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\sigma_{ij}$ is force per area, pascals, like $\vec t$ ✓. <b>Special case:</b> $\vec n \to -\vec n$ gives $\sigma(-\vec n) = -\sigma\vec n$ — the third-law lemma, now automatic ✓. <b>Coordinate faces:</b> $\vec n = \vec e_j$ returns column $j$ ✓.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 290 250" width="280" role="img" aria-label="a tetrahedron with three faces on the coordinate planes and an oblique face with outward normal n">
+        <line x1="110" y1="160" x2="270" y2="198" class="rule" stroke-width="1.5"/>
+        <line x1="110" y1="160" x2="30" y2="228" class="rule" stroke-width="1.5"/>
+        <line x1="110" y1="160" x2="110" y2="18" class="rule" stroke-width="1.5"/>
+        <polygon points="240,190 50,211 110,40" class="fill-soft accent" stroke-width="2.5" style="fill-opacity:.35"/>
+        <line x1="110" y1="160" x2="240" y2="190" class="unit" stroke-width="2" stroke-dasharray="5 4"/>
+        <line x1="110" y1="160" x2="50" y2="211" class="unit" stroke-width="2" stroke-dasharray="5 4"/>
+        <line x1="110" y1="160" x2="110" y2="40" class="unit" stroke-width="2" stroke-dasharray="5 4"/>
+        <line x1="133" y1="148" x2="182" y2="104" class="accent" stroke-width="3"/>
+        <polygon points="182,104 170,108 177,116" class="fill-accent"/>
+        <text x="188" y="100" font-size="17" class="mono">n</text>
+        <text x="272" y="210" font-size="14" class="soft">x₁</text>
+        <text x="16" y="240" font-size="14" class="soft">x₂</text>
+        <text x="116" y="22" font-size="14" class="soft">x₃</text>
+        <text x="133" y="193" font-size="12" text-anchor="middle" class="mono soft">A₃ = A n₃</text>
+        <text x="70" y="118" font-size="12" text-anchor="end" class="mono soft">A₁ = A n₁</text>
+      </svg>
+      <p class="cap">The tetrahedron: an oblique face of area $A$ and outward normal $\vec n$, and three faces on the coordinate planes, with outward normals $-\vec e_i$ and areas $A\,n_i$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What the theorem says in words.</b> Nine numbers at a point — the three components of the
+    tractions on three perpendicular planes — determine the traction on <em>every</em> plane through the
+    point. That is not a definition and it is not obvious: a priori $\vec n \mapsto \vec t(\vec n)$ is an
+    arbitrary continuous function on the sphere, specified by infinitely many numbers.</p>
+    <p><b>The index convention.</b> $t_i = \sigma_{ij}n_j$: the first index says which component of force,
+    the second which way the surface faces. Some books use the transpose. Once section 2 proves $\sigma$
+    symmetric, the two conventions agree, which is why the difference rarely bites; until then, keep to
+    this one.</p>
+    <p><b>History.</b> Cauchy presented the theorem to the Paris Academy in 1822 and published it in 1823
+    and 1827. It is the founding result of continuum mechanics, and it is remarkable how early it is:
+    nothing like it existed for electromagnetism until Maxwell's stress tensor half a century later
+    (unit 24).</p>
+    <p>The next slide proves it; the slide after says what kind of object $\sigma$ is.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · stress</p>
+  <h2>The tetrahedron argument</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma · the areas</span>
+        <p class="small">A tetrahedron with oblique face of area $A$ and normal $\vec n$, $n_i &gt; 0$: its coordinate faces have areas $A_i = A\,n_i$.</p>
+        <p class="small"><b>Proof.</b> Unit 05's divergence theorem for the constant field $\vec e_i$: $0 = \int\nabla\!\cdot\vec e_i\,\mathrm dV = \oint\vec e_i\cdot\vec n\,\mathrm dA = A\,n_i - A_i$. $\square$</p>
+      </div>
+      <div class="box proof"><span class="label">proof of Cauchy's theorem, for $n_i &gt; 0$</span>
+        <p class="small">Shrink the tetrahedron by a factor $\varepsilon$: areas scale as $\varepsilon^2$, the volume as $\varepsilon^3$. The volume estimate and continuity of $\vec t$ give</p>
+        $$A\,\vec t(\vec n) + \sum_i A\,n_i\,\vec t(-\vec e_i) = O(\varepsilon^3) + o(\varepsilon^2).$$
+        <p class="small">Divide by $A \propto \varepsilon^2$, let $\varepsilon \to 0$, use the third-law lemma:</p>
+        $$\vec t(\vec n) = \sum_i n_i\,\vec t(\vec e_i). \quad\square$$
+      </div>
+    </div>
+    <div>
+      <p class="small">That is linearity: $\vec t(\vec n) = n_j\,\vec t(\vec e_j)$, whose $i$-th component is $\sigma_{ij}n_j$.</p>
+      <div class="box warn"><span class="label">what did the work</span>
+        <p class="small">Two powers of $\varepsilon$. Tractions act on areas, $\sim\varepsilon^2$; inertia and gravity act on volumes, $\sim\varepsilon^3$. In the limit, <b>the surface forces on an infinitesimal tetrahedron must balance exactly</b>, and balance on a tetrahedron is linearity.</p>
+      </div>
+      <p class="small">Other octants: use the tetrahedron with coordinate faces of normals $-\operatorname{sgn}(n_i)\,\vec e_i$; the same computation gives the same formula. A zero component: continuity in $\vec n$.</p>
+      <p class="small muted">This is the only place in classical physics where a physical quantity is <em>proved</em> bilinear rather than assumed so.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Fix $\vec x_0$ and a unit $\vec n$ with all $n_i &gt; 0$. For $\varepsilon &gt; 0$ let $T_\varepsilon$ be
+    the tetrahedron with vertex $\vec x_0$ and the three vertices $\vec x_0 + (\varepsilon/n_i)\vec e_i$;
+    its oblique face lies in the plane $\vec n\cdot(\vec x - \vec x_0) = \varepsilon$, has outward normal
+    $\vec n$ and area $A_\varepsilon = a\varepsilon^2$ for a constant $a$, and the height from $\vec x_0$
+    is $\varepsilon$, so $\mathrm{vol}(T_\varepsilon) = a\varepsilon^3/3$. By the area lemma its face in the
+    coordinate plane $x_i = x_{0,i}$ has outward normal $-\vec e_i$ and area $A_\varepsilon n_i$.</p>
+    <p>Write $\oint_{\partial T_\varepsilon}\vec t\,\mathrm dA$ face by face. On the oblique face $F$,
+    $\int_F \vec t(\vec x,\vec n)\,\mathrm dA = A_\varepsilon\big(\vec t(\vec x_0,\vec n) + \vec\eta_\varepsilon\big)$
+    with $|\vec\eta_\varepsilon| \le \sup_{\vec x\in T_\varepsilon}|\vec t(\vec x,\vec n) - \vec t(\vec x_0,\vec n)| \to 0$
+    by continuity in $\vec x$. The same holds on each coordinate face with $-\vec e_i$ in place of $\vec n$.
+    The volume estimate then gives</p>
+    $$\Big|A_\varepsilon\,\vec t(\vec x_0,\vec n) + \sum_i A_\varepsilon n_i\,\vec t(\vec x_0,-\vec e_i)\Big| \le C\frac{a\varepsilon^3}{3} + A_\varepsilon\Big(|\vec\eta_\varepsilon| + \sum_i n_i|\vec\eta^{(i)}_\varepsilon|\Big).$$
+    <p>Divide by $A_\varepsilon = a\varepsilon^2$ and let $\varepsilon \to 0$: the right side tends to $0$, so
+    $\vec t(\vec x_0,\vec n) = -\sum_i n_i\,\vec t(\vec x_0,-\vec e_i) = \sum_i n_i\,\vec t(\vec x_0,\vec e_i)$, the
+    last step by the third-law lemma.</p>
+    <p><b>Other octants.</b> If some $n_i &lt; 0$, build the tetrahedron on the same vertices
+    $\vec x_0 + (\varepsilon/n_i)\vec e_i$, now on the negative $x_i$ axis. Its face in the plane $x_i = x_{0,i}$
+    has outward normal $-\operatorname{sgn}(n_i)\,\vec e_i$ and area $A|n_i|$ (the area lemma, with signs), so
+    that face contributes $A|n_i|\,\vec t\big(-\operatorname{sgn}(n_i)\vec e_i\big) = -A\,n_i\,\vec t(\vec e_i)$
+    by the third-law lemma — exactly what it contributed when $n_i &gt; 0$. The same limit gives
+    $\vec t(\vec n) = \sum_i n_i\,\vec t(\vec e_i)$. If some $n_i = 0$ the tetrahedron degenerates; then
+    use continuity of $\vec t$ in $\vec n$: the formula holds on the dense set of directions with no zero
+    component, and both sides are continuous in $\vec n$.</p>
+    <p><b>Extension off the sphere.</b> Define $\sigma\vec m = |\vec m|\,\vec t(\vec m/|\vec m|)$ for
+    $\vec m \ne 0$ and $\sigma\vec 0 = \vec 0$. The formula just proved says this map is $\vec m \mapsto m_j\vec t(\vec e_j)$,
+    which is linear. Uniqueness: a linear map is determined by its values on a basis.</p>
+    <p><b>History and reading.</b> Cauchy's own argument is this one. Gurtin, <em>An Introduction to Continuum
+    Mechanics</em>, the chapter on stress, gives it with all the analysis; Truesdell's <em>First Course</em>
+    gives Noll's sharper version.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · stress</p>
+  <h2>Stress is a bilinear form</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition · the <span class="term">stress tensor</span></span>
+        <p class="small">At each point, the bilinear form on $\mathbb R^3$</p>
+        $$\sigma(\vec m, \vec n) = \vec m\cdot\vec t(\vec n) = m_i\,\sigma_{ij}\,n_j ,$$
+        <p class="small">the component along $\vec m$ of the force per area across a surface with normal $\vec n$. A (0,2)-tensor, in unit 16's sense; as $\vec x$ varies, a <b>tensor field</b>.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem (unit 16) · the transformation law</span>
+        <p class="small">In a rotated orthonormal basis $\vec e\,{}'_a = R_{ia}\vec e_i$, the components are $\sigma'_{ab} = R_{ia}R_{jb}\,\sigma_{ij}$, i.e. $\sigma' = R^{\!\top}\sigma R$. <b>Proof:</b> $\sigma'_{ab} = \sigma(\vec e\,{}'_a, \vec e\,{}'_b)$ and bilinearity. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Two readings of one object, and the order matters:</p>
+      <p class="small"><b>Mathematics:</b> a bilinear form, whose components change by the rule above <em>because</em> it is bilinear.</p>
+      <p class="small"><b>Physics:</b> the flux of momentum. $\sigma_{ij}$ is the rate at which $i$-momentum flows across a unit area facing $+\vec e_j$ into the region — made precise in section 2.</p>
+      <div class="box def"><span class="label">vocabulary</span>
+        <p class="small"><span class="term">Normal stress</span> $\sigma(\vec n,\vec n)$: push ($&lt;0$) or pull ($&gt;0$) across the surface. <span class="term">Shear stress</span>: the part of $\vec t$ tangent to it, $\vec t - \sigma(\vec n,\vec n)\,\vec n$.</p>
+      </div>
+      <p class="small muted">Once section 2 proves $\sigma$ symmetric, unit 16's spectral theorem gives three <span class="term">principal stresses</span> on three perpendicular planes that feel no shear at all.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The house rule, observed.</b> Unit 16 defined a tensor as a multilinear map and proved the
+    transformation law from it. The inertia tensor there was bilinear by construction: $I(\vec a,\vec b) =
+    \sum m\,(\ldots)$ is visibly bilinear in $\vec a$ and $\vec b$. Stress is different. Nobody writes down a
+    formula for $\sigma(\vec m, \vec n)$; one is given only the function $\vec n \mapsto \vec t(\vec n)$,
+    and it is a <em>theorem</em> — Cauchy's — that the function is linear, hence that
+    $(\vec m,\vec n)\mapsto\vec m\cdot\vec t(\vec n)$ is a bilinear form. Nine numbers per basis would not
+    be enough to make it a tensor, as unit 16's problem on nine non-tensorial numbers showed; the
+    linearity is what makes it one.</p>
+    <p><b>Full proof of the transformation law</b>, in this setting. $\sigma'_{ab} := \sigma(\vec e\,{}'_a,\vec e\,{}'_b)
+    = \sigma(R_{ia}\vec e_i, R_{jb}\vec e_j) = R_{ia}R_{jb}\,\sigma(\vec e_i,\vec e_j) = R_{ia}R_{jb}\sigma_{ij}$,
+    using bilinearity twice. In matrices, $\sigma' = R^{\!\top}\sigma R$. For the same object viewed as the
+    linear map $\vec n\mapsto\sigma\vec n$ the rule is the same, because $R^{\!\top} = R^{-1}$ for
+    orthogonal $R$: with an orthonormal basis, the (0,2) and (1,1) readings differ only by the Riesz
+    isomorphism of unit 04, which in orthonormal coordinates is the identity on components.</p>
+    <p><b>The flux reading, in advance.</b> Across a small surface of area $\mathrm dA$ and normal $\vec n$,
+    the material outside pushes on the material inside with force $\sigma\vec n\,\mathrm dA$ — that is,
+    it transfers momentum into the inside at the rate $\sigma\vec n\,\mathrm dA$ per second. So $\sigma_{ij}n_j$
+    is an inflow rate of $i$-momentum per unit area. Section 2 turns this into the momentum equation, and
+    the sign (inflow, not outflow) is why the momentum flux tensor there is $-\sigma$.</p>
+    <p><b>Sign convention.</b> Tension positive, compression negative: the engineering and physics convention.
+    Geologists and soil engineers often use the opposite sign, so that the stresses they meet most, which
+    are compressive, come out positive. Check before borrowing a formula.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · stress · example</p>
+  <h2>A bar in tension, cut obliquely</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 1</span>
+        <p class="small">A bar along $\vec e_1$ carries $10$ kN on a cross-section of $1\ \mathrm{cm^2}$. Find the traction on a plane whose normal makes angle $\theta$ with the bar.</p>
+        <p class="small"><b>1. The stress.</b> Across a cut facing $\vec e_1$ the traction is $s\,\vec e_1$ with $s = 10^4\ \mathrm N/10^{-4}\ \mathrm{m^2} = 100$ MPa; across cuts facing $\vec e_2, \vec e_3$ it is zero. By Cauchy, column by column:</p>
+        $$\sigma = \begin{pmatrix} s &amp; 0 &amp; 0\\ 0 &amp; 0 &amp; 0\\ 0 &amp; 0 &amp; 0\end{pmatrix}.$$
+        <p class="small"><b>2. The traction.</b> $\vec n = (\cos\theta, \sin\theta, 0)$: $\ \vec t = \sigma\vec n = (s\cos\theta, 0, 0)$.</p>
+        <p class="small"><b>3. Split it.</b> Normal: $\vec n\cdot\vec t = s\cos^2\theta$. Shear: $|\vec t - (\vec n\cdot\vec t)\vec n| = s\sin\theta\cos\theta = \tfrac12 s\sin 2\theta$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 170" width="330" role="img" aria-label="a bar pulled at both ends with an oblique cut whose normal makes angle theta with the bar">
+          <rect x="40" y="60" width="280" height="60" class="fill-soft unit" stroke-width="2"/>
+          <line x1="162.7" y1="60" x2="197.3" y2="120" class="accent" stroke-width="3"/>
+          <line x1="180" y1="90" x2="223" y2="65" class="ink" stroke-width="2"/>
+          <polygon points="223,65 211,66 216,74" class="fill-ink"/>
+          <text x="226" y="60" font-size="15" class="mono">n</text>
+          <line x1="180" y1="90" x2="232" y2="90" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+          <text x="207" y="104" font-size="14" class="mono soft">θ</text>
+          <line x1="320" y1="90" x2="352" y2="90" class="unit" stroke-width="3"/>
+          <polygon points="356,90 344,84 344,96" class="fill-unit"/>
+          <line x1="40" y1="90" x2="8" y2="90" class="unit" stroke-width="3"/>
+          <polygon points="4,90 16,84 16,96" class="fill-unit"/>
+          <text x="300" y="150" font-size="13" class="mono soft">10 kN</text>
+          <text x="10" y="150" font-size="13" class="mono soft">10 kN</text>
+        </svg>
+        <p class="cap">The cut, in accent; its normal $\vec n$ at angle $\theta$ to the bar.</p>
+      </div>
+      <table class="dense">
+        <thead><tr><th>$\theta$</th><th class="num">normal (MPa)</th><th class="num">shear (MPa)</th></tr></thead>
+        <tbody>
+          <tr><td>$0^\circ$</td><td class="num">100.0</td><td class="num">0.0</td></tr>
+          <tr><td>$30^\circ$</td><td class="num">75.0</td><td class="num">43.3</td></tr>
+          <tr><td>$45^\circ$</td><td class="num">50.0</td><td class="num"><b>50.0</b></td></tr>
+          <tr><td>$60^\circ$</td><td class="num">25.0</td><td class="num">43.3</td></tr>
+          <tr><td>$90^\circ$</td><td class="num">0.0</td><td class="num">0.0</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Shear peaks at $45^\circ$, at half the tensile stress: the planes on which a ductile metal slips, and why a pulled steel bar fails along a cone at $45^\circ$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1 in detail.</b> Cauchy's theorem says column $j$ of $\sigma$ is $\vec t(\vec e_j)$. On a cross-section
+    ($\vec n = \vec e_1$) the far part of the bar pulls with total force $10$ kN spread over $10^{-4}\ \mathrm{m^2}$,
+    so $\vec t(\vec e_1) = (10^8\ \mathrm{Pa})\,\vec e_1$. On a longitudinal cut ($\vec n = \vec e_2$ or $\vec e_3$)
+    nothing is transmitted in a uniformly pulled bar with free sides, so those columns vanish. The first
+    column is $(s,0,0)$, and that is the whole matrix. It is symmetric, as section 2 will prove it must be.</p>
+    <p><b>Step 3.</b> $\vec t - (\vec n\cdot\vec t)\vec n = (s\cos\theta - s\cos^3\theta,\ -s\cos^2\theta\sin\theta,\ 0)
+    = s\cos\theta\sin\theta\,(\sin\theta, -\cos\theta, 0)$, and $(\sin\theta,-\cos\theta,0)$ is a unit vector
+    in the plane of the cut. Hence the magnitude $s\sin\theta\cos\theta$.</p>
+    <p><b>Checks.</b> Dimensions: both columns are pascals ✓. $\theta = 0$: all normal, $100$ MPa, no shear ✓.
+    $\theta = 90^\circ$: the cut is parallel to the bar and feels nothing ✓. Normal$^2$ + shear$^2 = s^2\cos^2\theta = |\vec t|^2$ ✓
+    (at $30^\circ$: $75^2 + 43.3^2 = 7500 = 100^2\cdot0.75$). The shear at $\theta$ and $90^\circ - \theta$ is the
+    same, as $\sin2\theta$ requires.</p>
+    <p><b>The physics of the $45^\circ$ planes.</b> Metals deform plastically by crystal planes sliding over
+    one another, a process driven by shear, not by tension. In a pulled bar the first planes to slip are
+    those near $45^\circ$ to the load, and the characteristic "cup and cone" fracture surface of a ductile bar
+    shows it. Brittle materials such as cast iron or chalk fail instead on the plane of maximum <em>normal</em>
+    stress, $\theta = 0$, a flat break straight across. Twist a stick of chalk and it breaks on a $45^\circ$
+    helix, because in torsion the maximum tension is on those planes — problem P1 has the matrix.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · stress</p>
+  <h2>Pressure is the isotropic part</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definitions</span>
+        <p class="small">A <span class="term">fluid</span> is a material that at rest can sustain no shear stress, on any plane.</p>
+        <p class="small">For any stress, the <span class="term">pressure</span> $p = -\tfrac13\operatorname{tr}\sigma$, and $\sigma = -p\,I + \tau$ splits it into an <span class="term">isotropic part</span> $-pI$ and a trace-free <span class="term">deviatoric stress</span> $\tau$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · <span class="term">Pascal's law</span></span>
+        <p class="small">In a fluid at rest, $\sigma = -p\,I$: the traction on every plane is $-p\vec n$, the same push whatever the orientation.</p>
+        <p class="small"><b>Proof.</b> No shear on any plane means $\sigma\vec n \parallel \vec n$ for every $\vec n$: every vector is an eigenvector of $\sigma$, so $\sigma$ is a multiple of $I$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box"><span class="label">on <span class="ref" data-ref="rest">the air at rest</span></span>
+        <p class="small">$\sigma = -p_0 I$ with $p_0 = 101\,325$ Pa: every square metre of every surface — a wall, a window, an imaginary plane in mid-air — is pushed on with $101\,325$ N, about the weight of ten tonnes.</p>
+        <p class="small">A sound wave is a small disturbance of this state, and air, being a fluid, can only answer it with a change of $p$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">$p$ is basis-independent: trace is invariant under $\sigma \mapsto R^{\!\top}\sigma R$ ✓. $\operatorname{tr}\tau = \operatorname{tr}\sigma + 3p = 0$ ✓. For $\sigma = -p_0I$: $\tau = 0$ ✓. For the bar: $p = -s/3 &lt; 0$, a tension ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of "every vector an eigenvector implies scalar".</b> Let $\sigma\vec e_i = \lambda_i\vec e_i$
+    and $\sigma(\vec e_1 + \vec e_2) = \lambda(\vec e_1 + \vec e_2)$. Linearity gives
+    $\lambda_1\vec e_1 + \lambda_2\vec e_2 = \lambda\vec e_1 + \lambda\vec e_2$, so $\lambda_1 = \lambda = \lambda_2$;
+    likewise $\lambda_2 = \lambda_3$. So $\sigma = \lambda_1 I$, and $p = -\lambda_1$. Nothing about symmetry is
+    needed.</p>
+    <p><b>Why "isotropic".</b> $-pI$ is the only kind of stress that looks the same in every rotated basis:
+    $R^{\!\top}(-pI)R = -pI$. Conversely, a symmetric tensor invariant under all rotations must be a multiple
+    of $I$ (its eigenspaces would have to be rotation-invariant subspaces, and the only ones are $\{0\}$ and
+    $\mathbb R^3$). The decomposition into isotropic and deviatoric parts is therefore canonical, not a choice
+    of coordinates, and section 3 uses it twice.</p>
+    <p><b>Pressure as a mean normal stress.</b> $-p = \tfrac13(\sigma_{11}+\sigma_{22}+\sigma_{33})$ is the average
+    of the normal stresses on three perpendicular planes; averaged over all directions,
+    $\frac1{4\pi}\oint\sigma(\vec n,\vec n)\,\mathrm d\Omega = \tfrac13\operatorname{tr}\sigma$ as well (the
+    average of $n_in_j$ over the sphere is $\tfrac13\delta_{ij}$, by symmetry and taking the trace). So in a
+    moving fluid, where there can be shear, "the pressure" still has an invariant meaning.</p>
+    <p><b>History.</b> Pascal's <em>Traité de l'équilibre des liqueurs</em> (written by 1654, published 1663) stated the
+    law; the one-line proof above is only possible once Cauchy has made $\sigma$ a linear map.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Conservation laws in local form</h2>
+  <p>A budget for every region, the divergence theorem, and one lemma: an integral statement becomes a partial differential equation.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · local form</p>
+  <h2>The divergence theorem for a tensor field</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition · <span class="term">divergence of a tensor field</span></span>
+        <p class="small">For a $C^1$ tensor field $T$ with components $T_{ij}$, $\operatorname{div}T$ is the vector field</p>
+        $$(\operatorname{div}T)_i = \partial_j T_{ij},$$
+        <p class="small">the divergence taken on the <b>second</b> slot. Basis-free: for every constant vector $\vec a$, $\ \vec a\cdot\operatorname{div}T = \nabla\!\cdot(T^{\!\top}\vec a)$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">For a region $\Omega$ to which unit 05's divergence theorem applies,</p>
+        $$\oint_{\partial\Omega} T\,\vec n\,\mathrm dA = \int_\Omega \operatorname{div}T\,\mathrm dV .$$
+        <p class="small"><b>Proof.</b> Dot with a constant $\vec a$: $\vec a\cdot T\vec n = (T^{\!\top}\vec a)\cdot\vec n$, so unit 05 applies to the vector field $T^{\!\top}\vec a$. True for every $\vec a$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">With $T = \sigma$: the <b>net surface force on a region is the volume integral of $\operatorname{div}\sigma$</b>. So $\operatorname{div}\sigma$ is a force per unit volume, and a stress that does not vary pushes a region equally from all sides.</p>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\partial_j\sigma_{ij}$ is $\mathrm{Pa\,m^{-1}} = \mathrm{N\,m^{-3}}$ ✓. <b>Special case</b> $T = f\,I$: $\oint f\vec n\,\mathrm dA = \int\nabla f\,\mathrm dV$, the gradient theorem ✓. <b>A vector:</b> $\vec a\cdot\operatorname{div}T$ is the divergence of a vector field, which unit 05 showed is basis-independent ✓.</p>
+      </div>
+      <div class="box"><span class="label">on <span class="ref" data-ref="rest">the air at rest</span></span>
+        <p class="small">$\sigma = -p_0I$ is constant, so $\operatorname{div}\sigma = 0$: ten tonnes per square metre on every face, and a net force of exactly zero on every region. Only a pressure <b>gradient</b> pushes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The same theorem, three ways of saying it.</b> Row by row: the $i$-th row of $T$, $(T_{i1},T_{i2},T_{i3})$, is a
+    vector field; unit 05's theorem applied to it is the $i$-th component of the tensor statement. With a
+    constant $\vec a$: the scalar $\vec a\cdot T\vec n$ is the flux of the vector field $T^{\!\top}\vec a$. As a map:
+    for each fixed $\vec a$, $\vec n \mapsto T(\vec a, \vec n)$ is a covector, turned into a vector by the Riesz
+    isomorphism (unit 04), and the theorem is unit 05's for that vector field. The second is the one that
+    survives in curved spaces, where "row by row" means nothing.</p>
+    <p><b>Why the second slot.</b> $\sigma\vec n$ contracts $\vec n$ into the second index, so the divergence that
+    appears when the surface integral is converted must also be on the second index. Once $\sigma$ is proved
+    symmetric (the last slide of this section) the distinction disappears for stress, but not for the
+    momentum-flux tensor or, in unit 28, for the electromagnetic field tensor, which is antisymmetric.</p>
+    <p><b>Hypotheses.</b> Unit 05 proved the divergence theorem for a box and sketched the patching argument
+    for regions with piecewise-smooth boundary; everything here uses it for such regions and for $C^1$ fields
+    on a neighbourhood of the closed region. That $\sigma$ is $C^1$ is an assumption about the motion, not a
+    consequence of Cauchy's theorem: at a shock wave or a crack it fails, and the local equations below are
+    replaced there by jump conditions derived from the same integral budgets.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · local form</p>
+  <h2>Mass: from a budget to a field equation</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Fix a region $V$ in space. Mass inside changes only by flow across $\partial V$: through $\mathrm dA$ passes the <span class="term">mass flux</span> $\rho\vec v\cdot\vec n\,\mathrm dA$ per second, outward.</p>
+      $$\frac{\mathrm d}{\mathrm dt}\int_V\rho\,\mathrm dV = -\oint_{\partial V}\rho\,\vec v\cdot\vec n\,\mathrm dA$$
+      <p class="small"><b>Left:</b> Leibniz's rule (unit 18) moves $\frac{\mathrm d}{\mathrm dt}$ inside as $\partial_t$. <b>Right:</b> the divergence theorem. So</p>
+      $$\int_V\big(\partial_t\rho + \nabla\!\cdot(\rho\vec v)\big)\,\mathrm dV = 0\quad\text{for every } V.$$
+      <div class="box thm"><span class="label">lemma · <span class="term">localisation lemma</span></span>
+        <p class="small">If $f$ is continuous on an open set and $\int_B f\,\mathrm dV = 0$ for every ball $B$ in it, then $f \equiv 0$. <b>Proof:</b> if $f(\vec x_0) &gt; 0$, continuity gives a ball around $\vec x_0$ on which $f &gt; f(\vec x_0)/2$, and there the integral is positive. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem · the <span class="term">continuity equation</span></span>
+        $$\frac{\partial\rho}{\partial t} + \nabla\!\cdot(\rho\,\vec v) = 0$$
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\partial_t\rho$ and $\nabla\!\cdot(\rho\vec v)$ are both $\mathrm{kg\,m^{-3}s^{-1}}$ ✓. <b>One dimension:</b> $\rho_t + (\rho v)_x = 0$, the shape of unit 18's $e_t + S_x = 0$ ✓. <b>Rigid translation</b> $\rho(\vec x - \vec u t)$, $\vec v = \vec u$ constant: $-\vec u\cdot\nabla\rho + \vec u\cdot\nabla\rho = 0$ ✓.</p>
+      </div>
+      <p class="small">For <span class="ref" data-ref="air">the air</span>: $\rho = \rho_0$, $\vec v = 0$ satisfies it trivially. A sound wave will be a small solution near this one, and this is the first of the two equations to be <span class="ref" data-ref="lin">linearised</span>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The pattern.</b> Every local conservation law in the course is produced by exactly these three moves:
+    (1) state the budget for an arbitrary region — density integrated over the region changes by minus the
+    flux through the boundary, plus any source; (2) convert the boundary term with the divergence theorem
+    and move the time derivative inside; (3) localise. The output is always
+    $\partial_t(\text{density}) + \nabla\!\cdot(\text{flux}) = \text{source}$. Problem P3 runs it for a
+    pollutant that is carried, diffuses and decays.</p>
+    <p><b>Leibniz's rule in three dimensions.</b> Unit 18 proved
+    $\frac{\mathrm d}{\mathrm dt}\int_0^L F\,\mathrm dx = \int_0^L\partial_tF\,\mathrm dx$ for $F$ and $\partial_tF$
+    continuous on a compact rectangle. The proof uses only the mean value theorem in $t$ and uniform
+    continuity of $\partial_tF$ on a compact set, and runs word for word with $[0,L]$ replaced by a bounded
+    closed region $\bar V$: the difference quotient differs from $\partial_tF$ by at most the modulus of
+    uniform continuity, uniformly over $\bar V$, and the integral of something uniformly small over a set of
+    finite volume is small.</p>
+    <p><b>The localisation lemma, precisely.</b> Balls suffice; so do cubes, or any family of sets shrinking
+    to each point. The lemma needs continuity: for a merely integrable $f$ the conclusion is "zero almost
+    everywhere", which is the version used when shocks are allowed.</p>
+    <p><b>The other reading.</b> Expanding, $\partial_t\rho + \vec v\cdot\nabla\rho + \rho\nabla\!\cdot\vec v = 0$.
+    The first two terms are the rate of change of density seen by a moving particle (next slide), so the
+    density of a particle changes only through $\nabla\!\cdot\vec v$, the local rate of volume expansion.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · local form</p>
+  <h2>The material derivative</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Two descriptions of a flow. <span class="term">Eulerian description</span>: fields $\rho(\vec x,t)$, $\vec v(\vec x,t)$ at fixed points of space. <span class="term">Lagrangian description</span>: follow each particle, $\dot{\vec x} = \vec v(\vec x, t)$.</p>
+      <div class="box def"><span class="label">definition · <span class="term">material derivative</span></span>
+        <p class="small">The rate of change of a field $f$ seen by a particle: by unit 03's chain rule,</p>
+        $$\frac{\mathrm D f}{\mathrm Dt} := \frac{\mathrm d}{\mathrm dt}f\big(\vec x(t), t\big) = \partial_tf + \vec v\cdot\nabla f .$$
+      </div>
+      <div class="box thm"><span class="label">consequence · the acceleration of a fluid particle</span>
+        $$\vec a = \frac{\mathrm D\vec v}{\mathrm Dt} = \partial_t\vec v + (\vec v\cdot\nabla)\vec v$$
+        <p class="small">In components, $a_i = \partial_tv_i + v_j\,\partial_jv_i$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box"><span class="label">steady, and still accelerating</span>
+        <p class="small">Rigid rotation, $\vec v = \Omega(-y, x, 0)$. Nothing depends on $t$, so $\partial_t\vec v = 0$. But</p>
+        $$\begin{aligned}(\vec v\cdot\nabla)\vec v &amp;= \Omega(-y\,\partial_x + x\,\partial_y)\,\Omega(-y,x,0)\\ &amp;= -\Omega^2(x, y, 0),\end{aligned}$$
+        <p class="small">the centripetal acceleration $\Omega^2 r$ of unit 03, pointing in ✓.</p>
+      </div>
+      <div class="box good"><span class="label">continuity, rewritten</span>
+        <p class="small">$\dfrac{\mathrm D\rho}{\mathrm Dt} + \rho\,\nabla\!\cdot\vec v = 0$. A flow is <span class="term">incompressible</span> when each particle keeps its density, $\mathrm D\rho/\mathrm Dt = 0$ — equivalently $\nabla\!\cdot\vec v = 0$. Not the same as $\rho$ uniform.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $(\vec v\cdot\nabla)\vec v$ is the whole difficulty of fluid mechanics.</b> Newton's law for a
+    fluid particle is linear in the particle's acceleration, but written in the Eulerian fields the
+    acceleration contains the product of $\vec v$ with its own derivative. That quadratic term is the source of
+    turbulence, of shocks, and of the fact that the Navier–Stokes existence problem is open. Section 4
+    linearises about rest precisely by throwing it away, and checks that doing so is legitimate for sound.</p>
+    <p><b>The operator $\vec v\cdot\nabla$.</b> Applied to a vector field $\vec w$, $(\vec v\cdot\nabla)\vec w$ is the
+    directional derivative of $\vec w$ along $\vec v$: in unit 03's language, the total derivative $D\vec w$
+    applied to the vector $\vec v$, with components $v_j\partial_jw_i$. The notation suggests "$\vec v$ dotted with
+    the gradient of a vector"; read honestly, that gradient is the (1,1)-tensor $D\vec w$, and the dot is its
+    contraction with $\vec v$ on the second slot — which is exactly $v_j\partial_jw_i$.</p>
+    <p><b>The rotation example in full.</b> $\vec v\cdot\nabla = -\Omega y\,\partial_x + \Omega x\,\partial_y$. Applied
+    to $v_1 = -\Omega y$: $-\Omega y\cdot0 + \Omega x\cdot(-\Omega) = -\Omega^2x$. Applied to $v_2 = \Omega x$:
+    $-\Omega y\cdot\Omega + \Omega x\cdot 0 = -\Omega^2y$. Applied to $v_3 = 0$: $0$. So
+    $\vec a = -\Omega^2(x,y,0)$, magnitude $\Omega^2 r$, directed to the axis. Its divergence is
+    $\partial_x(-\Omega y) + \partial_y(\Omega x) = 0$: rigid rotation is incompressible, as it must be.</p>
+    <p><b>Names.</b> Also called the convective, substantial or Lagrangian derivative. Euler introduced the
+    fixed-point description in 1757; the particle description, despite the name, is also Euler's. Do not
+    confuse this with unit 03's transport theorem for rotating frames — a different theorem with a similar
+    name, about the next slide's subject in a different setting.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · local form</p>
+  <h2>The Reynolds transport theorem</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Let $\varphi_t$ be the <span class="term">flow map</span> of $\vec v$ (unit 01: $\partial_t\varphi_t(\vec X) = \vec v(\varphi_t(\vec X), t)$, $\varphi_0 = \mathrm{id}$), and $\Omega_t = \varphi_t(\Omega_0)$ a <span class="term">material region</span>: the same particles at every time.</p>
+      <div class="box thm"><span class="label">theorem · <span class="term">Reynolds transport theorem</span></span>
+        $$\begin{aligned}\frac{\mathrm d}{\mathrm dt}\int_{\Omega_t} f\,\mathrm dV &amp;= \int_{\Omega_t}\Big(\frac{\mathrm Df}{\mathrm Dt} + f\,\nabla\!\cdot\vec v\Big)\mathrm dV\\ &amp;= \int_{\Omega_t}\partial_tf\,\mathrm dV + \oint_{\partial\Omega_t} f\,\vec v\cdot\vec n\,\mathrm dA\end{aligned}$$
+      </div>
+      <div class="box thm"><span class="label">lemma · <span class="term">Euler's expansion formula</span></span>
+        <p class="small">$J = \det D\varphi_t$ satisfies $\partial_tJ = (\nabla\!\cdot\vec v)\,J$. From <span class="term">Jacobi's formula</span> $\frac{\mathrm d}{\mathrm dt}\det F = \det F\,\operatorname{tr}(F^{-1}\dot F)$ and $\dot F = (D\vec v)F$.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Proof.</b> Pull back to $\Omega_0$ by unit 05's change of variables, differentiate under the integral, push forward:</p>
+      $$\begin{aligned}&amp;\frac{\mathrm d}{\mathrm dt}\int_{\Omega_0} f(\varphi_t, t)\,J\,\mathrm dV_X\\ &amp;\quad= \int_{\Omega_0}\Big(\frac{\mathrm Df}{\mathrm Dt} + f\,\nabla\!\cdot\vec v\Big)J\,\mathrm dV_X. \ \square\end{aligned}$$
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">$f = 1$: $\dot{\mathrm{vol}}(\Omega_t) = \int\nabla\!\cdot\vec v$ — divergence is the rate of volume growth ✓. $\vec v = 0$: Leibniz's rule ✓. Dimensions: $[f]\,\mathrm{m^3s^{-1}}$ on both sides ✓.</p>
+      </div>
+      <div class="box thm"><span class="label">corollary · the one used below</span>
+        <p class="small">With continuity, $\displaystyle\frac{\mathrm d}{\mathrm dt}\int_{\Omega_t}\rho\,g\,\mathrm dV = \int_{\Omega_t}\rho\,\frac{\mathrm Dg}{\mathrm Dt}\,\mathrm dV$ for any field $g$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Cited.</b> If $\vec v$ is $C^1$, the flow $\varphi_t(\vec X)$ is $C^1$ jointly in $(\vec X, t)$, and
+    $F = D_X\varphi_t$ satisfies the variational equation $\partial_tF = (D\vec v)(\varphi_t(\vec X),t)\,F$ with
+    $F(0) = I$. Unit 01 gave existence and uniqueness of the flow; differentiability in the initial point is
+    the theorem on differentiable dependence on initial conditions, proved in Arnold, <em>Ordinary Differential
+    Equations</em>, ch. 4. The variational equation is what you get by differentiating
+    $\partial_t\varphi = \vec v(\varphi,t)$ in $\vec X$ and exchanging derivatives, which that theorem licenses.</p>
+    <p><b>Jacobi's formula.</b> For an invertible matrix $F(t)$,
+    $\det(F + h\dot F + o(h)) = \det F\,\det(I + hF^{-1}\dot F + o(h))$. For any matrix $B$,
+    $\det(I + hB) = 1 + h\operatorname{tr}B + O(h^2)$: in the Leibniz expansion of the determinant, every
+    permutation other than the identity picks at least two off-diagonal entries, each $O(h)$, and the identity
+    permutation contributes $\prod(1 + hB_{ii}) = 1 + h\operatorname{tr}B + O(h^2)$. Hence
+    $\frac{\mathrm d}{\mathrm dt}\det F = \det F\,\operatorname{tr}(F^{-1}\dot F)$.</p>
+    <p><b>Euler's expansion formula.</b> With $\dot F = (D\vec v)F$: $\operatorname{tr}(F^{-1}(D\vec v)F) = \operatorname{tr}D\vec v
+    = \nabla\!\cdot\vec v$, so $\partial_tJ = (\nabla\!\cdot\vec v)J$. Since $J(0) = 1$, this linear ODE gives
+    $J = \exp\int_0^t\nabla\!\cdot\vec v\,\mathrm ds &gt; 0$, so $\varphi_t$ preserves orientation and the change of
+    variables needs no absolute value.</p>
+    <p><b>The theorem.</b> By change of variables (unit 05), $\int_{\Omega_t}f\,\mathrm dV = \int_{\Omega_0}f(\varphi_t(\vec X),t)\,J(\vec X,t)\,\mathrm dV_X$.
+    The region $\Omega_0$ no longer moves, so Leibniz's rule applies (the integrand is $C^1$ in $t$, continuous
+    on the compact $\bar\Omega_0\times[t_1,t_2]$). By the chain rule, $\partial_t\big[f(\varphi_t(\vec X),t)\big] = \partial_tf + \vec v\cdot\nabla f = \mathrm Df/\mathrm Dt$,
+    evaluated at $\varphi_t(\vec X)$. With the expansion formula, the integrand's derivative is
+    $(\mathrm Df/\mathrm Dt + f\nabla\!\cdot\vec v)J$; change variables back. The second form follows from
+    $\mathrm Df/\mathrm Dt + f\nabla\!\cdot\vec v = \partial_tf + \nabla\!\cdot(f\vec v)$ and the divergence theorem.
+    It reads: the change is what changes at fixed points, plus what the moving boundary sweeps up.</p>
+    <p><b>The corollary.</b> Apply the theorem to $f = \rho g$:
+    $\mathrm D(\rho g)/\mathrm Dt + \rho g\nabla\!\cdot\vec v = \rho\,\mathrm Dg/\mathrm Dt + g\,(\mathrm D\rho/\mathrm Dt + \rho\nabla\!\cdot\vec v)$,
+    and the bracket vanishes by continuity. Mass is carried along, so "$\rho\,\mathrm dV$" behaves as a constant
+    mass element and only $g$ is differentiated.</p>
+    <p><b>Name clash.</b> Unit 03 also has a "transport theorem", $(\mathrm d/\mathrm dt)_{\text{inertial}} = (\mathrm d/\mathrm dt)_{\text{rot}} + \vec\omega\times$.
+    Both are about differentiating in a moving setting, and both are called that; they are different theorems.
+    This one is always "Reynolds" here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · local form</p>
+  <h2>Momentum: Cauchy's equation of motion</h2>
+  <div class="cols">
+    <div>
+      <p class="small">The balance law of section 1, for a material region $\Omega_t$:</p>
+      $$\frac{\mathrm d}{\mathrm dt}\int_{\Omega_t}\!\rho\vec v\,\mathrm dV = \oint_{\partial\Omega_t}\!\sigma\vec n\,\mathrm dA + \int_{\Omega_t}\!\rho\vec b\,\mathrm dV$$
+      <p class="small">Left: the corollary, $\int\rho\,\mathrm D\vec v/\mathrm Dt$. Right: the tensor divergence theorem, $\int\operatorname{div}\sigma$. Localise.</p>
+      <div class="box thm"><span class="label">theorem · <span class="term">Cauchy's equation of motion</span></span>
+        $$\rho\,\frac{\mathrm D\vec v}{\mathrm Dt} = \operatorname{div}\sigma + \rho\,\vec b$$
+        <p class="small">In components: $\rho\,(\partial_tv_i + v_j\partial_jv_i) = \partial_j\sigma_{ij} + \rho\,b_i$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">conservation form</span>
+        $$\partial_t(\rho v_i) + \partial_j\Pi_{ij} = \rho\,b_i,$$ $$\Pi_{ij} = \rho\,v_iv_j - \sigma_{ij}$$
+        <p class="small">$\rho\vec v$ is the density of momentum, and $\Pi$, the <span class="term">momentum flux tensor</span>, its flux: momentum carried by moving matter, $\rho\vec v\otimes\vec v$, plus momentum transmitted by stress, $-\sigma$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> every term $\mathrm{N\,m^{-3}}$ ✓. <b>Rest:</b> $\operatorname{div}\sigma + \rho\vec b = 0$, the equation of statics ✓. <b>Uniform stress, no body force:</b> no acceleration ✓. <b>The two forms agree:</b> their difference is $v_i\times$(continuity) ✓.</p>
+      </div>
+      <p class="small">For <span class="ref" data-ref="rest">air at rest</span>, $-p_0I$ is constant: $\operatorname{div}\sigma = 0$ and nothing moves. The second equation to be <span class="ref" data-ref="lin">linearised</span>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the equivalence of the two forms.</b>
+    $\partial_t(\rho v_i) + \partial_j(\rho v_iv_j) = v_i\big(\partial_t\rho + \partial_j(\rho v_j)\big) + \rho\,(\partial_tv_i + v_j\partial_jv_i)$
+    by the product rule. The first bracket vanishes by continuity and the second is $\rho\,\mathrm Dv_i/\mathrm Dt$.
+    So the conservation form's left side is $\rho\,\mathrm Dv_i/\mathrm Dt + \partial_j(-\sigma_{ij})$ rearranged,
+    and the two statements are the same equation.</p>
+    <p><b>Why the conservation form matters.</b> It is the fixed-region budget: integrate over a fixed $V$ and
+    the divergence theorem gives $\frac{\mathrm d}{\mathrm dt}\int_V\rho\vec v = -\oint_{\partial V}\Pi\vec n\,\mathrm dA + \int_V\rho\vec b$.
+    Momentum inside a fixed box changes because moving matter carries it across the walls ($\rho\vec v\otimes\vec v$)
+    and because the material outside pushes on the walls ($-\sigma$). It is the form that survives shocks, via
+    jump conditions, and it is the form that becomes relativistic: in unit 35 the momentum flux $\Pi_{ij}$ becomes
+    the spatial block $T^{ij}$ of the stress–energy tensor.</p>
+    <p><b>Unit 18, recovered.</b> For a string along $x$ under tension $T$ with small transverse displacement $u$,
+    the transverse force across a cut is $-Tu_x$ (from the left part on the right) — a $2\times2$ stress with one
+    off-diagonal entry, in effect — and the equation of motion is $\mu u_{tt} = \partial_x(Tu_x)$, which is
+    Cauchy's equation in one dimension with $\rho\,\mathrm Dv/\mathrm Dt \approx \mu u_{tt}$ to first order.</p>
+    <p><b>History.</b> Cauchy, 1827–28, "Sur les équations qui expriment les conditions d'équilibre ou les lois du
+    mouvement intérieur d'un corps solide". Euler had the special case $\sigma = -pI$ in 1757.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · local form · example</p>
+  <h2>Archimedes, from the divergence theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 2</span>
+        <p class="small">A body occupying region $B$, volume $V$, is held under water ($\rho_w = 998.2\ \mathrm{kg\,m^{-3}}$) at rest. Find the force the water exerts on it.</p>
+        <p class="small"><b>1. The water's stress.</b> A fluid at rest: $\sigma = -pI$ (Pascal), so $\operatorname{div}\sigma = -\nabla p$.</p>
+        <p class="small"><b>2. The pressure.</b> Cauchy's equation at rest with $\vec b = \vec g$: $0 = -\nabla p + \rho_w\vec g$. With $z$ up, $\partial_zp = -\rho_wg$, so $p = p_{\text{atm}} + \rho_wg\,d$ at depth $d$: the <span class="term">hydrostatic equilibrium</span> law.</p>
+        <p class="small"><b>3. The force.</b> The traction on the body is $\sigma\vec n = -p\,\vec n$ ($\vec n$ out of $B$). Extend $p$'s formula into $B$ and use the tensor divergence theorem on $-pI$:</p>
+        $$\vec F = -\!\oint_{\partial B}\!p\,\vec n\,\mathrm dA = -\!\int_B\!\nabla p\,\mathrm dV = -\rho_w V\vec g$$
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">result · <span class="term">Archimedes' principle</span></span>
+        <p class="small">An upward force equal to the weight of the displaced water, whatever the shape of $B$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\mathrm{kg\,m^{-3}}\cdot\mathrm{m^3}\cdot\mathrm{m\,s^{-2}} = \mathrm N$ ✓. <b>Limit</b> $\rho_w \to 0$: no buoyancy ✓. <b>A cube</b> of side $\ell$: top and bottom differ in pressure by $\rho_wg\ell$ on area $\ell^2$, net $\rho_wg\ell^3$ up; the sides cancel ✓.</p>
+        <p class="small"><b>Numbers:</b> $p$ rises by one atmosphere every $p_0/\rho_wg = 10.35$ m. One litre submerged: $F = 9.789$ N.</p>
+      </div>
+      <div class="box"><span class="label">in <span class="ref" data-ref="air">the air</span></span>
+        <p class="small">A person of volume $70$ L is buoyed by $\rho_0Vg = 0.827$ N: the weight of $84$ g of air, which a bathroom scale silently subtracts.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 3, and the one subtle point.</b> The divergence theorem needs a $C^1$ field on all of $B$, but inside
+    $B$ there is no water. The trick is that the integrand $-p\vec n$ on $\partial B$ depends only on the pressure
+    <em>at the surface</em>, which is the same whatever fills $B$, because the water outside is in the same state
+    either way. So define $p$ inside $B$ by the same formula $p_{\text{atm}} + \rho_wgd$ — a smooth field — and the
+    theorem applies. Physically: replace the body by water, which would sit in equilibrium, so the surrounding water
+    must push on it with exactly its weight.</p>
+    <p><b>The numbers.</b> $p_0/(\rho_wg) = 101\,325/(998.2\times9.80665) = 10.35$ m, with standard gravity
+    $g = 9.80665\ \mathrm{m\,s^{-2}}$ and water at $20\,{}^\circ\mathrm C$. One litre: $0.9982\ \mathrm{kg}\times9.80665 = 9.789$ N.
+    The person: $1.204\times0.070\times9.80665 = 0.827$ N, the weight of $1.204\times70 = 84$ g of air. For a
+    precise weighing of a low-density object this is not negligible: it is why analytical balances are corrected
+    for air buoyancy.</p>
+    <p><b>Why this counts as the unit's method in miniature.</b> A surface integral that one could not hope to
+    compute for an arbitrary shape became a volume integral of something constant. That is what the divergence
+    theorem does for every conservation law in this unit, and it is exactly the move that made Gauss's law
+    (unit 05) useful.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · local form</p>
+  <h2>Angular momentum makes stress symmetric</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Write angular momentum as unit 03's antisymmetric matrix: $\vec x\times\vec p \leftrightarrow x_ip_j - x_jp_i$. The <span class="term">angular momentum balance</span>, for every material region:</p>
+      $$\begin{aligned}\tfrac{\mathrm d}{\mathrm dt}\!\textstyle\int\!\rho(x_iv_j - x_jv_i) &amp;= \textstyle\oint(x_it_j - x_jt_i)\,\mathrm dA\\ &amp;\quad+ \textstyle\int\rho(x_ib_j - x_jb_i)\end{aligned}$$
+      <div class="box thm"><span class="label">theorem · <span class="term">symmetry of stress</span></span>
+        <p class="small">If all torques are moments of forces, and $\sigma$ is $C^1$, then $\sigma_{ij} = \sigma_{ji}$.</p>
+        <p class="small"><b>Proof.</b> Divergence theorem on the surface term, the corollary on the left, and Cauchy's equation: everything cancels except</p>
+        $$\int_{\Omega}(\sigma_{ji} - \sigma_{ij})\,\mathrm dV = 0 \ \text{ for every }\Omega. \ \square$$
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <div class="box"><span class="label">the small-cube picture</span>
+        <p class="small">A cube of side $\ell$: shears on its faces give torque $(\sigma_{21} - \sigma_{12})\ell^3$; its moment of inertia is $\rho\ell^5/6$. Angular acceleration $6(\sigma_{21} - \sigma_{12})/\rho\ell^2$: <b>infinite as $\ell \to 0$</b> unless the shears are equal.</p>
+      </div>
+      <div class="box warn"><span class="label">the assumption it quietly uses</span>
+        <p class="small">No <span class="term">body couple</span> and no couple stress: nothing twists the material except moments of forces. A ferrofluid in a magnetic field, whose particles are twisted by $\vec m\times\vec B$, violates it, and its stress is <b>not</b> symmetric.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Fix $i \ne j$. <b>Surface term.</b> With $t_j = \sigma_{jk}n_k$, the integrand is $w_kn_k$ for the vector field
+    $w_k = x_i\sigma_{jk} - x_j\sigma_{ik}$. The divergence theorem gives $\int\partial_kw_k$, and
+    $\partial_kw_k = \delta_{ik}\sigma_{jk} - \delta_{jk}\sigma_{ik} + x_i\partial_k\sigma_{jk} - x_j\partial_k\sigma_{ik}
+    = \sigma_{ji} - \sigma_{ij} + x_i(\operatorname{div}\sigma)_j - x_j(\operatorname{div}\sigma)_i$.</p>
+    <p><b>Left side.</b> By the corollary of the transport theorem with $g = x_iv_j - x_jv_i$, it is
+    $\int\rho\,\mathrm Dg/\mathrm Dt$. Since $\mathrm Dx_i/\mathrm Dt = v_i$ (the material derivative of a
+    coordinate function is the velocity component),
+    $\mathrm Dg/\mathrm Dt = v_iv_j + x_ia_j - v_jv_i - x_ja_i = x_ia_j - x_ja_i$.</p>
+    <p><b>Combine.</b> The balance becomes
+    $\int\big[\rho(x_ia_j - x_ja_i) - x_i((\operatorname{div}\sigma)_j + \rho b_j) + x_j((\operatorname{div}\sigma)_i + \rho b_i)\big] = \int(\sigma_{ji} - \sigma_{ij})$.
+    Cauchy's equation $\rho a_k = (\operatorname{div}\sigma)_k + \rho b_k$ makes the left integrand vanish identically.
+    So $\int_\Omega(\sigma_{ji} - \sigma_{ij})\,\mathrm dV = 0$ for every material region, and every ball is a
+    material region at the instant considered; the localisation lemma gives $\sigma_{ij} = \sigma_{ji}$. $\square$</p>
+    <p><b>With a body couple.</b> If a torque density $m_{ij}$ (antisymmetric, per unit volume) acts in addition,
+    the balance acquires $+\int m_{ij}$ on the right and the conclusion becomes $\sigma_{ij} - \sigma_{ji} = m_{ij}$:
+    the antisymmetric part of stress is the body couple. Problem P2 asks for this. Ferrofluids, liquid crystals and
+    polarised media in strong fields are the physical cases; for everything else in this course, including every
+    fluid and solid in sections 3 to 5, the stress is symmetric.</p>
+    <p><b>The cube, carefully.</b> Faces $x_1 = \pm\ell/2$ have normals $\pm\vec e_1$ and tractions $\pm\sigma\vec e_1$,
+    whose $\vec e_2$ components are $\pm\sigma_{21}$; the torque about the $x_3$ axis, $x_1t_2 - x_2t_1$ summed, is
+    $2\cdot(\ell/2)\sigma_{21}\ell^2 = \sigma_{21}\ell^3$. The faces $x_2 = \pm\ell/2$ give $-\sigma_{12}\ell^3$. A
+    cube's moment of inertia about a central axis is $m\ell^2/6 = \rho\ell^5/6$ (unit 16). The picture is persuasive,
+    but it assumes the stress is uniform over the cube; the integral proof above is the one that needs no such
+    assumption.</p>
+    <p><b>Consequence.</b> A symmetric $\sigma$ has, by unit 16's spectral theorem, an orthonormal eigenbasis: three
+    <em>principal directions</em> on whose planes the traction is purely normal. The six independent components are
+    what section 3 must supply.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Closing the equations</h2>
+  <p>Conservation laws are the same for every material; what is left over is a statement about the material, and symmetry makes it short.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · closure</p>
+  <h2>Ten unknowns, four equations</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th>unknown fields</th><th class="num">count</th><th>equations</th><th class="num">count</th></tr></thead>
+        <tbody>
+          <tr><td>$\rho$</td><td class="num">1</td><td>continuity</td><td class="num">1</td></tr>
+          <tr><td>$\vec v$</td><td class="num">3</td><td>Cauchy's equation</td><td class="num">3</td></tr>
+          <tr><td>$\sigma$, symmetric</td><td class="num">6</td><td>—</td><td class="num"></td></tr>
+          <tr><td><b>total</b></td><td class="num"><b>10</b></td><td></td><td class="num"><b>4</b></td></tr>
+        </tbody>
+      </table>
+      <p class="small">The missing six are a <span class="term">constitutive law</span>: how <em>this</em> material's stress depends on its motion. Mass and momentum are the same for honey, steel and air; stress is not.</p>
+    </div>
+    <div>
+      <div class="box def"><span class="label">the simplest closure · <span class="term">ideal fluid</span></span>
+        <p class="small">$\sigma = -p\,I$ always, moving or not. Then $\operatorname{div}\sigma = -\nabla p$ and the equations become <span class="term">Euler's equations</span> (1757):</p>
+        $$\partial_t\rho + \nabla\!\cdot(\rho\vec v) = 0,$$ $$\rho\,\frac{\mathrm D\vec v}{\mathrm Dt} = -\nabla p + \rho\,\vec b .$$
+      </div>
+      <div class="box warn"><span class="label">still one short</span>
+        <p class="small">Unknowns $\rho, \vec v, p$: five. Equations: four. The last is an <span class="term">equation of state</span>, and for <span class="ref" data-ref="air">the air</span> the question is which one: a <span class="term">barotropic</span> law $p = P(\rho)$, but <b>which</b> $P$? That is the whole of the Newton–Laplace dispute.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why ten.</b> Before section 2's symmetry theorem $\sigma$ had nine components; angular-momentum balance
+    removed three, which is the precise sense in which angular momentum "is" the symmetry of stress. The count is
+    of fields, not numbers: each unknown is a function of $(\vec x,t)$ and each equation a PDE.</p>
+    <p><b>Checks on Euler's equations.</b> Dimensions: $\nabla p$ is $\mathrm{Pa\,m^{-1}} = \mathrm{N\,m^{-3}}$, like
+    $\rho\,\mathrm D\vec v/\mathrm Dt$ ✓. At rest they reduce to hydrostatics, $\nabla p = \rho\vec b$, the second
+    step of the Archimedes example ✓. With $p$ constant and $\vec b = 0$ they give $\mathrm D\vec v/\mathrm Dt = 0$:
+    each particle moves in a straight line at constant speed, Newton's first law for fluid particles ✓.</p>
+    <p><b>The full thermodynamic closure</b>, for the record. A real gas has $p = p(\rho, s)$ with $s$ the entropy
+    per unit mass, and an ideal (inviscid, non-conducting) fluid carries its entropy with it,
+    $\mathrm Ds/\mathrm Dt = 0$ (cited: Landau and Lifshitz, <em>Fluid Mechanics</em>, §2). That adds one
+    unknown and one equation. If the entropy starts uniform it stays uniform, and then $p$ is a function of $\rho$
+    alone: the barotropic closure, with $P$ the adiabatic curve. Section 4 derives that curve from the first law
+    without entropy, which is enough for sound.</p>
+    <p><b>Honey, steel, air.</b> Honey: stress depends on the rate of deformation (viscosity, the last slide of this
+    section). Steel: on the deformation itself (elasticity, the next three slides). Air: to excellent approximation,
+    on density alone. Real materials mix these, and the mixture is called viscoelasticity; this course needs only
+    the pure cases.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · closure</p>
+  <h2>Strain</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A solid remembers a reference state. A particle at $\vec X$ there sits at $\vec x = \vec X + \vec u(\vec X)$ now; $\vec u$ is the <span class="term">displacement field</span>. Split its derivative (unit 16):</p>
+      $$D\vec u = \varepsilon + \omega, \quad \varepsilon_{ij} = \tfrac12(\partial_iu_j + \partial_ju_i),$$
+      <p class="small">and $\omega_{ij} = \tfrac12(\partial_ju_i - \partial_iu_j)$ the antisymmetric remainder.</p>
+      <div class="box thm"><span class="label">theorem · what each part does</span>
+        <p class="small">For $|D\vec u| \ll 1$, to first order: $\omega$ is an <span class="term">infinitesimal rotation</span> and changes no lengths; the <span class="term">strain tensor</span> $\varepsilon$ changes lengths,</p>
+        $$|\mathrm d\vec x|^2 = |\mathrm d\vec X|^2 + 2\,\varepsilon(\mathrm d\vec X, \mathrm d\vec X) + O(|D\vec u|^2);$$
+        <p class="small">and volumes change by the <span class="term">dilatation</span> $\operatorname{tr}\varepsilon = \nabla\!\cdot\vec u = \Delta V/V$.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Mathematics:</b> $\varepsilon$ is a symmetric bilinear form. <b>Physics:</b> for a unit vector $\vec a$, $\varepsilon(\vec a,\vec a)$ is the fractional stretch of a fibre along $\vec a$.</p>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Rigid rotation</b> $\vec u = \omega\vec X$, $\omega$ antisymmetric: $\varepsilon = 0$, no strain ✓. <b>Uniform stretch</b> $\vec u = \delta\,X_1\vec e_1$: $\varepsilon_{11} = \delta$, a fibre along $\vec e_1$ grows by the fraction $\delta$, and $\Delta V/V = \delta$ ✓. <b>Dimensionless</b> ✓.</p>
+      </div>
+      <div class="box"><span class="label">in <span class="ref" data-ref="air">the air</span></span>
+        <p class="small">A sound wave displaces air by $\vec u$; mass conservation gives $\rho'/\rho_0 = -\nabla\!\cdot\vec u$ to first order. Compression is negative dilatation.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Lengths.</b> $\mathrm d\vec x = (I + D\vec u)\,\mathrm d\vec X$, so
+    $|\mathrm d\vec x|^2 = \mathrm d\vec X^{\!\top}(I + D\vec u)^{\!\top}(I + D\vec u)\,\mathrm d\vec X
+    = |\mathrm d\vec X|^2 + \mathrm d\vec X^{\!\top}(D\vec u + D\vec u^{\!\top})\,\mathrm d\vec X + |D\vec u\,\mathrm d\vec X|^2$.
+    The middle term is $2\,\mathrm d\vec X\cdot\varepsilon\,\mathrm d\vec X$; the antisymmetric part cancels from a
+    quadratic form. The last is second order.</p>
+    <p><b>The rotation.</b> $(I + \omega)^{\!\top}(I + \omega) = I + \omega^{\!\top} + \omega + \omega^{\!\top}\omega = I + O(|\omega|^2)$
+    because $\omega^{\!\top} = -\omega$: to first order $I + \omega$ is orthogonal, an element of unit 03's
+    $\mathfrak{so}(3)$ exponentiated to first order. Via the hat map it is a rotation by the small vector
+    $\tfrac12\nabla\times\vec u$ (unit 04's curl), which is why the curl of a displacement is called its rotation.</p>
+    <p><b>Volumes.</b> By change of variables (unit 05) a small volume scales by $\det(I + D\vec u)$, and by the
+    expansion used for Jacobi's formula, $\det(I + D\vec u) = 1 + \operatorname{tr}D\vec u + O(|D\vec u|^2)$.
+    $\operatorname{tr}D\vec u = \nabla\!\cdot\vec u = \operatorname{tr}\varepsilon$.</p>
+    <p><b>The air.</b> A fixed mass occupies volume $V(1 + \nabla\!\cdot\vec u)$ after displacement, so its density
+    is $\rho_0/(1 + \nabla\!\cdot\vec u) = \rho_0(1 - \nabla\!\cdot\vec u) + \ldots$ — the same statement as the
+    linearised continuity equation of section 4, integrated once in time.</p>
+    <p><b>Where the approximation lives.</b> Everything in this section is <em>linear</em> elasticity, valid for
+    $|D\vec u| \ll 1$. Steel yields at strains near $10^{-3}$, rock at similar values, so for the materials in this
+    unit the linear theory holds right up to failure. Rubber does not, and needs the finite-strain tensor
+    $\tfrac12(F^{\!\top}F - I)$, $F = I + D\vec u$, of which $\varepsilon$ is the linearisation.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · closure</p>
+  <h2>Isotropy leaves two constants</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A linearly elastic material: $\sigma = C(\varepsilon)$ with $C$ a linear map on symmetric matrices — the <span class="term">elasticity tensor</span>, a (0,4)-tensor, $6\times6 = 36$ constants.</p>
+      <div class="box def"><span class="label">definition · <span class="term">isotropic material</span></span>
+        <p class="small">Its response does not depend on orientation: $C(Q\varepsilon Q^{\!\top}) = Q\,C(\varepsilon)\,Q^{\!\top}$ for every $Q \in SO(3)$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">If $C$ is isotropic there are two numbers $\lambda, \mu$, the <span class="term">Lamé parameters</span>, with</p>
+        $$C(\varepsilon) = \lambda\,(\operatorname{tr}\varepsilon)\,I + 2\mu\,\varepsilon .$$
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof, in three moves</span>
+        <p class="small"><b>1.</b> Diagonalise: $\varepsilon = QDQ^{\!\top}$, $Q \in SO(3)$ (spectral theorem). By isotropy, enough to know $C(D)$.</p>
+        <p class="small"><b>2.</b> The half-turn $R_1 = \operatorname{diag}(1,-1,-1)$ fixes $D$, so $C(D)$ commutes with it; with $R_2$ likewise, $C(D)$ is <b>diagonal</b>.</p>
+        <p class="small"><b>3.</b> Quarter-turns permute $D$'s entries, so $C$ on diagonals is a linear map on $\mathbb R^3$ commuting with every permutation: $d \mapsto 2\mu\,d + \lambda(\textstyle\sum d_k)(1,1,1)$. $\square$</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <p class="small muted">Thirty-six constants, two survive. The same theorem is used again for viscosity. Uniqueness forced by symmetry returns in unit 35, where Lovelock's theorem leaves only one candidate for the left side of Einstein's equations.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Step 1.</b> $\varepsilon$ is symmetric, so by the spectral theorem there is an orthogonal $Q$ with
+    $\varepsilon = QDQ^{\!\top}$, $D = \operatorname{diag}(d_1,d_2,d_3)$. If $\det Q = -1$, replace the first column of
+    $Q$ by its negative: still orthonormal eigenvectors, now $\det Q = +1$. Isotropy gives
+    $C(\varepsilon) = Q\,C(D)\,Q^{\!\top}$, so $C$ is determined by its values on diagonal matrices.</p>
+    <p><b>Step 2.</b> $R_1 = \operatorname{diag}(1,-1,-1)$ is the rotation by $\pi$ about $\vec e_1$, and $R_1DR_1^{\!\top} = D$.
+    Isotropy: $C(D) = R_1\,C(D)\,R_1^{\!\top}$. For any matrix $S$, $(R_1SR_1)_{12} = -S_{12}$ and $(R_1SR_1)_{13} = -S_{13}$,
+    so $C(D)_{12} = C(D)_{13} = 0$. The half-turn $R_2 = \operatorname{diag}(-1,1,-1)$ about $\vec e_2$ kills $C(D)_{12}$ and
+    $C(D)_{23}$ likewise. $C(D)$ is symmetric, so it is diagonal.</p>
+    <p><b>Step 3.</b> Let $A:\mathbb R^3\to\mathbb R^3$ be the linear map with $C(\operatorname{diag}(d)) = \operatorname{diag}(Ad)$.
+    The quarter-turn $P$ about $\vec e_3$ ($P\vec e_1 = \vec e_2$, $P\vec e_2 = -\vec e_1$, $P\vec e_3 = \vec e_3$) has
+    $P\operatorname{diag}(d_1,d_2,d_3)P^{\!\top} = \operatorname{diag}(d_2,d_1,d_3)$, since
+    $PDP^{\!\top} = \sum_id_i(P\vec e_i)(P\vec e_i)^{\!\top}$ and $P\vec e_2\,(P\vec e_2)^{\!\top} = \vec e_1\vec e_1^{\!\top}$.
+    Isotropy then says $A$ commutes with the transposition swapping coordinates 1 and 2; the quarter-turn about $\vec e_1$
+    gives the transposition of 2 and 3. Transpositions generate the symmetric group $S_3$, so $A$ commutes with every
+    permutation matrix $P_\pi$: $A_{\pi(i)\pi(j)} = A_{ij}$. $S_3$ acts transitively on the diagonal positions and on the
+    off-diagonal ordered pairs, so $A_{ii} = \alpha$ and $A_{ij} = \beta$ ($i\ne j$) for two numbers. Hence
+    $Ad = (\alpha - \beta)d + \beta(d_1 + d_2 + d_3)(1,1,1)$, i.e. $C(D) = (\alpha - \beta)D + \beta(\operatorname{tr}D)I$.
+    Put $2\mu = \alpha - \beta$, $\lambda = \beta$, and conjugate back by $Q$, using $\operatorname{tr}(QDQ^{\!\top}) = \operatorname{tr}D$
+    and $QIQ^{\!\top} = I$. $\square$</p>
+    <p><b>Converse.</b> $\lambda(\operatorname{tr}\varepsilon)I + 2\mu\varepsilon$ is isotropic for any $\lambda,\mu$: conjugation
+    by $Q$ preserves trace and fixes $I$. So the theorem is an exact characterisation.</p>
+    <p><b>Counting, for anisotropic materials.</b> Without isotropy, $C$ is any linear map of the six-dimensional space
+    of symmetric matrices: 36 constants. If the material stores elastic energy $W = \tfrac12\varepsilon : C(\varepsilon)$
+    — which the next slide assumes — $C$ is self-adjoint, leaving $6\cdot7/2 = 21$. Crystals realise the cases in
+    between: a cubic crystal has 3, a hexagonal one 5. Only reflections were not needed: rotations alone force the
+    isotropic form.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · closure</p>
+  <h2>Hooke's law and its two moduli</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Hooke's law</span>, isotropic</span>
+        $$\begin{aligned}\sigma &amp;= \lambda\,(\operatorname{tr}\varepsilon)\,I + 2\mu\,\varepsilon\\ &amp;= K(\operatorname{tr}\varepsilon)\,I + 2\mu\,\varepsilon_{\text{dev}}\end{aligned}$$
+        <p class="small">with $\varepsilon_{\text{dev}} = \varepsilon - \tfrac13(\operatorname{tr}\varepsilon)I$, the <span class="term">bulk modulus</span> $K = \lambda + \tfrac23\mu$ and the <span class="term">shear modulus</span> $\mu$.</p>
+      </div>
+      <div class="box thm"><span class="label">stability · the <span class="term">strain energy density</span></span>
+        $$W = \tfrac12K(\operatorname{tr}\varepsilon)^2 + \mu\,|\varepsilon_{\text{dev}}|^2,$$
+        <p class="small">and $\sigma_{ij} = \partial W/\partial\varepsilon_{ij}$.</p>
+        <p class="small">$W &gt; 0$ for every nonzero strain iff $K &gt; 0$ and $\mu &gt; 0$ — else the material would lower its energy by deforming spontaneously. Then $\lambda + \mu = K + \mu/3 &gt; 0$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\varepsilon$ is a pure number, so $\lambda, \mu, K$ are pascals ✓.</p>
+        <p class="small"><b>Uniform compression</b>, $\varepsilon = \tfrac13(\Delta V/V)I$: $\sigma = K(\Delta V/V)I$, so $p = -K\,\Delta V/V$ — $K$ is the pressure per fractional squeeze ✓.</p>
+        <p class="small"><b>Simple shear</b>, only $\varepsilon_{12} = \varepsilon_{21} = \gamma/2$: $\sigma_{12} = \mu\gamma$ — $\mu$ is the shear stress per radian of shear ✓.</p>
+        <p class="small"><b>Fluid limit</b> $\mu = 0$: $\sigma = K(\operatorname{tr}\varepsilon)I$, pure pressure, no shear ✓.</p>
+      </div>
+      <div class="box"><span class="label">two materials</span>
+        <p class="small">Steel, $\lambda = 115$ GPa, $\mu = 80$ GPa: $K = 168$ GPa. <span class="ref" data-ref="air">Air</span>, $\mu = 0$ and (section 4) $K = \gamma p_0 = 0.142$ MPa — a million times softer, and with no shear modulus at all.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The second form of Hooke's law.</b> $\lambda(\operatorname{tr}\varepsilon)I + 2\mu\varepsilon
+    = \lambda(\operatorname{tr}\varepsilon)I + 2\mu\varepsilon_{\text{dev}} + \tfrac23\mu(\operatorname{tr}\varepsilon)I$,
+    which is $K(\operatorname{tr}\varepsilon)I + 2\mu\varepsilon_{\text{dev}}$ with $K = \lambda + \tfrac23\mu$.
+    The split separates changes of volume (resisted by $K$) from changes of shape at fixed volume (resisted by $\mu$),
+    and the split is canonical because the isotropic/deviatoric decomposition is.</p>
+    <p><b>The energy.</b> $\varepsilon = \tfrac13(\operatorname{tr}\varepsilon)I + \varepsilon_{\text{dev}}$ is an orthogonal
+    decomposition for the inner product $A:B = \operatorname{tr}(A^{\!\top}B)$, since $I:\varepsilon_{\text{dev}} = \operatorname{tr}\varepsilon_{\text{dev}} = 0$;
+    so $|\varepsilon|^2 = \tfrac13(\operatorname{tr}\varepsilon)^2 + |\varepsilon_{\text{dev}}|^2$ and
+    $\tfrac12\lambda(\operatorname{tr}\varepsilon)^2 + \mu|\varepsilon|^2 = \tfrac12K(\operatorname{tr}\varepsilon)^2 + \mu|\varepsilon_{\text{dev}}|^2$.
+    Differentiating: $\partial W/\partial\varepsilon_{ij} = \lambda(\operatorname{tr}\varepsilon)\delta_{ij} + 2\mu\varepsilon_{ij}$ ✓.
+    <b>Positivity:</b> taking $\varepsilon_{\text{dev}} = 0$ forces $K &gt; 0$, taking $\operatorname{tr}\varepsilon = 0$ forces
+    $\mu &gt; 0$, and conversely both positive make $W$ a sum of nonnegative terms vanishing only at $\varepsilon = 0$.
+    This inequality is what section 5 needs to prove $c_L &gt; c_T$.</p>
+    <p><b>History.</b> Hooke, 1676, as an anagram — <em>ceiiinosssttuv</em>, <em>ut tensio sic vis</em>, "as the
+    extension, so the force" — for a spring. The tensor form and its two constants are Navier (1821, with one constant,
+    from a molecular model that turned out too restrictive), Cauchy (1822–28) and Green (1839), who derived the count
+    of 21 from the existence of an energy. Lamé's name is on the constants from his 1852 textbook.</p>
+    <p><b>The steel numbers</b> are representative of carbon steel, not of any particular alloy; tables give
+    $\mu \approx 79$–$82$ GPa and a bulk modulus near $160$–$170$ GPa (cited: Kaye and Laby, <em>Tables of Physical and
+    Chemical Constants</em>, the section on elastic moduli). Air's $K = \gamma p_0 = 1.4\times101\,325 = 141\,855$ Pa;
+    the ratio is $1.19\times10^6$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · closure</p>
+  <h2>Viscosity: the Navier–Stokes equations</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A fluid resists the <em>rate</em> of deformation. The <span class="term">rate-of-strain tensor</span> $e = \tfrac12(D\vec v + D\vec v^{\!\top})$ plays the role of $\varepsilon$; a <span class="term">Newtonian fluid</span> has $\sigma = -pI + \tau$ with $\tau$ linear and isotropic in $e$. The isotropy theorem gives</p>
+      $$\tau = 2\eta\big(e - \tfrac13(\operatorname{tr}e)I\big) + \zeta\,(\operatorname{tr}e)\,I ,$$
+      <p class="small">with the <span class="term">viscosity</span> $\eta$ and the <span class="term">bulk viscosity</span> $\zeta$. Taking $\operatorname{div}$:</p>
+      <div class="box thm"><span class="label">the <span class="term">Navier–Stokes equations</span>, stated</span>
+        $$\begin{aligned}\rho\frac{\mathrm D\vec v}{\mathrm Dt} = &amp;-\nabla p + \eta\,\nabla^2\vec v\\ &amp;+ \big(\zeta + \tfrac13\eta\big)\nabla(\nabla\!\cdot\vec v) + \rho\vec b\end{aligned}$$
+        <p class="small">and, if incompressible ($\nabla\!\cdot\vec v = 0$): $\ \rho\,\mathrm D\vec v/\mathrm Dt = -\nabla p + \eta\nabla^2\vec v$.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">The <b>viscous term</b> is $\eta\nabla^2\vec v$: momentum diffusing down its own gradient, with diffusivity $\nu = \eta/\rho$.</p>
+      <table class="dense">
+        <thead><tr><th>at $20\,{}^\circ\mathrm C$</th><th class="num">$\eta$ (Pa s)</th><th class="num">$\nu$ ($\mathrm{m^2s^{-1}}$)</th></tr></thead>
+        <tbody>
+          <tr><td>water</td><td class="num">$1.002\times10^{-3}$</td><td class="num">$1.00\times10^{-6}$</td></tr>
+          <tr><td><span class="ref" data-ref="air">air</span></td><td class="num">$1.81\times10^{-5}$</td><td class="num">$1.50\times10^{-5}$</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\eta\nabla^2\vec v$ is $\mathrm{Pa\,s}\cdot\mathrm{m^{-2}}\cdot\mathrm{m\,s^{-1}} = \mathrm{N\,m^{-3}}$ ✓. <b>Limit</b> $\eta, \zeta \to 0$: Euler ✓. <b>Rigid rotation:</b> $e = 0$, no viscous stress, as a spinning bucket of water at equilibrium confirms ✓.</p>
+      </div>
+      <p class="small muted">For sound in air, viscosity changes the wave by a fraction $\nu\omega/c^2 = 8\times10^{-7}$ at 1 kHz: section 4 drops it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full derivation of the viscous force.</b> $\partial_j(2\eta e_{ij}) = \eta\,\partial_j(\partial_iv_j + \partial_jv_i)
+    = \eta\,\partial_i(\nabla\!\cdot\vec v) + \eta\nabla^2v_i$ by Clairaut (unit 03). And
+    $\partial_j\big[(\zeta - \tfrac23\eta)(\nabla\!\cdot\vec v)\delta_{ij}\big] = (\zeta - \tfrac23\eta)\,\partial_i(\nabla\!\cdot\vec v)$.
+    Adding, $\operatorname{div}\tau = \eta\nabla^2\vec v + (\zeta + \tfrac13\eta)\nabla(\nabla\!\cdot\vec v)$ for constant
+    $\eta, \zeta$. The form of $\tau$ is the isotropy theorem's $\lambda'(\operatorname{tr}e)I + 2\eta e$ rewritten with
+    $\zeta = \lambda' + \tfrac23\eta$, so that $\zeta$ multiplies the volume-changing part alone.</p>
+    <p><b>What is assumed, and what is not proved.</b> Linearity of $\tau$ in $e$, and dependence on $e$ only — not on
+    $\omega$, because a rigidly rotating fluid feels no friction — are physical hypotheses defining a Newtonian fluid,
+    excellent for water and air, bad for blood, paint and custard. The equations are stated here, not solved: whether
+    smooth solutions in three dimensions exist for all time is one of the Clay Millennium problems. Problem P7 solves
+    the one case everyone can, flow between plates.</p>
+    <p><b>The numbers.</b> $\nu_{\text{air}} = 1.81\times10^{-5}/1.204 = 1.50\times10^{-5}$ and
+    $\nu_{\text{water}} = 1.002\times10^{-3}/998.2 = 1.00\times10^{-6}\ \mathrm{m^2s^{-1}}$: air is fifteen times more
+    viscous than water in the sense that matters for motion, because it is so light. The fraction quoted for sound
+    compares the viscous term $\nu\nabla^2\vec v \sim \nu k^2v$ with the inertia $\partial_t\vec v \sim \omega v$, with
+    $k = \omega/c$: $\nu\omega/c^2 = 1.50\times10^{-5}\times6283/343.2^2 = 8.0\times10^{-7}$. The ratio of the inertial
+    term $(\vec v\cdot\nabla)\vec v$ to the viscous term is unit 03's Reynolds number, $UL/\nu$.</p>
+    <p><b>History.</b> Navier 1822, from a molecular model; Poisson 1831; Saint-Venant 1843; Stokes 1845, who gave the
+    continuum argument essentially as here and proposed $\zeta = 0$ (Stokes' hypothesis), true for monatomic gases and
+    not in general.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Sound</h2>
+  <p>Linearise Euler's equations about rest, close them with an equation of state, and the wave equation falls out — with a speed that depends on one physical hypothesis.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · sound</p>
+  <h2>Linearising about rest</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Perturb <span class="ref" data-ref="rest">the air at rest</span>: $\rho = \rho_0 + \rho'$, $p = p_0 + p'$, $\vec v$ small. Substitute into Euler's equations and keep first-order terms (<span class="term">linearisation</span>):</p>
+      $$\partial_t\rho' + \rho_0\,\nabla\!\cdot\vec v = 0, \qquad \rho_0\,\partial_t\vec v = -\nabla p' .$$
+      <p class="small">Dropped: $\nabla\!\cdot(\rho'\vec v)$, $\rho'\partial_t\vec v$, $\rho_0(\vec v\cdot\nabla)\vec v$ — each a product of two small quantities. Close with $p = P(\rho)$: $\ p' = c^2\rho'$, $c^2 := P'(\rho_0)$.</p>
+      <div class="box thm"><span class="label">theorem · the acoustic <span class="term">wave equation</span></span>
+        $$\frac{\partial^2\rho'}{\partial t^2} = c^2\,\nabla^2\rho', \qquad c^2 = \frac{\mathrm dp}{\mathrm d\rho}\Big|_{\rho_0}$$
+        <p class="small"><b>Proof.</b> $\partial_t$ of the first, $\nabla\!\cdot$ of the second: $\partial_t^2\rho' = -\rho_0\nabla\!\cdot\partial_t\vec v = \nabla^2p' = c^2\nabla^2\rho'$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">plane waves</span>
+        <p class="small">For any $C^2$ profile $f$ and unit $\vec n$, $\ p' = f(\vec n\cdot\vec x - ct)$ solves it — unit 18's d'Alembert wave, travelling along $\vec n$ at speed $c$ — with velocity</p>
+        $$\vec v = \frac{p'}{\rho_0c}\,\vec n :$$
+        <p class="small">a <span class="term">longitudinal wave</span>. Air moves along the direction of travel, never across it.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\mathrm dp/\mathrm d\rho$ is $\mathrm{Pa}/(\mathrm{kg\,m^{-3}}) = \mathrm{m^2s^{-2}}$ ✓. <b>Small?</b> A loud $1$ Pa wave has $p'/p_0 = 9.9\times10^{-6}$ and $|\vec v| = 2.4\ \mathrm{mm\,s^{-1}}$, Mach $7\times10^{-6}$: the dropped terms are $10^{-5}$ of the kept ones ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The linearisation, term by term.</b> Continuity: $\partial_t(\rho_0 + \rho') + \nabla\!\cdot\big((\rho_0 + \rho')\vec v\big) = 0$.
+    $\rho_0$ is constant, so this is $\partial_t\rho' + \rho_0\nabla\!\cdot\vec v + \nabla\!\cdot(\rho'\vec v) = 0$, and the last term
+    is second order. Euler: $(\rho_0 + \rho')(\partial_t\vec v + (\vec v\cdot\nabla)\vec v) = -\nabla p'$ (since $\nabla p_0 = 0$);
+    keep $\rho_0\partial_t\vec v$.</p>
+    <p><b>Gravity was dropped.</b> Strictly the rest state is hydrostatic, $p_0$ and $\rho_0$ falling with height on the
+    scale $H = RT/Mg = 8.58$ km (problem P5). A 1 kHz wave has wavelength $0.343$ m, and $\lambda/H = 4.0\times10^{-5}$: over
+    a wavelength the background is uniform to that accuracy. Gravity matters for sound only at infrasonic
+    wavelengths of kilometres, where it produces the separate family of internal gravity waves.</p>
+    <p><b>The plane wave, verified.</b> With $\xi = \vec n\cdot\vec x - ct$: $\nabla f = f'(\xi)\vec n$ and
+    $\nabla^2f = |\vec n|^2f'' = f''$, while $\partial_t^2f = c^2f''$ ✓. For the velocity, $\rho_0\partial_t\vec v = -\nabla p' = -f'\vec n$,
+    and $\vec v = (f/\rho_0c)\vec n$ gives $\rho_0\partial_t\vec v = -(c f'/c)\vec n$ ✓. Its continuity equation:
+    $\partial_t\rho' = -cf'/c^2$ and $\rho_0\nabla\!\cdot\vec v = f'/c$; they sum to zero ✓.</p>
+    <p><b>The numbers.</b> A $1$ Pa amplitude is $91$ dB (the decibel scale uses the rms pressure, $0.71$ Pa, against $20\ \mu\mathrm{Pa}$), uncomfortably loud. $p'/p_0 = 1/101\,325 = 9.9\times10^{-6}$;
+    $|\vec v| = p'/\rho_0c = 1/(1.204\times343.2) = 2.42\ \mathrm{mm\,s^{-1}}$; $|\vec v|/c = 7.0\times10^{-6}$. The ratio of the
+    dropped advective term to the kept one is $|\vec v|/c$, of the dropped density product $\rho'/\rho_0 = p'/(\rho_0c^2) = p'/(\gamma p_0) = 7.0\times10^{-6}$.
+    Linear acoustics is among the most accurate linearisations in physics; it fails for explosions and sonic booms,
+    where the nonlinear terms steepen waves into shocks.</p>
+    <p><b>The pressure obeys the same equation</b>, $\partial_t^2p' = c^2\nabla^2p'$, since $p' = c^2\rho'$ with constant $c$; so does
+    each component of $\vec v$ after one more differentiation. Unit 24 solves this three-dimensional wave equation with a
+    source; here only plane waves are needed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · sound</p>
+  <h2>The closure: how does pressure follow density?</h2>
+  <div class="cols">
+    <div>
+      <p class="small">The one piece of physics not fixed by conservation laws. For a gas, the <span class="term">ideal gas law</span> (empirical, cited):</p>
+      $$p = \frac{\rho RT}{M}, \qquad R = 8.314\ \mathrm{J\,mol^{-1}K^{-1}}.$$
+      <p class="small">But $T$ may change during a compression. Two hypotheses:</p>
+      <div class="box def"><span class="label"><span class="term">isothermal</span> · Newton, 1687</span>
+        <p class="small">$T$ constant: <span class="term">Boyle's law</span> $p \propto \rho$. $\ c^2 = \dfrac{p_0}{\rho_0} = \dfrac{RT}{M}$.</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term">adiabatic</span> · Laplace, 1816</span>
+        <p class="small">No heat exchanged: $p \propto \rho^\gamma$, $\gamma &gt; 1$. $\ c^2 = \dfrac{\gamma p_0}{\rho_0} = \dfrac{\gamma RT}{M}$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem · the adiabat of an ideal gas</span>
+        <p class="small">If a gas's internal energy is $U = nc_VT$ and a compression exchanges no heat, then $pV^\gamma$ is constant, with the <span class="term">adiabatic index</span> $\gamma = 1 + R/c_V$.</p>
+        <p class="small"><b>Proof sketch.</b> First law: $nc_V\,\mathrm dT = -p\,\mathrm dV = -(nRT/V)\,\mathrm dV$. Separate (unit 00): $c_V\ln T + R\ln V$ is constant. Eliminate $T$ with $pV = nRT$. $\square$</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">$\gamma \to 1$ recovers Newton ✓. Both give $c$ independent of $p_0$ at fixed $T$ ✓. For <span class="ref" data-ref="air">air</span>, diatomic, $c_V = \tfrac52R$ so $\gamma = \tfrac75$; measured, $1.400$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The physics assumed</b> (cited, as physics: any thermodynamics text, e.g. Fermi, <em>Thermodynamics</em>, ch. I–II):
+    the ideal gas law $pV = nRT$; the first law $\mathrm dU = \delta Q - p\,\mathrm dV$ for a slow compression of a gas;
+    and, for an ideal gas, $U = nc_VT$ with a constant molar heat capacity $c_V$. For a diatomic gas at room temperature
+    $c_V = \tfrac52R$ (three translational and two rotational degrees of freedom, each contributing $\tfrac12R$; vibration is
+    frozen out) — equipartition, derived in statistical mechanics and confirmed by calorimetry.</p>
+    <p><b>The derivation.</b> $\delta Q = 0$ gives $nc_V\,\mathrm dT = -p\,\mathrm dV = -\frac{nRT}{V}\mathrm dV$, a separable ODE for
+    $T(V)$: $c_V\frac{\mathrm dT}{T} = -R\frac{\mathrm dV}{V}$, so $c_V\ln T + R\ln V = \text{const}$, i.e. $TV^{R/c_V}$ is constant.
+    Substituting $T = pV/nR$: $pV^{1 + R/c_V}$ is constant. For a fixed mass $V \propto 1/\rho$, so $p \propto \rho^\gamma$ with
+    $\gamma = 1 + R/c_V = c_p/c_V$ (using $c_p = c_V + R$ for an ideal gas). Then
+    $\frac{\mathrm dp}{\mathrm d\rho} = \gamma\frac{p}{\rho}$.</p>
+    <p><b>Why "$c$ independent of $p_0$" is a real prediction.</b> $p_0/\rho_0 = RT/M$ by the gas law, so both formulas depend on
+    temperature alone. Sound travels at the same speed at the foot and the top of a mountain if the temperature is the
+    same, and faster in warm air than cold, as $\sqrt T$. Both hypotheses predict this; the experiment that decides between them
+    is the absolute number.</p>
+    <p><b>A word on "adiabatic".</b> Here it means only "no heat flows", and the compression is also assumed slow enough
+    to be reversible — slow compared with molecular collision times, which are $\sim10^{-10}$ s, and fast compared with
+    heat diffusion across a wavelength. The slide on Newton's error checks the second, and finds that the first fails only where the continuum does.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · sound · example</p>
+  <h2>The speed of sound in air</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 3 · <span class="ref" data-ref="air">the running example</span></span>
+        <p class="small">Dry air, $T = 293.15$ K, $p_0 = 101\,325$ Pa, $M = 0.028\,965\ \mathrm{kg\,mol^{-1}}$, $\gamma = 1.400$.</p>
+        <p class="small"><b>1. Density.</b> $\rho_0 = \dfrac{p_0M}{RT} = \dfrac{101\,325\times0.028\,965}{8.314\,462\times293.15} = 1.204\ \mathrm{kg\,m^{-3}}$.</p>
+        <p class="small"><b>2. Isothermal.</b> $c^2 = p_0/\rho_0 = 84\,150\ \mathrm{m^2s^{-2}}$, so $c = 290.1\ \mathrm{m\,s^{-1}}$.</p>
+        <p class="small"><b>3. Adiabatic.</b> $c^2 = \gamma p_0/\rho_0 = 117\,810\ \mathrm{m^2s^{-2}}$, so $\mathbf{c = 343.2\ m\,s^{-1}}$.</p>
+        <p class="small"><b>4. Compare.</b> Measured at $20\,{}^\circ\mathrm C$: $343.2\ \mathrm{m\,s^{-1}}$. Laplace agrees; Newton is low by $1 - 1/\sqrt{1.4} = 15.5\%$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\gamma p/\rho$ in $\mathrm{m^2s^{-2}}$ ✓. <b>Temperature:</b> $c \propto \sqrt T$ predicts $331.3\ \mathrm{m\,s^{-1}}$ at $0\,{}^\circ\mathrm C$, the tabulated value ✓. <b>Special case</b> $\gamma = 1$: step 2 ✓. <b>Order of magnitude:</b> $c$ is of the order of the molecules' thermal speed $\sqrt{3RT/M} = 503\ \mathrm{m\,s^{-1}}$ — a pressure signal is carried by molecules and cannot outrun them ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">getting it right, not lucky</span>
+        <p class="small">The checkpoint asks for $343 \pm 7\ \mathrm{m\,s^{-1}}$. Newton's $290.1$ misses by $15\%$; so would forgetting to use kelvin, or using a monatomic gas's $\gamma = 5/3$ ($374.5\ \mathrm{m\,s^{-1}}$). The only way to land inside $2\%$ is the right closure with the right $\gamma$.</p>
+      </div>
+      <p class="small"><span class="ref" data-ref="newton">Newton's closure</span> against Laplace's: the same equations, one hypothesis different, a factor $\sqrt\gamma = 1.183$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every number, recomputed.</b> $\rho_0 = 101\,325\times0.028\,965/(8.314\,462\times293.15) = 1.2041\ \mathrm{kg\,m^{-3}}$.
+    $p_0/\rho_0 = 84\,150\ \mathrm{m^2s^{-2}}$, square root $290.09$. Times $1.4$: $117\,810$, square root $343.23$. The ratio is
+    $\sqrt{1.4} = 1.1832$; $1/1.1832 = 0.8452$, so Newton's value is $15.5\%$ below the truth, or the truth is $18.3\%$ above
+    Newton. At $0\,{}^\circ\mathrm C$: $343.23\sqrt{273.15/293.15} = 331.3$ and Newton's $280.0$. With $\gamma = 5/3$ the formula gives
+    $\sqrt{5/3}\times290.09 = 1.2910\times290.09 = 374.5\ \mathrm{m\,s^{-1}}$. The thermal speed
+    $\sqrt{3RT/M} = \sqrt{3}\times290.09 = 502.4\ \mathrm{m\,s^{-1}}$.</p>
+    <p><b>The measured value</b> for dry air at $20\,{}^\circ\mathrm C$ is $343.2\ \mathrm{m\,s^{-1}}$ to the precision quoted in
+    standard tables (cited: Kaye and Laby, the section on the speed of sound in gases, and the ISO standard
+    atmosphere's $340.3\ \mathrm{m\,s^{-1}}$ at $15\,{}^\circ\mathrm C$, which is $343.2\sqrt{288.15/293.15}$ to within its rounding).
+    Humidity raises it slightly, since water vapour is lighter than air: a few tenths of a percent at room conditions.</p>
+    <p><b>How the checkpoint is falsifiable.</b> It is possible to get $343$ by accident — for instance by quoting it.
+    What the checkpoint requires is the chain: conservation laws, linearisation, $c^2 = \mathrm dp/\mathrm d\rho$, the adiabatic
+    derivative, the numbers. A derivation that uses $p \propto \rho$ fails it, and so does one that uses $p \propto \rho^\gamma$
+    with no argument for why.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · sound</p>
+  <h2>Newton's error, and Laplace's repair</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the history</span>
+        <p class="small"><b>1687.</b> <em>Principia</em>, Book II, Props. 48–50: the first speed of a wave computed from mechanics. Newton assumes Boyle's law, <span class="ref" data-ref="newton">isothermal</span>. The answer is about a sixth below measurement.</p>
+        <p class="small"><b>1713.</b> Second edition: Newton closes the gap with ad hoc corrections — the "crassitude" of the air's solid particles, the vapours in it — and lands exactly on the measured $1142$ feet per second ($348$ m/s).</p>
+        <p class="small"><b>1816.</b> Laplace: a compressed gas warms, raising its pressure beyond Boyle's; the compressions are adiabatic. $c^2 = \gamma p/\rho$. Measured values of $\gamma$ (Clément and Desormes, 1819) confirm it.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">why adiabatic: two times compared</span>
+        <p class="small">Heat must cross a distance $\sim\lambda/2\pi$ within a time $\sim1/\omega$. By dimensions (unit 00), with the air's <span class="term">thermal diffusivity</span> $\kappa = 2.14\times10^{-5}\ \mathrm{m^2s^{-1}}$, crossing takes $\sim(\lambda/2\pi)^2/\kappa$.</p>
+        <p class="small">At $1$ kHz: $\lambda/2\pi = 5.5$ cm, so $140$ s against $1/\omega = 0.16$ ms. <b>Heat has a millionth of the time it needs.</b></p>
+      </div>
+      <div class="box warn"><span class="label">a falsification with a number attached</span>
+        <p class="small">Isothermal would need $\omega \gtrsim c^2/\kappa = 5.5\times10^{9}\ \mathrm{s^{-1}}$, where $\lambda/2\pi \approx \kappa/c = 62$ nm — the molecular mean free path. Newton's hypothesis becomes true only where the continuum itself fails. His mechanics was right; one thermodynamic assumption was wrong, and $\sqrt\gamma$ is its fingerprint.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> Thermal diffusivity $\kappa = k/(\rho c_p)$ with thermal conductivity $k = 0.0259\ \mathrm{W\,m^{-1}K^{-1}}$
+    and specific heat $c_p = 1006\ \mathrm{J\,kg^{-1}K^{-1}}$ for air at $20\,{}^\circ\mathrm C$ (cited: standard tables), giving
+    $0.0259/(1.204\times1006) = 2.14\times10^{-5}\ \mathrm{m^2s^{-1}}$. At $f = 1$ kHz, $\omega = 6283\ \mathrm{s^{-1}}$ and
+    $\lambda/2\pi = c/\omega = 0.0546$ m. $(0.0546)^2/2.14\times10^{-5} = 140$ s; $1/\omega = 1.59\times10^{-4}$ s; ratio
+    $8.8\times10^5$. Crossover: $(c/\omega)^2/\kappa = 1/\omega$ at $\omega = c^2/\kappa = 343.2^2/2.14\times10^{-5} = 5.5\times10^9\ \mathrm{s^{-1}}$
+    (about $0.9$ GHz), where $c/\omega = \kappa/c = 6.2\times10^{-8}$ m. The mean free path of air molecules at these conditions
+    is about $0.07\ \mu\mathrm m$ (cited: kinetic theory tables).</p>
+    <p><b>Why the estimate is only an estimate.</b> The exact statement needs the heat equation — a parabolic PDE in unit 18's
+    classification — solved for a periodic temperature disturbance, which this unit does not do. Dimensional analysis gives
+    the diffusion time up to a numerical factor of order one, and a factor of one million leaves no doubt about the answer.
+    That is unit 00's lesson in a new setting: the shape of an answer before its solution.</p>
+    <p><b>The historical record.</b> Newton's derivation (<em>Principia</em>, Book II, Section VIII) treats the air as a chain of
+    particles obeying Boyle's law and obtains in effect $c^2 = p/\rho$; it is also the first time anyone computed the
+    speed of a wave from the properties of the medium. His agreement with the measured $1142$ ft/s in the second edition
+    is a well-known case study in fitting a theory to data, analysed in R. S. Westfall, "Newton and the fudge factor",
+    <em>Science</em> 179 (1973) 751–758. Laplace published the adiabatic correction in 1816, after earlier suggestions in
+    the same direction. $1142$ feet is $348.1$ m.</p>
+    <p><b>The lesson for this course.</b> Every step of the modern derivation — Cauchy's theorem, the local conservation laws,
+    linearisation, the wave equation — survives, and Newton's own mechanics, cruder as it was, was right in substance. What failed was one
+    constitutive hypothesis, and the discrepancy pointed at it: a factor that is the square root of a ratio of heat
+    capacities could only come from thermodynamics. That is the model of a good falsification. Unit 25 is the next one,
+    and there the failed hypothesis is Galilean relativity itself.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · sound</p>
+  <h2>Energy in a sound wave, and a preview of the stress–energy tensor</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem · acoustic energy is locally conserved</span>
+        <p class="small">For solutions of <span class="ref" data-ref="lin">the linearised equations</span>, the <span class="term">acoustic energy density</span> and <span class="term">acoustic intensity</span></p>
+        $$e = \tfrac12\rho_0|\vec v|^2 + \frac{p'^2}{2\rho_0c^2}, \qquad \vec S = p'\,\vec v$$
+        <p class="small">satisfy $\ \partial_te + \nabla\!\cdot\vec S = 0$.</p>
+        <p class="small"><b>Proof.</b> $\partial_te = \rho_0\vec v\cdot\partial_t\vec v + p'\partial_tp'/\rho_0c^2 = -\vec v\cdot\nabla p' - p'\,\nabla\!\cdot\vec v = -\nabla\!\cdot(p'\vec v)$. $\square$</p>
+      </div>
+      <p class="small"><b>Checks.</b> $e$ in $\mathrm{J\,m^{-3}}$, $\vec S$ in $\mathrm{W\,m^{-2}}$ ✓. Plane wave: kinetic = potential and $\vec S = c\,e\,\vec n$ ✓. A $1$ Pa wave carries $1.21\ \mathrm{mW\,m^{-2}}$ on average.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>conserved</th><th>density</th><th>flux</th></tr></thead>
+        <tbody>
+          <tr><td>mass</td><td>$\rho$</td><td>$\rho v_j$</td></tr>
+          <tr><td>$i$-momentum</td><td>$\rho v_i$</td><td>$\Pi_{ij} = \rho v_iv_j - \sigma_{ij}$</td></tr>
+          <tr><td>energy</td><td>$e$</td><td>$S_j$</td></tr>
+        </tbody>
+      </table>
+      <div class="box def"><span class="label">flagged for unit 35</span>
+        <p class="small">Energy density, momentum density and momentum flux are the pieces of one symmetric $4\times4$ object, the <span class="term">stress–energy tensor</span> (in this box $c$ is the speed of light): $T^{00}$ the energy density, $T^{0i}$ the energy flux $/c$ (equal to $c\times$ momentum density), $T^{ij} = \Pi_{ij}$.</p>
+        <p class="small">"Energy and momentum are locally conserved" becomes $\partial_\mu T^{\mu\nu} = 0$ — exactly the statements of this section, four at once. For a <span class="term">perfect fluid</span> at rest, $T = \operatorname{diag}(\rho c^2, p, p, p)$: the $-\sigma = pI$ of <span class="ref" data-ref="rest">still air</span>.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Use $\rho_0\partial_t\vec v = -\nabla p'$ in the first term and $\partial_tp' = c^2\partial_t\rho' = -\rho_0c^2\nabla\!\cdot\vec v$
+    in the second: $\partial_te = -\vec v\cdot\nabla p' - p'\nabla\!\cdot\vec v$, and the product rule makes that $-\nabla\!\cdot(p'\vec v)$.
+    Compare unit 18's $e_t + S_x = 0$: the same structure, with the tension replaced by pressure and $\partial_x$ by a divergence.</p>
+    <p><b>The checks.</b> $\rho_0|\vec v|^2$: $\mathrm{kg\,m^{-3}}\cdot\mathrm{m^2s^{-2}} = \mathrm{J\,m^{-3}}$; $p'^2/(\rho_0c^2)$: $\mathrm{Pa}^2/\mathrm{Pa} = \mathrm{Pa} = \mathrm{J\,m^{-3}}$;
+    $p'\vec v$: $\mathrm{N\,m^{-2}}\cdot\mathrm{m\,s^{-1}} = \mathrm{W\,m^{-2}}$ ✓. For the plane wave $\vec v = p'\vec n/\rho_0c$, so
+    $\tfrac12\rho_0|\vec v|^2 = p'^2/2\rho_0c^2$: equipartition, as for unit 18's string; $e = p'^2/\rho_0c^2$ and
+    $\vec S = p'^2\vec n/\rho_0c = c\,e\,\vec n$ — energy travels at $c$. For $p' = \hat p\cos(\ldots)$ the time average of
+    $|\vec S|$ is $\hat p^2/2\rho_0c$; with $\hat p = 1$ Pa and $\rho_0c = 413.3\ \mathrm{Pa\,s\,m^{-1}}$ (the air's
+    <span class="term">acoustic impedance</span>) that is $1.21\times10^{-3}\ \mathrm{W\,m^{-2}}$.</p>
+    <p><b>The preview, and what is and is not claimed.</b> Nothing on the right of this slide is used before unit 35, and nothing
+    there is proved here. What <em>is</em> established here is the structure: each conserved quantity has a density and a flux,
+    and local conservation is "time derivative of density plus divergence of flux is zero". For the full nonlinear ideal
+    fluid the energy density is $\tfrac12\rho|\vec v|^2 + \rho u$ ($u$ internal energy per mass) and the energy flux is
+    $(\tfrac12\rho|\vec v|^2 + \rho u + p)\vec v$ (cited: Landau and Lifshitz, <em>Fluid Mechanics</em>, §6); the acoustic
+    $e$ and $\vec S$ are its expansion to second order about rest. In special relativity mass stops being separately
+    conserved — it is part of the energy — which is why the table's three rows become the four rows $\nu = 0,1,2,3$ of
+    $\partial_\mu T^{\mu\nu} = 0$.</p>
+    <p><b>Why $T^{\mu\nu}$ must be symmetric</b> is a relativistic echo of the angular-momentum slide of section 2: the
+    $ij$ block is symmetric for the same reason $\sigma$ is, and the $0i$/$i0$ equality says that energy flux is momentum
+    density times $c^2$, which is $E = mc^2$ in local form. Unit 29 meets a canonical $T^{\mu\nu}$ that is <em>not</em>
+    symmetric and repairs it; the repair is the field-theory version of the proof that $\sigma_{ij} = \sigma_{ji}$.
+    Unit 39 uses the perfect-fluid tensor, $T^{\mu\nu} = (\rho + p/c^2)u^\mu u^\nu + p\,g^{\mu\nu}$, whose rest-frame form is
+    the one quoted on the slide, to run the expansion of the universe.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Waves in solids, and the Earth's liquid core</h2>
+  <p>Give the material a shear modulus and a second, slower, transverse wave appears. Take it away and only sound is left.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · solids</p>
+  <h2>Navier's equation for an elastic solid</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Small displacements $\vec u(\vec x,t)$ about an unstressed state, no body force. Linearise Cauchy's equation, $\rho\,\partial_t^2\vec u = \operatorname{div}\sigma$, and insert Hooke's law:</p>
+      <div class="box thm"><span class="label">theorem · <span class="term">Navier's equation</span></span>
+        $$\rho\,\frac{\partial^2\vec u}{\partial t^2} = (\lambda + \mu)\,\nabla(\nabla\!\cdot\vec u) + \mu\,\nabla^2\vec u$$
+        <p class="small"><b>Proof.</b> $\partial_j\sigma_{ij} = \partial_j\big[\lambda(\partial_ku_k)\delta_{ij} + \mu(\partial_iu_j + \partial_ju_i)\big] = (\lambda + \mu)\,\partial_i(\nabla\!\cdot\vec u) + \mu\nabla^2u_i$, by Clairaut. $\square$</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions:</b> $\mathrm{Pa\,m^{-2}}\cdot\mathrm m = \mathrm{N\,m^{-3}}$ both sides ✓. <b>One dimension</b>, $\vec u = u(x,t)\vec e_1$: $\rho u_{tt} = (\lambda + 2\mu)u_{xx}$, a wave equation as in unit 18 ✓.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box"><span class="label">the fluid limit, and <span class="ref" data-ref="air">the air</span></span>
+        <p class="small">Set $\mu = 0$ and $\lambda = K$: $\rho\,\partial_t^2\vec u = K\nabla(\nabla\!\cdot\vec u)$. Take the divergence, with the dilatation $\theta = \nabla\!\cdot\vec u = -\rho'/\rho_0$:</p>
+        $$\partial_t^2\theta = \frac{K}{\rho}\nabla^2\theta .$$
+        <p class="small">Section 4's wave equation, with $c^2 = K/\rho$. For a gas $K = \rho\,\mathrm dp/\mathrm d\rho$, and adiabatically $K = \gamma p_0$: the same $343.2\ \mathrm{m\,s^{-1}}$, reached from the solid side.</p>
+      </div>
+      <p class="small muted">So a fluid, for small motions, is an elastic solid that has lost its shear modulus. The next slide finds what that loss costs.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The linearisation.</b> For small displacements from rest, $\vec v = \partial_t\vec u$ to first order, and
+    $\mathrm D\vec v/\mathrm Dt = \partial_t^2\vec u + (\vec v\cdot\nabla)\vec v$, whose second term is second order. The density
+    in front is $\rho$ of the reference state to the same order. Positions $\vec x$ and reference positions $\vec X$ differ by
+    $\vec u$, and derivatives with respect to them differ by terms of order $|D\vec u|$ times the derivative, which are
+    also dropped.</p>
+    <p><b>The proof in full.</b> $\partial_j\big(\lambda\,\partial_ku_k\,\delta_{ij}\big) = \lambda\,\partial_i\partial_ku_k$. And
+    $\partial_j\big(\mu(\partial_iu_j + \partial_ju_i)\big) = \mu\,\partial_i\partial_ju_j + \mu\,\partial_j\partial_ju_i$, using
+    Clairaut to swap $\partial_j\partial_i$. So the total is $(\lambda + \mu)\,\partial_i(\nabla\!\cdot\vec u) + \mu\nabla^2u_i$,
+    for constant $\lambda$ and $\mu$ (a homogeneous material).</p>
+    <p><b>The one-dimensional check</b> is a longitudinal wave in a slab constrained laterally, and its modulus is
+    $\lambda + 2\mu$, not Young's modulus: a thin rod, free to contract sideways, has a smaller effective modulus. This is a
+    real source of confusion when comparing sound speeds in rods and in bulk material.</p>
+    <p><b>The air, again.</b> $\nabla\!\cdot$ of $\nabla(\nabla\!\cdot\vec u)$ is $\nabla^2(\nabla\!\cdot\vec u)$ by Clairaut. The link
+    $\theta = -\rho'/\rho_0$ is the strain slide's statement that dilatation is fractional volume change. And
+    $K = \rho\,\mathrm dp/\mathrm d\rho$: from $p' = -K\theta = K\rho'/\rho_0$ and $p' = c^2\rho'$. Adiabatically,
+    $\rho\cdot\gamma p/\rho = \gamma p$. The running example has been solved a third time, this time as the $\mu = 0$ case of
+    elasticity.</p>
+    <p><b>History.</b> Navier derived the equation in 1821 from a molecular model with $\lambda = \mu$; Cauchy and Poisson gave
+    the general isotropic form within a few years. Poisson found the two wave speeds in 1829; Stokes explained in 1849 that
+    they are longitudinal and transverse.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · solids</p>
+  <h2>Plane waves: two speeds and no third</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Try a <span class="term">plane wave</span> $\vec u = \vec a\,f(\vec n\cdot\vec x - ct)$, $|\vec n| = 1$, $f'' \not\equiv 0$. Then $\nabla(\nabla\!\cdot\vec u) = (\vec n\cdot\vec a)\vec n f''$, $\nabla^2\vec u = \vec af''$, $\partial_t^2\vec u = c^2\vec af''$, and Navier gives</p>
+      $$\rho c^2\,\vec a = A(\vec n)\,\vec a,$$ $$A(\vec n) = (\lambda + \mu)\,\vec n\otimes\vec n + \mu\,I .$$
+      <p class="small">The <span class="term">acoustic tensor</span> $A(\vec n)$ is a symmetric bilinear form; by the spectral theorem its eigenvalues are $\lambda + 2\mu$ (eigenvector $\vec n$) and $\mu$ (every $\vec a \perp \vec n$).</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem · P and S waves</span>
+        <p class="small">Every plane wave in an isotropic elastic solid is one of</p>
+        $$c_L = \sqrt{\frac{\lambda + 2\mu}{\rho}}, \qquad c_T = \sqrt{\frac{\mu}{\rho}},$$
+        <p class="small">with $\vec a \parallel \vec n$ for $c_L$ and $\vec a \perp \vec n$ for $c_T$:</p>
+        <p class="small">respectively the <span class="term">P-wave</span> (primary, longitudinal) and the <span class="term">S-wave</span> (secondary, <span class="term">transverse wave</span>, two polarisations). And $c_L &gt; c_T$ always.</p>
+      </div>
+      <div class="box proof"><span class="label">proof of $c_L &gt; c_T$</span>
+        <p class="small">$\rho(c_L^2 - c_T^2) = \lambda + \mu = K + \tfrac13\mu &gt; 0$ by stability. Sharper: $c_L^2/c_T^2 = (K + \tfrac43\mu)/\mu &gt; \tfrac43$. $\square$</p>
+      </div>
+      <p class="small"><b>Checks.</b> $\sqrt{\mathrm{Pa}/\mathrm{kg\,m^{-3}}} = \mathrm{m\,s^{-1}}$ ✓. $\mu \to 0$: $c_T \to 0$ and $c_L \to \sqrt{K/\rho}$, sound ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The substitution, in full.</b> With $\xi = \vec n\cdot\vec x - ct$: $\partial_ju_k = a_kn_jf'$, so
+    $\nabla\!\cdot\vec u = (\vec n\cdot\vec a)f'$ and $\nabla(\nabla\!\cdot\vec u) = (\vec n\cdot\vec a)\vec nf''$;
+    $\nabla^2u_k = a_k|\vec n|^2f'' = a_kf''$; $\partial_t^2\vec u = c^2\vec af''$. Navier's equation becomes
+    $\big(\rho c^2\vec a - (\lambda + \mu)(\vec n\cdot\vec a)\vec n - \mu\vec a\big)f'' = 0$, and since $f''$ is not identically zero
+    the bracket vanishes.</p>
+    <p><b>The eigenvalues.</b> $A(\vec n)\vec n = (\lambda + \mu)\vec n + \mu\vec n = (\lambda + 2\mu)\vec n$, and for
+    $\vec a\perp\vec n$, $A(\vec n)\vec a = \mu\vec a$. These span $\mathbb R^3$, so there are no other eigenvalues — no third
+    speed. As a bilinear form, $A(\vec n)(\vec a,\vec b) = (\lambda + \mu)(\vec n\cdot\vec a)(\vec n\cdot\vec b) + \mu\,\vec a\cdot\vec b$;
+    in an anisotropic crystal the corresponding tensor $C_{ijkl}n_jn_l$ has three generally distinct eigenvalues depending on
+    direction, and there are three wave speeds in each direction.</p>
+    <p><b>Divergence and curl.</b> The same split appears without plane waves. The divergence of Navier's equation gives
+    $\rho\,\partial_t^2\theta = (\lambda + 2\mu)\nabla^2\theta$ for $\theta = \nabla\!\cdot\vec u$; its curl (unit 04), using
+    $\nabla\times\nabla(\cdot) = 0$, gives $\rho\,\partial_t^2\vec w = \mu\nabla^2\vec w$ for $\vec w = \nabla\times\vec u$.
+    Compressions travel at $c_L$, rotations at $c_T$.</p>
+    <p><b>The bound $\tfrac43$.</b> $c_L^2/c_T^2 = (\lambda + 2\mu)/\mu = (K - \tfrac23\mu + 2\mu)/\mu = K/\mu + \tfrac43$, which
+    exceeds $\tfrac43$ since $K &gt; 0$. A "Poisson solid", $\lambda = \mu$, has ratio $\sqrt3 = 1.732$; many rocks are close
+    to it, which is a useful rule of thumb in seismology.</p>
+    <p><b>Names.</b> P and S are "primary" and "secondary", from the order in which they arrive on a seismogram — which is
+    this theorem, read by a seismometer.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · solids · example</p>
+  <h2>P and S waves in steel, and in air</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 4</span>
+        <p class="small">Steel: $\lambda = 115$ GPa, $\mu = 80$ GPa, $\rho = 7850\ \mathrm{kg\,m^{-3}}$. Find both speeds, and the lag of the S-wave behind the P-wave over $1$ m.</p>
+        <p class="small"><b>1. P.</b> $c_L^2 = (115 + 160)\times10^9/7850 = 3.503\times10^7$, so $c_L = 5919\ \mathrm{m\,s^{-1}}$.</p>
+        <p class="small"><b>2. S.</b> $c_T^2 = 80\times10^9/7850 = 1.019\times10^7$, so $c_T = 3192\ \mathrm{m\,s^{-1}}$.</p>
+        <p class="small"><b>3. Ratio.</b> $c_L/c_T = \sqrt{275/80} = 1.854 &gt; \sqrt{4/3} = 1.155$ ✓.</p>
+        <p class="small"><b>4. Lag.</b> $1/c_T - 1/c_L = 313.3 - 169.0 = 144\ \mu\mathrm s$ per metre. Ultrasonic flaw detectors time exactly this.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box"><span class="label"><span class="ref" data-ref="air">the air</span>, as a degenerate solid</span>
+        <p class="small">$\mu = 0$, $\lambda = K = \gamma p_0 = 141\,855$ Pa, $\rho_0 = 1.204\ \mathrm{kg\,m^{-3}}$:</p>
+        $$c_L = \sqrt{\frac{141\,855}{1.204}} = 343.2\ \mathrm{m\,s^{-1}},\quad c_T = 0 .$$
+        <p class="small">The eigenvalue $\mu$ of the acoustic tensor is zero: the "transverse wave" is a static shear the air does not resist. Air carries sound, and nothing else.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Tabulated for mild steel: about $5.9$ and $3.2\ \mathrm{km\,s^{-1}}$ ✓. Air: section 4's number, by a different road ✓. Dimensions as on the previous slide ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $(275\times10^9)/7850 = 3.5032\times10^7$, square root $5918.8$; $80\times10^9/7850 = 1.0191\times10^7$,
+    square root $3192.3$; ratio $1.8540$. $1/3192.3 = 3.1325\times10^{-4}$ s and $1/5918.8 = 1.6895\times10^{-4}$ s, difference
+    $1.443\times10^{-4}$ s. The air: $141\,855/1.2041 = 117\,810$, square root $343.2$.</p>
+    <p><b>The tabulated values</b> for carbon steel are $c_L \approx 5.9$–$6.0\ \mathrm{km\,s^{-1}}$ and $c_T \approx 3.2\ \mathrm{km\,s^{-1}}$
+    (cited: Kaye and Laby, the table of sound speeds in solids). The chosen $\lambda$ and $\mu$ are representative rather than
+    measured for one alloy, so agreement to a percent or two is all that should be claimed.</p>
+    <p><b>How the air's zero should be read.</b> A real gas does have a shear response — viscosity — but it is proportional to the
+    rate of shear, not the shear, so it damps transverse motion rather than restoring it. A "shear wave" in air decays within a
+    distance of order $\sqrt{2\nu/\omega}$, about $70\ \mu\mathrm m$ at 1 kHz: a boundary layer, not a wave. That is the
+    physical content of $c_T = 0$ for a fluid.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · solids</p>
+  <h2>Why only solids carry shear waves</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the argument</span>
+        <p class="small">A <span class="term">fluid</span> sustains no static shear: $\mu = 0$. By the plane-wave theorem, $c_T = 0$ — <b>no S-waves cross a liquid</b>. P-waves cross anything with $K &gt; 0$.</p>
+      </div>
+      <p class="small"><b>The Earth.</b> An earthquake sends P and S waves through the mantle. Beyond about $103^\circ$ of arc from the epicentre, no direct S-waves arrive at all: the <span class="term">S-wave shadow zone</span>. Something below the mantle stops them.</p>
+      <p class="small">Straight rays: one grazing a core of radius $3480$ km in an Earth of radius $6371$ km emerges at $2\arccos(3480/6371) = 113.8^\circ$. Real rays curve, and the edge moves in to $\approx103^\circ$.</p>
+      <div class="box good"><span class="label">conclusion</span>
+        <p class="small">The <span class="term">outer core</span>, below the <span class="term">core–mantle boundary</span> at $2891$ km depth, is liquid. At the boundary: mantle $c_T = 7.26$, core $c_T = 0\ \mathrm{km\,s^{-1}}$.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 260 270" width="270" role="img" aria-label="cross-section of the Earth with a liquid core, rays from an epicentre at the top, and the S-wave shadow zone on the far side">
+        <circle cx="130" cy="130" r="110" class="fill-soft unit" stroke-width="2"/>
+        <circle cx="130" cy="130" r="60.1" class="fill-warn" style="fill-opacity:.25"/>
+        <circle cx="130" cy="130" r="60.1" fill="none" class="warn" stroke-width="2"/>
+        <line x1="130" y1="20" x2="230.7" y2="174.4" class="accent" stroke-width="2.5"/>
+        <line x1="130" y1="20" x2="29.3" y2="174.4" class="accent" stroke-width="2.5"/>
+        <line x1="130" y1="20" x2="225.3" y2="75" class="accent" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="130" y1="20" x2="34.7" y2="75" class="accent" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <path d="M230.7,174.4 A110,110 0 0,1 29.3,174.4" fill="none" class="ink" stroke-width="6"/>
+        <circle cx="130" cy="20" r="6" class="fill-accent"/>
+        <text x="140" y="16" font-size="13" class="mono">epicentre</text>
+        <text x="103" y="134" font-size="13" class="mono">liquid</text>
+        <text x="97" y="262" font-size="13" class="mono">no direct S</text>
+        <text x="160" y="192" font-size="12" class="mono soft">113.8°</text>
+      </svg>
+      <p class="cap">Straight rays, to scale. The grazing ray (solid) bounds where direct S-waves can reach; the thick arc is the shadow.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The straight-ray number.</b> A straight chord from a surface point that just touches a concentric sphere of radius $r$
+    subtends, at the centre, twice the angle whose cosine is $r/R$: $2\arccos(3480/6371) = 2\times56.89^\circ = 113.78^\circ$.
+    In the real Earth speeds rise with depth through the mantle, so rays bend back towards the surface (refraction, with the ray
+    parameter $r\sin i/v$ conserved along a ray), and the ray that grazes the core emerges nearer the epicentre. Seismology
+    texts put the edge of the direct-S shadow near $100$–$105^\circ$ (cited: Stein and Wysession, <em>An Introduction to
+    Seismology, Earthquakes, and Earth Structure</em>, ch. 3). Beyond it only waves that crossed the core as P-waves, or that
+    were diffracted along the boundary, are recorded.</p>
+    <p><b>The boundary values</b>: mantle side $c_L = 13.72$, $c_T = 7.26\ \mathrm{km\,s^{-1}}$; core side $c_L = 8.06$, $c_T = 0$; the outer core extends to $5150$ km depth. They are from the Preliminary Reference Earth Model (Dziewonski and Anderson, <em>Physics of the
+    Earth and Planetary Interiors</em> 25 (1981) 297–356), rounded. Problem P11 starts from the elastic constants that reproduce these values —
+    for the core, $\mu = 0$ and a bulk modulus of $644$ GPa — and recovers the speeds.</p>
+    <p><b>History, and the logic.</b> Oldham (1906) inferred a core from the delay of P-waves through the Earth's centre;
+    Gutenberg (1914) put its boundary near $2900$ km; Jeffreys (1926) argued it is liquid, from the absence of S-waves through
+    it and from the Earth's tidal rigidity being lower than the mantle alone would give. Lehmann (1936) found the solid inner
+    core inside it. The inference "no S-waves, therefore liquid" is exactly the plane-wave theorem: $c_T = \sqrt{\mu/\rho}$, and
+    a material in which $c_T = 0$ has no shear modulus, which is the definition of a fluid. The Earth's magnetic field is
+    generated by convection in that liquid iron, so this is not a small fact.</p>
+    <p><b>A warning on the shadow's shape.</b> There is also a P-wave shadow zone, roughly $104^\circ$ to $140^\circ$, caused
+    not by absence but by the sharp <em>drop</em> in $c_L$ at the core, which refracts P-waves steeply inward. The S-wave
+    shadow is the one that proves the liquid; the P-wave shadow proves only a slower layer.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · closing</p>
+  <h2>What this unit hands on</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="air">the air</span>, closed</span>
+        <p class="small">Its stress was found ($-p_0I$, by Pascal's law), its two conservation laws written (continuity, Euler), its missing equation named (an equation of state), and its sound speed computed three ways: Newton's $290.1$, Laplace's $343.2$, and $343.2$ again as a solid with $\mu = 0$. Measurement says $343.2\ \mathrm{m\,s^{-1}}$.</p>
+      </div>
+      <p class="small muted">The method, once more: a budget for every region, the divergence theorem, the localisation lemma. It will be run again for charge, for electromagnetic energy, and for $T^{\mu\nu}$.</p>
+    </div>
+    <div>
+      <table class="dense small">
+        <tbody>
+          <tr><td><b>23</b></td><td>the divergence theorem doing the same work for electric flux</td></tr>
+          <tr><td><b>24</b></td><td>the continuity equation for charge; the Poynting vector as an energy flux; Maxwell's stress tensor</td></tr>
+          <tr><td><b>28</b></td><td>an antisymmetric tensor field, $F_{\mu\nu}$, where §2's slot bookkeeping is not optional</td></tr>
+          <tr><td><b>29</b></td><td>$T^{\mu\nu}$ from Noether's theorem, and why it must be made symmetric</td></tr>
+          <tr><td><b>35</b></td><td>the table of densities and fluxes as $T^{\mu\nu}$, and $\partial_\mu T^{\mu\nu} = 0$</td></tr>
+          <tr><td><b>39</b></td><td>the perfect fluid's $T^{\mu\nu}$ driving the expansion of the universe</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The single most transferable thing</b> is the three-move conversion from an integral budget to a local law. It needs a
+    density, a flux and the divergence theorem, and nothing about mechanics. Unit 24 uses it for charge and for field energy;
+    unit 35 uses it in four dimensions, where "time derivative plus spatial divergence" becomes one four-divergence and the flux
+    of momentum becomes the spatial block of $T^{\mu\nu}$.</p>
+    <p><b>The second</b> is Cauchy's theorem as a model of how a tensor enters physics: not by a transformation rule, but because
+    a physical quantity that depends on a direction turns out, by a balance argument, to depend on it linearly. The metric in
+    unit 32 and the curvature in unit 33 are both introduced as multilinear maps first, and this unit is the course's best
+    rehearsal for that habit.</p>
+    <p><b>Reading.</b> Gurtin, <em>An Introduction to Continuum Mechanics</em>, the chapters on stress, balance laws and linear
+    elasticity — closest in spirit, rigorous, and it assumes nothing this unit has not taught. Landau and Lifshitz,
+    <em>Fluid Mechanics</em>, §§1–2 (Euler's equations), §15 (Navier–Stokes) and §64 (sound), and <em>Theory of Elasticity</em>,
+    §§1–5 and §22 (elastic waves); skip anything using Fourier transforms until after unit 20. Feynman, <em>Lectures</em>, vol. II,
+    ch. 31 (tensors, including the stress tensor) and ch. 38–39 (elasticity), for the physical pictures. Stein and Wysession,
+    ch. 2–3, for seismology.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <ul>
+      <li>From an <b>integral conservation statement</b> for an arbitrary region, you <b>derive its local form</b> by the divergence theorem and the localisation lemma — for mass, for momentum with the stress tensor as the flux, and for a quantity you have not seen before.</li>
+      <li>You <b>prove Cauchy's theorem</b> — the traction is linear in the normal — by the tetrahedron argument, rather than assuming stress is bilinear, and you can say which two powers of the tetrahedron's size make it work.</li>
+      <li>You <b>compute the speed of sound in air</b> at a stated temperature to within $2\%$ — $343.2\ \mathrm{m\,s^{-1}}$ at $20\,{}^\circ\mathrm C$ — with the adiabatic closure argued for, not assumed.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>How to fail it</h3>
+      <p class="small">Write $\partial_t\rho + \vec v\cdot\nabla\rho = 0$ for a compressible flow. Call $\sigma$ a tensor "because it has two indices". Use Boyle's law and report $290\ \mathrm{m\,s^{-1}}$. Each is unambiguous.</p>
+    </div>
+    <div>
+      <h3>Then</h3>
+      <p class="small"><code>./mr problems 22</code> — twelve problems, about five hours. When the three claims above are true: <code>./mr done 22</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The three clauses are the three things later units call on. Units 24 and 35 need the first, fluently, in settings where the
+    density and flux are not mass and momentum. Units 28 and 31–33 need the habit in the second: a tensor is a multilinear map,
+    and the evidence that something is one is an argument that it is multilinear. Unit 25 needs the third as a model of how a
+    single wrong hypothesis shows up as a clean numerical discrepancy.</p>
+    <p>On the problem sheet, P3 and P9 exercise clause 1; P2 exercises clause 2 directly and in full; P10 exercises clause 3 and adds the
+    argument for why the closure is adiabatic. P11 and P12 are the seismology. If you are short of time, those six are the unit.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

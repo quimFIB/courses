@@ -1,0 +1,1744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 · Where is the planet at time t? Kepler's equation and the birth of Bessel functions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="a">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="mars"><span class="ref-name">Mars</span>Semi-major axis $a = 1.523679\ \mathrm{AU}$, eccentricity $e = 0.0934$, period $T = 686.980$ days. <span class="ref-note">Perihelion $a(1-e) = 1.38137$ AU, aphelion $a(1+e) = 1.66599$ AU. The orbit is so nearly a circle that the whole difficulty is in the clock, not the shape</span><svg viewBox="0 0 260 150" width="200" aria-hidden="true"><ellipse cx="130" cy="75" rx="110" ry="109.5" fill="none" class="unit" stroke-width="2.5" transform="scale(1 0.62) translate(0 45)"/><circle cx="140.3" cy="75" r="6" class="fill-accent"/><circle cx="187" cy="30" r="4" class="fill-ink"/><text x="146" y="96" font-size="14" class="soft">Sun</text><text x="194" y="26" font-size="14" class="soft">t = 120 d</text></svg></template>
+  <template data-ref="epoch"><span class="ref-name">the stated epoch</span>$t - \tau = 120$ days after perihelion passage $\tau$, so the mean anomaly is $M = 2\pi\cdot120/686.980 = 1.097532$ rad $= 62.8839^\circ$. <span class="ref-note">Kepler's equation to solve: $E - 0.0934\sin E = 1.097532$</span></template>
+  <template data-ref="answer"><span class="ref-name">the answer, to ten figures</span>$E = 1.184032539$ rad $= 67.84007^\circ$; true anomaly $\theta = 72.89305^\circ$; distance $r = a(1 - e\cos E) = 1.470000\ \mathrm{AU}$. <span class="ref-note">By Newton's method, three iterations from $E_0 = M$. Every series on these slides is judged against this</span></template>
+  <template data-ref="halley"><span class="ref-name">Halley's comet</span>Unit 08's running example: $e = 0.967$, well past the Laplace limit $0.6627$. <span class="ref-note">At $M = \pi/2$ the true solution is $E = 2.295064$; the power series in $e$ does not converge to it, and the Bessel series does, slowly</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part A · the equation of motion · spine</p>
+  <div class="unit-no">09</div>
+  <h1>Where is the planet at time t? Kepler's equation and the birth of Bessel functions</h1>
+  <p class="lede">The orbit's shape came in closed form; its timetable is a transcendental equation
+  with no closed-form inverse. Solving it by series is how Bessel functions entered mathematics — and
+  where the series stop working is a number you can state exactly.</p>
+  <p class="meta"><span>needs 08</span><span>~2.5 h slides + 5 h problems</span><span>problems: <code>./mr problems 09</code></span></p>
+  <aside class="notes">
+    <p>Unit 08 ended with the Kepler orbit's shape, $r = p/(1+e\cos\theta)$, and a timetable written as
+    an integral whose inverse has no formula. This unit supplies the inverse. It does so three ways — by
+    iteration, by a power series in the eccentricity, and by a Fourier series in time whose coefficients
+    are Bessel functions — and it is honest about what each costs and where each fails.</p>
+    <h4>How to read this deck</h4>
+    <p>Six sections. Section 1 turns the timetable into Kepler's equation $E - e\sin E = M$ and proves it
+    has exactly one solution. Section 2 solves it as a series in $e$, and proves Lagrange's inversion
+    formula, which is the general mechanism. Section 3 computes the Fourier coefficients of $E - M$ and
+    finds Bessel's integral. Section 4 makes the Bessel function a mathematical object in its own right:
+    power series, generating function, integral, recurrences, differential equation. Section 5 is the
+    Frobenius method, the tool for solving that differential equation where its coefficients go
+    singular. Section 6 puts Mars in its place to five figures and states where the series stop.</p>
+    <p>Words with a dotted underline are glossary terms; click one, or press <kbd>G</kbd> for the
+    index. <kbd>N</kbd> opens the notes, where the long computations sit under a <b>Full proof</b>
+    heading. A solid thin underline names a piece of the running example and shows it on hover.</p>
+    <p>New mathematics here: solution by series in a parameter; Lagrange inversion; Fourier sine
+    coefficients, just enough of them; Bessel functions of integer order; regular singular points and the
+    Frobenius method, with the logarithm that appears when the indicial roots collide. Two results are
+    cited forward rather than proved: that a smooth periodic function equals its Fourier series (unit 19)
+    and the exact location of the Laplace limit and the constants in the large-$x$ form of $J_n$
+    (unit 20). Both debts are named where they are incurred.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · overview</p>
+  <h2>One equation, three ways to solve it, six sections</h2>
+  <div class="cols three">
+    <div class="box def"><span class="label">1 · the timetable</span>
+      <p class="small">The <b>eccentric anomaly</b> turns unit 08's integral into
+      $E - e\sin E = M$: one unknown, one equation, no formula.</p></div>
+    <div class="box def"><span class="label">2 · a series in $e$</span>
+      <p class="small">Iterate, expand, and collect. Lagrange's inversion formula writes down every
+      coefficient at once.</p></div>
+    <div class="box def"><span class="label">3 · Fourier coefficients</span>
+      <p class="small">$E - M$ is periodic in time. Its sine coefficients are an integral Bessel wrote
+      down in 1824: $J_n(ne)$.</p></div>
+  </div>
+  <div class="cols three">
+    <div class="box def"><span class="label">4 · Bessel functions</span>
+      <p class="small">Defined by a power series; then a generating function, an integral, recurrences
+      and an ODE, each proved.</p></div>
+    <div class="box def"><span class="label">5 · Frobenius</span>
+      <p class="small">Series solutions where the ODE's leading coefficient vanishes, and the
+      logarithm that appears when they cannot all be power series.</p></div>
+    <div class="box def"><span class="label">6 · Mars, and the limits</span>
+      <p class="small">Five figures from three terms, against Newton's method. Then the Laplace limit
+      $0.6627$, and a comet past it.</p></div>
+  </div>
+  <div class="box good"><span class="label">the running example</span>
+    <p class="small"><span class="ref" data-ref="mars">Mars</span>, <span class="ref" data-ref="epoch">120
+    days after perihelion</span>. Every section brings one more tool to the same question — where is it? —
+    and the section 6 answer is checked against <span class="ref" data-ref="answer">the ten-figure
+    value</span>, with the number of terms and iterations each route costs counted.</p>
+  </div>
+  <aside class="notes">
+    <p>The order is the order in which the difficulty was historically met. Kepler (1609) had the
+    equation and solved it by trial. Lagrange (1770) expanded the solution in powers of $e$ and gave
+    the general formula for the coefficients. Bessel, working on the same problem from 1817 and
+    systematically in 1824, asked for the coefficient of each harmonic $\sin nM$ exactly rather than as a
+    power series, and got the integrals that now carry his name. Laplace found that Lagrange's series
+    stops converging at $e = 0.6627\ldots$; why, needed complex analysis, and waits for unit 20.</p>
+    <p>Two habits to carry out of here. First: a <b>series in a parameter</b> is a solution method with
+    a convergence question attached, and the question has a definite answer that is part of the
+    solution. Second: <b>there are usually two expansions</b> — here in powers of $e$ and in harmonics of
+    $M$ — and they converge on different sets. Confusing them is the commonest error in this subject.</p>
+    <p>Problem sheet: <code>./mr problems 09</code>, about five hours. P7 ("Frobenius by hand") and
+    P11 ("Halley's comet") are the two the spec singles out; P9 is the checkpoint in miniature.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The timetable</h2>
+  <p>The shape was a formula. The clock is an equation nobody can invert in closed form, and it has exactly one solution.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · the timetable</p>
+  <h2>Where unit 08 left the clock</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Unit 08 solved the Kepler problem in two pieces. The <b>shape</b> came in closed
+      form, and the <b>timetable</b> as a quadrature, with $\mu$-scaled energy $\varepsilon = -GM_\odot/2a$ and
+      $h = L/\mu$ ($GM_\odot$ is unit 08's $k/\mu$; the bare letter $M$ is kept for the mean anomaly):</p>
+      $$r(\theta) = \frac{p}{1+e\cos\theta},$$
+      $$t - \tau = \int_{a(1-e)}^{r}\frac{\mathrm dr'}{\sqrt{2\varepsilon + 2GM_\odot/r' - h^2/r'^2}} .$$
+      <p class="small">Here $\tau$ is the time of perihelion and $\theta$ the angle from perihelion,
+      the <span class="term">true anomaly</span>. The integral is elementary. Its <b>inverse</b>
+      $r(t)$ is not, and "where is the planet at time $t$" is a question about the inverse.</p>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">The <span class="term">mean motion</span> $n := 2\pi/T$ and the
+        <span class="term">mean anomaly</span> $M := n(t-\tau)$: the angle a fictitious body moving
+        uniformly round the orbit's period would have swept since perihelion.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">on <span class="ref" data-ref="mars">Mars</span></span>
+        <p class="small">$n = 360^\circ/686.980\ \mathrm d = 0.524033^\circ$ per day, and at
+        <span class="ref" data-ref="epoch">$t - \tau = 120$ d</span>,
+        $$M = 1.097532\ \mathrm{rad} = 62.8839^\circ .$$
+        That much is arithmetic. The true anomaly $\theta$ at that moment is the question.</p>
+      </div>
+      <div class="box warn"><span class="label">three angles, one word</span>
+        <p class="small">"Anomaly" is Kepler's word for an angle measured from perihelion. There will be
+        three: true $\theta$ (where the planet is), mean $M$ (a clock) and eccentric $E$ (a device to
+        connect them). Astronomers write $\nu$ or $f$ for the true anomaly; this course keeps unit
+        08's $\theta$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the integral, not its inverse, is what quadrature gives.</b> Unit 00's third case always
+    produces $t$ as a function of position; getting position as a function of $t$ means inverting a
+    monotone function, which is always possible in principle (unit 00) and almost never possible in
+    elementary functions. The pendulum did the same thing in unit 00 and produced an elliptic integral.
+    Here the integral is elementary — the next slide but one evaluates it — and the inverse is still
+    not, because the result mixes $E$ and $\sin E$.</p>
+    <p><b>Dimensions.</b> $[n] = \mathsf T^{-1}$, so $M = n(t-\tau)$ is dimensionless: an angle, in
+    radians. $M$ grows by exactly $2\pi$ per orbit, as $\theta$ does, but uniformly in time, which
+    $\theta$ does not — Kepler's second law says $\theta$ runs fast near perihelion.</p>
+    <p><b>The Mars numbers.</b> $T = 686.980$ days is the sidereal period;
+    $M = 2\pi\times120/686.980 = 1.0975316$. Unit 08's third law gives the same period from
+    $a = 1.523679$ AU to five figures: $1.523679^{3/2} = 1.880790$ sidereal years of $365.256$ days, which
+    is $686.97$ days. The $0.01$-day difference is not the law's fault: tabulated elements are averages
+    over an orbit perturbed by the other planets, and Mars's own mass (a part in $3\times10^6$ of the
+    Sun's) moves the period by far less.</p>
+    <p><b>History.</b> Kepler found the equation of the next slides in 1609 in <i>Astronomia Nova</i>,
+    and said in print that he could not solve it and invited anyone who could. Two centuries of
+    celestial mechanics followed the invitation.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · the timetable</p>
+  <h2>The eccentric anomaly</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">Put the ellipse's centre $C$ at the origin, major axis along $x$, the focus
+        (the Sun) at $F = (ae, 0)$. Circumscribe the <span class="term">auxiliary circle</span> of
+        radius $a$. Project the planet $P$ vertically onto it, at $Q$. The
+        <span class="term">eccentric anomaly</span> $E$ is the angle of $Q$ seen from $C$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">With $b = a\sqrt{1-e^2}$, coordinates from the focus are</p>
+        $$x = a(\cos E - e),\qquad y = b\sin E,$$
+        $$r = a(1 - e\cos E),$$
+        $$\tan\frac\theta2 = \sqrt{\frac{1+e}{1-e}}\,\tan\frac E2 .$$
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 250" width="320" role="img" aria-label="An ellipse of eccentricity 0.6 inside its auxiliary circle. A planet P on the ellipse is projected vertically to Q on the circle; the eccentric anomaly E is the angle of Q at the centre C, and the true anomaly theta is the angle of P at the focus F.">
+          <line x1="30" y1="130" x2="300" y2="130" class="rule" stroke-width="1.2"/>
+          <circle cx="160" cy="130" r="110" fill="none" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <ellipse cx="160" cy="130" rx="110" ry="88" fill="none" class="unit" stroke-width="2.5"/>
+          <line x1="160" y1="130" x2="215" y2="34.7" class="ink" stroke-width="1.8"/>
+          <line x1="215" y1="34.7" x2="215" y2="130" class="rule" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="226" y1="130" x2="215" y2="53.8" class="accent" stroke-width="2"/>
+          <path d="M182,130 A22,22 0 0 0 171,110.95" fill="none" class="ink" stroke-width="1.5"/>
+          <path d="M244,130 A18,18 0 0 0 223.4,112.2" fill="none" class="accent" stroke-width="1.5"/>
+          <circle cx="160" cy="130" r="4" class="fill-ink"/>
+          <circle cx="226" cy="130" r="6" class="fill-accent"/>
+          <circle cx="215" cy="53.8" r="5" class="fill-ink"/>
+          <circle cx="215" cy="34.7" r="4" class="fill-ink"/>
+          <text x="148" y="150" font-size="15" class="mono">C</text>
+          <text x="232" y="150" font-size="15" class="mono">F</text>
+          <text x="228" y="62" font-size="15" class="mono">P</text>
+          <text x="221" y="30" font-size="15" class="mono">Q</text>
+          <text x="186" y="120" font-size="15" class="mono">E</text>
+          <text x="247" y="118" font-size="15" class="mono">θ</text>
+        </svg>
+        <p class="cap">Drawn at $e = 0.6$ so the angles differ visibly; for
+        <span class="ref" data-ref="mars">Mars</span> the ellipse and circle differ by $0.44\%$ in
+        height.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The coordinates.</b> The ellipse is $X^2/a^2 + Y^2/b^2 = 1$ about its centre; unit 08 derived
+    it with $b^2 = a^2(1-e^2)$ and the focus at distance $ae$ from the centre. The point of the circle
+    $X^2 + Y^2 = a^2$ at angle $E$ is $Q = (a\cos E, a\sin E)$. The ellipse point with the same $X$ and
+    $Y > 0$ has $Y^2 = b^2(1 - \cos^2E)$, so $P = (a\cos E, b\sin E)$ — the vertical projection scales
+    heights by $b/a$. Shift the origin to the focus: $x = a\cos E - ae$, $y = b\sin E$.</p>
+    <p><b>The distance.</b> $r^2 = a^2(\cos E - e)^2 + a^2(1-e^2)\sin^2E
+    = a^2\big(\cos^2E - 2e\cos E + e^2 + \sin^2E - e^2\sin^2E\big) = a^2(1 - e\cos E)^2$, and
+    $1 - e\cos E &gt; 0$, so $r = a(1-e\cos E)$.</p>
+    <p><b>The half-angle relation.</b> $r\cos\theta = x$ gives
+    $1 + \cos\theta = \frac{r + x}{r} = \frac{a(1-e)(1+\cos E)}{r}$ and
+    $1 - \cos\theta = \frac{a(1+e)(1-\cos E)}{r}$. Divide:
+    $\tan^2\frac\theta2 = \frac{1-\cos\theta}{1+\cos\theta} = \frac{1+e}{1-e}\tan^2\frac E2$. The signs
+    agree because $y$ and $\sin E$ have the same sign, so $\theta$ and $E$ lie in the same half-plane,
+    and the positive root is right. $\square$</p>
+    <p><b>Checks.</b> $e = 0$: $E = \theta$ and $r = a$, a circle traversed from its centre ✓.
+    $E = 0$: $r = a(1-e)$, perihelion; $E = \pi$: $r = a(1+e)$, aphelion ✓. Compare
+    $r = p/(1+e\cos\theta)$ with $p = a(1-e^2)$: substituting the half-angle relation into it gives
+    $a(1-e\cos E)$ again, which is problem P2.</p>
+    <p><b>Why a circle helps.</b> On the circle, area is proportional to angle. The vertical squash
+    $Y\mapsto (b/a)Y$ is a linear map with determinant $b/a$, so it multiplies every area by $b/a$. That
+    is the whole trick of the next slide: compute the swept area on the circle, then squash.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · the timetable</p>
+  <h2>Kepler's equation</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Kepler's equation</span></span>
+        <p class="small">For the bound Kepler orbit, $0\le e&lt;1$,</p>
+        $$E - e\sin E = M .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Kepler's second law (unit 08): the area swept from perihelion is proportional to
+        time, reaching $\pi ab$ after one period, so $A = \tfrac12 abM$. On the circle, the region
+        $F$–perihelion–$Q$ is the sector $C$–perihelion–$Q$, area $\tfrac12a^2E$, minus the triangle
+        $CFQ$, area $\tfrac12(ae)(a\sin E)$. The squash multiplies areas by $b/a$:</p>
+        $$A = \frac ba\cdot\frac{a^2}{2}(E - e\sin E) = \frac{ab}{2}(E - e\sin E).$$
+        <p class="small">Equate the two expressions for $A$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $E$, $M$ and $e$ are pure numbers ✓.</p>
+        <p class="small"><b>$e = 0$.</b> $E = M$: on a circle the planet moves uniformly, and the
+        mean anomaly is the true one ✓.</p>
+        <p class="small"><b>Apses.</b> $E = 0, \pi$ give $M = 0, \pi$: the planet is at perihelion and
+        aphelion exactly at $t = \tau$ and half a period later, whatever $e$ ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">transcendental</span>
+        <p class="small">Given $M$, find $E$: the unknown appears both bare and inside a sine. No finite
+        combination of elementary functions inverts it — Kepler's "I cannot solve it" has stood.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, by quadrature instead of geometry</h4>
+    <p>The area argument is Kepler's own. Unit 08's integral gives the same equation with no picture.
+    With $2\varepsilon = -GM_\odot/a$ and $h^2 = GM_\odota(1-e^2)$, the quantity under the root is
+    $\frac{GM_\odot}{a r^2}\big(-r^2 + 2ar - a^2(1-e^2)\big) = \frac{GM_\odot}{ar^2}\big(a^2e^2 - (r-a)^2\big)$.
+    Substitute $r = a(1-e\cos E)$, so $r - a = -ae\cos E$, $\mathrm dr = ae\sin E\,\mathrm dE$, and
+    $a^2e^2 - (r-a)^2 = a^2e^2\sin^2E$. The integrand becomes
+    $\frac{ae\sin E\cdot r\sqrt a}{\sqrt{GM_\odot}\,ae\sin E}\,\mathrm dE
+    = \sqrt{a^3/GM_\odot}\,(1 - e\cos E)\,\mathrm dE$, and integrating from $E = 0$:
+    $t - \tau = \sqrt{a^3/GM_\odot}\,(E - e\sin E)$. Since $T = 2\pi\sqrt{a^3/GM_\odot}$ (unit 08's third law),
+    $\sqrt{GM_\odot/a^3} = n$ and this is $M = E - e\sin E$. $\square$ This route is problem P1.</p>
+    <p><b>The squash, precisely.</b> The map $(X, Y)\mapsto(X, (b/a)Y)$ sends the circle to the
+    ellipse, $Q$ to $P$, and the focus to itself (it is on the axis). It sends the circular region
+    bounded by $FQ$, the arc and the axis onto the elliptical region bounded by $FP$, the arc and the
+    axis. A linear map multiplies areas by $|\det|$ — linear algebra, nothing more.</p>
+    <p><b>"Cannot be inverted in elementary functions"</b> is a precise theorem in differential algebra
+    (Liouville's theory), cited and not used: nothing below depends on it. What the course needs is
+    only that nobody has a formula, which is why the rest of this unit exists.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · the timetable</p>
+  <h2>Exactly one solution, and it is smooth</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Fix $0\le e&lt;1$. For every $M\in\mathbb R$ Kepler's equation has exactly one
+        solution $E(M)$, and</p>
+        <ol class="small">
+          <li>$E$ is $C^\infty$ in $(e, M)$, with $\partial E/\partial M = 1/(1-e\cos E)$;</li>
+          <li>$E(-M) = -E(M)$ and $E(M+2\pi) = E(M) + 2\pi$;</li>
+          <li>$|E - M|\le e$.</li>
+        </ol>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$g(E) := E - e\sin E$ has $g' = 1 - e\cos E\ge 1-e&gt;0$ and
+        $g(E+2\pi) = g(E)+2\pi$, so $g$ is a continuous strictly increasing bijection of $\mathbb R$.
+        Smoothness: unit 04's implicit function theorem, as $\partial g/\partial E\ne0$. Oddness and the
+        shift: $g$ has them, so its inverse does. Bound: $E - M = e\sin E$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">and a way to compute it</span>
+        <p class="small">Write the equation as a fixed point, $E = \Phi(E) := M + e\sin E$. Then
+        $|\Phi(E) - \Phi(E')|\le e|E - E'|$ by the mean value theorem, so $\Phi$ is a
+        <b>contraction</b> of $\mathbb R$ with constant $e$. Unit 01's Banach fixed-point theorem gives
+        existence and uniqueness a second time, and an algorithm:</p>
+        $$E_{k+1} = M + e\sin E_k,$$
+        $$|E_k - E|\le e^k|E_0 - E| .$$
+      </div>
+      <p class="small muted">Two consequences used later: $E - M$ is an <b>odd, $2\pi$-periodic, smooth</b>
+      function of $M$ (so it has a Fourier sine series), and $E_0 = M$ starts within $e$ of the answer.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why both proofs.</b> The monotonicity proof is the shortest; the contraction proof is the one
+    that computes. Unit 01 proved Banach's theorem on a complete metric space; $\mathbb R$ with
+    $|\cdot|$ is one, and $\Phi$ maps it to itself. The a priori estimate $|E_k - E|\le e^k|E_0-E|$ is
+    part of that theorem's proof.</p>
+    <p><b>Smooth in $e$ too.</b> Apply the implicit function theorem to
+    $G(e, M, E) = E - e\sin E - M$ on the open set $\{|e|&lt;1\}\times\mathbb R\times\mathbb R$:
+    $\partial G/\partial E = 1 - e\cos E \ge 1 - |e| &gt; 0$. So $E$ is a $C^\infty$ function of $(e, M)$
+    jointly, which section 2 needs in order to Taylor-expand in $e$. Implicit differentiation gives
+    $\partial E/\partial M = 1/(1-e\cos E)$ and $\partial E/\partial e = \sin E/(1-e\cos E)$; their
+    ratio, $\partial_eE = \sin E\ \partial_ME$, is the identity Lagrange's inversion proof runs on.</p>
+    <p><b>What breaks at $e = 1$.</b> $g'(0) = 1 - e = 0$ at perihelion: the inverse is still
+    continuous but not differentiable there, and the contraction constant is $1$. Parabolic orbits have
+    their own equation (Barker's, a cubic, solvable in radicals), and hyperbolic ones use
+    $e\sinh H - H = M$. Neither is needed here.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · the timetable · example</p>
+  <h2>Worked: Mars by fixed-point iteration</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label"><span class="ref" data-ref="mars">Mars</span> at
+      <span class="ref" data-ref="epoch">120 days</span></span>
+      <p class="small"><b>Step 1 — the clock.</b> $M = 2\pi\times120/686.980 = 1.097532$ and
+      $e = 0.0934$. Solve $E = 1.097532 + 0.0934\sin E$.</p>
+      <p class="small"><b>Step 2 — iterate from $E_0 = M$.</b> Six figures kept; the error column is
+      against <span class="ref" data-ref="answer">the converged $E = 1.1840325$</span>.</p>
+      <table class="dense">
+        <thead><tr><th>$k$</th><th class="num">$E_k$</th><th class="num">$E_k - E$</th><th class="num">ratio</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td class="num">1.097532</td><td class="num">$-8.65\times10^{-2}$</td><td class="num">—</td></tr>
+          <tr><td>1</td><td class="num">1.180666</td><td class="num">$-3.37\times10^{-3}$</td><td class="num">0.039</td></tr>
+          <tr><td>2</td><td class="num">1.183913</td><td class="num">$-1.19\times10^{-4}$</td><td class="num">0.035</td></tr>
+          <tr><td>3</td><td class="num">1.184028</td><td class="num">$-4.20\times10^{-6}$</td><td class="num">0.035</td></tr>
+          <tr><td>4</td><td class="num">1.1840324</td><td class="num">$-1.48\times10^{-7}$</td><td class="num">0.035</td></tr>
+        </tbody>
+      </table>
+      <p class="small"><b>Step 3 — read the ratio.</b> Each step multiplies the error by
+      $\Phi'(E) = e\cos E = 0.0934\times0.3772 = 0.0352$: the contraction constant $e = 0.0934$ is an
+      upper bound, and the actual rate is the derivative at the fixed point.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>A priori.</b> $|E_0 - E|\le e$ and the rate is at most $e$, so
+        $|E_k - E|\le e^{k+1}$: $8.7\times10^{-3}$ for $k=1$, against $3.4\times10^{-3}$ found ✓.</p>
+        <p class="small"><b>Sign.</b> All errors negative: $E_k$ creeps up on $E$ from below, as it must
+        when $\Phi$ is increasing ($e\cos E&gt;0$) and $E_0 &lt; E$ ✓.</p>
+      </div>
+      <p class="small muted">Linear convergence, one and a half digits per step. Fine for Mars, hopeless
+      for a comet with $e = 0.967$, whose rate $e\cos E$ approaches $0.967$ near perihelion.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The arithmetic, step 2.</b> $\sin(1.097532) = 0.890085$, so
+    $E_1 = 1.097532 + 0.0934\times0.890085 = 1.180666$. Then $\sin(1.180666) = 0.924860$, giving
+    $E_2 = 1.097532 + 0.086382 = 1.183914$ to six figures — the table's $1.183913$ comes from carrying
+    full precision in $E_1$, and the difference is rounding. Carry at least two more figures than you
+    want in the answer; this is the standard hazard of any iteration.</p>
+    <p><b>Why the ratio is $e\cos E$.</b> $E_{k+1} - E = \Phi(E_k) - \Phi(E) = \Phi'(\xi_k)(E_k - E)$
+    for some $\xi_k$ between them, by the mean value theorem. As $E_k\to E$, $\xi_k\to E$, so the ratio
+    tends to $\Phi'(E) = e\cos E$. With $E = 1.18403$, $\cos E = 0.37719$, and the ratio is $0.03523$.
+    The first ratio, $0.039$, is larger because $\xi_0$ is still far from $E$, where $\cos$ is bigger.</p>
+    <p><b>The comet remark.</b> Near perihelion $E$ is small, $\cos E\approx1$, and the rate is about
+    $e$. For $e = 0.967$ close to perihelion each step keeps up to $97\%$ of the error, which is
+    $\log 10/(-\log 0.967)\approx 69$ steps per digit. Newton's method, next, does not care.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · the timetable</p>
+  <h2>Newton's method, and why it doubles the digits</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Newton's method</span></span>
+        <p class="small">For $f(E) = E - e\sin E - M$: replace $f$ by its tangent line at $E_k$ and
+        solve that instead,</p>
+        $$\begin{aligned}E_{k+1} &= E_k - \frac{f(E_k)}{f'(E_k)}\\ &= E_k - \frac{E_k - e\sin E_k - M}{1 - e\cos E_k}.\end{aligned}$$
+      </div>
+      <div class="box thm"><span class="label">theorem: <span class="term">quadratic convergence</span></span>
+        <p class="small">If $f(E) = 0$, $|f'|\ge m&gt;0$ and $|f''|\le K$ on an interval containing
+        $E_k$ and $E$, then</p>
+        $$|E_{k+1} - E|\le \frac{K}{2m}\,|E_k - E|^2 .$$
+        <p class="small">For Kepler, $K = e$ and $m = 1 - e$: the constant is $e/2(1-e)$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Taylor with Lagrange remainder about $E_k$:
+        $0 = f(E) = f(E_k) + f'(E_k)(E - E_k) + \tfrac12 f''(\xi)(E-E_k)^2$. Divide by $f'(E_k)$ and
+        rearrange: $E_{k+1} - E = \dfrac{f''(\xi)}{2f'(E_k)}(E_k - E)^2$. Take absolute values.
+        $\square$</p>
+      </div>
+      <div class="box good"><span class="label">on <span class="ref" data-ref="mars">Mars</span></span>
+        <p class="small">$e/2(1-e) = 0.0515$. From $E_0 = M$ (error $8.7\times10^{-2}$):
+        $E_1$ has error $3.3\times10^{-4}$, $E_2$ has $4.9\times10^{-9}$, $E_3$ has
+        $1.1\times10^{-18}$. The bound predicts $0.0515\times(3.3\times10^{-4})^2 = 5.6\times10^{-9}$
+        for $E_2$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What "doubles the digits" means.</b> If $|E_k - E|\approx10^{-d}$ then
+    $|E_{k+1} - E|\lesssim 0.05\times10^{-2d}$: the number of correct digits roughly doubles each step,
+    against fixed-point iteration's constant gain. The price is one extra function evaluation per step
+    ($\cos$ as well as $\sin$) and a division.</p>
+    <p><b>The hypotheses are local.</b> The theorem says nothing about whether $E_k$ is close enough to
+    start with. For Kepler's equation with $e$ near $1$ and $M$ near $0$ the tangent at $E_0 = M$ can be
+    very flat ($f'(0) = 1 - e$) and the first step overshoots badly; P4 on the sheet looks at this.
+    Starting from $E_0 = \pi$ is a common safe choice for every $M\in[0,\pi]$; its global convergence is a
+    published result (Charles and Tatum, <i>Celestial Mechanics and Dynamical Astronomy</i> 69, 1998).
+    For $M\in[0,\pi]$ it has a short proof by convexity — $f'' = e\sin E\ge0$ on $[0,\pi]$, so from the
+    right of the root Newton's iterates decrease monotonically onto it — which is P4's "Another way".
+    Nothing here needs it: for Mars, $E_0 = M$ is already within the quadratic regime.</p>
+    <p><b>Mars numbers.</b> $f(E_0) = -e\sin M = -0.0831339$, $f'(E_0) = 1 - e\cos M = 0.957429$, so
+    $E_1 = 1.097532 + 0.086830 = 1.184362$. Then $f(E_1) = 3.178\times10^{-4}$,
+    $f'(E_1) = 0.964799$, $E_2 = 1.184362 - 0.000329 = 1.1840325435$, and the third step moves the
+    tenth figure.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>A series in the eccentricity</h2>
+  <p>Iteration gives a number for one $M$. Expanding in the small parameter gives a formula valid for every $M$ at once.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · series in $e$</p>
+  <h2>Each iteration is correct to one more order</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Treat $e$ as a small parameter and ask for $E$ as a power series in it — a
+      <span class="term">series in a parameter</span>. The fixed-point iteration already builds one:
+      $E_1 = M + e\sin M$, and $E_2 = M + e\sin(M + e\sin M)$ expands to
+      $M + e\sin M + \tfrac{e^2}{2}\sin 2M + O(e^3)$.</p>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$|E_k - E|\le e^{k+1}$, and so the Taylor polynomials in $e$ of degree $k$ of
+        $E_k$ and $E$ coincide. To third order,</p>
+        $$\begin{aligned}E = M &+ e\sin M + \frac{e^2}{2}\sin 2M\\ &+ \frac{e^3}{8}\big(3\sin 3M - \sin M\big) + O(e^4).\end{aligned}$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$|E_0 - E|\le e$, contraction constant $e$. So $E_k - E$ is smooth in $e$
+        and $O(e^{k+1})$: its first $k$ derivatives at $0$ vanish. $\square$ ($E_3$ expanded in the
+        notes.)</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>$e\to0$:</b> $E = M$ ✓. <b>Odd in $M$</b>, and zero at the apses
+        $M = 0,\pi$ ✓.</p>
+        <p class="small"><b><span class="ref" data-ref="mars">Mars</span>, errors against
+        <span class="ref" data-ref="answer">$E$</span></b> at $M = 1.097532$:</p>
+        <table class="dense">
+          <tbody>
+            <tr><td>through $e^1$</td><td class="num">$-3.37\times10^{-3}$</td></tr>
+            <tr><td>through $e^2$</td><td class="num">$+1.72\times10^{-4}$</td></tr>
+            <tr><td>through $e^3$</td><td class="num">$+3.55\times10^{-5}$</td></tr>
+            <tr><td>through $e^4$</td><td class="num">$+1.11\times10^{-6}$</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the third-order term</h4>
+    <p>$E_3 = M + e\sin E_2 = M + e\sin(M + \delta)$ with $\delta := E_2 - M
+    = e\sin M + \tfrac{e^2}{2}\sin 2M + O(e^3)$ (second order is enough, since it is multiplied by $e$). Expand
+    $\sin(M+\delta) = \sin M + \delta\cos M - \tfrac12\delta^2\sin M + O(\delta^3)$:</p>
+    <p>$e\sin(M+\delta) = e\sin M + e^2\sin M\cos M + e^3\big(\tfrac12\sin 2M\cos M - \tfrac12\sin^3M\big) + O(e^4)$.</p>
+    <p>Now $\sin 2M\cos M = \tfrac12(\sin 3M + \sin M)$ and $\sin^3M = \tfrac14(3\sin M - \sin 3M)$, so
+    the $e^3$ bracket is $\tfrac14(\sin 3M + \sin M) - \tfrac18(3\sin M - \sin 3M)
+    = \tfrac38\sin 3M - \tfrac18\sin M$. $\square$ By the theorem this is the $e^3$ coefficient of $E$
+    itself, because $E_3$ and $E$ agree to $O(e^4)$.</p>
+    <p><b>Why the Taylor claim follows.</b> If $h$ is $C^{k+1}$ near $0$ and $|h(e)|\le Ce^{k+1}$, then
+    $h(0) = h'(0) = \cdots = h^{(k)}(0) = 0$: otherwise let $j\le k$ be the first nonzero derivative; by
+    Taylor, $h(e) = h^{(j)}(0)e^j/j! + O(e^{j+1})$, which is not $O(e^{k+1})$. Both $E$ and $E_k$ are
+    smooth in $e$ — $E$ by the implicit function theorem, $E_k$ as a composition of sines.</p>
+    <p><b>What this does not say.</b> It says each truncation is right to the stated order for small
+    $e$. It says nothing about whether the infinite series converges, or to what. That is section 6's
+    question, and the answer depends on $e$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · series in $e$</p>
+  <h2>Lagrange inversion: every coefficient at once</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Lagrange inversion</span></span>
+        <p class="small">Let $E = M + e\,\varphi(E)$ with $\varphi$ smooth, and let $F$ be smooth.
+        Then for $k\ge1$</p>
+        $$\partial_e^kF(E)\big|_{e=0} = \partial_M^{k-1}\big[\varphi(M)^kF'(M)\big],$$
+        <p class="small">so the Taylor series of $F(E)$ in $e$ is</p>
+        $$F(M) + \sum_{k\ge1}\frac{e^k}{k!}\,\partial_M^{k-1}\big[\varphi^kF'\big](M).$$
+      </div>
+      <p class="small">Kepler: $\varphi = \sin$, $F(E) = E$, and the coefficient of $e^k$ is
+      $\frac1{k!}\frac{\mathrm d^{k-1}}{\mathrm dM^{k-1}}\sin^kM$.</p>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof, the engine</span>
+        <p class="small">Implicit differentiation gives $E_e = \varphi(E)\,E_M$. For any smooth $G$,
+        Clairaut (unit 03) gives</p>
+        $$\begin{aligned}\partial_e\big[G(E)E_M\big] &= G'(E)E_eE_M + G(E)E_{eM}\\ &= \partial_M\big[G(E)E_e\big].\end{aligned}$$
+        <p class="small">So $\partial_e[G(E)E_M] = \partial_M[G(E)\varphi(E)E_M]$: each $e$-derivative
+        becomes an $M$-derivative and one more factor of $\varphi$. Induct, then set $e = 0$, where
+        $E = M$ and $E_M = 1$. $\square$</p>
+        <p class="proof-pointer">the induction in full in the notes (N)</p>
+      </div>
+      <div class="box warn"><span class="label">formal, not yet convergent</span>
+        <p class="small">The theorem computes the Taylor coefficients. Whether their series converges
+        to $F(E)$ is a separate question with an $e$-dependent answer.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Write subscripts for partial derivatives. $E(e,M)$ is $C^\infty$ (implicit function theorem,
+    $1 - e\varphi'(E)\ne0$ near $e = 0$). Differentiating $E = M + e\varphi(E)$:
+    $E_e = \varphi(E) + e\varphi'(E)E_e$ and $E_M = 1 + e\varphi'(E)E_M$, so
+    $E_e = \varphi(E)/(1 - e\varphi') = \varphi(E)E_M$.</p>
+    <p><b>Claim.</b> For $k\ge1$, $\partial_e^kF(E) = \partial_M^{k-1}\big[\varphi(E)^kF'(E)E_M\big]$
+    for all small $e$ (not only at $0$).</p>
+    <p><b>$k = 1$:</b> $\partial_eF(E) = F'(E)E_e = F'(E)\varphi(E)E_M$ ✓.</p>
+    <p><b>$k\to k+1$:</b> with $G := \varphi^kF'$,
+    $\partial_e^{k+1}F(E) = \partial_e\partial_M^{k-1}[G(E)E_M] = \partial_M^{k-1}\partial_e[G(E)E_M]$
+    (mixed partials of a $C^\infty$ function commute — Clairaut). The engine identity turns
+    $\partial_e[G(E)E_M]$ into $\partial_M[G(E)E_e] = \partial_M[G(E)\varphi(E)E_M]$, so
+    $\partial_e^{k+1}F(E) = \partial_M^{k}[\varphi^{k+1}F'(E)E_M]$ ✓.</p>
+    <p><b>The engine identity</b> is two applications of the product rule:
+    $\partial_e[G(E)E_M] = G'(E)E_eE_M + G(E)E_{Me}$ and
+    $\partial_M[G(E)E_e] = G'(E)E_ME_e + G(E)E_{eM}$, equal by Clairaut.</p>
+    <p>At $e = 0$: $E = M$, $E_M = 1$, and the $M$-derivatives may be taken after setting $e = 0$
+    because $e$ and $M$ are independent variables. $\square$</p>
+    <p><b>History.</b> Lagrange published it in 1770 for exactly this problem. The same formula, with
+    $F(E) = E$ and a general $\varphi$, inverts any power series $w = z/\varphi(z)$; its modern home is
+    combinatorics, where it counts trees. Unit 20 gives the one-line proof by residues, which also
+    gives the radius of convergence — the thing this real-variable proof cannot see.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · series in $e$ · example</p>
+  <h2>Worked: Lagrange's coefficients through $e^3$</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">the Kepler series from the formula</span>
+      <p class="small"><b>Step 1 — $k=1$.</b> $\frac{e}{1!}\,\frac{\mathrm d^0}{\mathrm dM^0}\sin M = e\sin M$.</p>
+      <p class="small"><b>Step 2 — $k=2$.</b> $\frac{e^2}{2!}\frac{\mathrm d}{\mathrm dM}\sin^2M
+      = \frac{e^2}{2}\cdot2\sin M\cos M = \frac{e^2}{2}\sin 2M$.</p>
+      <p class="small"><b>Step 3 — $k=3$.</b> Linearise first: $\sin^3M = \tfrac14(3\sin M - \sin 3M)$.
+      Differentiate twice: $\tfrac14(-3\sin M + 9\sin 3M)$. Divide by $3! = 6$:</p>
+      $$\frac{e^3}{24}\big(9\sin 3M - 3\sin M\big) = \frac{e^3}{8}\big(3\sin 3M - \sin M\big).$$
+      <p class="small"><b>Step 4 — compare.</b> Identical to the iteration's third-order term ✓, with
+      three lines of algebra in place of a nested expansion.</p>
+      <p class="small"><b>Step 5 — <span class="ref" data-ref="mars">Mars</span>.</b> With
+      $\sin M = 0.890085$, $\sin 2M = 0.811392$, $\sin 3M = -0.150429$:
+      $E \approx 1.097532 + 0.083134 + 0.003539 - 0.000137 = 1.184068$, error
+      $3.5\times10^{-5}$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the pattern to notice</span>
+        <p class="small">$\sin^kM$ contains harmonics up to $\sin kM$ (or $\cos kM$), never higher. So
+        <b>$\sin nM$ first appears at order $e^n$</b>, and each harmonic's coefficient is itself a power
+        series in $e$ starting at $e^n$.</p>
+      </div>
+      <div class="box warn"><span class="label">the linearisation step</span>
+        <p class="small">Differentiating $\sin^kM$ directly $k-1$ times is a thicket of product rules.
+        Always rewrite $\sin^kM$ as a sum of $\sin jM$ or $\cos jM$ first — unit 06's
+        $\sin M = (\mathrm e^{iM} - \mathrm e^{-iM})/2i$ and the binomial theorem do it mechanically.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The linearisation, by unit 06's complex exponential.</b>
+    $\sin^3M = \big(\frac{\mathrm e^{iM}-\mathrm e^{-iM}}{2i}\big)^3 = \frac{\mathrm e^{3iM} - 3\mathrm e^{iM} + 3\mathrm e^{-iM} - \mathrm e^{-3iM}}{-8i}
+    = \frac{2i\sin 3M - 6i\sin M}{-8i} = \frac{3\sin M - \sin 3M}{4}$. The same computation for general
+    $k$ shows $\sin^kM$ is a combination of $\sin jM$ ($k$ odd) or $\cos jM$ ($k$ even) with
+    $j\equiv k\pmod 2$ and $j\le k$ — which is the pattern in the right-hand box, proved.</p>
+    <p><b>Mars arithmetic.</b> $e\sin M = 0.0934\times0.890085 = 0.083134$;
+    $\tfrac{e^2}{2}\sin 2M = 0.00436178\times0.811392 = 0.003539$;
+    $\tfrac{e^3}{8}(3\sin 3M - \sin M) = 1.01848\times10^{-4}\times(-0.451287 - 0.890085) = -1.366\times10^{-4}$.
+    Sum $1.184068$ against the true $1.1840325$.</p>
+    <p><b>Where this is going.</b> The right-hand box suggests reorganising: instead of collecting
+    powers of $e$, collect harmonics of $M$. The coefficient of $\sin nM$ is a function $c_n(e)$ with
+    $c_1 = e - e^3/8 + \cdots$, $c_2 = e^2/2 - \cdots$, $c_3 = 3e^3/8 + \cdots$. Is there a closed form
+    for $c_n(e)$? The next section finds one, by computing it directly as a Fourier coefficient instead
+    of summing Lagrange's terms.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Fourier coefficients, and Bessel's integral</h2>
+  <p>$E - M$ is a periodic function of time. Ask for its harmonics directly, and a new function appears.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Fourier coefficients</p>
+  <h2>Just enough Fourier: sine coefficients</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For $g$ odd, $2\pi$-periodic and continuous, its
+        <span class="term">Fourier sine coefficients</span> are</p>
+        $$b_n := \frac2\pi\int_0^\pi g(M)\sin nM\,\mathrm dM,\qquad n\ge1 .$$
+      </div>
+      <div class="box thm"><span class="label">lemma: <span class="term">orthogonality</span></span>
+        $$\int_0^\pi\sin mM\,\sin nM\,\mathrm dM = \frac\pi2\,\delta_{mn}$$
+        <p class="small">for integers $m, n\ge1$.</p>
+        <p class="small muted"><b>Proof.</b> The integrand is
+        $\tfrac12[\cos(m-n)M - \cos(m+n)M]$, and $\int_0^\pi\cos jM\,\mathrm dM$ is $\pi$ for $j=0$ and
+        $0$ for $j\ne0$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem (cited — unit 19)</span>
+        <p class="small">If $g$ is odd, $2\pi$-periodic and $C^1$, then
+        $g(M) = \sum_{n\ge1}b_n\sin nM$, the series converging uniformly.</p>
+      </div>
+      <div class="box good"><span class="label">why the formula for $b_n$ is forced</span>
+        <p class="small">If $g = \sum_m b_m\sin mM$ uniformly, multiply by $\sin nM$ and integrate
+        term by term: orthogonality kills every term but $m = n$, leaving
+        $\int_0^\pi g\sin nM = \tfrac\pi2b_n$. The theorem is the converse: the series so defined
+        really sums to $g$.</p>
+      </div>
+      <p class="small muted">By the slide "Exactly one solution", $g = E - M$ qualifies.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What is proved here and what is borrowed.</b> The coefficient formula and orthogonality are
+    proved on the slide; so is the fact that <i>if</i> $g$ has a uniformly convergent sine series, the
+    coefficients must be the $b_n$ (termwise integration of a uniformly convergent series of continuous
+    functions is single-variable analysis). What is borrowed is the other direction — that the sine
+    series of a $C^1$ function converges to it. That is Dirichlet's theorem, proved in unit 19 along
+    with the rest of Fourier's theory. Unit 19 needs this unit, so the citation points forward; nothing
+    circular happens, because unit 19's proof uses no Bessel functions.</p>
+    <p><b>Why odd, and why $[0,\pi]$.</b> For an odd function the cosine coefficients vanish and the
+    integral over $[-\pi,\pi]$ is twice that over $[0,\pi]$; that is where the $2/\pi$ comes from. The
+    general periodic function needs both sines and cosines, and unit 19 does that.</p>
+    <p><b>Physics.</b> A periodic motion is a sum of harmonics of its fundamental frequency, here the
+    mean motion $n$: $\sin(kM) = \sin(kn(t-\tau))$. An astronomer calls $E - M$'s harmonic content the
+    <i>equation of the centre</i> when it is expressed for $\theta - M$; its first term, $2e\sin M$ in
+    $\theta$, is the largest periodic term in a planet's position.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Fourier coefficients · example</p>
+  <h2>Worked: the harmonics of Kepler's equation</h2>
+  <div class="box ex"><span class="label">computing $b_n$ for $g = E - M$</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Steps 1–2 — define, then integrate by parts</b> in
+        $b_n = \frac2\pi\int_0^\pi (E - M)\sin nM\,\mathrm dM$:</p>
+        $$\begin{aligned}b_n = {}&\frac2\pi\Big[-\frac{(E-M)\cos nM}{n}\Big]_0^\pi\\ &+ \frac{2}{n\pi}\int_0^\pi\Big(\frac{\mathrm dE}{\mathrm dM} - 1\Big)\cos nM\,\mathrm dM .\end{aligned}$$
+        <p class="small"><b>Step 3 — two zeros.</b> The boundary term vanishes, as $E - M = 0$ at the
+        apses $M = 0,\pi$; the $-1$ integrates to $0$.</p>
+      </div>
+      <div>
+        <p class="small"><b>Step 4 — change variable</b> to $E$, which also runs over $[0,\pi]$, with
+        $M = E - e\sin E$:</p>
+        $$\begin{aligned}b_n &= \frac{2}{n\pi}\int_0^\pi\cos nM\,\frac{\mathrm dE}{\mathrm dM}\,\mathrm dM\\
+          &= \frac{2}{n\pi}\int_0^\pi\cos\big(nE - ne\sin E\big)\,\mathrm dE .\end{aligned}$$
+        <p class="small"><b>Step 5 — name it.</b>
+        $J_n(x) := \frac1\pi\int_0^\pi\cos(n\vartheta - x\sin\vartheta)\,\mathrm d\vartheta$ gives
+        $b_n = \frac2n J_n(ne)$.</p>
+      </div>
+    </div>
+  </div>
+  <div class="cols">
+    <div class="box thm"><span class="label">the <span class="term">Fourier–Bessel expansion</span></span>
+      $$E = M + \sum_{n\ge1}\frac2n\,J_n(ne)\,\sin nM,$$
+      <p class="small">with $J_n$ given by Step 5's integral, <span class="term">Bessel's integral</span>.</p>
+    </div>
+    <div class="box good"><span class="label">check</span>
+      <p class="small">$n = 1$, small $e$: the integrand of $J_1(e)$ is
+      $\cos\vartheta + e\sin^2\vartheta + O(e^2)$, so $J_1(e)\approx e/2$ and $b_1\approx e$, the
+      coefficient of $\sin M$ found in section 2 ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was used.</b> Every step used only that $E(M)$ is a smooth increasing bijection of
+    $[0,\pi]$ fixing both ends. The dynamics is entirely in Step 4's $M = E - e\sin E$.</p>
+    <p><b>Why integrate by parts at all.</b> Directly, $\int(E - M)\sin nM\,\mathrm dM$ has the unknown
+    function $E(M)$ inside; there is no way to evaluate it. Integration by parts moves the derivative
+    onto $E$, and $\mathrm dE/\mathrm dM\,\mathrm dM = \mathrm dE$ lets us integrate over $E$ instead,
+    where $M$ is a known function. This is the inverse-function trick that underlies Lagrange inversion
+    too: an integral involving an inverse function becomes an integral involving the function.</p>
+    <p><b>Step 4, carefully.</b> The substitution rule of single-variable calculus, applied to
+    $\int_0^\pi\cos(nM)\,E'(M)\,\mathrm dM$ with the $C^1$ increasing bijection $M\mapsto E(M)$ of
+    $[0,\pi]$ onto itself, gives $\int_0^\pi\cos\big(nM(E)\big)\,\mathrm dE$, where $M(E) = E - e\sin E$
+    is the inverse function — known explicitly, which is the point.</p>
+    <p><b>History.</b> Bessel met these integrals in exactly this way in 1817, writing the coefficients
+    of Kepler's problem, and in 1824 made them the subject of a memoir on planetary perturbations,
+    listing their properties and tabulating them. The order-zero function had been seen earlier —
+    Daniel Bernoulli's hanging chain in the 1730s, Euler's vibrating membrane — but only as a series that
+    happened to solve one problem. The name "Bessel function" came later in the nineteenth century.</p>
+    <p><b>Dimensions.</b> Everything here is dimensionless: $n$ an integer, $e$ and $x$ pure numbers,
+    $J_n$ an average of cosines. $|J_n(x)|\le1$ at once, since it is the average of a function bounded
+    by $1$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Fourier coefficients</p>
+  <h2>Checks: the new series contains the old one</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">limits</span>
+        <p class="small"><b>$e = 0$.</b> $J_n(0) = \frac1\pi\int_0^\pi\cos n\vartheta\,\mathrm d\vartheta = 0$
+        for $n\ge1$, so $E = M$ ✓.</p>
+        <p class="small"><b>Small $x$.</b> Expand the integrand to first order in $x$:
+        $\cos(n\vartheta - x\sin\vartheta)\approx\cos n\vartheta + x\sin\vartheta\sin n\vartheta$, so
+        $J_1(x)\approx x/2$ by orthogonality. Then $\frac21J_1(e)\approx e$, the
+        coefficient of $\sin M$ at order $e$ ✓.</p>
+        <p class="small"><b>Bounded.</b> $|J_n|\le1$, so $|b_n|\le 2/n$ — consistent with, and much
+        weaker than, the true decay.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">against Lagrange, once section 4 has the power series</span>
+        <p class="small">Section 4 proves $J_n(x) = \sum_k\frac{(-1)^k(x/2)^{n+2k}}{k!\,(n+k)!}$. Then</p>
+        <table class="dense">
+          <thead><tr><th>harmonic</th><th class="num">$\frac2nJ_n(ne)$</th></tr></thead>
+          <tbody>
+            <tr><td>$\sin M$</td><td class="num">$e - \frac18e^3 + \frac1{192}e^5 - \cdots$</td></tr>
+            <tr><td>$\sin 2M$</td><td class="num">$\frac12e^2 - \frac16e^4 + \cdots$</td></tr>
+            <tr><td>$\sin 3M$</td><td class="num">$\frac38e^3 - \frac{27}{128}e^5 + \cdots$</td></tr>
+            <tr><td>$\sin 4M$</td><td class="num">$\frac13e^4 - \cdots$</td></tr>
+          </tbody>
+        </table>
+        <p class="small">Through $e^3$: $e\sin M + \frac{e^2}2\sin 2M + e^3(\frac38\sin 3M - \frac18\sin M)$ —
+        Lagrange's series exactly ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The small-$x$ step.</b> $\cos(A - B) = \cos A\cos B + \sin A\sin B$ with $A = n\vartheta$,
+    $B = x\sin\vartheta$; for small $x$, $\cos B = 1 + O(x^2)$ and $\sin B = x\sin\vartheta + O(x^3)$.
+    So $J_n(x) = \frac1\pi\int_0^\pi\cos n\vartheta\,\mathrm d\vartheta
+    + \frac x\pi\int_0^\pi\sin n\vartheta\sin\vartheta\,\mathrm d\vartheta + O(x^2)
+    = \delta_{n0} + \tfrac x2\delta_{n1} + O(x^2)$.</p>
+    <p><b>The table.</b> $J_1(x) = \frac x2 - \frac{x^3}{16} + \frac{x^5}{384}$, so
+    $2J_1(e) = e - \frac{e^3}{8} + \frac{e^5}{192}$. $J_2(x) = \frac{x^2}8 - \frac{x^4}{96}$ at $x = 2e$
+    gives $\frac{e^2}{2} - \frac{e^4}{6}$. $J_3(x) = \frac{x^3}{48} - \frac{x^5}{768}$ at $x = 3e$, times
+    $\frac23$, gives $\frac38e^3 - \frac{27}{128}e^5$. $J_4(x) = \frac{x^4}{384}$ at $x = 4e$, times
+    $\frac12$, gives $\frac{256}{768}e^4 = \frac13e^4$. The $e^4$ row of Lagrange's series,
+    $\frac{e^4}{6}(2\sin 4M - \sin 2M)$, agrees with the $e^4$ entries in rows 2 and 4 — that is P5.</p>
+    <p><b>Which series is "the" solution?</b> Both are, where they converge. The Fourier–Bessel series
+    groups terms by harmonic and has a closed form for each group; Lagrange's groups by power of $e$ and
+    has a closed form (a derivative) for each group. They are the same double series summed in two
+    different orders, and section 6 shows the order matters.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Bessel functions, as mathematical objects</h2>
+  <p>Kepler produced an integral. Define the function properly, then prove the integral is one of its faces.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Bessel functions</p>
+  <h2>The definition, and a bound</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Bessel function of the first kind</span></span>
+        <p class="small">For an integer $n\ge0$ and $x\in\mathbb R$,</p>
+        $$J_n(x) := \sum_{k\ge0}\frac{(-1)^k\,(x/2)^{n+2k}}{k!\,(n+k)!},$$
+        <p class="small">and $J_{-n} := (-1)^nJ_n$. The series converges for every $x$ (ratio of
+        successive terms $\to0$), so $J_n$ is $C^\infty$ and may be differentiated termwise.</p>
+      </div>
+      <div class="box good"><span class="label">first values</span>
+        <p class="small">$J_0(x) = 1 - \frac{x^2}4 + \frac{x^4}{64} - \cdots$,
+        $J_1(x) = \frac x2 - \frac{x^3}{16} + \cdots$. $J_n(0) = \delta_{n0}$ and
+        $J_n(x)\sim(x/2)^n/n!$ as $x\to0$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">lemma: the size bound</span>
+        $$|J_n(x)|\le\frac{(|x|/2)^n}{n!}\,\exp\!\Big(\frac{x^2}{4(n+1)}\Big)$$
+        <p class="small">for $n\ge0$ and all real $x$.</p>
+        <p class="small muted"><b>Proof.</b> $(n+k)!\ge n!\,(n+1)^k$, so the $k$-th term is at most
+        $\frac{(|x|/2)^n}{n!}\cdot\frac1{k!}\big(\frac{x^2}{4(n+1)}\big)^k$; sum the exponential series.
+        $\square$</p>
+      </div>
+      <div class="box warn"><span class="label">why a definition, when section 3 had one</span>
+        <p class="small">Bessel's integral is a fine formula but a poor definition: it hides that
+        $J_n$ is analytic, how it behaves at $0$, and what equation it solves. The series makes all
+        three visible. The next two slides prove the two agree.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Convergence.</b> The ratio of the $(k+1)$-th to the $k$-th term has modulus
+    $\frac{x^2/4}{(k+1)(n+k+1)}\to0$, so the series converges absolutely for every real $x$ (and for every
+    complex $x$, which unit 20 will care about). A power series may be differentiated termwise inside its
+    interval of convergence — single-variable analysis — and here that interval is all of $\mathbb R$.</p>
+    <p><b>Why $J_{-n} = (-1)^nJ_n$ is a definition.</b> The series with $n$ replaced by $-n$ would
+    contain $1/(k-n)!$ for $k&lt;n$; reading $1/m! = 0$ for negative integers $m$ (as the Gamma function
+    later justifies) turns it into $(-1)^nJ_n$ after reindexing $k\to k+n$. Here we simply define it so,
+    because the generating function on the next slide produces exactly this coefficient of $t^{-n}$.</p>
+    <p><b>How good the bound is.</b> For Mars's $x = ne$ it gives
+    $|J_n(ne)|\le\frac{(ne/2)^n}{n!}e^{ne^2/4}$, and with $n^n/n!\le \mathrm e^n$ (which is one term of
+    $\mathrm e^n = \sum n^k/k!$), $|J_n(ne)|\le\big(\tfrac{\mathrm e\,e}{2}\,e^{e^2/4}\big)^n$: geometric,
+    ratio $0.127$ for $e = 0.0934$. Section 6 uses exactly this to count terms before summing them. (Two
+    different $e$'s: Euler's number in roman, the eccentricity in italic.)</p>
+    <p><b>Physics, ahead.</b> These are the functions that describe a vibrating drumhead, the modes of a
+    circular waveguide and the diffraction pattern of a circular aperture. They arrive there through the
+    Laplacian in cylindrical coordinates, and unit 19 treats their equation as a Sturm–Liouville
+    problem; the equation itself is proved on the slide "Bessel's differential equation".</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Bessel functions</p>
+  <h2>The generating function</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">generating function</span></span>
+        <p class="small">For every real $x$ and every $t\ne0$, real or complex,</p>
+        $$\exp\!\Big(\frac x2\Big(t - \frac1t\Big)\Big) = \sum_{n=-\infty}^{\infty}J_n(x)\,t^n,$$
+        <p class="small">the series converging absolutely.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Multiply $\mathrm e^{xt/2} = \sum_j\frac{(xt/2)^j}{j!}$ by
+        $\mathrm e^{-x/2t} = \sum_k\frac{(-x/2t)^k}{k!}$. The double series of absolute values sums to
+        $\mathrm e^{|x|(|t| + 1/|t|)/2}&lt;\infty$, so it may be regrouped by $n = j - k$. For $n\ge0$ the
+        coefficient of $t^n$ is</p>
+        $$\sum_{k\ge0}\frac{(x/2)^{n+k}}{(n+k)!}\cdot\frac{(-1)^k(x/2)^k}{k!} = J_n(x).$$
+        <p class="small">For $n&lt;0$, swap the roles of $j$ and $k$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what it buys</span>
+        <p class="small">One function of two variables encodes the whole family. Differentiate it in $t$
+        or $x$ and compare coefficients: every identity on the next three slides comes out that way.</p>
+        <p class="small"><b>$t = 1$:</b> $1 = J_0(x) + 2J_2(x) + 2J_4(x) + \cdots$. At $x = 1$:
+        $0.7651977 + 2(0.1149035) + 2(0.0024766) + 2(0.0000209) = 0.9999997$, and the next term,
+        $2J_8(1) = 1.9\times10^{-7}$, closes the gap ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">the same trick again, in unit 10</span>
+        <p class="small">Unit 10 defines the Legendre polynomials by
+        $(1 - 2xt + t^2)^{-1/2} = \sum P_n(x)t^n$ and gets their properties the same way. A generating
+        function is a device for proving identities about a whole sequence of functions at once.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, the negative indices</h4>
+    <p>For $n = -m$ with $m&gt;0$, the terms with $j - k = -m$ have $k = j + m$, and the coefficient of
+    $t^{-m}$ is $\sum_{j\ge0}\frac{(x/2)^j}{j!}\cdot\frac{(-1)^{j+m}(x/2)^{j+m}}{(j+m)!}
+    = (-1)^m\sum_j\frac{(-1)^j(x/2)^{m+2j}}{j!(m+j)!} = (-1)^mJ_m(x) = J_{-m}(x)$, which is why that
+    definition was made.</p>
+    <p><b>Why regrouping is allowed.</b> A double series $\sum_{j,k}c_{jk}$ with
+    $\sum_{j,k}|c_{jk}|&lt;\infty$ may be summed in any order and grouped in any way — single-variable
+    analysis's rearrangement theorem, applied to a countable index set. Here
+    $|c_{jk}| = \frac{(|x||t|/2)^j}{j!}\frac{(|x|/2|t|)^k}{k!}$, a product of two exponential series.</p>
+    <p><b>The check at $t = 1$.</b> $\exp(0) = 1 = \sum_nJ_n(x) = J_0 + \sum_{m\ge1}(J_m + J_{-m})$, and
+    $J_m + J_{-m} = (1 + (-1)^m)J_m$ is $2J_m$ for even $m$ and $0$ for odd. At $x=1$:
+    $J_0(1) = 0.7651977$, $J_2(1) = 0.1149035$, $J_4(1) = 0.0024766$, $J_6(1) = 2.09\times10^{-5}$;
+    $J_0 + 2J_2 + 2J_4 + 2J_6 = 0.9999998$, the remainder being essentially $2J_8(1) = 1.9\times10^{-7}$.</p>
+    <p><b>Where the generating function comes from.</b> Nobody guessed it. Set $t = \mathrm e^{i\vartheta}$
+    and it becomes $\exp(ix\sin\vartheta)$ — a periodic function of $\vartheta$ whose Fourier coefficients
+    are Bessel's integrals, which is how it was found in the mid-nineteenth century (Watson's chapter 2
+    has the history). The next slide runs that argument backwards as a proof.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Bessel functions</p>
+  <h2>The series and the integral are the same function</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">For every integer $n$ and real $x$,</p>
+        $$\begin{aligned}&\sum_{k\ge0}\frac{(-1)^k(x/2)^{n+2k}}{k!\,(n+k)!}\\ &\quad= \frac1\pi\int_0^\pi\cos(n\vartheta - x\sin\vartheta)\,\mathrm d\vartheta .\end{aligned}$$
+        <p class="small">So the $J_n$ of section 3's Fourier–Bessel expansion is the $J_n$ just
+        defined.</p>
+      </div>
+      <div class="box thm"><span class="label">corollary: the <span class="term">Jacobi–Anger expansion</span></span>
+        $$\mathrm e^{ix\sin\vartheta} = \sum_{n\in\mathbb Z}J_n(x)\,\mathrm e^{in\vartheta}.$$
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Put $t = \mathrm e^{i\vartheta}$ in the generating function (unit 06:
+        $t - 1/t = 2i\sin\vartheta$). That is the corollary, and the bound lemma makes it converge
+        uniformly in $\vartheta$ (M-test with $\sum_n|J_n(x)|&lt;\infty$). Multiply by
+        $\mathrm e^{-im\vartheta}$ and integrate over $[0,2\pi]$ term by term;
+        $\int_0^{2\pi}\mathrm e^{i(n-m)\vartheta}\,\mathrm d\vartheta = 2\pi\delta_{nm}$ leaves</p>
+        $$J_m(x) = \frac1{2\pi}\int_0^{2\pi}\mathrm e^{i(x\sin\vartheta - m\vartheta)}\,\mathrm d\vartheta .$$
+        <p class="small">The substitution $\vartheta\mapsto2\pi-\vartheta$ shows the imaginary part
+        vanishes and the real part is twice its integral over $[0,\pi]$. $\square$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the last step</h4>
+    <p>The real part of the integrand is $\cos(x\sin\vartheta - m\vartheta)$. Under
+    $\vartheta = 2\pi - \phi$, $\sin\vartheta = -\sin\phi$ and $m\vartheta = 2\pi m - m\phi$, so
+    $x\sin\vartheta - m\vartheta = -(x\sin\phi - m\phi) - 2\pi m$, whose cosine is
+    $\cos(m\phi - x\sin\phi)$ and whose sine is $-\sin(x\sin\phi - m\phi)$. Hence the integral over
+    $[\pi,2\pi]$ of the real part equals the integral over $[0,\pi]$, and the imaginary parts cancel.
+    That gives $J_m(x) = \frac1\pi\int_0^\pi\cos(m\phi - x\sin\phi)\,\mathrm d\phi$. $\square$</p>
+    <p><b>The M-test, explicitly.</b> $|J_n(x)\mathrm e^{in\vartheta}| = |J_n(x)|$, and by the bound
+    lemma $\sum_n|J_n(x)|\le\sum_n\frac{(|x|/2)^{|n|}}{|n|!}\mathrm e^{x^2/4}&lt;\infty$. So the series
+    converges uniformly in $\vartheta$, and a uniformly convergent series of continuous functions may be
+    integrated term by term.</p>
+    <p><b>Complex numbers, used as infrastructure.</b> Unit 06 introduced $\mathrm e^{i\vartheta}$ as
+    algebra; everything here is algebra plus the integral of a complex-valued function of a real
+    variable, which is the integral of its real part plus $i$ times that of its imaginary part. Nothing
+    of complex analysis is used. The payoff of treating $x$ as complex is unit 20's.</p>
+    <p><b>Physics of the corollary.</b> $\mathrm e^{ix\sin\vartheta}$ is a phase-modulated wave: a carrier
+    whose phase wobbles sinusoidally with depth $x$. The corollary says its spectrum has lines at every
+    integer multiple of the modulation frequency, with amplitudes $J_n(x)$. That is FM radio's spectrum,
+    and it is Kepler's problem again: the planet's position is a carrier (the mean motion) with a
+    periodic phase wobble (the equation of the centre).</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Bessel functions</p>
+  <h2>Recurrences</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: <span class="term">recurrence relations</span></span>
+        <p class="small">For every integer $n$ and $x\ne0$:</p>
+        $$J_{n-1} + J_{n+1} = \frac{2n}{x}J_n,$$
+        $$J_{n-1} - J_{n+1} = 2J_n'.$$
+        <p class="small">In particular $J_0' = -J_1$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Let $G(x,t)$ be the generating function. Then
+        $\partial_tG = \frac x2(1 + t^{-2})G$ and $\partial_xG = \frac12(t - t^{-1})G$. Substitute
+        $G = \sum J_nt^n$ on both sides — termwise differentiation is legitimate, the series being a
+        power series in $x$ and a Laurent series in $t$ — and compare coefficients of $t^{n-1}$ and
+        $t^n$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>At $x = 1$, $n = 1$:</b> $J_0(1) + J_2(1) = 0.765198 + 0.114903 = 0.880101$
+        and $2J_1(1) = 2\times0.440051 = 0.880101$ ✓.</p>
+        <p class="small"><b>$J_0' = -J_1$ from the series:</b>
+        $\frac{\mathrm d}{\mathrm dx}\big(1 - \frac{x^2}4 + \frac{x^4}{64}\big) = -\frac x2 + \frac{x^3}{16}$,
+        which is $-J_1$ to that order ✓.</p>
+      </div>
+      <div class="box good"><span class="label">two equivalent forms, used next</span>
+        <p class="small">Adding and subtracting:</p>
+        $$\big(x^nJ_n\big)' = x^nJ_{n-1},$$
+        $$\big(x^{-n}J_n\big)' = -x^{-n}J_{n+1}.$$
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The $t$-derivative.</b> $\partial_tG = \sum_nnJ_nt^{n-1}$, and
+    $\frac x2(1 + t^{-2})\sum_nJ_nt^n = \frac x2\sum_n(J_n t^n + J_nt^{n-2})$. The coefficient of
+    $t^{n-1}$ on the right is $\frac x2(J_{n-1} + J_{n+1})$. Equate: $nJ_n = \frac x2(J_{n-1}+J_{n+1})$.</p>
+    <p><b>The $x$-derivative.</b> $\partial_xG = \sum J_n't^n$ and
+    $\frac12(t - t^{-1})\sum J_nt^n$ has $t^n$-coefficient $\frac12(J_{n-1} - J_{n+1})$.</p>
+    <p><b>Uniqueness of coefficients.</b> Two absolutely convergent Laurent series in $t$ that agree for
+    every $t\ne0$ have the same coefficients. In the real-variable setting the cleanest proof is to set $t = \mathrm e^{i\vartheta}$ and use orthogonality of
+    $\mathrm e^{in\vartheta}$ exactly as on the previous slide. Termwise differentiation in $t$ is
+    justified because on any annulus $0&lt;r\le|t|\le R$ the differentiated series is dominated by a
+    convergent one (the bound lemma again).</p>
+    <p><b>The two forms.</b> Adding the recurrences gives $J_{n-1} = \frac nxJ_n + J_n'$, i.e.
+    $x^nJ_{n-1} = nx^{n-1}J_n + x^nJ_n' = (x^nJ_n)'$. Subtracting gives
+    $J_{n+1} = \frac nxJ_n - J_n'$, i.e. $-x^{-n}J_{n+1} = (x^{-n}J_n)'$.</p>
+    <p><b>Why recurrences matter in practice.</b> Knowing $J_0$ and $J_1$ at one $x$, the first
+    recurrence gives all $J_n(x)$. Run upwards it is numerically unstable for $n&gt;x$ (it amplifies
+    rounding error, since the unwanted second solution grows); run downwards from a large $n$ it is
+    stable. That observation, J. C. P. Miller's from the 1950s, is how Bessel functions are still computed.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Bessel functions</p>
+  <h2>Bessel's differential equation</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: <span class="term">Bessel's equation</span></span>
+        <p class="small">$J_n$ satisfies, on all of $\mathbb R$,</p>
+        $$x^2y'' + xy' + (x^2 - n^2)\,y = 0 .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">From the second form, $x^{n+1}J_{n+1} = nx^nJ_n - x^{n+1}J_n'$. Differentiate,
+        and use the first form with $n\to n+1$ on the left, $(x^{n+1}J_{n+1})' = x^{n+1}J_n$:</p>
+        $$\begin{aligned}x^{n+1}J_n = {}&n^2x^{n-1}J_n + nx^nJ_n'\\ &- (n+1)x^nJ_n' - x^{n+1}J_n''.\end{aligned}$$
+        <p class="small">Divide by $x^{n-1}$ and collect. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> Each term is $x^2\times$ (something per $x^2$): the equation
+        is invariant under $x\mapsto\lambda x$ in its first two terms, and the $x^2y$ term sets the
+        scale. In physics $x = k\rho$ with $k$ a wavenumber, and $x$ is dimensionless ✓.</p>
+        <p class="small"><b>$n = 0$, near $0$.</b> $J_0 = 1 - x^2/4$: $x^2(-\tfrac12) + x(-\tfrac x2) + x^2 = 0$
+        at order $x^2$ ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">second-order, so two solutions</span>
+        <p class="small">On $(0,\infty)$ divide by $x^2$: $y'' + \frac1xy' + (1 - \frac{n^2}{x^2})y = 0$,
+        continuous coefficients, so unit 06's theorem gives a two-dimensional solution space. $J_n$ is
+        one direction in it. Section 5 asks for the other — and at $x = 0$ unit 06's theorem is silent,
+        because $1/x$ is not continuous there.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>A second proof, straight from Bessel's integral</h4>
+    <p>Write $\phi = n\vartheta - x\sin\vartheta$ and $y = \frac1\pi\int_0^\pi\cos\phi\,\mathrm d\vartheta$.
+    Differentiating under the integral (legitimate: smooth integrand, compact interval),
+    $y' = \frac1\pi\int\sin\vartheta\sin\phi$ and $y'' = -\frac1\pi\int\sin^2\vartheta\cos\phi$. So
+    $x^2y'' + xy' + (x^2 - n^2)y = \frac1\pi\int_0^\pi\big[(x^2\cos^2\vartheta - n^2)\cos\phi
+    + x\sin\vartheta\sin\phi\big]\mathrm d\vartheta$. Now
+    $\frac{\mathrm d}{\mathrm d\vartheta}\big[(n + x\cos\vartheta)\sin\phi\big]
+    = -x\sin\vartheta\sin\phi + (n + x\cos\vartheta)(n - x\cos\vartheta)\cos\phi$, which is minus the
+    integrand. So the integral is $-\frac1\pi\big[(n + x\cos\vartheta)\sin\phi\big]_0^\pi
+    = -\frac1\pi(n - x)\sin(n\pi) = 0$ for integer $n$. $\square$</p>
+    <p><b>Where the integer hypothesis entered.</b> Only in the last line: $\sin n\pi = 0$. For
+    non-integer $\nu$, Bessel's integral does not solve Bessel's equation, and the right integral
+    representation has an extra term; the power series, by contrast, works for every $\nu\ge0$ with
+    $(n+k)!$ replaced by $\Gamma(\nu+k+1)$. One more reason the series is the better definition.</p>
+    <p><b>Physically.</b> Later in the course Bessel's equation returns as a Sturm–Liouville problem
+    (unit 19), wherever a wave equation is separated in cylindrical coordinates, and as a natural test
+    case for unit 21's WKB approximation. Here it is a theorem about Kepler's coefficients, which is how
+    it was first met.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Frobenius: series at a singular point</h2>
+  <p>Bessel's equation degenerates at $x = 0$. The method that handles it finds its own obstruction, and the obstruction is a logarithm.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Frobenius</p>
+  <h2>Regular singular points</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">The point $x = 0$ is a <span class="term">regular singular point</span> of</p>
+        $$x^2y'' + x\,p(x)\,y' + q(x)\,y = 0$$
+        <p class="small">if $p$ and $q$ are given by power series converging near $0$. Bessel:
+        $p\equiv1$, $q = x^2 - n^2$.</p>
+      </div>
+      <div class="box good"><span class="label">the model: Euler's equation</span>
+        <p class="small">$p\equiv p_0$, $q\equiv q_0$ constant. Try $y = x^r$ ($x&gt;0$):</p>
+        $$\big[r(r-1) + p_0r + q_0\big]x^r = 0 .$$
+        <p class="small">Solutions are powers $x^r$, possibly non-integer or negative, with $r$ a root of
+        a quadratic — and when the root is double, $x^r\ln x$ is the second solution.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">why power series fail here</span>
+        <p class="small">In normal form $y'' = -\frac{p}{x}y' - \frac{q}{x^2}y$, the right-hand side is
+        not Lipschitz — not even defined — at $x=0$. Unit 01's theorem does not apply there, and
+        solutions may be unbounded ($x^{-n}$) or non-smooth ($\ln x$, $x^{1/2}$).</p>
+      </div>
+      <div class="box thm"><span class="label">the idea: the <span class="term">Frobenius method</span></span>
+        <p class="small">Near $0$, $p\approx p(0)$ and $q\approx q(0)$, so the equation looks like
+        Euler's. Try Euler's answer corrected by a power series:</p>
+        $$y = x^r\sum_{k\ge0}a_kx^k,\qquad a_0\ne0 .$$
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>"Regular" versus "irregular".</b> A singular point is regular when the coefficients blow up
+    no faster than Euler's: $y'$ carries at most $1/x$ and $y$ at most $1/x^2$. Then solutions grow at most
+    like a power of $x$. At an irregular singular point — $x^2y'' + y' = 0$ at $0$, where $y' = C\exp(1/x)$, or
+    Bessel's equation itself at $x = \infty$ — solutions can grow like $\exp(1/x)$, faster than any
+    power, and no Frobenius series exists. The
+    definition on the slide also admits ordinary points as a special case: where $p/x$ and $q/x^2$
+    happen to be analytic, Frobenius simply returns ordinary power series with $r = 0, 1$.</p>
+    <p><b>Euler's equation, fully.</b> The substitution $x = \mathrm e^s$ turns
+    $x^2y'' + p_0xy' + q_0y = 0$ into $\ddot y + (p_0 - 1)\dot y + q_0y = 0$, constant coefficients —
+    unit 06. Its characteristic polynomial is $r^2 + (p_0-1)r + q_0 = r(r-1) + p_0r + q_0$. A double
+    root $r$ gives, by unit 06, $\mathrm e^{rs}$ and $s\,\mathrm e^{rs}$, that is, $x^r$ and $x^r\ln x$.
+    So the logarithm is not an exotic accident: it is unit 06's resonance, seen through $x = \mathrm e^s$.</p>
+    <p><b>The general theorem, cited.</b> If $p, q$ converge for $|x|&lt;R$, then (Frobenius, Fuchs)
+    the larger indicial root always gives a Frobenius series solution converging for $0&lt;x&lt;R$; the
+    smaller gives a second one if the roots do not differ by an integer; otherwise the second solution
+    is $c\,y_1\ln x + x^{r_2}\sum b_kx^k$ with $c$ possibly $0$. Proof: Teschl, <i>Ordinary Differential
+    Equations and Dynamical Systems</i> (AMS), chapter 4. For Bessel's equation every case is done by
+    hand on these slides and on the sheet, so nothing below depends on the citation.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Frobenius</p>
+  <h2>The indicial equation, and the first solution recovered</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Substitute $y = \sum_ka_kx^{k+r}$ into Bessel's equation. Since
+      $x^2y'' + xy' = \sum(k+r)^2a_kx^{k+r}$,</p>
+      $$\sum_k\big[(k+r)^2 - n^2\big]a_kx^{k+r} + \sum_ka_kx^{k+r+2} = 0 .$$
+      <div class="box thm"><span class="label">coefficients of $x^{k+r}$</span>
+        <p class="small">$k = 0$: $(r^2 - n^2)a_0 = 0$ — the <span class="term">indicial equation</span>,
+        so $r = \pm n$.</p>
+        <p class="small">$k = 1$: $\big[(r+1)^2 - n^2\big]a_1 = 0$.</p>
+        <p class="small">$k\ge2$: $\big[(k+r)^2 - n^2\big]a_k = -a_{k-2}$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the root $r = n$</span>
+        <p class="small">$(k+n)^2 - n^2 = k(k+2n)\ne0$ for $k\ge1$, so $a_1 = 0$, all odd $a_k$ vanish,
+        and $a_{2j} = -a_{2j-2}/\big(4j(j+n)\big)$. Hence</p>
+        $$a_{2j} = \frac{(-1)^j\,a_0}{4^j\,j!\,(n+1)(n+2)\cdots(n+j)} .$$
+        <p class="small">With $a_0 = 1/(2^nn!)$ this is $\frac{(-1)^j}{2^{n+2j}j!(n+j)!}$: <b>$J_n$</b>,
+        found without being looked for ✓.</p>
+      </div>
+      <p class="small muted">Convergence is the ratio test: $|a_{2j}/a_{2j-2}| = 1/(4j(j+n))\to0$, so
+      the radius is infinite, as $p$ and $q$ are polynomials.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The substitution.</b> For $y = \sum a_kx^{k+r}$: $xy' = \sum(k+r)a_kx^{k+r}$ and
+    $x^2y'' = \sum(k+r)(k+r-1)a_kx^{k+r}$; the sum is $(k+r)^2a_kx^{k+r}$. The $x^2y$ term is
+    $\sum a_kx^{k+r+2}$, which contributes $a_{k-2}$ to the coefficient of $x^{k+r}$. The
+    $-n^2y$ term contributes $-n^2a_k$. Termwise differentiation is legitimate once convergence is
+    known, and it is: this is a posteriori — find the coefficients formally, then prove the series
+    converges, then differentiate it.</p>
+    <p><b>The indicial equation in general</b> is $r(r-1) + p(0)r + q(0) = 0$ — Euler's quadratic with
+    the coefficients frozen at $0$. For Bessel, $r(r-1) + r - n^2 = r^2 - n^2$. The two roots differ by
+    $2n$, an integer; that is the case the next two slides are about.</p>
+    <p><b>What "found without being looked for" means.</b> Section 4 wrote down $J_n$'s series by fiat and
+    proved it solves Bessel's equation. Here the equation, plus the demand that the solution behave like
+    $x^n$ at $0$, <i>produces</i> the series, up to the scalar $a_0$. The normalisation $a_0 = 1/(2^nn!)$
+    is chosen to match Bessel's integral, i.e. Kepler.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Frobenius</p>
+  <h2>The smaller root: the method finds its own obstruction</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Try $r = -n$ with $n\ge1$. Now $(k-n)^2 - n^2 = k(k-2n)$, which <b>vanishes at
+      $k = 2n$</b>. The recursion at that step reads</p>
+      $$0\cdot a_{2n} = -a_{2n-2}.$$
+      <p class="small">Running the recursion from $a_0$, $a_{2j} = a_{2j-2}/\big(4j(n-j)\big)$ for
+      $j&lt;n$, all nonzero. So $a_{2n-2}\ne0$, and the equation has no solution: <b>there is no
+      Frobenius series with $r = -n$</b>.</p>
+      <div class="box good"><span class="label">nothing was assumed</span>
+        <p class="small">We did not ask whether a second series exists. The recursion answered, by
+        producing an impossible equation at exactly the index where the two roots meet,
+        $k = r_1 - r_2 = 2n$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Every solution of Bessel's equation on $(0,\infty)$ independent of $J_n$ is
+        unbounded as $x\to0^+$: like $x^{-n}$ for $n\ge1$, like $\ln x$ for $n = 0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Abel's identity (unit 06) for $y'' + \frac1xy' + \cdots$ gives the
+        <b>Wronskian</b> $W = J_ny_2' - J_n'y_2 = C/x$, $C\ne0$. Where $J_n\ne0$,
+        $(y_2/J_n)' = W/J_n^2 = C/(xJ_n^2)$. Near $0$, $J_n^2\approx x^{2n}/(4^nn!^2)$, so
+        $(y_2/J_n)'\approx C'x^{-2n-1}$, and integrating, $y_2\approx J_n\cdot C''x^{-2n}\propto x^{-n}$
+        ($n\ge1$) or $\ln x$ ($n = 0$). $\square$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the theorem</h4>
+    <p>On $(0,\infty)$ the equation is $y'' + \frac1xy' + (1 - n^2/x^2)y = 0$. Unit 06's Abel identity says
+    $W' = -\frac1xW$, so $W = C/x$; $C\ne0$ because $y_2$ is independent of $J_n$ (a Wronskian of
+    independent solutions never vanishes). On an interval $(0,\delta)$ where $J_n&gt;0$ (it exists:
+    $J_n(x)\sim(x/2)^n/n!$), $\big(\frac{y_2}{J_n}\big)' = \frac{J_ny_2' - J_n'y_2}{J_n^2} = \frac{C}{xJ_n^2}$
+    by the quotient rule. Write $J_n(x)^2 = \frac{x^{2n}}{4^nn!^2}(1 + \rho(x))$ with $\rho(x)\to0$. Then
+    $\frac{C}{xJ_n^2} = C\,4^nn!^2x^{-2n-1}(1 + \sigma(x))$ with $\sigma\to0$. Integrating from $x$ to
+    $\delta$: for $n\ge1$, $\frac{y_2}{J_n}(x) = \frac{C4^nn!^2}{2n}x^{-2n}(1 + o(1))$, and multiplying by
+    $J_n\sim x^n/(2^nn!)$ gives $|y_2(x)|\to\infty$ like $x^{-n}$. For $n = 0$ the integral of
+    $C/x$ is $C\ln x$, and $y_2\sim C\ln x$. $\square$</p>
+    <p><b>How the two facts fit.</b> The recursion shows no series of the form $x^{-n}\sum a_kx^k$
+    works. The Wronskian shows the second solution is nonetheless there, and starts like $x^{-n}$. Both
+    are true because the second solution is $x^{-n}\sum b_kx^k$ <i>plus a multiple of $J_n\ln x$</i> — the
+    logarithm is the correction the power series could not supply. For $n = 1$ the coefficient of
+    $J_1\ln x$ is forced to be nonzero at the step $k = 2$: that is P8.</p>
+    <p><b>A contrast worth doing once.</b> For Bessel's equation of order $\nu = 1/2$, the roots
+    $\pm\frac12$ differ by the integer $1$, but the recursion at $k = 1$ reads $0\cdot a_1 = 0$: no
+    obstruction, $a_1$ is simply free. Both series exist, and they are $\sin x/\sqrt x$ and
+    $\cos x/\sqrt x$. The method does not assume the worst; it checks. P8 does this too.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Frobenius</p>
+  <h2>The double root, and where the logarithm comes from</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Order $n = 0$: the indicial roots coincide at $r = 0$ and give only $J_0$. Keep
+      $r$ free. With $a_0 = 1$ and the recursion $a_{2j}(r) = -a_{2j-2}(r)/(r+2j)^2$, the function
+      $y(x,r) := \sum_ja_{2j}(r)x^{2j+r}$ satisfies</p>
+      $$L\big[y(x,r)\big] = r^2x^r,\qquad L := x^2\partial_x^2 + x\partial_x + x^2,$$
+      <p class="small">because every coefficient but the first was made to vanish.</p>
+      <div class="box proof"><span class="label">the $\partial_r$ trick</span>
+        <p class="small">$L$ commutes with $\partial_r$. So
+        $L[\partial_ry] = \partial_r(r^2x^r) = (2r + r^2\ln x)x^r$, which is $0$ at $r = 0$. Hence
+        $\partial_ry\,|_{r=0}$ is a second solution. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">logarithmic solution</span></span>
+        <p class="small">$a_{2j}(r) = (-1)^j\prod_{i=1}^j(r+2i)^{-2}$, so
+        $a_{2j}'(0)/a_{2j}(0) = -\sum_{i=1}^j\frac1i = -H_j$. Therefore</p>
+        $$y_2(x) = J_0(x)\ln x + \sum_{j\ge1}\frac{(-1)^{j+1}H_j}{(j!)^2}\Big(\frac x2\Big)^{2j},$$
+        <p class="small">$H_j = 1 + \frac12 + \cdots + \frac1j$, the <span class="term">harmonic number</span>. First terms:
+        $J_0\ln x + \frac{x^2}{4} - \frac{3x^4}{128} + \cdots$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Unbounded like $\ln x$ at $0$, as the Wronskian theorem demanded ✓. Wronskian
+        $J_0y_2' - J_0'y_2 = 1/x$ (leading terms $1\cdot\frac1x$) ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>$L[y(x,r)] = r^2x^r$.</b> From the computation on the indicial slide with $n = 0$,
+    $L[\sum a_kx^{k+r}] = \sum_k\big[(k+r)^2a_k + a_{k-2}\big]x^{k+r}$ (with $a_{-1} = a_{-2} = 0$). The
+    recursion makes every bracket with $k\ge1$ vanish for every $r$ near $0$ (the denominators
+    $(r+2j)^2$ are nonzero there, and odd $a_k = 0$). Only $k = 0$ survives: $r^2a_0x^r = r^2x^r$.</p>
+    <p><b>Commuting $\partial_r$ with $L$.</b> $y(x,r)$ is jointly smooth in $(x,r)$ for $x&gt;0$ and
+    $r$ near $0$ (a power series in $x$ whose coefficients are rational in $r$ with uniformly bounded
+    growth), and $L$ involves only $x$-derivatives; Clairaut lets $\partial_r$ pass through. And
+    $\partial_rx^r = x^r\ln x$.</p>
+    <p><b>The coefficients.</b> $\ln|a_{2j}(r)| = -2\sum_{i=1}^j\ln(r + 2i)$, so
+    $\frac{a_{2j}'}{a_{2j}}(0) = -2\sum_{i=1}^j\frac1{2i} = -H_j$. And
+    $\partial_r\big(a_{2j}(r)x^{2j+r}\big)|_{r=0} = a_{2j}'(0)x^{2j} + a_{2j}(0)x^{2j}\ln x$. Summing:
+    $J_0(x)\ln x + \sum_j a_{2j}(0)(-H_j)x^{2j}$, with $a_{2j}(0) = (-1)^j/(4^j(j!)^2)$. That is the
+    formula on the slide. $j = 1$: $-\frac14\cdot(-1)\cdot x^2 = \frac{x^2}4$. $j = 2$:
+    $\frac1{64}\cdot(-\tfrac32)x^4 = -\frac{3x^4}{128}$.</p>
+    <p><b>Naming.</b> The standard second solution is Weber's $Y_0 = \frac2\pi\big[y_2 + (\gamma - \ln2)J_0\big]$,
+    $\gamma = 0.5772\ldots$ Euler's constant: a different basis vector of the same two-dimensional space,
+    normalised so that $Y_0$ and $J_0$ have the same large-$x$ amplitude. The normalisation is a
+    convention; the logarithm is not.</p>
+    <p><b>The same trick for integer difference.</b> For $n\ge1$, multiply the trial series by
+    $(r + n)$ before differentiating in $r$, which cancels the zero denominator; the result is the
+    $J_n\ln x$ solution of the general theorem. The sheet's P7 does $n = 0$ fully by hand.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Frobenius</p>
+  <h2>Far from the origin: a decaying cosine</h2>
+  <div class="cols">
+    <div>
+      <p class="small">The <span class="term">Liouville substitution</span> $y = u/\sqrt x$ in Bessel's equation
+      cancels the first-derivative term:</p>
+      $$u'' + \Big(1 - \frac{n^2 - \frac14}{x^2}\Big)u = 0 .$$
+      <p class="small">For large $x$ this is unit 06's oscillator with a perturbation of size $x^{-2}$.</p>
+      <div class="box thm"><span class="label">theorem: the <span class="term">large-$x$ form</span></span>
+        <p class="small">Every real solution has the form
+        $y = A\,x^{-1/2}\cos(x - \varphi) + O(x^{-3/2})$ for constants $A$, $\varphi$. For $J_n$
+        (<b>cited — unit 20</b>, stationary phase):</p>
+        $$\begin{aligned}J_n(x) = {}&\sqrt{\frac{2}{\pi x}}\cos\Big(x - \frac{n\pi}2 - \frac\pi4\Big)\\ &+ O(x^{-3/2}).\end{aligned}$$
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <table class="dense">
+          <thead><tr><th>$x$</th><th class="num">$J_0(x)$</th><th class="num">asymptotic</th></tr></thead>
+          <tbody>
+            <tr><td>10</td><td class="num">$-0.245936$</td><td class="num">$-0.246761$</td></tr>
+            <tr><td>20</td><td class="num">$0.167025$</td><td class="num">$0.166656$</td></tr>
+          </tbody>
+        </table>
+        <p class="small">Error $8.3\times10^{-4}$ then $3.7\times10^{-4}$, both inside a bound of
+        order $x^{-3/2}$ ✓. The ratio is $2.2$, not $2^{3/2} = 2.8$: the error itself oscillates with
+        $x$, and $O(x^{-3/2})$ is a bound, not a rate. Zeros of $J_0$ near
+        $(k - \frac14)\pi$: $2.4048$ against $2.3562$, $5.5201$ against $5.4978$.</p>
+      </div>
+      <div class="box warn"><span class="label">proved here and owed</span>
+        <p class="small">The $x^{-1/2}$ decay and the unit frequency are proved in the notes. The two
+        constants $\sqrt{2/\pi}$ and $n\pi/2 + \pi/4$ connect large $x$ to small $x$, and need unit 20.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the form (not the constants)</h4>
+    <p><b>The substitution.</b> $y = x^{-1/2}u$: $y' = x^{-1/2}u' - \tfrac12x^{-3/2}u$,
+    $y'' = x^{-1/2}u'' - x^{-3/2}u' + \tfrac34x^{-5/2}u$. Then $x^2y'' + xy' = x^{3/2}u'' + \tfrac14x^{-1/2}u$,
+    and adding $(x^2 - n^2)x^{-1/2}u$ and dividing by $x^{3/2}$ gives the stated equation.</p>
+    <p><b>Bounded.</b> Let $c = n^2 - \tfrac14$ and $X$ with $c/X^2\le\tfrac12$. For $x\ge X$ put
+    $\mathcal E = u'^2 + (1 - c/x^2)u^2\ge \tfrac12(u'^2 + u^2)$. Then
+    $\mathcal E' = 2u'u'' + 2(1-c/x^2)uu' + 2cu^2/x^3 = 2cu^2/x^3$, so
+    $|\mathcal E'|\le 4|c|x^{-3}\mathcal E$, and Gronwall (unit 01) bounds $\mathcal E$ by
+    $\mathcal E(X)\exp(2|c|X^{-2})$: $u$ and $u'$ are bounded.</p>
+    <p><b>Amplitude and phase converge.</b> Write $u = R\cos(x - \psi)$, $u' = -R\sin(x - \psi)$ (polar
+    coordinates in the $(u, -u')$ plane, with $x$ subtracted from the angle). Differentiating and using
+    $u'' + u = cu/x^2$ gives $R' = -\frac{c}{x^2}u\sin(x-\psi)$ and
+    $R\psi' = \frac{c}{x^2}u\cos(x-\psi)$. Both right-hand sides are $O(x^{-2})$ because $u$ is
+    bounded, hence integrable on $[X,\infty)$: $R\to A$ and $\psi\to\varphi$ with errors
+    $\int_x^\infty O(s^{-2})\,\mathrm ds = O(1/x)$. So $u = A\cos(x - \varphi) + O(1/x)$ and
+    $y = x^{-1/2}u$ is as claimed. ($A&gt;0$ unless $u\equiv0$: if $R\to0$ then $\mathcal E\to0$, and the
+    Gronwall bound run backwards from large $x$ forces $u\equiv0$.) $\square$</p>
+    <p><b>The constants, cited.</b> Nothing above distinguishes $J_n$ from any other solution; the
+    information sits at $x = 0$ (the series) and must be carried to $x = \infty$. Applying stationary
+    phase to Bessel's integral does it and gives $A = \sqrt{2/\pi}$, $\varphi = n\pi/2 + \pi/4$. That is
+    unit 20.</p>
+    <p><b>Numbers.</b> $\sqrt{2/(10\pi)}\cos(10 - \pi/4) = 0.252313\times(-0.977994) = -0.246761$ and
+    $J_0(10) = -0.245936$. At $x = 20$: $0.166656$ against $0.167025$. First two zeros of $J_0$:
+    $2.404826$ and $5.520078$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Mars, and where the series stop</h2>
+  <p>Three terms place the planet. Then two convergence questions with different answers, and a comet past the limit.</p>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Mars · example</p>
+  <h2>Worked: Mars to five figures from three terms</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label"><span class="ref" data-ref="mars">Mars</span>,
+      <span class="ref" data-ref="epoch">$M = 1.097532$</span>, $e = 0.0934$</span>
+      <p class="small"><b>Step 1 — the Bessel values</b>, from the series (two terms each suffice):
+      $J_1(0.0934) = 0.0467 - 0.0000509 = 0.0466491$;
+      $J_2(0.1868) = 0.00436178 - 0.00001268 = 0.00434911$;
+      $J_3(0.2802) = 0.00045831 - 0.00000225 = 0.00045607$.</p>
+      <p class="small"><b>Step 2 — coefficients</b> $\frac2nJ_n(ne)$: $0.0932982$, $0.00434911$,
+      $0.00030405$.</p>
+      <p class="small"><b>Step 3 — terms</b>, with $\sin M,\sin 2M,\sin 3M = 0.890085, 0.811392, -0.150429$:
+      $0.0830433 + 0.0035288 - 0.0000457 = 0.0865264$.</p>
+      <p class="small"><b>Step 4 — the anomaly.</b> $E_{(3)} = 1.097532 + 0.086526 = 1.184058$.</p>
+      <p class="small"><b>Step 5 — how wrong, before looking.</b> By the bound lemma, the omitted tail
+      $\sum_{n\ge4}\frac2n|J_n(ne)|\le2.8\times10^{-5}$. Five significant figures of $E\approx1.18$
+      means error $\le5\times10^{-5}$ ✓.</p>
+      <p class="small"><b>Step 6 — the position.</b> $r = a(1 - e\cos E_{(3)}) = 1.470003$ AU and, by the
+      half-angle formula, $\theta = 72.8946^\circ$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">against <span class="ref" data-ref="answer">the ten-figure answer</span></span>
+        <table class="dense">
+          <thead><tr><th></th><th class="num">3 terms</th><th class="num">exact</th></tr></thead>
+          <tbody>
+            <tr><td>$E$</td><td class="num">1.184058</td><td class="num">1.184033</td></tr>
+            <tr><td>$\theta$</td><td class="num">$72.8946^\circ$</td><td class="num">$72.8930^\circ$</td></tr>
+            <tr><td>$r$ (AU)</td><td class="num">1.470003</td><td class="num">1.470000</td></tr>
+          </tbody>
+        </table>
+        <p class="small">Errors $2.5\times10^{-5}$ rad, $0.0016^\circ$, $3.4\times10^{-6}$ AU — each
+        within half a unit of the fifth figure ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">"five figures", precisely</span>
+        <p class="small">Error at most half a unit in the fifth significant place. Rounding both numbers
+        can still disagree at a boundary — $1.18406$ and $1.18403$ round to $1.1841$ and $1.1840$ — which
+        is why the criterion is the error, not the digits.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The Bessel values.</b> $J_1(x) = \frac x2 - \frac{x^3}{16} + \frac{x^5}{384}$ at $x = 0.0934$:
+    $0.0467 - 5.0924\times10^{-5} + 1.9\times10^{-8} = 0.04664909$. $J_2(x) = \frac{x^2}8 - \frac{x^4}{96}$
+    at $x = 0.1868$: $0.00436178 - 0.00001268 = 0.00434911$ (next term $+2.5\times10^{-8}$).
+    $J_3(x) = \frac{x^3}{48} - \frac{x^5}{768}$ at $x = 0.2802$: $4.5831\times10^{-4} - 2.249\times10^{-6}
+    = 4.5607\times10^{-4}$.</p>
+    <p><b>The tail bound, step 5.</b> $\sum_{n\ge4}\frac2n\cdot\frac{(ne/2)^n}{n!}\exp\big(\frac{(ne)^2}{4(n+1)}\big)
+    = 2.81\times10^{-5}$, dominated by $n = 4$: $\frac24\cdot\frac{0.1868^4}{24}\times1.007 = 2.55\times10^{-5}$.
+    The true sum of absolute values is $2.77\times10^{-5}$ and the actual error $2.54\times10^{-5}$, because
+    the bound takes every $|\sin nM|$ as $1$, whereas $\sin4M = -0.949$ and $\sin5M = -0.714$ (both
+    terms have the same sign, so nothing cancels; the saving is all in the sines). The bound is worth having because it is
+    available before the answer is.</p>
+    <p><b>Step 6.</b> $\cos(1.184058) = 0.377170$, so $r = 1.523679\times(1 - 0.0352277) = 1.470003$. For
+    $\theta$: $\tan(E/2) = 0.672498$, times $\sqrt{1.0934/0.9066} = 1.098201$, gives $0.738538$, and
+    $2\arctan = 72.8946^\circ$. The error propagates by $\mathrm d\theta/\mathrm dE = \sqrt{1-e^2}/(1 - e\cos E) = 1.032$
+    and $\mathrm dr/\mathrm dE = ae\sin E = 0.132$ AU; both small multipliers, so five figures in $E$ give
+    five in $r$ and $\theta$.</p>
+    <p><b>Coincidence noted.</b> $r = 1.470000$ AU to seven figures at this epoch is an accident of the
+    chosen day, not a feature of the method.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · Mars</p>
+  <h2>The cross-check, and what each route costs</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th>route</th><th>work for this one epoch</th><th class="num">error in $E$</th></tr></thead>
+        <tbody>
+          <tr><td>fixed point, 4 steps</td><td>4 sines</td><td class="num">$1.5\times10^{-7}$</td></tr>
+          <tr><td>Lagrange, to $e^3$</td><td>3 sines, powers of $e$</td><td class="num">$3.5\times10^{-5}$</td></tr>
+          <tr><td>Bessel, 3 terms</td><td>6 series terms, 3 sines</td><td class="num">$2.5\times10^{-5}$</td></tr>
+          <tr><td>Newton, 2 steps</td><td>2 sines, 2 cosines, 2 divisions</td><td class="num">$4.9\times10^{-9}$</td></tr>
+          <tr><td>Newton, 3 steps</td><td>3 of each</td><td class="num">$1.1\times10^{-18}$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Newton confirms the series result: <span class="ref" data-ref="answer">$E = 1.1840325$</span>,
+      $r = 1.470000$ AU, $\theta = 72.8930^\circ$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">so why the series at all?</span>
+        <p class="small">For <b>one</b> epoch, Newton wins outright. The series wins whenever the answer
+        is wanted as a <b>function</b> of $M$: it can be differentiated, integrated and averaged in
+        closed form. Example: the time-averaged distance</p>
+        $$\langle r\rangle = \frac1{2\pi}\int_0^{2\pi}r\,\mathrm dM = a\Big(1 + \frac{e^2}{2}\Big),$$
+        <p class="small">$= 1.530325$ AU for Mars — more than $a$, because the planet dawdles far out.</p>
+      </div>
+      <p class="small muted">That is why unit 21's perturbation theory, and every nineteenth-century
+      planetary theory, is written in Fourier–Bessel series.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The average, derived.</b> $\langle r\rangle = \frac1{2\pi}\int_0^{2\pi}a(1 - e\cos E)\,\mathrm dM$.
+    Change variable to $E$: $\mathrm dM = (1 - e\cos E)\,\mathrm dE$ and $E$ runs over $[0,2\pi]$, so
+    $\langle r\rangle = \frac a{2\pi}\int_0^{2\pi}(1 - e\cos E)^2\,\mathrm dE = \frac a{2\pi}(2\pi + \pi e^2)
+    = a(1 + e^2/2)$. It is the same change of variable as in the Fourier coefficient computation, and
+    for the same reason: integrals over time of functions of $E$ are easy in $E$. Check: $e = 0$ gives
+    $a$ ✓; dimensions of length ✓.</p>
+    <p><b>Counting "work".</b> A table entry is a count of elementary operations, not a benchmark. The
+    Bessel route's six series terms are two for each of $J_1, J_2, J_3$, each a product of powers and a
+    factorial; for many epochs the $J_n(ne)$ are computed once and only the sines change, so the per-epoch
+    cost falls to three sines. Newton's cost per epoch never falls.</p>
+    <p><b>Newton's numbers.</b> From $E_0 = M = 1.097532$: $E_1 = 1.184362$ (error $3.29\times10^{-4}$),
+    $E_2 = 1.1840325435$ (error $4.87\times10^{-9}$), $E_3$ good to $10^{-18}$. Then
+    $r = a(1 - e\cos E) = 1.4700000$ AU and $\theta = 72.89305^\circ$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · convergence</p>
+  <h2>Two series, two convergence questions</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">in harmonics of $M$ (Fourier–Bessel)</span>
+        <p class="small">For each fixed $e&lt;1$, the series $\sum\frac2nJ_n(ne)\sin nM$ converges
+        uniformly to $E - M$ — because $E - M$ is $C^1$ (unit 19, cited). <b>Every</b> $e&lt;1$.</p>
+      </div>
+      <div class="box thm"><span class="label">in powers of $e$ (Lagrange) — proved here</span>
+        <p class="small">If $\frac{\mathrm e\,e}{2}\exp\!\big(\frac{e^2}{4}\big)&lt;1$, that is
+        $e&lt;0.6599$, Lagrange's series converges to $E$ for every $M$.</p>
+        <p class="small muted"><b>Proof.</b> Lagrange's series is the double series
+        $\sum_n\frac2n\sin nM\sum_k\frac{(-1)^k(ne/2)^{n+2k}}{k!(n+k)!}$ regrouped by powers of $e$. By the
+        bound lemma and $n^n\le\mathrm e^nn!$, its absolute values sum to at most
+        $\sum_n\frac2n\big(\frac{\mathrm e\,e}2\mathrm e^{e^2/4}\big)^n&lt;\infty$, so regrouping is
+        allowed. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">Lagrange's partial sums at $M = \pi/2$</span>
+        <table class="dense">
+          <thead><tr><th>order</th><th class="num">$e = 0.6$</th><th class="num">$e = 0.7$</th></tr></thead>
+          <tbody>
+            <tr><td>$e^{1}$</td><td class="num">2.1708</td><td class="num">2.2708</td></tr>
+            <tr><td>$e^{9}$</td><td class="num">2.0958</td><td class="num">2.1760</td></tr>
+            <tr><td>$e^{19}$</td><td class="num">2.0907</td><td class="num">2.1416</td></tr>
+            <tr><td>$e^{29}$</td><td class="num">2.0914</td><td class="num">2.1672</td></tr>
+            <tr><td>true $E$</td><td class="num">2.0913</td><td class="num">2.1548</td></tr>
+          </tbody>
+        </table>
+        <p class="small">At $0.6$ the terms shrink and the sums close in. At $0.7$ the last terms are
+        $\pm0.025$ and are not shrinking: the sums straddle $E$ and stop approaching it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The two series are one double series.</b> Substituting the power series of each $J_n(ne)$ into
+    the Fourier–Bessel series gives $\sum_{n,k}c_{nk}(M)e^{n+2k}$. Summing over $k$ first (fixed
+    harmonic) gives Fourier–Bessel; summing over $n + 2k$ first (fixed power) gives Lagrange. A double
+    series may be summed in either order when it converges absolutely, and then both orders agree. When
+    it does not, the orders can differ, and here they do: Fourier–Bessel converges for all $e&lt;1$,
+    Lagrange only up to a threshold.</p>
+    <p><b>The proof's bound, in numbers.</b> $\frac{\mathrm e\,e}2\mathrm e^{e^2/4} = 1$ at
+    $e = 0.659871$. For Mars the ratio is $0.127$; each extra term buys almost a digit.</p>
+    <p><b>The threshold is nearly sharp, and that is not a coincidence.</b> Replacing the bound lemma by
+    the exact sum of absolute values, $\sum_k\frac{(ne/2)^{n+2k}}{k!(n+k)!}$ — the modified Bessel function
+    $I_n(ne)$ — gives absolute convergence exactly up to the Laplace limit $0.662743$. Finding the growth rate of $I_n(ne)$ in $n$ needs unit 20's steepest descent, and that is the
+    only part of the debt left on the next slide: our crude bound proves the answer to within
+    $0.4\%$.</p>
+    <p><b>The table.</b> Partial sums of Lagrange's series at $M = \pi/2$, where only odd powers occur.
+    True values: $E = 2.091329$ at $e = 0.6$, $2.154785$ at $e = 0.7$. The last terms at order $e^{29}$
+    are $+2.8\times10^{-4}$ at $e = 0.6$ and $+0.0248$ at $e = 0.7$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · convergence</p>
+  <h2>The Laplace limit</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Laplace limit</span> — stated here, proved in unit 20</span>
+        <p class="small">Lagrange's series for $E$ converges for every $M$ when
+        $e &lt; \lambda$, where</p>
+        $$\lambda = \sqrt{x_*^2 - 1} = 0.6627434193\ldots,$$
+        $$x_* = \coth x_* = 1.19967864\ldots$$
+        <p class="small">For $e&gt;\lambda$ it diverges at $M = \pi/2$ (and nearby).</p>
+      </div>
+      <div class="box good"><span class="label">what is owed, exactly</span>
+        <p class="small">The radius of convergence of a power series is the distance to the nearest
+        complex singularity of its sum (unit 20). Kepler's equation stops defining $E(e)$ smoothly
+        where $1 - e\cos E = 0$ as well — the implicit function theorem's hypothesis failing. At
+        $M = \pi/2$ that happens at $e = \pm i\lambda$, $E = \pi/2 \pm i x_*$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">the arithmetic of the singular point (verified here)</span>
+        <p class="small">Put $E = \frac\pi2 + ix$, $e = i\lambda$. Unit 06's exponentials give
+        $\cos E = -i\sinh x$, $\sin E = \cosh x$. Then</p>
+        <p class="small">$1 - e\cos E = 1 - \lambda\sinh x = 0$, and
+        $E - e\sin E = \frac\pi2 + i(x - \lambda\cosh x) = \frac\pi2$</p>
+        <p class="small">hold together iff $\lambda = 1/\sinh x$ and $x = \coth x$, whence
+        $\lambda^2 = 1/\sinh^2x = x^2 - 1$.</p>
+      </div>
+      <div class="box warn"><span class="label">a debt, deliberately incurred</span>
+        <p class="small">That the <b>nearest</b> such point decides convergence, and that
+        $M = \pi/2$ is the worst $M$, are unit 20's. This unit proved convergence up to $0.6599$ and
+        shows divergence numerically; the last $0.4\%$ and the reason are owed.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The identities used.</b> From $\cos z = (\mathrm e^{iz} + \mathrm e^{-iz})/2$ — unit 06's
+    definition, extended to complex arguments as algebra — $\cos(\frac\pi2 + ix) = -\sin(ix) = -i\sinh x$
+    and $\sin(\frac\pi2 + ix) = \cos(ix) = \cosh x$. The step $\lambda^2 = x^2 - 1$ uses
+    $\coth x = x$, so $\cosh x = x\sinh x$, and $\cosh^2 - \sinh^2 = 1$ gives
+    $\sinh^2x\,(x^2 - 1) = 1$.</p>
+    <p><b>Numbers.</b> $x_* = 1.1996786402577$ solves $x = \coth x$ (one root with $x&gt;0$, since
+    $x - \coth x$ is increasing there). $\lambda = \sqrt{x_*^2 - 1} = 0.66274341934918$. Solving the pair of
+    equations numerically for other $M$ gives the nearest singular $e$ at modulus $0.8120$ ($M = 0.3$),
+    $0.6867$ ($M = 1.0$), $0.6760$ ($M = 2.0$): smallest at $\pi/2$, as the slide says, but that is
+    evidence, not a proof.</p>
+    <p><b>Why a real series cares about complex $e$.</b> On the real line nothing happens at
+    $e = 0.6627$: $E(e)$ is perfectly smooth there. The power series in $e$ is nonetheless a series in
+    a variable that could be complex, and it must converge on a disc. A singularity at $\pm i\lambda$
+    caps the disc's radius at $\lambda$, and so the series fails on the real axis too, at a place where
+    the function is innocent. The same phenomenon makes $1/(1 + x^2)$'s Taylor series diverge for
+    $|x|&gt;1$.</p>
+    <p><b>History.</b> Laplace found the value in the 1820s by estimating how fast the terms of the
+    series grow at $M = \pi/2$; a satisfactory account of <i>why</i> the edge is there had to wait for
+    Cauchy's theory of functions of a complex variable. Two centuries after Kepler, this number is where
+    celestial mechanics learnt that a convergent-looking expansion can have a hard edge.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · convergence</p>
+  <h2>A comet past the limit</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><span class="ref" data-ref="halley">Halley's comet</span>, $e = 0.967$, at
+      $M = \pi/2$ where the true value is $E = 2.295064$.</p>
+      <table class="dense">
+        <thead><tr><th>Lagrange, through</th><th class="num">sum</th><th>Bessel, $N$ terms</th><th class="num">sum</th></tr></thead>
+        <tbody>
+          <tr><td>$e^{3}$</td><td class="num">2.0857</td><td>$N = 3$</td><td class="num">2.2349</td></tr>
+          <tr><td>$e^{7}$</td><td class="num">1.9496</td><td>$N = 11$</td><td class="num">2.2814</td></tr>
+          <tr><td>$e^{11}$</td><td class="num">1.4436</td><td>$N = 51$</td><td class="num">2.2937</td></tr>
+          <tr><td>$e^{15}$</td><td class="num">$-0.2040$</td><td>$N = 101$</td><td class="num">2.2955</td></tr>
+          <tr><td>$e^{19}$</td><td class="num">$-5.7891$</td><td>$N = 199$</td><td class="num">2.29498</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Newton from $E_0 = M$: errors $0.24$, $0.010$, $2.2\times10^{-5}$,
+      $1.1\times10^{-10}$ in four steps.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">reading the table</span>
+        <p class="small"><b>Lagrange</b> diverges: the terms grow by roughly $(0.967/0.6627)^2 = 2.1$ every
+        two orders. No amount of work helps.</p>
+        <p class="small"><b>Bessel</b> converges, as promised for every $e&lt;1$ — but $199$ terms leave
+        an error of $8.5\times10^{-5}$. Convergent is not the same as useful.</p>
+        <p class="small"><b>Newton</b> does not care about $e$ once it is in range.</p>
+      </div>
+      <div class="box warn"><span class="label">the lesson</span>
+        <p class="small">Which expansion, which variable, and which region: convergence is a property of
+        all three together. P11 finds the edge from the coefficients alone.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> Lagrange's partial sums at $M = \pi/2$, $e = 0.967$, through orders
+    $1, 3, 5, \ldots, 19$: $2.5378, 2.0857, 2.5437, 1.9496, 2.8214, 1.4436, 3.7314, -0.2040, 6.7479, -5.7891$.
+    The coefficients of $e^k$ at $M = \pi/2$ are $1, -\frac12, \frac{13}{24}, -\frac{541}{720},
+    \frac{9509}{8064}, \ldots$ (odd $k$ only), and they grow like $\lambda^{-k}$ times a power of $k$.</p>
+    <p><b>The Bessel partial sums.</b> $\sum_{n\le N}\frac2nJ_n(0.967n)\sin(n\pi/2)$ plus $\pi/2$; only odd
+    $n$ contribute, with alternating signs. Errors: $-0.060$ ($N=3$), $-0.0136$ ($N=11$), $-0.0014$
+    ($N=51$), $+4.0\times10^{-4}$ ($N=101$), $-8.5\times10^{-5}$ ($N=199$). The coefficients decay
+    geometrically with ratio $q(e) = e\,\mathrm e^{\sqrt{1-e^2}}/(1 + \sqrt{1 - e^2})$ times a power of
+    $n$ — a formula cited from unit 20's steepest descent — and $q(0.967) = 0.9943$, against
+    $q(0.0934) = 0.127$ for Mars. That single number explains both columns of the Mars and Halley
+    comparisons.</p>
+    <p><b>Newton for the comet.</b> From $E_0 = M = \pi/2$: $2.537796, 2.305079, 2.295086, 2.2950644144$.
+    Near perihelion ($M = 0.05$) it takes seven steps from $E_0 = M$, the first few overshooting because
+    $f'(M) = 1 - e\cos M$ is only $0.034$; this is why comet ephemerides start from a better guess.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · what next</p>
+  <h2>What this unit is the prerequisite for</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <tbody>
+          <tr><td><b>10</b></td><td>Legendre polynomials by a generating function, with the same coefficient-comparison proofs as this unit's recurrences.</td></tr>
+          <tr><td><b>19</b></td><td>Fourier series proved to converge — the theorem cited here — and Bessel's equation as a Sturm–Liouville problem.</td></tr>
+          <tr><td><b>20</b></td><td>The Laplace limit proved; the constants $\sqrt{2/\pi}$ and $n\pi/2 + \pi/4$ by stationary phase; Lagrange inversion by residues.</td></tr>
+          <tr><td><b>21</b></td><td>Perturbation series in a small parameter, including ones that diverge and are still useful.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box good"><span class="label">three things to carry forward</span>
+        <ol class="small">
+          <li><b>A series solution comes with a convergence question</b>, and the answer is part of the
+          solution.</li>
+          <li><b>The same double series can converge in one order and not another</b> — harmonics
+          versus powers.</li>
+          <li><b>Frobenius tells you when it fails</b>, by an impossible equation at $k = r_1 - r_2$.</li>
+        </ol>
+      </div>
+      <div class="box warn"><span class="label">assumed and not proved</span>
+        <p class="small">Dirichlet's theorem (unit 19). The asymptotic constants, the Laplace limit's
+        sharpness and the decay rate $q(e)$ (unit 20). The general Frobenius–Fuchs theorem (cited, Teschl
+        ch. 4; not used).</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this unit sits on the spine.</b> Physically it finishes the Kepler problem: with unit 08's
+    shape and this unit's timetable, the position of a planet at any time follows from six numbers.
+    Mathematically it is the course's first encounter with three things that return constantly: special
+    functions defined by series and characterised by an equation, singular points of linear ODEs, and the
+    difference between a formal series and a convergent one.</p>
+    <p><b>Reading, all optional.</b> Watson, <i>A Treatise on the Theory of Bessel Functions</i>, chapter
+    1 for the history and chapter 2 for the generating function — skip anything using contour integrals,
+    which is unit 20's. Brouwer and Clemence, <i>Methods of Celestial Mechanics</i>, chapter 2, for
+    Kepler's equation as astronomers solve it. Teschl, <i>Ordinary Differential Equations and Dynamical
+    Systems</i>, chapter 4, for Frobenius in general; its first section uses complex analysis, and the
+    real-variable reader can start from the Frobenius method itself.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">09 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>You derive the Bessel-function solution of Kepler's equation from its Fourier coefficients and use
+    it to place a planet to five digits — and you can state exactly where it diverges while owing unit 20
+    the reason.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>How to fail it, unambiguously</h3>
+      <p class="small">Any of: the coefficients $\frac2nJ_n(ne)$ are quoted rather than obtained by
+      integrating by parts and changing variable to $E$; the number of terms is chosen by looking at
+      the answer instead of from a tail bound; "diverges" is said of the Fourier–Bessel series (which
+      converges for every $e&lt;1$) instead of Lagrange's series in powers of $e$; or the Laplace limit
+      is given without the value $0.6627$ and without saying what is proved here ($e&lt;0.6599$) and what
+      is owed.</p>
+    </div>
+    <div>
+      <h3>Then</h3>
+      <p class="small"><code>./mr problems 09</code> — P9 is this checkpoint on a different epoch, P7
+      Frobenius by hand, P11 Halley's comet. Hints and worked solutions are folded under each problem;
+      open them after an attempt.<br>
+      <code>./mr done 09</code> when the checkpoint is met.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The falsifiable part is "to five digits", with the number of terms justified in advance. Anyone
+    can sum series terms until two successive answers agree; that is evidence, not a guarantee, and on
+    Halley's comet it lies. The checkpoint asks for the bound lemma's tail estimate, which says how many
+    terms before any are summed.</p>
+    <p>Try it on a case these slides have not done: Mercury, $e = 0.2056$, a quarter-period after
+    perihelion ($M = \pi/2$). The bound ratio is $\frac{\mathrm e\,e}2\mathrm e^{e^2/4} = 0.28$, so each
+    term buys about half a digit, and five figures take more than three terms. Count them from the
+    bound, sum them, and check with two Newton steps.</p>
+    <p>When the checkpoint is met: <code>./mr done 09</code>.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

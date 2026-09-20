@@ -1,0 +1,2035 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>20 · The Fourier transform, complex analysis, and why causality is a statement about poles</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="c">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="galv"><span class="ref-name">the galvanometer</span>Unit 06's instrument with $R = 995\ \Omega$ across its terminals: $\ddot\theta + \gamma\dot\theta + \omega_0^2\theta = \tau(t)/I$ with $\omega_0 = 8\ \mathrm{rad\,s^{-1}}$, $\gamma = 0.4\ \mathrm{s^{-1}}$, $Q = \omega_0/\gamma = 20$. <span class="ref-note">Ringing frequency $\omega_\mathrm{d} = \sqrt{\omega_0^2 - \gamma^2/4} = 7.99750\ \mathrm{rad\,s^{-1}}$; each swing $85.46\%$ of the last</span></template>
+  <template data-ref="chi"><span class="ref-name">its susceptibility, this unit's convention</span>$\chi(\omega) = \dfrac{1}{\omega_0^2 - \omega^2 - i\gamma\omega} = \dfrac{1}{64 - \omega^2 - 0.4\,i\omega}\ \mathrm{s^2}$, the transform of $G$ with $\hat f(\omega) = \int f(t)e^{i\omega t}\,\mathrm dt$. <span class="ref-note">Poles at $\omega_\pm = \pm7.99750 - 0.2\,i$, both in the lower half-plane, both at distance exactly $\omega_0 = 8$ from the origin. $\chi(0) = 0.015625$, $\chi(\omega_0) = 0.3125\,i$</span><svg viewBox="0 0 240 130" width="200" aria-hidden="true"><line x1="10" y1="50" x2="230" y2="50" class="rule" stroke-width="1.5"/><line x1="120" y1="8" x2="120" y2="122" class="rule" stroke-width="1.5"/><path d="M 20 50 A 100 100 0 0 1 220 50" fill="none" class="good" stroke-width="2" stroke-dasharray="5 4"/><path d="M 20 50 A 100 70 0 0 0 220 50" fill="none" class="accent" stroke-width="2"/><text x="47" y="76" font-size="20" class="warn">×</text><text x="181" y="76" font-size="20" class="warn">×</text><text x="190" y="22" font-size="13" class="soft">t &lt; 0</text><text x="190" y="118" font-size="13" class="soft">t &gt; 0</text></svg></template>
+  <template data-ref="G"><span class="ref-name">its Green's function</span>$G(t) = e^{-\gamma t/2}\,\dfrac{\sin\omega_\mathrm{d}t}{\omega_\mathrm{d}}$ for $t &gt; 0$ and $0$ for $t &lt; 0$: the swing after a unit kick. <span class="ref-note">Built by hand in unit 06 by matching a jump in $\dot G$. Here: recovered by residues, legitimised as $LG = \delta$, and its vanishing for $t &lt; 0$ shown to be the same fact as the position of two poles</span><svg viewBox="10 0 200 90" width="185" aria-hidden="true"><line x1="20" y1="45" x2="200" y2="45" class="rule" stroke-width="1.5"/><polyline points="20,45 60,45 64,34 69,25 74,18 78,14 82,13 87,15 92,20 96,28 100,37 105,47 110,56 114,65 118,71 123,74 127,75 132,72 136,67 141,60 146,51 150,42 154,33 159,26 163,20 168,18 172,18 177,21 182,26 186,33 190,41 195,50 200,57" fill="none" class="unit" stroke-width="2.5"/></svg></template>
+  <template data-ref="kk"><span class="ref-name">the dispersion check</span>At $\omega = 7\ \mathrm{s^{-1}}$: $\chi(7) = 0.0644219 + 0.0120254\,i\ \mathrm{s^2}$. <span class="ref-note">Kramers–Kronig computes the real part from the imaginary part at all other frequencies, $0.06442192$, and the imaginary from the real, $0.01202542$: seven digits each way</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part C · the analytic toolkit · spine</p>
+  <div class="unit-no">20</div>
+  <h1>The Fourier transform, complex analysis, and why causality is a statement about poles</h1>
+  <p class="lede">A linear system that cannot answer before it is asked has a frequency response
+  with no poles in one half of the complex plane — and that one fact ties refraction to absorption,
+  turns unit 06's step function into a theorem, and evaluates integrals nothing else can.</p>
+  <p class="meta"><span>needs 06</span><span>~3½ h slides + 7 h problems</span><span>problems: <code>./mr problems 20</code></span></p>
+  <aside class="notes">
+    <p>Unit 06 solved one oscillator completely and left four promissory notes: the delta function it
+    avoided, the Fourier transform it computed without naming, the causality slide that said poles sit on
+    one side of the real axis without saying why that matters, and the fundamental theorem of algebra,
+    cited. Unit 09 left three more: the Laplace limit $0.6627\ldots$, the constants in the large-$x$ form
+    of $J_n$, and how fast $I_n(ne)$ grows with $n$. This unit pays all seven.</p>
+    <p>It does so by building three pieces of mathematics that belong together. The <b>Fourier
+    transform</b> diagonalises every linear time-invariant system, turning the differential equation into
+    division. <b>Distributions</b> make the delta function and the Green's function honest.
+    <b>Complex analysis</b> — holomorphy, Cauchy's theorem, residues — is what makes the transform
+    invertible in practice, and it is also where causality turns out to live: a response function that
+    vanishes before $t = 0$ is exactly one whose transform is holomorphic in the upper half-plane. Then
+    <b>asymptotics of integrals</b>, which is contour deformation used for estimation rather than exact
+    evaluation.</p>
+    <h4>What you need, and what you do not</h4>
+    <p>The dependency is unit 06 only, so nothing from units 03–05 is assumed: partial derivatives are
+    defined here in the one line Cauchy–Riemann needs, and integrals along curves are defined here from
+    scratch, as ordinary one-variable integrals of a parametrised path. No Green's theorem is used —
+    Cauchy's theorem is proved by Goursat's subdivision argument, which needs only the triangle
+    inequality and compactness. Two facts about double integrals are cited where they are used: that an
+    absolutely integrable integrand may be integrated in either order (Fubini), and that a limit may pass
+    under an integral sign when the integrands are dominated by one integrable function (dominated
+    convergence). Both are proved in Stein &amp; Shakarchi, <i>Real Analysis</i>, ch. 1–2.</p>
+    <h4>How to read this deck</h4>
+    <p>One object runs through it: unit 06's <b>galvanometer</b>, $\omega_0 = 8\ \mathrm{s^{-1}}$,
+    $\gamma = 0.4\ \mathrm{s^{-1}}$, and its susceptibility $\chi(\omega)$. Section 1 shows $\chi$ is the
+    Fourier transform of the Green's function; section 2 proves $LG = \delta$; section 3 finds $\chi$
+    holomorphic off two points and reads its Taylor radius off them; section 4 computes its residues;
+    section 5 inverts it by closing contours and proves the causality theorem; section 6 reads its
+    high-frequency tail by Watson's lemma. Every number quoted was computed. Proofs are on the slides
+    where they are short and in these notes under <b>Full proof</b> where they are not; anything imported
+    is labelled <i>cited</i>. <kbd>N</kbd> opens the notes, <kbd>G</kbd> lists the glossary terms.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">20 · overview</p>
+  <h2>One oscillator, inverted, and six sections</h2>
+  <p class="small">Unit 06 found the response of <span class="ref" data-ref="galv">the galvanometer</span> to a drive at one frequency, $\chi(\omega)$, and to one kick, $G(t)$. This unit proves they are one object seen twice — and inverts <span class="ref" data-ref="chi">$\chi$</span> by closing a contour: <b>up</b> for $t &lt; 0$, where there are no poles, so <span class="ref" data-ref="G">$G$</span> vanishes; <b>down</b> for $t &gt; 0$, collecting two residues.</p>
+  <div class="cols three">
+    <div class="box def"><span class="label">1 · the transform</span>
+      <p class="small">Inversion, Plancherel, convolution, uncertainty.</p></div>
+    <div class="box def"><span class="label">2 · distributions</span>
+      <p class="small">$\delta$ defined; $LG = \delta$ proved.</p></div>
+    <div class="box def"><span class="label">3 · holomorphy</span>
+      <p class="small">Cauchy–Riemann, Goursat, Cauchy, Liouville.</p></div>
+    <div class="box def"><span class="label">4 · residues</span>
+      <p class="small">Laurent, residues, Jordan, cuts, Rouché.</p></div>
+    <div class="box def"><span class="label">5 · causality</span>
+      <p class="small">Poles, Kramers–Kronig, glass, Bromwich.</p></div>
+    <div class="box def"><span class="label">6 · asymptotics</span>
+      <p class="small">Watson, Laplace, stationary phase, saddles, packets.</p></div>
+  </div>
+  <div class="box good"><span class="label">getting around</span>
+    <p class="small">A <span class="term" data-term="Fourier transform">dotted underline</span> is a glossary term — click it, or press <kbd>G</kbd>. A solid underline like <span class="ref" data-ref="G">the Green's function</span> is the running example: hover it. <kbd>N</kbd> shows the notes, where the long proofs are.</p>
+  </div>
+  <aside class="notes">
+    <p>The problem sheet follows the same order. P1–P3 are transforms and distributions; P4–P6 are
+    holomorphy and contour integrals, including Fresnel's integrals by an octant; P7 is Kramers–Kronig
+    in full; P8–P9 are branch cuts and the Bromwich contour; P10 is the Laplace limit, finally proved;
+    P11–P12 are stationary phase and steepest descent. All twelve end in a number; P3, P7 and P10 are also proofs.</p>
+    <p><b>Why this example.</b> The galvanometer's $\chi$ is a rational function with two simple poles.
+    That makes every step of the causality story computable by hand — which is the point: once the
+    mechanism is visible on a function you can write down, the theorem that generalises it is a
+    statement about something you have already seen. Section 5's theorem is about any causal response;
+    section 5's worked example is about this one.</p>
+    <p><b>A change of convention from unit 06</b>, made once and kept for the rest of the course: the
+    drive is written $e^{-i\omega t}$, not $e^{i\omega t}$. The first slide of section 1 says why and
+    what it changes.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The Fourier transform</h2>
+  <p>A drive that is not periodic is still a superposition of frequencies — continuously many of them.</p>
+</section>
+
+<section>
+  <p class="eyebrow">20 · transform</p>
+  <h2>From one frequency to all of them</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$f:\mathbb R\to\mathbb C$ is <b>absolutely integrable</b> if $\int_{-\infty}^\infty|f(t)|\,\mathrm dt &lt; \infty$ (an improper Riemann integral). For such $f$:</p>
+      <div class="box def"><span class="label">the <span class="term">Fourier transform</span></span>
+        $$\hat f(\omega) = \int_{-\infty}^{\infty} f(t)\,e^{i\omega t}\,\mathrm dt,\qquad \omega\in\mathbb R .$$
+        <p class="small">It converges absolutely, since $|e^{i\omega t}| = 1$, and $|\hat f(\omega)| \le \int|f|$.</p>
+      </div>
+      <div class="box thm"><span class="label"><span class="term">Riemann–Lebesgue lemma</span></span>
+        <p class="small">$\hat f$ is continuous and $\hat f(\omega)\to0$ as $|\omega|\to\infty$.</p>
+      </div>
+      <p class="small">Shift, modulation and scaling, each one substitution: $f(t-a)\mapsto e^{i\omega a}\hat f$, $\ e^{-i\nu t}f\mapsto\hat f(\omega-\nu)$, $\ f(t/a)\mapsto |a|\hat f(a\omega)$.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">a convention, changed from unit 06</span>
+        <p class="small">Unit 06 drove with $e^{i\omega t}$ and got $\chi_{06} = 1/(\omega_0^2 - \omega^2 + i\gamma\omega)$. From here on a single frequency is $e^{-i\omega t}$ — the convention of every later unit and of the physics literature — and</p>
+        $$\chi(\omega) = \frac{1}{\omega_0^2 - \omega^2 - i\gamma\omega} = \chi_{06}(-\omega).$$
+        <p class="small">For real $\omega$ that is the complex conjugate: same modulus, lag $\varphi$ now read as $\arg\chi$. The poles move to the <b>lower</b> half-plane.</p>
+      </div>
+      <p class="small">Why a transform at all: <span class="ref" data-ref="galv">the galvanometer</span>'s response to $e^{-i\omega t}$ is $\chi(\omega)e^{-i\omega t}$. If a drive is a superposition of such exponentials, linearity gives the response as the same superposition, each term multiplied by $\chi$. The transform finds the weights.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the normalisation goes.</b> Conventions differ in three places: the sign in the
+    exponent, the placement of $2\pi$, and whether $\omega$ or $\nu = \omega/2\pi$ is used. This course
+    puts the whole $1/2\pi$ in the inverse and uses $+i\omega t$ in the forward transform, so that a
+    signal $e^{-i\omega_1 t}$ has its spectrum at $+\omega_1$. With $e^{-i\omega t}$ as the unit of
+    oscillation, a wave travelling towards $+x$ is $e^{i(kx - \omega t)}$ with $k, \omega &gt; 0$: that
+    is the reason for the change, and it is what unit 24 and every later unit use.</p>
+    <h4>Full proof of the Riemann–Lebesgue lemma</h4>
+    <p><b>Continuity.</b> $|\hat f(\omega) - \hat f(\nu)| \le \int|f(t)||e^{i(\omega-\nu)t} - 1|\,\mathrm dt$.
+    Given $\varepsilon$, choose $T$ with $\int_{|t|&gt;T}|f| &lt; \varepsilon$; on $|t|\le T$,
+    $|e^{i(\omega-\nu)t} - 1|\le|\omega-\nu|T$. So the difference is at most
+    $2\varepsilon + |\omega-\nu|T\int|f|$, which is $&lt;3\varepsilon$ once $|\omega - \nu|$ is small.</p>
+    <p><b>Decay.</b> For the indicator of an interval, $\int_a^be^{i\omega t}\mathrm dt = (e^{i\omega b} -
+    e^{i\omega a})/i\omega$, of modulus at most $2/|\omega|$. So step functions (finite combinations of
+    indicators) have transforms tending to zero. A Riemann-integrable function on $[-T, T]$ is within
+    $\varepsilon$ in $\int|\cdot|$ of a step function $s$ (lower Darboux sums), and the tails beyond $T$
+    are within $\varepsilon$ too; then $|\hat f(\omega)| \le |\hat s(\omega)| + 2\varepsilon$, and the
+    first term is below $\varepsilon$ for large $|\omega|$. $\square$</p>
+    <p><b>The three rules.</b> $\int f(t-a)e^{i\omega t}\mathrm dt$ with $u = t - a$ is
+    $e^{i\omega a}\hat f(\omega)$. $\int e^{-i\nu t}f(t)e^{i\omega t}\mathrm dt = \hat f(\omega - \nu)$ by
+    inspection. $\int f(t/a)e^{i\omega t}\mathrm dt$ with $u = t/a$ is $|a|\int f(u)e^{ia\omega u}\mathrm du$,
+    the modulus because a negative $a$ reverses the limits.</p>
+    <p><b>Dimensions.</b> If $t$ is a time and $f$ has dimension $[f]$, then $\hat f$ has dimension
+    $[f]\,\mathrm T$ and its argument $\omega$ is an inverse time. Every formula in this section can be
+    checked against that.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · transform</p>
+  <h2>Differentiation becomes multiplication</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the dictionary</span>
+        <p class="small">If $f$ is $C^1$ and $f, f'$ are absolutely integrable, then $\widehat{f'}(\omega) = -i\omega\hat f(\omega)$. If $f$ and $tf$ are absolutely integrable, then $\hat f$ is $C^1$ and $\widehat{tf} = -i\,\hat f\,{}'$.</p>
+      </div>
+      <p class="small"><b>Proof of the first.</b> Integrate by parts on $[-T, T]$: $\int f'e^{i\omega t} = [fe^{i\omega t}]_{-T}^{T} - i\omega\int fe^{i\omega t}$, and $f(\pm T)\to0$ because $f$ has limits at $\pm\infty$ ($f'$ integrable) which must be $0$ ($f$ integrable). $\square$</p>
+      <p class="small">Apply it to <span class="ref" data-ref="galv">the galvanometer</span>, $\ddot x + \gamma\dot x + \omega_0^2x = f$:</p>
+      $$(\omega_0^2 - \omega^2 - i\gamma\omega)\,\hat x = \hat f,\quad\text{so}\quad\hat x = \chi\,\hat f .$$
+      <p class="small">A differential equation has become division. <b>Dimensions:</b> $[\chi] = \mathrm T^2$, $[\hat f] = [x]\mathrm T^{-2}\cdot\mathrm T$, so $[\hat x] = [x]\mathrm T$ ✓.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">worked example 1 — the Gaussian, by an ODE</span>
+        <p class="small">$f(t) = e^{-t^2/2}$. It satisfies $f' = -tf$. Transform both sides with the dictionary:</p>
+        $$-i\omega\hat f = i\hat f\,{}',\quad\text{so}\quad\hat f\,{}' = -\omega\hat f .$$
+        <p class="small">Separable (unit 00), unique through its initial value (unit 01), and $\hat f(0) = \int e^{-t^2/2}\mathrm dt = \sqrt{2\pi}$ (notes):</p>
+        $$\hat f(\omega) = \sqrt{2\pi}\,e^{-\omega^2/2}.$$
+        <p class="small">A Gaussian is its own transform, up to $\sqrt{2\pi}$. By scaling, $e^{-t^2/2\sigma^2}\mapsto\sigma\sqrt{2\pi}\,e^{-\sigma^2\omega^2/2}$: width $\sigma$ in time, $1/\sigma$ in frequency.</p>
+        <p class="small"><b>Check:</b> $\sigma\to\infty$, a constant signal, piles the spectrum up at $\omega = 0$; both sides carry $\mathrm T$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the second rule</h4>
+    <p>$\frac{\hat f(\omega + h) - \hat f(\omega)}{h} = \int f(t)e^{i\omega t}\frac{e^{iht} - 1}{h}\,\mathrm dt$,
+    and $|e^{iht} - 1|/|h| \le |t|$. The integrand is dominated by $|tf(t)|$, which is integrable, and
+    converges pointwise to $itf(t)e^{i\omega t}$; dominated convergence (<i>cited</i>, Stein–Shakarchi,
+    <i>Real Analysis</i>, ch. 2 Thm 1.13) gives $\hat f\,{}' = \widehat{itf}$, which is the rule. Continuity of
+    $\hat f\,{}'$ is Riemann–Lebesgue applied to $tf$. $\square$</p>
+    <h4>Full proof that $\int e^{-t^2/2}\mathrm dt = \sqrt{2\pi}$, without polar coordinates</h4>
+    <p>Polar coordinates are unit 05, which this unit does not assume, so here is a one-variable proof.
+    Let $A(x) = \big(\int_0^xe^{-s^2}\mathrm ds\big)^2$ and $B(x) = \int_0^1\frac{e^{-x^2(1+u^2)}}{1+u^2}\mathrm du$.
+    Then $A'(x) = 2e^{-x^2}\int_0^xe^{-s^2}\mathrm ds$, and differentiating under the integral sign (the
+    integrand and its $x$-derivative are continuous on the compact $[0,1]$, so this is the elementary
+    Leibniz rule) gives $B'(x) = -2x\int_0^1e^{-x^2(1+u^2)}\mathrm du = -2e^{-x^2}\int_0^xe^{-s^2}\mathrm ds$
+    with $s = xu$. So $A + B$ is constant, equal to $A(0) + B(0) = \int_0^1\frac{\mathrm du}{1+u^2} = \frac\pi4$.
+    As $x\to\infty$, $B(x)\le e^{-x^2}\to0$, so $\big(\int_0^\infty e^{-s^2}\big)^2 = \pi/4$. Hence
+    $\int_{\mathbb R}e^{-s^2} = \sqrt\pi$, and $s = t/\sqrt2$ gives $\sqrt{2\pi}$. $\square$</p>
+    <p><b>Why the ODE route matters.</b> It computes the transform without evaluating a single
+    oscillatory integral. Section 3 extends the answer to a <i>complex</i> width — a step that needs analytic
+    continuation to be legitimate — and section 6 uses that extension for a spreading wave packet.</p>
+    <p><b>The oscillator equation, transformed.</b> The dictionary applies twice ($\widehat{\ddot x} =
+    (-i\omega)^2\hat x$) provided $x, \dot x, \ddot x$ are integrable — true for the response to an
+    integrable drive once the transient has died, and exactly true for $x = G * f$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · transform</p>
+  <h2>Inversion</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Fourier inversion theorem</span></span>
+        <p class="small">If $f$ is continuous and both $f$ and $\hat f$ are absolutely integrable, then for every $t$</p>
+        $$f(t) = \frac{1}{2\pi}\int_{-\infty}^{\infty}\hat f(\omega)\,e^{-i\omega t}\,\mathrm d\omega .$$
+      </div>
+      <p class="small">In particular <b>$\hat f = 0$ forces $f = 0$</b>: the transform is injective, so an identity between transforms is an identity between functions.</p>
+      <div class="box warn"><span class="label">the hypothesis on $\hat f$ is not decoration</span>
+        <p class="small">The box $f = \mathbf 1_{[-1,1]}$ has $\hat f(\omega) = 2\sin\omega/\omega$, which is <b>not</b> absolutely integrable — because $f$ jumps. At the jump the symmetric limit $\lim_{W\to\infty}\frac1{2\pi}\int_{-W}^{W}$ still converges, to the midpoint $\frac12$ (notes).</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>The idea of the proof.</b> Insert a Gaussian $e^{-\varepsilon\omega^2/2}$ to make the double integral absolutely convergent, swap the order, and recognise the result:</p>
+      $$\frac1{2\pi}\!\int\!\hat f e^{-i\omega t}e^{-\varepsilon\omega^2/2}\mathrm d\omega = \!\int\! f(s)K_\varepsilon(t - s)\mathrm ds,$$
+      <p class="small">where $K_\varepsilon(u) = e^{-u^2/2\varepsilon}/\sqrt{2\pi\varepsilon}$ is worked example 1 read backwards: positive, total integral $1$, concentrating at $u = 0$ as $\varepsilon\to0$. So the right side tends to $f(t)$, and the left side to the inversion integral.</p>
+      <p class="small"><b>On the running example:</b> $G$ is continuous and integrable and $|\chi|\le C/(1+\omega^2)$ is integrable, so $G$ is recovered from <span class="ref" data-ref="chi">$\chi$</span> by this formula. Section 5 evaluates it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Step 1 — the swap.</b> $\int\!\!\int|f(s)|e^{-\varepsilon\omega^2/2}\,\mathrm ds\,\mathrm d\omega &lt; \infty$,
+    so Fubini (<i>cited</i>) allows
+    $\frac1{2\pi}\int\big(\int f(s)e^{i\omega s}\mathrm ds\big)e^{-i\omega t}e^{-\varepsilon\omega^2/2}\mathrm d\omega
+    = \int f(s)\Big(\frac1{2\pi}\int e^{-i\omega(t-s)}e^{-\varepsilon\omega^2/2}\mathrm d\omega\Big)\mathrm ds$.
+    The inner integral is the transform of a Gaussian of width $\sigma = 1/\sqrt\varepsilon$, evaluated at
+    $-(t-s)$: by worked example 1 and scaling, $\frac1{2\pi}\sqrt{2\pi/\varepsilon}\,e^{-(t-s)^2/2\varepsilon}
+    = K_\varepsilon(t - s)$.</p>
+    <p><b>Step 2 — the right side tends to $f(t)$.</b> $\int f(s)K_\varepsilon(t-s)\,\mathrm ds - f(t) =
+    \int\big(f(t - u) - f(t)\big)K_\varepsilon(u)\,\mathrm du$. Given $\eta &gt; 0$ choose $\delta$ with
+    $|f(t-u) - f(t)| &lt; \eta$ for $|u| &lt; \delta$ (continuity). The part $|u| &lt; \delta$ is below $\eta$.
+    The part $|u|\ge\delta$ is at most $\sup_{|u|\ge\delta}K_\varepsilon(u)\int|f| + |f(t)|\int_{|u|\ge\delta}K_\varepsilon$,
+    and both terms tend to $0$ with $\varepsilon$ because $K_\varepsilon(\delta)\to0$ and the Gaussian's
+    mass concentrates.</p>
+    <p><b>Step 3 — the left side tends to the inversion integral.</b> $|\hat f(\omega)e^{-i\omega t}(e^{-\varepsilon\omega^2/2} - 1)|\le2|\hat f(\omega)|$,
+    integrable by hypothesis, and pointwise the difference tends to $0$: dominated convergence. $\square$</p>
+    <p><b>The box.</b> $\int_{-1}^1e^{i\omega t}\mathrm dt = (e^{i\omega} - e^{-i\omega})/i\omega = 2\sin\omega/\omega$.
+    Not absolutely integrable: over $[k\pi, (k+1)\pi]$ the integral of $|\sin\omega|/\omega$ is at least
+    $2/((k+1)\pi)$, and the harmonic series diverges. <b>The midpoint, for the box.</b> At $t = 1$,
+    $\frac1{2\pi}\int_{-W}^{W}\frac{2\sin\omega}{\omega}e^{-i\omega}\,\mathrm d\omega = \frac1{2\pi}\int_{-W}^{W}\frac{2\sin\omega\cos\omega}{\omega}\,\mathrm d\omega
+    = \frac1{2\pi}\int_{-W}^{W}\frac{\sin2\omega}{\omega}\,\mathrm d\omega$ (the odd part integrates to zero), which tends
+    to $\frac1{2\pi}\cdot\pi = \frac12$ by worked example 2: halfway between $f(1^-) = 1$ and $f(1^+) = 0$. The general
+    statement — the symmetric limit gives the midpoint at every jump of a piecewise-$C^1$ integrable $f$ — is
+    <i>cited</i> (Titchmarsh, <i>Introduction to the Theory of Fourier Integrals</i>, ch. 1) and is not
+    needed later in this course.</p>
+    <p><b>History.</b> Fourier wrote the inversion formula in 1807–1822 for heat flow on an infinite
+    rod, without proof. Cauchy and Poisson both had versions; the approximate-identity argument above is
+    essentially Weierstrass's (1885). Inserting a convergence factor and removing it at the end is the
+    single most useful trick in this subject, and it returns in section 2 and section 5.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · transform</p>
+  <h2>Plancherel and convolution</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Plancherel's theorem</span></span>
+        <p class="small">For $f, g$ as in the inversion theorem,</p>
+        $$\int f\,\bar g\,\mathrm dt = \frac1{2\pi}\int\hat f\,\bar{\hat g}\,\mathrm d\omega,$$
+        <p class="small">and in particular $\int|f|^2\mathrm dt = \frac1{2\pi}\int|\hat f|^2\mathrm d\omega$.</p>
+      </div>
+      <p class="small"><b>Proof, one line.</b> Write $\bar g$ by inversion, swap (Fubini): $\int f(t)\frac{1}{2\pi}\int\bar{\hat g}(\omega)e^{i\omega t}\mathrm d\omega\,\mathrm dt = \frac{1}{2\pi}\int\bar{\hat g}\hat f\,\mathrm d\omega$. $\square$</p>
+      <p class="small">Energy in time equals energy in frequency: the transform is, up to $\sqrt{2\pi}$, an <b>isometry</b>. It extends to all square-integrable functions (<i>cited</i>: Stein–Shakarchi, <i>Real Analysis</i>, ch. 5 §1).</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">convolution theorem</span></span>
+        <p class="small">If $f, g$ are absolutely integrable and bounded, $(f*g)(t) = \int f(s)g(t-s)\,\mathrm ds$ satisfies</p>
+        $$\widehat{f*g} = \hat f\,\hat g .$$
+      </div>
+      <p class="small">Proof: swap the two integrals and substitute $u = t - s$, which splits $e^{i\omega t} = e^{i\omega s}e^{i\omega u}$. $\square$ So unit 06's $x = G*f$ becomes $\hat x = \hat G\hat f$ — and comparing with the dictionary slide,</p>
+      $$\hat G(\omega) = \chi(\omega).$$
+      <div class="box good"><span class="label">checked on the running example</span>
+        <p class="small">$\int_0^\infty G^2\,\mathrm dt = \dfrac{1}{2\gamma\omega_0^2} = 0.01953125\ \mathrm{s^3}$, and $\dfrac1{2\pi}\displaystyle\int|\chi|^2\mathrm d\omega = \dfrac{0.1227185}{2\pi} = 0.01953125$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>$\hat G = \chi$, directly.</b> $\int_0^\infty e^{-\gamma t/2}\frac{\sin\omega_\mathrm dt}{\omega_\mathrm d}e^{i\omega t}\mathrm dt$:
+    write $\sin = (e^{i\omega_\mathrm dt} - e^{-i\omega_\mathrm dt})/2i$ and integrate the exponentials,
+    $\int_0^\infty e^{-at}\mathrm dt = 1/a$ for $\operatorname{Re}a&gt;0$, with
+    $a_\pm = \gamma/2 - i\omega \mp i\omega_\mathrm d$. Then
+    $\hat G = \frac{1}{2i\omega_\mathrm d}\big(\frac1{a_+} - \frac1{a_-}\big) = \frac{1}{2i\omega_\mathrm d}\cdot\frac{a_- - a_+}{a_+a_-}
+    = \frac{1}{a_+a_-}$, and $a_+a_- = (\gamma/2 - i\omega)^2 + \omega_\mathrm d^2 = \omega_0^2 - \omega^2 - i\gamma\omega$ ✓.
+    This is unit 06's worked example 3 with the new sign of $\omega$.</p>
+    <p><b>The Plancherel numbers.</b> $\int_0^\infty e^{-\gamma t}\sin^2(\omega_\mathrm dt)\,\mathrm dt
+    = \frac12\big(\frac1\gamma - \frac{\gamma}{\gamma^2 + 4\omega_\mathrm d^2}\big) = \frac{2\omega_\mathrm d^2}{\gamma\cdot4\omega_0^2}$
+    using $\gamma^2 + 4\omega_\mathrm d^2 = 4\omega_0^2$; divided by $\omega_\mathrm d^2$ that is
+    $1/(2\gamma\omega_0^2) = 1/51.2$. The frequency side, $\int\frac{\mathrm d\omega}{(\omega_0^2-\omega^2)^2 + \gamma^2\omega^2} = \frac{\pi}{\gamma\omega_0^2}$,
+    is problem P5, by residues; numerically $0.12271846$. <b>Dimensions:</b> $[G] = \mathrm T$, so
+    $\int G^2\mathrm dt$ is $\mathrm T^3$; $[\chi]^2[\omega] = \mathrm T^4\mathrm T^{-1}$ ✓. <b>Limit:</b> as
+    $\gamma\to0$ both sides diverge like $1/\gamma$ — an undamped oscillator rings forever and its
+    response is concentrated on two infinitely sharp lines.</p>
+    <h4>Full proof of the convolution theorem</h4>
+    <p>$f*g$ is bounded by $\sup|g|\int|f|$, and $\int|f*g|\le\int|f|\int|g|$ by Tonelli (the nonnegative case of Fubini, <i>cited</i> with it). Then
+    $\widehat{f*g}(\omega) = \int\!\!\int f(s)g(t-s)e^{i\omega t}\mathrm ds\,\mathrm dt$; the double integral
+    converges absolutely, so Fubini lets the $t$-integral go inside, and with $u = t - s$ it is
+    $\int f(s)e^{i\omega s}\big(\int g(u)e^{i\omega u}\mathrm du\big)\mathrm ds = \hat f\hat g$. $\square$</p>
+    <p><b>The structural point.</b> Every exponential $e^{-i\omega t}$ is an eigenfunction of every
+    time-invariant linear operator — time translation acts on it by a scalar, and anything commuting
+    with all translations must too. The Fourier transform is the change of basis to those eigenfunctions,
+    and in that basis every such operator is diagonal: multiplication by its eigenvalue $\chi(\omega)$.
+    That is why one function of frequency is the whole system.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · transform</p>
+  <h2>The uncertainty relation</h2>
+  <div class="cols">
+    <div>
+      <p class="small">For $f$ with $\int|f|^2 = 1$ define the spreads about the means $\bar t$, $\bar\omega$:</p>
+      $$\begin{aligned}\Delta t^2 &= \textstyle\int(t-\bar t)^2|f|^2\,\mathrm dt,\\ \Delta\omega^2 &= \textstyle\frac1{2\pi}\int(\omega - \bar\omega)^2|\hat f|^2\,\mathrm d\omega .\end{aligned}$$
+      <div class="box thm"><span class="label">the <span class="term">uncertainty relation</span></span>
+        <p class="small">If $f$ is $C^1$ with $f, tf, f'$ square-integrable and $\sqrt{|t|}f\to0$ at $\pm\infty$,</p>
+        $$\Delta t\,\Delta\omega \ge \tfrac12,$$
+        <p class="small">with equality exactly for Gaussians $f = Ce^{-a(t - \bar t)^2 - i\bar\omega t}$, $a &gt; 0$.</p>
+      </div>
+      <p class="small"><b>Physics:</b> a short pulse cannot be monochromatic. A 10 fs laser pulse carries a spread of frequencies of order $10^{14}\ \mathrm{s^{-1}}$, whatever the laser.</p>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof, by Cauchy–Schwarz</span>
+        <p class="small">Translate and modulate so $\bar t = \bar\omega = 0$ (neither changes $\Delta t$, $\Delta\omega$). Integrate by parts:</p>
+        $$1 = -\!\int t\,(|f|^2)'\,\mathrm dt = -2\operatorname{Re}\!\int t\bar ff'\,\mathrm dt .$$
+        <p class="small">Cauchy–Schwarz: $1\le2\,\|tf\|\,\|f'\|$. By the dictionary and Plancherel, $\|f'\|^2 = \frac1{2\pi}\int\omega^2|\hat f|^2 = \Delta\omega^2$, and $\|tf\|^2 = \Delta t^2$. So $1\le 2\Delta t\,\Delta\omega$. $\square$</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Equality:</b> $e^{-t^2/2}/\pi^{1/4}$ has $\Delta t^2 = \Delta\omega^2 = \frac12$ ✓. <b>Dimensions:</b> $\mathrm T\cdot\mathrm T^{-1}$ ✓. <b>The running example:</b> $G$ gives $\Delta t\,\Delta\omega = \sqrt{Q^2 - \frac12 + \frac1{4Q^2}} = 19.9875$ — far from minimal, and P2 says why.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, the steps the slide compresses</h4>
+    <p><b>The integration by parts.</b> $(|f|^2)' = (f\bar f)' = f'\bar f + f\bar f' = 2\operatorname{Re}(\bar ff')$.
+    On $[-T, T]$, $\int t(|f|^2)' = [t|f|^2]_{-T}^T - \int|f|^2$, and the boundary term vanishes as
+    $T\to\infty$ by the hypothesis $\sqrt{|t|}f\to0$. <b>Cauchy–Schwarz</b> in the inner product
+    $\langle u, v\rangle = \int u\bar v$: $|\int(t f)\overline{f'}| \le \|tf\|\|f'\|$, and
+    $|\operatorname{Re}z|\le|z|$. <b>Plancherel</b> for $f'$ with $\widehat{f'} = -i\omega\hat f$ gives
+    $\int|f'|^2 = \frac1{2\pi}\int\omega^2|\hat f|^2$.</p>
+    <p><b>Removing the means.</b> $g(t) = e^{i\bar\omega t}f(t + \bar t)$ has $|g(t)| = |f(t+\bar t)|$,
+    so its time spread is the same about mean $0$; its transform is $e^{-i(\omega+\bar\omega)\bar t}\,\hat f(\omega + \bar\omega)$
+    (shift and modulation rules), whose modulus is $|\hat f(\omega+\bar\omega)|$, so its frequency spread
+    is the same about mean $0$.</p>
+    <p><b>The equality case.</b> Cauchy–Schwarz is an equality iff $f' = ctf$ for a constant $c$, and
+    the real part must equal the modulus, which forces $c$ real; integrability forces $c &lt; 0$. The ODE
+    $f' = ctf$ has the unique solution $f = f(0)e^{ct^2/2}$ (unit 01). Undoing the translation and
+    modulation gives the family on the slide. P2 proves the converse.</p>
+    <p><b>The 10 fs pulse.</b> For a Gaussian pulse of intensity full width $10$ fs,
+    $\Delta t = 10/(2\sqrt{2\ln2}) = 4.25$ fs in the $|f|^2$ sense, so $\Delta\omega\ge1/(2\Delta t) = 1.18\times10^{14}\ \mathrm{s^{-1}}$.
+    The optical carrier at $800$ nm is $\omega = 2.35\times10^{15}\ \mathrm{s^{-1}}$, so the pulse spans
+    about $\pm5\%$ of its own frequency: it is white-ish, and section 6 shows what glass does to it.</p>
+    <p><b>Quantum mechanics</b>, which this course does not reach, reads this theorem with $t\to x$,
+    $\omega\to p/\hbar$, and calls it Heisenberg's; the mathematics is the slide, unchanged. Weyl gave
+    this proof in 1928.</p>
+    <p><b>The galvanometer's value</b>, derived in P2: $\Delta\omega = \omega_0$ exactly and
+    $\Delta t^2 = \gamma^{-2} - \frac{1}{2\omega_0^2} + \frac{\gamma^2}{4\omega_0^4}$, product
+    $\sqrt{400 - 0.5 + 0.000625} = 19.9875$ at $Q = 20$. The spread in frequency is measured about $\bar\omega = 0$,
+    and a real signal has two spectral peaks at $\pm\omega_\mathrm d$: most of $\Delta\omega$ is the
+    distance between the peaks, not their width.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Distributions</h2>
+  <p>A kick too short to resolve is not a function of time. It is a rule for what happens to every smooth test of it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">20 · distributions</p>
+  <h2>Test functions and distributions</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">test functions</span></span>
+        <p class="small">$\mathcal D = C_c^\infty(\mathbb R)$: smooth functions vanishing outside a bounded set. $\varphi_n\to\varphi$ in $\mathcal D$ means: all supports in one bounded set, and $\varphi_n^{(k)}\to\varphi^{(k)}$ uniformly for every $k$.</p>
+        <p class="small">They exist: $\psi(t) = e^{-1/(1-t^2)}$ for $|t|&lt;1$, $0$ otherwise, is $C^\infty$.</p>
+      </div>
+      <div class="box def"><span class="label">a <span class="term">distribution</span></span>
+        <p class="small">A linear map $T:\mathcal D\to\mathbb C$, written $\varphi\mapsto\langle T,\varphi\rangle$, that is continuous: $\varphi_n\to\varphi$ implies $\langle T,\varphi_n\rangle\to\langle T,\varphi\rangle$.</p>
+      </div>
+      <p class="small"><b>Physics first, here too:</b> a ballistic galvanometer reads $\int i\,\mathrm dt$ and nothing else about the pulse (unit 06). An idealised kick is exactly that: defined by what it does to smooth responses, not by its values.</p>
+    </div>
+    <div>
+      <p class="small"><b>Three examples.</b></p>
+      <ul>
+        <li class="small"><b>Functions.</b> A locally integrable $f$ gives $\langle T_f,\varphi\rangle = \int f\varphi$. Different continuous $f$ give different $T_f$, so functions sit inside distributions.</li>
+        <li class="small">The <span class="term">Dirac delta</span>: $\langle\delta,\varphi\rangle = \varphi(0)$.</li>
+        <li class="small">The <span class="term">principal value</span>: $\big\langle\mathrm{PV}\tfrac1t,\varphi\big\rangle = \displaystyle\lim_{\varepsilon\to0^+}\int_{|t|&gt;\varepsilon}\frac{\varphi(t)}{t}\,\mathrm dt = \int_0^\infty\frac{\varphi(t) - \varphi(-t)}{t}\,\mathrm dt$.</li>
+      </ul>
+      <div class="box warn"><span class="label">$\delta$ is not a function</span>
+        <p class="small">If $\int f\varphi = \varphi(0)$ for all $\varphi$, then $\int f\varphi = 0$ for every $\varphi$ vanishing near $0$, so $f = 0$ away from $0$, so $\int f\varphi = 0$ always — contradicting $\varphi(0)\ne0$.</p>
+      </div>
+      <p class="small">A sequence $T_n\to T$ <b>in distributions</b> if $\langle T_n,\varphi\rangle\to\langle T,\varphi\rangle$ for each $\varphi$. Unit 06's square pulses of unit area $\to\delta$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that $\psi$ is smooth</h4>
+    <p>It suffices that $h(x) = e^{-1/x}$ for $x&gt;0$, $h(x) = 0$ for $x\le0$, is $C^\infty$, since
+    $\psi(t) = h(1 - t^2)$. For $x &gt; 0$, induction gives $h^{(k)}(x) = p_k(1/x)e^{-1/x}$ with $p_k$ a
+    polynomial, and $p_k(1/x)e^{-1/x}\to0$ as $x\to0^+$ because $y^me^{-y}\to0$ as $y\to\infty$. So every
+    one-sided derivative at $0$ exists and is $0$, matching the left side. $\square$ Such a function is
+    <b>not</b> analytic at $0$ — its Taylor series there is $0$ — and section 3 will show that a
+    holomorphic function can never do this. That is the first sign that complex differentiability is a
+    much stronger condition than real.</p>
+    <p><b>The principal value is a distribution.</b> $\int_{|t|&gt;\varepsilon}\varphi/t$: the odd part of
+    $1/t$ pairs the region $t&gt;\varepsilon$ with $t&lt;-\varepsilon$, giving
+    $\int_\varepsilon^\infty(\varphi(t) - \varphi(-t))/t\,\mathrm dt$. By the mean value theorem
+    $|\varphi(t) - \varphi(-t)|\le2t\sup|\varphi'|$, so the integrand is bounded near $0$ and the limit
+    exists. If $\varphi$ is supported in $[-A, A]$, then
+    $|\langle\mathrm{PV}\tfrac1t,\varphi\rangle|\le2A\sup|\varphi'|$, which gives continuity.</p>
+    <p><b>Unit 06's pulses.</b> $p_\varepsilon = \varepsilon^{-1}\mathbf 1_{[0,\varepsilon]}$:
+    $\int p_\varepsilon\varphi = \varepsilon^{-1}\int_0^\varepsilon\varphi = \varphi(\xi_\varepsilon)$ for some
+    $\xi_\varepsilon\in[0,\varepsilon]$ (mean value theorem for integrals), and this tends to $\varphi(0)$. So
+    $p_\varepsilon\to\delta$ — and the limit does not care about the pulse shape, which is the
+    mathematical content of "the swing depends only on the charge".</p>
+    <p><b>History.</b> Dirac used $\delta$ freely from 1927; Sobolev (1936) and Schwartz (1945–1950)
+    made it a theorem-bearing object, and Schwartz's <i>Théorie des distributions</i> is the source of
+    the definitions here. Heaviside had been using its integral, the step function, since the 1890s.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · distributions</p>
+  <h2>Derivatives by duality, and $LG = \delta$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">distributional derivative</span></span>
+        $$\langle T',\varphi\rangle := -\langle T,\varphi'\rangle .$$
+        <p class="small">For $C^1$ functions this is integration by parts, so nothing old changes. Every distribution now has derivatives of all orders.</p>
+      </div>
+      <p class="small"><b>The step:</b> $H = \mathbf 1_{t&gt;0}$ has $\langle H',\varphi\rangle = -\int_0^\infty\varphi' = \varphi(0)$, so $H' = \delta$.</p>
+      <div class="box thm"><span class="label">the <span class="term">jump formula</span></span>
+        <p class="small">If $f$ is $C^1$ on $t&lt;0$ and on $t&gt;0$ with one-sided limits, jump $[f] = f(0^+) - f(0^-)$, then</p>
+        $$f' = \{f'\} + [f]\,\delta,$$
+        <p class="small">$\{f'\}$ being the classical derivative off $0$. Proof: split $-\int f\varphi'$ at $0$ and integrate each half by parts. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the jump condition, as a theorem</span>
+        <p class="small">Let $L = \frac{\mathrm d^2}{\mathrm dt^2} + \gamma\frac{\mathrm d}{\mathrm dt} + \omega_0^2$ and $G$ vanish for $t &lt; 0$, $C^2$ on $t &gt; 0$ with one-sided limits. Then $LG = \delta$ in distributions <b>iff</b></p>
+        <p class="small">$LG = 0$ on $t&gt;0$, $\ G(0^+) = 0$, $\ \dot G(0^+) = 1$.</p>
+      </div>
+      <p class="small"><b>Proof.</b> The jump formula twice:</p>
+      $$LG = \{LG\} + \big([\dot G] + \gamma[G]\big)\delta + [G]\,\delta' .$$
+      <p class="small">$\delta$ and $\delta'$ are independent (test with $\varphi$ having $\varphi(0) = 0\ne\varphi'(0)$, and conversely), so $LG = \delta$ iff $\{LG\} = 0$, $[G] = 0$ and $[\dot G] = 1$. $\square$</p>
+      <p class="small"><span class="ref" data-ref="G">The galvanometer's $G$</span> was built in unit 06 to meet exactly these three conditions. <b>So $LG = \delta$</b> — the defining property, now a statement about a well-defined object.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the jump formula</h4>
+    <p>$\langle f',\varphi\rangle = -\int_{-\infty}^0f\varphi' - \int_0^\infty f\varphi'$. On $(-\infty,0)$:
+    $-[f\varphi]_{-\infty}^{0^-} + \int_{-\infty}^0f'\varphi = -f(0^-)\varphi(0) + \int_{-\infty}^0f'\varphi$.
+    On $(0,\infty)$: $-[f\varphi]_{0^+}^\infty + \int_0^\infty f'\varphi = f(0^+)\varphi(0) + \int_0^\infty f'\varphi$.
+    Sum: $\int\{f'\}\varphi + (f(0^+) - f(0^-))\varphi(0)$. $\square$ ($\varphi$ has bounded support, so
+    the terms at $\pm\infty$ vanish.)</p>
+    <p><b>The second application.</b> $\dot G$ is itself piecewise $C^1$ with jump $[\dot G]$, so
+    $\ddot G = \{\ddot G\} + [\dot G]\delta + ([G]\delta)'$ — the last term because the distributional
+    derivative of $\{\dot G\} + [G]\delta$ is $\{\ddot G\} + [\dot G]\delta + [G]\delta'$. Then
+    $LG = \ddot G + \gamma\dot G + \omega_0^2G$ collects to the displayed formula; $\omega_0^2G$ contributes
+    no delta because $G$ itself is a function.</p>
+    <p><b>Independence of $\delta$ and $\delta'$.</b> Suppose $a\delta + b\delta' = 0$. Then for every
+    $\varphi$, $a\varphi(0) - b\varphi'(0) = 0$. Take $\varphi = \psi$ (the bump, even, $\psi'(0) = 0$,
+    $\psi(0) = e^{-1}$): $a = 0$. Take $\varphi(t) = t\psi(t)$: $\varphi(0) = 0$, $\varphi'(0) = e^{-1}$, so
+    $b = 0$.</p>
+    <p><b>Uniqueness of the causal $G$.</b> If $G_1, G_2$ both satisfy the theorem's hypotheses and
+    $LG_i = \delta$, their difference $D$ vanishes for $t &lt; 0$ and satisfies $LD = 0$ on $t &gt; 0$ with
+    $D(0^+) = \dot D(0^+) = 0$, so $D \equiv 0$ by uniqueness for the initial value problem (unit 01). The
+    step function in $G$ is not an extra assumption on top of the equation; it is the choice of which of
+    the many solutions of $LG = \delta$ you want, and section 5 shows it is equivalent to a choice of
+    half-plane.</p>
+    <p><b>Unit 06's jump, recovered physically.</b> Integrating $LG = \delta$ "across $0$" was the
+    heuristic there; the theorem is its rigorous form. The dimensionless $1$ in $\dot G(0^+) = 1$ is
+    the unit impulse per unit inertia: $[\delta] = \mathrm T^{-1}$ and $[LG] = [G]\mathrm T^{-2}$, so
+    $[G] = \mathrm T$ ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · distributions</p>
+  <h2>Tempered distributions and their transforms</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\mathcal S$: smooth $\varphi$ with $t^m\varphi^{(k)}$ bounded for all $m, k$ (the <b>Schwartz class</b>). The dictionary maps $\mathcal S$ to itself. A <span class="term">tempered distribution</span> is a continuous linear map on $\mathcal S$; since $\int\hat f\varphi = \int f\hat\varphi$ (swap the integrals), define</p>
+      <div class="box def"><span class="label">the transform, by duality</span>
+        $$\langle\hat T,\varphi\rangle := \langle T,\hat\varphi\rangle .$$
+      </div>
+      <table class="dense">
+        <thead><tr><th>$T$</th><th>$\hat T$</th><th>why</th></tr></thead>
+        <tbody>
+          <tr><td>$\delta$</td><td>$1$</td><td>$\hat\varphi(0) = \int\varphi$</td></tr>
+          <tr><td>$1$</td><td>$2\pi\delta$</td><td>inversion at $t = 0$</td></tr>
+          <tr><td>$e^{-i\nu t}$</td><td>$2\pi\delta(\omega - \nu)$</td><td>modulation</td></tr>
+          <tr><td>$\operatorname{sgn}t$</td><td>$2i\,\mathrm{PV}\frac1\omega$</td><td>limit of $e^{-\varepsilon|t|}\operatorname{sgn}t$</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Sokhotski–Plemelj</span></span>
+        <p class="small">As distributions, $\displaystyle\lim_{\varepsilon\to0^+}\frac{1}{x \mp i\varepsilon} = \mathrm{PV}\frac1x \pm i\pi\,\delta$.</p>
+      </div>
+      <p class="small"><b>Proof.</b> $\dfrac{1}{x - i\varepsilon} = \dfrac{x}{x^2 + \varepsilon^2} + \dfrac{i\varepsilon}{x^2 + \varepsilon^2}$. The second is $i\pi$ times a positive kernel of total mass $1$ concentrating at $0$, so tends to $i\pi\delta$; the first tends to $\mathrm{PV}\frac1x$ (notes). $\square$</p>
+      <div class="box good"><span class="label">the running example, undamped</span>
+        <p class="small">As $\gamma\to0$, <span class="ref" data-ref="chi">$\chi$</span> $\to\dfrac{1}{\omega_0^2 - (\omega + i0)^2}$ and</p>
+        $$\operatorname{Im}\chi\to\frac{\pi}{2\omega_0}\big[\delta(\omega - \omega_0) - \delta(\omega + \omega_0)\big].$$
+        <p class="small">A lossless oscillator absorbs <b>only</b> at resonance — as a spike. Weight check: $\int_0^\infty\omega\operatorname{Im}\chi\,\mathrm d\omega = \frac\pi2$ for every $\gamma$ (section 5), and the spike gives $\omega_0\cdot\frac{\pi}{2\omega_0}$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "tempered".</b> $\mathcal D$ is not mapped to itself by the transform — the transform of a
+    compactly supported function is never compactly supported unless it is zero (section 3's tools
+    prove it: such a transform is entire, by Morera exactly as for $\chi$ there, and an entire function
+    vanishing on an interval vanishes identically, by the identity theorem). So the transform is defined on the larger test space $\mathcal S$,
+    and the distributions that act continuously on it are those of at most polynomial growth. Every
+    function of polynomial growth, $\delta$ and all its derivatives, and $\mathrm{PV}\frac1t$ are tempered.</p>
+    <p><b>The swap.</b> $\int\hat f(\omega)\varphi(\omega)\mathrm d\omega = \int\!\!\int f(t)e^{i\omega t}\varphi(\omega)\mathrm dt\,\mathrm d\omega
+    = \int f(t)\hat\varphi(t)\,\mathrm dt$ by Fubini, which is why duality is the right definition: it
+    agrees with the old transform on functions.</p>
+    <p><b>The table.</b> $\langle\hat1,\varphi\rangle = \int\hat\varphi = 2\pi\varphi(0)$ by inversion at
+    $t = 0$. For the sign: $\int_{-\infty}^\infty\operatorname{sgn}(t)e^{-\varepsilon|t|}e^{i\omega t}\mathrm dt
+    = \frac{1}{\varepsilon - i\omega} - \frac{1}{\varepsilon + i\omega} = \frac{2i\omega}{\omega^2 + \varepsilon^2}$,
+    and the first half of the Sokhotski proof shows $\omega/(\omega^2+\varepsilon^2)\to\mathrm{PV}\frac1\omega$.
+    Similarly $H(t)e^{-\varepsilon t}\mapsto\frac1{\varepsilon - i\omega} = \frac{i}{\omega + i\varepsilon}$, so
+    $\hat H = i\,\mathrm{PV}\frac1\omega + \pi\delta$ — the transform of the step is where causality first
+    meets $i0$.</p>
+    <h4>Full proof of Sokhotski–Plemelj</h4>
+    <p><b>The delta part.</b> $P_\varepsilon(x) = \frac{\varepsilon}{\pi(x^2 + \varepsilon^2)}$ is positive with
+    $\int P_\varepsilon = \frac1\pi[\arctan(x/\varepsilon)]_{-\infty}^\infty = 1$, and
+    $\int_{|x|&gt;\delta}P_\varepsilon\to0$. The argument of the inversion proof, step 2, gives
+    $\int P_\varepsilon\varphi\to\varphi(0)$.</p>
+    <p><b>The principal-value part.</b> $\int\frac{x\varphi(x)}{x^2+\varepsilon^2}\mathrm dx = \int_0^\infty\frac{x(\varphi(x) - \varphi(-x))}{x^2+\varepsilon^2}\mathrm dx$.
+    The integrand is dominated by $|\varphi(x) - \varphi(-x)|/x$, which is bounded near $0$ (mean value
+    theorem) and integrable at infinity for $\varphi\in\mathcal S$; pointwise it tends to
+    $(\varphi(x) - \varphi(-x))/x$. Dominated convergence gives $\langle\mathrm{PV}\frac1x,\varphi\rangle$. $\square$</p>
+    <p><b>The undamped limit.</b> $-\omega^2 - i\gamma\omega = -(\omega + i\gamma/2)^2 - \gamma^2/4$, so
+    for small $\gamma$ the denominator is $\omega_0^2 - (\omega + i0)^2$. Near $\omega_0$,
+    $\chi\approx-\frac{1}{2\omega_0}\cdot\frac{1}{\omega - \omega_0 + i0}$, and Sokhotski with the lower
+    sign gives $\operatorname{Im}\frac{1}{\omega - \omega_0 + i0} = -\pi\delta(\omega - \omega_0)$, hence
+    $+\frac{\pi}{2\omega_0}\delta(\omega - \omega_0)$. Near $-\omega_0$ the prefactor changes sign. The
+    positive sign at $+\omega_0$ matters: $\operatorname{Im}\chi &gt; 0$ for $\omega &gt; 0$ is the statement
+    that a passive oscillator absorbs energy from the drive (unit 06's power formula, with this unit's
+    convention), and the limit keeps it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Holomorphic functions</h2>
+  <p>Ask for a derivative in the complex sense and get, for free, infinitely many derivatives, a convergent power series, and Cauchy's theorem.</p>
+</section>
+
+<section>
+  <p class="eyebrow">20 · holomorphy</p>
+  <h2>Complex differentiability, and Cauchy–Riemann</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">holomorphic</span></span>
+        <p class="small">$f$ on an open $U\subseteq\mathbb C$ is complex-differentiable at $z$ if $\displaystyle f'(z) = \lim_{h\to0,\ h\in\mathbb C}\frac{f(z+h) - f(z)}{h}$ exists; holomorphic on $U$ if at every point. <b>Entire</b>: holomorphic on $\mathbb C$.</p>
+      </div>
+      <p class="small">Sums, products, quotients and compositions obey the real rules, with the real proofs. So polynomials and rational functions are holomorphic off the zeros of their denominators — <span class="ref" data-ref="chi">$\chi$</span> on $\mathbb C\setminus\{\omega_+,\omega_-\}$.</p>
+      <p class="small"><b>Physics:</b> $\chi$ at complex $\omega = \omega_r + i\omega_i$ is the response to $e^{-i\omega t} = e^{\omega_it}e^{-i\omega_rt}$ — a drive <b>growing</b> in time when $\omega_i &gt; 0$, switched on from nothing at $t = -\infty$.</p>
+    </div>
+    <div>
+      <p class="small"><b>Partial derivatives</b>, all this unit needs of them: for $u(x, y)$, $u_x$ is the derivative of $x\mapsto u(x,y)$ with $y$ held fixed, and $u_y$ likewise.</p>
+      <div class="box thm"><span class="label">the <span class="term">Cauchy–Riemann equations</span></span>
+        <p class="small">If $f = u + iv$ is complex-differentiable at $z = x + iy$, then</p>
+        $$u_x = v_y,\qquad u_y = -v_x,\qquad f' = u_x + iv_x .$$
+      </div>
+      <p class="small"><b>Proof.</b> Let $h\to0$ along the reals: $f' = u_x + iv_x$. Along $h = ik$: $f' = \frac1i(u_y + iv_y) = v_y - iu_y$. Equate. $\square$</p>
+      <div class="box warn"><span class="label">most smooth functions are not holomorphic</span>
+        <p class="small">$\bar z = x - iy$: $u_x = 1\ne-1 = v_y$ everywhere. $|z|^2$ is differentiable at $0$ only. Holomorphy is a strong condition, and everything in this section is its price.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>The converse, with its full proof</h4>
+    <p><b>Theorem.</b> If $u, v$ have continuous partial derivatives on $U$ satisfying Cauchy–Riemann,
+    then $f = u + iv$ is holomorphic on $U$.</p>
+    <p><b>Proof.</b> Write $h = a + ib$. Split the increment of $u$ in two one-variable steps:
+    $u(x+a, y+b) - u(x,y) = [u(x+a,y+b) - u(x, y+b)] + [u(x,y+b) - u(x,y)]$. By the one-variable mean
+    value theorem this is $u_x(x + \theta a, y + b)a + u_y(x, y + \theta'b)b$ with $\theta,\theta'\in(0,1)$,
+    and by continuity of the partials it is $u_xa + u_yb + o(|h|)$. Same for $v$. Then
+    $f(z+h) - f(z) = (u_x a + u_y b) + i(v_x a + v_y b) + o(|h|)$, and Cauchy–Riemann turns the bracket into
+    $(u_x + iv_x)(a + ib)$: indeed $(u_x + iv_x)(a + ib) = u_xa - v_xb + i(v_xa + u_xb) = u_xa + u_yb + i(v_xa + v_yb)$.
+    So $(f(z+h) - f(z))/h\to u_x + iv_x$. $\square$</p>
+    <p><b>The exponential.</b> $e^z = e^x(\cos y + i\sin y)$ (unit 06's definition): $u_x = e^x\cos y = v_y$,
+    $u_y = -e^x\sin y = -v_x$, all continuous, so $e^z$ is entire with $(e^z)' = u_x + iv_x = e^z$. Then
+    $\cos z = (e^{iz} + e^{-iz})/2$ and $\sin z$ are entire too, and $\sin(\pi/2 + ix) = \cosh x$, which
+    P10 needs.</p>
+    <p><b>What CR says geometrically.</b> The real derivative of $(x,y)\mapsto(u,v)$ is the matrix
+    $\begin{pmatrix}u_x&amp;u_y\\v_x&amp;v_y\end{pmatrix} = \begin{pmatrix}a&amp;-b\\b&amp;a\end{pmatrix}$,
+    which is multiplication by $a + ib$: a rotation and a dilation. Holomorphic maps are the ones that
+    are infinitesimally rotations-and-scalings — they preserve angles wherever $f'\ne0$.</p>
+    <p><b>The physics of complex frequency</b> is worth holding on to, because section 5 turns on it. A
+    drive $e^{\omega_it}e^{-i\omega_rt}$ with $\omega_i &gt; 0$ was vanishingly small in the distant past; a
+    causal system's response to it is well defined, $\int_0^\infty G(\tau)e^{i\omega\tau}\mathrm d\tau$,
+    because the weight $e^{-\omega_i\tau}$ kills the old history. With $\omega_i &lt; 0$ the drive was
+    enormous in the past and the response integral may diverge. The half-plane in which a response
+    function is automatically defined is fixed by the direction of time.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · holomorphy</p>
+  <h2>Integrals along curves</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">contour integral</span></span>
+        <p class="small">For a piecewise $C^1$ curve $\gamma:[a,b]\to U$ and continuous $f$,</p>
+        $$\int_\gamma f(z)\,\mathrm dz := \int_a^b f(\gamma(s))\,\gamma'(s)\,\mathrm ds,$$
+        <p class="small">an ordinary integral of a complex-valued function of one real variable. Reparametrising does not change it (substitution); reversing the direction flips its sign.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">ML inequality</span></span>
+        $$\Big|\int_\gamma f\,\mathrm dz\Big|\le\max_\gamma|f|\cdot L(\gamma),$$
+        <p class="small">with $L(\gamma) = \int_a^b|\gamma'(s)|\,\mathrm ds$ the length.</p>
+      </div>
+      <p class="small">Every arc estimate in this unit is this inequality, used carefully.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">primitives kill closed integrals</span>
+        <p class="small">If $F' = f$ on $U$ then $\int_\gamma f\,\mathrm dz = F(\gamma(b)) - F(\gamma(a))$, and $\oint_\gamma f\,\mathrm dz = 0$ round every closed curve.</p>
+        <p class="small">Proof: $\frac{\mathrm d}{\mathrm ds}F(\gamma(s)) = F'(\gamma(s))\gamma'(s)$, from the definition of $F'$; then the fundamental theorem of calculus. $\square$</p>
+      </div>
+      <div class="box good"><span class="label">the one integral that is not zero</span>
+        <p class="small">Round $\gamma(s) = re^{is}$, $0\le s\le2\pi$, the integrand is $ir^{n+1}e^{i(n+1)s}$, so</p>
+        $$\oint z^n\,\mathrm dz = \begin{cases}2\pi i, &amp; n = -1,\\ 0, &amp; n\ne-1.\end{cases}$$
+        <p class="small">So $1/z$ has <b>no</b> primitive on $\mathbb C\setminus\{0\}$. Residue theory is this computation, organised.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why no line-integral machinery is needed.</b> Unit 04 (not a prerequisite here) builds line
+    integrals of vector fields in the plane. A contour integral is the same object in disguise —
+    $f\,\mathrm dz = (u + iv)(\mathrm dx + i\,\mathrm dy)$ is two real line integrals — but nothing in this
+    unit uses that: the definition above is a one-variable integral, and every property needed follows
+    from one-variable calculus.</p>
+    <p><b>Proof of the ML inequality.</b> For a complex-valued $g$ on $[a,b]$, $|\int g|\le\int|g|$:
+    write $\int g = |\int g|e^{i\theta}$; then $|\int g| = \operatorname{Re}\int e^{-i\theta}g = \int\operatorname{Re}(e^{-i\theta}g)\le\int|g|$.
+    With $g = f(\gamma)\gamma'$ that gives $\le\int|f(\gamma)||\gamma'|\le\max|f|\,L$. $\square$</p>
+    <p><b>The chain rule step.</b> $\frac{F(\gamma(s+\eta)) - F(\gamma(s))}{\eta} = \frac{F(\gamma(s+\eta)) - F(\gamma(s))}{\gamma(s+\eta) - \gamma(s)}\cdot\frac{\gamma(s+\eta) - \gamma(s)}{\eta}$
+    when $\gamma(s+\eta)\ne\gamma(s)$; the first factor tends to $F'(\gamma(s))$ and the second to
+    $\gamma'(s)$. (Where $\gamma' (s) = 0$ write $F(w) - F(\gamma(s)) = (F'(\gamma(s)) + \epsilon(w))(w - \gamma(s))$ with $\epsilon\to0$ instead.)</p>
+    <p><b>The circle.</b> $\gamma'(s) = ire^{is}$, so $\gamma^n\gamma' = ir^{n+1}e^{i(n+1)s}$, whose integral
+    over a period is $0$ unless $n + 1 = 0$. For $n\ne-1$ the primitive $z^{n+1}/(n+1)$ gives the same
+    answer. The failure at $n = -1$ is the failure of $\log z$ to be single-valued: going once round
+    adds $2\pi i$ to its imaginary part, $\arg z$. Section 4 turns that into branch cuts.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · holomorphy</p>
+  <h2>Goursat's theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Goursat's theorem</span></span>
+        <p class="small">If $f$ is holomorphic on $U$ and $T\subset U$ is a closed solid triangle, then $\displaystyle\oint_{\partial T}f\,\mathrm dz = 0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, by subdivision</span>
+        <p class="small">Join the midpoints of the sides: four triangles, whose boundary integrals sum to $\oint_{\partial T}$ (inner edges cancel). One, $T_1$, has $|\oint_{\partial T_1}|\ge\frac14|\oint_{\partial T}|$. Repeat: nested $T_n$ of diameter $2^{-n}d$, perimeter $2^{-n}p$, and $|\oint_{\partial T_n}f|\ge4^{-n}|\oint_{\partial T}f|$.</p>
+        <p class="small">Compactness: $\bigcap T_n = \{z_0\}$, and $f(z) = f(z_0) + f'(z_0)(z - z_0) + \epsilon(z)(z - z_0)$ with $\epsilon\to0$. The linear part has a primitive; ML on the rest:</p>
+        <p class="small">$4^{-n}|\oint_{\partial T}f|\le\sup_{T_n}|\epsilon|\cdot2^{-n}d\cdot2^{-n}p$. Multiply by $4^n$; let $n\to\infty$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what was used, and what was not</span>
+        <p class="small">Only the <b>existence</b> of $f'$ at each point: not its continuity, not Green's theorem, not a double integral. Cauchy (1825) assumed $f'$ continuous; Goursat showed it superfluous — as it must be, for $f'$ to come out smooth on the next slides.</p>
+      </div>
+      <div class="box thm"><span class="label">one exceptional point is allowed</span>
+        <p class="small">The conclusion still holds if $f$ is continuous on $U$ and holomorphic on $U\setminus\{p\}$ (notes). This is what the integral formula will need.</p>
+      </div>
+      <p class="small">For <span class="ref" data-ref="chi">$\chi$</span>: any triangle avoiding $\omega_\pm$ has $\oint\chi = 0$. A triangle enclosing $\omega_+$ need not — the next section computes what it gives.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, the three details</h4>
+    <p><b>The inner edges cancel</b> because each is traversed once in each direction by the two
+    triangles sharing it, and reversal flips the sign. <b>Choosing $T_1$:</b> if all four had
+    $|\oint| &lt; \frac14|\oint_{\partial T}|$ the triangle inequality would give $|\oint_{\partial T}| &lt; |\oint_{\partial T}|$.
+    <b>Nested compact sets</b> with diameters tending to $0$ meet in exactly one point (the learner's
+    metric-space topology: pick $z_n\in T_n$, a Cauchy sequence, whose limit lies in every $T_n$), and
+    $z_0\in T\subset U$ so $f$ is differentiable there. <b>The remainder estimate:</b> on $\partial T_n$,
+    $|z - z_0|\le\operatorname{diam}T_n$, so $|\epsilon(z)(z - z_0)|\le\sup_{T_n}|\epsilon|\,2^{-n}d$, and
+    the ML inequality multiplies by $L(\partial T_n) = 2^{-n}p$.</p>
+    <h4>Full proof of the exceptional-point version</h4>
+    <p>If $p\notin T$ this is Goursat. If $p$ is a vertex of $T$, cut off a tiny triangle $T_\eta$ at that
+    vertex, of perimeter $\le\eta$; the rest of $T$ is a union of triangles not containing $p$, whose
+    integrals vanish, so $|\oint_{\partial T}f| = |\oint_{\partial T_\eta}f|\le\eta\max_T|f|\to0$ (continuity
+    makes $f$ bounded on the compact $T$). If $p$ is on an edge or inside, split $T$ into two or three
+    triangles having $p$ as a vertex. $\square$</p>
+    <p><b>History.</b> Cauchy's integral theorem appears in his 1825 memoir on integrals between
+    imaginary limits, proved with what amounts to Green's theorem and so with $f'$ assumed continuous.
+    Goursat's subdivision argument is from 1884, published in its final form in 1900; Pringsheim
+    noticed triangles are simpler than Goursat's rectangles. The argument is the model for many later
+    proofs: assume the quantity is not small, localise by bisection, and contradict a local property.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · holomorphy</p>
+  <h2>Cauchy's theorem and the integral formula</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Cauchy's theorem</span> (convex version)</span>
+        <p class="small">If $f$ is holomorphic on a convex open set $U$, then $F(z) = \int_{[c,z]}f$ (straight segment from a fixed $c$) is a primitive of $f$, and so $\oint_\gamma f\,\mathrm dz = 0$ for every closed curve $\gamma$ in $U$.</p>
+      </div>
+      <p class="small"><b>Proof.</b> Goursat on the triangle $c, z, z+h$: $F(z+h) - F(z) = \int_{[z,z+h]}f = hf(z) + \int_{[z,z+h]}(f - f(z))$, and the last term is at most $|h|\max_{[z,z+h]}|f - f(z)| = o(|h|)$. So $F' = f$; then the primitive rule. $\square$</p>
+      <div class="box warn"><span class="label">contours that are not in a convex set — cited</span>
+        <p class="small">Semicircles, rectangles and sectors are convex. For keyholes and indented lines the theorem holds too: cut the region into convex pieces (notes). The general form — $\oint_\gamma f = 0$ when $\gamma$ winds zero times round every point outside $U$ — is <i>cited</i>: Ahlfors, <i>Complex Analysis</i>, ch. 4 §4.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Cauchy's integral formula</span></span>
+        <p class="small">If $f$ is holomorphic on an open set containing the closed disc $|\zeta - z_0|\le r$, then for $|z - z_0| &lt; r$</p>
+        $$f(z) = \frac{1}{2\pi i}\oint_{|\zeta - z_0| = r}\frac{f(\zeta)}{\zeta - z}\,\mathrm d\zeta .$$
+      </div>
+      <p class="small"><b>Proof.</b> $g(\zeta) = \frac{f(\zeta) - f(z)}{\zeta - z}$, with $g(z) = f'(z)$, is continuous, and holomorphic except at $z$; so $\oint g = 0$ (exceptional-point Goursat, convex version, on a slightly larger disc). Hence $\oint\frac{f(\zeta)}{\zeta - z} = f(z)\oint\frac{\mathrm d\zeta}{\zeta - z} = 2\pi i\,f(z)$ (notes). $\square$</p>
+      <p class="small">The values of a holomorphic function inside a circle are <b>determined by its values on the circle</b>. Nothing like this is true of real $C^\infty$ functions — the bump function of section 2 is zero on a whole interval and not zero.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that $\oint\frac{\mathrm d\zeta}{\zeta - z} = 2\pi i$ for every $z$ inside the circle</h4>
+    <p>Write $\frac{1}{\zeta - z} = \frac{1}{(\zeta - z_0) - (z - z_0)} = \sum_{n\ge0}\frac{(z - z_0)^n}{(\zeta - z_0)^{n+1}}$,
+    a geometric series with ratio $|z - z_0|/r &lt; 1$ uniformly on the circle, so it may be integrated
+    term by term. By the circle computation of the previous slide (centred at $z_0$), only $n = 0$
+    survives, giving $2\pi i$. $\square$</p>
+    <h4>Why the convex version reaches every contour this unit uses</h4>
+    <p>A <b>keyhole</b> (P8) — a large circle and a small one joined along both edges of a cut — bounds a
+    region that the two perpendicular lines through the centre cut into four pieces, each lying in a
+    convex set (a slit sector of opening less than $\pi$) on which the integrand is holomorphic; the
+    boundaries of the four pieces add up to the keyhole, the internal cuts cancelling. An
+    <b>indented line</b> closed by a semicircle is the difference of a half-disc and a small half-disc, cut
+    in the same way along the imaginary axis. The <b>annulus</b> needed for Laurent series is handled the
+    same way. So in this unit the cited general theorem is a convenience: each application could be
+    checked by cutting. Stein &amp; Shakarchi, <i>Complex Analysis</i>, ch. 2, formalise this as
+    "toy contours".</p>
+    <p><b>The general formula.</b> For any closed curve $\gamma$ in $U$ and $z\notin\gamma$, the
+    <b>winding number</b> $n(\gamma, z) = \frac{1}{2\pi i}\oint_\gamma\frac{\mathrm d\zeta}{\zeta - z}$ is an
+    integer, and $n(\gamma, z)f(z) = \frac{1}{2\pi i}\oint_\gamma\frac{f(\zeta)}{\zeta - z}\mathrm d\zeta$ whenever
+    $\gamma$ is null-homologous in $U$ (Ahlfors, ch. 4 §5.1, <i>cited</i>). Every contour here winds
+    once, anticlockwise, round the points inside it.</p>
+    <p><b>History.</b> Cauchy, 1831, in Turin, in the exile he chose rather than swear allegiance to the new king. The formula
+    is the single most productive identity in analysis: the next slide takes six theorems from it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · holomorphy</p>
+  <h2>What the integral formula buys</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">regularity, and power series</span>
+        <p class="small">A holomorphic $f$ is infinitely differentiable, with</p>
+        $$f^{(n)}(z) = \frac{n!}{2\pi i}\oint\frac{f(\zeta)}{(\zeta - z)^{n+1}}\,\mathrm d\zeta,$$
+        <p class="small">and it is <span class="term">analytic</span>: its Taylor series at $z_0$ converges to $f$ on the largest open disc about $z_0$ inside $U$.</p>
+      </div>
+      <p class="small"><b>Cauchy estimates:</b> if $|f|\le M$ on the circle of radius $r$, then $|f^{(n)}(z_0)|\le n!M/r^n$ — ML on the formula.</p>
+      <div class="box good"><span class="label">the running example</span>
+        <p class="small"><span class="ref" data-ref="chi">$\chi$</span> is holomorphic on $|\omega| &lt; |\omega_\pm| = \sqrt{\omega_\mathrm d^2 + \gamma^2/4} = \omega_0 = 8$, so its low-frequency series $\chi = \omega_0^{-2}\big(1 + i\gamma\omega/\omega_0^2 + \dots\big)$ converges exactly for $|\omega| &lt; \omega_0$: the stiffness-dominated description fails at resonance, and the poles say so.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Liouville's theorem</span></span>
+        <p class="small">A bounded entire function is constant. <b>Proof:</b> $|f'(z_0)|\le M/r$ for every $r$. $\square$</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">fundamental theorem of algebra</span></span>
+        <p class="small">A nonconstant polynomial $p$ has a complex root. <b>Proof:</b> otherwise $1/p$ is entire, and $\to0$ as $|z|\to\infty$, so bounded, so constant. $\square$ Unit 06's debt, paid.</p>
+      </div>
+      <div class="box thm"><span class="label">two more</span>
+        <p class="small"><b><span class="term">Maximum modulus</span>:</b> if $|f|$ has a local maximum in a connected $U$, $f$ is constant. <b><span class="term">Morera</span>:</b> a continuous $f$ with $\oint_{\partial T}f = 0$ for every triangle is holomorphic.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proofs</h4>
+    <p><b>Derivatives.</b> Differentiate the integral formula under the integral sign in $z$: the
+    integrand $f(\zeta)(\zeta - z)^{-1}$ has $z$-derivatives $n!f(\zeta)(\zeta - z)^{-n-1}$, and for
+    $z$ in a smaller disc these difference quotients converge uniformly in $\zeta$ on the circle, so
+    the limit passes under the (one-variable) integral. Induction gives every order.</p>
+    <p><b>Power series.</b> In the integral formula expand $\frac1{\zeta - z} = \sum\frac{(z-z_0)^n}{(\zeta - z_0)^{n+1}}$
+    as before, uniformly convergent on the circle; integrate term by term:
+    $f(z) = \sum a_n(z - z_0)^n$ with $a_n = \frac{1}{2\pi i}\oint\frac{f(\zeta)}{(\zeta - z_0)^{n+1}}\mathrm d\zeta = f^{(n)}(z_0)/n!$.
+    This works for every $r$ less than the distance from $z_0$ to the complement of $U$, which gives
+    the radius claim. <b>Consequently the radius of convergence of the Taylor series is at least the
+    distance to the nearest singularity</b> — and exactly that distance when the function cannot be
+    continued to any larger disc (a power series is holomorphic inside its disc of convergence). P10
+    uses precisely this.</p>
+    <p><b>Maximum modulus.</b> The integral formula at the centre, $\zeta = z_0 + re^{is}$, is the
+    mean value property $f(z_0) = \frac1{2\pi}\int_0^{2\pi}f(z_0 + re^{is})\,\mathrm ds$. If $|f(z_0)|$ is a
+    local maximum, then $|f(z_0)|\le\frac1{2\pi}\int|f(z_0 + re^{is})|\mathrm ds\le|f(z_0)|$, forcing
+    $|f| = |f(z_0)|$ on small circles; a holomorphic function of constant modulus on a disc is constant
+    (Cauchy–Riemann applied to $u^2 + v^2 = c$), and the identity theorem (next slide) spreads this over
+    connected $U$.</p>
+    <p><b>Morera.</b> In any disc in $U$, $F(z) = \int_{[c,z]}f$ satisfies $F' = f$ by the argument of
+    the convex Cauchy theorem, which used only the vanishing of triangle integrals. So $F$ is holomorphic;
+    by the first result, so is $F' = f$. $\square$ Morera is how one proves that a function defined by an
+    integral, such as $\int_0^\infty G(t)e^{i\omega t}\mathrm dt$, is holomorphic: swap the triangle
+    integral with the $t$-integral (Fubini) and use Goursat on $e^{i\omega t}$.</p>
+    <p><b>The running example's radius.</b> $|\omega_\pm|^2 = \omega_\mathrm d^2 + \gamma^2/4 = \omega_0^2$
+    exactly, so the poles lie on the circle of radius $\omega_0$ for every $\gamma &lt; 2\omega_0$. The
+    expansion: $\chi = \omega_0^{-2}(1 - u)^{-1}$ with $u = (\omega^2 + i\gamma\omega)/\omega_0^2$, giving
+    $\omega_0^{-2}(1 + i\gamma\omega/\omega_0^2 + \dots)$.</p>
+    <p><b>History.</b> Liouville stated his theorem in lectures in 1847, for doubly periodic functions;
+    Cauchy had published it in 1844. The proof of the fundamental theorem of algebra above is the
+    shortest there is, and it is honest: all the analysis is in Liouville, and all of Liouville is in
+    the integral formula.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · holomorphy</p>
+  <h2>Analytic continuation</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">identity theorem</span></span>
+        <p class="small">If $f, g$ are holomorphic on a <b>connected</b> open $U$ and agree on a set with a limit point in $U$ — a segment of the real axis, say — then $f = g$ on all of $U$.</p>
+      </div>
+      <p class="small"><b>Proof, in outline.</b> Let $h = f - g$. The set of points where every derivative of $h$ vanishes is closed, and open (the Taylor series there is $0$ on a disc), and nonempty (at the limit point, the first nonzero Taylor coefficient would make the zeros isolated). Connectedness. $\square$</p>
+      <div class="box def"><span class="label"><span class="term">analytic continuation</span></span>
+        <p class="small">A holomorphic $F$ on $U\supset V$ extending $f$ on $V$. By the identity theorem it is <b>unique</b> — so a formula valid on part of a domain is valid wherever both sides make sense.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">a Gaussian with a complex width</span>
+        <p class="small">For $a &gt; 0$, $\int e^{-at^2/2}\mathrm dt = \sqrt{2\pi/a}$ (scaling). Both sides are holomorphic in $a$ on $\operatorname{Re}a &gt; 0$ (left: Morera; right: the principal square root). They agree on the positive reals, so</p>
+        $$\int_{-\infty}^\infty e^{-at^2/2}\,\mathrm dt = \sqrt{\frac{2\pi}{a}},\qquad\operatorname{Re}a &gt; 0 .$$
+        <p class="small">Section 6 uses this with $a = \sigma_0^2 + i\beta t$: a spreading wave packet.</p>
+      </div>
+      <p class="small"><b>The running example.</b> The integral $\int_0^\infty G(t)e^{i\omega t}\mathrm dt$ converges only for $\operatorname{Im}\omega &gt; -\gamma/2$. The rational formula for <span class="ref" data-ref="chi">$\chi$</span> is its continuation to $\mathbb C\setminus\{\omega_\pm\}$: the integral fails below the line through the poles; the function does not.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the identity theorem</h4>
+    <p>Let $h = f - g$ and $A = \{z\in U : h^{(n)}(z) = 0\ \forall n\}$. <b>Closed in $U$:</b> an
+    intersection of zero sets of continuous functions. <b>Open:</b> if $z\in A$, the Taylor series of $h$
+    at $z$ is identically $0$ and converges to $h$ on a disc, so $h = 0$ there and the disc is in $A$.
+    <b>Nonempty:</b> let $w$ be the limit point of the set $\{h = 0\}$; $h(w) = 0$ by continuity. If some
+    derivative at $w$ were nonzero, let $m$ be the first: $h(z) = (z - w)^mk(z)$ with $k$ holomorphic and
+    $k(w)\ne0$, so $k\ne0$ near $w$ and $h$ has no zeros in a punctured disc — contradicting that $w$ is a
+    limit of zeros. So $w\in A$. A connected space has no nonempty proper clopen subset, so $A = U$. $\square$</p>
+    <p><b>The Gaussian, carefully.</b> $I(a) = \int e^{-at^2/2}\mathrm dt$ converges absolutely for
+    $\operatorname{Re}a &gt; 0$, locally uniformly, and each truncated integral $\int_{-T}^Te^{-at^2/2}\mathrm dt$
+    is entire in $a$ (differentiate under a finite integral). A locally uniform limit of holomorphic
+    functions is holomorphic — Morera: triangle integrals pass to the limit. And $\sqrt{2\pi/a}$ with the
+    principal branch ($\arg a\in(-\pi/2,\pi/2)$, so $\arg\sqrt{\cdot}\in(-\pi/4,\pi/4)$) is holomorphic on
+    the right half-plane. The half-plane is connected, the positive reals have limit points in it.
+    $\square$ Setting $a = \varepsilon - i\lambda$ and letting $\varepsilon\to0$ gives Fresnel's integral —
+    but the limit needs an argument, and that argument is P6.</p>
+    <p><b>Where continuation meets physics.</b> Past the line $\operatorname{Im}\omega = -\gamma/2$ the
+    susceptibility is no longer a response to any drive; it is a function that knows where the system's
+    free modes are. Unit 06 called those the poles; in the physics of resonances they are called
+    quasinormal modes, and the ringdown frequencies of a perturbed black hole are found exactly this way:
+    as the poles of a continued response function.</p>
+    <p><b>Uniqueness can fail round a hole.</b> Continue $\log z$ from $z = 1$ along the upper half of
+    the unit circle and along the lower half: at $z = -1$ you arrive with $i\pi$ and $-i\pi$. The
+    domain $\mathbb C\setminus\{0\}$ is connected, but no single-valued continuation exists on it. The
+    identity theorem is not contradicted — there is no single holomorphic function on the whole
+    domain to compare. Section 4 handles this with cuts.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Singularities and residues</h2>
+  <p>Round a closed contour, only the singularities inside speak — and each says one number.</p>
+</section>
+
+<section>
+  <p class="eyebrow">20 · residues</p>
+  <h2>Laurent series and isolated singularities</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Laurent series</span></span>
+        <p class="small">If $f$ is holomorphic on the annulus $r &lt; |z - z_0| &lt; R$, then on it</p>
+        $$f(z) = \sum_{n\in\mathbb Z}a_n(z - z_0)^n,$$
+        <p class="small">$a_n = \frac{1}{2\pi i}\oint f(\zeta)(\zeta - z_0)^{-n-1}\mathrm d\zeta$ round any circle in the annulus. The negative powers are the <b>principal part</b>.</p>
+      </div>
+      <p class="small">An <b>isolated singularity</b>: $f$ holomorphic on $0 &lt; |z - z_0| &lt; R$. Three kinds:</p>
+      <ul>
+        <li class="small"><b>removable</b> — no principal part; happens iff $f$ is bounded near $z_0$ (Riemann);</li>
+        <li class="small"><b>pole</b> of order $m$ — principal part ends at $a_{-m}\ne0$; iff $|f|\to\infty$;</li>
+        <li class="small"><b>essential</b> — infinitely many, as $e^{1/z}$; $f$ then comes close to <i>every</i> value near $z_0$ (Casorati–Weierstrass).</li>
+      </ul>
+    </div>
+    <div>
+      <div class="box def"><span class="label">the <span class="term">residue</span></span>
+        $$\operatorname*{Res}_{z_0}f = a_{-1} = \frac1{2\pi i}\oint_{|z - z_0| = \varepsilon}f(z)\,\mathrm dz .$$
+        <p class="small">It is the one Laurent coefficient that survives integration: every other power has a primitive on the punctured disc.</p>
+      </div>
+      <div class="box good"><span class="label">the running example</span>
+        <p class="small"><span class="ref" data-ref="chi">$\chi$</span> $= \dfrac{-1}{(\omega - \omega_+)(\omega - \omega_-)}$ has <b>simple poles</b> at $\omega_\pm = \pm\omega_\mathrm d - i\gamma/2$ and is holomorphic everywhere else, including at $\infty$ in the sense that $\chi(1/w)$ has a removable singularity at $w = 0$.</p>
+        <p class="small"><b>Physics:</b> a pole is a free mode — its real part the ringing frequency $7.9975\ \mathrm{s^{-1}}$, its imaginary part the decay rate $0.2\ \mathrm{s^{-1}}$. Its residue will be that mode's amplitude in $G$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the Laurent expansion</h4>
+    <p>Fix $z$ in the annulus and circles $C_1$ (radius $r_1$) and $C_2$ (radius $r_2$) with
+    $r &lt; r_1 &lt; |z - z_0| &lt; r_2 &lt; R$. Cauchy's formula for the region between them (a toy contour, cut
+    into convex pieces as described on the Cauchy slide) gives
+    $f(z) = \frac1{2\pi i}\oint_{C_2}\frac{f(\zeta)}{\zeta - z}\mathrm d\zeta - \frac1{2\pi i}\oint_{C_1}\frac{f(\zeta)}{\zeta - z}\mathrm d\zeta$.
+    On $C_2$ expand $\frac{1}{\zeta - z} = \sum_{n\ge0}\frac{(z - z_0)^n}{(\zeta - z_0)^{n+1}}$ (ratio
+    $|z - z_0|/r_2 &lt; 1$); on $C_1$ expand $-\frac{1}{\zeta - z} = \frac{1}{(z - z_0) - (\zeta - z_0)} = \sum_{m\ge1}\frac{(\zeta - z_0)^{m-1}}{(z - z_0)^m}$
+    (ratio $r_1/|z - z_0| &lt; 1$). Both converge uniformly on their circles; integrate term by term. The
+    coefficient formulas are independent of the circle because each integrand is holomorphic on the
+    annulus and circles in it can be deformed into one another by the same cutting argument. $\square$</p>
+    <p><b>Riemann's removable singularity theorem.</b> If $|f|\le M$ near $z_0$, then
+    $|a_{-n}| = |\frac1{2\pi i}\oint f(\zeta)(\zeta - z_0)^{n-1}\mathrm d\zeta|\le M\varepsilon^n\to0$ for
+    $n\ge1$, by ML on a circle of radius $\varepsilon\to0$. <b>Poles.</b> If the principal part stops at
+    $a_{-m}\ne0$, then $f = (z - z_0)^{-m}h$ with $h(z_0) = a_{-m}\ne0$, so $|f|\to\infty$. Conversely if
+    $|f|\to\infty$, $1/f$ has a removable singularity with a zero of some finite order $m$ (finite by the
+    identity theorem), and $f$ has a pole of order $m$.</p>
+    <p><b>Casorati–Weierstrass.</b> Suppose some disc $|w - c| &lt; \delta$ is missed by $f$ near $z_0$.
+    Then $g = 1/(f - c)$ is bounded by $1/\delta$, so it has a removable singularity; hence $f = c + 1/g$
+    has either a removable singularity or a pole — not essential. $\square$</p>
+    <p><b>The poles as modes.</b> A pole at $\omega_+ = \omega_\mathrm d - i\gamma/2$ contributes to the
+    inverse transform a term proportional to $e^{-i\omega_+t} = e^{-\gamma t/2}e^{-i\omega_\mathrm dt}$: a
+    damped oscillation at the ringing frequency. That is why a physicist reads a spectrum by its poles,
+    and why the ringdown of anything — a bell, a galvanometer, a black hole — is quoted as a complex
+    frequency.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · residues</p>
+  <h2>The residue theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">residue theorem</span></span>
+        <p class="small">Let $\gamma$ be a circle, or a contour of the kinds on the Cauchy slide, traversed anticlockwise, and $f$ holomorphic on an open set containing $\gamma$ and its inside, except at finitely many points $z_1,\dots,z_k$ inside. Then</p>
+        $$\oint_\gamma f\,\mathrm dz = 2\pi i\sum_{j=1}^k\operatorname*{Res}_{z_j}f .$$
+      </div>
+      <p class="small"><b>Proof.</b> Let $P_j$ be the principal part at $z_j$; it converges on $\mathbb C\setminus\{z_j\}$. Then $f - \sum P_j$ has only removable singularities, so its integral is $0$ by Cauchy. And $\oint P_j = 2\pi i\,a^{(j)}_{-1}$, term by term, by the circle computation. $\square$</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">computing residues</span>
+        <p class="small"><b>Simple pole</b>, $f = g/h$ with $h(z_0) = 0\ne h'(z_0)$, $g$ holomorphic: $\operatorname{Res}f = g(z_0)/h'(z_0)$.</p>
+        <p class="small"><b>Pole of order $m$:</b> $\operatorname{Res}f = \dfrac{1}{(m-1)!}\lim\limits_{z\to z_0}\dfrac{\mathrm d^{m-1}}{\mathrm dz^{m-1}}\big[(z - z_0)^mf(z)\big]$.</p>
+      </div>
+      <div class="box good"><span class="label">the running example's residues</span>
+        <p class="small">$h(\omega) = \omega_0^2 - \omega^2 - i\gamma\omega$ has $h'(\omega) = -2\omega - i\gamma$, so $h'(\omega_\pm) = \mp2\omega_\mathrm d$ and</p>
+        $$\operatorname*{Res}_{\omega_\pm}\chi(\omega)e^{-i\omega t} = \mp\frac{e^{-i\omega_\pm t}}{2\omega_\mathrm d} .$$
+        <p class="small"><b>Dimensions:</b> $\mathrm T^{-1}\cdot\mathrm T^{2}$ per pole = $\mathrm T$ — a residue of $\chi$ carries $[\chi][\omega]$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the two formulas</h4>
+    <p><b>Simple pole.</b> $h(z) = h'(z_0)(z - z_0) + O((z - z_0)^2)$, so
+    $(z - z_0)f(z) = g(z)/\big(h'(z_0) + O(z - z_0)\big)\to g(z_0)/h'(z_0)$, and for a simple pole
+    $(z - z_0)f\to a_{-1}$. <b>Order $m$.</b> $(z - z_0)^mf = a_{-m} + \dots + a_{-1}(z - z_0)^{m-1} + a_0(z - z_0)^m + \dots$,
+    a power series; its $(m-1)$-th derivative at $z_0$ is $(m-1)!\,a_{-1}$.</p>
+    <p><b>The running example's arithmetic.</b> $h'(\omega_+) = -2(\omega_\mathrm d - i\gamma/2) - i\gamma = -2\omega_\mathrm d$
+    and $h'(\omega_-) = -2(-\omega_\mathrm d - i\gamma/2) - i\gamma = 2\omega_\mathrm d$. With
+    $g = e^{-i\omega t}$, entire in $\omega$ for each fixed $t$, the residues follow. With the numbers,
+    $2\omega_\mathrm d = 15.9950\ \mathrm{s^{-1}}$.</p>
+    <p><b>Where the proof is thin, said plainly.</b> "Cauchy" for the function $f - \sum P_j$ on the
+    inside of $\gamma$ requires that inside to be convex or cut into convex pieces. For a circle, a
+    semicircle, a rectangle and a sector it is convex; for the keyhole and the indented contours it is
+    the cutting argument. The theorem for an arbitrary closed curve, with winding numbers in place of
+    "inside", is <i>cited</i>: Ahlfors, ch. 4 §5.1.</p>
+    <p><b>History.</b> Cauchy introduced the residue — <i>résidu</i>, what is left over — in 1826, as
+    the tool that unified dozens of definite integrals Euler, Laplace and Legendre had evaluated one
+    trick at a time. The theorem in this form is in his 1831 Turin memoir.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · residues</p>
+  <h2>Closing the contour: Jordan's lemma</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Jordan's lemma</span></span>
+        <p class="small">Let $C_R$ be the upper semicircle $z = Re^{i\theta}$, $0\le\theta\le\pi$, and $M_R = \max_{C_R}|g|\to0$ as $R\to\infty$. Then for every $a &gt; 0$</p>
+        $$\Big|\int_{C_R}g(z)e^{iaz}\,\mathrm dz\Big|\le\frac{\pi M_R}{a}\to0 .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$|e^{iaz}| = e^{-aR\sin\theta}$ on $C_R$, so the integral is at most $M_RR\int_0^\pi e^{-aR\sin\theta}\mathrm d\theta = 2M_RR\int_0^{\pi/2}e^{-aR\sin\theta}\mathrm d\theta$. Concavity gives <span class="term">Jordan's inequality</span> $\sin\theta\ge2\theta/\pi$ on $[0,\pi/2]$, so this is at most $2M_RR\int_0^\infty e^{-2aR\theta/\pi}\mathrm d\theta = \pi M_R/a$. $\square$</p>
+      </div>
+      <div class="box warn"><span class="label">why Jordan and not just ML</span>
+        <p class="small">ML gives $\pi RM_R$: useless when $g\sim1/R$ — $\sin x/x$, Kramers–Kronig, any transform of a function with a jump. The exponential's decay over most of the arc is what saves you.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 250" width="300" role="img" aria-label="the real axis with two poles below it; an upper semicircle marked t less than zero, empty; a lower semicircle marked t greater than zero, enclosing both poles">
+          <line x1="10" y1="110" x2="290" y2="110" class="rule" stroke-width="1.5"/>
+          <line x1="150" y1="10" x2="150" y2="240" class="rule" stroke-width="1.2"/>
+          <path d="M 30 110 A 120 95 0 0 1 270 110" fill="none" class="good" stroke-width="2.5" stroke-dasharray="7 5"/>
+          <path d="M 30 110 A 120 120 0 0 0 270 110" fill="none" class="accent" stroke-width="2.5"/>
+          <text x="84" y="135" font-size="22" class="warn">×</text>
+          <text x="204" y="135" font-size="22" class="warn">×</text>
+          <text x="198" y="158" font-size="14" class="soft">ω₊</text>
+          <text x="78" y="158" font-size="14" class="soft">ω₋</text>
+          <text x="180" y="30" font-size="15" style="fill:var(--good)">t &lt; 0: close up</text>
+          <text x="170" y="228" font-size="15" style="fill:var(--accent)">t &gt; 0: close down</text>
+          <text x="272" y="104" font-size="14" class="soft">Re ω</text>
+        </svg>
+        <p class="cap">$|e^{-i\omega t}| = e^{t\operatorname{Im}\omega}$: it decays in the upper half-plane when $t &lt; 0$, in the lower when $t &gt; 0$.</p>
+      </div>
+      <p class="small">For $e^{-i\omega t}$ the lemma applies with $a = -t$ above (if $t &lt; 0$) or, reflected, with $a = t$ below (if $t &gt; 0$). <b>The sign of $t$ chooses the half-plane.</b> For <span class="ref" data-ref="chi">$\chi$</span>, $M_R\sim1/R^2$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Jordan's inequality.</b> $\sin$ is concave on $[0,\pi/2]$, so its graph lies above the chord
+    from $(0,0)$ to $(\pi/2, 1)$, which is $2\theta/\pi$. The symmetry step uses $\sin(\pi - \theta) = \sin\theta$.</p>
+    <p><b>The lower half-plane version.</b> For the lower semicircle $z = Re^{-i\theta}$ and $a &gt; 0$,
+    $|e^{-iaz}| = e^{-aR\sin\theta}$, and the same bound holds for $\int g(z)e^{-iaz}\mathrm dz$. The lower
+    semicircle traversed from $+R$ to $-R$ through $-iR$ closes the real axis <b>clockwise</b>, which
+    costs a minus sign in the residue theorem: that minus sign is where most errors in this subject
+    are made.</p>
+    <p><b>For the running example</b> the lemma is more than needed: $|\chi(\omega)|\le1/(R^2 - \omega_0^2 - \gamma R)$
+    on $|\omega| = R$ once $R$ is large, so even ML gives $\pi R\cdot O(R^{-2})\to0$. Jordan's lemma is
+    needed in section 5's theorem, where $\chi$ is only assumed to tend to zero, and for the Dirichlet
+    integral on the next slide.</p>
+    <p><b>History.</b> Camille Jordan's <i>Cours d'analyse</i> (second edition, 1894). The same
+    Jordan as the Jordan normal form of unit 07 and the Jordan curve theorem.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · residues · example</p>
+  <h2>Worked: the Dirichlet integral, with an indentation</h2>
+  <div class="box ex"><span class="label">worked example 2 — $\int_0^\infty\frac{\sin x}{x}\,\mathrm dx$</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 1 — the function.</b> Not $\sin z/z$: $\sin z$ grows like $e^{|\operatorname{Im}z|}$ in both half-planes. Take $f(z) = e^{iz}/z$: imaginary part $\sin x/x$ on the axis, decaying upwards.</p>
+        <p class="small"><b>Step 2 — the contour.</b> $[-R,-\varepsilon]$, the small upper semicircle $c_\varepsilon$ <b>clockwise</b> round the pole at $0$, $[\varepsilon,R]$, the big semicircle $C_R$. Nothing inside, so the total is $0$.</p>
+        <p class="small"><b>Step 3 — the straight parts.</b> Pair $x$ with $-x$: $\int_{\varepsilon&lt;|x|&lt;R}\frac{e^{ix}}{x}\mathrm dx = \int_\varepsilon^R\frac{e^{ix} - e^{-ix}}{x}\mathrm dx = 2i\int_\varepsilon^R\frac{\sin x}{x}\mathrm dx$.</p>
+      </div>
+      <div>
+        <p class="small"><b>Step 4 — the big arc.</b> Jordan with $g = 1/z$, $M_R = 1/R$, $a = 1$: at most $\pi/R\to0$.</p>
+        <p class="small"><b>Step 5 — the small arc.</b> $e^{iz}/z = 1/z + h(z)$, $h$ bounded near $0$. $\int_{c_\varepsilon}\mathrm dz/z = \int_\pi^0i\,\mathrm d\theta = -\pi i$, and $|\int_{c_\varepsilon}h|\le\pi\varepsilon\max|h|\to0$.</p>
+        <p class="small"><b>Step 6 — assemble.</b> $2i\int_0^\infty\frac{\sin x}{x}\mathrm dx - \pi i = 0$, so</p>
+        $$\int_0^\infty\frac{\sin x}{x}\,\mathrm dx = \frac\pi2 = 1.5708 .$$
+        <p class="small"><b>Checks.</b> $\int_0^\infty\frac{\sin ax}{x}\mathrm dx = \frac\pi2\operatorname{sgn}a$, independent of $|a|$, as $u = ax$ demands; with $x$ a time, a pure number ✓.</p>
+      </div>
+    </div>
+  </div>
+  <div class="cols">
+    <div class="box thm"><span class="label">the <span class="term">indentation lemma</span></span>
+      <p class="small">If $f$ has a <b>simple</b> pole at $x_0$ and $c_\varepsilon$ is an anticlockwise arc of angle $\alpha$ of $|z - x_0| = \varepsilon$, then $\int_{c_\varepsilon}f\to i\alpha\operatorname*{Res}_{x_0}f$. A half-circle gives <b>half a residue</b>.</p>
+    </div>
+    <div>
+      <p class="small">Step 3 read differently: $\mathrm{PV}\!\int_{-\infty}^{\infty}\frac{e^{ix}}{x}\mathrm dx = i\pi$. A pole on the contour contributes $\pm i\pi\operatorname{Res}$, the sign set by which way you step round it — Sokhotski–Plemelj, seen from the complex plane.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Convergence of the real integral.</b> $\int_0^\infty\sin x/x$ converges as an improper integral
+    (alternating series of decreasing areas) but not absolutely (the inversion slide's box). That is
+    why $g\sim1/R$ and why Jordan is needed; ML would have given $\pi R\cdot(1/R) = \pi$, not $0$.</p>
+    <p><b>Proof of the indentation lemma.</b> $f(z) = \frac{c}{z - x_0} + h(z)$ with $c$ the residue and
+    $h$ holomorphic near $x_0$, hence bounded. On $z = x_0 + \varepsilon e^{i\theta}$,
+    $\int\frac{c\,\mathrm dz}{z - x_0} = c\int i\,\mathrm d\theta = i\alpha c$ exactly, and $|\int h|\le\alpha\varepsilon\max|h|\to0$. $\square$
+    For a pole of order two or more the arc integral generally diverges as $\varepsilon\to0$, and
+    there is no principal value: the lemma is really about simple poles.</p>
+    <p><b>Numerical check.</b> The partial integrals $\int_0^X\sin x/x\,\mathrm dx$ oscillate about
+    $\pi/2$ with amplitude about $1/X$; at $X = 1000$ they are within $10^{-3}$. The integral carries
+    Dirichlet's name because his 1829 proof that Fourier series converge turns on it; its value was
+    known before him.</p>
+    <p><b>What changes if the indentation goes below the pole.</b> Then the pole is inside, the residue
+    theorem gives $2\pi i\cdot1$ on the right, and the small arc (now anticlockwise under the pole) gives
+    $+\pi i$: $2i\int_0^\infty\frac{\sin x}{x} + \pi i = 2\pi i$ — the same answer. Where you step round
+    a pole on the contour is a free choice; what is not free is being consistent about it. In section 5
+    physics makes that choice, and calls it causality.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · residues</p>
+  <h2>Branch points and cuts</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\oint\mathrm dz/z = 2\pi i$ means <b>no</b> continuous logarithm exists on $\mathbb C\setminus\{0\}$: each turn round $0$ adds $2\pi i$. Remove a ray and one does:</p>
+      <div class="box def"><span class="label"><span class="term">branch cut</span></span>
+        <p class="small">On $\mathbb C\setminus(-\infty,0]$, the principal logarithm $\operatorname{Log}z = \ln|z| + i\operatorname{Arg}z$, $\operatorname{Arg}\in(-\pi,\pi)$, is holomorphic with derivative $1/z$. Then $z^a := e^{a\log z}$ for any $a\in\mathbb C$.</p>
+        <p class="small">$0$ is a <span class="term">branch point</span>: continuing $z^a$ once round it multiplies it by $e^{2\pi ia}$. The cut is a choice; the branch point is not.</p>
+      </div>
+      <div class="box warn"><span class="label">the rule that prevents every error here</span>
+        <p class="small">Choose the cut and the branch <b>before</b> writing an integral, and state the value of $\arg z$ on each edge of the cut.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 260 190" width="250" role="img" aria-label="a keyhole contour: a large circle, a small circle round the origin, joined by two segments running just above and just below the positive real axis">
+          <line x1="10" y1="95" x2="250" y2="95" class="rule" stroke-width="1.2"/>
+          <line x1="130" y1="95" x2="248" y2="95" class="warn" stroke-width="3" stroke-dasharray="4 3"/>
+          <path d="M 142 88 L 213 88 A 85 85 0 1 0 213 102 L 142 102 A 14 14 0 1 1 142 88" fill="none" class="unit" stroke-width="2.5"/>
+          <text x="165" y="80" font-size="14" class="soft">arg 0</text>
+          <text x="160" y="120" font-size="14" class="soft">arg 2π</text>
+          <text x="40" y="40" font-size="20" class="warn">×</text>
+          <text x="20" y="30" font-size="13" class="soft">−1</text>
+        </svg>
+        <p class="cap">The keyhole: cut along $[0,\infty)$, $\arg\in(0,2\pi)$. The two edges of the cut are the same points with different values of $z^a$.</p>
+      </div>
+      <p class="small"><b>What it buys.</b> For $\int_0^\infty x^{a-1}R(x)\,\mathrm dx$ the two edges give $(1 - e^{2\pi ia})\int_0^\infty$; the circles vanish; the residue theorem finishes. P8: $\displaystyle\int_0^\infty\frac{x^{a-1}}{1 + x}\mathrm dx = \frac{\pi}{\sin\pi a}$ for $0 &lt; a &lt; 1$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\operatorname{Log}$ is holomorphic.</b> On the slit plane, $\operatorname{Arg}z$ is continuous
+    (it is $2\arctan\big(y/(x + |z|)\big)$, continuous where $x + |z|\ne0$, i.e. off $(-\infty,0]$), and
+    $e^{\operatorname{Log}z} = z$. A continuous inverse of a holomorphic function with nonzero derivative
+    is holomorphic, with derivative the reciprocal: $\frac{\operatorname{Log}(z+h) - \operatorname{Log}z}{h} = \frac{w' - w}{e^{w'} - e^w}\to\frac1{e^w} = \frac1z$
+    where $w = \operatorname{Log}z$, $w' = \operatorname{Log}(z+h)\to w$ by continuity. Alternatively check
+    Cauchy–Riemann on $u = \frac12\ln(x^2 + y^2)$, $v = \operatorname{Arg}$.</p>
+    <p><b>The keyhole in detail</b> (this is P8's first rung). On the upper edge $z = x$ with
+    $\arg z = 0$, $z^{a-1} = x^{a-1}$; on the lower edge, traversed from $R$ back to $\varepsilon$,
+    $\arg z = 2\pi$ and $z^{a-1} = x^{a-1}e^{2\pi i(a-1)} = x^{a-1}e^{2\pi ia}$. So the two edges give
+    $(1 - e^{2\pi ia})\int_\varepsilon^Rx^{a-1}R(x)\,\mathrm dx$. The large circle is $O(R^{a-1}\cdot R^{-1}\cdot R) = O(R^{a-1})\to0$
+    for $a &lt; 1$ and $R(x)\sim1/x$; the small circle is $O(\varepsilon^a)\to0$ for $a &gt; 0$. Those two
+    conditions are exactly the convergence conditions of the real integral.</p>
+    <p><b>Where branch points meet physics.</b> A branch point in a response function signals a
+    continuum of modes rather than a discrete set — a string on an infinite line, a diffusing heat
+    pulse, a radiating antenna. The transform of the diffusion kernel involves $\sqrt{-i\omega}$, and the
+    wave equation's Green's function in even space dimensions has a cut, which is why a pulse in two
+    dimensions leaves a wake while in three it does not (unit 24). The singularity in P10 — where
+    Kepler's equation stops defining $E(e)$ — is a square-root branch point.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · residues</p>
+  <h2>Counting zeros: the argument principle and Rouché</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">argument principle</span></span>
+        <p class="small">If $f$ is holomorphic inside and on a circle (or toy contour) $\gamma$ except for poles, with no zeros or poles on $\gamma$, then</p>
+        $$\frac{1}{2\pi i}\oint_\gamma\frac{f'(z)}{f(z)}\,\mathrm dz = Z - P,$$
+        <p class="small">zeros minus poles inside, with multiplicity: the number of times $f(\gamma)$ winds round $0$.</p>
+      </div>
+      <p class="small"><b>Proof.</b> Near a zero of order $m$, $f = (z - z_0)^mk$ with $k(z_0)\ne0$, so $f'/f = \frac{m}{z - z_0} + \frac{k'}{k}$: residue $m$. At a pole of order $m$, residue $-m$. Residue theorem. $\square$</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Rouché's theorem</span></span>
+        <p class="small">If $f, g$ are holomorphic inside and on $\gamma$ and $|g| &lt; |f|$ on $\gamma$, then $f$ and $f + g$ have the same number of zeros inside $\gamma$.</p>
+      </div>
+      <p class="small"><b>Proof.</b> For $s\in[0,1]$, $|f + sg|\ge|f| - |g| &gt; 0$ on $\gamma$. So $N(s) = \frac1{2\pi i}\oint\frac{(f + sg)'}{f + sg}$ is defined, continuous in $s$, and an integer: constant. $N(0) = N(1)$. $\square$</p>
+      <div class="box ex"><span class="label">where the roots of $z^5 + 3z + 1$ are</span>
+        <p class="small">On $|z| = 2$: $|3z + 1|\le7 &lt; 32 = |z^5|$, so all five roots have $|z| &lt; 2$. On $|z| = 1$: $|z^5 + 1|\le2 &lt; 3 = |3z|$, so exactly <b>one</b> has $|z| &lt; 1$. (Computed: $-0.33199$, and four of modulus $1.2629$ and $1.3743$ ✓.)</p>
+      </div>
+      <p class="small"><b>P10</b> uses Rouché to show Kepler's equation has exactly one root in a disc for every $|e| &lt; 0.6627$ — and that is the Laplace limit.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $N(s)$ is continuous.</b> The integrand $(f' + sg')/(f + sg)$ is jointly continuous in
+    $(s, z)$ on the compact $[0,1]\times\gamma$, since the denominator is bounded away from $0$ there; so
+    it is uniformly continuous and the integral depends continuously on $s$. A continuous integer-valued
+    function on the connected $[0,1]$ is constant.</p>
+    <p><b>Why "winding number".</b> $\frac{f'}{f}\mathrm dz = \mathrm d\log f$ locally; integrating round
+    $\gamma$ adds up the increase of $\log|f|$ (zero, since the curve closes) and $i$ times the increase
+    of $\arg f$. So the left side is $\frac{1}{2\pi}\times$(total change of $\arg f$ along $\gamma$).</p>
+    <p><b>Engineering.</b> Nyquist's stability criterion (1932) is the argument principle applied to
+    $1 + K(s)$ along the boundary of the right half-plane: it counts the unstable poles of a feedback
+    loop from a plot of its measured frequency response, without solving for the poles. For the
+    galvanometer the count is immediate — $\omega_0^2 - \omega^2 - i\gamma\omega$ has both zeros in the
+    lower half-plane — but for a loop with delay there is no formula and the count is the only tool.</p>
+    <p><b>The roots.</b> Numerically $z^5 + 3z + 1 = 0$ has roots $-0.33199$ and
+    $1.00507\pm0.93726i$, $-0.83907\pm0.94385i$, of moduli $0.33199$, $1.37427$, $1.26289$: one inside
+    the unit circle, all inside radius $2$ ✓.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Causality is a statement about poles</h2>
+  <p>A system that cannot respond before it is driven has a frequency response holomorphic in the upper half-plane — and conversely.</p>
+</section>
+
+<section>
+  <p class="eyebrow">20 · causality · example</p>
+  <h2>Worked: the galvanometer's Green's function by residues</h2>
+  <div class="box ex"><span class="label">worked example 3 — invert $\chi$, and watch the step function appear</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 0 — what is to be computed.</b> By inversion, $G(t) = \dfrac1{2\pi}\displaystyle\int_{-\infty}^\infty\frac{e^{-i\omega t}\,\mathrm d\omega}{\omega_0^2 - \omega^2 - i\gamma\omega}$, the limit of $\int_{-R}^R$.</p>
+        <p class="small"><b>Step 1 — the poles.</b> $\omega^2 + i\gamma\omega - \omega_0^2 = 0$ gives $\omega_\pm = \pm\omega_\mathrm d - i\gamma/2 = \pm7.9975 - 0.2\,i$. <b>Both below the real axis.</b></p>
+        <p class="small"><b>Step 2 — the arcs.</b> On $|\omega| = R$: $|\omega_0^2 - \omega^2 - i\gamma\omega|\ge R^2 - \gamma R - \omega_0^2$, so $|\chi|\le2/R^2$ once $R\ge12$; and $|e^{-i\omega t}| = e^{t\operatorname{Im}\omega}\le1$ on whichever semicircle has $t\operatorname{Im}\omega\le0$. ML: arc $\le\pi R\cdot2/R^2\to0$.</p>
+        <p class="small"><b>Step 3 — $t &lt; 0$: close upwards.</b> On the upper arc $t\operatorname{Im}\omega\le0$ ✓. Inside the half-disc there is <b>no pole</b>, so by Cauchy $\int_{-R}^R + \int_{\text{arc}} = 0$ for every $R$; the arc $\to0$. Therefore</p>
+        $$G(t) = 0\quad\text{for } t &lt; 0 \quad\text{— exactly.}$$
+      </div>
+      <div>
+        <p class="small"><b>Step 4 — $t &gt; 0$: close downwards</b>, clockwise, enclosing both poles:</p>
+        $$\int_{-R}^R + \int_{\text{arc}} = \frac{-2\pi i}{2\omega_\mathrm d}\big(e^{-i\omega_-t} - e^{-i\omega_+t}\big),$$
+        <p class="small">the residues from the residue slide. With $e^{-i\omega_\pm t} = e^{-\gamma t/2}e^{\mp i\omega_\mathrm dt}$ the bracket is $2i\,e^{-\gamma t/2}\sin\omega_\mathrm dt$. Let $R\to\infty$, divide by $2\pi$, and $(-i)(2i)/2\omega_\mathrm d = 1/\omega_\mathrm d$:</p>
+        $$G(t) = e^{-\gamma t/2}\,\frac{\sin\omega_\mathrm dt}{\omega_\mathrm d} .$$
+        <p class="small"><b>Step 5 — $t = 0$.</b> No exponential; both closures are legitimate by ML, and the upper one gives $G(0) = 0$: continuous, as unit 06 required.</p>
+        <p class="small"><b>Checks.</b> Unit 06's $G$, to the letter ✓. $[G] = \mathrm T$ ✓. $\gamma\to0$: $\sin(\omega_0t)/\omega_0$, the undamped kick ✓. Number: first maximum near $t = \pi/2\omega_\mathrm d = 0.1964$ s, $G = 0.1202$ s.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Nothing here was assumed about $t &lt; 0$.</b> Unit 06 built $G$ by <i>imposing</i> $G = 0$ before
+    the kick and matching a jump. Here the only input is $\chi$ — which unit 06 found from steady
+    sinusoidal driving, an experiment in which no kick and no "before" ever occur — and the vanishing
+    for $t &lt; 0$ comes out of the position of two poles. That is the sense in which the step function has
+    been explained rather than imposed.</p>
+    <p><b>The arc bound, in full.</b> For $|\omega| = R$, $|\omega^2 + i\gamma\omega - \omega_0^2|\ge|\omega|^2 - \gamma|\omega| - \omega_0^2 = R^2 - 0.4R - 64$,
+    which exceeds $R^2/2$ once $R^2/2\ge0.4R + 64$, true for $R\ge12$. So $|\chi|\le2/R^2$ there, the
+    arc has length $\pi R$, and $|e^{-i\omega t}|\le1$ on the chosen semicircle. Here plain ML suffices;
+    Jordan's lemma is needed only when $|\chi|$ falls like $1/R$.</p>
+    <p><b>The orientation.</b> The lower contour runs $-R\to R$ along the axis and back through $-iR$:
+    clockwise. The residue theorem for a clockwise curve carries $-2\pi i$. The two residues from the
+    residue slide are $-e^{-i\omega_+t}/2\omega_\mathrm d$ and $+e^{-i\omega_-t}/2\omega_\mathrm d$.</p>
+    <p><b>The numbers.</b> $\omega_\mathrm d = \sqrt{63.96} = 7.9974996$, so $\pi/(2\omega_\mathrm d) = 0.196411$ s
+    and $G = e^{-0.2\times0.196411}/7.9974996 = 0.120222$ s. (The true maximum of $G$ is slightly earlier,
+    where $\tan\omega_\mathrm dt = 2\omega_\mathrm d/\gamma$, at $t = 0.193285$ s with $G = 0.120260$ s; the difference is in the fourth figure.)
+    Physically: a unit angular impulse per unit moment of inertia, $1\ \mathrm{rad\,s^{-1}}$ of initial
+    angular velocity, gives a first swing of $0.12$ rad. Unit 06's charge pulse gave $0.2\ \mathrm{rad\,s^{-1}}$
+    and a first swing of $0.02405$ rad: the same shape scaled by $0.2$ — with the exact maximum,
+    $0.2\times0.120260 = 0.024052$ ✓.</p>
+    <p><b>What the undamped limit does to the calculation.</b> At $\gamma = 0$ the poles are on the real
+    axis and the integral in Step 0 does not exist. The damped answer tells you which way to step round
+    them: the poles came from below, so the contour passes <b>above</b> them. The next slide makes that the
+    rule.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · causality</p>
+  <h2>The step function, explained</h2>
+  <div class="cols">
+    <div>
+      <p class="small">The example used two facts only: $\chi\to0$ at infinity, and <b>no poles in the upper half-plane</b>. Any response with those two properties vanishes for $t &lt; 0$, by Step 3 verbatim. And for $t &gt; 0$</p>
+      $$G(t) = -i\sum_{\text{poles } \omega_k}\operatorname*{Res}_{\omega_k}\chi(\omega)e^{-i\omega t},$$
+      <p class="small">a sum of damped modes, one per pole — when there are finitely many poles and $\chi$ decays.</p>
+      <div class="box def"><span class="label">the <span class="term">$i0$ prescription</span></span>
+        <p class="small">With no damping, $\chi = 1/(\omega_0^2 - \omega^2)$ has poles <b>on</b> the axis and the inversion integral is undefined. Causality decides: replace $\omega$ by $\omega + i0$ — poles pushed below, contour passing above — and</p>
+        $$G_\mathrm{ret}(t) = H(t)\,\frac{\sin\omega_0t}{\omega_0} .$$
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">$LG = \delta$ does not know about time's arrow</span>
+        <p class="small">Pass <b>below</b> both poles and closing upwards for $t &lt; 0$ collects them: $G_\mathrm{adv}(t) = -H(-t)\sin(\omega_0t)/\omega_0$, which also satisfies $LG = \delta$ (its $\dot G$ jumps from $-1$ to $0$). Principal values at both poles give $\frac12(G_\mathrm{ret} + G_\mathrm{adv})$. The equation admits all of them; <b>the choice of half-plane is the physics</b>.</p>
+      </div>
+      <p class="small">In <span class="ref" data-ref="chi">the damped case</span> no choice is left: $\gamma &gt; 0$ has already moved the poles down by $\gamma/2$, and the real-axis integral is the retarded one. Dissipation and causality point the same way.</p>
+      <p class="small"><b>Forward:</b> unit 24 inverts the wave operator's $1/(\omega^2/c^2 - k^2)$ with exactly this prescription, and it is how light is emitted after, not before, the charge moves.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The mode sum, justified.</b> For $t &gt; 0$ close downwards: if $\chi$ is rational with numerator
+    degree at most denominator degree minus one, $|\chi|\le C/R$ on large arcs, Jordan's lemma (lower
+    version, $a = t$) kills the arc, and the residue theorem with its clockwise sign gives
+    $2\pi G(t) = -2\pi i\sum\operatorname{Res}$. For $\chi$ with infinitely many poles — a string, a cavity — the
+    same formula holds when the arcs can be chosen to pass between poles with $\chi$ still small on them,
+    and that is a property to be checked, not assumed.</p>
+    <p><b>The retarded and advanced computations.</b> With poles at $\pm\omega_0 - i0$: closing up for
+    $t &lt; 0$ encloses nothing, $G = 0$; closing down for $t &gt; 0$ gives, from the running example with
+    $\gamma\to0$, $\sin(\omega_0t)/\omega_0$. With poles at $\pm\omega_0 + i0$: closing down for $t &gt; 0$
+    encloses nothing; closing up for $t &lt; 0$, anticlockwise, gives
+    $G = \frac{1}{2\pi}\cdot2\pi i\big(\frac{-e^{-i\omega_0t}}{2\omega_0} + \frac{e^{i\omega_0t}}{2\omega_0}\big) = i\cdot\frac{2i\sin\omega_0t}{2\omega_0} = -\frac{\sin\omega_0t}{\omega_0}$.
+    Both satisfy the three conditions of the jump theorem, the advanced one with the roles of $0^+$ and
+    $0^-$ exchanged: $G_\mathrm{adv}(0^-) = 0$, $\dot G_\mathrm{adv}(0^-) = -1$, $\dot G_\mathrm{adv}(0^+) = 0$,
+    jump $+1$ ✓. Their difference is $\sin(\omega_0t)/\omega_0$ for all $t$, a free oscillation — an element
+    of the two-dimensional kernel of $L$ (unit 06), as it must be.</p>
+    <p><b>Dimensions and limits.</b> $[G_\mathrm{ret}] = \mathrm T$ ✓. $\omega_0\to0$: $G_\mathrm{ret}\to tH(t)$,
+    the response of a free mass to a unit kick — velocity $1$ from $t = 0$ on ✓.</p>
+    <p><b>History.</b> The prescription was used by Lorentz and by the founders of quantum field theory
+    without a name; Feynman made the $i\varepsilon$ explicit in 1949, where choosing it differently at
+    positive and negative frequency gives his propagator. The idea that dispersion relations follow from
+    causality alone is due to Kronig (1926) and Kramers (1927), and was made a theorem by Titchmarsh's
+    work on Fourier integrals (1937) — the next slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · causality</p>
+  <h2>Causality, analyticity, Kramers–Kronig: one theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">causality theorem</span></span>
+        <p class="small">Let $G$ be continuous except possibly at $0$, with $G$, $tG$ and $\chi = \hat G$ absolutely integrable. The following are equivalent:</p>
+        <p class="small"><b>(a) causality:</b> $G(t) = 0$ for all $t &lt; 0$;</p>
+        <p class="small"><b>(b) analyticity:</b> $\chi$ extends continuously to $\operatorname{Im}\omega\ge0$, holomorphic on $\operatorname{Im}\omega &gt; 0$, with $\max_{|\omega| = R,\,\operatorname{Im}\omega\ge0}|\chi|\to0$;</p>
+        <p class="small"><b>(c) dispersion:</b> for every real $\omega$,</p>
+        $$\chi(\omega) = \frac{1}{i\pi}\,\mathrm{PV}\!\!\int_{-\infty}^{\infty}\frac{\chi(\omega')}{\omega' - \omega}\,\mathrm d\omega' .$$
+      </div>
+      <p class="small">The sharp form, for square-integrable $\chi$, is <b>Titchmarsh's theorem</b> (<i>cited</i>: Titchmarsh, <i>Introduction to the Theory of Fourier Integrals</i>, 1937, Thm 95).</p>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">(a) ⇒ (b)</span>
+        <p class="small">$\chi(\omega) = \int_0^\infty G(t)e^{i\omega t}\mathrm dt$ and $|e^{i\omega t}| = e^{-t\operatorname{Im}\omega}\le1$ for $t\ge0$: absolutely convergent on the closed upper half-plane, continuous there, holomorphic inside (Morera). Decay: for $G$ the indicator of $[a,b]\subset[0,\infty)$, $|\chi|\le2/|\omega|$; approximate by steps. $\square$</p>
+      </div>
+      <div class="box proof"><span class="label">(b) ⇒ (a)</span>
+        <p class="small">For $t &lt; 0$ close upwards: no singularity inside, and Jordan's lemma with $a = -t &gt; 0$ kills the arc. So $\int_{-R}^R\chi e^{-i\omega t}\mathrm d\omega = -\int_\text{arc}\to0$, and by inversion $G(t) = 0$. $\square$</p>
+      </div>
+      <p class="small"><b>(a) ⇔ (c)</b> is the next slide. <b>On the running example</b>: $G$, $tG$, <span class="ref" data-ref="chi">$\chi$</span> are integrable; (a) is unit 06's construction, (b) the position of two poles, and (c) is checked with numbers two slides on.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of (a) ⇒ (b)</h4>
+    <p><b>Continuity</b> on the closed half-plane: for $\omega_n\to\omega$ with $\operatorname{Im}\omega_n\ge0$,
+    the integrands $G(t)e^{i\omega_nt}$ are dominated by $|G|$ and converge pointwise: dominated
+    convergence. <b>Holomorphy</b> inside: for a triangle $T$ in the open upper half-plane,
+    $\oint_{\partial T}\chi = \int_0^\infty G(t)\big(\oint_{\partial T}e^{i\omega t}\mathrm d\omega\big)\mathrm dt = 0$
+    (Fubini, the double integral converging absolutely; Goursat for the entire function $e^{i\omega t}$);
+    Morera. <b>Decay:</b> for $G = \mathbf 1_{[a,b]}$, $\chi = (e^{i\omega b} - e^{i\omega a})/i\omega$ and both
+    exponentials have modulus $\le1$ when $\operatorname{Im}\omega\ge0$. Given $\varepsilon$, a step function
+    $s$ supported in $[0,\infty)$ has $\int|G - s| &lt; \varepsilon$, so $|\chi(\omega)|\le|\hat s(\omega)| + \varepsilon$
+    uniformly on the closed half-plane, and $\hat s = O(1/|\omega|)$ there. $\square$</p>
+    <h4>Full proof of (b) ⇒ (a)</h4>
+    <p>$\chi$ is only assumed continuous up to the real axis, so apply Cauchy to the half-disc raised by
+    $\eta &gt; 0$ (where $\chi$ is holomorphic on a neighbourhood) and let $\eta\to0$: on the compact
+    closed half-disc $\chi$ is uniformly continuous, so the integrals converge. Jordan's lemma, with
+    $g = \chi$ and $M_R\to0$ by hypothesis, disposes of the arc. Since $\chi$ is absolutely integrable,
+    $\lim_R\int_{-R}^R$ is the inversion integral, which equals $2\pi G(t)$ at every $t\ne0$ (inversion
+    theorem, whose proof is pointwise at continuity points). $\square$</p>
+    <p><b>Why the hypotheses.</b> $G$ integrable makes $\chi$ exist; $tG$ integrable makes $\chi$ of
+    class $C^1$, which the principal value in (c) needs; $\chi$ integrable makes the inversion integral
+    converge. A response with a delta function at $t = 0$ (instantaneous response, $\chi\to$ const at
+    infinity) is outside the hypotheses — apply the theorem to $\chi - \chi(\infty)$ instead, which is what
+    optics does with $\varepsilon(\omega) - 1$.</p>
+    <p><b>What (b) says physically.</b> A causal system responds finitely to every drive that was
+    smaller in the past than it is now; the upper half-plane is the set of such drives, and holomorphy
+    there is the statement that the response depends smoothly — in fact analytically — on the drive's
+    growth rate.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · causality</p>
+  <h2>The dispersion relations, proved</h2>
+  <div class="cols">
+    <div>
+      <div class="box proof"><span class="label">(a) ⇔ (c), in three lines</span>
+        <p class="small"><b>1.</b> Causality says $G(t) = \operatorname{sgn}(t)\,G(t)$ for $t\ne0$. Transforms are injective, so (a) $\iff\chi = \widehat{\operatorname{sgn}\cdot G}$.</p>
+        <p class="small"><b>2.</b> The transform of a product is $\frac1{2\pi}$ times the convolution of transforms, and $\widehat{\operatorname{sgn}} = 2i\,\mathrm{PV}\frac1\omega$:</p>
+        $$\widehat{\operatorname{sgn}\cdot G}(\omega) = \frac{i}{\pi}\,\mathrm{PV}\!\!\int\frac{\chi(\omega')}{\omega - \omega'}\,\mathrm d\omega' .$$
+        <p class="small"><b>3.</b> That is the right side of (c). $\square$</p>
+      </div>
+      <p class="small">Real and imaginary parts, $\chi = \chi' + i\chi''$:</p>
+      $$\chi'(\omega) = \frac1\pi\mathrm{PV}\!\!\int\frac{\chi''(\omega')\,\mathrm d\omega'}{\omega' - \omega},$$
+      $$\chi''(\omega) = -\frac1\pi\mathrm{PV}\!\!\int\frac{\chi'(\omega')\,\mathrm d\omega'}{\omega' - \omega}.$$
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Kramers–Kronig relations</span>, for real $G$</span>
+        <p class="small">A real $G$ gives $\chi(-\omega) = \overline{\chi(\omega)}$: $\chi'$ even, $\chi''$ odd. Folding the integrals onto $\omega' &gt; 0$:</p>
+        $$\chi'(\omega) = \frac2\pi\,\mathrm{PV}\!\!\int_0^\infty\frac{\omega'\chi''(\omega')}{\omega'^2 - \omega^2}\,\mathrm d\omega',$$
+        $$\chi''(\omega) = -\frac{2\omega}{\pi}\,\mathrm{PV}\!\!\int_0^\infty\frac{\chi'(\omega')}{\omega'^2 - \omega^2}\,\mathrm d\omega' .$$
+      </div>
+      <p class="small"><b>Read it:</b> the in-phase (reactive, dispersive) response at one frequency is an integral of the out-of-phase (absorptive) response at <b>all</b> frequencies. Neither can be designed without the other.</p>
+      <p class="small"><b>Dimensions:</b> $[\chi''][\omega]/[\omega] = [\chi]$ ✓. <b>Limit:</b> $\chi''\equiv0$ forces $\chi'\equiv0$ — the next slide but one.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of step 2</h4>
+    <p>Put $s_\varepsilon(t) = \operatorname{sgn}(t)e^{-\varepsilon|t|}$, bounded and integrable, with
+    $\hat s_\varepsilon(\nu) = \frac{2i\nu}{\nu^2 + \varepsilon^2}$ (tempered-distribution slide). For the
+    product, write $G$ by inversion and swap (Fubini; $|\chi(\omega')||s_\varepsilon(t)|$ is integrable):
+    $\widehat{s_\varepsilon G}(\omega) = \int s_\varepsilon(t)\frac1{2\pi}\int\chi(\omega')e^{-i\omega't}\mathrm d\omega'\,e^{i\omega t}\mathrm dt
+    = \frac1{2\pi}\int\chi(\omega')\hat s_\varepsilon(\omega - \omega')\,\mathrm d\omega'
+    = \frac{i}{\pi}\int\chi(\omega')\frac{\omega - \omega'}{(\omega - \omega')^2 + \varepsilon^2}\,\mathrm d\omega'$.
+    As $\varepsilon\to0$ the left side tends to $\widehat{\operatorname{sgn}\cdot G}(\omega)$ by dominated
+    convergence ($|s_\varepsilon G|\le|G|$). The right side tends to the principal value by the argument
+    of the Sokhotski proof, which used only that the function paired with the kernel is $C^1$ near
+    $\omega$ and integrable — true of $\chi$, because $tG$ is integrable. $\square$</p>
+    <p><b>Step 1, both directions.</b> If (a), then $\operatorname{sgn}\cdot G$ and $G$ agree except at
+    $t = 0$, so their transforms agree. If $\chi = \widehat{\operatorname{sgn}\cdot G}$, then
+    $h = G - \operatorname{sgn}\cdot G = 2G\,\mathbf 1_{t&lt;0}$ has $\hat h = 0$, so by inversion $h(t) = 0$ at
+    each $t\ne0$: (a). $\square$</p>
+    <p><b>The real and imaginary parts.</b> Multiply (c) by $i\pi$:
+    $i\pi(\chi' + i\chi'') = \mathrm{PV}\int\frac{\chi' + i\chi''}{\omega' - \omega}$. Real parts:
+    $-\pi\chi'' = \mathrm{PV}\int\frac{\chi'}{\omega' - \omega}$. Imaginary parts:
+    $\pi\chi' = \mathrm{PV}\int\frac{\chi''}{\omega' - \omega}$. <b>The folding</b>: split at $0$, send
+    $\omega'\to-\omega'$ on the negative half, use parity, and combine
+    $\frac{1}{\omega' - \omega} + \frac{1}{\omega' + \omega} = \frac{2\omega'}{\omega'^2 - \omega^2}$ (for the
+    odd $\chi''$) or $\frac{1}{\omega' - \omega} - \frac{1}{\omega' + \omega} = \frac{2\omega}{\omega'^2 - \omega^2}$
+    (for the even $\chi'$, with an overall sign from the odd reflection).</p>
+    <p><b>An operator reading.</b> The map $\chi\mapsto\frac{1}{\pi}\mathrm{PV}\int\frac{\chi(\omega')}{\omega - \omega'}\mathrm d\omega'$
+    is the <b>Hilbert transform</b> $\mathcal H$, and step 2 says $\mathcal H\hat f = -i\,\widehat{\operatorname{sgn}f}$.
+    Causality is then the eigenvalue statement $\mathcal H\chi = -i\chi$, and the real-imaginary form says
+    $\chi'$ and $\chi''$ are a Hilbert-transform pair. Since $\operatorname{sgn}^2 = 1$, $\mathcal H^2 = -1$.</p>
+    <p><b>History.</b> Kronig, 1926, on the dispersion of X-rays; Kramers, 1927, at the Como conference,
+    for light in general. Both argued physically. The mathematical content — boundary values of functions
+    holomorphic in a half-plane are Hilbert-transform pairs — was Plemelj's (1908) and Titchmarsh's.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · causality · example</p>
+  <h2>Worked: Kramers–Kronig on the galvanometer</h2>
+  <div class="box ex"><span class="label">worked example 4 — the dispersion relations, checked three ways</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 1 — the two parts.</b> With $D(\omega) = (\omega_0^2 - \omega^2)^2 + \gamma^2\omega^2$,</p>
+        $$\chi' = \frac{\omega_0^2 - \omega^2}{D},\qquad \chi'' = \frac{\gamma\omega}{D} .$$
+        <p class="small">$\chi''&gt;0$ for $\omega&gt;0$: the oscillator absorbs.</p>
+        <p class="small"><b>Step 2 — at $\omega = 0$, exactly.</b> The first relation gives</p>
+        $$\chi'(0) = \frac2\pi\int_0^\infty\frac{\chi''(\omega')}{\omega'}\mathrm d\omega' = \frac{2\gamma}{\pi}\int_0^\infty\frac{\mathrm d\omega'}{D},$$
+        <p class="small">and P5's integral makes this $\frac{2\gamma}{\pi}\cdot\frac{\pi}{2\gamma\omega_0^2} = \frac1{\omega_0^2}$. That is $\chi(0) = 1/64 = 0.015625\ \mathrm{s^2}$: the static stiffness ✓.</p>
+      </div>
+      <div>
+        <p class="small"><b>Step 3 — at large $\omega$.</b> For $\omega$ beyond the region where $\chi''$ lives, the first relation gives $\chi'(\omega)\approx-\frac{2}{\pi\omega^2}\int_0^\infty\omega'\chi''\,\mathrm d\omega'$. But directly $\chi'\approx-1/\omega^2$ — a free mass. So the <span class="term">sum rule</span></p>
+        $$\int_0^\infty\omega\,\chi''(\omega)\,\mathrm d\omega = \frac\pi2$$
+        <p class="small">must hold, <b>whatever</b> $\gamma$ and $\omega_0$. Directly: $\gamma\int_0^\infty\omega^2/D = \gamma\cdot\frac{\pi}{2\gamma} = \frac\pi2$ ✓.</p>
+        <p class="small"><b>Step 4 — at $\omega = 7\ \mathrm{s^{-1}}$</b>, off every special point: <span class="ref" data-ref="kk">$\chi(7) = 0.0644219 + 0.0120254\,i$</span>. The principal-value integrals, computed numerically, return $0.06442192$ and $0.01202542$ ✓.</p>
+        <p class="small"><b>Dimensions</b> in Step 3: $[\omega\chi''\,\mathrm d\omega] = \mathrm T^{-1}\mathrm T^2\mathrm T^{-1} = 1$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1.</b> Multiply numerator and denominator of $\chi$ by the conjugate
+    $\omega_0^2 - \omega^2 + i\gamma\omega$.</p>
+    <p><b>Step 2, the integral.</b> $\int_{-\infty}^\infty\frac{\mathrm d\omega}{D} = \frac{\pi}{\gamma\omega_0^2}$ is
+    problem P5, by residues at the two poles in the upper half-plane ($D = |h|^2$ has four zeros,
+    $\omega_\pm$ and their conjugates). Half of it, by evenness, is $\pi/(2\gamma\omega_0^2)$. Numerically
+    $0.0613592$ against $\pi/(2\cdot0.4\cdot64) = 0.0613592$ ✓.</p>
+    <p><b>Step 3, carefully.</b> For large $\omega$ write
+    $\frac{\omega'}{\omega'^2 - \omega^2} = -\frac{\omega'}{\omega^2} - \frac{\omega'^3}{\omega^2(\omega^2 - \omega'^2)}$;
+    since $\chi''$ decays like $\omega'^{-3}$ the second term's contribution is $o(\omega^{-2})$ (split the
+    integral at $\omega/2$ and $2\omega$; near $\omega'\approx\omega$ the principal value of a function
+    of size $O(\omega^{-3})$ is $O(\omega^{-3}\log\omega)$). So
+    $\chi'(\omega) = -\frac{2}{\pi\omega^2}\int_0^\infty\omega'\chi''\,\mathrm d\omega' + o(\omega^{-2})$, and
+    comparison with $\chi' = -\omega^{-2} + O(\omega^{-4})$ gives the rule. The same integral,
+    $\int_{-\infty}^\infty\omega^2/D = \pi/\gamma$, is also a two-residue computation; numerically
+    $\gamma\int_0^\infty\omega^2/D = 1.5707963$ ✓.</p>
+    <p><b>Why a sum rule is physics.</b> The coefficient of $-1/\omega^2$ is $\dot G(0^+) = 1$ — the jump
+    that made $LG = \delta$, the inertia of the coil (section 6 derives this from Watson's lemma). So the
+    <b>total absorption</b>, weighted by frequency, is fixed by Newton's second law at short times and
+    is independent of the spring and the damper. For electrons in matter this is the Thomas–Reiche–Kuhn
+    or <b>$f$-sum rule</b>, and it counts electrons: the absorption spectrum of a material, integrated,
+    tells you how many charges there are per unit volume.</p>
+    <p><b>Step 4.</b> $\chi(7) = 1/(15 - 2.8i) = (15 + 2.8i)/232.84 = 0.06442192 + 0.01202542i$. The
+    principal values were computed by folding each integral onto $u = \omega' - 7 &gt; 0$, which removes
+    the singularity, and integrating adaptively; both agree with the direct values to seven or more
+    significant figures.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · causality</p>
+  <h2>Why glass separates colours</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Physics, cited:</b> in a dielectric made of bound charges $q$, mass $m$, density $N$, each a copy of <span class="ref" data-ref="galv">the oscillator</span> with its own $\omega_0$, light sees the permittivity (Jackson, <i>Classical Electrodynamics</i>, §7.5; not derived in this course)</p>
+      $$n(\omega)^2 = \varepsilon(\omega) = 1 + \frac{Nq^2}{\varepsilon_0m}\,\chi(\omega) .$$
+      <p class="small">$\varepsilon - 1$ is a causal response, so Kramers–Kronig applies to it.</p>
+      <div class="box thm"><span class="label">a medium that refracts must also absorb</span>
+        <p class="small">If $\operatorname{Im}\varepsilon = 0$ at every frequency, then $\operatorname{Re}\varepsilon = 1$ at every frequency. Proof: the first dispersion relation for $\varepsilon - 1$. $\square$ So transparent glass with $n\ne1$ in the visible <b>must</b> absorb somewhere else — and $n(0)^2 - 1 = \frac2\pi\int_0^\infty\frac{\operatorname{Im}\varepsilon}{\omega}\mathrm d\omega &gt; 0$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">borosilicate crown glass, BK7</span>
+        <p class="small">Its <span class="term">Sellmeier formula</span> $n^2 = 1 + \sum_{i=1}^3\frac{B_i\lambda^2}{\lambda^2 - C_i}$ is three undamped oscillators, $\frac{B_i\lambda^2}{\lambda^2 - C_i} = \frac{B_i\omega_i^2}{\omega_i^2 - \omega^2}$ with $\omega_i = 2\pi c/\sqrt{C_i}$. From the maker's coefficients:</p>
+        <table class="dense">
+          <tbody>
+            <tr><td>blue, 486.1 nm</td><td class="num">$n = 1.52238$</td></tr>
+            <tr><td>yellow, 587.6 nm</td><td class="num">$n = 1.51680$</td></tr>
+            <tr><td>red, 656.3 nm</td><td class="num">$n = 1.51432$</td></tr>
+          </tbody>
+        </table>
+        <p class="small">$n_\mathrm{blue} - n_\mathrm{red} = 0.00805$: blue bends more. The resonances sit at $\sqrt{C_i} = 77.5$ nm, $141.5$ nm (ultraviolet) and $10.18\ \mu$m (infrared) — where glass is opaque.</p>
+      </div>
+      <p class="small">Sellmeier is Kramers–Kronig with each absorption line squeezed to a delta function — the undamped limit of the Sokhotski slide.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What is cited and what is proved.</b> The formula $\varepsilon = 1 + (Nq^2/\varepsilon_0m)\chi$ needs
+    electrodynamics — the polarisation $P = Nqx$ of charges each driven by the light's field and obeying
+    this unit's oscillator equation — and is <i>cited</i> from Jackson §7.5; this course does not derive
+    it, and here it is only the physical motivation.
+    What is proved here is the mathematics: whatever the microscopic model, if $\varepsilon - 1$ is the
+    transform of a causal, integrable response it satisfies Kramers–Kronig, and then zero absorption
+    everywhere forces no refraction anywhere. <b>Dimensions:</b> $Nq^2/\varepsilon_0m$ is
+    $\mathrm{m^{-3}C^2}/(\mathrm{C^2N^{-1}m^{-2}}\cdot\mathrm{kg}) = \mathrm{s^{-2}}$, the square of the
+    plasma frequency, and $\chi$ is $\mathrm{s^2}$: $\varepsilon$ is dimensionless ✓.</p>
+    <p><b>The static sum rule</b> is Step 2 of the worked example, for $\varepsilon - 1$: the
+    zero-frequency polarisability is an integral over the absorption spectrum weighted by $1/\omega$, so
+    absorption at low frequency (infrared) counts for more than absorption in the ultraviolet. Positive
+    because $\operatorname{Im}\varepsilon &gt; 0$ for $\omega &gt; 0$ in a passive medium.</p>
+    <p><b>The numbers.</b> Schott's N-BK7 coefficients: $B = (1.03961212, 0.231792344, 1.01046945)$,
+    $C = (0.00600069867, 0.0200179144, 103.560653)\ \mu\mathrm m^2$. At the Fraunhofer F, d and C lines
+    ($486.1327$, $587.5618$, $656.2725$ nm) the formula gives $1.522376$, $1.516800$, $1.514322$; the
+    difference $n_F - n_C = 0.008054$, and the Abbe number $(n_d - 1)/(n_F - n_C) = 64.17$, the value in the
+    catalogue. The three $\sqrt{C_i}$ are $0.07746$, $0.14148$ and $10.1765\ \mu$m. They are
+    <i>effective</i> resonances fitted over the transparent range, not individual molecular lines; real
+    glass absorbs in broad bands in the far ultraviolet and the mid-infrared, and the fit places one
+    delta function to stand in for each band.</p>
+    <p><b>The identity used.</b> $\frac{\lambda^2}{\lambda^2 - C} = \frac{1}{1 - C/\lambda^2}$ and
+    $C/\lambda^2 = \omega^2/\omega_i^2$ with $\omega = 2\pi c/\lambda$, $\omega_i = 2\pi c/\sqrt C$. So the
+    Sellmeier term is $\omega_i^2/(\omega_i^2 - \omega^2)$, which is $\omega_i^2\chi(\omega)$ for an undamped
+    oscillator at $\omega_i$: $B_i\omega_i^2$ plays the role of $Nq^2/\varepsilon_0m$.</p>
+    <p><b>Newton and the prism.</b> Newton's 1672 letter on colours established that white light is a
+    mixture and that each colour has its own refrangibility. Why the refrangibility depends on colour had
+    to wait for the oscillator model (Sellmeier 1871, Helmholtz 1875, Lorentz) — and why it could not
+    have been otherwise, for Kramers and Kronig.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · causality</p>
+  <h2>The Laplace transform and the Bromwich contour</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Laplace transform</span></span>
+        $$F(s) = \mathcal L[f](s) = \int_0^\infty f(t)\,e^{-st}\,\mathrm dt,$$
+        <p class="small">for $f$ on $[0,\infty)$ with $|f|\le Ce^{\sigma t}$; it converges and is holomorphic on $\operatorname{Re}s &gt; \sigma$. It is the Fourier transform of $f(t)e^{-ct}H(t)$ at $\omega$, with $s = c - i\omega$.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">Bromwich integral</span></span>
+        <p class="small">For $c &gt; \sigma$, at points where $f$ is continuous and when $F(c - i\omega)$ is integrable in $\omega$,</p>
+        $$f(t) = \frac{1}{2\pi i}\int_{c - i\infty}^{c + i\infty}F(s)\,e^{st}\,\mathrm ds .$$
+        <p class="small">Proof: Fourier inversion for $f(t)e^{-ct}H(t)$, then $s = c - i\omega$, $\mathrm ds = -i\,\mathrm d\omega$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Why bother:</b> it takes growing functions and initial data in its stride, $\mathcal L[\dot f] = sF - f(0)$, so it solves an initial value problem in one pass.</p>
+      <div class="box good"><span class="label">the running example, rotated</span>
+        <p class="small">$\mathcal L[G](s) = \dfrac{1}{s^2 + \gamma s + \omega_0^2}$, poles $s = -\gamma/2\pm i\omega_\mathrm d$ — in the <b>left</b> half-plane — and $\chi(\omega) = \mathcal L[G](-i\omega)$: the same picture turned a quarter-turn.</p>
+        <p class="small">The Bromwich line runs to the <b>right</b> of every singularity. For $t &gt; 0$, $e^{st}$ decays to the left: close left, collect the poles. For $t &lt; 0$ close right: nothing there, $f = 0$. Causality, once more.</p>
+      </div>
+      <p class="small">P9 uses it for the galvanometer's response to a switched-on current: the needle overshoots to $1.9244$ times its final deflection.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The substitution in full.</b> Fourier inversion for $g(t) = f(t)e^{-ct}H(t)$:
+    $g(t) = \frac{1}{2\pi}\int\hat g(\omega)e^{-i\omega t}\mathrm d\omega$ with
+    $\hat g(\omega) = \int_0^\infty f(t)e^{-(c - i\omega)t}\mathrm dt = F(c - i\omega)$. Multiply by $e^{ct}$:
+    $f(t) = \frac{1}{2\pi}\int F(c - i\omega)e^{(c - i\omega)t}\mathrm d\omega$. With $s = c - i\omega$, as
+    $\omega$ runs from $-\infty$ to $\infty$, $s$ runs from $c + i\infty$ down to $c - i\infty$, and
+    $\mathrm d\omega = i\,\mathrm ds$; reversing the direction absorbs a sign, giving
+    $\frac{1}{2\pi}\cdot(-i)\int_{c-i\infty}^{c+i\infty} = \frac{1}{2\pi i}\int_{c-i\infty}^{c+i\infty}$ ✓.
+    The result is independent of $c &gt; \sigma$: two Bromwich lines bound a strip with no singularity,
+    and the horizontal ends vanish when $F\to0$ there.</p>
+    <p><b>The derivative rule.</b> $\int_0^\infty\dot fe^{-st}\mathrm dt = [fe^{-st}]_0^\infty + s\int_0^\infty fe^{-st} = sF - f(0)$
+    for $\operatorname{Re}s &gt; \sigma$. So $\ddot x + \gamma\dot x + \omega_0^2x = u$ with data $x(0), \dot x(0)$
+    becomes $(s^2 + \gamma s + \omega_0^2)X = U + (s + \gamma)x(0) + \dot x(0)$ — the initial conditions
+    enter as a polynomial on the right, which the transient then comes from.</p>
+    <p><b>The step response</b> (P9). A current switched on at $t = 0$ gives $u = u_0H(t)$,
+    $U = u_0/s$, so $X = u_0/[s(s^2 + \gamma s + \omega_0^2)]$: three poles, at $0$ and at
+    $-\gamma/2\pm i\omega_\mathrm d$. Residues give
+    $x(t) = \frac{u_0}{\omega_0^2}\big[1 - e^{-\gamma t/2}\big(\cos\omega_\mathrm dt + \frac{\gamma}{2\omega_\mathrm d}\sin\omega_\mathrm dt\big)\big]$,
+    first maximum at $t = \pi/\omega_\mathrm d = 0.39282$ s, value $1 + e^{-\pi\gamma/2\omega_\mathrm d} = 1.92444$
+    times the final deflection. A $Q = 20$ galvanometer nearly doubles on the first swing, which is why
+    unit 06 recommended damping it.</p>
+    <p><b>History.</b> Laplace used the transform in probability (1812). Heaviside's operational
+    calculus (1890s) solved circuit equations by treating $\mathrm d/\mathrm dt$ as an algebraic $p$, with
+    spectacular success and no justification; Bromwich (1916) supplied the contour integral that made
+    Heaviside's rules theorems.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Asymptotics of integrals</h2>
+  <p>When an integral has no closed form, find the one small region that decides it — moving the contour until there is one.</p>
+</section>
+
+<section>
+  <p class="eyebrow">20 · asymptotics</p>
+  <h2>Watson's lemma</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Notation</b> (unit 21 develops it): $f = O(g)$ if $|f|\le C|g|$ eventually; $f\sim g$ if $f/g\to1$; and $f(\lambda)\sim\sum a_n\varphi_n(\lambda)$, an <span class="term">asymptotic expansion</span>, if for every $N$ the error after $N$ terms is $O(\varphi_N)$ — convergent or not.</p>
+      <p class="small"><b>The Gamma function:</b> $\Gamma(\alpha) = \int_0^\infty t^{\alpha-1}e^{-t}\mathrm dt$ for $\alpha&gt;0$; $\Gamma(n+1) = n!$ by parts, $\Gamma(\frac12) = \sqrt\pi$ by $t = u^2$.</p>
+      <div class="box thm"><span class="label"><span class="term">Watson's lemma</span></span>
+        <p class="small">If $|g(t)|\le Ce^{bt}$ and $g(t)\sim\sum_{n\ge0}a_nt^{\alpha_n}$ as $t\to0^+$, with $-1 &lt; \alpha_0 &lt; \alpha_1 &lt; \dots\to\infty$, then as $\lambda\to+\infty$</p>
+        $$\int_0^\infty g(t)e^{-\lambda t}\,\mathrm dt\sim\sum_{n\ge0}\frac{a_n\,\Gamma(\alpha_n+1)}{\lambda^{\alpha_n+1}} .$$
+      </div>
+      <p class="small">Only $t\lesssim1/\lambda$ matters: expand $g$ there, integrate term by term to $\infty$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the running example: what a coil does at high frequency</span>
+        <p class="small">From the ODE, <span class="ref" data-ref="G">$G$</span> $= t - \frac\gamma2t^2 + \frac{\gamma^2 - \omega_0^2}{6}t^3 + \dots$ near $0^+$ ($G(0) = 0$, $\dot G = 1$, $\ddot G = -\gamma$). Watson:</p>
+        $$\mathcal L[G](s)\sim\frac1{s^2} - \frac{\gamma}{s^3} + \frac{\gamma^2 - \omega_0^2}{s^4} .$$
+        <p class="small">Directly, $1/(s^2 + \gamma s + \omega_0^2)$ expands in powers of $1/s$ to the same thing ✓ — and that Laurent series converges for $|s| &gt; \omega_0$, so the expansion holds on the imaginary axis too. With $s = -i\omega$:</p>
+        $$\chi(\omega) = -\frac{1}{\omega^2} + \frac{i\gamma}{\omega^3} + O(\omega^{-4}) .$$
+        <p class="small">A free mass, $\ddot x = f$, is $-1/\omega^2$: <b>at high frequency every oscillator is pure inertia</b>, and the coefficient is the jump $\dot G(0^+) = 1$ — the sum rule's constant.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of Watson's lemma</h4>
+    <p>Fix $N$ and $\delta &gt; 0$ small enough that $|g(t) - \sum_{n&lt;N}a_nt^{\alpha_n}|\le Kt^{\alpha_N}$ on
+    $(0,\delta]$. Split $\int_0^\infty = \int_0^\delta + \int_\delta^\infty$. <b>Tail:</b>
+    $|\int_\delta^\infty ge^{-\lambda t}|\le C\int_\delta^\infty e^{-(\lambda - b)t} = Ce^{-(\lambda-b)\delta}/(\lambda - b)$,
+    exponentially small, hence $O(\lambda^{-M})$ for every $M$. <b>Head:</b>
+    $\int_0^\delta a_nt^{\alpha_n}e^{-\lambda t}\mathrm dt = a_n\Gamma(\alpha_n+1)\lambda^{-\alpha_n-1} - a_n\int_\delta^\infty t^{\alpha_n}e^{-\lambda t}$,
+    the last term again exponentially small; and the remainder is at most
+    $K\int_0^\infty t^{\alpha_N}e^{-\lambda t}\mathrm dt = K\Gamma(\alpha_N+1)\lambda^{-\alpha_N-1}$. So the error after
+    $N$ terms is $O(\lambda^{-\alpha_N-1})$, which is the definition. $\square$ The substitution $u = \lambda t$
+    gives $\int_0^\infty t^\alpha e^{-\lambda t}\mathrm dt = \Gamma(\alpha+1)\lambda^{-\alpha-1}$.</p>
+    <p><b>The Taylor coefficients of $G$.</b> $G(0^+) = 0$ and $\dot G(0^+) = 1$ are the jump conditions;
+    the ODE gives $\ddot G = -\gamma\dot G - \omega_0^2G = -\gamma$ and
+    $\dddot G = -\gamma\ddot G - \omega_0^2\dot G = \gamma^2 - \omega_0^2$ at $0^+$. Watson with $\alpha_n = n+1$:
+    $1\cdot1!/s^2 - \frac\gamma2\cdot2!/s^3 + \frac{\gamma^2 - \omega_0^2}{6}\cdot3!/s^4$. Directly,
+    $\frac{1}{s^2}\big(1 + \frac\gamma s + \frac{\omega_0^2}{s^2}\big)^{-1} = \frac1{s^2}\big(1 - \frac\gamma s - \frac{\omega_0^2}{s^2} + \frac{\gamma^2}{s^2} + O(s^{-3})\big)$ ✓.</p>
+    <p><b>Why the imaginary axis needs a word.</b> Watson's lemma as proved is for real $\lambda\to\infty$,
+    and $s = -i\omega$ is not real. Here no extension of the lemma is needed: $\mathcal L[G]$ is rational, holomorphic for $|s| &gt; \omega_0$ including at
+    $\infty$, so its Laurent series about $\infty$ converges there, and by the identity theorem it is the
+    series Watson produced. For a general $G$ with a jump in $\dot G$, integration by parts twice gives
+    $\chi = -\dot G(0^+)/\omega^2 + o(\omega^{-2})$ directly — the same statement.</p>
+    <p><b>Dimensions.</b> $[\chi] = \mathrm T^2$ and $[1/\omega^2] = \mathrm T^2$ ✓; $[\gamma/\omega^3] = \mathrm T^2$ ✓.
+    <b>Limit.</b> $\omega_0\to0$ and $\gamma\to0$ leave $\chi = -1/\omega^2$ exactly: the free mass.</p>
+    <p><b>History.</b> G. N. Watson, 1918, in a paper on the harmonic functions of the parabolic
+    cylinder. The lemma is the reason most asymptotic expansions of integrals are easy once the
+    integral has been put in Laplace form; the next three slides are ways of putting it there.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · asymptotics</p>
+  <h2>Laplace's method</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Laplace's method</span></span>
+        <p class="small">Let $h$ be $C^2$ on $[a,b]$ with a unique maximum at an interior $t_0$, $h''(t_0) &lt; 0$, and $g$ continuous with $g(t_0)\ne0$. Then as $\lambda\to\infty$</p>
+        $$\int_a^bg(t)e^{\lambda h(t)}\,\mathrm dt\sim g(t_0)\,e^{\lambda h(t_0)}\sqrt{\frac{2\pi}{\lambda|h''(t_0)|}} .$$
+      </div>
+      <p class="small"><b>Why.</b> $e^{\lambda h}$ is a spike of height $e^{\lambda h(t_0)}$ and width $\sim(\lambda|h''|)^{-1/2}$; inside the spike $h\approx h(t_0) - \frac12|h''|(t - t_0)^2$ and $g\approx g(t_0)$, and the Gaussian integral does the rest. Everything outside is exponentially smaller. Full proof in the notes.</p>
+      <p class="small"><b>Dimensions:</b> with $t$ a time, $\lambda h$ dimensionless, $\sqrt{1/\lambda|h''|}$ is a time, and both sides carry $[g]\,\mathrm T$ ✓.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label"><span class="term">Stirling's formula</span></span>
+        <p class="small">$n! = \Gamma(n+1) = \int_0^\infty t^ne^{-t}\mathrm dt$. Put $t = nu$:</p>
+        $$n! = n^{n+1}\int_0^\infty e^{n(\ln u - u)}\,\mathrm du .$$
+        <p class="small">$h(u) = \ln u - u$: maximum at $u = 1$, $h(1) = -1$, $h''(1) = -1$. So</p>
+        $$n!\sim n^{n+1}e^{-n}\sqrt{\frac{2\pi}{n}} = \sqrt{2\pi n}\,\Big(\frac ne\Big)^n .$$
+        <p class="small"><b>Check at $n = 10$:</b> $3\,598\,695.6$ against $10! = 3\,628\,800$, low by $0.83\%$. The next term multiplies by $1 + \frac1{12n}$ and gives $3\,628\,684.7$, low by $3\times10^{-5}$.</p>
+      </div>
+      <p class="small">Real integrand, real maximum. The next two slides are what to do when the exponent is <b>imaginary</b>, or when there is no real maximum at all.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of Laplace's method</h4>
+    <p>Write $h_0 = h(t_0)$, $k = |h''(t_0)|$. Given $\eta\in(0,1)$, choose $\delta$ so that on
+    $|t - t_0|\le\delta$: $|g(t) - g(t_0)|\le\eta|g(t_0)|$ and
+    $-\frac12k(1+\eta)(t - t_0)^2\le h(t) - h_0\le-\frac12k(1-\eta)(t - t_0)^2$ (Taylor with the continuity of
+    $h''$). <b>Outside</b> the $\delta$-interval, $h\le h_0 - \mu$ for some $\mu &gt; 0$ (unique maximum,
+    compactness), so that part is at most $(b-a)\max|g|\,e^{\lambda(h_0 - \mu)}$ — smaller than
+    $e^{\lambda h_0}\lambda^{-1/2}$ by a factor $e^{-\lambda\mu}\sqrt\lambda\to0$. <b>Inside</b>, the integral
+    lies between $(1\mp\eta)g(t_0)e^{\lambda h_0}\int_{-\delta}^{\delta}e^{-\frac12\lambda k(1\pm\eta)u^2}\mathrm du$
+    (for $g(t_0) &gt; 0$; otherwise reverse), and $\int_{-\delta}^\delta e^{-\frac12\lambda cu^2}\mathrm du = \sqrt{2\pi/\lambda c}\,(1 + o(1))$.
+    So the ratio of the integral to the claimed form lies between $(1-\eta)/\sqrt{1+\eta}$ and
+    $(1+\eta)/\sqrt{1-\eta}$ for large $\lambda$; $\eta$ was arbitrary. $\square$</p>
+    <p><b>The infinite interval.</b> The theorem is stated on $[a,b]$; Stirling's integral runs over
+    $[0,\infty)$. On $u\ge2$, $h'(u) = 1/u - 1\le-\frac12$, so $h(u)\le\ln2 - 2 - (u-2)/2$ and the tail is at most
+    $\frac2ne^{n(\ln2 - 2)}$; since $\ln2 - 2 = -1.307 &lt; -1 = h(1)$, it is exponentially smaller than the
+    main term. On $(0,\frac12]$, $h$ is increasing, so $h\le h(\frac12) = -\ln2 - \frac12 = -1.193 &lt; -1$ and that piece
+    is exponentially smaller too. The theorem applies on $[\frac12, 2]$ with $g = 1$.</p>
+    <p><b>The Stirling numbers.</b> $\sqrt{20\pi}\,(10/e)^{10} = 3\,598\,695.62$; ratio to $3\,628\,800$
+    is $0.991704$. Times $1 + 1/120$: $3\,628\,684.75$. The correction series
+    $1 + \frac{1}{12n} + \frac{1}{288n^2} - \dots$ comes from carrying the Taylor expansion of $h$ and the
+    Gaussian moments to higher order — a Watson's lemma computation after the substitution
+    $\ln u - u + 1 = -\tau^2/2$; it is <i>cited</i> here (de Bruijn, <i>Asymptotic Methods in Analysis</i>,
+    §4.5) and it is an example of a divergent asymptotic series, which is unit 21's subject.</p>
+    <p><b>History.</b> Laplace, 1774, <i>Mémoire sur la probabilité des causes par les événements</i>,
+    evaluating integrals of $x^p(1-x)^q$ for large $p, q$ — the beta integrals of Bayesian inference.
+    De Moivre had $n!\approx Cn^{n+1/2}e^{-n}$ in 1730 and Stirling found $C = \sqrt{2\pi}$ the same year.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · asymptotics</p>
+  <h2>Stationary phase</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the method of <span class="term">stationary phase</span></span>
+        <p class="small">Let $g, \psi$ be smooth and real-valued ($\psi$) on $[a,b]$, with $\psi'\ne0$ except at one interior $t_0$, where $\psi''(t_0)\ne0$. Then</p>
+        $$\begin{aligned}\int_a^bg\,e^{i\lambda\psi}\mathrm dt ={}& g(t_0)\sqrt{\frac{2\pi}{\lambda|\psi''(t_0)|}}\,e^{i\lambda\psi(t_0)\pm i\pi/4}\\ &+ O(1/\lambda),\end{aligned}$$
+        <p class="small">the sign being that of $\psi''(t_0)$.</p>
+      </div>
+      <p class="small"><b>Where $\psi'\ne0$ the integral is $O(1/\lambda)$</b>, by one integration by parts:</p>
+      $$\int ge^{i\lambda\psi} = \Big[\frac{ge^{i\lambda\psi}}{i\lambda\psi'}\Big] - \frac{1}{i\lambda}\!\int\!\Big(\frac{g}{\psi'}\Big)'e^{i\lambda\psi}.$$
+      <p class="small">Near $t_0$ the phase stands still, the contributions stop cancelling, and a Fresnel integral — $\int e^{i\lambda u^2/2}\mathrm du = \sqrt{2\pi/\lambda}\,e^{i\pi/4}$, problem P6 — gives the size.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">unit 09's debt: the constants in $J_n$</span>
+        <p class="small">Bessel's integral $J_n(x) = \frac1{2\pi}\int_{-\pi}^{\pi}e^{i(n\theta - x\sin\theta)}\mathrm d\theta$ has phase $-\sin\theta$, stationary at $\theta = \pm\frac\pi2$ with $\psi'' = \pm1$. Two contributions, complex conjugates (P11):</p>
+        $$J_n(x)\approx\sqrt{\frac{2}{\pi x}}\cos\Big(x - \frac{n\pi}{2} - \frac\pi4\Big).$$
+        <p class="small">$J_0(10) = -0.245936$ against $-0.246761$; $J_0(20) = 0.167025$ against $0.166656$ ✓.</p>
+      </div>
+      <p class="small"><b>Physics:</b> in a superposition of waves, what survives at large distance or time is the part whose phase is stationary — Kelvin's argument (1887) for the V of a ship's wake, and the next slide's argument for group velocity. <b>Dimensions:</b> both sides $[g]\,\mathrm T$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Localise.</b> Choose a smooth cutoff $\rho$ equal to $1$ near $t_0$ and supported where
+    $|\psi''|\ge\frac12|\psi''(t_0)|$ (built from the bump function of section 2). On the support of
+    $1 - \rho$, $\psi'\ne0$, and the integration by parts on the slide gives $O(1/\lambda)$ (boundary terms
+    at $a, b$ included).</p>
+    <p><b>Straighten the phase.</b> Near $t_0$ with $\psi''(t_0) &gt; 0$, put
+    $u = \operatorname{sgn}(t - t_0)\sqrt{2(\psi(t) - \psi(t_0))}$. Since $\psi - \psi(t_0) = (t - t_0)^2q(t)$
+    with $q$ smooth and $q(t_0) = \psi''(t_0)/2 &gt; 0$, $u = (t - t_0)\sqrt{2q(t)}$ is smooth with
+    $\mathrm du/\mathrm dt = \sqrt{\psi''(t_0)}$ at $t_0$: a smooth change of variable with
+    $\psi = \psi(t_0) + u^2/2$. The localised integral becomes $e^{i\lambda\psi(t_0)}\int k(u)e^{i\lambda u^2/2}\mathrm du$,
+    with $k = \rho g\,\mathrm dt/\mathrm du$ smooth, compactly supported, and $k(0) = g(t_0)/\sqrt{\psi''(t_0)}$.</p>
+    <p><b>Evaluate.</b> $k(u) = k(0)\rho_1(u) + u\,m(u)$ with $\rho_1$ a cutoff equal to $1$ on the support
+    of $k$ and $m$ smooth and compactly supported. Then (i)
+    $\int u\,m\,e^{i\lambda u^2/2}\mathrm du = \frac{1}{i\lambda}\int m\,\mathrm d(e^{i\lambda u^2/2}) = -\frac{1}{i\lambda}\int m'e^{i\lambda u^2/2} = O(1/\lambda)$;
+    (ii) $\int\rho_1e^{i\lambda u^2/2} = \int e^{i\lambda u^2/2} - \int(1 - \rho_1)e^{i\lambda u^2/2}$, and the second
+    piece is $O(1/\lambda)$ by integrating by parts against $u$ (the integrand vanishes near $0$). The
+    Fresnel integral (P6, with a scaling) is $\sqrt{2\pi/\lambda}\,e^{i\pi/4}$. Assemble:
+    $e^{i\lambda\psi(t_0)}g(t_0)\sqrt{2\pi/\lambda\psi''(t_0)}\,e^{i\pi/4} + O(1/\lambda)$. For $\psi'' &lt; 0$ take
+    complex conjugates. $\square$</p>
+    <p><b>The Bessel numbers.</b> $\sqrt{2/10\pi}\cos(10 - \pi/4) = -0.246761$ and $J_0(10) = -0.245936$;
+    at $20$, $0.166656$ against $0.167025$. The error is smaller than the $O(1/x)$ the theorem allows,
+    because the integrand of Bessel's integral is periodic: there are no endpoint contributions at all,
+    and the next term is $O(x^{-3/2})$ (<i>cited</i>: Watson, <i>Treatise on the Theory of Bessel Functions</i>,
+    §7.21). This settles the constants unit 09 had to cite.</p>
+    <p><b>History.</b> Stokes (1850, for the Airy integral) and Kelvin (1887, for water waves). The
+    Fresnel integrals are Fresnel's, 1818, from diffraction at an edge.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · asymptotics</p>
+  <h2>Steepest descent</h2>
+  <div class="cols">
+    <div>
+      <p class="small">For $I(\lambda) = \int_Cg(z)e^{\lambda\varphi(z)}\mathrm dz$ with $g, \varphi$ holomorphic, Cauchy lets you move $C$, paying for any arcs by estimates. Where to?</p>
+      <div class="box def"><span class="label"><span class="term">saddle point</span>, and the path through it</span>
+        <p class="small">$|e^{\lambda\varphi}| = e^{\lambda\operatorname{Re}\varphi}$ has no local maximum (maximum modulus). The best available is a <b>saddle</b>, $\varphi'(z_0) = 0$. Through it, the curve on which $\operatorname{Im}\varphi = \operatorname{Im}\varphi(z_0)$ is the <span class="term">path of steepest descent</span>: along it there is <b>no oscillation</b> and $\operatorname{Re}\varphi$ falls as fast as possible.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">method of steepest descent</span></span>
+        <p class="small">On that path the integral is a Laplace integral, and</p>
+        $$I(\lambda)\sim g(z_0)\,e^{\lambda\varphi(z_0)}\sqrt{\frac{2\pi}{-\lambda\varphi''(z_0)}},$$
+        <p class="small">the root's branch set by the direction in which the path crosses $z_0$.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Why the level curves of $\operatorname{Im}\varphi$.</b> With $\varphi = u + iv$, Cauchy–Riemann makes the vectors of partials orthogonal: $u_xv_x + u_yv_y = u_xv_x - v_xu_x = 0$. So a level curve of $v$ runs along the direction of fastest change of $u$. Near $z_0$, $\varphi\approx\varphi(z_0) + \frac12\varphi''(z_0)(z - z_0)^2$, and the descent direction $e^{i\theta}$ makes $\varphi''(z_0)e^{2i\theta}$ negative real.</p>
+      <div class="box good"><span class="label">one method, three faces</span>
+        <p class="small"><b>Laplace:</b> real saddle, real path. <b>Stationary phase:</b> saddle on the real axis, path crossing it at $45^\circ$ — the $e^{\pm i\pi/4}$. <b>Genuinely complex saddles:</b> exponentially small answers that real methods see only as "$O(\lambda^{-N})$ for all $N$".</p>
+      </div>
+      <div class="box warn"><span class="label">where the work is</span>
+        <p class="small">The saddle is two lines. The proof is the arc estimates that justify the move — the checkpoint's second clause.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The saddle, geometrically.</b> $e^{\lambda\varphi}$ is holomorphic, so by the maximum modulus
+    theorem its modulus $e^{\lambda\operatorname{Re}\varphi}$ — and hence $\operatorname{Re}\varphi$ — has no interior
+    local maximum. Near a point where $\varphi' = 0\ne\varphi''$, $\varphi - \varphi(z_0)\approx\frac12\varphi''(z_0)(z - z_0)^2$,
+    and $\operatorname{Re}$ of that rises in two opposite directions and falls in the two perpendicular
+    ones: a saddle. A contour that must get from one valley to another crosses the ridge; the lowest crossing is
+    the saddle. That is why the method is also called the <b>saddle-point method</b>.</p>
+    <p><b>Proof of the formula, given the deformation.</b> Parametrise the steepest path near $z_0$ by
+    $\tau$ with $\varphi(z(\tau)) = \varphi(z_0) - \tau^2/2$, $\tau$ real; this is the phase-straightening of
+    the stationary-phase proof done in the complex plane, legitimate because $\varphi''(z_0)\ne0$ (the
+    holomorphic inverse function theorem, <i>cited</i>: Ahlfors, ch. 4 §3.3). Then
+    $I = e^{\lambda\varphi(z_0)}\int g(z(\tau))z'(\tau)e^{-\lambda\tau^2/2}\mathrm d\tau$, a real Laplace integral, and
+    $z'(0) = (-\varphi''(z_0))^{-1/2}$ with the branch pointing along the path. Laplace's method (or
+    Watson's lemma, for the full series) finishes. $\square$</p>
+    <p><b>Practice is often easier than the theory.</b> The exact steepest path is rarely needed: any
+    path through the saddle along which $\operatorname{Re}\varphi$ has a strict nondegenerate maximum at
+    $z_0$ works, because Laplace's method for a complex-valued exponent with a real-part maximum is
+    proved by the same estimates. The next slide uses a straight line.</p>
+    <h4>Unit 09's last debt: how fast $I_n(ne)$ grows</h4>
+    <p>Unit 09 needed the growth in $n$ of $I_n(ne) = \sum_k\frac{(ne/2)^{n+2k}}{k!(n+k)!}$, the sum of the
+    absolute values of the terms it rearranged, and of $J_n(ne)$. Take as given data the integral
+    $I_n(x) = \frac1{2\pi}\int_{-\pi}^{\pi}e^{x\cos\theta + in\theta}\,\mathrm d\theta$ (expand $e^{x\cos\theta}$ in powers
+    and integrate term by term to recover the series). With $x = ne$ the exponent is $n\varphi$,
+    $\varphi(\theta) = e\cos\theta + i\theta$, and $\varphi' = -e\sin\theta + i = 0$ at $\theta = i\beta$ with
+    $\sinh\beta = 1/e$. <b>The move costs nothing:</b> the integrand is $2\pi$-periodic, so on the
+    rectangle $-\pi, \pi, \pi + i\beta, -\pi + i\beta$ the two vertical sides cancel exactly, and
+    Cauchy moves $[-\pi,\pi]$ to $\theta = s + i\beta$. There $\operatorname{Re}\varphi = e\cosh\beta\cos s - \beta$,
+    with its unique maximum on $[-\pi,\pi]$ at $s = 0$, and $\varphi''(i\beta) = -e\cosh\beta = -\sqrt{1 + e^2}$ is
+    negative real, so Laplace's method applies along the line:
+    $$I_n(ne)\sim\frac{r(e)^n}{\sqrt{2\pi n\sqrt{1 + e^2}}},\qquad r(e) = e^{\varphi(i\beta)} = \frac{e\,e^{\sqrt{1+e^2}}}{1 + \sqrt{1 + e^2}},$$
+    using $e\cosh\beta = \sqrt{1+e^2}$ and $e^{\beta} = (1 + \sqrt{1+e^2})/e$. So $\sum_nI_n(ne)$ converges iff
+    $r(e) &lt; 1$, and $r(e) = 1$ exactly at $e = 0.6627434$: with $x_* = \sqrt{1 + \lambda^2}$ it is P10's
+    $x_*\tanh x_* = 1$ in another form. The same computation for
+    $J_n(ne) = \frac1{2\pi}\int e^{in(\theta - e\sin\theta)}\mathrm d\theta$, with the saddle at $i\alpha$,
+    $\cosh\alpha = 1/e$, gives $J_n(ne)\sim q(e)^n/\sqrt{2\pi n\sqrt{1 - e^2}}$ with
+    $q(e) = e\,e^{\sqrt{1-e^2}}/(1 + \sqrt{1 - e^2})$ — the ratio unit 09 quoted, $0.9943$ for Halley and
+    $0.127$ for Mars. Numerically the ratio of $I_n(ne)$ to the formula is $0.99924$ at $e = 0.5$, $n = 50$,
+    and $0.99981$ at $n = 200$. Debye (1909) did exactly this.</p>
+    <p><b>History.</b> Riemann used the idea in 1863 for hypergeometric functions; Debye (1909), for
+    Bessel functions of large order, made it the method it is. It is how the Airy function's
+    exponentially small tail, the large-order behaviour of Bessel functions that unit 09 left open, and
+    the classical limit of wave mechanics are all computed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · asymptotics · example</p>
+  <h2>Worked: an exponentially small integral by steepest descent</h2>
+  <div class="box ex"><span class="label">worked example 5 — $\displaystyle I(\lambda) = \int_{-\infty}^\infty e^{i\lambda(t^3/3 + t)}\,\mathrm dt = 2\int_0^\infty\cos\big(\lambda(\tfrac{t^3}3 + t)\big)\mathrm dt$ as $\lambda\to\infty$</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 1 — real methods fail.</b> The phase $t^3/3 + t$ has derivative $t^2 + 1 &gt; 0$: no stationary point. Integrating by parts repeatedly shows only $I = O(\lambda^{-N})$ for every $N$.</p>
+        <p class="small"><b>Step 2 — the saddles.</b> $\varphi(z) = i(z^3/3 + z)$, $\varphi' = i(z^2 + 1) = 0$ at $z = \pm i$, with $\varphi(i) = i(-\frac i3 + i) = -\frac23$ and $\varphi(-i) = +\frac23$. Go <b>up</b> to $z = i$, where the integrand is small.</p>
+        <p class="small"><b>Step 3 — the arcs.</b> Rectangle $-R, R, R+i, -R+i$; the integrand is entire. On the side $z = \pm R + iy$, $0\le y\le1$:</p>
+        $$\operatorname{Re}\,\lambda\varphi = \lambda\big(-R^2y + \tfrac{y^3}3 - y\big)\le-\lambda R^2y,$$
+        <p class="small">so each side is at most $\int_0^1e^{-\lambda R^2y}\mathrm dy\le\frac{1}{\lambda R^2}\to0$.</p>
+      </div>
+      <div>
+        <p class="small"><b>Step 4 — on the line through the saddle</b>, $z = s + i$: expanding, $i\big(\frac{(s+i)^3}3 + s + i\big) = -\frac23 - s^2 + \frac{is^3}{3}$. So, <b>exactly</b>,</p>
+        $$I(\lambda) = e^{-2\lambda/3}\!\int e^{-\lambda s^2}\cos\tfrac{\lambda s^3}3\,\mathrm ds .$$
+        <p class="small">No cancellation left: a Gaussian times a slowly turning phase.</p>
+        <p class="small"><b>Step 5 — Laplace.</b> $\cos x = 1 - \frac{x^2}2 + O(x^4)$ and $\int s^6e^{-\lambda s^2} = \frac{15}{8}\sqrt\pi\,\lambda^{-7/2}$:</p>
+        $$I = \sqrt{\frac\pi\lambda}\,e^{-2\lambda/3}\Big(1 - \frac{5}{48\lambda} + O(\lambda^{-2})\Big).$$
+        <p class="small"><b>Check at $\lambda = 5$:</b> quadrature gives $0.0277624$; one term $0.0282775$ ($+1.9\%$); two terms $0.0276884$ ($-0.27\%$) ✓. <b>Limit:</b> exponentially small, consistent with Step 1.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 3, the algebra.</b> With $z = R + iy$: $z^3 = R^3 + 3iR^2y - 3Ry^2 - iy^3$, so
+    $i z^3/3 = iR^3/3 - R^2y - iRy^2 + y^3/3$ and $iz = iR - y$. Real part of $i(z^3/3 + z)$:
+    $-R^2y + y^3/3 - y$. For $0\le y\le1$, $y^3/3 - y\le0$. Same at $-R$ ($R^2$ is even). Each side has
+    length $1$, so the ML-type bound is $\int_0^1e^{-\lambda R^2y}\mathrm dy = (1 - e^{-\lambda R^2})/\lambda R^2$.
+    Cauchy's theorem for the rectangle (convex) then says: integral along the real axis from $-R$ to $R$
+    $=$ integral along the top from $-R+i$ to $R+i$ $+$ the two sides; let $R\to\infty$. The real
+    integral converges as an improper integral (integrate by parts once against $t^2 + 1$), so the limit
+    is $I(\lambda)$.</p>
+    <p><b>Step 4, the algebra.</b> $(s+i)^3 = s^3 + 3is^2 - 3s - i$; divide by $3$ and add $s + i$:
+    $\frac{s^3}3 + is^2 + \frac{2i}3$. Times $i$: $\frac{is^3}3 - s^2 - \frac23$. The odd part
+    $\sin(\lambda s^3/3)$ integrates to zero against the even Gaussian.</p>
+    <p><b>Step 5, with its error.</b> $|\cos x - 1 + x^2/2|\le x^4/24$, and with $x = \lambda s^3/3$,
+    $\int e^{-\lambda s^2}\frac{\lambda^4s^{12}}{24\cdot81}\mathrm ds = \frac{\lambda^4}{1944}\cdot\frac{10395\sqrt\pi}{64}\lambda^{-13/2} = O(\lambda^{-5/2})$,
+    which is $O(\lambda^{-2})$ relative to $\sqrt{\pi/\lambda}$. The second term:
+    $-\frac{\lambda^2}{18}\cdot\frac{15\sqrt\pi}{8}\lambda^{-7/2} = -\frac{5}{48\lambda}\sqrt{\frac\pi\lambda}$. All rigorous — no
+    step was an approximation that was not bounded.</p>
+    <p><b>Why this line and not the exact steepest path.</b> The level curve $\operatorname{Im}\varphi = 0$
+    through $i$ is tangent to the horizontal there (it is $s^3/3$ that must vanish to third order), so the
+    straight line leaves the steepest path only at third order, and the cubic phase it picks up is what
+    Step 5 expands. <b>Why not $-i$:</b> on $z = R - iy$ the real part of the exponent is
+    $\lambda(R^2y - y^3/3 + y)$, which grows with $R$ — the sides cannot be discarded, and the saddle there
+    has $e^{+2\lambda/3}$: it would be a huge number cancelling itself.</p>
+    <p><b>The numbers.</b> The exact value is $2\pi\lambda^{-1/3}\mathrm{Ai}(\lambda^{2/3})$, where Ai is the
+    Airy function — a name to meet later, not a fact used here; at $\lambda = 5$ the quadrature and this
+    formula agree, $0.02776242$. $\sqrt{\pi/5}\,e^{-10/3} = 0.02827754$, and times $1 - 5/240$ it is
+    $0.02768843$. At $\lambda = 2$ the two-term value is $0.313163$ against $0.317375$, error $-1.3\%$; the
+    error falls like $\lambda^{-2}$, as the bound says.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · asymptotics</p>
+  <h2>Wave packets: phase and group velocity</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A wave in a dispersive medium obeys a <span class="term">dispersion relation</span> $\omega = \omega(k)$, and a packet is a superposition</p>
+      $$u(x,t) = \frac1{2\pi}\int A(k)\,e^{i(kx - \omega(k)t)}\,\mathrm dk .$$
+      <p class="small">Each component's crests move at the <span class="term">phase velocity</span> $v_\mathrm p = \omega/k$. Where is the packet?</p>
+      <div class="box thm"><span class="label"><span class="term">group velocity</span>, by stationary phase</span>
+        <p class="small">Look along $x = vt$ as $t\to\infty$: the phase is $t\,(kv - \omega(k))$, stationary where $\omega'(k) = v$. So</p>
+        $$u(vt, t)\approx\frac{A(k_*)\,e^{it(k_*v - \omega(k_*))\mp i\pi/4}}{\sqrt{2\pi t|\omega''(k_*)|}},$$
+        <p class="small">where $\omega'(k_*) = v$.</p>
+        <p class="small">If $A$ is concentrated near $k_0$, $u$ is small unless $x/t\approx\omega'(k_0)$: the packet moves at $v_\mathrm g = \mathrm d\omega/\mathrm dk$, and decays like $t^{-1/2}$ — it spreads.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">light in BK7, at 587.6 nm</span>
+        <p class="small">In glass $k = n(\omega)\omega/c$, so $1/v_\mathrm g = \mathrm dk/\mathrm d\omega$ gives $v_\mathrm g = c/n_\mathrm g$ with the group index $n_\mathrm g = n - \lambda\frac{\mathrm dn}{\mathrm d\lambda}$. From the Sellmeier formula:</p>
+        <p class="small">$n = 1.51680$, $v_\mathrm p = 0.65928\,c$;<br>$n_\mathrm g = 1.54136$, $v_\mathrm g = 0.64878\,c$.</p>
+        <p class="small">A pulse travels $1.6\%$ slower than its own crests; the crests slide forward through it. Normal dispersion, $\mathrm dn/\mathrm d\lambda &lt; 0$, is what makes $n_\mathrm g &gt; n$.</p>
+      </div>
+      <p class="small"><b>Checks.</b> No dispersion, $n$ constant: $n_\mathrm g = n$, $v_\mathrm g = v_\mathrm p$ ✓. Dimensions: $\mathrm d\omega/\mathrm dk$ is a speed ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The stationary-phase step.</b> Apply the theorem to $\int A(k)e^{it\psi(k)}\mathrm dk$ with
+    $\lambda = t$ and $\psi(k) = kv - \omega(k)$: $\psi' = v - \omega'(k)$, $\psi'' = -\omega''(k)$. The
+    contribution is $A(k_*)\sqrt{2\pi/t|\omega''(k_*)|}\,e^{it\psi(k_*) - i\frac\pi4\operatorname{sgn}\omega''(k_*)}$,
+    divided by $2\pi$. If no $k$ in the support of $A$ has $\omega'(k) = v$, the integral is $O(1/t)$ —
+    faster decay — so the packet's bulk is on the rays $x/t\in\omega'(\operatorname{supp}A)$.</p>
+    <p><b>The group index.</b> $k(\omega) = n(\omega)\omega/c$ gives $\frac{\mathrm dk}{\mathrm d\omega} = \frac{n + \omega\,\mathrm dn/\mathrm d\omega}{c}$,
+    and with $\lambda = 2\pi c/\omega$, $\omega\frac{\mathrm dn}{\mathrm d\omega} = -\lambda\frac{\mathrm dn}{\mathrm d\lambda}$.
+    The derivative of the Sellmeier $n(\lambda)$ at $0.5875618\ \mu$m is $-0.04180\ \mu\mathrm m^{-1}$,
+    so $n_\mathrm g = 1.516800 + 0.024560 = 1.541360$; $1/n = 0.659283$ and $1/n_\mathrm g = 0.648778$.</p>
+    <p><b>Deep water</b> has $\omega = \sqrt{gk}$ (a result of fluid mechanics, not derived in this course),
+    so $v_\mathrm g = \frac12\sqrt{g/k} = \frac12v_\mathrm p$: a group of swells travels at half the speed of
+    its crests, which appear at the back of the group, run through it and die at the front. Kelvin's
+    ship-wake angle, $2\arcsin(1/3) = 38.94^\circ$, is stationary phase applied to this relation in two
+    dimensions.</p>
+    <p><b>History.</b> Hamilton (1839) and Stokes (1876) distinguished the two velocities; Rayleigh's
+    <i>Theory of Sound</i> (1877) gave $v_\mathrm g = \mathrm d\omega/\mathrm dk$ its name and its
+    beat-frequency derivation. Energy and information travel at $v_\mathrm g$ in normal dispersion; near
+    an absorption line $v_\mathrm g$ can exceed $c$, and Sommerfeld and Brillouin (1914) showed —
+    by exactly this unit's contour methods — that the front of a signal still travels at $c$, because
+    $\chi\to0$ as $|\omega|\to\infty$ in the upper half-plane.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · asymptotics</p>
+  <h2>Packets spread</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Take a Gaussian packet, $A(k) = e^{-\sigma_0^2(k - k_0)^2/2}$, and expand the dispersion relation to second order: $\omega\approx\omega_0 + v_\mathrm g q + \frac12\beta q^2$, $q = k - k_0$. Then</p>
+      $$u = \frac{e^{i(k_0x - \omega_0t)}}{2\pi}\int e^{-aq^2/2 + iq(x - v_\mathrm gt)}\,\mathrm dq,$$
+      <p class="small">a Gaussian integral with <b>complex</b> width $a = \sigma_0^2 + i\beta t$, $\operatorname{Re}a &gt; 0$: by analytic continuation it is $\sqrt{2\pi/a}\,e^{-(x - v_\mathrm gt)^2/2a}$. Taking the modulus:</p>
+      <div class="box thm"><span class="label">the spreading law</span>
+        $$|u|\propto e^{-(x - v_\mathrm gt)^2/2\sigma(t)^2},$$
+        $$\sigma(t) = \sigma_0\sqrt{1 + \big(\beta t/\sigma_0^2\big)^2} .$$
+      </div>
+      <p class="small"><b>Checks.</b> $\beta = 0$: no spreading ✓. Late times $\sigma\approx|\beta|t/\sigma_0$: the <b>narrower</b> the packet, the faster it spreads — the uncertainty relation, moving. $[\beta] = \mathrm L^2\mathrm T^{-1}$, so $\beta t/\sigma_0^2$ is a number ✓.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">a 10 fs pulse through 1 cm of glass</span>
+        <p class="small">In time rather than space: $k(\omega)\approx k_0 + (\omega - \omega_0)/v_\mathrm g + \frac12k''(\omega - \omega_0)^2$, and the same algebra gives a duration $\tau(z) = \tau_0\sqrt{1 + (k''z/\tau_0^2)^2}$.</p>
+        <p class="small">BK7 at 800 nm: $k'' = 44.65\ \mathrm{fs^2\,mm^{-1}}$ from the Sellmeier formula. A pulse of intensity full width $10$ fs has $\tau_0 = 6.006$ fs; after $z = 10$ mm, $k''z = 446.5\ \mathrm{fs^2}$ and</p>
+        $$\tau/\tau_0 = 12.42:\quad10\ \mathrm{fs}\to124\ \mathrm{fs}.$$
+        <p class="small">A centimetre of ordinary glass stretches the pulse twelvefold. Ultrafast optics spends much of its ingenuity undoing exactly this.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The integral with complex width.</b> The analytic continuation slide gave
+    $\int e^{-aq^2/2}\mathrm dq = \sqrt{2\pi/a}$ for $\operatorname{Re}a &gt; 0$. With a linear term: for $a &gt; 0$,
+    $\int e^{-aq^2/2 + ibq}\mathrm dq = \sqrt{2\pi/a}\,e^{-b^2/2a}$ (worked example 1 with scaling). For fixed
+    real $b$ both sides are holomorphic in $a$ on $\operatorname{Re}a &gt; 0$ (Morera, as before), so the
+    identity theorem extends it. Here $b = x - v_\mathrm gt$.</p>
+    <p><b>The modulus.</b> $|e^{-b^2/2a}| = e^{-b^2\operatorname{Re}(1/a)/2}$ and
+    $\operatorname{Re}\frac1a = \frac{\sigma_0^2}{\sigma_0^4 + \beta^2t^2}$, so $\sigma(t)^2 = \frac{\sigma_0^4 + \beta^2t^2}{\sigma_0^2}$.
+    Also $|\sqrt{2\pi/a}| = \sqrt{2\pi}\,(\sigma_0^4 + \beta^2t^2)^{-1/4}$, decaying like $t^{-1/2}$ as the
+    stationary-phase slide predicted, and $\int|u|^2\mathrm dx$ is constant, as it must be (Plancherel: the
+    dispersion only changes the phases of the components).</p>
+    <p><b>The glass numbers.</b> $k'' = \frac{\lambda^3}{2\pi c^2}\frac{\mathrm d^2n}{\mathrm d\lambda^2}$; at
+    $0.8\ \mu$m the Sellmeier formula gives $k'' = 44.652\ \mathrm{fs^2\,mm^{-1}}$. The field envelope is
+    $e^{-t^2/2\tau_0^2}$, the intensity $e^{-t^2/\tau_0^2}$, whose full width at half maximum is
+    $2\sqrt{\ln2}\,\tau_0$; for $10$ fs that is $\tau_0 = 6.0056$ fs, $\tau_0^2 = 36.07\ \mathrm{fs^2}$. Then
+    $k''z/\tau_0^2 = 446.52/36.067 = 12.380$, and $\sqrt{1 + 12.380^2} = 12.420$, giving $124.2$ fs. The
+    output is also <b>chirped</b> — the phase of $1/a$ makes the instantaneous frequency sweep across the
+    pulse, red first in normal dispersion — which is what a prism or grating pair then compresses.</p>
+    <p><b>The same law elsewhere.</b> With $\omega = \hbar k^2/2m$ this is the spreading of a free
+    quantum wave packet, $\beta = \hbar/m$; with a time-dependent width it is the diffraction of a
+    Gaussian laser beam, the Rayleigh range playing the role of $\sigma_0^2/\beta$. The mathematics is
+    one Gaussian integral with a complex parameter, legitimised by the identity theorem.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">20 · summary</p>
+  <h2>The galvanometer, closed, and where this goes</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">one oscillator, every section</span>
+        <p class="small"><b>1</b> $\chi = \hat G$. <b>2</b> $LG = \delta$. <b>3</b> Two poles on $|\omega| = \omega_0$; the Taylor series dies at resonance. <b>4</b> Residues $\mp e^{-i\omega_\pm t}/2\omega_\mathrm d$. <b>5</b> Close up: $G = 0$ for $t &lt; 0$; close down: unit 06's $G$; Kramers–Kronig to seven digits. <b>6</b> $\chi\sim-1/\omega^2$: inertia, and the sum rule.</p>
+      </div>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>unit</th><th>what it takes from here</th></tr></thead>
+        <tbody>
+          <tr><td><b>24</b></td><td>The wave operator's retarded Green's function in three dimensions, by residues, with the $i0$ prescription made explicit; its two-dimensional cousin, which has a tail.</td></tr>
+          <tr><td><b>38</b></td><td>Gravitational waves, radiated through that same retarded Green's function.</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">three things to carry forward</span>
+        <p class="small"><b>1.</b> A linear time-invariant system is one function of frequency, and its poles are its free modes.</p>
+        <p class="small"><b>2.</b> Causality is holomorphy in a half-plane: it decides which way a contour closes, which Green's function is physical, and why dispersion and absorption come together.</p>
+        <p class="small"><b>3.</b> An integral is decided by its critical points — the maximum, the stationary point, the saddle — once the contour has been moved to where there is no cancellation left.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading.</b> For the complex analysis: Stein &amp; Shakarchi, <i>Complex Analysis</i>, ch. 1–3
+    — the route here (Goursat, toy contours, residues) is theirs — and ch. 4 for the Fourier transform
+    done with contours, including the Paley–Wiener theorem, the sharp form of "supported on a half-line
+    iff holomorphic in a half-plane". Ahlfors, <i>Complex Analysis</i>, ch. 4 is the reference for the
+    general Cauchy theorem cited here. For distributions: Strichartz, <i>A Guide to Distribution Theory
+    and Fourier Transforms</i>, ch. 1–4, which is short and physical; it states results on
+    $\mathbb R^n$, so read every statement with $n = 1$ and skip the passages on partial derivatives and
+    several-variable integrals, which this course has not built; skip ch. 5 onwards. For causality: Nussenzveig, <i>Causality and Dispersion
+    Relations</i>, ch. 1, and Toll's 1956 paper in <i>Physical Review</i>, which proves that causality
+    alone implies the dispersion relations. For asymptotics: Bender &amp; Orszag, <i>Advanced Mathematical
+    Methods for Scientists and Engineers</i>, ch. 6 — the examples are superb, and the asymptotic notation it assumes is the
+    one defined on the Watson slide. Jackson's <i>Classical Electrodynamics</i> §7.5 and §7.10 on
+    dispersion and Kramers–Kronig will read easily <b>after unit 24</b>, and not before.</p>
+    <p><b>What was deliberately left out.</b> The Fourier transform on $L^2$ beyond the statement of
+    Plancherel's extension; the Paley–Wiener theorems (cited above); Riemann surfaces, beyond the
+    remark that branch cuts are a choice; conformal mapping, which two-dimensional
+    electrostatics can use but this course does not need; the Mellin transform; uniform asymptotics near
+    coalescing saddles (Airy-type transitions); the Stokes phenomenon. Each is a real subject and none
+    of them is needed to reach the field equations.</p>
+    <p><b>The debts, settled.</b> Unit 06: the delta function (section 2), the transform (section 1), the
+    causality slide (section 5), the fundamental theorem of algebra (section 3). Unit 09: the Laplace
+    limit (P10), the Bessel constants (stationary phase slide and P11), and the growth rate of
+    $I_n(ne)$ and $J_n(ne)$ in $n$ (steepest descent slide, notes). Lagrange's inversion formula
+    by residues is part of P10.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>compute a <b>retarded Green's function</b> by contour integration from its frequency response — locate the poles, compute the residues — and prove it <b>vanishes for $t &lt; 0$</b> by closing the contour in the half-plane with no poles and bounding the arc, not by inspecting the answer;</li>
+      <li>evaluate a real integral by <b>steepest descent</b>: find the saddle, move the contour through it, and justify <b>every</b> arc and connecting segment by an explicit estimate;</li>
+      <li>settle <b>unit 09's Laplace limit</b>: prove that Lagrange's series for Kepler's equation converges for every $M$ when $e &lt; 0.6627434$ and diverges at $M = \pi/2$ when $e &gt; 0.6627434$.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A Green's function nonzero before the kick; a contour closed where the exponential grows; an arc dropped without a bound; the wrong saddle or a lost $e^{i\pi/4}$; a Laplace limit asserted, not proved.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>21</b> divergent series · <b>24</b> Maxwell, where this contour is closed in four dimensions.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on something not in the deck before opening the sheet. A good one: the
+    critically damped galvanometer, $\gamma = 2\omega_0 = 16\ \mathrm{s^{-1}}$, where $\chi = -1/(\omega + i\omega_0)^2$
+    has a <b>double</b> pole at $-8i$. Closing upwards for $t &lt; 0$ gives $0$ (no pole above, $|\chi|\le1/(R - 8)^2$
+    on the arc). Closing downwards for $t &gt; 0$, clockwise, the double-pole formula gives
+    $\operatorname{Res}\,(-e^{-i\omega t})/(\omega + 8i)^2 = -\frac{\mathrm d}{\mathrm d\omega}e^{-i\omega t}\big|_{-8i} = ite^{-8t}$, so
+    $G(t) = \frac{1}{2\pi}(-2\pi i)(ite^{-8t}) = te^{-8t}$ — unit 06's critically damped kick, whose maximum
+    $1/(8e) = 0.04598$ s occurs at $t = 1/8$ s. Then do P12 for the steepest-descent clause and P10 for the
+    third.</p>
+    <p>Every number on this slide and in this deck was computed. If yours disagree, the arithmetic is
+    the thing to re-read first.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

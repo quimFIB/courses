@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>07 · Many oscillators, and the spectral theorem earning its keep</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="a">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="chain"><span class="ref-name">the running example</span>$N$ equal masses $m$ in a line, joined to each other and to two fixed walls by $N+1$ equal springs of stiffness $k$, at spacing $a$. Only motion along the line is allowed, so the configuration is $u = (u_1,\dots,u_N) \in \mathbb R^N$ with $u_0 = u_{N+1} = 0$. <span class="ref-note">Solved exactly in section 3: $\omega_n = 2\sqrt{k/m}\,\sin\!\big(n\pi/2(N+1)\big)$, mode shapes $v^{(n)}_j = \sin\!\big(jn\pi/(N+1)\big)$</span><svg viewBox="0 0 300 90" width="180" aria-hidden="true"><line x1="14" y1="16" x2="14" y2="74" class="ink" stroke-width="3"/><line x1="286" y1="16" x2="286" y2="74" class="ink" stroke-width="3"/><polyline points="14,45 24,36 34,54 44,36 54,54 62,45" fill="none" class="rule" stroke-width="2"/><polyline points="86,45 96,36 106,54 116,36 126,54 134,45" fill="none" class="rule" stroke-width="2"/><polyline points="158,45 168,36 178,54 188,36 198,54 206,45" fill="none" class="rule" stroke-width="2"/><polyline points="230,45 240,36 250,54 260,36 270,54 286,45" fill="none" class="rule" stroke-width="2"/><circle cx="74" cy="45" r="11" class="fill-unit"/><circle cx="146" cy="45" r="11" class="fill-unit"/><circle cx="218" cy="45" r="11" class="fill-unit"/><text x="66" y="80" font-size="15" class="mono soft">u₁</text><text x="138" y="80" font-size="15" class="mono soft">u₂</text><text x="210" y="80" font-size="15" class="mono soft">u₃</text></svg></template>
+  <template data-ref="K"><span class="ref-name">$M$ and $K$ for the chain</span>$M = m\,I_N$ and $K = k\,A_N$, where $A_N$ is the second-difference matrix: $2$ on the diagonal, $-1$ next to it, $0$ elsewhere. <span class="ref-note">$A_N$ is positive definite because $u^{\!\top}\!A_N u = \sum_{j=0}^{N}(u_{j+1}-u_j)^2$ with $u_0 = u_{N+1} = 0$, a sum of squares that vanishes only at $u = 0$</span></template>
+  <template data-ref="modes"><span class="ref-name">the chain's modes</span>$v^{(n)}_j = \sin\!\dfrac{jn\pi}{N+1}$ and $\omega_n = 2\sqrt{\dfrac km}\,\sin\!\dfrac{n\pi}{2(N+1)}$, for $n = 1,\dots,N$. <span class="ref-note">Never above the ceiling $2\sqrt{k/m}$, which is the frequency of neighbours in exact antiphase. Derived on “Worked: a sine is an eigenvector”, checked on “Four checks on the formula”</span></template>
+  <template data-ref="numbers"><span class="ref-name">the chain, with numbers</span>$N = 20$, $m = 0.10\ \mathrm{kg}$, $k = 25\ \mathrm{N\,m^{-1}}$, spacing $a = 0.05\ \mathrm m$, total length $L = (N+1)a = 1.05\ \mathrm m$. <span class="ref-note">$\sqrt{k/m} = 15.811\ \mathrm{s^{-1}}$, long-wave speed $c = a\sqrt{k/m} = 0.7906\ \mathrm{m\,s^{-1}}$, fundamental $\omega_1 = 2.3632\ \mathrm{s^{-1}}$ ($0.3761$ Hz), top mode $\omega_{20} = 31.534\ \mathrm{s^{-1}}$</span></template>
+  <template data-ref="two"><span class="ref-name">the two-mass example</span>$m_1 = 1\ \mathrm{kg}$, $m_2 = 4\ \mathrm{kg}$, three springs of $k = 1\ \mathrm{N\,m^{-1}}$: wall–$m_1$–$m_2$–wall. <span class="ref-note">$M = \mathrm{diag}(1,4)$, $K = \begin{pmatrix}2&amp;-1\\-1&amp;2\end{pmatrix}$, $\omega^2 = (5\pm\sqrt{13})/4$. The example on “Worked: two masses” where Euclidean orthogonality fails and $M$-orthogonality holds</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part A · the equation of motion · spine</p>
+  <div class="unit-no">07</div>
+  <h1>Many oscillators, and the spectral theorem earning its keep</h1>
+  <p class="lede">A coupled system is an uncoupled one in the wrong basis — and the right basis
+  exists because two quadratic forms can be diagonalised at once when one of them is definite.</p>
+  <p class="meta"><span>needs 06, 04</span><span>~2 h slides + 5 h problems</span><span>problems: <code>./mr problems 07</code></span></p>
+  <aside class="notes">
+    <p>Unit 06 solved one oscillator to death: damping regimes, resonance, the Green's
+    function. This unit asks what happens when there are $n$ of them and they pull on
+    each other. The answer is not "harder"; it is "the same, after a change of basis",
+    and the whole unit is about why that basis exists, what it is orthogonal with
+    respect to, and how to find it.</p>
+    <p>The mathematics is a single theorem doing real work. Newton's law for $n$ coupled
+    masses is $M\ddot u = -Ku$ with two symmetric matrices, and the physics asks for a
+    basis diagonalising <em>both at once</em>. That is not always possible for two
+    symmetric matrices. It is possible here, and the reason is that $M$ — the kinetic
+    energy form — is positive definite. Positive definiteness is not a technical
+    footnote; it is the hypothesis the whole subject rests on, and “Three tempting routes, all wrong” shows what
+    breaks without it.</p>
+    <h4>How to read this deck</h4>
+    <p>One system runs through it: $N$ equal masses on $N+1$ equal springs between two
+    walls. Section 1 writes it as a first-order system and finds that machinery is the
+    wrong tool for it; section 2 builds the right one; section 3 solves it exactly and
+    in closed form; section 4 takes the walls away; section 5 bounds its lowest
+    frequency without solving anything. Every number quoted was computed, and each
+    boxed result is checked against dimensions and a case whose answer is already
+    known.</p>
+    <p>Terms with a dotted underline are glossary entries — click one, or press
+    <kbd>G</kbd> for the whole list. <kbd>N</kbd> opens these notes, where the longer
+    proofs live under <b>Full proof</b>. <kbd>R</kbd> stacks the deck into one readable
+    page.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · overview</p>
+  <h2>One chain, five sections</h2>
+  <div class="cols">
+    <div>
+      <p><span class="ref" data-ref="chain">Twenty masses on twenty-one springs</span>, between two walls. Pull one mass aside and let go: what you see is a mess. What is actually happening is twenty independent oscillators, seen in the wrong coordinates.</p>
+      <p class="small">The claim of this unit: there is a basis of $\mathbb R^{20}$ in which the equations fall apart into twenty copies of unit 06's $\ddot q = -\omega^2 q$, the basis is orthogonal with respect to the kinetic-energy inner product and usually not the Euclidean one, and the frequencies are $\omega_n = 2\sqrt{k/m}\,\sin\big(n\pi/42\big)$ exactly.</p>
+      <div class="box good"><span class="label">getting around</span>
+        <p class="small">A <span class="term" data-term="normal mode">dotted underline</span> is a glossary term — click it, or press <kbd>G</kbd>. A solid underline like <span class="ref" data-ref="chain">the chain</span> is a piece of the running example: hover it. <kbd>N</kbd> shows the notes.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">1 · linear systems</span>
+        <p class="small">$\dot y = Ay$, the matrix exponential, and Jordan.</p></div>
+      <div class="box def"><span class="label">2 · two forms, one basis</span>
+        <p class="small">$Kv = \omega^2 M v$. The reduction by $M^{1/2}$, the spectral theorem, and the $M$-inner product.</p></div>
+      <div class="box def"><span class="label">3 · the chain, exactly</span>
+        <p class="small">A sine ansatz, $\omega_n$ in closed form, and dispersion.</p></div>
+      <div class="box def"><span class="label">4 · zero modes</span>
+        <p class="small">No walls: a symmetry of $V$ is a null vector of $K$.</p></div>
+      <div class="box def"><span class="label">5 · Rayleigh</span>
+        <p class="small">The lowest frequency is a minimum, so any guess bounds it from above.</p></div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The problem sheet follows the same order: P1–P3 are the linear-systems machinery,
+    P4–P8 the generalised eigenvalue problem and the $M$-inner product, P9–P10 the
+    chain, P11–P12 the zero modes, P13 Rayleigh. Four of them (P2, P7, P8, P13) ask
+    for proofs and several end in a number.</p>
+    <p>A warning about what this unit is <em>not</em>. It is not about solving
+    $\dot y = Ay$ numerically, and it is not a catalogue of special matrices. It is one
+    structural fact — a pencil of two symmetric forms with one of them definite behaves
+    exactly like a single symmetric matrix — applied until it is second nature. That
+    fact reappears in unit 16 as the inertia tensor's principal axes, in unit 19 as the
+    completeness of the Sturm–Liouville eigenfunctions, and in unit 22 as the principal
+    stresses. Each time, the hypothesis doing the work is definiteness of one form.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>$n$ coordinates, one linear system</h2>
+  <p>Where the two matrices come from, and why the general machinery for $\dot y = Ay$ is the wrong tool for them.</p>
+</section>
+
+<section>
+  <p class="eyebrow">07 · setup</p>
+  <h2>Two quadratic forms fall out of the physics</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$n$ masses $m_a$ on a line, displacements $u \in \mathbb R^n$ from an equilibrium of the potential $V$. Unit 04's Taylor theorem at a critical point gives</p>
+      $$V(u) = V(0) + \tfrac12\,u^{\!\top}\! K u + o(\lVert u\rVert^2),$$
+      <p class="small">with $K_{ij} = \partial_i\partial_j V(0)$, because $\nabla V(0) = 0$ at an equilibrium. $K$ is symmetric by Clairaut (unit 03) and positive semidefinite when the equilibrium is a minimum.</p>
+      <p class="small">The force is $F_i = -\partial_i V$ (unit 04), so to first order in $u$</p>
+      $$M\ddot u = -K u, \qquad M = \mathrm{diag}(m_1,\dots,m_n).$$
+    </div>
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">The <span class="term">stiffness matrix</span> $K$ is the Hessian of $V$ at the equilibrium. The <span class="term">mass matrix</span> $M$ is the symmetric matrix of the kinetic energy form, $T = \tfrac12\,\dot u^{\!\top}\! M \dot u$.</p>
+        <p class="small">Both are symmetric; $M$ is <span class="term" data-term="symmetric positive definite">positive definite</span>, since $T &gt; 0$ whenever anything is moving.</p>
+      </div>
+      <div class="box warn"><span class="label">$M$ is not always diagonal</span>
+        <p class="small">In Cartesian displacements it is. Change coordinates linearly, $u = Bq$ with $B$ invertible, and $T = \tfrac12\,\dot q^{\!\top}(B^{\!\top}\!MB)\dot q$: any <span class="term" data-term="congruence">congruent</span> matrix can occur, and every symmetric positive definite matrix is congruent to $I$ (section 2's $M^{1/2}$ shows it). So the theory must handle general $M$.</p>
+      </div>
+      <p class="small muted">The <span class="term">small-oscillation approximation</span> is the whole content of "$o(\lVert u\rVert^2)$ dropped": it is exact only in the limit of vanishing amplitude.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $K$ is positive semidefinite at a minimum.</b> If $u^{\!\top}\!Ku &lt; 0$ for some
+    $u$, then $V(su) = V(0) + \tfrac12 s^2 u^{\!\top}\!Ku + o(s^2) &lt; V(0)$ for small $s$, so
+    $0$ is not a minimum. It need not be positive <em>definite</em>: a direction with
+    $u^{\!\top}\!Ku = 0$ is exactly a zero mode, which is section 4.</p>
+    <h4>Full derivation: a mass matrix that is genuinely not diagonal</h4>
+    <p>A double pendulum, angles $\theta_1,\theta_2$ from the vertical, rods of lengths
+    $L_1, L_2$ and bobs $m_1, m_2$. The bob positions are
+    $(L_1\sin\theta_1,\,-L_1\cos\theta_1)$ and
+    $(L_1\sin\theta_1 + L_2\sin\theta_2,\,-L_1\cos\theta_1 - L_2\cos\theta_2)$.
+    Differentiating with the chain rule (unit 03) and summing $\tfrac12 m\lVert\dot r\rVert^2$,
+    the cross terms combine into
+    $$T = \tfrac12(m_1+m_2)L_1^2\dot\theta_1^2 + \tfrac12 m_2L_2^2\dot\theta_2^2 + m_2L_1L_2\cos(\theta_1-\theta_2)\,\dot\theta_1\dot\theta_2 .$$
+    At small angles $\cos(\theta_1-\theta_2) \to 1$, so
+    $M = \begin{pmatrix}(m_1+m_2)L_1^2 & m_2L_1L_2\\ m_2L_1L_2 & m_2L_2^2\end{pmatrix}$,
+    which is symmetric, positive definite (its determinant is $m_1m_2L_1^2L_2^2 &gt; 0$ and
+    its top-left entry is positive) and emphatically not diagonal. The potential
+    $V = (m_1+m_2)gL_1(1-\cos\theta_1) + m_2gL_2(1-\cos\theta_2)$ gives the diagonal
+    $K = \mathrm{diag}\big((m_1+m_2)gL_1,\ m_2gL_2\big)$. So the two forms are diagonal in
+    <em>different</em> bases, which is the whole problem of section 2 in one example.</p>
+    <p>Unit 12 will show that the same shape, $T = \tfrac12\dot q^{\!\top}M(q)\dot q$, comes out of
+    <em>any</em> change of coordinates, not just linear ones, with $M$ evaluated at the
+    equilibrium. Nothing here waits on that; the linear change above is enough to show
+    a general $M$ must be allowed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · setup</p>
+  <h2>First order, in $2n$ dimensions</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Unit 01's move: set $y = (u, \dot u) \in \mathbb R^{2n}$. Then $M\ddot u = -Ku$ becomes</p>
+      $$\dot y = Ay, \qquad A = \begin{pmatrix} 0 & I_n \\ -M^{-1}K & 0\end{pmatrix},$$
+      <p class="small">a <span class="term">linear system with constant coefficients</span>. $f(y) = Ay$ is globally Lipschitz with constant $\lVert A\rVert$, so Picard–Lindelöf (unit 01) gives a unique solution for every initial condition, defined for all $t \in \mathbb R$.</p>
+      <div class="box thm"><span class="label">theorem · the solution space</span>
+        <p class="small">The set of solutions of $\dot y = Ay$ on $\mathbb R$ is a vector space of dimension exactly $2n$.</p>
+        <p class="small muted"><b>Proof.</b> $y \mapsto y(0)$ is linear from solutions to $\mathbb R^{2n}$; existence makes it onto and uniqueness makes it injective. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">For <span class="ref" data-ref="numbers">the chain with $N = 20$</span> this is a $40 \times 40$ matrix, and the general machinery of the next three slides would ask for its eigenvalues.</p>
+      <div class="box warn"><span class="label">the right tool is not this one</span>
+        <p class="small">$A$ is not symmetric, and nothing in the general theory of $\dot y = Ay$ knows that it came from two <em>symmetric</em> matrices. Section 2 uses that structure and gets everything the general theory would, in half the dimensions and with real arithmetic.</p>
+        <p class="small">So why build the general theory at all? Because section 4's zero modes need the degenerate case, and it is the only honest way to see why the degenerate case does <em>not</em> occur for $M$ positive definite and $K$ positive definite.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>This is the same reduction unit 01 used to put $m\ddot x = F$ into the hypotheses of
+    Picard–Lindelöf, and unit 02 used to draw phase portraits. Nothing new is being
+    claimed; what is new is that $f$ is now linear, which is what makes an explicit
+    formula for the flow possible.</p>
+    <p><b>Why the solution is global.</b> The escape-in-finite-time obstruction of unit 01
+    needs $\lVert f(y)\rVert$ to grow faster than linearly. Here $\lVert Ay\rVert \le \lVert A\rVert\lVert y\rVert$,
+    so Grönwall (unit 01 again) gives $\lVert y(t)\rVert \le \lVert y(0)\rVert e^{\lVert A\rVert |t|}$:
+    the solution cannot run away in finite time. Linear systems are the model case where the
+    local theorem is global.</p>
+    <p>Note the dimension count. Each of the $n$ masses needs a position and a velocity,
+    which is $2n$ numbers; and section 2 will produce $n$ modes each contributing a
+    two-dimensional family $q(t) = \alpha\cos\omega t + \beta\sin\omega t$. Two accounts of
+    the same $2n$, which is a check worth keeping in mind.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · linear systems</p>
+  <h2>The matrix exponential</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">The <span class="term">operator norm</span> of $A \in M_n(\mathbb R)$ is $\lVert A\rVert = \sup_{\lVert x\rVert = 1}\lVert Ax\rVert$; it satisfies $\lVert AB\rVert \le \lVert A\rVert\,\lVert B\rVert$.</p>
+        <p class="small">The <span class="term">matrix exponential</span> is
+        $$e^{A} \;=\; \sum_{k=0}^{\infty}\frac{A^k}{k!},$$
+        the same series as for a number, with $A^0 = I$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · it converges</span>
+        <p class="small">The series converges absolutely for every $A$, and $\lVert e^A\rVert \le e^{\lVert A\rVert}$.</p>
+        <p class="small muted"><b>Proof.</b> $\lVert A^k/k!\rVert \le \lVert A\rVert^k/k!$, whose sum is $e^{\lVert A\rVert} &lt; \infty$. $M_n(\mathbb R) \cong \mathbb R^{n^2}$ is complete, and in a complete normed space an absolutely convergent series converges. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem · what it is for</span>
+        <p class="small">$t \mapsto e^{At}$ is differentiable with
+        $$\frac{\mathrm d}{\mathrm dt}e^{At} = A\,e^{At} = e^{At}A,$$
+        so $y(t) = e^{At}y_0$ solves $\dot y = Ay$, $y(0) = y_0$ — and by uniqueness it is the only solution.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <div class="box warn"><span class="label">the exponential law needs commuting matrices</span>
+        <p class="small">With $A = \begin{pmatrix}0&amp;1\\0&amp;0\end{pmatrix}$, $B = \begin{pmatrix}0&amp;0\\1&amp;0\end{pmatrix}$: $e^Ae^B = \begin{pmatrix}2&amp;1\\1&amp;1\end{pmatrix}$, while $e^{A+B} = \begin{pmatrix}\cosh 1&amp;\sinh 1\\ \sinh 1&amp;\cosh 1\end{pmatrix} \approx \begin{pmatrix}1.5431&amp;1.1752\\1.1752&amp;1.5431\end{pmatrix}$.</p>
+        <p class="small">$e^{A+B} = e^Ae^B$ <b>if</b> $AB = BA$ — which is why $e^{A(t+s)} = e^{At}e^{As}$ is safe.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that $\frac{\mathrm d}{\mathrm dt}e^{At} = Ae^{At}$</h4>
+    <p>On $|t| \le T$ the $k$-th term has norm at most $\lVert A\rVert^kT^k/k!$, and the
+    termwise $t$-derivative $A^kt^{k-1}/(k-1)!$ has norm at most $\lVert A\rVert^kT^{k-1}/(k-1)!$.
+    Both bounds are summable, so by the Weierstrass M-test both series converge
+    uniformly on $[-T,T]$. A uniformly convergent series of $C^1$ functions whose
+    derivative series also converges uniformly may be differentiated term by term
+    (single-variable analysis, applied entry by entry to the $n^2$ scalar series). Hence
+    $$\frac{\mathrm d}{\mathrm dt}e^{At} = \sum_{k\ge1}\frac{A^kt^{k-1}}{(k-1)!} = A\sum_{j\ge0}\frac{A^jt^j}{j!} = Ae^{At},$$
+    and pulling $A$ out on the right instead gives $e^{At}A$. Uniqueness of the solution
+    is unit 01's Picard–Lindelöf with Lipschitz constant $\lVert A\rVert$.</p>
+    <h4>Full proof that $AB = BA \Rightarrow e^{A+B} = e^Ae^B$</h4>
+    <p>Both series converge absolutely, so their Cauchy product may be rearranged:
+    $e^Ae^B = \sum_{k}\sum_{i+j=k}\frac{A^iB^j}{i!\,j!}$. When $A$ and $B$ commute the
+    binomial theorem holds for them, $(A+B)^k = \sum_{i+j=k}\binom{k}{i}A^iB^j$, and dividing
+    by $k!$ gives exactly the inner sum. Without commutativity the binomial theorem is
+    false at $k = 2$ already: $(A+B)^2 = A^2 + AB + BA + B^2 \ne A^2 + 2AB + B^2$.</p>
+    <p><b>The counterexample, checked.</b> $A^2 = 0$ so $e^A = I + A = \begin{pmatrix}1&amp;1\\0&amp;1\end{pmatrix}$,
+    and likewise $e^B = \begin{pmatrix}1&amp;0\\1&amp;1\end{pmatrix}$; the product is
+    $\begin{pmatrix}2&amp;1\\1&amp;1\end{pmatrix}$. For $A + B = \begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}$,
+    the square is $I$, so the even terms sum to $\cosh 1\,I$ and the odd ones to
+    $\sinh 1\,(A+B)$. The traces differ, $3$ against $2\cosh 1 = 3.0862$, so no amount of
+    rearranging can reconcile them.</p>
+    <p>Historically this failure is the beginning of Lie theory: the correct statement is
+    the Baker–Campbell–Hausdorff formula, whose first correction term is
+    $\tfrac12[A,B]$. This course does not need it, but unit 17 meets the commutator
+    again as the Poisson bracket, and unit 33 as the curvature.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · linear systems</p>
+  <h2>When $A$ is diagonalisable</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">If $A = P\Lambda P^{-1}$ with $\Lambda = \mathrm{diag}(\mu_1,\dots,\mu_n)$, then
+        $$e^{At} = P\,\mathrm{diag}\big(e^{\mu_1 t},\dots,e^{\mu_n t}\big)\,P^{-1},$$
+        and every solution of $\dot y = Ay$ is $y(t) = \sum_i c_i e^{\mu_i t}w_i$ with $w_i$ the columns of $P$.</p>
+        <p class="small muted"><b>Proof.</b> $A^k = P\Lambda^kP^{-1}$, and $P(\cdot)P^{-1}$ is continuous and linear, so it passes through the sum. $\square$</p>
+      </div>
+      <p class="small">Complex $\mu$ is not a problem: unit 06's complex exponential is used exactly as it was there, and real initial data gives real solutions because the complex eigenvalues come in conjugate pairs.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">one oscillator, as a check</span>
+        <p class="small">$\ddot x = -\omega_0^2x$ has $A = \begin{pmatrix}0&amp;1\\-\omega_0^2&amp;0\end{pmatrix}$, eigenvalues $\pm i\omega_0$, eigenvectors $(1, \pm i\omega_0)$. Then</p>
+        $$e^{At} = \begin{pmatrix}\cos\omega_0 t & \dfrac{\sin\omega_0 t}{\omega_0}\\[4pt] -\omega_0\sin\omega_0 t & \cos\omega_0 t\end{pmatrix}.$$
+        <p class="small">First column: released from rest at $x = 1$. Second column: struck from $x=0$ with unit speed — unit 06's Green's function $G(t) = \sin\omega_0t/\omega_0$, recovered.</p>
+      </div>
+      <p class="small muted">Dimensions: $[A] = \mathrm s^{-1}$, so $At$ is dimensionless and the series makes sense. The entry $\sin\omega_0t/\omega_0$ carries $\mathrm s$, as a map from velocity to position must.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The example in full.</b> $\det(A - \mu I) = \mu^2 + \omega_0^2$, so
+    $\mu = \pm i\omega_0$; $(A - i\omega_0)w = 0$ gives $w = (1, i\omega_0)$. With
+    $P = \begin{pmatrix}1&amp;1\\ i\omega_0&amp;-i\omega_0\end{pmatrix}$ and
+    $P^{-1} = \tfrac12\begin{pmatrix}1&amp;1/(i\omega_0)\\ 1&amp;-1/(i\omega_0)\end{pmatrix}$,
+    the product $P\,\mathrm{diag}(e^{i\omega_0t},e^{-i\omega_0t})\,P^{-1}$ has $(1,1)$ entry
+    $\tfrac12(e^{i\omega_0t}+e^{-i\omega_0t}) = \cos\omega_0t$ and $(1,2)$ entry
+    $\tfrac{1}{2i\omega_0}(e^{i\omega_0t}-e^{-i\omega_0t}) = \sin\omega_0t/\omega_0$. The bottom row is the
+    $t$-derivative of the top, as it must be, since the second component of $y$ is $\dot x$.</p>
+    <p><b>Limit check.</b> As $\omega_0 \to 0$ the matrix tends to $\begin{pmatrix}1&t\\0&1\end{pmatrix}$,
+    which is free motion $x = x_0 + v_0t$ — and it is also the degenerate case of the
+    next slide, since at $\omega_0 = 0$ the two eigenvalues collide at $0$. The free
+    particle is the simplest Jordan block in mechanics, and section 4 meets it again as
+    a zero mode.</p>
+    <p>A caution about $P$. Diagonalising is a statement about a <em>basis</em> of
+    eigenvectors, and $P$ is the matrix whose columns are that basis. Nothing forces $P$
+    to be orthogonal; it is orthogonal exactly when $A$ is symmetric, which is the
+    spectral theorem, and which is why section 2 works so hard to get a symmetric
+    matrix.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · linear systems</p>
+  <h2>The degenerate case: Jordan, and $t\,e^{\lambda t}$</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>Cited.</b> Every $A \in M_n(\mathbb C)$ is similar to a <span class="term">Jordan form</span>: blocks $\lambda I + N$ with $N$ the nilpotent shift. Proved in any linear algebra text; the only case we use is verified below.</p>
+      <div class="box thm"><span class="label">theorem · exponential of a block</span>
+        <p class="small">If $A = \lambda I + N$ with $N^p = 0$, then
+        $$e^{At} = e^{\lambda t}\Big(I + Nt + \dots + \tfrac{N^{p-1}t^{p-1}}{(p-1)!}\Big),$$
+        a <b>polynomial</b> in $t$ times $e^{\lambda t}$.</p>
+        <p class="small muted"><b>Proof.</b> $\lambda I$ commutes with $N$, so $e^{At} = e^{\lambda t}e^{Nt}$, and that series stops at $k = p-1$. $\square$</p>
+      </div>
+      <p class="small">So a repeated eigenvalue gives $te^{\lambda t}$, $t^2e^{\lambda t}$, … — but only a <em>defective</em> one does.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">worked · critical damping, again</span>
+        <p class="small">Unit 06's $\ddot x + \gamma\dot x + \omega_0^2x = 0$ at $\gamma = 2\omega_0$:
+        $A = \begin{pmatrix}0&amp;1\\-\omega_0^2&amp;-2\omega_0\end{pmatrix}$, with $\det(A-\mu I) = (\mu+\omega_0)^2$.</p>
+        <p class="small">$N = A + \omega_0I = \begin{pmatrix}\omega_0&amp;1\\-\omega_0^2&amp;-\omega_0\end{pmatrix}$ has $N^2 = 0$ (each entry of $N^2$ is a difference of two equal products). Hence
+        $$e^{At} = e^{-\omega_0t}\begin{pmatrix}1+\omega_0t&amp;t\\ -\omega_0^2t&amp;1-\omega_0t\end{pmatrix},$$
+        and the $te^{-\omega_0t}$ of unit 06 is the nilpotent part, not a lucky guess.</p>
+      </div>
+      <p class="small muted">Checked numerically against a direct summation of the series at $\omega_0 = 2$, $t = 0.7$: agreement to rounding, below $10^{-15}$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $A$ is defective here.</b> $(A+\omega_0I)w = 0$ reads $\omega_0w_1 + w_2 = 0$,
+    a single equation, so the eigenspace is one-dimensional while the eigenvalue has
+    algebraic multiplicity two. That is precisely the definition of defective, and it is
+    exactly the circumstance in which unit 06's two-parameter solution family could not be
+    written as $c_1e^{\mu_1t} + c_2e^{\mu_2t}$.</p>
+    <p><b>The dimension check.</b> $[\omega_0] = \mathrm s^{-1}$, so the matrix entries have
+    dimensions $\begin{pmatrix}1 & \mathrm s\\ \mathrm s^{-2} & 1\end{pmatrix}$ — position from
+    position, position from velocity, velocity from position, velocity from velocity.
+    Every propagator in this unit has that shape.</p>
+    <p><b>Where this will and will not bite.</b> Section 2 proves that the undamped system
+    $M\ddot u = -Ku$ with $M$ positive definite <em>never</em> produces a defective
+    problem in $u$-space: repeated $\omega^2$ still has a full eigenspace. Defectiveness
+    returns in exactly two places: damping (here), and zero modes (section 4), where
+    $\mu = 0$ is a genuine $2\times2$ Jordan block in the $2n$-dimensional first-order
+    system, giving $q(t) = a + bt$. Everything else oscillates.</p>
+    <p>A remark for later: defective eigenvalues are fragile. Perturb the nilpotent
+    $\begin{pmatrix}0&amp;1\\0&amp;0\end{pmatrix}$ to $\begin{pmatrix}0&amp;1\\\varepsilon&amp;0\end{pmatrix}$ and the
+    characteristic polynomial becomes $\mu^2 - \varepsilon$, so the double eigenvalue $0$
+    splits into $\pm\sqrt\varepsilon$ — a shift far larger than the size $\varepsilon$ of the
+    perturbation. For a symmetric matrix and a symmetric perturbation of operator norm
+    $\varepsilon$, every eigenvalue moves by at most $\varepsilon$ (a consequence of section 5's
+    min–max characterisation, since the quotient $u^{\!\top}Su/u^{\!\top}u$ itself moves by at
+    most $\varepsilon$), which is
+    one more thing the spectral theorem buys.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Two quadratic forms, one basis</h2>
+  <p>The generalised eigenvalue problem, and the single hypothesis — $M$ positive definite — that makes it behave.</p>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the pencil</p>
+  <h2>The generalised eigenvalue problem</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Look for a motion in which every coordinate oscillates with the <em>same</em> frequency and a fixed shape: $u(t) = v\,f(t)$ with $v \in \mathbb R^n$ constant. Then $M\ddot u = -Ku$ reads $\ddot f\,Mv = -f\,Kv$, which forces $\ddot f = -\lambda f$ and</p>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">The <span class="term">generalised eigenvalue problem</span> for the pair $(K, M)$ is
+        $$Kv = \lambda\,Mv, \qquad v \ne 0 .$$
+        The family $K - \lambda M$ is the <span class="term">matrix pencil</span>; its <span class="term" data-term="characteristic polynomial of a pencil">characteristic polynomial</span> is $p(\lambda) = \det(K - \lambda M)$.</p>
+      </div>
+      <p class="small">A solution $(\lambda, v)$ with $\lambda = \omega^2 \ge 0$ is a <span class="term">normal mode</span>: shape $v$, <span class="term" data-term="normal frequency">normal frequency</span> $\omega$, motion $u(t) = v\,(\alpha\cos\omega t + \beta\sin\omega t)$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">degree, and therefore a count</span>
+        <p class="small">$\det(K-\lambda M) = \det(M)\det(M^{-1}K - \lambda I)$ and $\det M \ne 0$, so $p$ has degree exactly $n$: <b>$n$ roots</b> in $\mathbb C$, with multiplicity (fundamental theorem of algebra, cited; it follows from Liouville's theorem in unit 20).</p>
+      </div>
+      <p class="small">That is a count, not yet a theorem about physics. Three things still have to be proved, and none of them follows from $K$ and $M$ merely being symmetric:</p>
+      <ul class="small">
+        <li>every root is <b>real</b>;</li>
+        <li>every root is $\ge 0$ when $K$ is positive semidefinite, so $\omega = \sqrt\lambda$ is real;</li>
+        <li>the eigenvectors form a <b>basis</b> — no defective case, so $n$ coordinates really do give $n$ modes.</li>
+      </ul>
+      <p class="small muted">On <span class="ref" data-ref="chain">the chain</span>, $M = mI$ and $\lambda = \omega^2$ is an ordinary eigenvalue of $K/m$. The general case is the one to get right.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the ansatz is not a loss of generality.</b> It looks like a guess, and at this
+    point it is. What justifies it is the theorem on “What the reduction proves, all at once”: the modes form a
+    basis of $\mathbb R^n$, so <em>every</em> solution is a superposition of them. The
+    ansatz finds $n$ two-parameter families, $2n$ constants in all, which matches the
+    dimension of the solution space counted on “First order, in $2n$ dimensions”. Nothing is missed.</p>
+    <p><b>Why $\ddot f = -\lambda f$ is forced.</b> From $\ddot f\,Mv = -f\,Kv$ with $v$ fixed
+    and $Mv \ne 0$ (as $M$ is invertible and $v \ne 0$): at any $t$ with $f(t) \ne 0$, the
+    vectors $Mv$ and $Kv$ are parallel, so $Kv = \lambda Mv$ for some scalar $\lambda$
+    independent of $t$, and then $\ddot f = -\lambda f$.</p>
+    <p><b>Terminology.</b> "Pencil" is nineteenth-century projective-geometry language for a
+    one-parameter linear family — a pencil of lines through a point, a pencil of conics.
+    The pair $(K, M)$ is called a symmetric definite pencil when $M$ is positive
+    definite, and that is the hypothesis every good theorem in this unit carries.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the pencil</p>
+  <h2>Three tempting routes, all wrong</h2>
+  <div class="cols three">
+    <div class="box warn"><span class="label">1 · "$M^{-1}K$ is symmetric"</span>
+      <p class="small">It is not. For <span class="ref" data-ref="two">the two-mass example</span>,
+      $$M^{-1}K = \begin{pmatrix}2&amp;-1\\-\tfrac14&amp;\tfrac12\end{pmatrix}.$$
+      So the spectral theorem cannot be applied to it directly. Its eigenvalues <em>are</em> real, but that needs proof.</p>
+    </div>
+    <div class="box warn"><span class="label">2 · "diagonalise both with one orthogonal $Q$"</span>
+      <p class="small">Possible only if $MK = KM$. Here $MK = \begin{pmatrix}2&amp;-1\\-4&amp;8\end{pmatrix}$ and $KM = \begin{pmatrix}2&amp;-4\\-1&amp;8\end{pmatrix}$: different. Orthogonal simultaneous diagonalisation is <b>false</b>, yet the physics still works — so the right notion is not similarity.</p>
+    </div>
+    <div class="box warn"><span class="label">3 · "any two symmetric forms will do"</span>
+      <p class="small">Take $M = \begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix}$, $K = \begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}$, both symmetric, neither definite. Then
+      $$\det(K-\lambda M) = -\lambda^2 - 1,$$
+      whose roots are $\pm i$. <b>No real $\lambda$ at all</b>, so no real basis diagonalises both.</p>
+    </div>
+  </div>
+  <p class="small">The lesson of the third box: <b>definiteness of one form is the hypothesis</b>. The right notion for the other two is <span class="term" data-term="congruence">congruence</span>, $C^{\!\top}\!(\cdot)C$, not similarity $P^{-1}(\cdot)P$ — a change of basis for a <em>bilinear form</em>, not for a linear map.</p>
+  <aside class="notes">
+    <p><b>Box 2, in full.</b> The standard theorem is: real symmetric $S, T$ are
+    simultaneously diagonalisable by a single orthogonal $Q$ if and only if $ST = TS$.
+    ($\Leftarrow$ is the usual argument on joint eigenspaces; $\Rightarrow$ is immediate
+    since diagonal matrices commute.) Our $M$ and $K$ do not commute, so that theorem is
+    unavailable, and yet the rest of this section produces a basis diagonalising both. The
+    difference is that the basis is orthonormal in a <em>different</em> inner product —
+    which is “The inner product the modes are orthogonal in”.</p>
+    <p><b>Box 3, in full.</b> Suppose some invertible $C$ gave
+    $C^{\!\top}MC = D_1$ and $C^{\!\top}KC = D_2$ both diagonal. Then
+    $\det(K - \lambda M) = \det(C^{-\top})\det(D_2 - \lambda D_1)\det(C^{-1})$, and
+    $\det(D_2-\lambda D_1) = \prod_i\big((D_2)_{ii} - \lambda (D_1)_{ii}\big)$. Every
+    $(D_1)_{ii} \ne 0$, because $\det D_1 = (\det C)^2\det M \ne 0$, so each factor has the
+    real root $(D_2)_{ii}/(D_1)_{ii}$. Our pencil's roots are $\pm i$, so no such $C$ exists.
+    The physical reading: a "kinetic energy" that can be negative admits motions that are
+    neither oscillations nor exponentials but a genuinely complex mixture. Such pencils
+    occur in real physics — in plasma stability and in the Hamiltonian normal-form theory
+    behind unit 17 — and they are hard precisely because this unit's theorem is
+    unavailable.</p>
+    <p><b>Why the distinction similarity/congruence matters.</b> A matrix can represent
+    either a linear map or a bilinear form, and the two transform differently under a
+    change of basis: $P^{-1}AP$ for a map, $C^{\!\top}\!BC$ for a form. $M$ and $K$ are
+    forms — energies — so congruence is their natural equivalence. Unit 16 makes the
+    distinction permanent by calling one a $(1,1)$-tensor and the other a $(0,2)$-tensor,
+    and unit 26 will note that $C^{\!\top}\eta\,C = \eta$ is the definition of the Lorentz
+    group.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the spectral theorem</p>
+  <h2>The spectral theorem, and its variational proof</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">spectral theorem</span></span>
+        <p class="small">Let $S \in M_n(\mathbb R)$ be symmetric. Then $\mathbb R^n$ has an orthonormal basis $w_1,\dots,w_n$ of eigenvectors of $S$, with real eigenvalues $\mu_1 \le \dots \le \mu_n$. Equivalently $S = Q\,\mathrm{diag}(\mu)\,Q^{\!\top}$ with $Q$ orthogonal.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, in outline</span>
+        <p class="small">The function $u \mapsto u^{\!\top}\!Su$ is continuous on the unit sphere, which is compact, so it attains a maximum at some $w$. Lagrange multipliers (unit 04) for $\max u^{\!\top}\!Su$ subject to $u^{\!\top}u = 1$ give $Sw = \mu w$. Then $S$ maps $w^{\perp}$ into itself, because $\langle Sx, w\rangle = \langle x, Sw\rangle = \mu\langle x, w\rangle = 0$, and the restriction is symmetric. Induct on the dimension. $\square$</p>
+        <p class="proof-pointer">every step written out in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Two things to notice about that proof, both used later:</p>
+      <ul class="small">
+        <li>the eigenvector it produces is a <b>maximiser of a ratio</b> — which is section 5's Rayleigh quotient, already here;</li>
+        <li>it never leaves $\mathbb R$, so reality of the eigenvalues is a <b>conclusion</b>, not an assumption.</li>
+      </ul>
+      <div class="box good"><span class="label">the physics of the statement</span>
+        <p class="small">A symmetric matrix is a quadratic form $u \mapsto u^{\!\top}\!Su$, that is, an energy. The theorem says any energy is, in suitable orthonormal coordinates, a sum $\sum\mu_i x_i^2$ of independent one-dimensional energies. Every "principal axes" statement in physics — of inertia, of stress, of strain, of a conic — is this one sentence.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Induct on $n$. For $n = 1$ there is nothing to prove. For $n &gt; 1$, let
+    $g(u) = u^{\!\top}\!Su$ and $h(u) = u^{\!\top}u - 1$. The sphere $\{h = 0\}$ is closed and
+    bounded, hence compact (Heine–Borel), and $g$ is continuous, so $g$ attains a maximum
+    at some $w$ with $\lVert w\rVert = 1$. Since $\nabla h(w) = 2w \ne 0$, the constraint
+    qualification of unit 04's Lagrange multiplier theorem holds, so there is $\mu$ with
+    $\nabla g(w) = \mu\nabla h(w)$. Now $\nabla g(u) = 2Su$ for symmetric $S$ — this is where
+    symmetry enters, and only here — so $2Sw = 2\mu w$, i.e. $Sw = \mu w$ with
+    $\mu = w^{\!\top}\!Sw \in \mathbb R$.</p>
+    <p>Let $W = w^\perp$, of dimension $n-1$. For $x \in W$, $\langle Sx, w\rangle = \langle x,
+    Sw\rangle = \mu\langle x,w\rangle = 0$, so $Sx \in W$: $S$ restricts to an operator on
+    $W$, and it is symmetric there because the restriction of a symmetric bilinear form
+    to a subspace is symmetric. Choose an orthonormal basis of $W$; in it the restriction
+    is a symmetric $(n-1)\times(n-1)$ matrix, and the inductive hypothesis gives an
+    orthonormal eigenbasis of $W$. Adjoining $w$ gives one of $\mathbb R^n$. $\square$</p>
+    <p><b>Why $\nabla(u^{\!\top}\!Su) = (S + S^{\!\top})u$ in general.</b> Expand
+    $(u+h)^{\!\top}S(u+h) = u^{\!\top}Su + u^{\!\top}Sh + h^{\!\top}Su + h^{\!\top}Sh$. The
+    middle terms are scalars, so $u^{\!\top}Sh = h^{\!\top}S^{\!\top}u$, and the linear part
+    in $h$ is $h^{\!\top}(S + S^{\!\top})u$; the quadratic part is $O(\lVert h\rVert^2)$. So by
+    unit 03's definition of the total derivative, $\nabla g(u) = (S+S^{\!\top})u$, which is
+    $2Su$ when $S$ is symmetric. The antisymmetric part of $S$ contributes nothing to the
+    form, which is why only the symmetric part was ever relevant.</p>
+    <p><b>The usual alternative proof</b> goes through $\mathbb C$: for $Sv = \mu v$ with
+    $v \ne 0$ in $\mathbb C^n$, $\bar v^{\!\top}Sv$ equals both $\mu\lVert v\rVert^2$ and
+    $\bar\mu\lVert v\rVert^2$, forcing $\mu \in \mathbb R$. It is shorter but it needs the
+    fundamental theorem of algebra to know an eigenvalue exists at all, and it does not
+    hand you the variational characterisation for free. The proof above is the
+    variational one — the idea Rayleigh made into a working tool, though the proof is
+    older than his use of it — and it is the one that generalises to the Sturm–Liouville problems of unit 19 and to
+    the infinite-dimensional setting where no characteristic polynomial exists.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the reduction</p>
+  <h2>$M^{1/2}$, and the problem made symmetric</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition and lemma</span>
+        <p class="small">For $M$ symmetric positive definite, write $M = Q\,\mathrm{diag}(\mu_i)\,Q^{\!\top}$ with all $\mu_i &gt; 0$ and set
+        $$M^{1/2} = Q\,\mathrm{diag}(\sqrt{\mu_i})\,Q^{\!\top}.$$
+        This <span class="term">matrix square root</span> is symmetric positive definite, satisfies $(M^{1/2})^2 = M$, and is the <b>only</b> positive definite matrix that does.</p>
+        <p class="proof-pointer">uniqueness proved in the notes (N)</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · the reduction</span>
+        <p class="small">Put $S = M^{-1/2}KM^{-1/2}$, which is symmetric. Then
+        $$Kv = \lambda Mv \iff Sw = \lambda w, \qquad w = M^{1/2}v ,$$
+        and $v \mapsto M^{1/2}v$ is a bijection of eigenvectors.</p>
+        <p class="small muted"><b>Proof.</b> Multiply $Kv = \lambda Mv$ on the left by $M^{-1/2}$ and insert $I = M^{-1/2}M^{1/2}$ in the middle: $M^{-1/2}KM^{-1/2}\,(M^{1/2}v) = \lambda\,(M^{1/2}v)$. Each step is reversible, since $M^{1/2}$ is invertible. Symmetry: $S^{\!\top} = M^{-1/2}K^{\!\top}M^{-1/2} = S$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what has been bought</span>
+        <p class="small">The pencil problem is now an <b>ordinary symmetric</b> eigenvalue problem, so the spectral theorem applies to it whole.</p>
+      </div>
+      <p class="small">On <span class="ref" data-ref="two">the two-mass example</span>: $M^{1/2} = \mathrm{diag}(1,2)$, so
+      $$S = \begin{pmatrix}1&amp;0\\0&amp;\tfrac12\end{pmatrix}\!\begin{pmatrix}2&amp;-1\\-1&amp;2\end{pmatrix}\!\begin{pmatrix}1&amp;0\\0&amp;\tfrac12\end{pmatrix} = \begin{pmatrix}2&amp;-\tfrac12\\-\tfrac12&amp;\tfrac12\end{pmatrix},$$
+      symmetric, where $M^{-1}K$ was not.</p>
+      <p class="small muted">Physically, $w = M^{1/2}v$ is the displacement measured in units of $1/\sqrt{\text{mass}}$ — "mass-weighted coordinates", in which the kinetic energy is $\tfrac12\lVert\dot w\rVert^2$ with no matrix left in it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of uniqueness of the positive definite square root</h4>
+    <p>Suppose $R$ is positive definite with $R^2 = M$. Let $\mu &gt; 0$ be an eigenvalue of
+    $M$ and $E_\mu$ its eigenspace. If $Rx = \rho x$ then $Mx = R^2x = \rho^2x$, so every
+    eigenvector of $R$ is an eigenvector of $M$ with eigenvalue $\rho^2$, and $\rho &gt; 0$
+    since $R$ is positive definite. By the spectral theorem $R$ has an eigenbasis, so
+    $\mathbb R^n$ decomposes into $R$-eigenspaces, each contained in some $M$-eigenspace,
+    and $\rho = \sqrt\mu$ is determined by which. Hence $R$ acts as $\sqrt\mu$ on all of
+    $E_\mu$ — the $R$-eigenspaces inside $E_\mu$ all carry the same $\rho$ and therefore
+    fill it — which is exactly how $M^{1/2}$ acts. So $R = M^{1/2}$. $\square$</p>
+    <p><b>What could go wrong without positive definiteness.</b> $I$ has infinitely many
+    symmetric square roots: every reflection $\mathrm{diag}(\pm1,\dots,\pm1)$ conjugated by an
+    orthogonal matrix. Insisting the root be positive definite picks out one. And a
+    matrix with a negative eigenvalue has no real <em>symmetric</em> square root at all (the square of a symmetric matrix is positive semidefinite), which is why $M$
+    positive definite is not a convenience here but the point.</p>
+    <p><b>An alternative route</b> avoids square roots: factor $M = C^{\!\top}C$ by Cholesky
+    and set $S = C^{-\top}KC^{-1}$, again symmetric. It is the route numerical work takes,
+    because a Cholesky factorisation costs a small fraction of an eigendecomposition. The theory is identical; the
+    conclusions below hold for any $C$ with $M = C^{\!\top}C$, and $C = M^{1/2}$ is just
+    the symmetric choice. What is <em>not</em> symmetric is $M^{-1}K = C^{-1}(C^{-\top}K)$: both inverse
+    factors sit on the left, where the symmetric version splits them,
+    $C^{-\top}KC^{-1}$, one on each side. The two are similar,
+    $M^{-1}K = C^{-1}\,(C^{-\top}KC^{-1})\,C$, which is why $M^{-1}K$ has the same real
+    eigenvalues — the proof that box 1 of “Three tempting routes, all wrong” asked for.</p>
+    <p><b>Dimensions.</b> $[M^{1/2}] = \mathrm{kg}^{1/2}$ and $[K] = \mathrm{kg\,s^{-2}}$, so
+    $[S] = \mathrm{s^{-2}}$: an eigenvalue of $S$ is a squared frequency, as required. In
+    the two-mass example the entries of $S$ are in $\mathrm s^{-2}$ with $k = 1\ \mathrm{N\,m^{-1}}$
+    and masses in kg.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the reduction</p>
+  <h2>What the reduction proves, all at once</h2>
+  <div class="box thm"><span class="label">theorem · normal modes exist, as many as there are coordinates</span>
+    <p class="small">Let $M$ be symmetric positive definite and $K$ symmetric, both $n\times n$. Then:</p>
+    <ol class="small">
+      <li>all $n$ roots of $\det(K - \lambda M)$ are <b>real</b>;</li>
+      <li>there is a basis $v_1,\dots,v_n$ of $\mathbb R^n$ with $Kv_i = \lambda_iMv_i$ — <b>no defective case</b>;</li>
+      <li>if moreover $K$ is positive semidefinite then every $\lambda_i \ge 0$, so $\omega_i = \sqrt{\lambda_i}$ is <b>real</b>; and $\lambda_i &gt; 0$ for all $i$ exactly when $K$ is positive definite.</li>
+    </ol>
+    <p class="small muted"><b>Proof.</b> By the reduction, the roots and eigenvectors are those of the symmetric $S$, transported by the invertible $M^{1/2}$. (1) and (2) are the spectral theorem for $S$. For (3), $\lambda = w^{\!\top}Sw/\lVert w\rVert^2 = v^{\!\top}Kv/(v^{\!\top}Mv)$ with $v = M^{-1/2}w$, and both quadratic forms on the right are $\ge 0$. $\square$</p>
+  </div>
+  <div class="cols three">
+    <div class="box good"><span class="label">dimensions</span>
+      <p class="small">$[K]/[M] = (\mathrm{N\,m^{-1}})/\mathrm{kg} = \mathrm{s^{-2}}$. So $\lambda$ is a squared frequency and $\omega$ a frequency, for any $M$ and $K$ whatever.</p></div>
+    <div class="box good"><span class="label">limit: one mass</span>
+      <p class="small">$M = (m)$, $K = (k)$: one root $\lambda = k/m$, one mode $v = (1)$, $\omega = \sqrt{k/m}$. Unit 06's oscillator, recovered.</p></div>
+    <div class="box good"><span class="label">no complex frequencies</span>
+      <p class="small">$\omega^2$ real always. $\omega^2 &lt; 0$ is possible — an unstable equilibrium, $e^{\pm|\omega|t}$, unit 02's saddle — but an $\omega$ with a nonzero real <em>and</em> imaginary part never occurs.</p></div>
+  </div>
+  <aside class="notes">
+    <p><b>Read item 2 twice.</b> It is the part that does not follow from counting. A general
+    matrix with a repeated eigenvalue may be defective, and then the solutions contain
+    $te^{\lambda t}$ — growing amplitudes with no energy input, which would be physical
+    nonsense for a conservative system. The theorem says that cannot happen: repeated
+    $\omega^2$ still has an eigenspace of the full multiplicity, and a degenerate pair of
+    modes is simply a two-dimensional space of shapes all oscillating at the same
+    frequency. The chain in section 3 has no degeneracies; a square drum-frame or a
+    symmetric molecule has plenty, and they are the fingerprint of a symmetry group.</p>
+    <p><b>Why "no complex frequencies" is the right slogan.</b> Write a solution as
+    $e^{i\omega t}$. If $\omega = \alpha + i\beta$ with both parts nonzero, the motion is an
+    oscillation with an exponentially changing amplitude. That is what a damped or a
+    driven-unstable system does, and unit 06 met it. The present theorem forbids it for
+    $M\ddot u = -Ku$ with $M,K$ symmetric and $M$ positive definite: the only options are
+    genuine oscillation ($\lambda &gt; 0$), pure exponential growth and decay
+    ($\lambda &lt; 0$), and linear drift ($\lambda = 0$). Energy conservation is the physical
+    reason, and symmetry of $K$ is its algebraic shadow — a non-symmetric $K$ is exactly
+    a force field that is not a gradient, which unit 04 showed can do net work around a
+    loop.</p>
+    <p><b>The stable case.</b> $K$ positive definite $\iff$ the equilibrium is a strict
+    local minimum of $V$ to second order $\iff$ all $\omega_i &gt; 0$ $\iff$ every small
+    disturbance of the linearised system stays small. The nonlinear version — the
+    Lagrange–Dirichlet theorem: a strict local minimum of $V$ is a stable equilibrium — is
+    already within reach. <b>Full proof:</b> $E = T + V - V(u^*)$ is conserved, vanishes at
+    the equilibrium and is positive on a punctured neighbourhood of it in phase space
+    (as $T &gt; 0$ unless $\dot u = 0$, and $V &gt; V(u^*)$ unless $u = u^*$), so it is a
+    Lyapunov function and unit 02's direct method gives stability. Note it needs a
+    <em>strict minimum</em>, which is weaker than $K$ positive definite: $V = u^4$ qualifies.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the $M$-inner product</p>
+  <h2>The inner product the modes are orthogonal in</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For $M$ symmetric positive definite, the <span class="term">$M$-inner product</span> on $\mathbb R^n$ is
+        $$\langle u, v\rangle_M = u^{\!\top}\!Mv .$$
+        It is bilinear, symmetric and positive definite — the three axioms of an inner product — so it <em>is</em> one, and $\lVert u\rVert_M = \sqrt{u^{\!\top}Mu}$ is a norm.</p>
+      </div>
+      <p class="small"><b>The physics:</b> $\tfrac12\langle\dot u,\dot u\rangle_M$ is the kinetic energy. The modes are orthogonal in the geometry that the <em>energy</em> defines, not the one the coordinate labels happen to define.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem · <span class="term" data-term="M-orthogonality">$M$-orthogonality</span></span>
+        <p class="small">If $Kv_i = \lambda_iMv_i$, $Kv_j = \lambda_jMv_j$ and $\lambda_i \ne \lambda_j$, then $\langle v_i,v_j\rangle_M = 0$ and $v_i^{\!\top}\!Kv_j = 0$.</p>
+        <p class="small muted"><b>Proof.</b> $\lambda_i\,v_j^{\!\top}Mv_i = v_j^{\!\top}Kv_i = (Kv_j)^{\!\top}v_i = \lambda_j\,v_j^{\!\top}Mv_i$, using $K = K^{\!\top}$ and $M = M^{\!\top}$. So $(\lambda_i-\lambda_j)v_j^{\!\top}Mv_i = 0$. $\square$</p>
+      </div>
+      <p class="small">Repeated $\lambda$: the eigenspace is a genuine subspace, so Gram–Schmidt in $\langle\cdot,\cdot\rangle_M$ makes it $M$-orthonormal. Hence a full <b>$M$-orthonormal basis of modes</b>, $\langle v_i,v_j\rangle_M = \delta_{ij}$.</p>
+      <p class="small muted">Equivalently: $M^{1/2}$ carries $\langle\cdot,\cdot\rangle_M$ to the Euclidean product, and the $w_i$ are Euclidean-orthonormal by the spectral theorem.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why an inner product and not just "a useful bilinear form".</b> Because every
+    consequence of the inner-product axioms is now available for free: Cauchy–Schwarz,
+    the Pythagoras identity, Gram–Schmidt, orthogonal projection, Bessel's inequality,
+    and the fact that an orthonormal set is linearly independent. Section 5's Rayleigh
+    argument and unit 19's Fourier expansions both use those, and they use them in
+    $\langle\cdot,\cdot\rangle_M$ without a word of extra proof.</p>
+    <p><b>Positive definiteness is again the hypothesis.</b> If $M$ had a negative
+    eigenvalue, $\langle\cdot,\cdot\rangle_M$ would be an indefinite form, not an inner
+    product; orthogonality would no longer imply independence, and a nonzero vector could
+    be "orthogonal to itself". Unit 26 takes exactly that step deliberately: the
+    Minkowski form is symmetric and indefinite, self-orthogonal vectors are the light
+    rays, and a great deal of the strangeness of relativity is the loss of the axiom
+    dropped here.</p>
+    <p><b>A consistency check on the proof.</b> It uses only symmetry of $K$ and $M$, not
+    definiteness — so $M$-orthogonality of modes with distinct eigenvalues is true even
+    for an indefinite $M$. What fails without definiteness is everything else: reality of
+    $\lambda$, the existence of a basis, and the very claim that $\langle\cdot,\cdot\rangle_M$
+    is an inner product.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the $M$-inner product · example</p>
+  <h2>Worked: two masses, and the orthogonality that is not Euclidean</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">worked · <span class="ref" data-ref="two">the two-mass example</span></span>
+        <p class="small"><b>1. The matrices.</b> $V = \tfrac12 u_1^2 + \tfrac12(u_2-u_1)^2 + \tfrac12u_2^2$, so
+        $K = \begin{pmatrix}2&amp;-1\\-1&amp;2\end{pmatrix}$, $M = \begin{pmatrix}1&amp;0\\0&amp;4\end{pmatrix}$ (SI units).</p>
+        <p class="small"><b>2. The characteristic polynomial.</b>
+        $\det(K-\lambda M) = (2-\lambda)(2-4\lambda) - 1 = 4\lambda^2 - 10\lambda + 3$, so
+        $$\lambda = \tfrac{10\pm\sqrt{52}}{8} = \tfrac{5\pm\sqrt{13}}{4} = 0.348612,\ 2.151388\ \ \mathrm{s^{-2}} .$$</p>
+        <p class="small"><b>3. The shapes.</b> Row 1 of $(K-\lambda M)v = 0$ reads $(2-\lambda)v_1 = v_2$, so
+        $$v^{(1)} = \big(1,\ \tfrac{3+\sqrt{13}}{4}\big), \qquad
+          v^{(2)} = \big(1,\ \tfrac{3-\sqrt{13}}{4}\big),$$
+        numerically $(1,\ 1.651388)$ and $(1,\ -0.151388)$: together, then opposed.</p>
+        <p class="small"><b>4. The two inner products.</b>
+        $v^{(1)}\!\cdot v^{(2)} = 1 + \tfrac{(3+\sqrt{13})(3-\sqrt{13})}{16} = \tfrac34 \ne 0$, but
+        $\langle v^{(1)},v^{(2)}\rangle_M = 1 + 4\big(-\tfrac14\big) = 0 .$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Trace:</b> $\lambda_1+\lambda_2 = \tfrac{10}{4} = \mathrm{tr}(M^{-1}K) = 2 + \tfrac12$. ✓</p>
+        <p class="small"><b>Determinant:</b> $\lambda_1\lambda_2 = \tfrac34 = \det K/\det M = 3/4$. ✓</p>
+        <p class="small"><b>Limit:</b> set $m_2 = m_1 = 1$ instead and the roots become $1$ and $3$, i.e. $\omega = \sqrt{k/m}$ and $\sqrt{3k/m}$ — the symmetric and antisymmetric modes of two equal masses, and the $N=2$ case of <span class="ref" data-ref="modes">the chain's formula</span>. ✓</p>
+      </div>
+      <p class="small">$\omega_1 = 0.590434$, $\omega_2 = 1.466761\ \mathrm{s^{-1}}$; periods $10.642$ s and $4.2837$ s.</p>
+      <p class="small muted">The Euclidean angle between the modes is $67.4^\circ$; they are at right angles in the kinetic-energy geometry.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every number above, independently.</b> The exact roots are $(5\pm\sqrt{13})/4$;
+    numerically $0.3486121811$ and $2.1513878189$, and a direct eigendecomposition of
+    $S = M^{-1/2}KM^{-1/2} = \begin{pmatrix}2&-\frac12\\-\frac12&\frac12\end{pmatrix}$
+    returns the same two to fourteen digits. $\omega_1 = 0.5904339$, $\omega_2 = 1.4667610\ \mathrm{s^{-1}}$;
+    $T_1 = 10.64164$ s, $T_2 = 4.283714$ s, ratio $\omega_2/\omega_1 = 2.4842087$.
+    The Euclidean norms are $\lVert v^{(1)}\rVert = \sqrt{1+1.651388^2} = 1.930565$ and
+    $\lVert v^{(2)}\rVert = \sqrt{1+0.151388^2} = 1.011394$, giving
+    $\cos\theta = 0.75/1.952562 = 0.384111$ and $\theta = 67.41^\circ$.</p>
+    <p><b>Why the $M$-product came out exactly zero, exactly.</b> With $v^{(i)} = (1, 2-\lambda_i)$,
+    $\langle v^{(1)},v^{(2)}\rangle_M = 1 + 4(2-\lambda_1)(2-\lambda_2)$, and
+    $(2-\lambda_1)(2-\lambda_2) = 4 - 2(\lambda_1+\lambda_2) + \lambda_1\lambda_2 = 4 - 5 + \tfrac34 = -\tfrac14$
+    by Vieta. So the product is $1 - 1 = 0$ identically, not to rounding — which is the
+    theorem, seen in the arithmetic.</p>
+    <p><b>Physical reading of the shapes.</b> In the lowest mode the two masses move
+    together, and it is the <em>heavy</em> one that swings further, by a factor $1.651$:
+    the middle spring is then the least stretched of the three, which is what keeps the
+    frequency low. Check it on mass 1: the restoring force is $-2u_1 + u_2 = -2 + 1.651 =
+    -0.349$, and $\lambda_1u_1 = 0.349$. ✓ On mass 2: $u_1 - 2u_2 = 1 - 3.303 = -2.303$,
+    and $\lambda_1m_2u_2 = 0.349\times4\times1.651 = 2.303$. ✓
+    In the upper mode they move oppositely and the light mass carries almost all of the
+    motion: $m_2$ is four times as heavy and moves only $0.151$ as far. The two momentum amplitudes,
+    $m_1v^{(2)}_1 = 1$ against $m_2v^{(2)}_2 = -0.606$ (times the common factor $\dot q_2$), do not cancel — the walls take up the
+    difference, which is why a chain with fixed ends has no momentum conservation and no
+    zero mode. Section 4 removes the walls and gets both back.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · normal coordinates</p>
+  <h2>Normal coordinates: the equations fall apart</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Let $P = [\,v_1\ \cdots\ v_n\,]$ be the $M$-orthonormal modes as columns — the <b>modal matrix</b>. (It is called $P$, not $V$: $V$ is the potential energy.)</p>
+      <div class="box thm"><span class="label">theorem · <span class="term">simultaneous diagonalisation</span></span>
+        <p class="small">$$P^{\!\top}MP = I_n, \qquad P^{\!\top}KP = \mathrm{diag}(\omega_1^2,\dots,\omega_n^2).$$
+        Both forms are diagonal in the same basis — by <b>congruence</b>, not similarity.</p>
+        <p class="small muted"><b>Proof.</b> Entry $(i,j)$ of the first is $\langle v_i,v_j\rangle_M = \delta_{ij}$; of the second, $v_i^{\!\top}Kv_j = \lambda_j v_i^{\!\top}Mv_j = \lambda_j\delta_{ij}$. $\square$</p>
+      </div>
+      <p class="small">Writing $u(t) = \sum_p q_p(t)\,v_p$ defines the <span class="term">normal coordinates</span> $q = P^{-1}u$, and substituting into $M\ddot u = -Ku$ then multiplying by $P^{\!\top}$ gives</p>
+      $$\ddot q_p = -\omega_p^2\,q_p, \qquad p = 1,\dots,n .$$
+    </div>
+    <div>
+      <div class="box good"><span class="label">one copy of unit 06 per mode</span>
+        <p class="small">Each $q_p$ is an independent oscillator: $q_p(t) = \alpha_p\cos\omega_pt + \beta_p\sin\omega_pt$, with $\alpha_p = \langle u(0), v_p\rangle_M$ and $\beta_p = \langle\dot u(0), v_p\rangle_M/\omega_p$.</p>
+        <p class="small">$2n$ constants, matching the count on “First order, in $2n$ dimensions”. ✓</p>
+      </div>
+      <div class="box good"><span class="label">and the energy too</span>
+        <p class="small">$$T = \tfrac12\sum_p\dot q_p^2, \qquad V = \tfrac12\sum_p\omega_p^2q_p^2 .$$
+        No cross terms: the total energy is a sum of per-mode energies, each separately conserved. Modes do not exchange energy — in the linear approximation.</p>
+      </div>
+      <p class="small muted">What the neglected $o(\lVert u\rVert^2)$ does to that last sentence is units 21 and 17: amplitude-dependent frequencies, then resonance between modes, and eventually chaos.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The substitution, in full.</b> $u = Pq$ gives $MP\ddot q = -KPq$; left-multiply by
+    $P^{\!\top}$ to get $(P^{\!\top}MP)\ddot q = -(P^{\!\top}KP)q$, i.e. $\ddot q = -\mathrm{diag}(\omega_p^2)q$.
+    Note that $P^{\!\top}$, not $P^{-1}$, is what is applied — and it works because
+    $P^{\!\top}MP = I$ means $P^{-1} = P^{\!\top}M$. The whole trick is that the transpose
+    is the right inverse once $M$ is folded in.</p>
+    <p><b>Why the initial conditions come out as $M$-projections.</b> From $u(0) = \sum_p\alpha_pv_p$,
+    take $\langle\cdot, v_q\rangle_M$ of both sides: $\langle u(0),v_q\rangle_M = \sum_p\alpha_p\delta_{pq} = \alpha_q$.
+    This is the standard formula for coefficients with respect to an orthonormal basis,
+    in the $M$-inner product. Unit 19 will do the same computation with an integral in
+    place of the sum, and it will look identical because it is the same argument.</p>
+    <p><b>On the phrase "normal".</b> Read it as "orthogonal" — the modes are normal to one
+    another, in the $M$-inner product — not as "typical" or "normalised". The name is
+    nineteenth-century (Rayleigh's <i>Theory of Sound</i>, 1877, uses "normal coordinates"
+    throughout); the mathematics is older, since Lagrange solved the loaded string mode by
+    mode in 1759.</p>
+    <p><b>The energy statement, derived.</b> $T = \tfrac12\dot u^{\!\top}M\dot u =
+    \tfrac12\dot q^{\!\top}(P^{\!\top}MP)\dot q = \tfrac12\lVert\dot q\rVert^2$, and
+    $V = \tfrac12 u^{\!\top}Ku = \tfrac12 q^{\!\top}\mathrm{diag}(\omega_p^2)q$. Each pair
+    $E_p = \tfrac12(\dot q_p^2 + \omega_p^2q_p^2)$ is conserved separately, by unit 00's
+    one-dimensional energy argument applied to $\ddot q_p = -\omega_p^2q_p$. A system of $n$
+    masses therefore has $n$ independent conserved quantities, not one — it is
+    completely integrable, in the sense unit 17 will define.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>The chain, exactly</h2>
+  <p>A sine that happens to be an eigenvector, a closed-form spectrum, and a curve bending away from a straight line.</p>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the chain</p>
+  <h2>Writing down $M$ and $K$</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><span class="ref" data-ref="chain">$N$ masses $m$, $N+1$ springs $k$, fixed walls.</span> Each of the $N+1$ springs stores $\tfrac12k\times(\text{its extension})^2$, and with the convention $u_0 = u_{N+1} = 0$ the walls are just two more values of $u$. So</p>
+      $$V(u) = \frac k2\sum_{j=0}^{N}(u_{j+1}-u_j)^2 ,$$
+      <p class="small">and differentiating twice gives <span class="ref" data-ref="K">$K = kA_N$, $M = mI_N$</span>, where</p>
+      $$A_N = \begin{pmatrix} 2&amp;-1&amp;&amp;\\ -1&amp;2&amp;\ddots&amp;\\ &amp;\ddots&amp;\ddots&amp;-1\\ &amp;&amp;-1&amp;2\end{pmatrix}$$
+      <p class="small">is the <span class="term">second-difference operator</span>: $(A_Nu)_j = -\big(u_{j+1} - 2u_j + u_{j-1}\big)$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">$K$ is positive definite</span>
+        <p class="small">$u^{\!\top}A_Nu = \sum_{j=0}^{N}(u_{j+1}-u_j)^2 \ge 0$, and it vanishes only if all the differences vanish, i.e. $u_0 = u_1 = \dots = u_{N+1}$; the walls force that common value to be $0$.</p>
+        <p class="small">So all $\omega_n &gt; 0$ by the theorem on “What the reduction proves” — <b>before</b> computing anything. Take the walls away in section 4 and this argument is exactly what fails.</p>
+      </div>
+      <p class="small">The equation of motion for mass $j$, read off directly from Hooke's law:</p>
+      $$\begin{aligned}m\ddot u_j &= k(u_{j+1}-u_j) - k(u_j-u_{j-1})\\ &= k\,(u_{j+1}-2u_j+u_{j-1}) .\end{aligned}$$
+      <p class="small muted">Same thing. The Hessian route and the force route agree because the force is $-\nabla V$ (unit 04).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The Hessian, entry by entry.</b> $\partial_i V = k\sum_j (u_{j+1}-u_j)(\delta_{i,j+1}-\delta_{i,j})
+    = k\big(2u_i - u_{i-1} - u_{i+1}\big)$, and differentiating again gives
+    $\partial_l\partial_iV = k(2\delta_{il} - \delta_{i,l+1} - \delta_{i,l-1})$, which is $kA_N$.
+    Positive semidefiniteness was guaranteed in advance because $u = 0$ minimises $V$, but
+    the sum-of-squares form proves the stronger statement, definiteness, directly.</p>
+    <p><b>On the sign convention.</b> $A_N$ is <em>minus</em> the discrete Laplacian, so that
+    it is positive rather than negative definite. Books differ; a good habit is to fix the
+    sign by demanding that the energy $\tfrac12u^{\!\top}Ku$ be positive, which is what
+    was done here. Unit 18 will keep the same convention when $A_N/a^2$ becomes
+    $-\partial_x^2$.</p>
+    <p><b>The second-difference operator is the whole of unit 18 in miniature.</b>
+    $(A_Nu)_j/a^2 = -\big(u_{j+1}-2u_j+u_{j-1}\big)/a^2$ is the standard second-difference
+    quotient, which tends to $-u''(x)$ as $a \to 0$ for a smooth $u$ sampled at spacing
+    $a$. The equation $m\ddot u_j = -k(A_Nu)_j$ therefore becomes
+    $\rho\,\partial_t^2 u = \tau\,\partial_x^2u$ in the limit, the wave equation. That limit is
+    taken properly in unit 18; “A continuum theory's own error bar” measures how far the finite chain is from it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the chain · example</p>
+  <h2>Worked: a sine is an eigenvector</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">worked · the ansatz, verified</span>
+        <p class="small"><b>1. Try</b> $v_j = \sin(j\theta)$, $j = 0,\dots,N+1$, $\theta$ to be chosen.</p>
+        <p class="small"><b>2. Apply $A_N$.</b> The identity $\sin\big((j{-}1)\theta\big) + \sin\big((j{+}1)\theta\big) = 2\cos\theta\,\sin(j\theta)$ (add the two angle-sum formulas) gives, for every $j$,
+        $$-v_{j-1} + 2v_j - v_{j+1} = (2-2\cos\theta)\,v_j .$$</p>
+        <p class="small"><b>3. The walls.</b> $v_0 = \sin 0 = 0$ automatically. The other end needs $v_{N+1} = \sin\big((N{+}1)\theta\big) = 0$, so $\theta_n = n\pi/(N{+}1)$ with $n \in \mathbb Z$.</p>
+        <p class="small"><b>4. Which $n$ are new.</b> Every other integer repeats one of $n = 1,\dots,N$ up to sign, or gives $0$ (notes). That is $N$ modes — <b>all of them</b>, by the count on “What the reduction proves”.</p>
+        <p class="small"><b>5. Frequencies.</b> $\lambda_n = \tfrac km(2-2\cos\theta_n) = \tfrac{4k}m\sin^2(\theta_n/2)$, so</p>
+        $$\boxed{\ \omega_n = 2\sqrt{\frac km}\,\sin\frac{n\pi}{2(N+1)}\ }$$
+      </div>
+    </div>
+    <div>
+      <p class="small">Step 2 holds at $j = 1$ and $j = N$ too: the walls are $v_0 = v_{N+1} = 0$, built into the ansatz.</p>
+      <div class="fig">
+        <svg viewBox="0 0 420 200" width="340" role="img" aria-label="mode shapes n=1 and n=2 for a chain of five masses: a sine sampled at the mass positions">
+          <line x1="20" y1="100" x2="400" y2="100" class="rule" stroke-width="1.5"/>
+          <line x1="20" y1="30" x2="20" y2="170" class="ink" stroke-width="3"/>
+          <line x1="344" y1="30" x2="344" y2="170" class="ink" stroke-width="3"/>
+          <polyline points="20,100 74,70 128,48 182,40 236,48 290,70 344,100" fill="none" class="unit" stroke-width="3"/>
+          <polyline points="20,100 74,48 128,48 182,100 236,152 290,152 344,100" fill="none" class="accent" stroke-width="2" stroke-dasharray="6 4"/>
+          <g class="fill-unit"><circle cx="74" cy="70" r="5"/><circle cx="128" cy="48" r="5"/><circle cx="182" cy="40" r="5"/><circle cx="236" cy="48" r="5"/><circle cx="290" cy="70" r="5"/></g>
+          <text x="352" y="76" font-size="15" class="mono" style="fill:var(--unit)">n = 1</text>
+          <text x="352" y="158" font-size="15" class="mono" style="fill:var(--accent)">n = 2</text>
+          <text x="26" y="192" font-size="14" class="mono soft">wall</text>
+          <text x="310" y="192" font-size="14" class="mono soft">wall</text>
+        </svg>
+        <p class="cap">$N = 5$: the mode shapes are a sine sampled at the mass positions, $(0.5,\ 0.866,\ 1,\ 0.866,\ 0.5)$ and $(0.866,\ 0.866,\ 0,\ -0.866,\ -0.866)$. Mode $n$ has $n-1$ interior nodes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The trigonometric identity, spelt out.</b>
+    $\sin((j-1)\theta) = \sin j\theta\cos\theta - \cos j\theta\sin\theta$ and
+    $\sin((j+1)\theta) = \sin j\theta\cos\theta + \cos j\theta\sin\theta$; adding kills the
+    cosine terms and leaves $2\cos\theta\sin j\theta$. The complex-exponential route of unit
+    06 is quicker: $v_j = \mathrm{Im}\,z^j$ with $z = e^{i\theta}$, and
+    $z^{-1} + z = 2\cos\theta$ is immediate.</p>
+    <p><b>Why a sine, and not a guess out of nowhere.</b> The matrix $A_N$ commutes with the
+    reflection $j \mapsto N+1-j$, so its eigenvectors can be taken even or odd about the
+    centre; and the recursion $v_{j+1} = (2-\lambda m/k)v_j - v_{j-1}$ is a linear
+    difference equation with constant coefficients, whose solutions are $z^j$ for $z$ a
+    root of $z^2 - (2-\lambda m/k)z + 1 = 0$. The two roots multiply to $1$, so either both
+    are real reciprocals — giving growing and decaying solutions that cannot satisfy both
+    boundary conditions — or they are $e^{\pm i\theta}$ on the unit circle, giving
+    $\sin j\theta$ and $\cos j\theta$. The ansatz is the general solution of a
+    constant-coefficient recursion, exactly as in unit 06 for a constant-coefficient ODE.</p>
+    <p><b>Step 4, carefully.</b> $n = 0$ and $n = N+1$ give $\sin(0) = 0$ and $\sin(j\pi) = 0$
+    for every $j$, the zero vector; $-n$ gives minus the vector of $n$, since sine is odd; and
+    $\sin\big(j(2(N{+}1)-n)\pi/(N{+}1)\big) = \sin\big(2\pi j - jn\pi/(N{+}1)\big)
+    = -\sin\big(jn\pi/(N{+}1)\big)$, so those two indices give parallel vectors. Together with
+    periodicity in $n$ with period $2(N{+}1)$, every integer $n$ reduces to one of
+    $1,\dots,N$ or to zero. Since “What the reduction proves” promised exactly $N$ modes and we have found $N$
+    independent ones — independent because their eigenvalues $4\sin^2\big(n\pi/2(N{+}1)\big)$
+    are distinct, the sine being strictly increasing on $[0,\pi/2]$ — the list is complete — no separate completeness argument is needed.</p>
+    <p><b>Node counting.</b> $v^{(n)}_j = \sin(jn\pi/(N+1))$ changes sign $n-1$ times between the
+    walls. That mode $n$ has $n-1$ nodes is a general fact about second-order problems
+    (Sturm's oscillation theorem, unit 19); here it can simply be read off.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the chain</p>
+  <h2>Four checks on the formula</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">dimensions</span>
+        <p class="small">$\sqrt{k/m} = \sqrt{(\mathrm{N\,m^{-1}})/\mathrm{kg}} = \mathrm{s^{-1}}$, and the sine's argument is a pure number. ✓</p>
+      </div>
+      <div class="box good"><span class="label">$N = 1$</span>
+        <p class="small">$\omega_1 = 2\sqrt{k/m}\sin(\pi/4) = \sqrt{2k/m}$. Direct: one mass between two springs feels restoring force $2ku$, so $\omega = \sqrt{2k/m}$. ✓</p>
+      </div>
+      <div class="box good"><span class="label">$N = 2$</span>
+        <p class="small">$\omega_1 = 2\sin(\pi/6)\sqrt{k/m} = \sqrt{k/m}$: both masses together, middle spring unstretched, each feels only its wall spring. ✓<br>
+        $\omega_2 = 2\sin(\pi/3)\sqrt{k/m} = \sqrt{3k/m}$: opposite motion stretches the middle spring by $2u$, giving effective stiffness $k + 2k = 3k$. ✓</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the ceiling</span>
+        <p class="small">$\omega_n &lt; 2\sqrt{k/m}$ always, approached only as $\theta \to \pi$: neighbours in exact antiphase. However many masses you add, nothing vibrates faster — the <span class="term">cut-off frequency</span>.</p>
+        <p class="small">For <span class="ref" data-ref="numbers">the $N = 20$ chain</span>: ceiling $31.623\ \mathrm{s^{-1}}$, top mode $\omega_{20} = 31.534\ \mathrm{s^{-1}}$, which is $99.72\%$ of it.</p>
+      </div>
+      <div class="box good"><span class="label">orthogonality, as promised</span>
+        <p class="small">$M = mI$ here, so $M$-orthogonality <em>is</em> Euclidean orthogonality, and the theorem hands us the vanishing of
+        $$\sum_{j=1}^{N}\sin\frac{jn\pi}{N{+}1}\,\sin\frac{jn'\pi}{N{+}1} \quad (n \ne n'\ \text{in}\ 1,\dots,N),$$
+        a discrete Fourier identity, proved by physics; the diagonal value is $(N{+}1)/2$ (notes).</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The $N=2$ check, done as a pencil problem.</b> $M = mI_2$, $K = k\begin{pmatrix}2&-1\\-1&2\end{pmatrix}$,
+    so $\det(K-\lambda mI) = (2k-\lambda m)^2 - k^2$, giving $\lambda m = k$ or $3k$ — exactly the two
+    frequencies above, and the eigenvectors $(1,1)$ and $(1,-1)$ are the symmetric and
+    antisymmetric shapes. They are Euclidean-orthogonal because the masses are equal;
+    the worked two-mass example is what happens when they are not.</p>
+    <p><b>Why the ceiling is physical, not an artefact.</b> The stiffest thing a single mass
+    can experience is both its springs pulling it back at once, with its neighbours
+    displaced the opposite way: restoring force $k(u - (-u)) \times 2 = 4ku$, hence
+    $\omega^2 = 4k/m$. No arrangement does better, so $2\sqrt{k/m}$ bounds the spectrum.
+    Section 5's Rayleigh argument proves exactly this, from above: $\lambda_{\max} = \max R(u)$
+    and $R(u) \le 4k/m$ because $\sum(u_{j+1}-u_j)^2 \le 2\sum(u_{j+1}^2+u_j^2) \le 4\sum u_j^2$.</p>
+    <p><b>The discrete orthogonality identity.</b> It can also be proved directly, by writing
+    the sines as exponentials and summing two geometric series; the physics proof above is
+    shorter and says why it is true. The normalisation $(N+1)/2$ follows from
+    $\sum_j\sin^2 = \tfrac12\sum_j(1-\cos(2jn\pi/(N{+}1))) = \tfrac N2 + \tfrac12$, using that the
+    cosine sum is $-1$ for $1 \le n \le N$. So the $M$-orthonormal modes are
+    $v^{(n)}_j = \sqrt{2/\big(m(N{+}1)\big)}\,\sin\big(jn\pi/(N{+}1)\big)$, with the $\sqrt m$
+    there because $\langle v,v\rangle_M = m\lVert v\rVert^2$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the chain</p>
+  <h2>The dispersion curve, and where it bends</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">Give the chain a spacing $a$ and define the <span class="term">wavenumber</span> $\kappa_n = \theta_n/a = n\pi/\big((N{+}1)a\big)$, so a mode looks like $\sin(\kappa_n x_j)$ with $x_j = ja$. Then</p>
+      $$\omega(\kappa) = \frac{2c}{a}\,\sin\frac{\kappa a}{2}, \qquad c = a\sqrt{k/m},$$
+      <p class="small">the chain's <span class="term">dispersion relation</span>. For $\kappa a \ll 1$ it is $\omega \approx c\kappa$: a straight line, one speed for all wavelengths. For $\kappa a$ of order $1$ it is not.</p>
+      <table class="dense">
+        <thead><tr><th>$n$</th><th class="num">$\kappa_n a$</th><th class="num">$\omega_n/\sqrt{k/m}$</th><th class="num">$c\kappa_n$</th><th class="num">deficit</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="num">0.14960</td><td class="num">0.14946</td><td class="num">0.14960</td><td class="num">0.093%</td></tr>
+          <tr><td>5</td><td class="num">0.74800</td><td class="num">0.73068</td><td class="num">0.74800</td><td class="num">2.32%</td></tr>
+          <tr><td>10</td><td class="num">1.49600</td><td class="num">1.36034</td><td class="num">1.49600</td><td class="num">9.07%</td></tr>
+          <tr><td>20</td><td class="num">2.99199</td><td class="num">1.99441</td><td class="num">2.99199</td><td class="num">33.34%</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted"><span class="ref" data-ref="numbers">$N = 20$</span>, in units of $\sqrt{k/m}$ with $a = 1$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 470 300" width="440" role="img" aria-label="omega against mode number for a twenty-mass chain: a sine curve below the straight line it starts tangent to">
+        <line x1="52" y1="270" x2="450" y2="270" class="rule" stroke-width="1.5"/>
+        <line x1="52" y1="26" x2="52" y2="270" class="rule" stroke-width="1.5"/>
+        <polyline points="52.0,262.0 71.0,245.4 90.0,228.8 109.0,212.2 128.0,195.6 147.0,179.0 166.0,162.4 185.0,145.8 204.0,129.2 223.0,112.5 242.0,95.9 261.0,79.3 280.0,62.7 299.0,46.1 318.0,29.5" fill="none" class="rule" stroke-width="2" stroke-dasharray="6 5"/>
+        <polyline points="52.0,262.0 71.0,245.4 90.0,228.9 109.0,212.6 128.0,196.6 147.0,180.9 166.0,165.7 185.0,151.0 204.0,136.9 223.0,123.6 242.0,111.0 261.0,99.3 280.0,88.4 299.0,78.6 318.0,69.7 337.0,62.0 356.0,55.3 375.0,49.9 394.0,45.6 413.0,42.5 432.0,40.6" fill="none" class="unit" stroke-width="3"/>
+        <line x1="52" y1="40.0" x2="450" y2="40.0" class="warn" stroke-width="1.5" stroke-dasharray="3 4"/>
+        <text x="330" y="34" font-size="14" style="fill:var(--warn)">ceiling 2√(k/m)</text>
+        <text x="318" y="24" font-size="14" class="soft">cκ</text>
+        <text x="380" y="72" font-size="15" class="mono" style="fill:var(--unit)">ω(κ)</text>
+        <text x="30" y="46" font-size="13" class="mono soft">2</text>
+        <text x="30" y="156" font-size="13" class="mono soft">1</text>
+        <text x="46" y="288" font-size="13" class="mono soft">0</text>
+        <text x="236" y="288" font-size="13" class="mono soft">10</text>
+        <text x="424" y="288" font-size="13" class="mono soft">20</text>
+        <text x="420" y="300" font-size="13" class="mono soft">n</text>
+      </svg>
+      <p class="cap">Solid: $\omega_n$ for $N = 20$. Dashed: the straight line $c\kappa$ it is tangent to at the origin. The gap between them is what unit 18's continuum theory does not know about.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>All five columns were computed and checked against a direct numerical
+    eigendecomposition of $A_{20}$: the largest discrepancy between the closed formula and
+    the numerical eigenvalues is of order $10^{-15}$, which is rounding.</p>
+    <p><b>What "dispersion" means, and why it matters.</b> If $\omega = c\kappa$ exactly, every
+    wavelength travels at the same speed $c$ and a pulse keeps its shape forever. When
+    $\omega(\kappa)$ bends, short wavelengths travel slower than long ones — here the phase
+    speed is $\omega/\kappa = c\,\mathrm{sinc}(\kappa a/2) &lt; c$ — so a pulse made of many
+    wavelengths spreads out as it travels. A crystal lattice is exactly this chain in
+    three dimensions, and its dispersion curve, measured by neutron scattering, is one of
+    the standard confirmations that matter is made of discrete atoms on a lattice.</p>
+    <p><b>The top of the curve is flat.</b> $\mathrm d\omega/\mathrm d\kappa = c\cos(\kappa a/2)$
+    vanishes at $\kappa a = \pi$. A wave packet built near the cut-off does not travel at
+    all: its group velocity is zero. That $\kappa a = \pi$ is the edge of what the lattice
+    can represent — the shortest meaningful wavelength is $2a$, one atom up and the next
+    down — and in solid-state physics it is the edge of the first Brillouin zone. The same
+    fact is the Nyquist limit in signal processing.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · the chain</p>
+  <h2>A continuum theory's own error bar</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Expand the exact relation for small $\kappa a$, using $\sin x = x - x^3/6 + x^5/120 - \dots$ with $x = \kappa a/2$:</p>
+      <div class="box thm"><span class="label">the correction</span>
+        $$\omega(\kappa) = c\kappa\Big(1 - \frac{(\kappa a)^2}{24} + \frac{(\kappa a)^4}{1920} - \dots\Big).$$
+        <p class="small muted"><b>Proof.</b> $\omega = (2c/a)\sin(\kappa a/2) = c\kappa\cdot\dfrac{\sin(\kappa a/2)}{\kappa a/2}$, and $\sin x/x = 1 - x^2/6 + x^4/120$ with $x = \kappa a/2$. $\square$</p>
+      </div>
+      <p class="small">Unit 18 will derive the wave equation as the $a \to 0$ limit and predict $\omega = c\kappa$ exactly. The $-(\kappa a)^2/24$ is the size of the lie, and it is computable in advance.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">worked · the fundamental of <span class="ref" data-ref="numbers">the $N=20$ chain</span></span>
+        <p class="small"><b>Continuum prediction.</b> A string of length $L = 1.05\ \mathrm m$ with wave speed $c = a\sqrt{k/m} = 0.05\times15.8114 = 0.79057\ \mathrm{m\,s^{-1}}$ has fundamental $\omega = \pi c/L = 2.36538\ \mathrm{s^{-1}}$.</p>
+        <p class="small"><b>The chain.</b> $\omega_1 = 2\sqrt{k/m}\sin(\pi/42) = 2\times15.8114\times0.0747300 = 2.36317\ \mathrm{s^{-1}}$.</p>
+        <p class="small"><b>The gap.</b> $(2.36317 - 2.36538)/2.36538 = -0.0932\%$.</p>
+        <p class="small"><b>Predicted gap.</b> $\kappa_1a = \pi/21 = 0.149600$, so $-(\kappa_1a)^2/24 = -0.0933\%$.</p>
+        <p class="small">Three significant figures, from a Taylor series, with no fitting.</p>
+      </div>
+      <p class="small muted">At $n = 5$ the two-term prediction is $-2.331\%$ against an actual $-2.315\%$; at $n = 10$, $-9.33\%$ against $-9.07\%$ — a truncated Taylor series behaves as it should: excellent where $\kappa a$ is small, degrading smoothly where it is not. Unit 21 makes that sentence precise.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>This slide is the one to remember from section 3, and not for the chain. It is a
+    working example of something rare: a continuum theory whose error, relative to the
+    discrete theory underneath it, is known in closed form. Usually one has the continuum
+    theory and no access at all to what it is approximating.</p>
+    <p><b>Where the $1/24$ comes from, physically.</b> Replacing $u_{j+1}-2u_j+u_{j-1}$ by
+    $a^2u''(x_j)$ throws away $\tfrac{a^4}{12}u''''(x_j) + O(a^6)$ — Taylor's theorem again.
+    For $u = \sin\kappa x$ that discarded term is $\tfrac{a^4\kappa^4}{12}\sin\kappa x$, so the
+    corrected eigenvalue is $\omega^2 = c^2\kappa^2\big(1 - (\kappa a)^2/12\big)$, and taking the
+    square root halves the exponent's coefficient: $1 - (\kappa a)^2/24$. The two routes agree,
+    as they must.</p>
+    <p><b>Why the deficit is always negative.</b> $\sin x &lt; x$ for $x &gt; 0$, so
+    $\omega(\kappa) &lt; c\kappa$ for every $\kappa &gt; 0$: the discrete chain is always <em>softer</em>
+    than the continuum string predicts. That is a fact about <em>this</em> discretisation —
+    point masses joined by springs — and not about discretisation in general. Section 5
+    shows that a Rayleigh–Ritz model, which minimises the continuum's own energy ratio over
+    a restricted family of shapes, always errs <em>high</em>. Which side a finite model lands
+    on depends on how it was built, and the chain was not built that way.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Zero modes, and the symmetries responsible</h2>
+  <p>Take the walls away and one frequency goes to zero. That is not an accident and not a degeneracy: it is a symmetry, and behind it a conservation law — six units before Noether (unit 13) says why.</p>
+</section>
+
+<section>
+  <p class="eyebrow">07 · zero modes</p>
+  <h2>Cut the chain loose</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Remove the two walls from <span class="ref" data-ref="chain">the chain</span>: $N$ masses, $N-1$ springs, nothing fixed. Now $V = \tfrac k2\sum_{j=1}^{N-1}(u_{j+1}-u_j)^2$, and $K = k\tilde A_N$ with $\tilde A_N$ equal to $A_N$ except that the two corner entries are $1$ instead of $2$.</p>
+      <div class="box thm"><span class="label">the spectrum, free ends</span>
+        <p class="small">$$\omega_n = 2\sqrt{\frac km}\,\sin\frac{n\pi}{2N}, \qquad n = 0,1,\dots,N-1,$$
+        so $\omega_0 = 0$ with mode $v^{(0)} = (1,1,\dots,1)$.</p>
+      </div>
+      <p class="small">Check, $N=3$: $\omega = 0,\ \sqrt{k/m},\ \sqrt{3k/m}$ — and the middle mass is stationary in the $\omega_1$ mode, so it is exactly two independent mass–spring pairs. ✓ Verified numerically for $N = 3, 4, 6$ against the formula.</p>
+    </div>
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">A <span class="term">zero mode</span> is a solution of $Kv = 0$, $v \ne 0$: a displacement direction that costs no potential energy to second order.</p>
+      </div>
+      <div class="box good"><span class="label">why the old argument failed</span>
+        <p class="small">“Writing down $M$ and $K$” proved $K$ positive definite by saying the walls force the common value $u_0 = \dots = u_{N+1}$ to be zero. With no walls, $u = (1,1,\dots,1)$ has every difference zero: $u^{\!\top}Ku = 0$ with $u \ne 0$. Positive <em>semi</em>definite, not definite.</p>
+      </div>
+      <p class="small muted">Physically: sliding the whole chain sideways costs nothing, because nothing is attached to anything fixed.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Verifying the free-end formula.</b> The corner entry $1$ instead of $2$ is exactly
+    the statement that the missing end spring has zero extension, so introduce ghost values
+    $v_0 = v_1$ and $v_{N+1} = v_N$; with those, $(\tilde A_Nv)_j = -v_{j-1}+2v_j-v_{j+1}$ for
+    every $j = 1,\dots,N$, the same expression as in the fixed case. Now try
+    $v_j = \cos\big((j-\tfrac12)\theta\big)$. The left ghost condition holds automatically,
+    since $\cos\big(-\tfrac{\theta}{2}\big) = \cos\big(\tfrac{\theta}{2}\big)$. The right one,
+    $\cos\big((N+\tfrac12)\theta\big) = \cos\big((N-\tfrac12)\theta\big)$, is
+    $-2\sin(N\theta)\sin(\theta/2) = 0$ by the difference-of-cosines identity, hence
+    $\sin(N\theta) = 0$ and $\theta = n\pi/N$ for $n = 0,\dots,N-1$. The angle-sum identity
+    then gives $(\tilde A_Nv)_j = (2-2\cos\theta)v_j$, so
+    $\lambda_n = (k/m)(2-2\cos\theta_n) = (4k/m)\sin^2(n\pi/2N)$, which is the stated $\omega_n$.
+    At $n = 0$ the vector is $(1,1,\dots,1)$.</p>
+    <p><b>The numerical check.</b> Diagonalising $\tilde A_N$ for $N = 3, 4, 6$ returns exactly
+    $\{0,\,1,\,1.7320508\}$, $\{0,\,0.7653669,\,1.4142136,\,1.8477591\}$ and
+    $\{0,\,0.5176381,\,1,\,1.4142136,\,1.7320508,\,1.9318517\}$ in units of $\sqrt{k/m}$,
+    agreeing with $2\sin(n\pi/2N)$ to machine precision, and the null vector comes back as
+    the constant vector each time.</p>
+    <p><b>A curiosity worth noticing.</b> The free chain of $N$ masses has the same nonzero
+    frequencies as the fixed chain of $N-1$ masses. That is not a coincidence: reflecting a
+    free-end solution about the end produces a fixed-end solution on the doubled chain, and
+    the arithmetic $2\sin(n\pi/2N)$ against $2\sin(n\pi/2N)$ makes it visible. Unit 19 calls
+    this the relation between Neumann and Dirichlet boundary conditions.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · zero modes</p>
+  <h2>A symmetry of $V$ is a null vector of $K$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem · a symmetry is a null vector, six units before Noether</span>
+        <p class="small">Let $u^*$ be an equilibrium of $V$ and let $s \mapsto \varphi(s)$ be a $C^2$ curve in configuration space with $\varphi(0) = u^*$ and $V(\varphi(s)) = V(u^*)$ for all $s$ near $0$. Then $w = \varphi'(0)$ satisfies
+        $$w^{\!\top}Kw = 0, \quad\text{and hence}\quad Kw = 0 .$$</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$g(s) = V(\varphi(s))$ is constant, so $g''(0) = 0$. The chain rule (unit 03) gives $g'(s) = \nabla V(\varphi(s))\cdot\varphi'(s)$ and
+        $$g''(0) = \varphi'(0)^{\!\top}\mathrm{Hess}\,V(u^*)\,\varphi'(0) + \nabla V(u^*)\cdot\varphi''(0),$$
+        whose second term vanishes at an equilibrium. So $w^{\!\top}Kw = 0$, and Cauchy–Schwarz for the semidefinite form $K$ upgrades that to $Kw = 0$. $\square$</p>
+        <p class="proof-pointer">the Cauchy–Schwarz step in full, in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">worked · counting zero modes</span>
+        <p class="small"><b>Free chain.</b> $\varphi(s) = u^* + s(1,\dots,1)$ slides everything along the line; $V$ depends only on differences, so it is invariant. $w = (1,\dots,1)$: the zero mode found on the last slide, now explained.</p>
+        <p class="small"><b>A molecule in space,</b> $n$ atoms, $3n$ coordinates, $V$ invariant under translations and rotations. Three translations give three zero modes; three rotations $\varphi(s) = R(s)u^*$ give $w = \Omega u^*$ with $\Omega \in \mathfrak{so}(3)$ (unit 03) — three more, or two if the molecule is straight.</p>
+        <p class="small"><b>Count.</b> $3n - 6$ vibrational modes, or $3n - 5$ if linear. For $\mathrm{CO_2}$ ($n = 3$, linear): $\mathbf 4$.</p>
+      </div>
+      <p class="small muted">Unit 13 turns this into Noether's theorem proper: there a symmetry gives a conserved quantity, here a symmetry gives a direction of zero restoring force. Same hypothesis, two faces.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The semi-inner product step, in full.</b> For positive semidefinite $K$, the form
+    $\langle x,y\rangle_K = x^{\!\top}Ky$ is symmetric, bilinear and satisfies
+    $\langle x,x\rangle_K \ge 0$, which is all Cauchy–Schwarz needs: for real $t$,
+    $0 \le \langle w+ty, w+ty\rangle_K = \langle w,w\rangle_K + 2t\langle w,y\rangle_K + t^2\langle y,y\rangle_K$,
+    a quadratic in $t$ that is nowhere negative, so its discriminant is $\le 0$:
+    $\langle w,y\rangle_K^2 \le \langle w,w\rangle_K\langle y,y\rangle_K$. With
+    $\langle w,w\rangle_K = 0$ this forces $\langle w,y\rangle_K = 0$ for all $y$, i.e. $Kw = 0$.
+    Definiteness is not needed, and that matters: $K$ is exactly the case where it fails.</p>
+    <p><b>The converse is false in general.</b> A zero mode need not come from a symmetry of
+    $V$; it can also be an accidental degeneracy of the quadratic approximation, with the
+    motion actually restrained at fourth order. The standard example is $V = u_1^4 + u_2^2$,
+    whose Hessian at the origin has a zero eigenvalue but whose potential is a genuine
+    minimum in that direction. Such a mode is called soft rather than free, and its
+    frequency is amplitude-dependent — which is a nonlinear effect, and out of scope until
+    unit 21.</p>
+    <p><b>On the CO₂ number.</b> Carbon dioxide is linear (O=C=O), so $3\times3-5 = 4$
+    vibrational modes: a symmetric stretch, an antisymmetric stretch, and two degenerate
+    bends at right angles to each other. The degeneracy of the two bends is forced by the
+    rotational symmetry about the molecular axis, which is the general rule mentioned on
+    “What the reduction proves” — degeneracies are the fingerprints of symmetry groups. The symmetric stretch
+    does not change the dipole moment and so is infrared-inactive, and the two bends share
+    one frequency, which is why the infrared spectrum shows two fundamental bands and not
+    four: the bend near $667\ \mathrm{cm^{-1}}$ and the
+    antisymmetric stretch near $2349\ \mathrm{cm^{-1}}$ are the ones that make it a
+    greenhouse gas.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · zero modes</p>
+  <h2>What a zero mode actually does</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">In normal coordinates the zero mode obeys $\ddot q_0 = 0$, so</p>
+      $$q_0(t) = a + bt .$$
+      <p class="small">Not an oscillation: a uniform drift. For the free chain that is the centre of mass moving at constant velocity, which is momentum conservation — and $b = \langle\dot u(0), v^{(0)}\rangle_M = \sum_j m\dot u_j(0)$ is the total momentum, up to normalisation.</p>
+      <div class="box warn"><span class="label">the Jordan block returns</span>
+        <p class="small">In the $2n$-dimensional system $\dot y = Ay$, a zero mode contributes eigenvalue $0$ with algebraic multiplicity $2$ and only one eigenvector: a genuine $2\times2$ Jordan block, whose exponential $\begin{pmatrix}1&amp;t\\0&amp;1\end{pmatrix}$ is the $a+bt$ above.</p>
+        <p class="small">This is the <b>only</b> way a Jordan block can occur in an undamped system. Section 1 was not scenery.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the three regimes, complete</span>
+        <table class="dense" style="margin:0">
+          <thead><tr><th>$\lambda = \omega^2$</th><th>motion</th><th>meaning</th></tr></thead>
+          <tbody>
+            <tr><td>$&gt; 0$</td><td>$\cos\omega t,\ \sin\omega t$</td><td>stable direction</td></tr>
+            <tr><td>$= 0$</td><td>$a + bt$</td><td>symmetry: a zero mode</td></tr>
+            <tr><td>$&lt; 0$</td><td>$e^{\pm|\omega|t}$</td><td>unstable direction; unit 02's saddle</td></tr>
+          </tbody>
+        </table>
+        <p class="small">No fourth case. In particular <b>no $\omega$ with both parts nonzero</b> — growing oscillation needs damping or driving, and neither is in $M\ddot u = -Ku$ with $M, K$ symmetric.</p>
+      </div>
+      <p class="small">That the list is complete is the theorem of “What the reduction proves”: $\lambda$ real, always; a full basis of modes, always.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The Jordan block, explicitly.</b> Restricted to the zero mode's two-dimensional
+    invariant subspace $\{(\alpha v^{(0)}, \beta v^{(0)})\}$ of $\mathbb R^{2n}$, the matrix
+    $A = \begin{pmatrix}0&I\\-M^{-1}K&0\end{pmatrix}$ acts as
+    $\begin{pmatrix}0&1\\0&0\end{pmatrix}$, since $Kv^{(0)} = 0$ kills the bottom-left entry.
+    That is the nilpotent $N$ of “The degenerate case” with $N^2 = 0$, and that slide's theorem gives
+    $e^{At} = I + Nt = \begin{pmatrix}1&t\\0&1\end{pmatrix}$. The free particle from the limit check on “When $A$ is diagonalisable”, one more time.</p>
+    <p><b>Why "growing oscillation" is forbidden, again but structurally.</b> The energy
+    $E = \tfrac12\dot u^{\!\top}M\dot u + \tfrac12u^{\!\top}Ku$ satisfies
+    $\dot E = \dot u^{\!\top}M\ddot u + \dot u^{\!\top}Ku = \dot u^{\!\top}(-Ku) + \dot u^{\!\top}Ku = 0$,
+    where symmetry of $K$ is used to write the derivative of the quadratic form that way.
+    If $K$ is positive definite, $E$ is a positive definite quadratic function of $(u,\dot u)$
+    that is conserved, so every trajectory stays on a bounded level set: nothing can grow,
+    ever. That is Lyapunov's argument from unit 02, with $E$ as the Lyapunov function, and
+    it gives the conclusion without any eigenvalue computation at all.</p>
+    <p><b>A practical warning.</b> A numerical diagonalisation returns a zero mode as something
+    like $10^{-16}$, sometimes slightly negative, and $\sqrt{\lambda}$ then comes back as a
+    tiny imaginary number. That is rounding, not physics. The honest check is whether the
+    corresponding eigenvector is the symmetry direction the problem obviously has — and if
+    it is, set the frequency to zero by hand.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Rayleigh: bounding a frequency without solving</h2>
+  <p>The lowest frequency is the minimum of a ratio. So any guess at the shape, however crude, is an upper bound — and you know the direction of the error.</p>
+</section>
+
+<section>
+  <p class="eyebrow">07 · Rayleigh</p>
+  <h2>The Rayleigh quotient</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For $u \ne 0$, the <span class="term">Rayleigh quotient</span> of the pair $(K, M)$ is
+        $$R(u) = \frac{u^{\!\top}Ku}{u^{\!\top}Mu} = \frac{2V(u)}{\lVert u\rVert_M^2} .$$
+        It is scale-invariant: $R(cu) = R(u)$, so it is really a function on directions.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · the lowest frequency is a minimum</span>
+        <p class="small">$\omega_1^2 = \lambda_1 = \min_{u \ne 0} R(u)$, attained exactly on the lowest mode's eigenspace; and $\lambda_n = \max_u R(u)$.</p>
+        <p class="small muted"><b>Proof.</b> Expand $u = \sum_p c_pv_p$ in the $M$-orthonormal modes. Then $u^{\!\top}Mu = \sum_pc_p^2$ and $u^{\!\top}Ku = \sum_p\lambda_pc_p^2$, so $R(u) = \sum_p\lambda_pc_p^2\big/\sum_pc_p^2$ is a weighted average of $\lambda_1,\dots,\lambda_n$ with nonnegative weights. Hence $\lambda_1 \le R(u) \le \lambda_n$, with equality on the left iff $c_p = 0$ whenever $\lambda_p &gt; \lambda_1$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what it is good for</span>
+        <p class="small"><b>Any</b> trial vector bounds $\omega_1$ from above — no solving, and the error is one-sided. And the bound is forgiving: at the minimum $R$ has zero gradient, so an error $\varepsilon$ in the <em>shape</em> costs only $O(\varepsilon^2)$ in the <em>frequency</em>.</p>
+      </div>
+      <p class="small"><b>The physics.</b> $R(u)$ is twice the potential energy of the shape $u$ over twice the kinetic energy of moving with that shape at unit rate. The system vibrates in whatever shape makes the ratio smallest: stiffness cheap, inertia dear.</p>
+      <p class="small muted">The spectral theorem's proof was this argument already: its eigenvector was a maximiser of the same kind of quotient.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The quadratic insensitivity, proved.</b> Write the trial vector as
+    $u = v_1 + \varepsilon z$ with $\langle z, v_1\rangle_M = 0$ and $\lVert z\rVert_M = 1$.
+    Expanding $z = \sum_{p\ge2}c_pv_p$,
+    $$R(u) = \frac{\lambda_1 + \varepsilon^2\sum_{p\ge2}\lambda_pc_p^2}{1+\varepsilon^2}
+    = \lambda_1 + \varepsilon^2\sum_{p\ge2}(\lambda_p - \lambda_1)c_p^2 + O(\varepsilon^4).$$
+    So the relative error in $\lambda_1$ is second order in the shape error — which is why
+    Rayleigh's method was a practical engineering tool for a century before computers, and
+    why finite-element frequencies converge quickly.</p>
+    <h4>Full proof of the min–max (Courant–Fischer) characterisation</h4>
+    <p>The statement is $\displaystyle\lambda_p = \min_{\dim W = p}\ \max_{u\in W\setminus 0}R(u)$, over
+    subspaces $W \subseteq \mathbb R^n$. <em>Upper bound:</em> take
+    $W = \mathrm{span}(v_1,\dots,v_p)$; on it $R$ is a weighted average of
+    $\lambda_1,\dots,\lambda_p$, so its maximum is $\lambda_p$, and the min over $W$ is at most
+    $\lambda_p$. <em>Lower bound:</em> let $W$ be any $p$-dimensional subspace and
+    $U = \mathrm{span}(v_p,\dots,v_n)$, of dimension $n-p+1$. Then
+    $\dim(W\cap U) \ge p + (n-p+1) - n = 1$, so there is a nonzero $u \in W\cap U$; on $U$,
+    $R(u)$ is a weighted average of $\lambda_p,\dots,\lambda_n$, hence $\ge\lambda_p$. So
+    $\max_{W}R \ge \lambda_p$ for every $W$. $\square$</p>
+    <p><b>Two consequences worth knowing.</b> (i) <em>Monotonicity:</em> if $K$ is replaced by
+    $K' \succeq K$ (stiffening: $u^{\!\top}K'u \ge u^{\!\top}Ku$ for all $u$) then every
+    $\lambda_p$ can only increase, since $R$ increases pointwise. Adding mass lowers them, for
+    the same reason applied to the denominator. (ii) <em>Interlacing:</em> imposing one
+    linear constraint — clamping a point — restricts the minimisation to a hyperplane, and the
+    new frequencies interlace the old: $\lambda_p \le \lambda'_p \le \lambda_{p+1}$. Both follow
+    from min–max in one line each, and both are exactly what an engineer's intuition says.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · Rayleigh · example</p>
+  <h2>Worked: bounding the fundamental of a five-mass chain</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">worked · the five-mass chain</span>
+        <p class="small"><b>The quotient.</b> With $M = mI$,
+        $$R(u) = \frac km\cdot\frac{\sum_{j=0}^{5}(u_{j+1}-u_j)^2}{\sum_{j=1}^{5}u_j^2}, \qquad u_0 = u_6 = 0 .$$</p>
+        <p class="small"><b>Trial 1 · flat,</b> $u = (1,1,1,1,1)$. Differences $1,0,0,0,0,-1$: numerator $2$, denominator $5$. $R = \tfrac25\tfrac km$, so $\omega_1 \le 0.632456\sqrt{k/m}$.</p>
+        <p class="small"><b>Trial 2 · tent,</b> $u = (1,2,3,2,1)$. Differences $1,1,1,-1,-1,-1$: numerator $6$, denominator $19$. $R = \tfrac{6}{19}\tfrac km$, so
+        $$\omega_1 \le \sqrt{\tfrac{6}{19}}\sqrt{k/m} = 0.561951\sqrt{k/m}.$$</p>
+        <p class="small"><b>Trial 3 · rounded tent,</b> $u = (2,4,5,4,2)$. Differences $2,2,1,-1,-2,-2$: numerator $18$, denominator $65$. $R = \tfrac{18}{65}\tfrac km$, so $\omega_1 \le 0.526235\sqrt{k/m}$.</p>
+        <p class="small"><b>The exact answer.</b> $\omega_1 = 2\sin(\pi/12)\sqrt{k/m} = \sqrt{2-\sqrt3}\,\sqrt{k/m} = 0.517638\sqrt{k/m}$.</p>
+      </div>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>trial</th><th class="num">$\omega_1$ bound</th><th class="num">excess</th></tr></thead>
+        <tbody>
+          <tr><td>flat</td><td class="num">0.632456</td><td class="num">22.18%</td></tr>
+          <tr><td>tent</td><td class="num">0.561951</td><td class="num">8.56%</td></tr>
+          <tr><td>rounded</td><td class="num">0.526235</td><td class="num">1.66%</td></tr>
+          <tr><td><b>exact</b></td><td class="num"><b>0.517638</b></td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">every bound is above, as promised</span>
+        <p class="small">The true mode is $v_j = \sin(j\pi/6) \propto (1,\,1.732,\,2,\,1.732,\,1)$. The tent $(1,2,3,2,1)$ is too peaked; $(2,4,5,4,2)$ is closer, and its error in $\omega_1$ is $1.66\%$ while its shape error is $7.2\%$ — the quadratic insensitivity, visible.</p>
+      </div>
+      <p class="small muted">The flat trial violates the boundary behaviour badly (a jump of $1$ at each wall) and still lands within $22\%$. That is the practical point: Rayleigh's method is hard to make fail.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>All numbers checked.</b> Exact: $\lambda_1 = 2-\sqrt3 = 0.2679492$, $\omega_1 = 0.5176381$.
+    Flat: $R = 0.4$, $\sqrt R = 0.6324555$, excess $22.181\%$. Tent: $R = 6/19 = 0.3157895$,
+    $\sqrt R = 0.5619515$, excess $8.5607\%$. Rounded: $R = 18/65 = 0.2769231$,
+    $\sqrt R = 0.5262348$, excess $1.6608\%$. The full spectrum of $A_5$ is
+    $2\sin(n\pi/12)$ for $n = 1,\dots,5$, i.e. $0.5176381,\,1,\,1.4142136,\,1.7320508,\,1.9318517$,
+    confirmed by numerical diagonalisation.</p>
+    <p><b>Computing the numerator without touching $K$.</b> Note that the sum-of-squares form
+    $u^{\!\top}A_Nu = \sum_{j=0}^{N}(u_{j+1}-u_j)^2$ was used throughout, and no matrix
+    multiplication was performed anywhere on this slide. That is typical: the quadratic
+    form is usually the energy, and the energy of a guessed shape is something you can
+    write down from physics. Rayleigh's own applications, in <i>The Theory of Sound</i> (1877),
+    were to strings, bars, plates and air columns, long before matrices were a standard
+    tool.</p>
+    <p><b>Bounding from below is much harder.</b> Nothing here gives a lower bound on
+    $\omega_1$, and none of the elementary arguments does. The standard device is
+    Temple's inequality, which needs a lower estimate of $\lambda_2$ as well as the trial
+    vector; it is stated and proved in the solution to P13. (Weinstein's method is another,
+    named here and not used.) The trace looks as if it ought to help,
+    $\sum_p\lambda_p = \mathrm{tr}(M^{-1}K) = 2Nk/m$ for the fixed chain, but a smallest
+    element is at most the average, so it gives $\lambda_1 \le 2k/m$ — another upper bound,
+    which is the recurring difficulty.</p>
+    <p><b>Where this is used for real.</b> Every structural engineer's first estimate of a
+    building's fundamental sway frequency is a Rayleigh quotient with an assumed mode shape,
+    and a conforming finite-element model with a consistent mass matrix is minimising $R$
+    over the subspace its mesh can represent — which is why its frequencies come out above
+    the true ones (the min–max theorem, applied to a subspace), and why refining the mesh,
+    which enlarges the subspace, can only lower them.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">07 · closing</p>
+  <h2>The chain, closed — and what it unlocks</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><span class="ref" data-ref="chain">The chain</span>, from start to finish:</p>
+      <ul class="small">
+        <li>$M = mI$, $K = kA_N$ from the energy alone;</li>
+        <li>$K$ positive definite by a sum of squares, so every $\omega_n &gt; 0$ <em>before</em> any computation;</li>
+        <li><span class="ref" data-ref="modes">$v^{(n)}_j = \sin\big(jn\pi/(N{+}1)\big)$, $\omega_n = 2\sqrt{k/m}\sin\big(n\pi/2(N{+}1)\big)$</span>, exactly, with the ansatz verified rather than asserted;</li>
+        <li>the walls removed: one frequency drops to zero, and the symmetry responsible is named;</li>
+        <li>its fundamental bounded to $1.7\%$ by a vector written down in five seconds.</li>
+      </ul>
+      <p class="small muted">And a number worth keeping: the continuum theory of unit 18 will predict this chain's fundamental $0.093\%$ too high, which this unit knew in advance.</p>
+    </div>
+    <div>
+      <p class="small"><b>What this unlocks.</b></p>
+      <ul class="small">
+        <li><b>18</b>: $a \to 0$, and $A_N/a^2$ becomes $-\partial_x^2$: the wave equation, with this unit's $\omega(\kappa)$ as its error bar.</li>
+        <li><b>19</b>: the modes are a basis — here by the spectral theorem in $\mathbb R^n$, there by Sturm–Liouville theory in $L^2$, and the $M$-inner product becomes a weighted integral.</li>
+        <li><b>16</b>: the inertia tensor's principal axes are this unit's theorem again, with $K$ replaced by a moment-of-inertia form.</li>
+        <li><b>13</b>: symmetry $\Rightarrow$ zero mode becomes symmetry $\Rightarrow$ conserved quantity.</li>
+        <li><b>22</b>: principal stresses; <b>32</b>: diagonalising a metric at a point.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The one sentence to keep: a pencil $(K, M)$ of symmetric forms with $M$ positive
+    definite behaves exactly like a single symmetric matrix, because $M^{1/2}$ turns it
+    into one. Everything else in this unit is a consequence, and every later appearance of
+    "principal axes", "normal modes", "eigenfunctions" or "diagonalise the metric at a
+    point" is that sentence with different nouns.</p>
+    <p>If one computation survives, make it the sine ansatz of “Worked: a sine is an eigenvector”. It is three lines,
+    it is exact for every $N$, and it is the discrete original of every standing-wave
+    argument in units 18, 19, 23 and 24. Lagrange had it in 1759, nearly a century before
+    matrices were named, and he used it as this unit does: letting $N$ grow to reach the
+    continuous string, the limit unit 18 takes properly.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">07 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>Given any pair $(M, K)$ of symmetric matrices with $M$ positive definite, you can:</p>
+    <ul>
+      <li>produce the normal frequencies and mode shapes, by the reduction to $S = M^{-1/2}KM^{-1/2}$ or directly from $\det(K-\lambda M) = 0$;</li>
+      <li>verify orthogonality in the $M$-inner product, and say why the Euclidean one is the wrong test;</li>
+      <li>identify every zero mode and name the symmetry of $V$ responsible for it;</li>
+      <li>explain why $\omega^2$ is always real, and why an $\omega$ with nonzero real <em>and</em> imaginary parts cannot occur.</li>
+    </ul>
+    <p class="small muted">Falsifiable four ways: checking orthogonality with the Euclidean product, missing a zero mode, claiming a complex frequency, or failing to say where positive definiteness was used. Record it with <code>./mr done 07</code>.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Problems</h3>
+      <p class="small"><code>./mr problems 07</code> — 13 problems, about five hours. Hints and worked solutions fold under each problem on the same page.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>08</b> the central-force problem (needs 04, 06) · <b>12</b> Lagrangian mechanics, where a general $M(q)$ arrives properly · <b>18</b> the continuum limit of this unit's chain · <b>19</b> the modes as a complete basis.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint cold, on paper, before looking at anything. A good self-test:
+    three masses $m, 2m, m$ in a line joined by two springs $k$, with no walls. You should
+    get one zero mode $(1,1,1)$ from translation invariance, and two others; the answers
+    are $\omega^2 = 0,\ k/m,\ 2k/m$, with shapes $(1,1,1)$, $(1,0,-1)$ and $(1,-1,1)$.
+    Check that the three are $M$-orthogonal with $M = \mathrm{diag}(m,2m,m)$ — note that
+    $(1,1,1)$ and $(1,-1,1)$ are <em>not</em> Euclidean-orthogonal, their dot product being
+    $1$, while their $M$-product is $m - 2m + m = 0$.</p>
+    <p>If the derivation stalls, the usual place is the reduction: remember that
+    $M^{-1}K$ is the wrong object and $M^{-1/2}KM^{-1/2}$ is the right one, and that the
+    eigenvectors transform by $v = M^{-1/2}w$, not by $w$ itself. “$M^{1/2}$, and the problem made symmetric” is the one to
+    reread.</p>
+    <p>Unit 18 picks this up directly: it takes $N \to \infty$ with $Na$ fixed and turns the
+    chain into a string, at which point the sum over modes becomes a Fourier series and the
+    second-difference matrix becomes $-\partial_x^2$. Everything proved here about
+    orthogonality and completeness has a counterpart there, and the counterpart is harder
+    only because the space is infinite-dimensional.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="glossary.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

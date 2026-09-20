@@ -1,0 +1,1447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>21 · Perturbation theory: the series that diverges and is still right</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="c">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="duffing"><span class="ref-name">the running example, part one: the Duffing oscillator</span>$\ddot x + x + \varepsilon x^3 = 0$, $\ x(0) = A$, $\ \dot x(0) = 0$ — a spring whose restoring force has a small cubic part, already nondimensionalised. <span class="ref-note">Poincaré–Lindstedt gives $\omega = 1 + \tfrac38\varepsilon A^2 + O(\varepsilon^2)$. At $\varepsilon A^2 = 0.1$ the exact frequency, by quadrature, is $1.036717$ and the formula gives $1.037500$. The pendulum is the case $\varepsilon = -A^2/6$ at unit amplitude</span></template>
+  <template data-ref="secular"><span class="ref-name">the secular term</span>The naive first-order correction $x_1 = -\tfrac38A^3\,t\sin t + \tfrac1{32}A^3(\cos 3t - \cos t)$. <span class="ref-note">Its first piece grows without bound although the true motion satisfies $|x| \le A$ for ever. At $\varepsilon = 0.1$, $A = 1$, $t = 100$ the naive answer is $2.758$ and the truth is $-1.000$</span></template>
+  <template data-ref="orbit"><span class="ref-name">the running example, part two: the relativistic orbit</span>$w'' + w = 1 + \varepsilon w^2$, $\ w = p/r$, $\ \varepsilon = 3GM/c^2p$ — unit 08's Binet equation with one extra term, which unit 37 derives. <span class="ref-note">Mercury: $p = 5.5460\times10^{10}$ m, $\varepsilon = 7.987\times10^{-8}$. The secular term gives a perihelion advance of $2\pi\varepsilon$ per orbit: $0.1035''$ per orbit, $42.98''$ per century</span></template>
+  <template data-ref="stieltjes"><span class="ref-name">the Stieltjes function</span>$S(x) = \displaystyle\int_0^\infty \frac{e^{-t}}{1 + xt}\,\mathrm{d}t \sim \sum_{n\ge0} (-1)^n n!\,x^n$ as $x \to 0^+$. <span class="ref-note">The series diverges for every $x \ne 0$. At $x = 0.04$, twenty-five terms give $S$ to an error of $8.6\times10^{-11}$</span></template>
+  <template data-ref="layer"><span class="ref-name">the boundary-layer model</span>$\varepsilon y'' + (1 + x)y' + y = 0$ on $[0, 1]$, $\ y(0) = 0$, $\ y(1) = 1$. <span class="ref-note">Outer $2/(1+x)$, inner $2(1 - e^{-x/\varepsilon})$, composite $2/(1+x) - 2e^{-x/\varepsilon}$. Exact by one quadrature, because $\varepsilon y' + (1+x)y$ is constant</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part C · the analytic toolkit · spine</p>
+  <div class="unit-no">21</div>
+  <h1>Perturbation theory: the series that diverges and is still right</h1>
+  <p class="lede">Almost nothing has an exact answer. What it has instead is an expansion in a small
+  parameter — often divergent, usually non-uniform, and, handled correctly, accurate to ten digits.</p>
+  <p class="meta"><span>needs 06, 02, 08</span><span>~3 h slides + 6 h problems</span><span>problems: <code>./mr problems 21</code></span></p>
+  <aside class="notes">
+    <p>Unit 02 said it early and plainly: almost no equation of motion has a closed-form solution, and
+    that is not a gap in the literature. Unit 02's answer was the qualitative picture. This unit's answer
+    is the quantitative one. When a problem is <em>close</em> to one you can solve — a spring that is
+    nearly linear, an orbit that is nearly Keplerian, a fluid that is nearly inviscid — you can expand
+    in the smallness and get numbers. Most of the quantitative physics you will ever read is done this
+    way, and most of it rests on three facts that are rarely said aloud:</p>
+    <ul>
+      <li>the series you get usually <b>diverges</b>, and that does not matter, because what you want
+      is not convergence but a controlled error at a fixed number of terms;</li>
+      <li>the naive expansion is usually <b>non-uniform</b>: correct for a while, or away from some
+      edge, and then badly wrong — and the place where it goes wrong is where the physics is;</li>
+      <li>the small parameter is not handed to you: you find it by <b>nondimensionalising</b>, which is
+      unit 00's dimensional habit put to work.</li>
+    </ul>
+    <h4>How to read this deck</h4>
+    <p>Two calculations run through it, joined on purpose. The first is the Duffing oscillator
+    $\ddot x + x + \varepsilon x^3 = 0$: the naive expansion produces a term $t\sin t$ that wrecks it
+    after a time of order $1/\varepsilon$, and we learn to remove it. The second is the orbit equation
+    $w'' + w = 1 + \varepsilon w^2$ that general relativity hands to unit 37: the same calculation
+    produces the same kind of term — and there it must <em>not</em> be thrown away, because it is the
+    advance of Mercury's perihelion. Sections 1 and 2 are about what an expansion means; 3 and 4 about
+    secular terms; 5 about boundary layers; 6 about WKB; 7 closes the orbit.</p>
+    <p>Every number quoted was computed. Proofs are on the slides where they are short and in these
+    notes under <b>Full proof</b> where they are not; anything imported is labelled <i>cited</i> with
+    where its proof lives. Integral asymptotics — Laplace's method, stationary phase — belong to unit 20
+    and are cited here, never used as a step.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">21 · overview</p>
+  <h2>Two oscillators, one term</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="ref" data-ref="duffing">Duffing oscillator</span></span>
+        $$\ddot x + x + \varepsilon x^3 = 0, \qquad x(0) = A,\ \dot x(0) = 0 .$$
+        <p class="small">Expand in $\varepsilon$ and a term $\varepsilon\, t\sin t$ appears. The true motion is bounded; this term is not. <b>It must be removed</b>, and removing it yields the frequency $\omega = 1 + \tfrac38\varepsilon A^2$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">the <span class="ref" data-ref="orbit">relativistic orbit</span></span>
+        $$w'' + w = 1 + \varepsilon w^2, \qquad w = p/r .$$
+        <p class="small">Expand in $\varepsilon$ and a term $\varepsilon e\,\theta\sin\theta$ appears. <b>It must be kept</b>: it is the perihelion of Mercury advancing $43''$ a century, and it is real.</p>
+      </div>
+    </div>
+  </div>
+  <p class="small">The same mathematics, opposite verdicts. By the end you can say exactly why — and on the way you meet the four tools every perturbation calculation uses: <b>nondimensionalising</b>, <b>asymptotic series</b>, <b>removing secular terms</b>, and <b>boundary layers</b>, with WKB as the fifth.</p>
+  <div class="box good"><span class="label">getting around</span>
+    <p class="small">A <span class="term" data-term="small parameter">dotted underline</span> is a glossary term — click it, or press <kbd>G</kbd>. A solid underline like <span class="ref" data-ref="duffing">the Duffing oscillator</span> is the running example: hover it. <kbd>N</kbd> shows the notes, where the long proofs are.</p>
+  </div>
+  <aside class="notes">
+    <p>Why these two. The Duffing oscillator is the simplest nonlinear oscillator there is, and the
+    textbook place to see a secular term; physically it is a stiffening (or, with $\varepsilon &lt; 0$,
+    softening) spring, and the pendulum to its first nonlinear order is one of them. The orbit equation
+    is the reason this unit is on the course's spine: unit 37 computes the perihelion advance of Mercury
+    from exactly this equation, and a reader who has only seen secular terms "removed" will find that
+    calculation looks like a trick. It is not a trick, and this unit is where that is made honest.</p>
+    <p>The course's order matters here. We use unit 00 (dimensions, the Buckingham theorem, quadrature
+    for a conservative force), unit 01 (Grönwall's inequality), unit 02 (conserved energy, centres, the
+    van der Pol limit cycle), unit 03 (partial derivatives and the chain rule), unit 06 (linear
+    constant-coefficient equations, resonance, variation of parameters, the complex exponential) and
+    unit 08 (the Binet equation). Nothing else.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Small parameters, and where they come from</h2>
+  <p>"Small" means nothing until you say compared with what. Nondimensionalising says it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · small parameters</p>
+  <h2>Nondimensionalise first</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A mass on a spring with a cubic stiffening: $m\ddot X + kX + \beta X^3 = 0$, released from rest at $X = a$. Six quantities, $X, t, m, k, \beta, a$, in three dimensions M, L, T.</p>
+      <div class="box def"><span class="label"><span class="term">nondimensionalisation</span></span>
+        <p class="small">Choose a scale for each variable from the parameters, so that the scaled variables are of size one: here $x = X/a$ and $t' = t\sqrt{k/m}$. Divide by one coefficient. What is left over is a <span class="term">small parameter</span> or it is not.</p>
+      </div>
+      $$ka\,x'' + ka\,x + \beta a^3x^3 = 0,\ \text{ so}$$
+      $$x'' + x + \varepsilon x^3 = 0,\qquad \varepsilon = \frac{\beta a^2}{k}.$$
+    </div>
+    <div>
+      <p class="small"><b>What $\varepsilon$ says.</b> $\beta a^3/ka$: the cubic force over the linear one, at the amplitude. "Small" now has a meaning.</p>
+      <div class="box good"><span class="label">Buckingham, as a check</span>
+        <p class="small">Six quantities, dimension matrix of rank 3, so three groups (unit 00): $X/a$, $t\sqrt{k/m}$ and $\beta a^2/k$. The scaled equation contains exactly those. Whatever the answer is, it is a function of $\varepsilon$ alone once time is measured in units of $\sqrt{m/k}$.</p>
+      </div>
+      <div class="box"><span class="label">the pendulum is one of these</span>
+        <p class="small">$\ddot\theta + \sin\theta = 0$ with $\sin\theta = \theta - \theta^3/6 + O(\theta^5)$. Put $\theta = A x$: $x'' + x - \tfrac{A^2}{6}x^3 = 0$. So <span class="ref" data-ref="duffing">Duffing</span> with $\varepsilon = -A^2/6$, amplitude 1.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The scaled equation, line by line.</b> With $X = a x$ and $t = \sqrt{m/k}\,t'$, the chain rule gives
+    $\ddot X = a\,(k/m)\,x''$ where $'$ is $\mathrm{d}/\mathrm{d}t'$. Substituting, $ka\,x'' + ka\,x + \beta a^3x^3 = 0$;
+    divide by $ka$. The initial conditions become $x(0) = 1$, $x'(0) = 0$. In the running example we
+    keep the amplitude $A$ visible (scale by some fixed length instead of by the amplitude) because it
+    makes the answer's amplitude dependence easy to read: then $\varepsilon = \beta L^2/k$ for the fixed
+    length $L$, and the combination that matters is always $\varepsilon A^2$.</p>
+    <p><b>Why the choice of scales matters.</b> The scales must be the ones the solution actually has. If
+    you scale $X$ by a length much bigger than the amplitude, every term looks small and the "small
+    parameter" you find is an artefact. The rule: each scaled variable, and each of its derivatives that
+    appears, should be of size one in the region you care about. That rule is also how boundary layers are
+    found (section 5): a region where the derivatives are <em>not</em> of size one in the original scaling
+    needs its own.</p>
+    <p><b>Dimensions.</b> $[\beta] = \mathsf{MT^{-2}L^{-2}}$ (force over length cubed), $[k] = \mathsf{MT^{-2}}$,
+    so $[\beta a^2/k] = 1$.</p>
+    <p><b>The pendulum.</b> Unit 00 expanded the exact period to $T \approx 2\pi\sqrt{l/g}\,(1 + \theta_0^2/16)$.
+    Section 4 recovers that factor from the Duffing frequency with $\varepsilon = -A^2/6$ — the first
+    check that the perturbation theory is right.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · small parameters</p>
+  <h2>Regular or singular: the test</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">two kinds of problem</span>
+        <p class="small">Set $\varepsilon = 0$. If the reduced problem is of the same kind — same degree, same order, all conditions still imposable — and its solution is the limit of the true one, the problem is a <span class="term">regular perturbation</span>: expand in powers of $\varepsilon$ and go. If not, it is a <span class="term">singular perturbation</span>.</p>
+      </div>
+      <div class="box"><span class="label">the smallest example: $\varepsilon x^2 + x - 1 = 0$</span>
+        <p class="small">At $\varepsilon = 0$: one root, $x = 1$. But a quadratic has two. Put $x = 1 + \varepsilon x_1 + \varepsilon^2x_2$ and collect: $x_1 = -1$, $x_2 = 2$. The other root is lost — it is at $x \approx -1/\varepsilon$, where "$\varepsilon x^2$ is small" is false. Rescale $x = X/\varepsilon$: $X^2 + X - \varepsilon = 0$, regular, $X = -1 - \varepsilon + \dots$</p>
+        <p class="small">At $\varepsilon = 0.1$: exact $0.916080$ and $-10.916080$; the series through $\varepsilon^2$, $1 - \varepsilon + 2\varepsilon^2$ and $-1/\varepsilon - 1 + \varepsilon - 2\varepsilon^2$ (notes), give $0.920$ and $-10.920$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the tell</span>
+        <p class="small">$\varepsilon$ multiplying the <b>highest</b> power or derivative. Setting it to zero lowers the degree or the order: roots or boundary conditions are lost, and something must happen on a scale where the "small" term is not small.</p>
+      </div>
+      <p class="small">Finding that scale is <span class="term">dominant balance</span>: try $x = \varepsilon^{-\alpha}X$, and choose $\alpha$ so that two terms are of the same size and the rest are smaller. Here $\alpha = 1$ balances $\varepsilon x^2$ against $x$.</p>
+      <p class="small"><span class="ref" data-ref="duffing">Duffing</span> passes the test — $\varepsilon$ multiplies $x^3$, not $\ddot x$ — and is regular on any <b>fixed</b> time interval. Section 3 shows it is <b>not</b> regular on $[0, \infty)$: a second kind of singularity, in the domain rather than the equation.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The regular root, in full.</b> Substitute $x = 1 + \varepsilon x_1 + \varepsilon^2 x_2 + O(\varepsilon^3)$:
+    $\varepsilon(1 + 2\varepsilon x_1) + 1 + \varepsilon x_1 + \varepsilon^2x_2 - 1 + O(\varepsilon^3) = 0$. Order $\varepsilon$:
+    $1 + x_1 = 0$. Order $\varepsilon^2$: $2x_1 + x_2 = 0$, so $x_2 = 2$. Hence $x = 1 - \varepsilon + 2\varepsilon^2 + O(\varepsilon^3)$.
+    Exact: $x = (-1 + \sqrt{1 + 4\varepsilon})/2\varepsilon$, and the binomial series of $\sqrt{1+4\varepsilon}$
+    gives $1 - \varepsilon + 2\varepsilon^2 - 5\varepsilon^3 + \dots$ (the Catalan numbers, with signs), agreeing.</p>
+    <p><b>The singular root.</b> The two roots sum to $-1/\varepsilon$, so the second is
+    $-1/\varepsilon - 1 + \varepsilon - 2\varepsilon^2 + \dots$ — a series that starts at order $\varepsilon^{-1}$, which
+    no power series in $\varepsilon$ starting at $\varepsilon^0$ can represent. That is what "singular" means
+    here: the expansion needs a different gauge.</p>
+    <p><b>Dominant balance, spelled out.</b> With $x = \varepsilon^{-\alpha}X$, the three terms are of sizes
+    $\varepsilon^{1-2\alpha}$, $\varepsilon^{-\alpha}$ and $1$. The possible balances: $\varepsilon^{1-2\alpha} = \varepsilon^{-\alpha}$
+    gives $\alpha = 1$, with the third term $1 \ll \varepsilon^{-1}$ — consistent, the singular root.
+    $\varepsilon^{-\alpha} = 1$ gives $\alpha = 0$, with $\varepsilon x^2 = O(\varepsilon)$ smaller — consistent, the
+    regular root. $\varepsilon^{1-2\alpha} = 1$ gives $\alpha = 1/2$, but then the middle term is
+    $\varepsilon^{-1/2} \gg 1$, larger than the two that balanced — inconsistent, discarded. Each consistent
+    balance is one family of solutions. The same bookkeeping locates boundary layers in section 5.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Asymptotic series</h2>
+  <p>What "$\approx$" means, precisely — and why a divergent series can deserve it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · asymptotic series</p>
+  <h2>Order notation</h2>
+  <div class="box def"><span class="label"><span class="term">order notation</span></span>
+    <p class="small">Let $f, g$ be defined near $x_0$ (possibly $x_0 = \infty$), $g \neq 0$ near $x_0$. As $x \to x_0$:</p>
+    <ul class="small">
+      <li>$f = O(g)$ if $|f/g|$ is bounded on some punctured neighbourhood of $x_0$;</li>
+      <li>$f = o(g)$ if $f/g \to 0$;</li>
+      <li>$f \sim g$, <span class="term">asymptotically equivalent</span>, if $f/g \to 1$, that is, $f - g = o(g)$.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div class="box"><span class="label">as $x \to 0$</span>
+      <p class="small">$\sin x = x + O(x^3)$; $\ \sin x \sim x$; $\ 1 - \cos x = o(x)$; $\ x^{10} = o(x^9)$.</p>
+      <p class="small">$e^{-1/x} = o(x^n)$ as $x \to 0^+$, for every $n$: <b>smaller than every power</b>.</p>
+    </div>
+    <div class="box"><span class="label">as $x \to \infty$</span>
+      <p class="small">$\ln x = o(x^\delta)$ for every $\delta \gt 0$; $\ x^2 + x \sim x^2$; $\ x^2 + x \sim x^2 + 1$, although their difference is unbounded.</p>
+    </div>
+  </div>
+  <p class="small">Every statement is about a <b>limit</b>, never about a particular $x$. That is both the power and the trap: "$O(\varepsilon^2)$" says nothing about the constant, and nothing about $\varepsilon = 0.3$.</p>
+  <aside class="notes">
+    <p><b>Proof that $e^{-1/x} = o(x^n)$ as $x \to 0^+$.</b> Put $s = 1/x \to \infty$. Then
+    $e^{-1/x}/x^n = s^n e^{-s}$, and $e^s \ge s^{n+1}/(n+1)!$ (one term of its series, all terms positive),
+    so $s^ne^{-s} \le (n+1)!/s \to 0$. $\square$</p>
+    <p><b>Proof that $\ln x = o(x^\delta)$.</b> Put $x = e^u$: $\ln x/x^\delta = u e^{-\delta u} \le 2/(\delta^2 u) \to 0$
+    by the same one-term bound $e^{\delta u} \ge (\delta u)^2/2$. $\square$</p>
+    <p><b>The last example.</b> $(x^2 + x)/(x^2 + 1) \to 1$, so $x^2 + x \sim x^2 + 1$, although
+    $(x^2 + x) - (x^2 + 1) = x - 1$ is unbounded. $\sim$ controls the <b>relative</b> error only. When an absolute error matters — a phase, which
+    enters as $\cos(\text{phase})$ — you need more, and that distinction is the whole of section 3.</p>
+    <p><b>Notation warning.</b> $f = O(g)$ is a one-way statement dressed as an equation: $x^3 = O(x^2)$ as
+    $x \to 0$ does not make $O(x^2) = x^3$. Read "$=$" as "is in the class".</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · asymptotic series</p>
+  <h2>Poincaré's definition</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">asymptotic sequence</span> and <span class="term">asymptotic expansion</span></span>
+        <p class="small">$(\phi_n)_{n \ge 0}$ is an asymptotic sequence as $x \to x_0$ if $\phi_{n+1} = o(\phi_n)$ for every $n$. Then $f \sim \sum_{n\ge0} a_n\phi_n$ means</p>
+        $$f - \sum_{n=0}^{N} a_n\phi_n = o(\phi_N)\ \text{ for every } N .$$
+      </div>
+      <p class="small">Poincaré, 1886. The series need not converge: the definition is about a <b>fixed $N$ as $x \to x_0$</b>, not about $N \to \infty$ at fixed $x$.</p>
+      <div class="box thm"><span class="label">uniqueness of the coefficients</span>
+        <p class="small">If $f$ has an expansion in $(\phi_n)$, its coefficients are $a_N = \lim_{x\to x_0}\big(f - \sum_{n\lt N} a_n\phi_n\big)/\phi_N$.</p>
+        <p class="small muted"><b>Why:</b> divide the definition at $N$ by $\phi_N$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">but not of the function</span>
+        <p class="small">$e^{-1/x} \sim 0 + 0\cdot x + 0\cdot x^2 + \cdots$ as $x \to 0^+$. So $f$ and $f + e^{-1/x}$ have the same expansion in powers. An expansion determines the coefficients, never the function.</p>
+      </div>
+      <div class="box"><span class="label"><span class="ref" data-ref="duffing">Duffing</span>'s frequency, as an expansion</span>
+        <table class="dense">
+          <thead><tr><th class="num">$\lambda = \varepsilon A^2$</th><th class="num">$\omega$ exact</th><th class="num">$\omega - (1 + \tfrac38\lambda)$</th><th class="num">$\div\lambda^2$</th></tr></thead>
+          <tbody>
+            <tr><td class="num">0.2</td><td class="num">1.072000</td><td class="num">$-3.0\times10^{-3}$</td><td class="num">$-0.0750$</td></tr>
+            <tr><td class="num">0.1</td><td class="num">1.036717</td><td class="num">$-7.8\times10^{-4}$</td><td class="num">$-0.0783$</td></tr>
+            <tr><td class="num">0.01</td><td class="num">1.003742</td><td class="num">$-8.2\times10^{-6}$</td><td class="num">$-0.0816$</td></tr>
+          </tbody>
+        </table>
+        <p class="small">The error is $O(\lambda^2)$, so $1 + \tfrac38\lambda$ is the two-term expansion — and the last column is converging to the next coefficient, $-21/256 = -0.0820$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the "exact" column comes from.</b> Energy is conserved (unit 00):
+    $\tfrac12\dot x^2 + \tfrac12x^2 + \tfrac14\varepsilon x^4 = \tfrac12A^2 + \tfrac14\varepsilon A^4$. So the period is a
+    quadrature, $T = 4\int_0^A \mathrm{d}x/\sqrt{(A^2 - x^2) + \tfrac12\varepsilon(A^4 - x^4)}$. Substituting
+    $x = A\sin\varphi$ and using $A^4 - x^4 = A^4\cos^2\varphi\,(1 + \sin^2\varphi)$,</p>
+    $$T = 4\int_0^{\pi/2}\frac{\mathrm{d}\varphi}{\sqrt{1 + \tfrac12\lambda(1 + \sin^2\varphi)}},\qquad \lambda = \varepsilon A^2 ,$$
+    <p>a proper integral of a smooth function, evaluated numerically to twelve digits; $\omega = 2\pi/T$. It
+    depends on $\varepsilon$ and $A$ only through $\lambda$, as the scaling slide predicted.</p>
+    <p><b>The second coefficient</b> $-21/256$ is derived on the problem sheet ("Duffing to second order") by
+    carrying Poincaré–Lindstedt one order further. The table is a check on that derivation, not a
+    substitute for it: $-0.0816$ at $\lambda = 0.01$ differs from $-0.0820$ by an amount of order $\lambda$, as
+    the next term predicts.</p>
+    <p><b>Different sequences, different coefficients.</b> Uniqueness is relative to the sequence. As
+    $x \to 0$, $1/(1-x) = \sum x^n$, and also $= \sum (1+x)x^{2n}$, an expansion in the asymptotic sequence
+    $\phi_n = (1+x)x^{2n}$. The problem sheet proves both uniqueness statements.</p>
+    <p><b>History.</b> Poincaré gave the definition in 1886 (<i>Acta Mathematica</i> 8), motivated by
+    exactly this unit's subject: the series of celestial mechanics, which astronomers used with great
+    success and which he could prove diverge. Stieltjes, the same year, studied the series of the next
+    slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · asymptotic series</p>
+  <h2>Convergent is not the same as useful</h2>
+  <div class="cols">
+    <div class="box warn"><span class="label">convergent, and useless</span>
+      <p class="small">$e^{-20} = \sum_n (-20)^n/n!$ converges. Its terms climb to $4.31\times10^{7}$ (at $n = 19, 20$) before they fall, and they must cancel to $2.06\times10^{-9}$.</p>
+      <p class="small">You need terms up to $n = 74$ for $0.1\%$ accuracy. Summed in double precision, all 120 terms give $1.31\times10^{-9}$ — wrong by $37\%$, for ever.</p>
+    </div>
+    <div class="box good"><span class="label">divergent, and excellent</span>
+      <p class="small">$\displaystyle\sum_n (-1)^n n!\,x^n$ diverges for every $x \ne 0$: the ratio of terms is $(n+1)x \to \infty$.</p>
+      <p class="small">Yet at $x = 0.04$ its first twenty-five terms give <span class="ref" data-ref="stieltjes">the function it expands</span> to an error of $8.6\times10^{-11}$ — ten correct digits.</p>
+    </div>
+  </div>
+  <p class="small">Convergence is a statement about $N \to \infty$ at fixed $x$. Usefulness is a statement about <b>small $N$</b> at the $x$ you have. <b>Neither implies the other.</b> An asymptotic series is one whose first few terms are good when $x$ is near $x_0$, whatever the tail does.</p>
+  <aside class="notes">
+    <p><b>The $e^{-20}$ numbers.</b> The term ratio is $|t_{n+1}/t_n| = 20/(n+1)$, which exceeds 1 until
+    $n = 19$, so the largest terms are $t_{19}$ and $t_{20}$, of size $20^{20}/20! = 4.310\times10^{7}$. In
+    exact arithmetic the partial sums first get within $0.1\%$ of $e^{-20} = 2.0612\times10^{-9}$ at
+    $n = 74$. In IEEE double precision each term near the peak carries a rounding error of order
+    $10^{7}\times 10^{-16} = 10^{-9}$ — the size of the answer — and the computed sum settles at
+    $1.308\times10^{-9}$. The right way is $1/e^{20}$, a series of positive terms: the problem is
+    cancellation, not convergence.</p>
+    <p><b>The divergence.</b> For $x \ne 0$ the terms $n!\,|x|^n$ do not tend to zero (their ratio tends to
+    infinity), so the series diverges by the term test.</p>
+    <p><b>The general lesson</b> is the one Poincaré drew: convergent series of celestial mechanics could need
+    hundreds of terms, while divergent ones gave the answer in three. Physicists had known this
+    empirically for a century; the definition on the previous slide made it mathematics.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · asymptotic series</p>
+  <h2>The Stieltjes series, and its remainder</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Stieltjes function</span></span>
+        $$S(x) = \int_0^\infty \frac{e^{-t}}{1 + xt}\,\mathrm{d}t, \qquad x \ge 0 .$$
+      </div>
+      <p class="small">For $y \ne -1$, the finite geometric sum is exact: $\dfrac1{1+y} = \displaystyle\sum_{n=0}^{N-1}(-y)^n + \frac{(-y)^N}{1+y}$. Put $y = xt$, multiply by $e^{-t}$, integrate, and use $\int_0^\infty t^ne^{-t}\,\mathrm{d}t = n!$:</p>
+      $$S(x) = \sum_{n=0}^{N-1}(-1)^n n!\,x^n + R_N(x),$$
+      $$R_N(x) = (-x)^N\!\int_0^\infty\!\frac{t^Ne^{-t}}{1+xt}\,\mathrm{d}t .$$
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the error is smaller than the first omitted term</span>
+        <p class="small">For $x \gt 0$: $R_N(x)$ has the sign of $(-1)^N$ and $0 \lt |R_N(x)| \lt N!\,x^N$.</p>
+        <p class="small muted"><b>Why:</b> $0 \lt 1/(1+xt) \lt 1$ for $t \gt 0$, so $0 \lt \int_0^\infty t^Ne^{-t}/(1+xt) \lt N!$. $\square$</p>
+      </div>
+      <p class="small">So $|R_N| \lt N!\,x^N = o(x^{N-1})$: the series is the asymptotic expansion of $S$ as $x \to 0^+$, with an <b>explicit</b> error bound — a rare luxury.</p>
+      <p class="small">$S$ is not exotic: $xS(x)$ solves Euler's equation $x^2y' + y = x$, whose only formal power-series solution is $x$ times this divergent series. The problem sheet shows it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the remainder formula.</b> For every real $y \ne -1$ and $N \ge 1$,
+    $(1 + y)\sum_{n=0}^{N-1}(-y)^n = 1 - (-y)^N$ (telescoping), which rearranges to the identity on the
+    slide. With $y = xt \ge 0$, multiply by $e^{-t}$ and integrate over $[0, \infty)$. Each term is a
+    convergent improper integral (unit 00): $\int_0^\infty t^ne^{-t}\,\mathrm{d}t = n!$ by induction, integrating
+    by parts once, $\int t^ne^{-t} = n\int t^{n-1}e^{-t}$, with the boundary terms vanishing because
+    $t^ne^{-t} \to 0$. The remainder integral converges because its integrand is at most $t^Ne^{-t}$.
+    Nothing was interchanged: the sum is finite. That is the whole difference between this derivation and
+    the illegitimate one — expand $1/(1+xt)$ in its full geometric series and integrate term by term —
+    which fails because the geometric series diverges for $t \gt 1/x$.</p>
+    <p><b>Dimensions and a limit.</b> Everything is dimensionless. At $x = 0$, $S(0) = \int_0^\infty e^{-t} = 1$,
+    matching the first term.</p>
+    <p><b>Why the sign matters.</b> The error has the sign of the first omitted term and is smaller than it.
+    So consecutive partial sums <b>bracket</b> $S$ — you get a rigorous interval, not just an estimate. This
+    is special to series of Stieltjes type; in general an asymptotic series gives no such guarantee, and
+    the only honest error estimate is "about the size of the first omitted term", which is a heuristic.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · asymptotic series · example</p>
+  <h2>Optimal truncation</h2>
+  <div class="cols">
+    <div class="box ex"><span class="label">worked example 1 — <span class="ref" data-ref="stieltjes">$S(0.2)$</span>, term by term</span>
+      <table class="dense">
+        <thead><tr><th class="num">$n$</th><th class="num">term $(-1)^nn!\,0.2^n$</th><th class="num">sum to $n$</th><th class="num">minus $S$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num">$+0.148$</td></tr>
+          <tr><td class="num">1</td><td class="num">$-0.2$</td><td class="num">0.8</td><td class="num">$-0.052$</td></tr>
+          <tr><td class="num">2</td><td class="num">0.08</td><td class="num">0.88</td><td class="num">$+0.028$</td></tr>
+          <tr><td class="num">3</td><td class="num">$-0.048$</td><td class="num">0.832</td><td class="num">$-0.020$</td></tr>
+          <tr><td class="num">4</td><td class="num">0.0384</td><td class="num">0.8704</td><td class="num">$\mathbf{+0.018}$</td></tr>
+          <tr><td class="num">5</td><td class="num">$-0.0384$</td><td class="num">0.832</td><td class="num">$-0.020$</td></tr>
+          <tr><td class="num">6</td><td class="num">0.04608</td><td class="num">0.87808</td><td class="num">$+0.026$</td></tr>
+          <tr><td class="num">7</td><td class="num">$-0.064512$</td><td class="num">0.813568</td><td class="num">$-0.039$</td></tr>
+          <tr><td class="num">8</td><td class="num">0.10322</td><td class="num">0.91679</td><td class="num">$+0.065$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">$S(0.2) = 0.852111$. Terms shrink while $(n+1)x \lt 1$, then grow. <b>Stop at the smallest term</b>: through $n = 4$ the sum is off by $0.018$, less than the first omitted term $0.0384$, and the correction still needed, $-0.018$, has that term's sign.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">optimal truncation</span>, and its error</span>
+        <p class="small">Truncate at $N = \lfloor 1/x\rfloor$, where the terms are smallest. Then</p>
+        $$|R_N(x)| \le \frac{e^2}{x}\,e^{-1/x}.$$
+        <p class="small">The error is <span class="term">exponentially small</span> — smaller than every power of $x$ — though no finite truncation has error zero.</p>
+      </div>
+      <p class="small">$x = 0.1$: best error $1.8\times10^{-4}$. $\ x = 0.04$: $8.6\times10^{-11}$. In both cases about <b>half the smallest term</b>, which Stirling's formula (<i>cited</i>, unit 20) puts at $\sqrt{2\pi/x}\,e^{-1/x}$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the table.</b> The partial sum through $n$ is $S_{n+1}$ in the remainder notation (it has
+    $n+1$ terms), so "minus $S$" is $-R_{n+1}$. The theorem says $R_{n+1}$ has the sign of the first omitted
+    term $t_{n+1}$ and is smaller than it. Row $n = 4$: $S - (\text{sum}) = -0.0183$, and the first omitted
+    term is $t_5 = -0.0384$: same sign, smaller, exactly as proved. Every row obeys the same rule; check
+    two more before moving on.</p>
+    <p><b>Full proof of the exponentially small bound.</b> For $N \ge 1$, $\ln k \le \int_k^{k+1}\ln s\,\mathrm{d}s$
+    for $k = 1, \dots, N-1$, so $\ln N! \le \int_1^N \ln s\,\mathrm{d}s + \ln N = N\ln N - N + 1 + \ln N$, that is,
+    $N! \le e\,N^{N+1}e^{-N}$. With $N = \lfloor 1/x\rfloor$ we have $Nx \le 1$ and $N \gt 1/x - 1$, so</p>
+    $$|R_N| \lt N!\,x^N \le e\,N\,(Nx)^N e^{-N} \le e\cdot\tfrac1x\cdot e^{-(1/x - 1)} = \tfrac{e^2}{x}e^{-1/x}.\qquad\square$$
+    <p>At $x = 0.1$ this bound is $3.4\times10^{-3}$ against a true error of $1.8\times10^{-4}$: crude in the
+    constant, right in the exponential, which is what matters.</p>
+    <p><b>The sharp constant, cited.</b> Stirling's formula $N! \sim \sqrt{2\pi N}\,N^Ne^{-N}$ is proved in unit
+    20 by Laplace's method; it gives the smallest term as $\sqrt{2\pi/x}\,e^{-1/x}$. The "about half" is an
+    observation from these computed numbers — at $x = 0.04$ the best error is $8.65\times10^{-11}$ against
+    $\sqrt{\pi/2x}\,e^{-1/x} = 8.70\times10^{-11}$ — not a theorem proved here.</p>
+    <p><b>The lesson for the whole unit.</b> For a given $x$ there is a best accuracy the series can deliver, and
+    adding terms beyond the smallest makes things worse. In physics the small parameter is fixed by nature
+    — $\varepsilon = 7.99\times10^{-8}$ for Mercury — so that best accuracy is what you actually get.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · asymptotic series</p>
+  <h2>Borel summation, named</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Borel summation</span></span>
+        <p class="small">Given $\sum a_nx^n$, form $B(t) = \sum a_n t^n/n!$ — often convergent where the original is not. If $B$ extends to $[0, \infty)$ and the integral exists, define</p>
+        $$\text{sum} := \int_0^\infty e^{-t}\,B(xt)\,\mathrm{d}t .$$
+      </div>
+      <p class="small">The motive: $n! = \int_0^\infty t^ne^{-t}\,\mathrm{d}t$, so formally $\sum a_n x^n = \int_0^\infty e^{-t}\sum a_n(xt)^n/n!\,\mathrm{d}t$ — the swap being exactly the step that is not allowed.</p>
+    </div>
+    <div>
+      <div class="box"><span class="label">on <span class="ref" data-ref="stieltjes">the Stieltjes series</span></span>
+        <p class="small">$a_n = (-1)^nn!$ gives $B(t) = \sum(-t)^n = 1/(1+t)$ for $|t| \lt 1$, and the formula $1/(1+t)$ is defined on all of $[0, \infty)$. Then $\int_0^\infty e^{-t}/(1 + xt)\,\mathrm{d}t = S(x)$ — the function, recovered exactly.</p>
+      </div>
+      <div class="box warn"><span class="label">named, not developed</span>
+        <p class="small">When Borel's sum exists and when it equals "the" function is a theorem with hypotheses (Watson's, <i>cited</i>: Bender and Orszag, ch. 8; Hardy, <i>Divergent Series</i>, for the theory). This course uses optimal truncation instead, which needs nothing.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why name it at all.</b> Because the question it answers — can a divergent series determine its
+    function? — has the answer "not by itself" (the $e^{-1/x}$ slide) and "yes, with extra analytic
+    information" (Borel). Quantum field theory's perturbation series are believed to be divergent and
+    of this factorial type, and Borel summation is the language in which their meaning is discussed.
+    You will see the name; now you know what it is.</p>
+    <p><b>Why not develop it.</b> Making "$B$ extends to $[0,\infty)$" precise wants analytic continuation,
+    which is unit 20's complex analysis. For the Stieltjes series we side-stepped that: the formula
+    $1/(1+t)$ is simply defined on $[0, \infty)$, and the integral is the function we started from.</p>
+    <p><b>A check on the definition.</b> For a convergent geometric series $\sum x^n$ ($|x| \lt 1$),
+    $B(t) = e^t$ and $\int_0^\infty e^{-t}e^{xt}\,\mathrm{d}t = 1/(1 - x)$, the ordinary sum. Borel summation
+    agrees with ordinary summation where both apply — a property called regularity, which holds in
+    general (<i>cited</i>: Hardy, <i>Divergent Series</i>).</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Secular terms</h2>
+  <p>The naive expansion of the Duffing oscillator, and the term that kills it after a time $1/\varepsilon$.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · secular terms</p>
+  <h2>Regular perturbation, the naive way</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Treat <span class="ref" data-ref="duffing">Duffing</span> as a regular problem: substitute</p>
+      $$x(t) = x_0(t) + \varepsilon x_1(t) + \varepsilon^2x_2(t) + \cdots$$
+      <p class="small">into $\ddot x + x + \varepsilon x^3 = 0$ and into the initial conditions, and set each power of $\varepsilon$ to zero separately. This is the <span class="term">perturbation hierarchy</span>:</p>
+      $$\begin{aligned}
+        \varepsilon^0:&\quad \ddot x_0 + x_0 = 0,\\
+        \varepsilon^1:&\quad \ddot x_1 + x_1 = -x_0^3,\\
+        \varepsilon^2:&\quad \ddot x_2 + x_2 = -3x_0^2x_1,
+      \end{aligned}$$
+      <p class="small">with $x_0(0) = A$, $\dot x_0(0) = 0$, and zero data for every $x_n$, $n \ge 1$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the structure to notice</span>
+        <p class="small">Every order is the <b>same linear operator</b> $L = \mathrm{d}^2/\mathrm{d}t^2 + 1$, driven by a known right-hand side built from lower orders. One nonlinear problem has become a sequence of forced linear oscillators: unit 06, over and over.</p>
+      </div>
+      <p class="small">The one identity we need, from $\cos^3 t = \big(\tfrac{e^{it} + e^{-it}}{2}\big)^3$:</p>
+      $$\cos^3 t = \tfrac34\cos t + \tfrac14\cos 3t .$$
+      <p class="small">So the $\varepsilon^1$ equation is an undamped oscillator driven at <b>its own frequency</b>, $-\tfrac34A^3\cos t$, plus a harmless $-\tfrac14A^3\cos 3t$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the hierarchy is legitimate.</b> The solution $x(t;\varepsilon)$ depends smoothly on $\varepsilon$ for
+    each fixed $t$, because the right-hand side is a polynomial in $(x, \varepsilon)$. Differentiating the equation in $\varepsilon$ at $\varepsilon = 0$ gives precisely the equations above, with
+    $x_n = \frac{1}{n!}\partial_\varepsilon^n x|_{\varepsilon=0}$. So the $x_n$ are the Taylor coefficients of $x$ in
+    $\varepsilon$ at fixed $t$. Everything about to go wrong goes wrong in the dependence on $t$, not in the
+    existence of the coefficients. (Smooth dependence on a parameter is the one piece here not proved in
+    unit 01, which proved continuous dependence; it is <i>cited</i>: Hartman, <i>Ordinary Differential Equations</i>, ch. V, on dependence on initial conditions and parameters. What we need is the
+    weaker statement proved directly, by Grönwall, on "How long the naive answer is good".)</p>
+    <p><b>The identity.</b> Expanding the cube, $(e^{it} + e^{-it})^3 = e^{3it} + 3e^{it} + 3e^{-it} + e^{-3it}
+    = 2\cos 3t + 6\cos t$; divide by 8. Unit 06's complex exponential, used as algebra.</p>
+    <p><b>Dimensions.</b> In scaled variables everything is dimensionless; in physical ones each order
+    carries the same units as $X$, and $\varepsilon$ carries none — which is why the hierarchy can add them.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · secular terms · example</p>
+  <h2>Worked: the naive first order</h2>
+  <div class="box ex"><span class="label">worked example 2 — solve the $\varepsilon^1$ equation</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 1 — the order-zero solution.</b> $x_0 = A\cos t$.</p>
+        <p class="small"><b>Step 2 — the forcing.</b> $-x_0^3 = -\tfrac34A^3\cos t - \tfrac14A^3\cos 3t$.</p>
+        <p class="small"><b>Step 3 — the off-resonant part.</b> Try $c\cos 3t$: $(-9 + 1)c = -\tfrac14A^3$, so $c = \tfrac1{32}A^3$.</p>
+        <p class="small"><b>Step 4 — the resonant part.</b> $c\cos t$ fails ($L\cos t = 0$): unit 06's resonance. Try $b\,t\sin t$: $L(t\sin t) = 2\cos t$, so $2b = -\tfrac34A^3$, $b = -\tfrac38A^3$.</p>
+      </div>
+      <div>
+        <p class="small"><b>Step 5 — the initial conditions.</b> Add the homogeneous $d\cos t$ (the $\sin t$ part is zero since $\dot x_1(0) = 0$ already holds). $x_1(0) = \tfrac1{32}A^3 + d = 0$, so $d = -\tfrac1{32}A^3$.</p>
+        $$x_1 = \underbrace{-\tfrac38A^3\,t\sin t}_{\text{secular}} + \tfrac1{32}A^3(\cos3t - \cos t).$$
+        <p class="small"><b>Step 6 — check.</b> $\dot x_1(0) = 0 + \tfrac1{32}A^3(0 - 0) = 0$ ✓, and $L x_1 = -\tfrac34A^3\cos t + \tfrac1{32}A^3(-8\cos 3t) = -x_0^3$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <p class="small">The term $t\sin t$ is a <span class="term">secular term</span>: <span class="ref" data-ref="secular">it grows without bound</span>, and it comes from forcing a linear oscillator at its own frequency.</p>
+  <aside class="notes">
+    <p><b>Step 4 in full.</b> $\frac{\mathrm{d}}{\mathrm{d}t}(t\sin t) = \sin t + t\cos t$, and
+    $\frac{\mathrm{d}^2}{\mathrm{d}t^2}(t\sin t) = 2\cos t - t\sin t$. Adding $t\sin t$ gives $L(t\sin t) = 2\cos t$.
+    This is exactly unit 06's "no damping, driven at $\omega_0$: the ansatz fails" slide; there the amplitude
+    grew linearly because energy was pumped in at resonance. Here nothing pumps energy in — the system is
+    conservative — so the growth cannot be physical. The next slide shows what it really is.</p>
+    <p><b>Step 5 in full.</b> $\dot x_1 = -\tfrac38A^3(\sin t + t\cos t) + \tfrac1{32}A^3(-3\sin 3t + \sin t) + (\text{homogeneous})'$;
+    every term vanishes at $t = 0$, so the homogeneous part needs no $\sin t$.</p>
+    <p><b>Why "secular".</b> Latin <i>saeculum</i>, an age or a century. Eighteenth-century astronomers —
+    Lagrange and Laplace above all — found terms growing like $t$ in their expansions of planetary orbits
+    and called them secular inequalities, because they showed up over centuries rather than within a
+    single orbit. The word has stuck to every term in a perturbation series that grows without bound in
+    the independent variable. Section 7 returns the word to the astronomers.</p>
+    <p><b>The ✓ in step 6.</b> Always substitute back. It costs a line, and the resonant coefficient is where
+    factors of 2 go missing.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · secular terms</p>
+  <h2>Why the naive answer dies at t ~ 1/ε</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 480 200" width="100%" aria-label="exact and naive solutions of the Duffing oscillator">
+          <line x1="30" y1="100" x2="470" y2="100" class="rule" stroke-width="1"/>
+          <line x1="30" y1="10" x2="30" y2="190" class="rule" stroke-width="1"/>
+          <line x1="30" y1="68.8" x2="470" y2="68.8" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+          <line x1="30" y1="131.2" x2="470" y2="131.2" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+          <polyline fill="none" class="warn" stroke-width="1.8" points="30.0,68.8 31.8,69.8 33.7,72.9 35.5,77.9 37.3,84.3 39.2,91.6 41.0,99.6 42.8,107.5 44.7,115.0 46.5,121.5 48.3,126.7 50.2,130.1 52.0,131.4 53.8,130.6 55.7,127.8 57.5,123.0 59.3,116.7 61.2,109.3 63.0,101.4 64.8,93.3 66.7,85.6 68.5,78.9 70.3,73.4 72.2,69.7 74.0,68.1 75.8,68.5 77.7,71.1 79.5,75.7 81.3,82.0 83.2,89.4 85.0,97.5 86.8,105.8 88.7,113.8 90.5,120.8 92.3,126.6 94.2,130.7 96.0,132.8 97.8,132.6 99.7,130.3 101.5,125.9 103.3,119.7 105.2,112.2 107.0,103.9 108.8,95.3 110.7,87.0 112.5,79.5 114.3,73.2 116.2,68.7 118.0,66.2 119.8,65.9 121.7,67.8 123.5,72.0 125.3,78.1 127.2,85.7 129.0,94.3 130.8,103.2 132.7,112.0 134.5,120.1 136.3,126.9 138.2,132.0 140.0,135.0 141.8,135.9 143.7,134.3 145.5,130.4 147.3,124.5 149.2,116.9 151.0,108.0 152.8,98.7 154.7,89.3 156.5,80.7 158.3,73.2 160.2,67.4 162.0,63.7 163.8,62.2 165.7,63.3 167.5,66.7 169.3,72.4 171.2,80.1 173.0,89.1 174.8,98.9 176.7,108.8 178.5,118.2 180.3,126.4 182.2,133.0 184.0,137.6 185.8,139.7 187.7,139.4 189.5,136.4 191.3,131.0 193.2,123.5 195.0,114.4 196.8,104.2 198.7,93.7 200.5,83.6 202.3,74.4 204.2,66.9 206.0,61.4 207.8,58.4 209.7,57.9 211.5,60.2 213.3,65.2 215.2,72.4 217.0,81.6 218.8,92.1 220.7,103.2 222.5,114.1 224.3,124.2 226.2,132.7 228.0,139.3 229.8,143.4 231.7,144.7 233.5,143.2 235.3,138.9 237.2,132.0 239.0,123.0 240.8,112.3 242.7,100.7 244.5,89.0 246.3,77.9 248.2,68.2 250.0,60.5 251.8,55.2 253.7,52.8 255.5,53.3 257.3,56.8 259.2,63.1 261.0,72.0 262.8,82.7 264.7,94.7 266.5,107.1 268.3,119.2 270.2,130.1 272.0,139.1 273.8,145.7 275.7,149.4 277.5,150.0 279.3,147.5 281.2,141.9 283.0,133.5 284.8,122.9 286.7,110.6 288.5,97.6 290.3,84.6 292.2,72.5 294.0,62.1 295.8,54.1 297.7,48.9 299.5,46.9 301.3,48.3 303.2,53.0 305.0,60.7 306.8,71.0 308.7,83.4 310.5,96.9 312.3,110.8 314.2,124.0 316.0,135.8 317.8,145.4 319.7,152.1 321.5,155.6 323.3,155.6 325.2,152.1 327.0,145.3 328.8,135.4 330.7,123.2 332.5,109.4 334.3,94.8 336.2,80.4 338.0,67.3 339.8,56.1 341.7,47.7 343.5,42.5 345.3,40.9 347.2,43.0 349.0,48.7 350.8,57.8 352.7,69.7 354.5,83.6 356.3,98.7 358.2,114.1 360.0,128.6 361.8,141.4 363.7,151.6 365.5,158.6 367.3,162.0 369.2,161.5 371.0,157.1 372.8,149.1 374.7,137.8 376.5,124.0 378.3,108.6 380.2,92.4 382.0,76.6 383.8,62.3 385.7,50.2 387.5,41.3 389.3,35.9 391.2,34.6 393.0,37.4 394.8,44.2 396.7,54.5 398.5,67.8 400.3,83.4 402.2,100.1 404.0,117.0 405.8,132.9 407.7,146.8 409.5,157.8 411.3,165.2 413.2,168.5 415.0,167.6 416.8,162.4 418.7,153.2 420.5,140.6 422.3,125.3 424.2,108.2 426.0,90.5 427.8,73.2 429.7,57.5 431.5,44.5 433.3,34.9 435.2,29.3 437.0,28.2 438.8,31.5 440.7,39.2 442.5,50.8 444.3,65.6 446.2,82.7 448.0,101.1 449.8,119.5 451.7,136.9 453.5,151.9 455.3,163.8 457.2,171.7 459.0,175.1 460.8,173.9 462.7,168.0 464.5,157.8 466.3,143.9 468.2,127.0 470.0,108.3"/>
+          <polyline fill="none" class="unit" stroke-width="1.8" points="30.0,68.8 31.8,69.8 33.7,72.9 35.5,77.9 37.3,84.2 39.2,91.6 41.0,99.5 42.8,107.5 44.7,114.9 46.5,121.4 48.3,126.6 50.2,129.9 52.0,131.2 53.8,130.4 55.7,127.5 57.5,122.8 59.3,116.6 61.2,109.3 63.0,101.5 64.8,93.5 66.7,85.9 68.5,79.3 70.3,74.0 72.2,70.4 74.0,68.8 75.8,69.4 77.7,72.0 79.5,76.5 81.3,82.6 83.2,89.8 85.0,97.6 86.8,105.5 88.7,113.2 90.5,120.0 92.3,125.5 94.2,129.3 96.0,131.1 97.8,130.8 99.7,128.4 101.5,124.1 103.3,118.2 105.2,111.2 107.0,103.4 108.8,95.4 110.7,87.7 112.5,80.8 114.3,75.1 116.2,71.1 118.0,69.0 119.8,69.0 121.7,71.2 123.5,75.3 125.3,81.0 127.2,87.9 129.0,95.6 130.8,103.6 132.7,111.4 134.5,118.4 136.3,124.3 138.2,128.5 140.0,130.9 141.8,131.1 143.7,129.2 145.5,125.3 147.3,119.8 149.2,113.0 151.0,105.3 152.8,97.3 154.7,89.5 156.5,82.4 158.3,76.4 160.2,71.9 162.0,69.3 163.8,68.8 165.7,70.5 167.5,74.1 169.3,79.5 171.2,86.2 173.0,93.7 174.8,101.7 176.7,109.6 178.5,116.8 180.3,123.0 182.2,127.7 184.0,130.5 185.8,131.2 187.7,129.8 189.5,126.4 191.3,121.3 193.2,114.7 195.0,107.2 196.8,99.3 198.7,91.4 200.5,84.0 202.3,77.7 204.2,72.8 206.0,69.8 207.8,68.8 209.7,69.9 211.5,73.1 213.3,78.0 215.2,84.4 217.0,91.8 218.8,99.8 220.7,107.7 222.5,115.1 224.3,121.6 226.2,126.7 228.0,130.0 229.8,131.2 231.7,130.4 233.5,127.4 235.3,122.7 237.2,116.4 239.0,109.1 240.8,101.2 242.7,93.3 244.5,85.7 246.3,79.1 248.2,73.8 250.0,70.3 251.8,68.8 253.7,69.4 255.5,72.1 257.3,76.7 259.2,82.8 261.0,90.0 262.8,97.8 264.7,105.8 266.5,113.4 268.3,120.2 270.2,125.6 272.0,129.4 273.8,131.1 275.7,130.8 277.5,128.3 279.3,124.0 281.2,118.0 283.0,110.9 284.8,103.2 286.7,95.2 288.5,87.5 290.3,80.6 292.2,75.0 294.0,71.0 295.8,69.0 297.7,69.1 299.5,71.3 301.3,75.4 303.2,81.2 305.0,88.2 306.8,95.9 308.7,103.9 310.5,111.6 312.3,118.6 314.2,124.4 316.0,128.6 317.8,130.9 319.7,131.1 321.5,129.1 323.3,125.2 325.2,119.6 327.0,112.7 328.8,105.1 330.7,97.1 332.5,89.3 334.3,82.2 336.2,76.2 338.0,71.8 339.8,69.3 341.7,68.8 343.5,70.5 345.3,74.2 347.2,79.6 349.0,86.4 350.8,94.0 352.7,101.9 354.5,109.8 356.3,117.0 358.2,123.1 360.0,127.8 361.8,130.5 363.7,131.2 365.5,129.8 367.3,126.3 369.2,121.1 371.0,114.5 372.8,107.0 374.7,99.0 376.5,91.2 378.3,83.8 380.2,77.5 382.0,72.7 383.8,69.7 385.7,68.8 387.5,69.9 389.3,73.2 391.2,78.2 393.0,84.6 394.8,92.1 396.7,100.0 398.5,107.9 400.3,115.3 402.2,121.8 404.0,126.8 405.8,130.0 407.7,131.2 409.5,130.3 411.3,127.3 413.2,122.5 415.0,116.2 416.8,108.9 418.7,101.0 420.5,93.0 422.3,85.5 424.2,78.9 426.0,73.7 427.8,70.2 429.7,68.8 431.5,69.5 433.3,72.2 435.2,76.8 437.0,83.0 438.8,90.2 440.7,98.0 442.5,106.0 444.3,113.6 446.2,120.3 448.0,125.7 449.8,129.4 451.7,131.2 453.5,130.7 455.3,128.2 457.2,123.8 459.0,117.8 460.8,110.7 462.7,102.9 464.5,94.9 466.3,87.3 468.2,80.4 470.0,74.8"/>
+          <text x="436" y="196" font-size="13" class="soft">t = 60</text>
+          <text x="4" y="72" font-size="13" class="soft">+1</text>
+          <text x="4" y="135" font-size="13" class="soft">−1</text>
+        </svg>
+        <p class="cap">$\varepsilon = 0.1$, $A = 1$, $0 \le t \le 60$. The curve that stays between $\pm1$ is the exact solution (numerical); the one that grows is $x_0 + \varepsilon x_1$.</p>
+      </div>
+      <table class="dense">
+        <thead><tr><th class="num">$t$</th><th class="num">1</th><th class="num">10</th><th class="num">50</th><th class="num">100</th></tr></thead>
+        <tbody>
+          <tr><td>exact</td><td class="num">0.5047</td><td class="num">$-0.5834$</td><td class="num">0.0004</td><td class="num">$-1.0000$</td></tr>
+          <tr><td>$x_0 + \varepsilon x_1$</td><td class="num">0.5040</td><td class="num">$-0.6320$</td><td class="num">1.4561</td><td class="num">2.7584</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the true motion is bounded</span>
+        <p class="small">For $\varepsilon \ge 0$, $|x(t)| \le A$ for all $t$.</p>
+        <p class="small muted"><b>Why:</b> energy $\tfrac12\dot x^2 + \tfrac12x^2 + \tfrac14\varepsilon x^4$ is conserved, and $\tfrac12x^2 + \tfrac14\varepsilon x^4$ is increasing in $|x|$. $\square$</p>
+      </div>
+      <div class="box warn"><span class="label">what the secular term really is</span>
+        <p class="small">Expand a slightly wrong frequency: $A\cos\big((1 + \varepsilon\omega_1)t\big) = A\cos t - \varepsilon\omega_1A\,t\sin t + O(\varepsilon^2t^2)$. With $\omega_1 = \tfrac38A^2$ that is <b>exactly</b> $x_0 + $ the secular part of $\varepsilon x_1$. The series is Taylor-expanding a phase error, which is fine while $\varepsilon t \ll 1$ and nonsense after.</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term">uniformly valid</span></span>
+        <p class="small">$x_0 + \varepsilon x_1$ has error $O(\varepsilon^2)$ at each fixed $t$, but <b>not uniformly</b> in $t \in [0, \infty)$: no single constant works for all $t$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> Exact values from a numerical integration with relative tolerance $10^{-12}$;
+    energy conservation was checked to hold to that accuracy, and $\max|x| = 1.0000$ over $[0, 100]$,
+    confirming the bound. At $t = 1$ the naive answer is good to $7\times10^{-4}$, of order
+    $\varepsilon^2 = 10^{-2}$ times a modest constant. At $t = 10 = 1/\varepsilon$ it is off by $0.05$. By
+    $t = 100$ it is $2.76$, outside the band $|x| \le 1$ the exact motion can never leave.</p>
+    <p><b>Full proof of the bound.</b> Multiply $\ddot x + x + \varepsilon x^3 = 0$ by $\dot x$: $\frac{\mathrm{d}}{\mathrm{d}t}E = 0$
+    with $E = \tfrac12\dot x^2 + V(x)$, $V(x) = \tfrac12x^2 + \tfrac14\varepsilon x^4$ (unit 00's first integral). So
+    $V(x(t)) \le E = V(A)$. For $\varepsilon \ge 0$, $V$ is even and strictly increasing on $[0, \infty)$, hence
+    $|x(t)| \le A$. In phase space (unit 02) the orbit is a closed level curve of $E$ around a centre: the
+    motion is periodic. For $\varepsilon \lt 0$ the same holds provided $A^2 \lt 1/|\varepsilon|$, so that the orbit
+    stays inside the well.</p>
+    <p><b>Why the table's exact value at $t = 100$ is $-1.0000$.</b> Coincidence, not a bug: the exact frequency
+    is $1.036717$, and $1.036717\times100 = 103.67 \approx 33\pi = 103.67$, so $x \approx A\cos 33\pi = -1$.</p>
+    <p><b>The general point.</b> An asymptotic expansion in $\varepsilon$ is a statement about $\varepsilon \to 0$ at
+    fixed everything else. If "everything else" includes a variable ranging over an unbounded set, the
+    expansion may be valid pointwise and fail uniformly. The failure occurs where $\varepsilon t$ is no
+    longer small: the problem has a second time scale, $1/\varepsilon$, which the naive expansion cannot see.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · secular terms</p>
+  <h2>How long the naive answer is good: a Grönwall bound</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p class="small">Let $\varepsilon \ge 0$ and $r = x - x_0 - \varepsilon x_1$. Then for $0 \le t \le T$,</p>
+    $$|r(t)| \le \tfrac{3}{16}\,\varepsilon^2A^5\,\big(3T^2 + T\big)\,e^{3\varepsilon A^2T}.$$
+  </div>
+  <div class="cols">
+    <div class="box proof"><span class="label">proof, in outline</span>
+      <p class="small">$r$ solves $\ddot r + r = -\varepsilon(x^3 - x_0^3)$ with zero data. Since $|x|, |x_0| \le A$, $|x^3 - x_0^3| \le 3A^2|x - x_0| \le 3A^2(\varepsilon|x_1| + |r|)$. Variation of parameters (unit 06) writes $r$ as an integral against $\sin(t - s)$, whose size is at most 1; then unit 01's Grönwall inequality closes the estimate.</p>
+      <p class="proof-pointer">full proof in the notes (N)</p>
+    </div>
+    <div>
+      <p class="small"><b>What it says.</b> On any fixed interval the error is $O(\varepsilon^2)$: the naive expansion <b>is</b> asymptotic there. The bound is useful while $\varepsilon T \lesssim 1$ and useless for $T \gg 1/\varepsilon$, exactly where the table failed.</p>
+      <p class="small"><b>Check.</b> $\varepsilon = 0.1$, $A = 1$, $T = 1$: bound $0.0101$; the true maximum error on $[0, 1]$ is $7.0\times10^{-4}$. Pessimistic, as Grönwall bounds are, but of the right order in $\varepsilon$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Write $u(t) = \sqrt{r^2 + \dot r^2}$. From $\ddot x + x = -\varepsilon x^3$,
+    $\ddot x_0 + x_0 = 0$ and $\ddot x_1 + x_1 = -x_0^3$ we get $\ddot r + r = -\varepsilon x^3 + \varepsilon x_0^3 =: g(t)$,
+    with $r(0) = \dot r(0) = 0$. Variation of parameters (unit 06) gives the unique solution
+    $r(t) = \int_0^t \sin(t - s)\,g(s)\,\mathrm{d}s$ and $\dot r(t) = \int_0^t\cos(t - s)\,g(s)\,\mathrm{d}s$. So $(r, \dot r)$ is the integral of the vector $(\sin(t - s), \cos(t - s))\,g(s)$, whose length is
+    $|g(s)|$, and the triangle inequality for integrals of vectors gives $u(t) \le \int_0^t |g(s)|\,\mathrm{d}s$.</p>
+    <p>Now bound $g$. $x^3 - x_0^3 = (x - x_0)(x^2 + xx_0 + x_0^2)$, and $|x| \le A$ (the previous slide) and
+    $|x_0| \le A$, so $|g| \le 3\varepsilon A^2|x - x_0| \le 3\varepsilon A^2(\varepsilon|x_1| + u)$. From the worked
+    example, $|x_1(s)| \le \tfrac38A^3s + \tfrac1{16}A^3$. So for $t \le T$,</p>
+    $$u(t) \le \underbrace{3\varepsilon^2A^2\!\int_0^T\!\big(\tfrac38A^3s + \tfrac1{16}A^3\big)\mathrm{d}s}_{=\ \frac3{16}\varepsilon^2A^5(3T^2 + T)} + 3\varepsilon A^2\!\int_0^t u(s)\,\mathrm{d}s .$$
+    <p>This is unit 01's Grönwall hypothesis on $[0, T]$ with constant $A_{\rm G} = \tfrac3{16}\varepsilon^2A^5(3T^2 + T)$
+    and $L = 3\varepsilon A^2$ (the first integral was extended from $[0,t]$ to $[0,T]$ to make it a constant). Hence
+    $u(t) \le A_{\rm G}e^{3\varepsilon A^2 t}$ on $[0,T]$; put $t = T$, and $|r| \le u$. $\square$</p>
+    <p><b>Dimensions.</b> In scaled variables $A$ is dimensionless; restoring units, $\varepsilon A^2$ is the
+    dimensionless group $\beta a^2/k$ and the bound carries one power of length, as $r$ does.</p>
+    <p><b>The check's number.</b> $\tfrac3{16}(0.01)(3 + 1)e^{0.3} = 0.0075\times 1.3499 = 0.0101$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Removing secular terms</h2>
+  <p>If the secular term is a frequency error, put the frequency in the ansatz.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · removing secular terms</p>
+  <h2>The solvability condition</h2>
+  <div class="box thm"><span class="label">the <span class="term">solvability condition</span></span>
+    <p class="small">Let $f$ be continuous and $2\pi$-periodic. The equation $u'' + u = f$ has a $2\pi$-periodic solution if and only if</p>
+    $$\int_0^{2\pi} f(\tau)\cos\tau\,\mathrm{d}\tau = 0 \quad\text{and}\quad \int_0^{2\pi} f(\tau)\sin\tau\,\mathrm{d}\tau = 0 .$$
+  </div>
+  <div class="cols">
+    <div class="box proof"><span class="label">only if, in one line</span>
+      <p class="small">Multiply by $\cos\tau$ and integrate over a period; integrating by parts twice moves both derivatives onto $\cos\tau$ with no boundary terms (periodicity), and $\cos'' + \cos = 0$. Same for $\sin$. $\square$</p>
+    </div>
+    <div>
+      <p class="small"><b>If</b>: the particular solution $u = \int_0^\tau \sin(\tau - s)f(s)\,\mathrm{d}s$ from variation of parameters satisfies $u(\tau + 2\pi) - u(\tau) = \sin\tau\int_0^{2\pi}\!f\cos - \cos\tau\int_0^{2\pi}\!f\sin = 0$. Details in the notes.</p>
+      <p class="small"><b>In words:</b> the forcing must have no component along the kernel of $\mathrm{d}^2/\mathrm{d}\tau^2 + 1$. A component along $\cos\tau$ or $\sin\tau$ is resonant, and produces $\tau\sin\tau$ or $\tau\cos\tau$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> <i>Only if.</i> Let $u$ be a $2\pi$-periodic $C^2$ solution. Then
+    $\int_0^{2\pi}u''\cos = [u'\cos]_0^{2\pi} + \int_0^{2\pi}u'\sin = 0 + [u\sin]_0^{2\pi} - \int_0^{2\pi}u\cos$, the
+    bracketed terms vanishing by periodicity. So $\int_0^{2\pi}(u'' + u)\cos = 0$, which is $\int f\cos = 0$. The
+    same computation with $\sin$.</p>
+    <p><i>If.</i> Variation of parameters (unit 06) gives the solution with zero data at $0$:
+    $u(\tau) = \int_0^\tau\sin(\tau - s)f(s)\,\mathrm{d}s$. Then
+    $u(\tau + 2\pi) - u(\tau) = \int_\tau^{\tau+2\pi}\sin(\tau - s)f(s)\,\mathrm{d}s$ (the integrand is $2\pi$-periodic in $s$
+    once $\tau$ is fixed, because $f$ and $\sin$ are), and expanding
+    $\sin(\tau - s) = \sin\tau\cos s - \cos\tau\sin s$ turns this into
+    $\sin\tau\int f\cos - \cos\tau\int f\sin$ over one period, which is $0$. The same argument for
+    $u'(\tau) = \int_0^\tau\cos(\tau - s)f(s)\,\mathrm{d}s$ shows $u'$ is periodic too. A function with
+    $u(\tau + 2\pi) = u(\tau)$ for all $\tau$ is periodic. $\square$</p>
+    <p><b>The linear-algebra reading.</b> $\mathcal L = \mathrm{d}^2/\mathrm{d}\tau^2 + 1$ on $2\pi$-periodic functions is
+    symmetric for the inner product $\int_0^{2\pi}fg$ (the integration by parts above), and its kernel is
+    spanned by $\cos, \sin$. The condition says $f \perp \ker\mathcal L$ — the same statement as "$Ax = b$ is
+    solvable iff $b \perp \ker A^{\top}$" for a matrix. It is called the Fredholm alternative in that
+    generality; here it was proved by hand.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · removing secular terms · example</p>
+  <h2>Worked: Poincaré–Lindstedt for Duffing</h2>
+  <div class="box ex"><span class="label">worked example 3 — the <span class="term">Poincaré–Lindstedt method</span> on <span class="ref" data-ref="duffing">the running example</span></span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 1 — strain the time.</b> The motion is periodic with an unknown frequency $\omega(\varepsilon)$. Put $\tau = \omega t$, so $x$ is $2\pi$-periodic in $\tau$, and $\omega^2x'' + x + \varepsilon x^3 = 0$.</p>
+        <p class="small"><b>Step 2 — expand both.</b> $x = x_0(\tau) + \varepsilon x_1(\tau) + \cdots$, $\ \omega = 1 + \varepsilon\omega_1 + \cdots$, so $\omega^2 = 1 + 2\varepsilon\omega_1 + O(\varepsilon^2)$.</p>
+        <p class="small"><b>Step 3 — order $\varepsilon^0$.</b> $x_0'' + x_0 = 0$, $x_0 = A\cos\tau$.</p>
+        <p class="small"><b>Step 4 — order $\varepsilon^1$.</b></p>
+        $$\begin{aligned}x_1'' + x_1 &= -2\omega_1x_0'' - x_0^3\\ &= \big(2\omega_1A - \tfrac34A^3\big)\cos\tau - \tfrac14A^3\cos3\tau .\end{aligned}$$
+      </div>
+      <div>
+        <p class="small"><b>Step 5 — demand periodicity.</b> The solvability condition: the $\cos\tau$ coefficient must vanish (the $\sin\tau$ one already does).</p>
+        $$\boxed{\ \omega_1 = \tfrac38A^2,\qquad \omega = 1 + \tfrac38\varepsilon A^2 + O(\varepsilon^2)\ }$$
+        <p class="small"><b>Step 6 — the correction.</b> $x_1 = \tfrac1{32}A^3(\cos3\tau - \cos\tau)$, fixing $x_1(0) = 0$. No secular term.</p>
+        <p class="small"><b>Step 7 — undo the straining.</b> $x \approx A\cos\omega t + \tfrac{\varepsilon A^3}{32}(\cos3\omega t - \cos\omega t)$ — bounded, periodic, and uniformly valid on times of order $1/\varepsilon$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 4, the right-hand side.</b> Substituting into $\omega^2x'' + x + \varepsilon x^3 = 0$ and collecting
+    order $\varepsilon$: $x_1'' + 2\omega_1x_0'' + x_1 + x_0^3 = 0$. With $x_0'' = -A\cos\tau$ and the cube identity,
+    $-2\omega_1x_0'' - x_0^3 = 2\omega_1A\cos\tau - \tfrac34A^3\cos\tau - \tfrac14A^3\cos 3\tau$.</p>
+    <p><b>Step 6.</b> Particular solution $\tfrac1{32}A^3\cos3\tau$ (as in worked example 2), plus
+    $d\cos\tau + e\sin\tau$. $x_1'(0) = 0$ gives $e = 0$, $x_1(0) = 0$ gives $d = -\tfrac1{32}A^3$.</p>
+    <p><b>Why this works and the naive method did not.</b> The naive method insisted the frequency was 1 at
+    every order and then had to express a frequency shift as a polynomial in $t$ times trigonometric
+    functions. Poincaré–Lindstedt gives the frequency its own expansion, and uses the one freedom this
+    introduces, $\omega_1$, to satisfy the one condition — solvability — that periodicity imposes. At every
+    order there is exactly one new unknown $\omega_n$ and one condition, which is why the method can be
+    continued indefinitely; the problem sheet does order two and gets $\omega_2 = -\tfrac{21}{256}A^4$.</p>
+    <p><b>When it applies.</b> Only when the true solution is <b>periodic</b> — here guaranteed by the closed
+    energy level curves of the previous section. For a damped or driven oscillator whose amplitude drifts
+    there is no single frequency to strain, and the method has nothing to hold on to. That is what
+    multiple scales is for.</p>
+    <p><b>History.</b> Lindstedt (1882) introduced the device for the three-body problem; Poincaré (<i>Les méthodes
+    nouvelles de la mécanique céleste</i>, 1892–99) proved the resulting series are
+    asymptotic — and that for the three-body problem they generally diverge.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · removing secular terms</p>
+  <h2>Checking the frequency</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">dimensions, restored</span>
+        <p class="small">$\omega = \sqrt{k/m}\,\big(1 + \tfrac{3\beta a^2}{8k}\big)$. $[\beta a^2/k] = 1$ ✓, and the prefactor is a frequency ✓.</p>
+      </div>
+      <div class="box good"><span class="label">limit: $\varepsilon \to 0$</span>
+        <p class="small">$\omega \to 1$, the linear oscillator ✓. $\varepsilon \gt 0$ (a stiffening spring) raises the frequency, $\varepsilon \lt 0$ lowers it — as it must, since a stiffer spring is faster ✓.</p>
+      </div>
+      <div class="box good"><span class="label">special case: the pendulum</span>
+        <p class="small">$\varepsilon = -A^2/6$ at unit amplitude: $\omega = 1 - \tfrac1{16}A^2$, so $T = 2\pi(1 + \tfrac1{16}A^2 + \cdots)$ — <b>unit 00's</b> $\theta_0^2/16$, obtained there from an elliptic integral ✓.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box"><span class="label">against the quadrature, on <span class="ref" data-ref="duffing">Duffing</span></span>
+        <table class="dense">
+          <thead><tr><th class="num">$\varepsilon A^2$</th><th class="num">exact $\omega$</th><th class="num">$1 + \tfrac38\varepsilon A^2$</th><th class="num">error</th></tr></thead>
+          <tbody>
+            <tr><td class="num">0.01</td><td class="num">1.003742</td><td class="num">1.003750</td><td class="num">$8.2\times10^{-6}$</td></tr>
+            <tr><td class="num">0.1</td><td class="num">1.036717</td><td class="num">1.037500</td><td class="num">$7.8\times10^{-4}$</td></tr>
+            <tr><td class="num">0.5</td><td class="num">1.170781</td><td class="num">1.187500</td><td class="num">$1.7\times10^{-2}$</td></tr>
+            <tr><td class="num">1</td><td class="num">1.317776</td><td class="num">1.375000</td><td class="num">$5.7\times10^{-2}$</td></tr>
+          </tbody>
+        </table>
+        <p class="small">The error falls a hundredfold when $\varepsilon A^2$ falls tenfold: $O(\varepsilon^2)$, as promised. At $\varepsilon A^2 = 1$ it is still only $4\%$ wrong.</p>
+      </div>
+      <p class="small">And the time series: at $\varepsilon = 0.1$, $t = 100$, the Poincaré–Lindstedt answer is $-0.9969$ against the exact $-1.0000$, where the naive one said $2.758$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The pendulum, in numbers.</b> For $\theta_0 = 23^\circ = 0.4014$ rad, the exact pendulum frequency is
+    $\pi/2K(\sin(\theta_0/2))= 0.989937$ (unit 00's elliptic integral, $K$ with modulus $\sin(\theta_0/2)$),
+    and $1 - \theta_0^2/16 = 0.989929$. Unit 00's "one per cent wrong at about $23^\circ$" is the statement
+    $1/0.98994 = 1.0102$. The Duffing truncation of the pendulum (dropping $\theta^5$) is a different
+    equation from the pendulum, and agrees with it only to this order; at order $\varepsilon^2$ the $\theta^5$ term
+    enters too.</p>
+    <p><b>The remaining error at $t = 100$.</b> Poincaré–Lindstedt to first order has a frequency error of
+    $7.8\times10^{-4}$, so by $t = 100$ the phase is off by $0.078$ radians, and the error in $x$ is about $0.078$ times
+    $|\sin(\text{phase})|$. At $t = 100$ that sine happens to be near zero, which is why the error there is only
+    $0.003$; at $t = 50$, where the phase error is $0.039$ and the sine is near one, the error is $0.039$. Poincaré–Lindstedt to order $n$ is uniformly valid
+    on times of order $\varepsilon^{-n}$, not for ever. Nothing is uniformly valid for ever unless it is
+    exact.</p>
+    <p><b>How the "exact" column was obtained</b> is in the notes to "Poincaré's definition": a quadrature
+    from energy conservation, evaluated numerically.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · removing secular terms</p>
+  <h2>Multiple scales</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">method of multiple scales</span></span>
+        <p class="small">Pretend the solution depends on two times, a fast $t$ and a slow $T = \varepsilon t$, independently: $x(t) = X(t, \varepsilon t)$. By the chain rule (unit 03)</p>
+        $$\frac{\mathrm{d}}{\mathrm{d}t} = \partial_t + \varepsilon\,\partial_T,$$
+        $$\frac{\mathrm{d}^2}{\mathrm{d}t^2} = \partial_t^2 + 2\varepsilon\,\partial_t\partial_T + \varepsilon^2\partial_T^2 .$$
+        <p class="small">Expand $X = X_0 + \varepsilon X_1 + \cdots$ and use the <b>new freedom</b> — how $X_0$ depends on $T$ — to kill secular terms.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>On <span class="ref" data-ref="duffing">Duffing</span>.</b> Order 1: $X_0 = a(T)\cos\big(t + \phi(T)\big)$ — amplitude and phase are free to drift. Order $\varepsilon$:</p>
+      $$\begin{aligned}\partial_t^2X_1 + X_1 = {}&2a'\sin\psi + \big(2a\phi' - \tfrac34a^3\big)\cos\psi\\ &- \tfrac14a^3\cos3\psi,\end{aligned}$$
+      <p class="small">with $\psi = t + \phi$. No secular term iff the <span class="term">amplitude equations</span> hold:</p>
+      $$a' = 0,\qquad \phi' = \tfrac38a^2 .$$
+      <p class="small">So $x \approx A\cos\big((1 + \tfrac38\varepsilon A^2)t\big)$ — the same answer, with no assumption of periodicity.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Order $\varepsilon$, in full.</b> Substituting, the $\varepsilon^1$ terms are
+    $\partial_t^2X_1 + X_1 + 2\partial_t\partial_TX_0 + X_0^3 = 0$. With $X_0 = a\cos\psi$, $\partial_tX_0 = -a\sin\psi$ and
+    $\partial_T\partial_tX_0 = -a'\sin\psi - a\phi'\cos\psi$. So $-2\partial_t\partial_TX_0 = 2a'\sin\psi + 2a\phi'\cos\psi$,
+    and $-X_0^3 = -\tfrac34a^3\cos\psi - \tfrac14a^3\cos3\psi$. For $X_1$ to stay bounded in $t$ at fixed
+    $T$, the solvability condition kills the $\sin\psi$ and $\cos\psi$ coefficients: $a' = 0$ and
+    $\phi' = \tfrac38a^2$. With $a(0) = A$, $\phi(0) = 0$: $\phi = \tfrac38A^2T = \tfrac38\varepsilon A^2t$.</p>
+    <p><b>What it buys over Poincaré–Lindstedt.</b> Add weak damping, $\ddot x + 2\varepsilon\mu\dot x + x + \varepsilon x^3 = 0$.
+    There is no periodic solution, so Poincaré–Lindstedt cannot start. Multiple scales gets one extra
+    term, $-2\mu\partial_tX_0 = 2\mu a\sin\psi$, and the amplitude equations become $a' = -\mu a$,
+    $\phi' = \tfrac38a^2$: the amplitude decays as $Ae^{-\mu\varepsilon t}$ and the frequency <b>drifts down</b>
+    towards 1 as it does, $\omega(t) = 1 + \tfrac38\varepsilon A^2e^{-2\mu\varepsilon t}$. The problem sheet does the same
+    for the van der Pol oscillator of unit 02 and finds its limit cycle's amplitude, which Poincaré–Bendixson
+    could only prove exists.</p>
+    <p><b>Is "pretend there are two independent times" legitimate?</b> As a derivation, no: $x$ is a function of
+    one variable. As a way of <i>generating an ansatz</i>, yes — and the ansatz is then justified the way
+    the naive one was, by a Grönwall estimate on the remainder, which now holds on intervals of length
+    $O(1/\varepsilon)$ (<i>cited</i>: Kevorkian and Cole, <i>Multiple Scale and Singular Perturbation Methods</i>, the
+    chapter on multiple-scale expansions for ordinary differential equations; or Verhulst,
+    <i>Nonlinear Differential Equations and Dynamical Systems</i>, the chapter on averaging, where the
+    equivalent averaging method is proved in full).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · removing secular terms</p>
+  <h2>Secular terms are a boundary layer in time</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Look at what the three methods did to <span class="ref" data-ref="duffing">Duffing</span>:</p>
+      <ul class="small">
+        <li><b>naive:</b> one time variable $t$; valid for $t = O(1)$;</li>
+        <li><b>Poincaré–Lindstedt:</b> one strained variable $\omega t$; valid for $t = O(1/\varepsilon)$ provided the motion is periodic;</li>
+        <li><b>multiple scales:</b> two variables $t$ and $\varepsilon t$; valid for $t = O(1/\varepsilon)$ in general.</li>
+      </ul>
+      <p class="small">The naive expansion is good on the "inner" time scale and fails on the "outer" one, $T = \varepsilon t = O(1)$. Multiple scales writes down an expansion that is right on <b>both</b> at once.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the unifying idea</span>
+        <p class="small">Every non-uniformity has <b>two scales</b>, and a correct approximation respects both. Secular growth is two time scales. The next section's boundary layer is two length scales. WKB is a fast phase and a slow amplitude.</p>
+      </div>
+      <div class="box warn"><span class="label">choosing a method</span>
+        <p class="small">Periodic solution, want its frequency: Poincaré–Lindstedt, fastest. Drifting amplitude, damping, transients, slow variation of a parameter: multiple scales. Thin region of rapid change in space: matched expansions.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The analogy made exact.</b> In section 5 we shall have an "inner" variable $X = x/\varepsilon$ near a
+    boundary and an "outer" variable $x$. Here, the roles are: the fast time $t$ plays the inner
+    variable, the slow time $T = \varepsilon t$ plays the outer, and the "boundary" is $t = 0$. The naive
+    expansion is an inner expansion. The amplitude equations for $a(T)$, $\phi(T)$ are the outer equations,
+    and multiple scales solves them simultaneously rather than matching them afterwards. Some texts do
+    treat secular problems by matched expansions in time; the answers agree.</p>
+    <p><b>An honest limit.</b> Two scales are enough for first order. At second order new secular terms
+    can appear on the time scale $1/\varepsilon^2$, and a third time $\varepsilon^2t$ is needed. The pattern
+    continues, and for Hamiltonian systems with more than one degree of freedom it can break down entirely
+    — resonances between frequencies produce small divisors, which is the door into unit 17's chaos,
+    not opened here.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Boundary layers</h2>
+  <p>A small parameter on the highest derivative, and the thin region where it is not small.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · boundary layers</p>
+  <h2>A small parameter on the highest derivative</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="ref" data-ref="layer">the model problem</span></span>
+        $$\varepsilon y'' + (1 + x)\,y' + y = 0$$
+        <p class="small">on $[0, 1]$, with $y(0) = 0$ and $y(1) = 1$.</p>
+      </div>
+      <p class="small">Set $\varepsilon = 0$: $(1 + x)y' + y = 0$, i.e. $\big((1 + x)y\big)' = 0$, so $y = C/(1 + x)$. A first-order equation takes <b>one</b> boundary condition. $y(1) = 1$ gives $C = 2$; then $y(0) = 2 \ne 0$.</p>
+      <p class="small">The reduced problem cannot meet both conditions. Near one end, $y$ must change by $O(1)$ over a short distance, where $\varepsilon y''$ is <b>not</b> small: a <span class="term">boundary layer</span>.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">this one is exactly solvable</span>
+        <p class="small">$\varepsilon y'' + (1 + x)y' + y = \big(\varepsilon y' + (1 + x)y\big)'$, so $\varepsilon y' + (1+x)y = K$, constant. A first-order linear equation:</p>
+        $$y(x) = \frac K\varepsilon\int_0^x e^{[(1+s)^2 - (1+x)^2]/2\varepsilon}\,\mathrm{d}s ,$$
+        <p class="small">with $K$ fixed by $y(1) = 1$. We shall not need it to find the answer — only to check it.</p>
+      </div>
+      <p class="small">Physics: Prandtl, 1904. Viscosity multiplies the highest derivative in the equation of fluid motion, and the flow past a wing is inviscid <b>except</b> in a thin layer at its surface — where the drag is decided.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Checking the exact solution.</b> Integrating factor for $\varepsilon y' + (1+x)y = K$: multiply by
+    $\varepsilon^{-1}e^{(1+x)^2/2\varepsilon}$, getting $\big(e^{(1+x)^2/2\varepsilon}y\big)' = (K/\varepsilon)e^{(1+x)^2/2\varepsilon}$; integrate
+    from $0$ using $y(0) = 0$. That is the formula. At $\varepsilon = 0.05$, $K = 1.97433$; at $\varepsilon = 0.01$,
+    $K = 1.99497$. Note that $K = (1+x)y + \varepsilon y'$ is exactly the combination the outer solution makes
+    constant, and the outer value is $K = 2$: the exact constant tends to the outer one as $\varepsilon \to 0$.
+    That is already a first matching statement.</p>
+    <p><b>Why the layer is not at $x = 1$.</b> Deferred to "Where the layer goes"; the short version is that
+    a layer at $x = 1$ would have to grow exponentially into the interior.</p>
+    <p><b>Prandtl.</b> The Navier–Stokes equations of viscous flow have viscosity multiplying the
+    second derivatives of the velocity, the highest derivatives in them. Setting viscosity to zero gives Euler's equations,
+    which cannot satisfy no-slip at a wall and predict zero drag on any body (d'Alembert's paradox, 1752).
+    Prandtl's 1904 paper, eight pages long, resolved the paradox with exactly this section's idea. Van Dyke
+    later made the method systematic, and the matching rule two slides on is his.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · boundary layers</p>
+  <h2>Inner and outer solutions</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">outer solution</span></span>
+        <p class="small">The expansion valid away from the layer, obeying the boundary condition the reduced equation can keep: $y_{\rm out} = 2/(1 + x)$.</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term">inner solution</span></span>
+        <p class="small">Stretch the variable near $x = 0$: $x = \varepsilon^\alpha X$. The terms $\varepsilon y''$, $(1+x)y'$, $y$ become of sizes $\varepsilon^{1 - 2\alpha}$, $\varepsilon^{-\alpha}$, $1$. The balance that keeps $y''$ is $\alpha = 1$ — the <span class="term">distinguished limit</span>. With $Y(X) = y(\varepsilon X)$:</p>
+        $$Y'' + (1 + \varepsilon X)Y' + \varepsilon Y = 0,$$
+        <p class="small">so at leading order $Y_0'' + Y_0' = 0$.</p>
+        <p class="small">With $Y_0(0) = 0$: $Y_0 = C\,(1 - e^{-X})$. One constant is still unknown.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 200" width="100%" aria-label="exact solution, outer solution and composite for epsilon 0.05">
+          <line x1="40" y1="190" x2="450" y2="190" class="rule" stroke-width="1"/>
+          <line x1="40" y1="10" x2="40" y2="190" class="rule" stroke-width="1"/>
+          <line x1="60" y1="10" x2="60" y2="190" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+          <polyline fill="none" class="rule" stroke-width="2.5" stroke-dasharray="7 5" points="40.0,30.0 42.0,30.8 44.0,31.6 46.0,32.4 48.0,33.1 50.0,33.9 52.0,34.7 54.0,35.4 56.0,36.2 58.0,36.9 60.0,37.6 62.0,38.3 64.0,39.1 66.0,39.8 68.0,40.5 70.0,41.2 72.0,41.9 74.0,42.5 76.0,43.2 78.0,43.9 80.0,44.5 82.0,45.2 84.0,45.9 86.0,46.5 88.0,47.1 90.0,47.8 92.0,48.4 94.0,49.0 96.0,49.6 98.0,50.3 100.0,50.9 102.0,51.5 104.0,52.1 106.0,52.7 108.0,53.2 110.0,53.8 112.0,54.4 114.0,55.0 116.0,55.5 118.0,56.1 120.0,56.7 122.0,57.2 124.0,57.8 126.0,58.3 128.0,58.9 130.0,59.4 132.0,59.9 134.0,60.4 136.0,61.0 138.0,61.5 140.0,62.0 142.0,62.5 144.0,63.0 146.0,63.5 148.0,64.0 150.0,64.5 152.0,65.0 154.0,65.5 156.0,66.0 158.0,66.4 160.0,66.9 164.0,67.9 176.0,70.6 188.0,73.2 200.0,75.7 212.0,78.1 224.0,80.4 236.0,82.6 248.0,84.7 260.0,86.8 272.0,88.7 284.0,90.6 296.0,92.4 308.0,94.2 320.0,95.9 332.0,97.5 344.0,99.1 356.0,100.6 368.0,102.1 380.0,103.5 392.0,104.9 404.0,106.2 416.0,107.5 428.0,108.8 440.0,110.0"/>
+          <polyline fill="none" class="warn" stroke-width="2" points="40.0,190.0 42.0,175.6 44.0,162.6 46.0,150.9 48.0,140.4 50.0,130.9 52.0,122.5 54.0,114.9 56.0,108.0 58.0,101.9 60.0,96.5 62.0,91.6 64.0,87.2 66.0,83.4 68.0,79.9 70.0,76.9 72.0,74.2 74.0,71.8 76.0,69.7 78.0,67.8 80.0,66.2 82.0,64.8 84.0,63.6 86.0,62.5 88.0,61.7 90.0,60.9 92.0,60.3 94.0,59.8 96.0,59.4 98.0,59.1 100.0,58.8 102.0,58.7 104.0,58.6 106.0,58.6 108.0,58.6 110.0,58.7 112.0,58.8 114.0,58.9 116.0,59.1 118.0,59.3 120.0,59.6 122.0,59.9 124.0,60.2 126.0,60.5 128.0,60.8 130.0,61.2 132.0,61.5 134.0,61.9 136.0,62.3 138.0,62.7 140.0,63.1 142.0,63.5 144.0,63.9 146.0,64.3 148.0,64.7 150.0,65.2 152.0,65.6 154.0,66.0 156.0,66.5 158.0,66.9 160.0,67.3 164.0,68.2 176.0,70.8 188.0,73.3 200.0,75.8 212.0,78.1 224.0,80.4 236.0,82.6 248.0,84.7 260.0,86.8 272.0,88.7 284.0,90.6 296.0,92.4 308.0,94.2 320.0,95.9 332.0,97.5 344.0,99.1 356.0,100.6 368.0,102.1 380.0,103.5 392.0,104.9 404.0,106.2 416.0,107.5 428.0,108.8 440.0,110.0"/>
+          <polyline fill="none" class="unit" stroke-width="2" points="40.0,190.0 42.0,175.0 44.0,161.4 46.0,149.1 48.0,138.1 50.0,128.1 52.0,119.1 54.0,111.1 56.0,103.9 58.0,97.4 60.0,91.6 62.0,86.4 64.0,81.8 66.0,77.8 68.0,74.1 70.0,71.0 72.0,68.1 74.0,65.7 76.0,63.5 78.0,61.6 80.0,60.0 82.0,58.6 84.0,57.5 86.0,56.5 88.0,55.6 90.0,55.0 92.0,54.4 94.0,54.0 96.0,53.7 98.0,53.5 100.0,53.4 102.0,53.3 104.0,53.4 106.0,53.4 108.0,53.6 110.0,53.8 112.0,54.0 114.0,54.3 116.0,54.6 118.0,54.9 120.0,55.3 122.0,55.7 124.0,56.1 126.0,56.5 128.0,56.9 130.0,57.4 132.0,57.8 134.0,58.3 136.0,58.8 138.0,59.2 140.0,59.7 142.0,60.2 144.0,60.7 146.0,61.2 148.0,61.7 150.0,62.2 152.0,62.7 154.0,63.2 156.0,63.7 158.0,64.2 160.0,64.7 164.0,65.7 176.0,68.6 188.0,71.4 200.0,74.1 212.0,76.6 224.0,79.1 236.0,81.4 248.0,83.7 260.0,85.8 272.0,87.9 284.0,89.9 296.0,91.8 308.0,93.6 320.0,95.4 332.0,97.1 344.0,98.7 356.0,100.3 368.0,101.8 380.0,103.3 392.0,104.7 404.0,106.1 416.0,107.5 428.0,108.7 440.0,110.0"/>
+          <text x="63" y="24" font-size="13" class="soft">x = ε</text>
+          <text x="420" y="186" font-size="13" class="soft">x = 1</text>
+          <text x="4" y="34" font-size="13" class="soft">2</text>
+          <text x="4" y="114" font-size="13" class="soft">1</text>
+        </svg>
+        <p class="cap">$\varepsilon = 0.05$: the exact solution and the composite, which tracks it, with the outer solution $2/(1+x)$ dashed — right away from $x = 0$, wrong in the layer, whose thickness is of order $\varepsilon$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The inner equation, in full.</b> With $x = \varepsilon X$ and $Y(X) = y(\varepsilon X)$, the chain rule gives
+    $y' = \varepsilon^{-1}Y'$ and $y'' = \varepsilon^{-2}Y''$. Substituting:
+    $\varepsilon\cdot\varepsilon^{-2}Y'' + (1 + \varepsilon X)\varepsilon^{-1}Y' + Y = 0$; multiply by $\varepsilon$. At leading order the
+    $\varepsilon XY'$ and $\varepsilon Y$ terms drop, leaving $Y_0'' + Y_0' = 0$ with general solution
+    $C_1 + C_2e^{-X}$, and $Y_0(0) = 0$ forces $C_1 = -C_2$.</p>
+    <p><b>Dominant balance, once more.</b> The other balances: $\alpha = 0$ ($y'$ against $y$) is the outer
+    problem; $\varepsilon^{1-2\alpha} = 1$ gives $\alpha = \tfrac12$, but then $y'$, of size $\varepsilon^{-1/2}$, is
+    larger than both — inconsistent. So there are exactly two regions, and the layer thickness is
+    $\varepsilon$, not $\sqrt\varepsilon$. When the coefficient of $y'$ vanishes at the boundary the balance
+    changes and so does the thickness; the problem sheet's problems all have a non-vanishing coefficient.</p>
+    <p><b>The figure</b> is computed: exact from the quadrature on the previous slide; composite from the
+    next two slides. The dotted vertical line is at $x = \varepsilon$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · boundary layers</p>
+  <h2>Matching: the intermediate variable and Van Dyke's rule</h2>
+  <div class="cols">
+    <div>
+      <p class="small">The inner solution must turn into the outer one somewhere in between. <span class="term">Matching</span> makes that precise, in either of two ways.</p>
+      <div class="box def"><span class="label">through an <span class="term">intermediate variable</span></span>
+        <p class="small">Put $x = \varepsilon^\beta\xi$ with $0 \lt \beta \lt 1$ and $\xi$ fixed, so $\varepsilon \ll x \ll 1$. Then</p>
+        $$y_{\rm out} = \frac2{1 + \varepsilon^\beta\xi} \to 2,$$
+        $$Y_0 = C\big(1 - e^{-\varepsilon^{\beta-1}\xi}\big) \to C .$$
+        <p class="small">Both are approximations to the same $y$ in the overlap, so $C = 2$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Van Dyke's matching rule</span></span>
+        <p class="small">The $m$-term inner expansion of the $n$-term outer solution equals the $n$-term outer expansion of the $m$-term inner solution.</p>
+      </div>
+      <p class="small">With $m = n = 1$: the outer $2/(1 + \varepsilon X)$ in inner variables, to one term, is $2$. The inner $C(1 - e^{-x/\varepsilon})$ in outer variables, to one term, is $C$ (the exponential is beyond all orders). So $C = 2$ again.</p>
+      <div class="box warn"><span class="label">a rule, not a theorem</span>
+        <p class="small">Van Dyke's rule is a procedure that works for power-law expansions and can fail when logarithms appear. The intermediate-variable argument is the one to trust when they disagree.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the overlap exists.</b> The outer expansion is valid for $x \gg \varepsilon$ (away from the layer) and
+    the inner for $x \ll 1$ (inside the region where $1 + x \approx 1$). An intermediate variable sits in both.
+    The matching principle — that the two expansions agree there to the order both are valid — is the
+    hypothesis of the method. It can be <i>proved</i> for a given problem by comparing with the exact
+    solution or by a maximum-principle estimate, but in general it is an assumption justified afterwards.
+    For the model problem the exact solution is available, and the next slide checks it.</p>
+    <p><b>Van Dyke's rule with logarithms.</b> The standard failures involve terms like
+    $\varepsilon\ln\varepsilon$, which do not sort cleanly into "orders"; the fix is to count $\ln\varepsilon$ with the power
+    it multiplies. <i>Cited</i>: Hinch, <i>Perturbation Methods</i> (CUP, 1991), the chapter on matched asymptotic
+    expansions, which gives both the rule and its failures with examples; Van Dyke, <i>Perturbation Methods in Fluid Mechanics</i> (1964/1975),
+    for the original.</p>
+    <p><b>Higher orders.</b> With $m = n = 2$ the rule matches the $O(\varepsilon)$ corrections as well and yields a
+    composite with $O(\varepsilon^2)$ error. The procedure is mechanical; the bookkeeping is the whole
+    difficulty. One order is enough to see the method.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · boundary layers · example</p>
+  <h2>Worked: the composite solution, against the exact one</h2>
+  <div class="cols">
+    <div class="box ex"><span class="label">worked example 4 — <span class="ref" data-ref="layer">the model problem</span>, assembled</span>
+      <p class="small"><b>Step 1 — outer.</b> $y_{\rm out} = 2/(1 + x)$, from $y(1) = 1$.</p>
+      <p class="small"><b>Step 2 — inner.</b> $Y_0 = C(1 - e^{-X})$, $X = x/\varepsilon$, from $y(0) = 0$.</p>
+      <p class="small"><b>Step 3 — match.</b> $C = 2$; the common limit is $y_{\rm match} = 2$.</p>
+      <p class="small"><b>Step 4 — combine.</b> The <span class="term">composite expansion</span> is outer $+$ inner $-$ common part:</p>
+      $$\boxed{\ y_c = \frac2{1 + x} - 2e^{-x/\varepsilon}\ }$$
+      <p class="small"><b>Step 5 — check the ends.</b> $y_c(0) = 0$ exactly; $y_c(1) = 1 - 2e^{-1/\varepsilon}$, off by an exponentially small amount.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th></th><th class="num">$x = \varepsilon$</th><th class="num">$x = 0.1$</th><th class="num">$x = 0.5$</th><th class="num">max error</th></tr></thead>
+        <tbody>
+          <tr><td>$\varepsilon = 0.05$, exact</td><td class="num">1.2300</td><td class="num">1.6246</td><td class="num">1.3477</td><td class="num"></td></tr>
+          <tr><td>$\varepsilon = 0.05$, composite</td><td class="num">1.1690</td><td class="num">1.5475</td><td class="num">1.3332</td><td class="num">0.077</td></tr>
+          <tr><td>$\varepsilon = 0.01$, exact</td><td class="num">1.2574</td><td class="num">1.8289</td><td class="num">1.3360</td><td class="num"></td></tr>
+          <tr><td>$\varepsilon = 0.01$, composite</td><td class="num">1.2444</td><td class="num">1.8181</td><td class="num">1.3333</td><td class="num">0.018</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">the checks</span>
+        <p class="small"><b>Order:</b> the maximum error drops by 4.3 when $\varepsilon$ drops by 5: $O(\varepsilon)$, uniformly on $[0,1]$. <b>Limit:</b> as $\varepsilon \to 0$ at fixed $x \gt 0$, $y_c \to 2/(1+x)$, the outer solution ✓. <b>Dimensions:</b> $x$ and $y$ are dimensionless, and $x/\varepsilon$ says the layer's width is $\varepsilon$ in units of the interval ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why subtract the common part.</b> In the overlap both $y_{\rm out}$ and $Y_0$ are $\approx 2$; adding them
+    counts that value twice. Subtracting the common limit leaves a function that reduces to $y_{\rm out}$
+    outside the layer (the inner part minus the common part is exponentially small there) and to $Y_0$
+    inside it (the outer part minus the common part is $2/(1+x) - 2 = O(x) = O(\varepsilon)$ there).</p>
+    <p><b>Where the error comes from.</b> The maximum error sits just outside the layer, at $x \approx 0.10$
+    for $\varepsilon = 0.05$ and $x \approx 0.024$ for $\varepsilon = 0.01$: it is the neglected $O(\varepsilon)$ term of
+    the outer expansion, plus the inner correction. Its size, $0.077 \approx 1.5\varepsilon$ and $0.018 \approx
+    1.8\varepsilon$, is $O(\varepsilon)$ with a modest constant, which is what a one-term composite promises. The
+    exact values come from the quadrature formula on "A small parameter on the highest derivative".</p>
+    <p><b>The problem sheet</b> does the same for $\varepsilon y'' + y' + y = 0$ — whose leading-order composite
+    turns out to be $e^{1-x} - e^{1-x/\varepsilon}$ — and compares at $\varepsilon = 0.01$ against the exact
+    solution, which there is a sum of two exponentials.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · boundary layers</p>
+  <h2>Where the layer goes</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">the sign of the first-derivative term decides</span>
+        <p class="small">For $\varepsilon y'' + a(x)y' + b(x)y = 0$ with $a$ of one sign on $[0,1]$: at a layer at $x_0$, the inner equation is $Y'' \pm a(x_0)Y' = 0$, with solutions $1$ and $e^{\mp a(x_0)X}$. The layer must <b>decay</b> into the interior.</p>
+        <ul class="small">
+          <li>$a \gt 0$: layer at the <b>left</b> end, $x = 0$.</li>
+          <li>$a \lt 0$: layer at the <b>right</b> end, $x = 1$.</li>
+          <li>$a$ changes sign: <b>interior</b> layers or turning points — a subject of its own, named here.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Test it.</b> A layer at $x = 1$ for <span class="ref" data-ref="layer">the model problem</span>: $X = (1 - x)/\varepsilon$ gives $Y'' - 2Y' = 0$, solutions $1$ and $e^{2X}$. The second grows as you leave the wall — it cannot match any outer solution. No layer there.</p>
+      <div class="box good"><span class="label">back to <span class="ref" data-ref="duffing">Duffing</span></span>
+        <p class="small">Duffing's $\varepsilon$ does not touch $\ddot x$, so there is no layer in the equation. Its non-uniformity lives at large $t$: the naive expansion is the "inner" solution, good for $t = O(1)$, and the amplitude equations, on the slow scale $T = \varepsilon t$, are the "outer" ones. <b>Regular in the equation, singular in the domain.</b></p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The inner equation at a general endpoint.</b> At $x_0 = 0$ put $X = x/\varepsilon$: leading order
+    $Y'' + a(0)Y' = 0$, solutions $1, e^{-a(0)X}$; the exponential decays into the interior $X \to +\infty$
+    iff $a(0) \gt 0$. At $x_0 = 1$ put $X = (1 - x)/\varepsilon$, so $\mathrm{d}/\mathrm{d}x = -\varepsilon^{-1}\mathrm{d}/\mathrm{d}X$: leading
+    order $Y'' - a(1)Y' = 0$, solutions $1, e^{a(1)X}$, decaying iff $a(1) \lt 0$. Exactly one end qualifies
+    when $a$ has a fixed sign, and that is where the layer goes.</p>
+    <p><b>Physically.</b> $a\,y'$ is transport — the analogue of flow carrying something downstream — and
+    $\varepsilon y''$ is diffusion. Diffusion is only needed where the flow runs into a wall it cannot pass:
+    the downstream end. For $a \gt 0$ in the equation as written, "downstream" is the left. (Rewrite with
+    $x \to -x$ and it becomes the familiar picture.)</p>
+    <p><b>Interior layers</b> and turning points (where $a$ vanishes) are treated in Bender and Orszag,
+    <i>Advanced Mathematical Methods for Scientists and Engineers</i>, ch. 9. They are not needed until
+    far beyond this course.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>WKB</h2>
+  <p>A wave in a medium that changes slowly: fast phase, slow amplitude.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · WKB</p>
+  <h2>The WKB approximation</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\varepsilon^2y'' + q(x)\,y = 0$ with $q \gt 0$: an oscillator whose "stiffness" varies slowly compared with the oscillation. $\varepsilon$ is on the highest derivative — singular — but there is no layer: the solution oscillates on the short scale $\varepsilon$ <b>everywhere</b>.</p>
+      <p class="small">Try $y = e^{S(x)/\varepsilon}$ with $S = S_0 + \varepsilon S_1 + \cdots$ complex. Then $S'^2 + \varepsilon S'' + q = 0$, and</p>
+      $$\begin{aligned}\varepsilon^0:&\quad S_0'^2 = -q,\\ \varepsilon^1:&\quad 2S_0'S_1' + S_0'' = 0.\end{aligned}$$
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">WKB approximation</span></span>
+        <p class="small">$S_0 = \pm i\int\sqrt q$, $\ S_1 = -\tfrac14\ln q$, so</p>
+        $$y \approx q^{-1/4}\big[C_1\cos\Phi(x) + C_2\sin\Phi(x)\big],$$
+        $$\Phi(x) = \frac1\varepsilon\int^x\!\sqrt{q(s)}\,\mathrm{d}s .$$
+      </div>
+      <p class="small"><b>Check:</b> $q$ constant gives $\cos(\sqrt q\,x/\varepsilon)$, the exact solution ✓. <b>Dimensions:</b> with $\varepsilon$ a length and $q$ dimensionless, the phase $\int\sqrt q\,\mathrm{d}x/\varepsilon$ is a pure number ✓.</p>
+      <p class="small">Names: the <span class="term">eikonal equation</span> fixes the phase, the <span class="term">transport equation</span> the amplitude. If you have done unit 15, $S_0'^2 = -q$ is its eikonal again, the Hamilton–Jacobi equation of a particle whose momentum is $\sqrt q$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The derivation in full.</b> $y = e^{S/\varepsilon}$ gives $y' = (S'/\varepsilon)y$ and
+    $y'' = (S''/\varepsilon + S'^2/\varepsilon^2)y$. So $\varepsilon^2y'' + qy = (\varepsilon S'' + S'^2 + q)y = 0$. With
+    $S = S_0 + \varepsilon S_1 + O(\varepsilon^2)$: $S'^2 = S_0'^2 + 2\varepsilon S_0'S_1' + O(\varepsilon^2)$, and
+    $\varepsilon S'' = \varepsilon S_0'' + O(\varepsilon^2)$. Order 1: $S_0'^2 + q = 0$, so $S_0' = \pm i\sqrt q$. Order $\varepsilon$:
+    $2S_0'S_1' + S_0'' = 0$. Since $S_0' = \pm i\sqrt q$, the ratio $S_0''/S_0' = (\sqrt q)'/\sqrt q$ is real, so
+    $S_1' = -(\sqrt q)'/2\sqrt q$ and $S_1 = -\tfrac12\ln\sqrt q + \text{const} = -\tfrac14\ln q + \text{const}$. Hence
+    $e^{S/\varepsilon} \approx q^{-1/4}\exp(\pm\tfrac{i}{\varepsilon}\int\sqrt q)$, and the two signs combine (unit 06: the complex
+    exponential as bookkeeping) into the real cos/sin form.</p>
+    <p><b>Why $q^{-1/4}$, a second way.</b> The equation has no $y'$ term, so by Abel's identity (unit 06) the
+    Wronskian of any two solutions is constant. For the pair $y_\pm = \mathcal A\,e^{\pm i\Phi}$ with slowly varying
+    amplitude $\mathcal A$, the Wronskian is $y_+y_-' - y_-y_+' = -2i\mathcal A^2\Phi' + (\text{terms in }\mathcal A\mathcal A')
+    $, and the $\mathcal A\mathcal A'$ terms cancel exactly, leaving $-2i\mathcal A^2\sqrt q/\varepsilon$. Constancy, to the accuracy with which the WKB pair solves the equation, forces
+    $\mathcal A^2\sqrt q$ constant: amplitude squared times local wavenumber is conserved, which is
+    $\mathcal A \propto q^{-1/4}$ — and, in time, the adiabatic invariant of the next slide.</p>
+    <p><b>The names.</b> WKB is Wentzel, Kramers and Brillouin (1926), who used it on the Schrödinger equation;
+    Jeffreys had it in 1924; Liouville and Green had it in 1837, and "Liouville–Green approximation" is
+    the name careful mathematicians use. <b>Unit 15 remark:</b> writing a wave's phase as $S/\varepsilon$ and
+    finding a Hamilton–Jacobi equation for $S$ at leading order is the "mechanics was optics all along" of
+    unit 15, run backwards. Nothing in this unit depends on it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · WKB</p>
+  <h2>When WKB is valid, and an adiabatic invariant</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">validity condition</span>
+        <p class="small">The expansion is consistent while the correction is small beside the leading term: $|\varepsilon S_1'| \ll |S_0'|$, that is</p>
+        $$\frac{\varepsilon\,|q'|}{4\,q^{3/2}} \ll 1 .$$
+        <p class="small">In words: the wavelength $2\pi\varepsilon/\sqrt q$ changes by a small fraction of itself over one wavelength. It <b>fails</b> where $q \to 0$.</p>
+      </div>
+      <p class="small">In time: $\ddot x + \omega(\varepsilon t)^2x = 0$ is the same equation ($s = \varepsilon t$, $q = \omega^2$). WKB says $x \approx a\cos\int\omega\,\mathrm{d}t$ with amplitude $a \propto \omega^{-1/2}$, so the energy $E \approx \tfrac12\omega^2a^2$ is proportional to $\omega$:</p>
+      $$E/\omega \approx \text{const}.$$
+      <p class="small">Slowly doubling the frequency doubles the energy.</p>
+    </div>
+    <div>
+      <div class="box"><span class="label">a numerical check</span>
+        <p class="small">$\ddot x + (1 + t/100)^2x = 0$, $x(0) = 1$, $\dot x(0) = 0$, run to $t = 100$: the frequency doubles. Integrated numerically:</p>
+        <ul class="small">
+          <li>energy: $\times1.998$ (WKB: $\times2$);</li>
+          <li>$E/\omega$: changed by $0.12\%$;</li>
+          <li>amplitude: $0.7067$ (WKB: $1/\sqrt2 = 0.7071$);</li>
+          <li>$x(100)$: $0.4926$ (WKB: $0.4944$).</li>
+        </ul>
+      </div>
+      <p class="small">This <span class="term">adiabatic invariant</span> is the <span class="ref" data-ref="duffing">Duffing</span> lesson again: the multiple-scales amplitude equation for a slowly varying $\omega$ is $(\omega a^2)' = 0$ — the same law, from the same solvability condition.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The validity condition, derived.</b> $S_0' = i\sqrt q$ and $S_1' = -q'/4q$. The ratio of the second
+    term to the first in $S'/\varepsilon$ is $\varepsilon|S_1'|/|S_0'| = \varepsilon|q'|/4q^{3/2}$. This is a
+    <i>consistency</i> condition: necessary for the expansion to make sense, not by itself a bound on the
+    error. Rigorous error bounds for the Liouville–Green approximation, in terms of the total variation
+    of a control function, are <i>cited</i>: Olver, <i>Asymptotics and Special Functions</i>, ch. 6.</p>
+    <p><b>The multiple-scales route, sketched in full.</b> Let the fast phase $\theta$ satisfy
+    $\dot\theta = \omega(T)$, $T = \varepsilon t$, and $x = X(\theta, T)$. Then
+    $\ddot x = \omega^2X_{\theta\theta} + \varepsilon(2\omega X_{\theta T} + \omega'X_\theta) + O(\varepsilon^2)$, and the
+    equation becomes $\omega^2(X_{\theta\theta} + X) + \varepsilon(2\omega X_{\theta T} + \omega'X_\theta) = 0$. Order 1:
+    $X_0 = a(T)\cos(\theta + \phi(T))$. Order $\varepsilon$: the $\sin$ coefficient of the forcing is
+    $2\omega a' + \omega'a$, and solvability sets it to zero: $(\omega a^2)' = 0$. The energy is
+    $\tfrac12\omega^2a^2$, so $E/\omega = \tfrac12\omega a^2$ is constant. The same as WKB's
+    $a\propto\omega^{-1/2}$.</p>
+    <p><b>The numbers.</b> Integrated with relative tolerance $10^{-12}$. Initially $E = \tfrac12$, $\omega = 1$,
+    so $E/\omega = 0.5$; finally $E/\omega = 0.49941$. The small change is dominated by the abrupt start and
+    stop of the ramp at $t = 0$ and $t = 100$, where $\dot\omega$ jumps; the WKB phase at $t = 100$ is
+    $\int_0^{100}(1 + t/100)\,\mathrm{d}t = 150$.</p>
+    <p><b>History.</b> At the 1911 Solvay conference Lorentz asked what happens to a pendulum whose string is
+    slowly shortened; Einstein answered that $E/\nu$ stays constant. The question mattered because Planck's
+    quanta have $E = h\nu$: only an adiabatic invariant could be quantised consistently. For a real
+    pendulum the equation is not quite $\ddot\theta + (g/l)\theta = 0$, because shortening the string also
+    changes the angular momentum; the problem sheet's WKB problem uses a cleaner setting.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · WKB</p>
+  <h2>Turning points and the connection formulae</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Where $q$ changes sign, at a <span class="term">turning point</span> $x = a$, the approximation fails: $q^{-1/4}$ blows up and the validity ratio $\varepsilon|q'|/4q^{3/2}$ does too. On one side the solution oscillates; on the other it grows or decays like $|q|^{-1/4}e^{\pm\frac1\varepsilon\int\sqrt{|q|}}$.</p>
+      <p class="small">Near $a$, $q \approx q'(a)(x - a)$, and the local equation is Airy's, $y'' = zy$ in a stretched variable $z$ — a boundary layer of width $\varepsilon^{2/3}$.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">connection formulae</span> (<i>cited</i>)</span>
+        <p class="small">Let $q \gt 0$ for $x \lt a$, $q \lt 0$ for $x \gt a$, with $q'(a) \ne 0$. The solution that <b>decays</b> for $x \gt a$,</p>
+        $$y \approx |q|^{-1/4}\exp\Big(-\frac1\varepsilon\int_a^x\!\sqrt{|q|}\Big),$$
+        <p class="small">is, for $x \lt a$,</p>
+        $$y \approx 2\,q^{-1/4}\cos\Big(\frac1\varepsilon\int_x^a\!\sqrt q - \frac\pi4\Big).$$
+        <p class="small muted">Proof: match both sides to the Airy function through its asymptotics, which need unit 20's integral methods. Bender and Orszag, ch. 10.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What is stated and what is not.</b> The formula is <i>cited</i>, not proved: the proof needs the
+    large-argument behaviour of the Airy function, which comes from its integral representation by the
+    method of steepest descent (unit 20). What can be checked here: both sides are WKB solutions on
+    their own side (by the previous slides), and the width of the turning-point region follows from
+    dominant balance. With $q \approx -q_1(x - a)$, $q_1 = -q'(a) \gt 0$, put $x - a = \varepsilon^\gamma z$: the terms
+    $\varepsilon^2y''$ and $q y$ have sizes $\varepsilon^{2 - 2\gamma}$ and $\varepsilon^\gamma$, balanced when $\gamma = 2/3$. So the
+    inner region has width $\varepsilon^{2/3}$, and the inner equation is $y_{zz} = q_1 z\,y$, Airy's up to a
+    rescaling of $z$.</p>
+    <p><b>The direction warning.</b> The formula is safe in the direction written: from the decaying
+    solution to the oscillatory one. Read backwards it is unstable, because a tiny error in the phase of
+    the cosine introduces a growing exponential on the other side that swamps the decaying one.</p>
+    <p><b>A consequence, named.</b> Between two turning points $a \lt b$, a solution decaying on both outer
+    sides exists only if the two cosines agree, which forces $\frac1\varepsilon\int_a^b\sqrt q = (n + \tfrac12)\pi$. In
+    quantum mechanics, with $\varepsilon = \hbar$ and $q = 2m(E - V)$, this is the Bohr–Sommerfeld rule with the
+    $\tfrac12$ that the old quantum theory missed. For $V = \tfrac12x^2$ (units $m = \hbar = 1$) it gives
+    $E = n + \tfrac12$ — exact, a coincidence special to the harmonic oscillator. Named; not used again
+    before quantum mechanics, which this course does not reach.</p>
+    <p><b>Reading.</b> Bender and Orszag ch. 10 up to (not including) the Airy-function asymptotics, which
+    use unit 20's methods; then return after unit 20.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 7</p>
+  <h2>The orbit: a secular term that is the answer</h2>
+  <p>The same calculation, pointed at Mercury.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · the orbit</p>
+  <h2>The relativistic orbit equation, nondimensionalised</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 08's Binet equation for the inverse-square law, with $u = 1/r$ and $h = r^2\dot\theta = L/\mu$:</p>
+      $$u'' + u = \frac{GM}{h^2} .$$
+      <p class="small">General relativity (<i>cited</i>: unit 37 derives it from the Schwarzschild geodesics) adds <b>one</b> term:</p>
+      $$u'' + u = \frac{GM}{h^2} + \frac{3GM}{c^2}\,u^2 .$$
+      <p class="small">Nondimensionalise with the Newtonian semi-latus rectum $p = h^2/GM$: put $w = pu$.</p>
+      $$\boxed{\ w'' + w = 1 + \varepsilon w^2,\qquad \varepsilon = \frac{3GM}{c^2p}\ }$$
+    </div>
+    <div>
+      <div class="box good"><span class="label">the size of the small parameter</span>
+        <p class="small">$GM/c^2$ is a length: $1.476$ km for the Sun (half its Schwarzschild radius $2.953$ km). For Mercury, $p = a(1 - e^2) = 5.5460\times10^{10}$ m, so</p>
+        $$\varepsilon = 7.987\times10^{-8}.$$
+      </div>
+      <p class="small"><b>Classify it.</b> $\varepsilon$ multiplies $w^2$, not $w''$: <b>regular</b> in the equation, like <span class="ref" data-ref="duffing">Duffing</span>. And $\theta$ runs over $[0, \infty)$ as the planet goes round: potentially <b>singular in the domain</b>, like Duffing.</p>
+      <p class="small">At $\varepsilon = 0$: $w_0 = 1 + e\cos\theta$, unit 08's ellipse, perihelion at $\theta = 0$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The scaling, line by line.</b> Multiply $u'' + u = GM/h^2 + (3GM/c^2)u^2$ by $p = h^2/GM$:
+    $(pu)'' + pu = 1 + (3GM/c^2)\,p\,u^2 = 1 + \frac{3GM}{c^2p}(pu)^2$. So $w = pu$ obeys the boxed equation.</p>
+    <p><b>Dimensions.</b> $[GM] = \mathsf{L^3T^{-2}}$ and $[c^2] = \mathsf{L^2T^{-2}}$, so $[GM/c^2] = \mathsf L$ and
+    $\varepsilon$ is a ratio of lengths ✓. <b>Limits.</b> $c \to \infty$ gives $\varepsilon \to 0$ and Newton back ✓; a
+    wider orbit (larger $p$) gives smaller $\varepsilon$ — relativistic effects are strongest close in ✓.
+    Equivalently $\varepsilon = 3(GM/hc)^2$: three times the square of the orbital speed scale $GM/h$ over
+    $c$. For Mercury $GM/hc = 1.632\times10^{-4}$.</p>
+    <p><b>The numbers.</b> $GM_\odot = 1.32712440018\times10^{20}\ \mathrm{m^3\,s^{-2}}$, $c = 299\,792\,458$ m/s,
+    Mercury's $a = 5.7909050\times10^{10}$ m and $e = 0.205630$. Then $p = 5.54604\times10^{10}$ m and
+    $\varepsilon = 3\times1476.6/5.54604\times10^{10} = 7.9875\times10^{-8}$.</p>
+    <p><b>What is being assumed.</b> The equation itself. This unit's job is not to derive it — that needs the
+    Schwarzschild metric of unit 36 — but to say, correctly, what its solution is. Everything below is
+    unit 21's mathematics applied to a given ODE.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · the orbit · example</p>
+  <h2>Worked: the first-order orbit</h2>
+  <div class="box ex"><span class="label">worked example 5 — expand <span class="ref" data-ref="orbit">the relativistic orbit</span> naively</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>Step 1 — hierarchy.</b> $w = w_0 + \varepsilon w_1 + \cdots$: $\ w_0'' + w_0 = 1$, and $w_1'' + w_1 = w_0^2$.</p>
+        <p class="small"><b>Step 2 — order zero.</b> $w_0 = 1 + e\cos\theta$.</p>
+        <p class="small"><b>Step 3 — the forcing.</b> With $\cos^2\theta = \tfrac12(1 + \cos2\theta)$:</p>
+        $$w_0^2 = \big(1 + \tfrac12e^2\big) + 2e\cos\theta + \tfrac12e^2\cos2\theta .$$
+        <p class="small"><b>Step 4 — solve term by term.</b> Constant: $1 + \tfrac12e^2$. $\cos2\theta$: $\tfrac{1}{1-4}\cdot\tfrac12e^2 = -\tfrac16e^2$. $\cos\theta$: resonant, and $L(\theta\sin\theta) = 2\cos\theta$ gives $e\,\theta\sin\theta$.</p>
+      </div>
+      <div>
+        $$w_1 = 1 + \tfrac12e^2 - \tfrac16e^2\cos2\theta + \underbrace{e\,\theta\sin\theta}_{\text{secular}}$$
+        <p class="small">(plus any homogeneous solution, which only re-labels $e$ and the perihelion direction).</p>
+        <p class="small"><b>Step 5 — check.</b> $L\big(e\,\theta\sin\theta\big) = 2e\cos\theta$ ✓; $L\big(-\tfrac16e^2\cos2\theta\big) = -\tfrac16e^2(-4 + 1)\cos2\theta = \tfrac12e^2\cos2\theta$ ✓.</p>
+        <p class="small"><b>Step 6 — the same structure as Duffing.</b> The constant and $\cos2\theta$ pieces change the orbit's shape by a bounded, tiny amount. The secular piece is <span class="ref" data-ref="secular">worked example 2's term</span> again, in $\theta$ instead of $t$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1.</b> Substituting and collecting: order 1, $w_0'' + w_0 = 1$; order $\varepsilon$,
+    $w_1'' + w_1 = w_0^2$. The general solution of the first is $1 + e\cos(\theta - \theta_0)$; choosing the
+    axis so that perihelion (largest $w$, smallest $r$) is at $\theta = 0$ gives $\theta_0 = 0$.</p>
+    <p><b>Step 3.</b> $(1 + e\cos\theta)^2 = 1 + 2e\cos\theta + e^2\cos^2\theta = 1 + 2e\cos\theta + \tfrac12e^2 + \tfrac12e^2\cos2\theta$.</p>
+    <p><b>Step 4, the $\cos2\theta$ piece.</b> Try $c\cos2\theta$: $L(c\cos2\theta) = (-4 + 1)c\cos2\theta = -3c\cos2\theta$;
+    set equal to $\tfrac12e^2\cos2\theta$: $c = -\tfrac16e^2$.</p>
+    <p><b>Mercury's non-secular corrections.</b> $\varepsilon(1 + \tfrac12e^2) = 8.16\times10^{-8}$: a fractional change
+    in the orbit's size of that order, far below anything measurable against the uncertainty in $p$
+    itself. The periodic $\cos2\theta$ piece is smaller still. Only the secular piece accumulates — which is
+    why it is the only one anybody measures.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · the orbit</p>
+  <h2>Reading the secular term: the perihelion advances</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Exactly as for Duffing, $\cos\big((1 - \varepsilon)\theta\big) = \cos\theta + \varepsilon\theta\sin\theta + O(\varepsilon^2\theta^2)$. So, to this order,</p>
+      $$w \approx 1 + e\cos\big((1 - \varepsilon)\theta\big) + (\text{bounded, }O(\varepsilon)) .$$
+      <p class="small">Perihelion — largest $w$ — is where $(1 - \varepsilon)\theta = 2\pi k$, at $\theta = 2\pi k/(1 - \varepsilon)$. Each orbit it moves on by</p>
+      $$\boxed{\ \Delta\varpi = 2\pi\varepsilon = \frac{6\pi GM}{c^2\,a(1 - e^2)}\ \text{per orbit}\ }$$
+      <p class="small">Poincaré–Lindstedt, with $\varphi = \nu\theta$, gives $\nu = 1 - \varepsilon + O(\varepsilon^2)$: the same $\Delta\varpi$, uniformly valid.</p>
+    </div>
+    <div>
+      <div class="box"><span class="label">Mercury</span>
+        <p class="small">$2\pi\varepsilon = 5.019\times10^{-7}$ rad $= 0.1035''$ per orbit. With a period of $87.969$ days, $415.20$ orbits per century:</p>
+        $$\Delta\varpi = 42.98''\ \text{per century}.$$
+        <p class="small">The residual Le Verrier (1859, $38''$) and Newcomb (1882, $43''$) could not explain with any Newtonian perturbation.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Dimensionless ✓. $c \to \infty$: no advance ✓. Numerically, integrating $w'' + w = 1 + \varepsilon w^2$ at $\varepsilon = 10^{-3}$, $e = 0.2$: advance per orbit $0.0062990$ against $2\pi\varepsilon = 0.0062832$ — agreement to $0.25\% \approx 2.5\varepsilon$, the size of the next order ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Poincaré–Lindstedt on the orbit, in full.</b> Put $\varphi = \nu\theta$, $\nu = 1 + \varepsilon\nu_1 + \cdots$, so
+    $\nu^2w_{\varphi\varphi} + w = 1 + \varepsilon w^2$ with $w$ $2\pi$-periodic in $\varphi$. Order 1: $w_0 = 1 + e\cos\varphi$.
+    Order $\varepsilon$: $w_1'' + w_1 = w_0^2 - 2\nu_1w_0'' = \dots + (2e + 2\nu_1e)\cos\varphi + \dots$ Solvability: $\nu_1 = -1$.
+    So the radial oscillation has frequency $\nu = 1 - \varepsilon$ in $\theta$; the orbit returns to perihelion after
+    $\Delta\theta = 2\pi/\nu = 2\pi(1 + \varepsilon + O(\varepsilon^2))$.</p>
+    <p><b>The numerical check.</b> Integrated from $w = 1.2$, $w' = 0$ with relative tolerance $10^{-12}$, locating
+    successive maxima of $w$. At $\varepsilon = 10^{-2}$ the advance is $0.064461$ against $2\pi\varepsilon = 0.062832$,
+    $2.6\%$ high — ten times the discrepancy at $\varepsilon = 10^{-3}$, so the relative error is $O(\varepsilon)$ as
+    it should be. For a near-circular orbit the exact frequency is $\nu = \sqrt{1 - 2\varepsilon w_c}$ with
+    $w_c = (1 - \sqrt{1 - 4\varepsilon})/2\varepsilon$, which at $\varepsilon = 10^{-2}$ gives an advance of $0.06445$, matching.</p>
+    <p><b>Mercury's numbers.</b> $2\pi\times7.9875\times10^{-8} = 5.0187\times10^{-7}$ rad $= 0.10352''$; the sidereal
+    period $87.9691$ d gives $36525/87.9691 = 415.203$ orbits per Julian century, and
+    $415.203\times0.10352'' = 42.98''$.</p>
+    <p><b>History.</b> Le Verrier announced the anomaly in 1859 as $38''$ per century; Newcomb's 1882
+    re-analysis put it at $43''$. Proposed explanations — an unseen planet (Vulcan), a dust ring, a modified
+    inverse-square law — each failed another test. Einstein's November 1915 calculation — a first-order expansion in the same small parameter, though
+    he evaluated the orbit integral rather than this differential equation — gave $43''$ with no adjustable parameter. He wrote that he was beside himself with joy
+    for days.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · the orbit</p>
+  <h2>Remove it, or keep it?</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th></th><th><span class="ref" data-ref="duffing">Duffing</span></th><th><span class="ref" data-ref="orbit">the orbit</span></th></tr></thead>
+        <tbody>
+          <tr><td>secular term</td><td>$-\tfrac38\varepsilon A^3t\sin t$</td><td>$\varepsilon e\,\theta\sin\theta$</td></tr>
+          <tr><td>what it encodes</td><td>frequency $1 + \tfrac38\varepsilon A^2$</td><td>frequency $1 - \varepsilon$</td></tr>
+          <tr><td>its growth</td><td>false: $|x| \le A$</td><td>false: the orbit does not swell</td></tr>
+          <tr><td>its phase</td><td>not observed</td><td><b>accumulates, and is observed</b></td></tr>
+        </tbody>
+      </table>
+      <p class="small">In both, the secular term is a <b>frequency shift written badly</b>. "Removing" it means re-writing it correctly — never discarding it.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">why it must be kept</span>
+        <p class="small">A Newtonian bound orbit closes: $w$ is $2\pi$-periodic in $\theta$. Demand that of $w_1$ and the solvability condition requires the $\cos\theta$ coefficient of $w_0^2$, which is $2e$, to vanish — false for any non-circular orbit. <b>The equation forbids a closed orbit</b>. The only way to satisfy it is to let the radial frequency differ from 1, and that difference is the precession.</p>
+      </div>
+      <div class="box good"><span class="label">and the naive form is enough</span>
+        <p class="small">The naive series fails when $\varepsilon\theta \sim 1$: for Mercury, after $2.0$ million orbits, $480\,000$ years. Observations span centuries. Over them, $\varepsilon e\,\theta\sin\theta$ is uniformly accurate — and its coefficient is the $43''$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The distinction, stated once and carefully.</b> The phrase "remove secular terms" is misleading and
+    is the source of the confusion this section exists to clear up. What Poincaré–Lindstedt and multiple
+    scales remove is the <em>non-uniformity</em>: the false algebraic growth that comes from Taylor-expanding
+    $\cos((1 + \delta)t)$ in $\delta$. What they keep, and compute, is the frequency shift $\delta$ that the
+    secular term's coefficient encodes. For Duffing that shift is interesting but nobody measures the
+    accumulated phase; for the orbit the accumulated phase is the longitude of perihelion, and astronomers
+    have measured it for centuries. Discarding the secular term outright — setting its coefficient to
+    zero because "secular terms are unphysical" — would give zero precession, and it is not even
+    consistent: the solvability argument on the slide shows the equation has no $2\pi$-periodic solution
+    at first order unless $e = 0$.</p>
+    <p><b>The circular orbit.</b> If $e = 0$ there is no secular term at all: a circular orbit has no
+    perihelion to advance. The equation then just shifts the radius, $w = 1 + \varepsilon + O(\varepsilon^2)$. ✓</p>
+    <p><b>How long the naive answer lasts, in numbers.</b> $1/\varepsilon = 1.252\times10^7$ radians, which is
+    $1.99\times10^6$ orbits, which at $87.969$ days each is $4.80\times10^5$ years. Over a century the naive
+    first-order error is of order $(\varepsilon\theta)^2$ with $\varepsilon\theta = 7.99\times10^{-8}\times2609 = 2.1\times10^{-4}$ — invisible. So unit 37 can,
+    honestly, use the naive expansion and read the precession off the secular coefficient, provided it says
+    what this slide says.</p>
+    <p><b>The same trick, elsewhere.</b> The binary pulsar PSR B1913+16 has $\varepsilon = 1.04\times10^{-5}$,
+    130 times Mercury's; the problem sheet computes its periastron advance, about $4.2^\circ$ per year.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · summary</p>
+  <h2>What this unit bought</h2>
+  <div class="cols">
+    <div class="box good"><span class="label">the toolkit</span>
+      <ul class="small">
+        <li><b>Nondimensionalise</b> to find $\varepsilon$; <b>classify</b>: regular, singular in the equation, or singular in the domain.</li>
+        <li><b>Asymptotic, not convergent</b>: error $o(\phi_N)$ at fixed $N$. Truncate at the smallest term; the error is exponentially small.</li>
+        <li><b>Secular terms</b> are frequency shifts expanded badly. Poincaré–Lindstedt for periodic motion, multiple scales otherwise, both through the <b>solvability condition</b>.</li>
+        <li><b>Boundary layers</b>: stretch by dominant balance, solve inner and outer, match, composite.</li>
+        <li><b>WKB</b>: phase from the eikonal equation, amplitude $q^{-1/4}$ from transport, valid while the medium varies slowly; connection formulae at turning points.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Hinch, <i>Perturbation Methods</i> (CUP, 1991): the chapters on algebraic equations, asymptotic approximations, matched expansions and multiple scales. Skip the one on integrals until after unit 20. Short, and exactly at this level.</p>
+      <p class="small">Bender and Orszag, <i>Advanced Mathematical Methods for Scientists and Engineers</i>: ch. 7 (perturbation series), 9 (boundary layers), 10 (WKB, stopping before the Airy asymptotics), 11 (multiple scales). Skip ch. 6 until after unit 20: it uses complex analysis.</p>
+      <h3>Next</h3>
+      <p class="small"><b>22</b> continuum mechanics · <b>37</b> the classical tests, where <span class="ref" data-ref="orbit">the orbit</span> is derived and closed · <b>38</b> gravitational waves, first-order perturbation theory of spacetime.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, deliberately.</b> Integral asymptotics — Laplace's method, stationary phase,
+    steepest descent — are unit 20's, and appear here only as citations (Stirling's formula, the Airy
+    asymptotics behind the connection formulae). Averaging theory as a theorem (Bogoliubov–Krylov), KAM,
+    and small divisors belong to a course on Hamiltonian dynamics. Renormalisation-group methods for
+    singular perturbations, which unify all of the above, are a pleasant read afterwards: Chen, Goldenfeld
+    and Oono, <i>Physical Review E</i> 54 (1996).</p>
+    <p><b>Reading notes.</b> Hinch's chapter on asymptotic approximations is the best short account of asymptotic series
+    anywhere; his chapter on matched expansions has the Van Dyke failures promised in the matching slide. In Bender and Orszag, the problem
+    sets are graded by difficulty and the hardest are research-level; the easiest are exactly the right
+    practice after this unit's sheet.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>Given a perturbed problem you can, on paper and without notes:</p>
+    <ul>
+      <li>nondimensionalise it, name $\varepsilon$, and say whether it is regular or singular, in the equation or in the domain;</li>
+      <li>remove a secular term by Poincaré–Lindstedt or multiple scales, and get the frequency correction right including its sign;</li>
+      <li>construct a boundary layer, match it to the outer solution, and write the composite;</li>
+      <li>for a divergent asymptotic series, find the optimal truncation point and state the accuracy it achieves;</li>
+      <li>say, for the relativistic orbit equation, why the secular term must be kept.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A layer at the wrong end; a stiffening spring that slows down; terms added past the smallest one; or "secular terms are unphysical, so the precession is zero".</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./mr problems 21</code>. When the checkpoint is true: <code>./mr done 21</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on something not in the deck before opening the sheet. A good one: the
+    softening oscillator $\ddot x + x - \varepsilon x^3 = 0$ (a pendulum to its first nonlinear order, with
+    $\varepsilon = 1/6$ in units where the amplitude is $A$). Poincaré–Lindstedt gives
+    $\omega = 1 - \tfrac38\varepsilon A^2$, lower than 1 as a softening spring must be; at $\varepsilon = 1/6$ and $A = 0.4$
+    that is $\omega = 1 - 0.01 = 0.99$, and the exact pendulum frequency at $\theta_0 = 0.4$ rad is
+    $0.990008$ — agreement to $10^{-5}$. Then decide, without computing, where the layer sits in
+    $\varepsilon y'' - y' + y = 0$ on $[0,1]$ (at $x = 1$: the coefficient of $y'$ is negative), and how many terms of
+    $\sum(-1)^nn!\,(0.05)^n$ to keep (twenty, up to $n = 19$, error $1.1\times10^{-8}$).</p>
+    <p>Every number in that paragraph was computed. If yours disagree, check your arithmetic before the
+    deck.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

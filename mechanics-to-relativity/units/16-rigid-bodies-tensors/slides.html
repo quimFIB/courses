@@ -1,0 +1,1987 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>16 · Rigid bodies, and what a tensor actually is</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="b">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="blk"><span class="ref-name">the running example</span>A uniform rectangular block — a hardback book — of mass $m = 0.60$ kg and edges $a = 0.24$ m (the spine), $b = 0.16$ m (across the cover), $c = 0.04$ m (the thickness). <span class="ref-note">Every number in this unit is this block's. Body axes $1, 2, 3$ point along $a, b, c$ from the centre; the corner frame has its origin at one corner with the same directions</span><svg viewBox="0 0 240 150" width="185" aria-hidden="true"><polygon points="30,110 150,110 190,75 70,75" class="fill-soft unit" stroke-width="2"/><polygon points="30,110 30,125 150,125 150,110" class="fill-ground unit" stroke-width="2"/><polygon points="150,110 150,125 190,90 190,75" class="fill-ground unit" stroke-width="2"/><line x1="30" y1="140" x2="150" y2="140" class="accent" stroke-width="2"/><text x="78" y="136" font-size="15" class="soft">a</text><line x1="160" y1="128" x2="200" y2="93" class="accent" stroke-width="2"/><text x="186" y="120" font-size="15" class="soft">b</text><text x="10" y="122" font-size="15" class="soft">c</text></svg></template>
+  <template data-ref="Icm">$$\mathsf I_{\text{cm}} \;\hat=\; \begin{pmatrix}0.00136 & 0 & 0\\ 0 & 0.00296 & 0\\ 0 & 0 & 0.00416\end{pmatrix}\ \mathrm{kg\,m^2}$$ <span class="ref-name">the block at its centre</span><span class="ref-note">$I_k = \tfrac{m}{12}(\text{sum of the squares of the other two edges})$. Already diagonal, because the three coordinate planes are mirror planes. $I_1 \lt I_2 \lt I_3$: the intermediate axis is axis 2, across the cover</span></template>
+  <template data-ref="Icor">$$\mathsf I_{O} \;\hat=\; \begin{pmatrix}0.00544 & -0.00576 & -0.00144\\ -0.00576 & 0.01184 & -0.00096\\ -0.00144 & -0.00096 & 0.01664\end{pmatrix}\ \mathrm{kg\,m^2}$$ <span class="ref-name">the block at a corner</span><span class="ref-note">$I_{11} = \tfrac{m}{3}(b^2+c^2)$, $I_{12} = -\tfrac{m}{4}ab$, and so on. Eigenvalues $0.0018489,\ 0.0152235,\ 0.0168476\ \mathrm{kg\,m^2}$; the smallest lies $3.38^\circ$ off the body diagonal</span></template>
+  <template data-ref="flip"><span class="ref-name">the block's instability</span>$$\lambda = \Omega\sqrt{\frac{(I_3-I_2)(I_2-I_1)}{I_1 I_3}} = 0.58255\,\Omega$$ <span class="ref-note">Spun about axis 2 at two turns a second, $\Omega = 12.566\ \mathrm{s^{-1}}$ and $\lambda = 7.3206\ \mathrm{s^{-1}}$: an e-folding time of $0.1366$ s, and $0.63$ s from a $1\%$ wobble to a full flip. Throw the book and watch</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part B · the action · spine</p>
+  <div class="unit-no">16</div>
+  <h1>Rigid bodies, and what a tensor actually is</h1>
+  <p class="lede">Angular momentum is not parallel to angular velocity, and the object that
+  relates them cannot be described by nine numbers — only by nine numbers <em>per basis</em>,
+  related to one another by a law that is a theorem, not a definition.</p>
+  <p class="meta"><span>needs 12, 05, 03</span><span>~3 h slides + 6 h problems</span><span>problems: <code>./mr problems 16</code></span></p>
+  <aside class="notes">
+    <p>This unit does two jobs at once, and they are the same job.</p>
+    <p>The physics job: a rigid body has six degrees of freedom, three of them rotational,
+    and the rotational three do not behave like the translational three. Momentum is
+    $m\vec v$ with $m$ a number; angular momentum is not $(\text{number})\times\vec\omega$.
+    The relation between $\vec L$ and $\vec\omega$ needs an object with nine components,
+    and the consequences are strange enough that a rotating body can flip over without
+    anything touching it.</p>
+    <p>The mathematics job: that object is the first <em>tensor</em> in the course, and this
+    is where the word gets its definition. A tensor is a multilinear map. It is not "an
+    array that transforms in a certain way" — the array, and the way it transforms, are
+    both <em>consequences</em> of choosing a basis, and the transformation law is a theorem
+    with a three-line proof. Getting this straight now is what makes units 28 to 35
+    possible: the electromagnetic field tensor, the stress tensor, the metric, the
+    connection and the Riemann tensor are all built on exactly this definition.</p>
+    <h4>How to read this deck</h4>
+    <p>One body runs through all six sections: a uniform rectangular block, a hardback
+    book, $0.24 \times 0.16 \times 0.04$ m and $0.60$ kg. Section 2 computes its inertia
+    tensor at the centre and at a corner; section 3 verifies the transformation law on it
+    component by component, and exhibits nine numbers per basis that are <em>not</em> a
+    tensor; section 4 diagonalises it; section 5 predicts that spinning it about one
+    particular axis will make it flip, with a growth rate and a time in seconds; section 6
+    puts it in Euler angles and then does the same for a top.</p>
+    <p>Proofs are on the slides where they are one line and in these notes under
+    <b>Full proof</b> where they are not; results imported from elsewhere are marked
+    <em>cited</em>. Terms with a dotted underline are in the glossary (<kbd>G</kbd>); a
+    solid underline is a piece of the running example, shown on hover.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · overview</p>
+  <h2>One body, six sections</h2>
+  <div class="cols">
+    <div class="box def"><span class="label">the physics</span>
+      <p class="small">A <span class="term">rigid body</span> is a mass distribution whose internal
+      distances are frozen. Its configuration space is $SO(3)\times\mathbb R^3$: six numbers.
+      Three of them rotate, and rotation is where the surprises are.</p>
+      <p class="small">$\vec L = \mathsf I\vec\omega$, and $\vec L \nparallel \vec\omega$ except
+      along three special directions. Everything else in the unit follows from that one fact.</p>
+    </div>
+    <div class="box def"><span class="label">the mathematics</span>
+      <p class="small">A <span class="term">tensor</span> of type $(p,q)$ is a multilinear map
+      $(V^*)^p\times V^q\to\mathbb R$. Pick a basis and you get an array; pick another and you
+      get a different array. The rule connecting them is a <b>theorem</b>.</p>
+      <p class="small">Nine numbers are not a tensor. Nine numbers <em>per basis</em>, obeying
+      that rule, are.</p>
+    </div>
+  </div>
+  <div class="box good"><span class="label">getting around</span>
+    <p class="small">Dotted underlines are <span class="term" data-term="tensor">glossary terms</span>;
+    click for the definition, <kbd>G</kbd> for the index, <kbd>N</kbd> for the notes where
+    the longer proofs live. <span class="ref" data-ref="blk">One block</span> — a hardback book,
+    $0.24\times0.16\times0.04$ m, $0.60$ kg — runs through every section; a solid underline
+    like that one shows it on hover. The prediction the unit is aiming at is
+    <span class="ref" data-ref="flip">a flip</span> you can test by throwing the book.</p>
+  </div>
+  <aside class="notes">
+    <p>The order is: what a rigid body is (§1), what the inertia tensor is and how to compute
+    it (§2), what a tensor is in general (§3), the spectral theorem and principal axes (§4),
+    Euler's equations and the instability (§5), Euler angles and tops (§6).</p>
+    <p>§3 is the one that later units cash in. If you are short of time, §3 and §4 are the
+    spine; §6 is the most classical and the least load-bearing, though the gyroscope is on
+    the problem sheet and the Euler-angle singularity is the thing unit 31 explains properly.</p>
+    <p>Everything in §1 and §2 is Newtonian and could have appeared in Part A. It is here
+    because Part B is where the course builds the two objects relativity needs — an action
+    principle, which units 11 to 15 built, and an honest definition of a tensor, which is
+    this unit. The inertia tensor is the first place in physics where nine numbers per basis
+    will not do.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>A body that cannot deform</h2>
+  <p>Six degrees of freedom, three of them living in a group.</p>
+</section>
+
+<section>
+  <p class="eyebrow">16 · the body</p>
+  <h2>What a rigid body is, and where it lives</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">A <span class="term">rigid body</span> is a mass distribution — a density
+        $\rho$ on a compact set $B\subset\mathbb R^3$, or finitely many point masses $m_\alpha$ —
+        together with the constraint that $\lVert\vec x_\alpha(t)-\vec x_\beta(t)\rVert$ is
+        independent of $t$ for every pair.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · rigid motions are affine</span>
+        <p class="small">If $\Phi:\mathbb R^3\to\mathbb R^3$ preserves all distances, then
+        $\Phi(\vec x) = Q\vec x + \vec c$ for some $Q\in O(3)$ and $\vec c\in\mathbb R^3$.</p>
+        <p class="small muted"><b>Why:</b> put $\vec c = \Phi(0)$ and $\Psi = \Phi-\vec c$. Then
+        $\Psi$ fixes $0$ and preserves distances, so it preserves $\lVert\Psi(\vec x)\rVert$ and
+        hence, by polarisation, all inner products; a map preserving inner products sends an
+        orthonormal basis to an orthonormal basis and is therefore linear.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Continuity in $t$ and $\det Q = \pm1$ force $\det Q = +1$: a body cannot
+      reflect itself. So a configuration of the body is a pair</p>
+      $$\big(R,\ \vec X\big)\in SO(3)\times\mathbb R^3,$$
+      <p class="small">with $\vec X$ the centre of mass and $R$ the rotation carrying a reference
+      copy of the body onto its present position. That is the
+      <span class="term">configuration space</span>, and it has <b>six</b> dimensions — unit 12's
+      generalised coordinates, for the first time on a space that is not $\mathbb R^n$.</p>
+      <div class="box warn"><span class="label">not a vector space</span>
+        <p class="small">$SO(3)$ is a group and a smooth surface in $\mathbb R^9$, and it is
+        <em>curved</em>: you cannot add two rotations. Unit 31 says what kind of object it is;
+        section 6 shows what goes wrong if you insist on coordinates for it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Let $\Psi$ fix the origin and preserve distances. Then
+    $\lVert\Psi(\vec x)\rVert = \lVert\Psi(\vec x)-\Psi(0)\rVert = \lVert\vec x\rVert$, so norms
+    are preserved. For any $\vec x,\vec y$,
+    $$\lVert\Psi(\vec x)-\Psi(\vec y)\rVert^2 = \lVert\Psi(\vec x)\rVert^2 - 2\,\Psi(\vec x)\cdot\Psi(\vec y) + \lVert\Psi(\vec y)\rVert^2,$$
+    and the same identity holds without $\Psi$. Since the left side and the two norm terms are
+    unchanged by $\Psi$, so is $\Psi(\vec x)\cdot\Psi(\vec y) = \vec x\cdot\vec y$. Now let
+    $\{\vec e_i\}$ be orthonormal; $\{\Psi(\vec e_i)\}$ is orthonormal too, hence a basis. For any
+    $\vec x$, the components of $\Psi(\vec x)$ in that basis are
+    $\Psi(\vec x)\cdot\Psi(\vec e_i) = \vec x\cdot\vec e_i = x_i$, so
+    $\Psi(\vec x) = \sum_i x_i\,\Psi(\vec e_i)$, which is linear in $\vec x$. Its matrix has
+    orthonormal columns, so it is in $O(3)$.</p>
+    <p>Note what the proof did <em>not</em> assume: neither linearity nor continuity nor
+    surjectivity. Distance preservation alone is enough, because the Euclidean distance comes from
+    an inner product. For a general real normed space the analogous statement needs surjectivity,
+    and is the Mazur–Ulam theorem (1932).</p>
+    <p><b>Why $\det = +1$.</b> $t\mapsto\det Q(t)$ is continuous with values in $\{+1,-1\}$ and
+    equals $+1$ at $t=0$ (where $\Phi$ is the identity), so it is $+1$ for all $t$. This is the
+    same connectedness argument that made $O(3)$ split into two pieces in unit 03.</p>
+    <p><b>Six, not nine.</b> $SO(3)$ sits inside the nine-dimensional space of $3\times3$
+    matrices, cut out by $R^{\mathsf T}R = \mathbb 1$. That is six independent equations
+    (the matrix equation is symmetric), so $9-6=3$ dimensions, plus three for $\vec X$.
+    Unit 03 derived $\dot R = R\Omega$ with $\Omega$ antisymmetric from the same constraint;
+    antisymmetric $3\times3$ matrices form a three-dimensional space, which is the same count
+    seen from the tangent space.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · the body</p>
+  <h2>Angular velocity, recalled</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">A point of the body fixed at $\vec r$ in the <span class="term">body frame</span>
+      sits at $\vec x(t) = \vec X(t) + R(t)\vec r$ in the
+      <span class="term">space frame</span>. Unit 03 differentiated $R^{\mathsf T}R = \mathbb 1$ to get</p>
+      $$\Omega := R^{\mathsf T}\dot R \quad\text{antisymmetric},\qquad \Omega\vec u = \vec\omega\times\vec u,$$
+      <p class="small">which <em>defines</em> the <span class="term">angular velocity</span>
+      $\vec\omega$ — as a vector only because $3\times3$ antisymmetric matrices happen to form a
+      three-dimensional space. Hence</p>
+      $$\dot{\vec x} = \dot{\vec X} + R\,(\vec\omega\times\vec r) = \vec V + \vec\omega_{\text{sp}}\times(\vec x-\vec X).$$
+      <p class="small">Every velocity in the body is one translation plus one rotation. Two
+      readings of the same $\vec\omega$: components in the body frame, $\vec\omega$, and in the
+      space frame, $\vec\omega_{\text{sp}} = R\vec\omega$.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">which frame</span>
+        <p class="small">$\Omega = R^{\mathsf T}\dot R$ gives <b>body</b> components;
+        $\tilde\Omega = \dot R R^{\mathsf T}$ gives <b>space</b> components, and
+        $\tilde\Omega = R\Omega R^{\mathsf T}$. Sign and frame errors here account for most
+        wrong answers in rigid-body dynamics. This unit works in the body frame throughout,
+        and says so each time.</p>
+      </div>
+      <p class="small muted">The transport theorem of unit 03,
+      $\left(\tfrac{\mathrm d}{\mathrm dt}\right)_{\text{sp}} =
+      \left(\tfrac{\mathrm d}{\mathrm dt}\right)_{\text{body}} + \vec\omega\times$, is the same
+      statement, and it is what turns $\dot{\vec L}=\vec\tau$ into Euler's equations in §5.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where $\Omega$ comes from.</b> Differentiate $R^{\mathsf T}R = \mathbb 1$:
+    $\dot R^{\mathsf T}R + R^{\mathsf T}\dot R = 0$, so $\Omega = R^{\mathsf T}\dot R$ satisfies
+    $\Omega^{\mathsf T} = -\Omega$. Write
+    $\Omega = \begin{pmatrix}0&-\omega_3&\omega_2\\ \omega_3&0&-\omega_1\\ -\omega_2&\omega_1&0\end{pmatrix}$
+    and check on basis vectors that $\Omega\vec u = \vec\omega\times\vec u$.</p>
+    <p><b>The accident of three dimensions.</b> Antisymmetric $n\times n$ matrices form a space of
+    dimension $n(n-1)/2$, which equals $n$ only when $n=3$. In four dimensions angular velocity
+    has six components and is not a vector at all; it is a $2$-form, which unit 34 will name.
+    Every time this course writes $\vec\omega$, it is using a coincidence. The coincidence also
+    explains why the cross product exists only in three dimensions.</p>
+    <p><b>Space versus body.</b> From $\dot R = R\Omega$, $\dot R R^{\mathsf T} = R\Omega R^{\mathsf T}$,
+    which is $\tilde\Omega$; in §3's language, $\tilde\Omega$ and $\Omega$ are the component arrays
+    of one linear map in two bases, and $R\Omega R^{\mathsf T}$ is the transformation law for a
+    $(1,1)$-tensor when the basis change is orthogonal.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · the body</p>
+  <h2>$\mathfrak{so}(3)$, and the exponential that gets you back</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small"><span class="term">so(3)</span> is the vector space of antisymmetric
+        $3\times3$ real matrices. It is the tangent space to $SO(3)$ at the identity: every curve
+        $R(t)$ in $SO(3)$ with $R(0)=\mathbb 1$ has $\dot R(0)$ antisymmetric, and conversely.</p>
+      </div>
+      <div class="box def"><span class="label">the <span class="term">exponential map</span></span>
+        <p class="small">$\displaystyle \exp A := \sum_{n\ge0}\frac{A^n}{n!}$, absolutely convergent
+        for every matrix since $\lVert A^n\rVert\le\lVert A\rVert^n$ in the operator norm.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$A^{\mathsf T}=-A \implies \exp A\in SO(3)$.</p>
+        <p class="small muted"><b>Why:</b> $(\exp A)^{\mathsf T}\exp A = \exp(A^{\mathsf T})\exp A
+        = \exp(-A)\exp(A) = \mathbb 1$, using $\exp(X)\exp(-X)=\mathbb 1$ for commuting arguments;
+        and $t\mapsto\det\exp(tA)$ is continuous, equals 1 at $t=0$, never 0.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Rodrigues' formula</span></span>
+        <p class="small">For a unit vector $\hat n$ with matrix $K$ ($K\vec u = \hat n\times\vec u$),</p>
+        $$\exp(\theta K) = \mathbb 1 + \sin\theta\,K + (1-\cos\theta)\,K^2,$$
+        <p class="small">the rotation by $\theta$ about $\hat n$.</p>
+        <p class="small muted"><b>Why:</b> $K^3=-K$, so the series splits into the $K$ terms
+        $\theta-\theta^3/3!+\dots=\sin\theta$ and the $K^2$ terms
+        $\theta^2/2!-\theta^4/4!+\dots=1-\cos\theta$.</p>
+      </div>
+      <div class="box good"><span class="label">consequence</span>
+        <p class="small">$\exp:\mathfrak{so}(3)\to SO(3)$ is <b>onto</b>: every rotation is a
+        rotation by some angle about some axis (Euler, 1775). Not injective — $\theta$ and
+        $\theta+2\pi$ agree — which is the first hint that $SO(3)$ is not $\mathbb R^3$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>$K^3=-K$.</b> With $\hat n$ a unit vector, $K^2\vec u = \hat n\times(\hat n\times\vec u)
+    = (\hat n\cdot\vec u)\hat n - \vec u$ by the BAC–CAB identity of unit 08, so
+    $K^2 = \hat n\hat n^{\mathsf T}-\mathbb 1$ and
+    $K^3\vec u = K\big((\hat n\cdot\vec u)\hat n-\vec u\big) = -K\vec u$ since $K\hat n=0$.</p>
+    <p><b>Full proof of the two facts the theorem used.</b> (i) $(\exp A)^{\mathsf T} = \exp(A^{\mathsf T})$:
+    transpose the partial sums term by term, since $(A^n)^{\mathsf T} = (A^{\mathsf T})^n$, and pass
+    to the limit, transposition being continuous. (ii) If $XY = YX$ then
+    $\exp X\exp Y = \exp(X+Y)$: both series converge absolutely, so their Cauchy product converges to
+    the product of the sums, and its $n$th term is
+    $\sum_{k=0}^n\frac{X^k}{k!}\frac{Y^{n-k}}{(n-k)!} = \frac{(X+Y)^n}{n!}$ by the binomial theorem —
+    which holds for commuting matrices and fails otherwise. Put $Y=-X$: $\exp X\exp(-X) = \exp 0 = \mathbb 1$,
+    so $\exp X$ is always invertible and $\det\exp(tA)\ne0$.</p>
+    <p><b>Full proof that $\dot R(0)$ is antisymmetric and conversely.</b> Forward: differentiate
+    $R^{\mathsf T}R=\mathbb 1$ at $t=0$. Backward: given antisymmetric $A$, the curve
+    $R(t)=\exp(tA)$ lies in $SO(3)$ by the theorem and has $\dot R(0)=A$. So the tangent space is
+    exactly $\mathfrak{so}(3)$, and its dimension 3 confirms the count on the previous slide.</p>
+    <p><b>Why $\exp$ is onto here.</b> Every $R\in SO(3)$ has a real eigenvalue: its characteristic
+    polynomial is a real cubic, so it has a real root, and $\det R=1$ with $|{\lambda}|=1$ for every
+    eigenvalue forces one eigenvalue to be exactly $+1$. Its eigenvector $\hat n$ is the axis; on
+    $\hat n^{\perp}$, $R$ is a plane rotation by some $\theta$; Rodrigues with that $\hat n,\theta$
+    reproduces it. This is Euler's rotation theorem.</p>
+    <p><b>Why the course needs this.</b> $\exp$ is the bridge between a Lie group and its Lie
+    algebra, and the structure recurs: the Lorentz group and its algebra in unit 26, and the
+    exponential of a connection along a curve — parallel transport — in unit 32. Here it also
+    supplies the cleanest description of a rotation: an axis and an angle, three numbers, valid
+    for every rotation, and singular only where $\theta$ wraps.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · the body</p>
+  <h2>Kinetic energy splits in two</h2>
+  <div class="box thm"><span class="label">König's theorem</span>
+    <p>For a rigid body with centre of mass $\vec X$, total mass $M$ and angular velocity $\vec\omega$,</p>
+    $$T \;=\; \underbrace{\tfrac12 M\lVert\dot{\vec X}\rVert^2}_{\text{translation}} \;+\; \underbrace{\tfrac12\int_B \rho\,\lVert\vec\omega\times\vec r\rVert^2\,\mathrm dV}_{\text{rotation}},\qquad \vec r = \text{position from }\vec X .$$
+  </div>
+  <div class="cols wide-left">
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">$\dot{\vec x} = \dot{\vec X} + \vec\omega\times\vec r$ (previous slide, in
+      whichever frame), so</p>
+      $$\lVert\dot{\vec x}\rVert^2 = \lVert\dot{\vec X}\rVert^2 + 2\,\dot{\vec X}\cdot(\vec\omega\times\vec r) + \lVert\vec\omega\times\vec r\rVert^2 .$$
+      <p class="small">Integrate $\tfrac12\rho\,(\cdot)$ over $B$. The cross term is
+      $\dot{\vec X}\cdot\big(\vec\omega\times\int_B\rho\,\vec r\,\mathrm dV\big)$, and
+      $\int_B\rho\,\vec r\,\mathrm dV = 0$ <em>because $\vec r$ is measured from the centre of
+      mass</em>. $\;\blacksquare$</p>
+    </div>
+    <div>
+      <p class="small">The same split works about any point that is <b>fixed</b> in space (a pivot):
+      then $\dot{\vec X}$-terms are absent and $T$ is purely rotational about that point.</p>
+      <div class="box warn"><span class="label">only two points</span>
+        <p class="small">The split is clean only about the centre of mass or a fixed pivot. About
+        any other point the cross term survives, and every "$I$" you write is wrong unless you say
+        which point it is about. The <span class="ref" data-ref="blk">block</span> gets two:
+        its centre, and a corner.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\int\rho\vec r = 0$.</b> That is the definition of the centre of mass,
+    $\vec X = \frac1M\int_B\rho\,\vec x\,\mathrm dV$, rearranged: with $\vec r = \vec x-\vec X$,
+    $\int\rho\vec r = \int\rho\vec x - M\vec X = 0$. Unit 08 used the same identity to reduce the
+    two-body problem.</p>
+    <p><b>A fixed pivot.</b> If some point $\vec P$ of the body is held fixed, write positions from
+    $\vec P$: then $\dot{\vec x} = \vec\omega\times\vec r$ exactly, with no translation term at all,
+    and $T = \frac12\int\rho\lVert\vec\omega\times\vec r\rVert^2$ with $\vec r$ from $\vec P$. The
+    heavy top of §6 is this case.</p>
+    <p><b>Where this is going.</b> The rotational term is a quadratic function of $\vec\omega$. Any
+    quadratic form comes from a symmetric bilinear form by polarisation, and that bilinear form is
+    the inertia tensor. Section 2 does exactly that, and nothing more: the tensor is not an extra
+    postulate, it is what $T_{\text{rot}}$ already is.</p>
+    <p>König's theorem is also how unit 12's Lagrangian for a rigid body is written:
+    $L = T - V$ with $T$ split this way, which is why a rolling body's kinetic energy is
+    $\frac12 M v^2 + \frac12 I\omega^2$ and not one or the other.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>The inertia tensor</h2>
+  <p>A quadratic form was there all along; give it its proper name.</p>
+</section>
+
+<section>
+  <p class="eyebrow">16 · inertia</p>
+  <h2>From a kinetic energy to a bilinear form</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Lagrange's identity (unit 08):
+      $\lVert\vec u\times\vec r\rVert^2 = \lVert\vec u\rVert^2\lVert\vec r\rVert^2 - (\vec u\cdot\vec r)^2$.
+      So the rotational energy is</p>
+      $$T_{\text{rot}} = \tfrac12\int_B\rho\Big(\lVert\vec\omega\rVert^2\lVert\vec r\rVert^2-(\vec\omega\cdot\vec r)^2\Big)\mathrm dV,$$
+      <p class="small">a <b>quadratic form</b> in $\vec\omega$. Polarise it — replace one $\vec\omega$
+      by $\vec u$ and the other by $\vec w$ — and the object underneath appears.</p>
+      <div class="box def"><span class="label">definition · the <span class="term">inertia tensor</span></span>
+        <p class="small">About a chosen origin $O$, $\ \mathsf I_O: \mathbb R^3\times\mathbb R^3\to\mathbb R$,</p>
+        $$\mathsf I_O(\vec u,\vec w) = \int_B\rho(\vec r)\Big[(\vec u\cdot\vec w)\lVert\vec r\rVert^2-(\vec u\cdot\vec r)(\vec w\cdot\vec r)\Big]\mathrm dV .$$
+        <p class="small">Bilinear and symmetric by inspection, and $T_{\text{rot}} = \tfrac12\mathsf I_O(\vec\omega,\vec\omega)$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">positivity</span>
+        <p class="small">$\mathsf I_O(\vec u,\vec u) = \int\rho\lVert\vec u\times\vec r\rVert^2\ge0$,
+        with equality iff $\vec r\parallel\vec u$ for almost every point of $B$ — that is, iff the
+        whole body lies on the line through $O$ along $\vec u$.</p>
+      </div>
+      <p class="small">So $\mathsf I_O$ is positive definite for any body that is not a straight
+      line of mass. Dimensions: $[\rho]\,[\mathrm dV]\,[r^2] = \mathrm{kg\,m^2}$, and
+      $\tfrac12\mathsf I(\vec\omega,\vec\omega)$ is $\mathrm{kg\,m^2\,s^{-2}} = \mathrm J$ ✓.</p>
+      <p class="small muted">Nothing has been assumed about bases. $\mathsf I_O$ is defined by an
+      integral over the body and two input vectors, and no coordinate system appears in its
+      definition — which is exactly what will make §3's transformation law a theorem.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Polarisation.</b> A symmetric bilinear form is determined by its quadratic form:
+    $B(\vec u,\vec w) = \frac12\big[Q(\vec u+\vec w)-Q(\vec u)-Q(\vec w)\big]$. So writing down
+    $T_{\text{rot}}$ as a quadratic form in $\vec\omega$ already determines $\mathsf I_O$ uniquely;
+    the displayed formula is what that recipe produces. Check it: expanding
+    $\lVert\vec u+\vec w\rVert^2\lVert\vec r\rVert^2-((\vec u+\vec w)\cdot\vec r)^2$ and subtracting
+    the two pure terms leaves twice the bracket in the definition.</p>
+    <p><b>Lagrange's identity.</b> $\lVert\vec u\times\vec r\rVert^2 = \lVert\vec u\rVert^2\lVert\vec r\rVert^2\sin^2\theta
+    = \lVert\vec u\rVert^2\lVert\vec r\rVert^2(1-\cos^2\theta)$, and
+    $\vec u\cdot\vec r = \lVert\vec u\rVert\lVert\vec r\rVert\cos\theta$. Or expand both sides in
+    components.</p>
+    <p><b>Point masses.</b> For $N$ point masses the integral is a sum:
+    $\mathsf I_O(\vec u,\vec w) = \sum_\alpha m_\alpha\big[(\vec u\cdot\vec w)\lVert\vec r_\alpha\rVert^2-(\vec u\cdot\vec r_\alpha)(\vec w\cdot\vec r_\alpha)\big]$.
+    Every statement in this unit holds verbatim for either. The problem sheet uses both.</p>
+    <p><b>The moment of inertia about an axis</b> is the special case $\mathsf I_O(\hat n,\hat n)$
+    for a unit vector $\hat n$: the number that appears in $T = \frac12 I\omega^2$ for rotation
+    about a fixed axis. The elementary treatment of rigid bodies never gets beyond that diagonal
+    slice, which is why it never has to face the fact that $\vec L\nparallel\vec\omega$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · inertia</p>
+  <h2>Angular momentum is a covector</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\displaystyle \vec L_O = \int_B\rho\,\vec r\times(\vec\omega\times\vec r)\,\mathrm dV$.
+      Pair it with a test vector $\vec u$ and use $\vec u\cdot(\vec r\times\vec s) = \vec s\cdot(\vec u\times\vec r)$:</p>
+      $$\vec L_O\cdot\vec u = \int_B\rho\,\big(\vec\omega\times\vec r\big)\cdot(\vec u\times\vec r)\,\mathrm dV = \mathsf I_O(\vec\omega,\vec u).$$
+      <div class="box def"><span class="label">so, properly</span>
+        <p class="small">Angular momentum is the linear functional
+        $\ \vec u\mapsto\mathsf I_O(\vec\omega,\vec u)$ — an element of the
+        <span class="term">dual space</span> $V^*$, written $\mathsf I_O(\vec\omega,\cdot)$. The
+        Euclidean inner product then turns it into the arrow we draw. In components,
+        $L_i = I_{ij}\omega_j$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the fact this unit is about</span>
+        <p class="small">$\vec L$ is <b>not</b> parallel to $\vec\omega$. It is, exactly when
+        $\vec\omega$ is an eigenvector of $\mathsf I_O$ — three directions out of infinitely many.</p>
+        <p class="small">Spin the <span class="ref" data-ref="blk">block</span> about its body
+        diagonal through a corner, $\hat\omega = (0.8242,0.5494,0.1374)$:
+        <span class="ref" data-ref="Icor">$\mathsf I_O$</span> returns an $\vec L$ tilted
+        $\mathbf{22.8^\circ}$ away. $\vec L$ is fixed in space when no torque acts, so $\vec\omega$
+        is not — and the body wobbles.</p>
+      </div>
+      <p class="small muted">Unit 04 planted this: the derivative of a function is a covector, and
+      the gradient is what you get after using an inner product. Same distinction, now structural.
+      Units 28 and 32 raise and lower indices with a metric that is <em>not</em> the identity, and
+      then the difference is unavoidable.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The vector identity.</b> $\vec u\cdot(\vec r\times\vec s) = \det[\vec u,\vec r,\vec s]
+    = \det[\vec s,\vec u,\vec r] = \vec s\cdot(\vec u\times\vec r)$: the scalar triple product is
+    invariant under cyclic permutation (unit 08). Applying it with $\vec s = \vec\omega\times\vec r$
+    gives the displayed line. Then expand
+    $(\vec\omega\times\vec r)\cdot(\vec u\times\vec r) = (\vec\omega\cdot\vec u)\lVert\vec r\rVert^2-(\vec\omega\cdot\vec r)(\vec u\cdot\vec r)$
+    — Binet–Cauchy, or BAC–CAB — which is exactly the bracket in the definition of $\mathsf I_O$.</p>
+    <p><b>Why "covector" is the honest word.</b> $\mathsf I_O$ eats two vectors and returns a number.
+    Feed it one and you are left with a machine that eats one vector and returns a number: a linear
+    functional. Nothing in that says which <em>vector</em> it is; to convert it you need an inner
+    product, and the answer depends on which one you choose. In Euclidean space with an orthonormal
+    basis the conversion is invisible — the components are numerically the same — and that is
+    precisely why it is worth being careful now rather than in unit 32, where it is not invisible.</p>
+    <p><b>Energy from the pairing.</b> $T_{\text{rot}} = \frac12\vec L\cdot\vec\omega$, which is the
+    covector eating the vector: a pairing needing no inner product at all. That is the cleanest
+    statement of rotational kinetic energy available.</p>
+    <p><b>The $22.8^\circ$.</b> $\mathsf I_O\hat\omega = (1.1209,\,1.6263,\,0.5714)\times10^{-3}$
+    in $\mathrm{kg\,m^2\,s^{-1}}$ per unit $\lVert\vec\omega\rVert$; its angle with $\hat\omega$ is
+    $\arccos\big(\mathsf I_O\hat\omega\cdot\hat\omega/\lVert \mathsf I_O\hat\omega\rVert\big)
+    = 22.776^\circ$. The tilt would be zero only if $\hat\omega$ were an eigenvector. It nearly is
+    — §4 finds the smallest-moment axis just $3.376^\circ$ from the diagonal — but "nearly an
+    eigenvector" buys nothing here, because the three eigenvalues differ by a factor of nine and a
+    small misalignment is amplified by that ratio. For a cube the diagonal is exactly an
+    eigenvector, and the tilt is exactly zero; that is a problem on the sheet.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · inertia · example 1</p>
+  <h2>The block, about its centre</h2>
+  <div class="box ex"><span class="label">worked example · <span class="ref" data-ref="blk">the block</span></span>
+    <div class="cols wide-left">
+      <div>
+        <p class="small">Take $\vec e_1,\vec e_2,\vec e_3$ along the edges $a,b,c$, origin at the
+        centre, so $B = [-\tfrac a2,\tfrac a2]\times[-\tfrac b2,\tfrac b2]\times[-\tfrac c2,\tfrac c2]$
+        and $\rho = m/abc$ is constant. Components are $I_{ij} = \mathsf I(\vec e_i,\vec e_j)$:</p>
+        $$I_{11} = \int_B\rho\,(y^2+z^2)\,\mathrm dV,\qquad I_{12} = -\int_B\rho\,xy\,\mathrm dV .$$
+        <p class="small"><b>Off-diagonal, first.</b> By Fubini (unit 05) the triple integral factorises,
+        and $\int_{-b/2}^{b/2}y\,\mathrm dy = 0$: every off-diagonal entry vanishes.</p>
+        <p class="small"><b>Diagonal.</b> $\int_B\rho\,y^2\mathrm dV = \rho\,a c\int_{-b/2}^{b/2}y^2\mathrm dy
+        = \rho\,ac\cdot\tfrac{b^3}{12} = \tfrac{m}{12}b^2$, and likewise for $z$. So
+        $I_{11} = \tfrac m{12}(b^2+c^2)$, and cyclically.</p>
+      </div>
+      <div>
+        <p class="small">With $m = 0.60$ kg, $a=0.24$, $b=0.16$, $c=0.04$ m:</p>
+        <table class="dense" style="margin:0">
+          <thead><tr><th>axis</th><th>formula</th><th class="num">$\mathrm{kg\,m^2}$</th></tr></thead>
+          <tbody>
+            <tr><td>$1$ (spine)</td><td>$\tfrac m{12}(b^2+c^2)$</td><td class="num">0.00136</td></tr>
+            <tr><td>$2$ (across)</td><td>$\tfrac m{12}(a^2+c^2)$</td><td class="num">0.00296</td></tr>
+            <tr><td>$3$ (thickness)</td><td>$\tfrac m{12}(a^2+b^2)$</td><td class="num">0.00416</td></tr>
+          </tbody>
+        </table>
+        <p class="small"><span class="ref" data-ref="Icm">Already diagonal</span>, and
+        $I_1\lt I_2\lt I_3$ strictly: three different numbers, which is what §5 needs.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small"><b>Dimensions</b> $\mathrm{kg\,m^2}$ throughout ✓. <b>Limit</b> $b,c\to0$ (a thin
+    rod along $\vec e_1$): $I_1\to0$ and $I_2=I_3\to ma^2/12$, the standard rod ✓. <b>Limit</b>
+    $a=b=c$: all three equal $ma^2/6$, so every axis through the centre of a cube is equivalent ✓.
+    <b>Trace</b> $= \tfrac m6(a^2+b^2+c^2) = 2\int\rho\lVert\vec r\rVert^2\mathrm dV$, which §3 shows is
+    basis-independent: $0.00848\ \mathrm{kg\,m^2}$.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Why the off-diagonal terms vanish.</b> Not an accident of the block: each coordinate plane
+    is a mirror plane of the body, and $\rho(x,y,z)=\rho(-x,y,z)$ makes $\int\rho\,xy$ an integral of
+    an odd function over a symmetric interval. Any body with two orthogonal mirror planes through
+    the chosen origin has those axes principal, which §4 states as a theorem.</p>
+    <p><b>The factorisation, in full.</b>
+    $\int_B\rho\,y^2\,\mathrm dV = \rho\int_{-a/2}^{a/2}\mathrm dx\int_{-c/2}^{c/2}\mathrm dz\int_{-b/2}^{b/2}y^2\,\mathrm dy
+    = \rho\,a\,c\,\big[\tfrac{y^3}3\big]_{-b/2}^{b/2} = \rho\,ac\,\tfrac{b^3}{12}$, and
+    $\rho\,ac = m/b$, giving $mb^2/12$. Fubini applies because the integrand is continuous on a
+    compact box (unit 05).</p>
+    <p><b>Which axis is which.</b> The <em>smallest</em> moment belongs to the axis along the
+    <em>longest</em> edge, because $I_{11}$ involves $b$ and $c$ — the other two. That inversion
+    catches people out. For the book: spinning about the spine is easiest, about the axis
+    perpendicular to the cover is hardest, and across the cover is in between. Axis 2 — across the
+    cover, in its plane — is the intermediate one, and it is the one that will not hold.</p>
+    <p><b>Trace check, numerically.</b> $0.00136+0.00296+0.00416 = 0.00848$, and
+    $\frac{0.60}{6}(0.0576+0.0256+0.0016) = 0.1\times0.0848 = 0.00848$ ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · inertia · example 1, continued</p>
+  <h2>Moving the origin: the parallel-axis theorem</h2>
+  <div class="box thm"><span class="label"><span class="term">parallel-axis theorem</span> (Steiner)</span>
+    <p>If the centre of mass is displaced from $O$ by $\vec d$ (so $\vec r_O = \vec r_{\text{cm}}+\vec d$), then for all $\vec u,\vec w$</p>
+    $$\mathsf I_O(\vec u,\vec w) = \mathsf I_{\text{cm}}(\vec u,\vec w) + M\Big[(\vec u\cdot\vec w)\lVert\vec d\rVert^2-(\vec u\cdot\vec d)(\vec w\cdot\vec d)\Big].$$
+  </div>
+  <div class="cols wide-left">
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">Substitute $\vec r_O = \vec r+\vec d$ into the definition. The bracket is
+      bilinear in $\vec r_O$, so it expands into three groups: the one quadratic in $\vec r$ gives
+      $\mathsf I_{\text{cm}}$, the one quadratic in $\vec d$ gives $M[\dots]$ since
+      $\int\rho\,\mathrm dV = M$, and the two cross groups each carry exactly one factor
+      $\int_B\rho\,\vec r\,\mathrm dV = \vec 0$. $\;\blacksquare$</p>
+    </div>
+    <div>
+      <p class="small">On the <span class="ref" data-ref="blk">block</span>, with
+      $\vec d = (\tfrac a2,\tfrac b2,\tfrac c2)$ from a corner to the centre, the added form
+      contributes $\tfrac m4(b^2+c^2)$ to $I_{11}$ and $-\tfrac m4ab$ to $I_{12}$:</p>
+      $$I^O_{11}=\tfrac m3(b^2+c^2),\quad I^O_{12}=-\tfrac m4ab,$$
+      <p class="small">giving <span class="ref" data-ref="Icor">$\mathsf I_O$</span>, with every
+      off-diagonal entry now nonzero: a corner is not a symmetry point.</p>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small"><b>Dimensions</b> $\mathrm{kg\,m^2}$ ✓. <b>Limit $\vec d\to0$:</b>
+    $\mathsf I_O\to\mathsf I_{\text{cm}}$ ✓. <b>Sign:</b> the added form is
+    $M\lVert\vec u\times\vec d\rVert^2\ge0$, so moving off the centre of mass only
+    <em>increases</em> every moment ✓. <b>Numbers:</b> $I^O_{11} = 0.00544$,
+    $I^O_{12} = -0.00576$, trace $0.03392 = 4\times0.00848$.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The expansion, in full.</b> Write $\vec s = \vec r+\vec d$. Then
+    $(\vec u\cdot\vec w)\lVert\vec s\rVert^2-(\vec u\cdot\vec s)(\vec w\cdot\vec s)$ equals
+    $$\Big[(\vec u\cdot\vec w)\lVert\vec r\rVert^2-(\vec u\cdot\vec r)(\vec w\cdot\vec r)\Big]
+    +\Big[(\vec u\cdot\vec w)\lVert\vec d\rVert^2-(\vec u\cdot\vec d)(\vec w\cdot\vec d)\Big]
+    +\Big[2(\vec u\cdot\vec w)(\vec r\cdot\vec d)-(\vec u\cdot\vec r)(\vec w\cdot\vec d)-(\vec u\cdot\vec d)(\vec w\cdot\vec r)\Big].$$
+    Multiply by $\rho$ and integrate. The third bracket is linear in $\vec r$, so it is a linear
+    function of $\int_B\rho\,\vec r\,\mathrm dV$, which vanishes about the centre of mass.</p>
+    <p><b>Only from the centre of mass.</b> The theorem does not let you jump between two arbitrary
+    points in one step — go via the centre of mass, subtracting one Steiner term and adding another.
+    Forgetting this is the most common error in inertia calculations.</p>
+    <p><b>The familiar scalar version</b> is the diagonal slice: putting $\vec u=\vec w=\hat n$ with
+    $\hat n\perp\vec d$ gives $I_O = I_{\text{cm}}+Md^2$. The tensor version also tells you what the
+    off-diagonal entries become, which the scalar version cannot.</p>
+    <p><b>The numbers.</b> $\frac{0.60}{3}(0.0256+0.0016) = 0.2\times0.0272 = 0.00544$;
+    $-\frac{0.60}{4}(0.24)(0.16) = -0.15\times0.0384 = -0.00576$. The trace is
+    $\frac{m}{3}\cdot2(a^2+b^2+c^2) = 0.4\times0.0848 = 0.03392$, four times the central trace,
+    because $M\lVert\vec d\rVert^2\times2 = 2\times0.6\times\frac{0.0848}{4} = 0.02544$ is added.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>What a tensor actually is</h2>
+  <p>A multilinear map. The array is a shadow; the transformation law is a theorem.</p>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>The dual space, and why it is not $V$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For a real vector space $V$ of dimension $n$, the
+        <span class="term">dual space</span> $V^*$ is the space of linear maps $V\to\mathbb R$.
+        Its elements are <span class="term">covectors</span>.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">dual basis</span></span>
+        <p class="small">Given a basis $\{\vec e_i\}$ of $V$, there are unique
+        $\{\varepsilon^j\}\subset V^*$ with $\varepsilon^j(\vec e_i)=\delta^j_i$, and they are a
+        basis of $V^*$. Hence $\dim V^* = n$.</p>
+        <p class="small muted"><b>Why:</b> a linear map is determined by its values on a basis, so
+        the condition defines each $\varepsilon^j$ uniquely; any $\alpha\in V^*$ equals
+        $\sum_j\alpha(\vec e_j)\varepsilon^j$, since both sides agree on every $\vec e_i$; and
+        $\sum_jc_j\varepsilon^j=0$ evaluated at $\vec e_i$ gives $c_i=0$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">no canonical isomorphism</span>
+        <p class="small">$V\cong V^*$ — both have dimension $n$ — but <b>not</b> in any way
+        determined by $V$ alone. In $\mathbb R^2$ take $\vec f_1 = \vec e_1$, $\vec f_2 = \vec e_1+\vec e_2$. Then</p>
+        $$\varphi^1 = \varepsilon^1-\varepsilon^2 \ne \varepsilon^1,$$
+        <p class="small">although $\vec f_1 = \vec e_1$ did not move. The dual of a basis vector
+        depends on <em>all</em> the other basis vectors. Any rule "$\vec e_i\mapsto\varepsilon^i$"
+        is a choice of basis in disguise.</p>
+      </div>
+      <p class="small">What <em>does</em> give an isomorphism is an inner product:
+      $\vec v\mapsto\langle\vec v,\cdot\rangle$. Unit 04's gradient is that map applied to the
+      derivative; §2's $\vec L$ is that map inverted. Unit 32 calls it lowering an index.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Check the $\mathbb R^2$ example.</b> $\varphi^1$ must satisfy
+    $\varphi^1(\vec f_1)=1,\ \varphi^1(\vec f_2)=0$. Try
+    $\varphi^1 = \varepsilon^1-\varepsilon^2$: on $\vec f_1=\vec e_1$ it gives $1-0=1$ ✓; on
+    $\vec f_2=\vec e_1+\vec e_2$ it gives $1-1=0$ ✓. So changing $\vec e_2$ alone changed
+    $\varepsilon^1$. Nothing local about it.</p>
+    <p><b>$V^{**}$, by contrast, <em>is</em> canonically $V$</b> in finite dimensions: the map
+    $\vec v\mapsto(\alpha\mapsto\alpha(\vec v))$ is linear, injective (if $\alpha(\vec v)=0$ for all
+    $\alpha$ then $\vec v=0$, by taking $\alpha$ to be a dual basis element), and both spaces have
+    dimension $n$. No choices were made. That is why $(1,0)$-tensors — multilinear maps
+    $V^*\to\mathbb R$ — may be called vectors without apology on the next slide.</p>
+    <p><b>Where this bites, later.</b> In unit 28 the electromagnetic field is an antisymmetric
+    $(0,2)$-tensor $F_{\mu\nu}$, and $F^{\mu\nu}$ is a genuinely different array obtained through the
+    Minkowski metric, which has a minus sign: raising an index flips signs on some components.
+    In unit 32 the metric varies from point to point, and the two arrays differ everywhere. Here,
+    with the Euclidean inner product and orthonormal bases, the conversion is numerically the
+    identity — which is why the distinction can only be <em>planted</em> in this unit, not
+    forced.</p>
+    <p><b>Notation.</b> Upper indices label components of vectors and basis covectors; lower
+    indices label components of covectors and basis vectors. The pattern is: a basis object and a
+    component carry opposite index positions, which is what makes sums like
+    $\vec v = v^i\vec e_i$ come out basis-independent.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>The definition</h2>
+  <div class="box def"><span class="label">definition · <span class="term">tensor</span></span>
+    <p>A tensor of <span class="term">type $(p,q)$</span> on $V$ is a multilinear map</p>
+    $$T:\underbrace{V^*\times\dots\times V^*}_{p}\times\underbrace{V\times\dots\times V}_{q}\longrightarrow\mathbb R .$$
+    <p class="small">"Multilinear" means linear in each slot with the others held fixed. The set of
+    them is a vector space $T^p_q(V)$ under pointwise operations.</p>
+  </div>
+  <div class="cols three">
+    <div class="box"><span class="label">$(0,1)$</span><p class="small">a covector. E.g. $\vec L_O$.</p></div>
+    <div class="box"><span class="label">$(1,0)$</span><p class="small">a map $V^*\to\mathbb R$, i.e. an element of $V^{**}=V$: a vector.</p></div>
+    <div class="box"><span class="label">$(0,2)$</span><p class="small">a bilinear form. <b>The inertia tensor.</b> Later: the metric.</p></div>
+  </div>
+  <div class="cols">
+    <div class="box"><span class="label">$(1,1)$</span><p class="small">$T(\alpha,\vec v)$: equivalently a linear map $V\to V$, by $\vec v\mapsto T(\cdot,\vec v)$. E.g. $\Omega$.</p></div>
+    <div class="box def"><span class="label">the <span class="term">tensor product</span></span>
+      <p class="small">$(S\otimes T)(\dots) = S(\text{its slots})\,T(\text{its slots})$, with the
+      arguments split in order. Bilinear in $S$ and $T$, associative, <b>not</b> commutative.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why multilinear and not just "an array".</b> Three reasons, all of which pay off later.
+    (i) It is defined without reference to a basis, so any statement proved about $T$ is
+    automatically coordinate-free. (ii) It says what you may <em>do</em> with a tensor — feed it
+    vectors — which is how every physical statement using one is actually phrased. (iii) It makes
+    the transformation law a theorem with a two-line proof, instead of an axiom that has to be
+    remembered.</p>
+    <p><b>The $(1,1)$ correspondence.</b> Given multilinear $T:V^*\times V\to\mathbb R$, define
+    $\hat T:V\to V$ by requiring $\alpha(\hat T\vec v)=T(\alpha,\vec v)$ for all $\alpha$; this
+    determines $\hat T\vec v$ because a vector is determined by all its pairings (that is $V^{**}=V$
+    again). Conversely any linear map gives such a $T$. So "$(1,1)$-tensor" and "linear map $V\to V$"
+    are the same thing, which is why the trace and the determinant of a $(1,1)$-tensor make sense
+    with no extra structure, while the trace of a $(0,2)$-tensor does not.</p>
+    <p><b>The inertia tensor is $(0,2)$ and not a linear map.</b> Physics writes
+    $\vec L = \mathsf I\vec\omega$ as though $\mathsf I$ were $(1,1)$. What it really does is take
+    the $(0,2)$-tensor $\mathsf I(\vec\omega,\cdot)\in V^*$ and then raise its index with the
+    Euclidean inner product. Harmless here; fatal in unit 32 if done silently.</p>
+    <p><b>Tensor product, concretely.</b> If $\alpha,\beta\in V^*$ then
+    $(\alpha\otimes\beta)(\vec u,\vec w)=\alpha(\vec u)\beta(\vec w)$, a $(0,2)$-tensor. Not
+    symmetric: $(\alpha\otimes\beta)(\vec u,\vec w)\ne(\alpha\otimes\beta)(\vec w,\vec u)$ in
+    general. Not every $(0,2)$-tensor is of this form either — those that are are called simple, and
+    they are a measure-zero subset. The inertia tensor of a single point mass at $\vec r$ is
+    $m(\lVert\vec r\rVert^2 g - \vec r^\flat\otimes\vec r^\flat)$, writing $g$ for the Euclidean
+    inner product read as a $(0,2)$-tensor and $\vec r^\flat := g(\vec r,\cdot)$ for the covector it
+    sends $\vec r$ to. The second term is simple; $g = \sum_i\varepsilon^i\otimes\varepsilon^i$ is
+    not, since a simple tensor's array has rank at most 1 and $g$'s has rank 3. The point mass's
+    inertia tensor has rank 2 — its array kills $\vec r$ and is $m\lVert\vec r\rVert^2$ times the
+    identity on $\vec r^{\perp}$ — so even this smallest of bodies needs two simple tensors to write
+    down, and no fewer.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>Components, and why there are $n^{p+q}$ of them</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">Given a basis $\{\vec e_i\}$ with dual $\{\varepsilon^j\}$, the
+        <span class="term">components</span> of $T\in T^p_q(V)$ are the numbers</p>
+        $$T^{i_1\dots i_p}{}_{j_1\dots j_q} := T\big(\varepsilon^{i_1},\dots,\varepsilon^{i_p},\vec e_{j_1},\dots,\vec e_{j_q}\big).$$
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">The $n^{p+q}$ tensors
+        $\vec e_{i_1}\otimes\dots\otimes\varepsilon^{j_q}$ form a basis of $T^p_q(V)$, and</p>
+        $$T = T^{i_1\dots}{}_{\dots j_q}\ \vec e_{i_1}\otimes\dots\otimes\varepsilon^{j_q}.$$
+        <p class="small">So $\dim T^p_q(V) = n^{p+q}$, and a tensor is determined by its
+        components <em>in one basis</em>.</p>
+      </div>
+    </div>
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small"><b>Spanning.</b> Call the right-hand side $S$. Evaluate $S$ on
+      $(\varepsilon^{k_1},\dots,\vec e_{l_q})$: every factor is a Kronecker delta, so only the term
+      with matching indices survives and $S$ agrees with $T$ there. Two multilinear maps agreeing on
+      all tuples of basis elements agree everywhere, by expanding each argument.</p>
+      <p class="small"><b>Independence.</b> If a combination vanishes, evaluate it on a tuple of
+      basis elements: the same delta collapse leaves exactly one coefficient, which is therefore
+      zero. $\;\blacksquare$</p>
+    </div>
+  </div>
+  <p class="small muted">For the inertia tensor, $n=3$, $(p,q)=(0,2)$: nine components, reduced to
+  six by symmetry. For the Riemann tensor of unit 33, $n=4$, $(p,q)=(1,3)$: $256$ components,
+  reduced to $20$ by its symmetries — the same argument, run once.</p>
+  <aside class="notes">
+    <p><b>"Determined by its components in one basis"</b> is the sentence the whole unit turns on.
+    A tensor is not the array; but an array in a stated basis does fix the tensor, and therefore
+    fixes the array in every other basis. That is why the transformation law is forced, and why a
+    rule that assigns arrays to bases freely cannot come from a tensor.</p>
+    <p><b>Expanding the arguments.</b> If $\vec v = v^i\vec e_i$ then multilinearity gives
+    $T(\dots,\vec v,\dots) = v^iT(\dots,\vec e_i,\dots)$, and doing this in every slot writes
+    $T(\alpha,\dots,\vec w)$ as a sum of components times products of the arguments' components. It
+    is the same argument that says a linear map is determined by its matrix.</p>
+    <p><b>Index placement.</b> The upper indices of the components sit where the $V^*$ arguments go,
+    and the lower indices where the $V$ arguments go. The mnemonic that survives into curved space:
+    a component index is "up" when it pairs with a basis vector written "down", so that a repeated
+    index summed once up and once down produces something basis-independent.</p>
+    <p><b>Symmetry cuts the count.</b> A symmetric $(0,2)$-tensor in $n$ dimensions has
+    $n(n+1)/2$ independent components — six for $n=3$, which is what makes an inertia tensor a
+    six-number object once symmetry is used. The next slides make the symmetry itself
+    basis-independent, which is what allows that count to mean anything.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>The transformation law is a theorem</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p class="small">Let $\vec f_a = S_{ia}\vec e_i$ be a second basis, $S$ invertible, $A = S^{-1}$.
+    Then $\varphi^a = A_{ai}\varepsilon^i$, and for any tensor</p>
+    $$T'^{a\dots}{}_{b\dots} \;=\; A_{ai}\cdots S_{jb}\cdots\ T^{i\dots}{}_{\dots j} :$$
+    <p class="small">each <b>upper</b> index contracts with $A = S^{-1}$, each <b>lower</b> with $S$.</p>
+  </div>
+  <div class="cols wide-left">
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">$T'^{a\dots}{}_{\dots b} = T(\varphi^a,\dots,\vec f_b,\dots)$ by the
+      <em>definition</em> of components in the new basis. Substitute
+      $\varphi^a = A_{ai}\varepsilon^i$, $\vec f_b = S_{jb}\vec e_j$, pull the scalars out by
+      multilinearity, and what is left is $T^{i\dots}{}_{\dots j}$. $\;\blacksquare$</p>
+      <p class="small muted">There is no content in the law beyond "$T$ does not know about bases".</p>
+    </div>
+    <div>
+      <p class="small">For a $(0,2)$-tensor, $T'_{ab} = S_{ia}S_{jb}T_{ij}$: that is
+      $T' = S^{\mathsf T}TS$.</p>
+      <div class="box good"><span class="label">orthonormal case</span>
+        <p class="small">Both bases orthonormal makes $S$ orthogonal. Put
+        $R := S^{\mathsf T} = S^{-1}$, whose <em>rows</em> are the new basis vectors,
+        $R_{ai} = \vec f_a\cdot\vec e_i$:</p>
+        $$\mathsf I' = R\,\mathsf I\,R^{\mathsf T} .$$
+        <p class="small">Vectors and covectors now transform by the <em>same</em> $R$ — which is
+        why Euclidean physics can ignore the distinction.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\varphi^a = A_{ai}\varepsilon^i$.</b> Check the defining property:
+    $\varphi^a(\vec f_b) = A_{ai}\varepsilon^i(S_{jb}\vec e_j) = A_{ai}S_{jb}\delta^i_j = A_{ai}S_{ib}
+    = (AS)_{ab} = \delta_{ab}$ ✓, and uniqueness of the dual basis does the rest.</p>
+    <p><b>The two matrices really are different.</b> Vector components:
+    $\vec v = v^i\vec e_i = v'^a\vec f_a = v'^aS_{ia}\vec e_i$, so $v^i = S_{ia}v'^a$, i.e.
+    $v' = Av$. Covector components: $\alpha_a' = \alpha(\vec f_a) = S_{ia}\alpha_i$, i.e.
+    $\alpha' = S^{\mathsf T}\alpha$. These agree only when $S^{\mathsf T} = S^{-1}$. Take
+    $S = \mathrm{diag}(2,1,1)$ — stretch one axis — and a vector's first component halves while a
+    covector's doubles. That is the whole covector story in one example, and it is why the
+    distinction is invisible in this unit's orthonormal frames and unavoidable in unit 32's.</p>
+    <p><b>Read the boxed formula carefully.</b> $R$ here is the <em>change of basis</em>, with rows
+    $\vec f_a$. Some books use the matrix whose columns are the new basis vectors, and then the law
+    reads $R^{\mathsf T}\mathsf IR$; some rotate the body instead of the frame, which is the inverse
+    operation again. The formula is not the thing to memorise — the two-line proof is, since it
+    regenerates whichever convention you are in.</p>
+    <p><b>Historical note.</b> Ricci and Levi-Civita's <em>absolute differential calculus</em>
+    (1900) defined tensors exactly by the transformation law, and that is how a generation of
+    physicists, Einstein included, learnt them. The modern definition is due to the algebraists of
+    the 1930s and 1940s; it is the same objects, with the theorem and the definition swapped, and
+    swapping them is what makes units 31 to 35 tractable on a page rather than on twenty.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>Index notation, and the convention that earns its keep</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Einstein summation convention</span></span>
+        <p class="small">An index repeated <b>once up and once down</b> in a single term is summed
+        over $1,\dots,n$; the summation sign is not written. An index appearing once is
+        <span class="term" data-term="free index">free</span> and must appear, in the same position, in every term of the
+        equation.</p>
+        <p class="small">$T'_{ab} = S_{ia}S_{jb}T_{ij}$ is nine equations, each a double sum;
+        $L_i = I_{ij}\omega_j$, all indices down, is three — legitimate only in orthonormal
+        frames, as the right-hand column explains.</p>
+      </div>
+      <div class="box good"><span class="label">what it buys</span>
+        <p class="small">A wrong equation usually announces itself: if the free indices do not match
+        on both sides, or an index is repeated three times, or twice in the same position, something
+        is wrong before any number is computed. It is dimensional analysis for index expressions.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">$\delta$ twice over</span>
+        <p class="small">$\delta^i_j$ — the components of the identity $(1,1)$-tensor — <b>is</b> a
+        tensor: $A_{ai}S_{jb}\delta^i_j = (AS)_{ab} = \delta^a_b$, the same array in every basis.</p>
+        <p class="small">$\delta_{ij}$ — the components of the Euclidean inner product, a
+        $(0,2)$-tensor — is a tensor too, but its array is <em>not</em> the same in every basis:
+        $S^{\mathsf T}\mathbb 1 S = S^{\mathsf T}S$, which is $\mathbb 1$ only for orthogonal $S$.
+        The identity matrix and the metric are different objects that look alike in orthonormal
+        frames.</p>
+      </div>
+      <p class="small muted">This unit writes all inertia indices <em>down</em> and keeps every
+      basis orthonormal, so $\sum$ over a repeated pair of lower indices is safe here and only here.
+      Unit 28 starts obeying the up–down rule strictly, and unit 32 has no choice.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Free versus dummy.</b> In $T'_{ab} = S_{ia}S_{jb}T_{ij}$ the free indices are $a,b$ and the
+    dummies are $i,j$. Renaming a dummy changes nothing; renaming a free index changes which
+    equation you are looking at. A dummy may never be reused for two different sums in the same
+    term — $S_{ia}S_{ib}T_{ii}$ is meaningless.</p>
+    <p><b>Why up and down, and not just "repeated".</b> Under a general change of basis, a sum like
+    $v^i\alpha_i$ is invariant — $A_{ai}v^i\cdot S_{jb}\alpha_j$ contracted over $a=b$ gives
+    $(SA)_{ji}v^i\alpha_j = v^i\alpha_i$ — whereas $v^iv^i$ is not. The up–down rule is precisely
+    the syntactic condition that guarantees the result is a tensor. In orthonormal Euclidean frames
+    both kinds of sum survive, which is why physics books written before 1905 never distinguished
+    them.</p>
+    <p><b>The computation for $\delta^i_j$, spelled out.</b> Its transformed components are
+    $\delta'^a_b = A_{ai}S_{jb}\delta^i_j = A_{ai}S_{ib} = (AS)_{ab} = \delta_{ab}$ since $A=S^{-1}$.
+    So the identity tensor has the identity array in every basis — the one array that may safely be
+    memorised. Unit 32's Kronecker delta is this one, and its metric is the other.</p>
+    <p><b>A habit worth forming now.</b> When an index expression confuses you, write out one
+    component in full with explicit sums. Three minutes of that beats an hour of staring, and every
+    index identity in units 28 to 35 was checked that way at least once.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>Contraction, and the trace that survives</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="term">contraction</span></span>
+        <p class="small">For $T$ of type $(p,q)$ with $p,q\ge1$, contracting the $r$th upper against
+        the $s$th lower slot gives a tensor of type $(p-1,q-1)$ with components
+        $\;(CT)^{\dots}{}_{\dots} = T^{\dots i\dots}{}_{\dots i\dots}$, summed.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · it is a tensor</span>
+        <p class="small">For $(1,1)$, since $SA=\mathbb 1$:</p>
+        $$T'^a{}_a = A_{ai}S_{ja}T^i{}_j = T^i{}_i .$$
+        <p class="small">The <span class="term">trace</span> of a $(1,1)$-tensor is a number
+        attached to the tensor, not to a basis. $\;\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">not for $(0,2)$</span>
+        <p class="small">$\sum_iT_{ii}$ is <b>not</b> basis-independent: under $T'=S^{\mathsf T}TS$
+        it becomes $\operatorname{tr}(S^{\mathsf T}TS)$, equal to $\operatorname{tr}(T)$ only when
+        $S^{\mathsf T}S=\mathbb 1$. Contraction needs one index up and one down; two down needs a
+        metric to raise one first.</p>
+      </div>
+      <p class="small">So $\operatorname{tr}\mathsf I$ <em>is</em> meaningful — because this unit
+      only ever changes between orthonormal bases, which is the same as saying the metric was used
+      silently. With $\sum_i\delta_{ii} = 3$ and $\sum_ix_ix_i = \lVert\vec r\rVert^2$,</p>
+      $$\operatorname{tr}\mathsf I_O = 2\int_B\rho\,\lVert\vec r\rVert^2\,\mathrm dV$$
+      <p class="small">For the <span class="ref" data-ref="Icor">block at its corner</span>,
+      $0.03392\ \mathrm{kg\,m^2}$ in <em>every</em> orthonormal frame — a cheap and merciless check
+      on any inertia computation.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The general contraction.</b> Define it basis-free: on a simple tensor
+    $\vec v\otimes\alpha\otimes(\text{rest})$, the contraction of that vector against that covector
+    is $\alpha(\vec v)\times(\text{rest})$; extend by linearity, which is legitimate because simple
+    tensors span. Checking in components reproduces the displayed formula, and the theorem above
+    generalises verbatim: the $A\cdots S$ pair on the contracted indices collapses to a delta.</p>
+    <p><b>Why "trace of a matrix is basis-independent" is the same statement.</b> A linear map is a
+    $(1,1)$-tensor; its array changes by $T'=ATS = S^{-1}TS$, a similarity, and trace is invariant
+    under similarity. A bilinear form's array changes by $T'=S^{\mathsf T}TS$, a
+    <em>congruence</em>, and trace is not invariant under congruence. Two different transformation
+    rules, two different invariants: for congruence the invariants are the rank and the signature,
+    not the eigenvalues — Sylvester's law of inertia, <em>cited</em>, proved in any linear-algebra
+    treatment of quadratic forms and used again in unit 26 to fix the Minkowski signature.</p>
+    <p><b>Then how can §4 talk about the eigenvalues of $\mathsf I$?</b> Only because the bases are
+    orthonormal: there congruence and similarity coincide, and the eigenvalues of the array are
+    genuine invariants of the pair (tensor, inner product). The principal moments are properties of
+    $\mathsf I$ <em>and</em> the Euclidean metric together. In unit 32 exactly this is what
+    $g^{\mu\alpha}T_{\alpha\nu}$ does: raise one index so a trace can be taken.</p>
+    <p><b>The number.</b> $2\int\rho\lVert\vec r\rVert^2\mathrm dV$ for the block about a corner is
+    $\frac{2m}{3}(a^2+b^2+c^2) = 0.4\times0.0848 = 0.03392$ ✓, matching the sum of the diagonal
+    entries $0.00544+0.01184+0.01664$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>Symmetric and antisymmetric parts</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For a $(0,2)$-tensor,
+        $\ T_{(ij)} := \tfrac12(T_{ij}+T_{ji})$ is the
+        <span class="term">symmetric part</span> and
+        $\ T_{[ij]} := \tfrac12(T_{ij}-T_{ji})$ the
+        <span class="term">antisymmetric part</span>, with $T = T_{(ij)}+T_{[ij]}$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">The splitting is basis-independent: if $T$ is symmetric in one basis it is
+        symmetric in all.</p>
+        <p class="small muted"><b>Why:</b> $T'_{ba} = S_{ib}S_{ja}T_{ij} = S_{ja}S_{ib}T_{ij}
+        = S_{ia}S_{jb}T_{ji}$ after renaming dummies, which is $T'_{ab}$ exactly when $T_{ji}=T_{ij}$.
+        Or without indices: $(S^{\mathsf T}TS)^{\mathsf T} = S^{\mathsf T}T^{\mathsf T}S$.</p>
+      </div>
+      <p class="small">Dimension count: $\tfrac{n(n+1)}2 + \tfrac{n(n-1)}2 = n^2$. In $n=3$: $6+3$.
+      $\mathsf I$ lives entirely in the first summand.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">not for $(1,1)$</span>
+        <p class="small">"$T^i{}_j$ is symmetric" is <b>meaningless</b> as a statement about a
+        tensor: the law is $T' = S^{-1}TS$, and a similarity does not preserve symmetry. Take</p>
+        $$T = \begin{pmatrix}0&1\\1&0\end{pmatrix},\ \ S=\begin{pmatrix}1&0\\0&2\end{pmatrix}$$
+        $$\Rightarrow\ T' = \begin{pmatrix}0&2\\ \tfrac12&0\end{pmatrix}.$$
+        <p class="small">Antisymmetry of a $(0,2)$-tensor, by contrast, is intrinsic — which is why
+        the field tensor of unit 28 is an antisymmetric $(0,2)$-tensor, and why $\Omega$ is
+        honestly antisymmetric only once an index is lowered with the metric.</p>
+      </div>
+      <p class="small muted">Unit 34 builds the whole exterior algebra out of the antisymmetric
+      summand; unit 32's metric and unit 22's stress tensor live in the symmetric one, alongside
+      $\mathsf I$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Check the counterexample.</b> $S^{-1} = \mathrm{diag}(1,\tfrac12)$, so
+    $S^{-1}TS = \begin{pmatrix}1&0\\0&\frac12\end{pmatrix}\begin{pmatrix}0&1\\1&0\end{pmatrix}
+    \begin{pmatrix}1&0\\0&2\end{pmatrix} = \begin{pmatrix}0&1\\ \frac12&0\end{pmatrix}
+    \begin{pmatrix}1&0\\0&2\end{pmatrix} = \begin{pmatrix}0&2\\ \frac12&0\end{pmatrix}$, not
+    symmetric ✓. Note the change of basis is not orthogonal; restricted to orthogonal $S$ the
+    symmetry of a $(1,1)$ array <em>is</em> preserved, which is another face of the same coincidence
+    that lets this unit be careless.</p>
+    <p><b>Why $\mathsf I$ is symmetric.</b> Directly from its definition: the bracket
+    $(\vec u\cdot\vec w)\lVert\vec r\rVert^2-(\vec u\cdot\vec r)(\vec w\cdot\vec r)$ is unchanged by
+    swapping $\vec u$ and $\vec w$. It is not a property of a clever choice of basis, and §4 needs
+    that: the spectral theorem applies to symmetric bilinear forms, and if symmetry were
+    basis-dependent the principal axes would be too.</p>
+    <p><b>The general pattern.</b> For $(0,k)$-tensors the group of permutations of the $k$ slots
+    acts, and the decomposition into irreducible pieces under that action is what "symmetry type"
+    means. For $k=2$ there are exactly two pieces. For $k=3$ there are more than two, which is why
+    the Riemann tensor of unit 33 needs its symmetries listed rather than named.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors · example 2</p>
+  <h2>The law, verified component by component</h2>
+  <div class="box ex"><span class="label">worked example · <span class="ref" data-ref="Icor">the block at a corner</span>, rotated $45^\circ$ about $\vec e_3$</span>
+    <div class="cols">
+      <div>
+        <p class="small">New basis $\vec f_1 = \tfrac1{\sqrt2}(\vec e_1+\vec e_2)$,
+        $\vec f_2 = \tfrac1{\sqrt2}(-\vec e_1+\vec e_2)$, $\vec f_3=\vec e_3$, so $R$ is the
+        $45^\circ$ rotation. <b>Route A</b>, the law:</p>
+        $$I'_{11} = \tfrac12\big(I_{11}+2I_{12}+I_{22}\big)$$
+        $$= \tfrac12(0.00544-0.01152+0.01184),$$
+        <p class="small">which is $0.00288$. Likewise $I'_{12} = \tfrac12(I_{22}-I_{11}) = 0.00320$,
+        $I'_{22} = \tfrac12(I_{11}-2I_{12}+I_{22}) = 0.01440$,
+        $I'_{13} = \tfrac1{\sqrt2}(I_{13}+I_{23}) = -0.00169706$,
+        $I'_{23} = \tfrac1{\sqrt2}(I_{23}-I_{13}) = 0.00033941$, $I'_{33} = 0.01664$.</p>
+      </div>
+      <div>
+        <p class="small"><b>Route B</b>, the definition — integrate again in the new coordinates
+        $x' = \tfrac{x+y}{\sqrt2},\ y' = \tfrac{-x+y}{\sqrt2}$, over the same block:</p>
+        $$I'_{11} = \int_B\rho\,(y'^2+z^2)\,\mathrm dV,$$
+        $$y'^2 = \tfrac12(x^2-2xy+y^2).$$
+        <p class="small">With $\int\rho x^2 = \tfrac m3a^2$ and $\int\rho xy = \tfrac m4ab$
+        at the corner:</p>
+        $$I'_{11} = \tfrac m6(a^2+b^2)-\tfrac m4\,ab+\tfrac m3c^2$$
+        $$= 0.00832-0.00576+0.00032 = 0.00288 .$$
+        <p class="small">Same number, from an integral that never mentioned $R$. <b>All six agree.</b></p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small"><b>Trace:</b> $0.00288+0.01440+0.01664 = 0.03392$, unchanged ✓.
+    <b>Symmetry</b> preserved ✓. <b>Special case $a=b$:</b> $I'_{12}=I'_{23}=0$, so $\vec f_2$ —
+    the direction the mirror $x\leftrightarrow y$ reverses — is principal ✓; $\vec f_1$ and $\vec e_3$
+    lie <em>in</em> the mirror, and $I'_{13} = -\tfrac{m}{2\sqrt2}ac$ survives.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The point of doing it twice.</b> Route B is what "the tensor does not know about bases"
+    means operationally: $\mathsf I(\vec f_1,\vec f_1)$ is an integral over the body with a fixed
+    pair of input vectors, and it can be evaluated without ever writing a transformation law. Route
+    A is the law. They agree because the law is a theorem <em>about</em> Route B, not an extra rule.
+    If you ever doubt an index gymnastics result, Route B is always available.</p>
+    <p><b>Route A in full, by the two-line proof.</b>
+    $I'_{ab} = R_{ai}R_{bj}I_{ij}$. With $c=s=1/\sqrt2$ and
+    $R = \begin{pmatrix}c&s&0\\-s&c&0\\0&0&1\end{pmatrix}$:
+    $I'_{11}=c^2I_{11}+2csI_{12}+s^2I_{22}$;
+    $I'_{12}=-csI_{11}+(c^2-s^2)I_{12}+csI_{22}$, and $c^2-s^2=0$ at $45^\circ$, which is why the
+    middle term drops and $I'_{12}=\frac12(I_{22}-I_{11})$;
+    $I'_{13}=cI_{13}+sI_{23}$; $I'_{23}=-sI_{13}+cI_{23}$; $I'_{33}=I_{33}$.</p>
+    <p><b>Route B's three integrals.</b> Over $[0,a]\times[0,b]\times[0,c]$ with $\rho = m/abc$:
+    $\int\rho x^2 = \rho bc\frac{a^3}{3} = \frac m3a^2$; $\int\rho xy = \rho c\frac{a^2}{2}\frac{b^2}{2}
+    = \frac m4ab$. Then
+    $\int\rho y'^2 = \frac12\big(\frac m3a^2 - 2\cdot\frac m4ab + \frac m3b^2\big)
+    = \frac m6(a^2+b^2)-\frac m4ab$. Numerically
+    $0.1\times0.0832 = 0.00832$ and $0.15\times0.0384 = 0.00576$, and
+    $\int\rho z^2 = \frac m3c^2 = 0.00032$. Total $0.00288$ ✓.</p>
+    <p><b>The remaining five, by Route B</b>, are a good hour on paper and are the first problem of
+    the sheet in a smaller case. The two that are easiest to get wrong are $I'_{13}$ and $I'_{23}$,
+    because the $1/\sqrt2$ appears once, not twice.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tensors</p>
+  <h2>Nine numbers per basis that are not a tensor</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Define a rule $N$: in each orthonormal basis, return the array
+      $\mathrm{diag}(I_{11},I_{22},I_{33})$ — "the moments of inertia about the three coordinate
+      axes". Nine numbers per basis, computed from the body by an honest integral, one array for
+      every basis. It is <b>not</b> a tensor.</p>
+      <div class="box ex"><span class="label">the falsification, on <span class="ref" data-ref="Icor">the block</span></span>
+        <p class="small">In $\{\vec e_i\}$: $N = \mathrm{diag}(0.00544,\ 0.01184,\ 0.01664)$.</p>
+        <p class="small">Transport it by the law: $\big(RNR^{\mathsf T}\big)_{11} = \tfrac12(0.00544+0.01184) = \mathbf{0.00864}$.</p>
+        <p class="small">Apply the rule in $\{\vec f_a\}$: $N'_{11} = I'_{11} = \mathbf{0.00288}$.</p>
+        <p class="small">A factor of three apart. One rule, two answers, so no tensor produces them.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">what exactly fails</span>
+        <p class="small">A rule assigning an array to each basis comes from a tensor <b>iff</b> it
+        obeys the transformation law.</p>
+        <p class="small muted"><b>Why ($\Leftarrow$):</b> define $T$ by the array in one basis via
+        the component formula; in any other basis its components are given by the law, hence equal
+        the rule's array. ($\Rightarrow$) is the previous theorem.</p>
+      </div>
+      <p class="small">So the one-sentence answer: <em>the numbers are fine, the rule is not
+      <span class="term">equivariant</span></em> — it does not commute with change of basis, so
+      there is no single multilinear map behind it. $N$ discards $I_{12}$, and $I_{12}$ is exactly
+      the information that $I'_{11}$ needs.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this matters physically.</b> Each entry of $N$ is a real, measurable moment of inertia:
+    hang the block from each axis in turn and time the oscillations. The numbers are not wrong. What
+    is wrong is treating the triple as a description of the body's rotational inertia, because it
+    cannot answer "what is the moment about <em>this</em> axis" for an axis you did not measure. The
+    tensor can, from six numbers: $\mathsf I(\hat n,\hat n) = I_{ij}n_in_j$.</p>
+    <p><b>A second non-tensor, in the same spirit:</b> the rule $M_{ij} = |v_i|\,|v_j|$ built from a
+    fixed vector $\vec v$. Without the bars, $v_iv_j$ are the components of the tensor
+    $\vec v^\flat\otimes\vec v^\flat$; the bars throw away signs, and which signs they throw away
+    depends on the basis, so the rule cannot commute with a rotation that mixes positive and negative
+    components. A third: let the rule return the identity array in <em>every</em> basis, general
+    ones included, read as the components of a bilinear form. Read as a $(1,1)$-tensor it is a
+    tensor — $\delta^i_j$; read as $(0,2)$ it is not, since the law demands $S^{\mathsf T}S$. That is
+    the $\delta_{ij}$ trap of the index-notation slide, and it is the reason "the metric is
+    $\delta_{ij}$" is a statement about a choice of basis, not about space.</p>
+    <p><b>The quotient theorem</b>, which the problem sheet touches: if $N_{ij}v_j$ are the
+    components of a vector for <em>every</em> vector $\vec v$, then $N_{ij}$ are the components of a
+    tensor. That is the practical converse used in continuum mechanics to prove Cauchy's stress
+    tensor is a tensor (unit 22) rather than assuming it.</p>
+    <p><b>The numbers.</b> $(RNR^{\mathsf T})_{11} = c^2N_{11}+2csN_{12}+s^2N_{22}$ with $N_{12}=0$
+    and $c^2=s^2=\frac12$: $\frac12(0.00544+0.01184) = \frac12(0.01728) = 0.00864$. Against
+    $I'_{11}=0.00288$ from the previous slide. The discrepancy is
+    $-I_{12} = +0.00576$, precisely the term $N$ threw away.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Principal axes</h2>
+  <p>Three directions in every body where $\vec L$ and $\vec\omega$ finally agree.</p>
+</section>
+
+<section>
+  <p class="eyebrow">16 · principal axes</p>
+  <h2>The spectral theorem, proved</h2>
+  <div class="box thm"><span class="label">theorem</span>
+    <p class="small">Let $B$ be a symmetric bilinear form on a Euclidean space $V$ of dimension $n$.
+    Then $V$ has an <b>orthonormal basis</b> $\{\vec u_k\}$ and reals $\lambda_1\le\dots\le\lambda_n$
+    with $B(\vec u_j,\vec u_k) = \lambda_k\delta_{jk}$: the array of $B$ is diagonal in that basis.</p>
+  </div>
+  <div class="cols">
+    <div class="box proof"><span class="label">proof · induction on $n$</span>
+      <p class="small">$Q(\vec u) = B(\vec u,\vec u)$ is continuous on the unit sphere $S$, which is
+      compact, so it attains a maximum at some $\vec u_n\in S$. By Lagrange multipliers (unit 04)
+      applied to $Q$ under $\lVert\vec u\rVert^2=1$, at that point $\nabla Q = \lambda\nabla g$, i.e.
+      $2B_{ij}u_j = 2\lambda u_i$: $\vec u_n$ is an eigenvector with eigenvalue $\lambda=Q(\vec u_n)$.</p>
+      <p class="small">Let $W = \vec u_n^{\perp}$. For $\vec w\in W$,
+      $B(\vec u_n,\vec w) = \lambda\,\vec u_n\cdot\vec w = 0$, so $B$ restricts to a symmetric form
+      on $W$, of dimension $n-1$. Apply the hypothesis to $W$. $\;\blacksquare$</p>
+    </div>
+    <div>
+      <p class="small">Two things the proof gives free of charge:</p>
+      <ul class="small">
+        <li>the eigenvalues are <b>real</b> and the eigenvectors <b>orthogonal</b>, without ever
+        touching a characteristic polynomial or a complex number;</li>
+        <li>$\lambda_{\max} = \max_{\lVert\vec u\rVert=1}Q(\vec u)$ and
+        $\lambda_{\min}=\min$ — a variational characterisation, which is how one bounds a principal
+        moment without diagonalising anything.</li>
+      </ul>
+      <p class="small muted">The same theorem, in the guise of the generalised eigenvalue problem
+      $K\vec v = \omega^2M\vec v$, is what produced normal modes in unit 07. Here the second form is
+      the Euclidean inner product, and the eigenvalues are moments of inertia.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the theorem is about a form and a metric together.</b> "Diagonal in an orthonormal
+    basis" uses both $B$ and the inner product; the previous section explained why. Without a metric
+    the right statement is Sylvester's law of inertia — a symmetric form can be brought to
+    $\mathrm{diag}(1,\dots,1,-1,\dots,-1,0,\dots)$ by <em>some</em> basis, and only the signature is
+    invariant. Unit 26 uses exactly that version to define Minkowski signature, where no orthonormal
+    basis in the Euclidean sense exists.</p>
+    <p><b>The Lagrange-multiplier step, carefully.</b> $Q(\vec u) = B_{ij}u_iu_j$ with
+    $B_{ij}=B_{ji}$, so $\partial Q/\partial u_i = 2B_{ij}u_j$; the constraint $g=\lVert\vec u\rVert^2$
+    has $\partial g/\partial u_i = 2u_i$. The constraint's gradient never vanishes on $S$, so the
+    multiplier theorem of unit 04 applies at the maximiser. Symmetry of $B$ is used exactly once, in
+    differentiating $Q$ — and without it the conclusion is false.</p>
+    <p><b>Uniqueness.</b> The eigenvalues are unique; the eigenvectors are not, when eigenvalues
+    repeat. If $\lambda_1=\lambda_2$ every vector in their plane is an eigenvector, and the body has
+    a continuum of principal axes there. That is the symmetric top of §6.</p>
+    <p><b>Alternative proof</b>, the one most books give: the characteristic polynomial has a complex
+    root $\lambda$ with eigenvector $\vec z$, and
+    $\bar{\vec z}^{\mathsf T}B\vec z$ computed two ways forces $\lambda=\bar\lambda$. It is shorter
+    but tells you nothing about what the eigenvalues <em>are</em>; the extremal proof hands you the
+    variational characterisation, and that is what the problem sheet's Rayleigh-style bound uses.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · principal axes</p>
+  <h2>Principal axes, and the ellipsoid</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">The eigenvectors of $\mathsf I_O$ are the
+        <span class="term">principal axes</span> at $O$; the eigenvalues
+        $I_1\le I_2\le I_3$ are the <span class="term">principal moments</span>. In a principal
+        basis $\ \vec L = (I_1\omega_1,I_2\omega_2,I_3\omega_3)$ and
+        $T = \tfrac12\sum_kI_k\omega_k^2$.</p>
+        <p class="small">$\vec L\parallel\vec\omega$ exactly when $\vec\omega$ is along a principal
+        axis. Every body has such an orthonormal triple about every point — and a whole plane or
+        sphere of principal axes where the moments coincide.</p>
+      </div>
+      <div class="box thm"><span class="label">the triangle inequality</span>
+        <p class="small">$I_1+I_2\ge I_3$, with equality iff the body is a
+        <b>lamina</b> in the $1$–$2$ plane.</p>
+        <p class="small muted"><b>Why:</b> $I_1+I_2-I_3 = \int\rho\big[(x_2^2+x_3^2)+(x_1^2+x_3^2)-(x_1^2+x_2^2)\big]
+        = 2\int\rho\,x_3^2\ \ge 0$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">the <span class="term">inertia ellipsoid</span></span>
+        <p class="small">$\mathcal E = \{\vec u:\mathsf I_O(\vec u,\vec u)=1\}$ — an ellipsoid
+        because $\mathsf I_O$ is positive definite, with semi-axes $1/\sqrt{I_k}$ along the
+        principal axes. It is the tensor, drawn.</p>
+      </div>
+      <p class="small">Fattest semi-axis $\leftrightarrow$ smallest moment: the
+      <span class="ref" data-ref="blk">block</span>'s ellipsoid is longest along the spine.</p>
+      <div class="box good"><span class="label">check on the block</span>
+        <p class="small">$I_1+I_2-I_3 = 0.00136+0.00296-0.00416 = 0.00016\ \mathrm{kg\,m^2}$, and
+        $2\int\rho z^2 = \tfrac m6c^2 = 0.1\times0.0016 = 0.00016$ ✓. As $c\to0$ the block becomes a
+        lamina and the slack closes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The lamina case</b> is the <em>perpendicular-axis theorem</em>: for a flat body in the
+    $1$–$2$ plane, $I_3 = I_1+I_2$. It has no three-dimensional analogue, and it is on the problem
+    sheet. Note it holds only for the axis perpendicular to the lamina and only for the lamina's own
+    plane.</p>
+    <p><b>Reading the ellipsoid.</b> For a unit vector $\hat n$, the moment about that axis is
+    $\mathsf I(\hat n,\hat n)$, and the ellipsoid's radius in direction $\hat n$ is
+    $1/\sqrt{\mathsf I(\hat n,\hat n)}$. So directions where the ellipsoid is long are directions
+    that are easy to spin. Poinsot's construction in §5 puts this ellipsoid to work: the free
+    motion is the ellipsoid rolling without slipping on a fixed plane.</p>
+    <p><b>Why the eigenvalues deserve the name "moments".</b> $I_k = \mathsf I(\vec u_k,\vec u_k)$
+    is literally the moment of inertia about the $k$th principal axis, so the spectral theorem says:
+    among all axes through $O$, the largest and smallest moments are attained along principal axes,
+    and the intermediate one is a saddle of $\hat n\mapsto\mathsf I(\hat n,\hat n)$ on the sphere.
+    That saddle is the whole of §5.</p>
+    <p><b>Limit check on the triangle inequality.</b> For a sphere $I_1=I_2=I_3$ and the inequality
+    is strict ($2I\gt I$). For a rod along axis 3, $I_3=0$ and $I_1=I_2$, so
+    $I_1+I_2 = 2I_1 \gt 0 = I_3$: satisfied, and the "ellipsoid" degenerates to an infinite cylinder,
+    since $\mathsf I$ is only semi-definite there.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · principal axes · example 3</p>
+  <h2>Diagonalising the corner</h2>
+  <div class="box ex"><span class="label">worked example · <span class="ref" data-ref="Icor">$\mathsf I_O$</span> at the block's corner</span>
+    <div class="cols wide-left">
+      <div>
+        <p class="small">The array is symmetric with every off-diagonal entry nonzero, so the corner
+        frame is not principal. Its characteristic polynomial is a real cubic; solving it numerically:</p>
+        <table class="dense" style="margin:0">
+          <thead><tr><th class="num">$I_k\ (\mathrm{kg\,m^2})$</th><th>principal axis $\vec u_k$ in the corner frame</th></tr></thead>
+          <tbody>
+            <tr><td class="num">0.0018489</td><td>$(0.85562,\ 0.50443,\ 0.11604)$</td></tr>
+            <tr><td class="num">0.0152235</td><td>$(-0.51290,\ 0.85642,\ 0.05901)$</td></tr>
+            <tr><td class="num">0.0168476</td><td>$(-0.06961,\ -0.11000,\ 0.99149)$</td></tr>
+          </tbody>
+        </table>
+        <p class="small">The easiest axis through the corner points nearly, but not exactly, along
+        the body diagonal $(a,b,c)/\lVert\cdot\rVert = (0.82416,0.54944,0.13736)$: the angle between
+        them is $\arccos(0.99826) = 3.376^\circ$.</p>
+      </div>
+      <div>
+        <p class="small"><b>Why not exactly?</b> The diagonal is a symmetry axis only for a
+        <em>cube</em>. Set $a=b=c$: then $I_{ii}=\tfrac23ma^2$, $I_{ij}=-\tfrac14ma^2$, and</p>
+        $$\mathsf I_O\,\vec n = \big(\tfrac23-\tfrac14-\tfrac14\big)ma^2\,\vec n$$
+        <p class="small">for $\vec n=(1,1,1)$: the diagonal is exactly an eigenvector, with moment
+        $\tfrac16ma^2$ — the smallest, as the near-alignment suggested.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small"><b>Trace:</b> $0.0018489+0.0152235+0.0168476 = 0.033920$, the invariant computed
+    twice already ✓. <b>Positivity:</b> all three $\gt0$, as required for a body that is not a line ✓.
+    <b>Triangle:</b> $0.0018489+0.0152235-0.0168476 = 0.0002248\gt0$ ✓. <b>Order of magnitude:</b>
+    the largest, $0.01685$, exceeds the central $I_3=0.00416$ by roughly $M\lVert\vec d\rVert^2$
+    projected — Steiner, again ✓.</p>
+  </div>
+  <aside class="notes">
+    <p><b>How the numbers were obtained.</b> The characteristic polynomial of the $3\times3$ array
+    was solved numerically; a symmetric eigenvalue routine gives the same to twelve digits. Doing it
+    by hand is an afternoon and not instructive; what is instructive is the two checks — trace and
+    positivity — which catch almost every arithmetic slip, and both pass here.</p>
+    <p><b>The cube computation, in full.</b> With $a=b=c$ each row of
+    $\mathsf I_O$ reads $(\frac23,-\frac14,-\frac14)ma^2$ up to cyclic order, so acting on
+    $(1,1,1)$ gives $(\frac23-\frac14-\frac14)ma^2 = \frac16ma^2$ in each slot. The other two
+    eigenvalues are equal, by the symmetry argument of the next slide, and equal
+    $\frac23ma^2+\frac14ma^2 = \frac{11}{12}ma^2$ — check the trace: $\frac16+2\cdot\frac{11}{12}
+    = \frac16+\frac{11}6 = 2$, against $\operatorname{tr} = 3\cdot\frac23 = 2$ ✓.</p>
+    <p><b>Why $3.4^\circ$ and not more.</b> The corner tensor is dominated by the Steiner term
+    $M(\lVert\vec d\rVert^2\delta-\vec d\otimes\vec d)$, whose smallest eigenvector is exactly
+    $\vec d$, i.e. the body diagonal, with eigenvalue 0. The central tensor perturbs it, and the
+    perturbation is small because $M\lVert\vec d\rVert^2 = 0.0127\ \mathrm{kg\,m^2}$ is several times
+    the central moments. The tilt measures how far the block is from a cube.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · principal axes</p>
+  <h2>Symmetry forces degeneracy</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Suppose the body is carried onto itself, with density preserved, by the
+        rotation $C$ through $2\pi/n$ about a unit vector $\hat k$ through $O$. Then $\hat k$ is a
+        principal axis; and if $n\ge3$, the other two principal moments are <b>equal</b>.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Change of variables (unit 05) with $|\det C|=1$ gives
+        $\mathsf I_O(C\vec u,C\vec w) = \mathsf I_O(\vec u,\vec w)$: the form is $C$-invariant. Hence
+        the array $M$ of $\mathsf I_O$ satisfies $C^{\mathsf T}MC = M$, i.e. $MC = CM$.</p>
+        <p class="small">$C$ fixes $\hat k$, so $M\hat k$ is fixed by $C$ too; the fixed space of $C$
+        is the line $\mathbb R\hat k$ (for $n\ge2$), so $M\hat k\parallel\hat k$: principal.</p>
+        <p class="small">On $\hat k^\perp$, $M$ commutes with the plane rotation by $2\pi/n$.
+        Distinct eigenvalues would give two eigenlines, each carried into itself by it —
+        impossible for $n\ge3$, as the notes check. $\;\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">consequences</span>
+        <p class="small"><b>Cylinder, cone, square prism</b> about their axis: $I_1=I_2$, a
+        <span class="term">symmetric top</span>, and <em>every</em> axis perpendicular to $\hat k$ is
+        principal.</p>
+        <p class="small"><b>Cube</b> about its centre: three four-fold axes force
+        $I_1=I_2=I_3=\tfrac16ma^2$, so $\mathsf I = \tfrac16ma^2\,\delta$ and every direction is
+        principal. A cube has the inertia tensor of a sphere.</p>
+        <p class="small"><b>The <span class="ref" data-ref="blk">block</span></b> has only
+        two-fold axes, so nothing is forced: $I_1\lt I_2\lt I_3$, all distinct — which is why it is
+        the interesting case.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The change of variables.</b> $\mathsf I_O(C\vec u,C\vec w) = \int_B\rho(\vec r)
+    [(C\vec u\cdot C\vec w)\lVert\vec r\rVert^2-(C\vec u\cdot\vec r)(C\vec w\cdot\vec r)]\mathrm dV$.
+    Substitute $\vec r = C\vec s$; $C$ orthogonal preserves dot products and $\lVert\cdot\rVert$, the
+    Jacobian is 1, and the symmetry hypothesis says $\rho(C\vec s)=\rho(\vec s)$ with $C(B)=B$. What
+    is left is $\mathsf I_O(\vec u,\vec w)$.</p>
+    <p><b>The cube, carefully.</b> Take the three four-fold axes through opposite face centres. The
+    first forces the other two moments equal; the second forces another pair equal; together all
+    three are equal. Then $\mathsf I = \lambda\delta$, and the trace gives
+    $3\lambda = 2\int\rho\lVert\vec r\rVert^2 = 3\cdot\frac{ma^2}{6}\cdot\ldots$ — more simply,
+    $\lambda = \frac m{12}(a^2+a^2) = \frac16ma^2$ from example 1 ✓. A cube therefore spins stably
+    about every axis, has $\vec L\parallel\vec\omega$ always, and never flips. Unit 16's whole drama
+    needs an <em>asymmetric</em> body.</p>
+    <p><b>The $n\ge3$ step, in full.</b> Because $MC=CM$, $C$ maps every eigenspace of $M$ into
+    itself: if $M\vec v = \mu\vec v$ then $M(C\vec v) = CM\vec v = \mu\,C\vec v$. Suppose the two
+    eigenvalues on $\hat k^\perp$ differ. Then each of the two eigenlines is carried into itself by
+    $C$, so $C$ sends some nonzero $\vec v\in\hat k^\perp$ to $\pm\vec v$. A plane rotation by
+    $2\pi/n$ does that only if $2\pi/n$ is a multiple of $\pi$, i.e. $n\le2$. So for $n\ge3$ the two
+    eigenvalues are equal.</p>
+    <p><b>Why $n=2$ is not enough.</b> A two-fold axis gives $C=\mathrm{diag}(-1,-1,1)$, which
+    commutes with any matrix diagonal in that frame; it forces $\hat k$ principal but says nothing
+    about the other two. The block has exactly three two-fold axes, and gets exactly that: a
+    principal frame, with three unrelated moments.</p>
+    <p><b>The converse is false.</b> Equal moments do not imply symmetry of the body. One can build
+    a deliberately lumpy body with $\mathsf I\propto\delta$; it is sometimes called an inertially
+    spherical body, and it shows that $\mathsf I$ remembers only the second moments of the mass
+    distribution — everything the multipole expansion of unit 10 called higher order is invisible
+    to it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Euler's equations, and the axis that will not hold</h2>
+  <p>Three coupled nonlinear ODEs, and a prediction you can test by throwing a book.</p>
+</section>
+
+<section>
+  <p class="eyebrow">16 · Euler</p>
+  <h2>Euler's equations</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Angular momentum obeys $\big(\tfrac{\mathrm d\vec L}{\mathrm dt}\big)_{\text{space}}=\vec\tau$
+      about the centre of mass or a fixed pivot. Unit 03's transport theorem converts it to the body
+      frame, where $\mathsf I$ is <b>constant</b>:</p>
+      $$\Big(\tfrac{\mathrm d\vec L}{\mathrm dt}\Big)_{\text{body}}+\vec\omega\times\vec L=\vec\tau .$$
+      <p class="small">Take the body frame principal, so $L_k=I_k\omega_k$ with $I_k$ constants:</p>
+      <div class="box thm"><span class="label"><span class="term">Euler's equations</span> (1758)</span>
+        $$\begin{aligned}I_1\dot\omega_1&=(I_2-I_3)\,\omega_2\omega_3+\tau_1\\ I_2\dot\omega_2&=(I_3-I_1)\,\omega_3\omega_1+\tau_2\\ I_3\dot\omega_3&=(I_1-I_2)\,\omega_1\omega_2+\tau_3\end{aligned}$$
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">what the body frame costs</span>
+        <p class="small">These are equations for the components of $\vec\omega$ <em>in a frame that
+        is itself rotating with the body</em>. Solving them gives $\vec\omega(t)$ in the body; to
+        get the body's orientation in space you must then integrate $\dot R = R\Omega$, which is
+        §6's business and is the harder half.</p>
+      </div>
+      <p class="small">Why bother: in the space frame $\mathsf I$ changes with time, and
+      $\vec L = \mathsf I(t)\vec\omega$ is useless. The quadratic terms are the price of a constant
+      $\mathsf I$, and they are also where all the physics is — set $I_1=I_2=I_3$ and they vanish.</p>
+      <p class="small muted">Dimensions: each term is
+      $\mathrm{kg\,m^2\,s^{-2}} = \mathrm{N\,m}$ ✓. Limit $\mathsf I\propto\delta$: $\dot{\vec\omega}=\vec\tau/I$,
+      the rotational $\vec F=m\vec a$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full derivation.</b> $\vec L$ is one covector; its space-frame and body-frame component
+    arrays are related by $R$. The transport theorem (unit 03) says that for any vector-valued
+    function, $\left(\frac{\mathrm d}{\mathrm dt}\right)_{\text{space}}$ applied to it equals
+    $\left(\frac{\mathrm d}{\mathrm dt}\right)_{\text{body}}+\vec\omega\times$ acting on its body
+    components. Applied to $\vec L$ and set equal to $\vec\tau$ this gives the displayed equation. In
+    the principal body frame $L_k = I_k\omega_k$ with $I_k$ time-independent — that is the whole
+    reason for working there — so $(\mathrm d\vec L/\mathrm dt)_{\text{body}}$ has components
+    $I_k\dot\omega_k$, and the cross product $\vec\omega\times\vec L$ has first component
+    $\omega_2L_3-\omega_3L_2 = (I_3-I_2)\omega_2\omega_3$. Move it to the right.</p>
+    <p><b>The same equations from unit 12.</b> They are the Euler–Lagrange equations of
+    $L = \frac12\sum I_k\omega_k^2 - V$ on the configuration space $SO(3)$, with the $\omega_k$
+    written in Euler angles. Deriving them that way is two pages and produces the same three lines,
+    which is a good demonstration that the Lagrangian formalism does not always shorten the work —
+    it shortens the <em>thinking</em>, by never requiring a constraint force.</p>
+    <p><b>Torque about which point.</b> The same two points as König: the centre of mass, or a point
+    of the body fixed in space. About any other moving point there are extra terms. The free top
+    below uses the centre of mass, the heavy top of §6 uses the pivot.</p>
+    <p><b>History.</b> Euler presented these to the Berlin Academy in 1758 (printed 1765), nearly a
+    century before Hamilton coined the word "tensor" (1846, in a different sense) and seventy years
+    before Cauchy proved (1829) that a real symmetric matrix has real eigenvalues and orthogonal
+    eigenvectors. The principal axes themselves had been found by Segner in 1755, as three
+    perpendicular axes about which the products of inertia vanish.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · Euler</p>
+  <h2>The free top: two surfaces, one curve</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">With $\vec\tau=0$, two quantities are conserved, both immediately from the
+      equations:</p>
+      $$2T=\sum_kI_k\omega_k^2,\qquad \lVert\vec L\rVert^2=\sum_kI_k^2\omega_k^2 .$$
+      <p class="small muted"><b>Why:</b> multiply the $k$th equation by $\omega_k$ and add — the
+      right-hand side telescopes to zero. Multiply by $I_k\omega_k$ and add — same.</p>
+      <p class="small">In $\vec\omega$-space these are two ellipsoids, and the motion runs along
+      their intersection — generically a closed curve, the <span class="term">polhode</span>.</p>
+      <div class="box good"><span class="label">Poinsot, 1834</span>
+        <p class="small">Equivalently: the <span class="term">inertia ellipsoid</span>, carried by the
+        body, rolls without slipping on a plane fixed in space and perpendicular to $\vec L$. The
+        polhode is its track on the ellipsoid.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 300" width="330" role="img" aria-label="polhodes on the energy ellipsoid: small closed loops around the axes of extreme moment, and two crossing curves through the intermediate axis">
+        <ellipse cx="180" cy="150" rx="140" ry="105" fill="none" class="unit" stroke-width="2.5"/>
+        <path d="M180 45 C 120 45 92 80 92 108" fill="none" class="rule" stroke-width="1.4"/>
+        <ellipse cx="180" cy="60" rx="38" ry="13" fill="none" class="accent" stroke-width="2"/>
+        <ellipse cx="180" cy="240" rx="38" ry="13" fill="none" class="accent" stroke-width="2"/>
+        <ellipse cx="62" cy="150" rx="13" ry="30" fill="none" class="accent" stroke-width="2"/>
+        <ellipse cx="298" cy="150" rx="13" ry="30" fill="none" class="accent" stroke-width="2"/>
+        <path d="M180 45 C 250 70 300 118 318 150 C 300 182 250 230 180 255" fill="none" class="warn" stroke-width="2.6"/>
+        <path d="M180 45 C 110 70 60 118 42 150 C 60 182 110 230 180 255" fill="none" class="warn" stroke-width="2.6"/>
+        <circle cx="180" cy="150" r="6" class="fill-warn"/>
+        <text x="186" y="146" font-size="15" class="mono">axis 2</text>
+        <text x="160" y="36" font-size="15" class="mono soft">axis 1</text>
+        <text x="8" y="146" font-size="15" class="mono soft">axis 3</text>
+      </svg>
+      <p class="cap">Polhodes on the energy ellipsoid. Closed loops encircle axes 1 and 3; the two
+      curves through axis 2 cross there — a saddle, and the whole story of the next three slides.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The two conservation laws, in full.</b> Multiply Euler's first equation by $\omega_1$:
+    $I_1\omega_1\dot\omega_1 = (I_2-I_3)\omega_1\omega_2\omega_3$. Do the same for the other two and
+    add: the right-hand side is $[(I_2-I_3)+(I_3-I_1)+(I_1-I_2)]\omega_1\omega_2\omega_3 = 0$, and the
+    left is $\frac{\mathrm d}{\mathrm dt}\frac12\sum I_k\omega_k^2$. Multiplying instead by
+    $I_k\omega_k$ gives $\sum I_k^2\omega_k\dot\omega_k$ on the left and
+    $[I_1(I_2-I_3)+I_2(I_3-I_1)+I_3(I_1-I_2)]\omega_1\omega_2\omega_3 = 0$ on the right.</p>
+    <p><b>Why an intersection of two ellipsoids is generically a closed curve.</b> Both are compact;
+    their intersection is compact, and for generic values it is a one-dimensional manifold, hence a
+    finite union of circles. The exceptional values are those where the surfaces are tangent —
+    which happens exactly at the principal axes, and at $2TI_2=\lVert\vec L\rVert^2$, where the
+    intersection degenerates into two crossing curves through $\pm\vec u_2$. Those are the
+    separatrices in the figure.</p>
+    <p><b>Poinsot's construction, stated precisely (cited: Arnold §29).</b>
+    Let $\vec\rho = \vec\omega/\sqrt{2T}$, so $\mathsf I(\vec\rho,\vec\rho)=1$: $\vec\rho$ lies on the
+    inertia ellipsoid. The outward normal there is $\nabla_{\vec\rho}\mathsf I(\vec\rho,\vec\rho)
+    = 2\mathsf I\vec\rho\propto\vec L$, fixed in space, and
+    $\vec\rho\cdot\vec L = 2T/\sqrt{2T}$ is constant — so the tangent plane at the contact point is
+    fixed. The contact point has velocity $\vec\omega\times\vec\rho = 0$, so the rolling is without
+    slipping.</p>
+    <p><b>The name.</b> Polhode, from Greek for "pole path"; its track on the fixed plane is the
+    herpolhode. The Earth's polhode is the Chandler wobble, §6.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · Euler</p>
+  <h2>Linearising about a principal axis</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">$\vec\omega = \Omega\vec u_2 + \vec v$ with $\lVert\vec v\rVert\ll\Omega$ —
+      steady spin about axis 2, slightly disturbed. To first order in $\vec v$, the second Euler
+      equation gives $I_2\dot v_2 = (I_3-I_1)v_3v_1 = O(v^2)$, so $\omega_2=\Omega$ is constant at
+      this order, and the other two decouple from it:</p>
+      $$I_1\dot v_1=(I_2-I_3)\,\Omega\,v_3,\qquad I_3\dot v_3=(I_1-I_2)\,\Omega\,v_1 .$$
+      <p class="small">Differentiate the first and substitute the second — a linear constant-coefficient
+      system, unit 06:</p>
+      $$\ddot v_1 = \frac{(I_2-I_3)(I_1-I_2)}{I_1I_3}\,\Omega^2\,v_1 \;=\; \frac{(I_3-I_2)(I_2-I_1)}{I_1I_3}\,\Omega^2\,v_1 .$$
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the sign decides everything</span>
+        <p class="small">Spin about the axis with moment $I_\alpha$ and call the other two
+        $I_\beta,I_\gamma$. The same two lines give $\ddot v_\beta=\sigma\Omega^2v_\beta$ with</p>
+        $$\sigma \;=\; -\,\frac{(I_\alpha-I_\beta)(I_\alpha-I_\gamma)}{I_\beta I_\gamma}.$$
+        <p class="small">The product $(I_\alpha-I_\beta)(I_\alpha-I_\gamma)$ is <b>positive</b> when
+        $I_\alpha$ is the largest or the smallest, and <b>negative</b> when it lies strictly between.
+        So $\sigma\lt0$ — oscillation — at the extreme axes, and $\sigma\gt0$ — exponential growth
+        — at the intermediate one, and nowhere else.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Do the bookkeeping slowly; this is where sign errors breed.</b> Perturb about axis 1:
+    $\vec\omega = (\Omega,v_2,v_3)$. Euler 2 and 3 linearise to
+    $I_2\dot v_2 = (I_3-I_1)\Omega v_3$ and $I_3\dot v_3 = (I_1-I_2)\Omega v_2$, so
+    $\ddot v_2 = \frac{(I_3-I_1)(I_1-I_2)}{I_2I_3}\Omega^2v_2$. With $I_1\lt I_2\lt I_3$ the numerator
+    is $(+)(-)\lt0$: oscillation. Perturb about axis 3: $\ddot v_1 =
+    \frac{(I_2-I_3)(I_3-I_1)}{I_1I_2}\Omega^2v_1$, numerator $(-)(+)\lt0$: oscillation. Perturb about
+    axis 2, as on the slide: numerator $(I_2-I_3)(I_1-I_2) = (-)(-)\gt0$: growth. Three explicit
+    computations, one line each, and they are what the box's $\sigma$ summarises. When in doubt,
+    redo them rather than recall the formula.</p>
+    <p><b>Why $\omega_\alpha$ stays constant.</b> Its equation has the product of the two
+    <em>small</em> components on the right, so $\dot\omega_\alpha = O(v^2)$: at linear order the spin
+    rate about the chosen axis does not change. At second order it does, slowly, and that is what
+    makes the full nonlinear motion periodic rather than unbounded.</p>
+    <p><b>This is unit 02's programme.</b> Steady rotation about a principal axis is an equilibrium of
+    the Euler system on $\mathbb R^3$ — in fact a whole line of equilibria, one for each $\Omega$.
+    Linearise, read the eigenvalues of the Jacobian: $\pm\lambda$ real is a saddle,
+    $\pm i\lambda$ is a centre. Unit 02 also warned that a centre in the linearisation proves
+    nothing about the nonlinear system. That warning is cashed two slides on.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · Euler · example 4</p>
+  <h2>The intermediate-axis theorem, with a number</h2>
+  <div class="cols wide-left">
+    <div class="box thm"><span class="label"><span class="term">intermediate-axis theorem</span></span>
+      <p class="small">For $I_1\lt I_2\lt I_3$, steady rotation about the intermediate principal
+      axis is linearly unstable, with growth rate</p>
+      $$\lambda=\Omega\sqrt{\frac{(I_3-I_2)(I_2-I_1)}{I_1I_3}} ,$$
+      <p class="small">while rotation about either extreme axis is a centre, not a saddle.</p>
+    </div>
+    <div class="box good"><span class="label">checks</span>
+      <p class="small"><b>Dimensions:</b> the ratio is dimensionless, so $[\lambda]=\mathrm{s^{-1}}$ ✓.
+      <b>Limit</b> $I_2\to I_1$ or $I_2\to I_3$: $\lambda\to0$, and a symmetric top has no
+      intermediate axis ✓. <b>Bound:</b> $\lambda\lt\Omega$ always, from $I_1+I_2\ge I_3$ ✓.</p>
+    </div>
+  </div>
+  <div class="box ex"><span class="label">worked example · <span class="ref" data-ref="blk">the block</span>, thrown</span>
+    <div class="cols">
+      <div>
+        <p class="small">$I_1=0.00136$, $I_2=0.00296$, $I_3=0.00416\ \mathrm{kg\,m^2}$:</p>
+        $$\frac{(0.00120)(0.00160)}{(0.00136)(0.00416)}=0.33937,$$
+        <p class="small">whose root is $0.58255$. At two turns a second,
+        $\Omega=4\pi=12.566\ \mathrm{s^{-1}}$ and
+        <span class="ref" data-ref="flip">$\lambda=7.3206\ \mathrm{s^{-1}}$</span>.</p>
+      </div>
+      <div>
+        <p class="small">A $1\%$ wobble grows like $e^{\lambda t}$, reaching order one after
+        $\ln(100)/\lambda = \mathbf{0.63}$ s — the length of a throw, which is why the flip is
+        always seen and never avoidable.</p>
+        <p class="small">About the spine, instead, a steady wobble of period $0.83$ s; about the
+        cover normal, $0.55$ s.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The prediction is falsifiable in your kitchen.</b> Put a rubber band round a hardback so it
+    cannot open. Toss it spinning about the axis lying in the cover and perpendicular to the spine.
+    At two turns a second a toss of about half a second is a turn or so about that axis, and the
+    book arrives back in your hand having flipped over as well — about one flip per toss. Tossed about the spine, or about
+    the axis through the cover, it does not.</p>
+    <p><b>Why the flip time is only logarithmically sensitive.</b> The time to grow from an initial
+    wobble $\varepsilon$ to order one is $\ln(1/\varepsilon)/\lambda$. Halving $\varepsilon$ adds only
+    $\ln2/\lambda = 0.095$ s. That is why the interval between successive flips of a freely tumbling
+    body looks almost regular even though nothing enforces a period — the same logarithm that makes
+    the wing nut Dzhanibekov filmed on Salyut 7 in 1985 flip at a nearly steady rate, every few seconds, for as long
+    as the camera runs. The exact interval requires the full nonlinear solution in Jacobi elliptic
+    functions, which this course does not build; what is derived here is the growth rate, and that
+    is the falsifiable part.</p>
+    <p><b>The extreme-axis frequencies.</b> About axis 1: $\Omega\sqrt{(I_3-I_1)(I_2-I_1)/(I_2I_3)}
+    = 12.566\times0.6032 = 7.580\ \mathrm{s^{-1}}$, period $0.829$ s. About axis 3:
+    $\Omega\sqrt{(I_3-I_1)(I_3-I_2)/(I_1I_2)} = 12.566\times0.9136 = 11.481\ \mathrm{s^{-1}}$, period
+    $0.547$ s. These are the wobbles you see superposed on a stable toss.</p>
+    <p><b>The bound $\lambda\lt\Omega$.</b> The triangle inequality $I_1+I_2\ge I_3$ gives
+    $I_3-I_2\le I_1$, and $I_2\lt I_3$ gives $I_2-I_1\lt I_3$. Multiplying,
+    $(I_3-I_2)(I_2-I_1)\lt I_1I_3$, so the ratio under the root is below 1 and $\lambda\lt\Omega$.
+    The instability never outruns the spin itself; for the block it reaches $58\%$ of it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · Euler</p>
+  <h2>The stable axes need more than a linearisation</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">unit 02's warning, cashed</span>
+        <p class="small">At axes 1 and 3 the linearisation has eigenvalues $\pm i\lambda$: a
+        <b>centre</b>. Hartman–Grobman says nothing about centres, and unit 02 exhibited systems with
+        a linear centre that spiral out. Linear stability is <em>not</em> stability. Something else
+        is needed.</p>
+      </div>
+      <div class="box thm"><span class="label">Lyapunov stability of the extreme axes</span>
+        <p class="small">$F:=\lVert\vec L\rVert^2-2I_1T=\sum_kI_k(I_k-I_1)\omega_k^2$ is conserved,
+        and equals $I_2(I_2-I_1)\omega_2^2+I_3(I_3-I_1)\omega_3^2$ — a positive definite function of
+        $(\omega_2,\omega_3)$ when $I_1$ is <b>strictly smallest</b>. So $F$ is a Lyapunov function:
+        rotation about axis 1 is stable.</p>
+        <p class="small">$G:=2I_3T-\lVert\vec L\rVert^2=\sum_kI_k(I_3-I_k)\omega_k^2$ does the same
+        for the largest. $\;\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Read the figure of the free top again: the level sets of $F$ near axis 1 are
+      the small closed polhodes. A trajectory starting on a small one stays on it <em>forever</em>,
+      because $F$ cannot change — not merely for a long time.</p>
+      <div class="box good"><span class="label">what is proved, precisely</span>
+        <p class="small">For every $\varepsilon\gt0$ there is $\delta\gt0$ such that
+        $\lVert\vec\omega(0)-\Omega\vec u_1\rVert\lt\delta$ implies
+        $\lVert\vec\omega(t)-\Omega'\vec u_1\rVert\lt\varepsilon$ for all $t$, for some nearby
+        $\Omega'$. Stability of the <em>axis</em>, not of a particular $\Omega$: the spin rate may
+        settle slightly different, and does.</p>
+      </div>
+      <p class="small muted">And for axis 2, both $F$ and $G$ are <em>indefinite</em>: neither works,
+      as it must be, since the axis is genuinely unstable.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>$F = \lVert\vec L\rVert^2-2I_1T = \sum_kI_k^2\omega_k^2-I_1\sum_kI_k\omega_k^2
+    = \sum_kI_k(I_k-I_1)\omega_k^2$. The $k=1$ term vanishes identically, leaving
+    $F = I_2(I_2-I_1)\omega_2^2+I_3(I_3-I_1)\omega_3^2$, with both coefficients strictly positive
+    when $I_1\lt I_2\le I_3$. Both $\lVert\vec L\rVert^2$ and $T$ are conserved along the free
+    motion, so $F$ is. Given $\varepsilon$, let
+    $c = \min\{I_2(I_2-I_1),I_3(I_3-I_1)\}\,\varepsilon^2$ and pick $\delta$ small enough that
+    $F(\vec\omega(0))\lt c$; then $\omega_2^2+\omega_3^2\lt\varepsilon^2$ for all $t$. That is
+    Lyapunov stability of the $\vec u_1$ axis. It says nothing about $\omega_1$, which is why the
+    statement is about the axis: $\omega_1$ is pinned only by $T$, to within $O(\varepsilon^2)$.</p>
+    <p><b>Why this is the right kind of argument.</b> Unit 02 introduced Lyapunov functions exactly
+    for the situation where linearisation is silent, and the free rigid body is the classical
+    example. Note that no approximation was made anywhere: $F$ is exactly conserved and exactly
+    positive definite, so the conclusion holds for perturbations of any size, not just small ones —
+    stronger than anything a linearisation could give.</p>
+    <p><b>The indefinite case.</b> With $\alpha=2$: $\lVert\vec L\rVert^2-2I_2T
+    = I_1(I_1-I_2)\omega_1^2+I_3(I_3-I_2)\omega_3^2$, whose coefficients have opposite signs. Its
+    level sets near the axis are hyperbolas, not ellipses — the crossing curves in the figure — and
+    the conserved quantity, far from trapping the trajectory, is precisely what channels it away.</p>
+    <p><b>Energy dissipation changes the answer.</b> A real body flexes and loses energy at fixed
+    $\lVert\vec L\rVert$, so it drifts to the smallest $T$ compatible with its $\vec L$, which is
+    rotation about the axis of <em>largest</em> moment. Explorer 1 (1958) was spin-stabilised about
+    its long, small-moment axis, and its flexible wire antennas dissipated enough energy that it was
+    soon found tumbling end over end instead. Nothing in this unit's conservative analysis predicts that,
+    and nothing in it contradicts it: the Lyapunov argument assumes $T$ is constant.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Coordinates for a group, and the tops they describe</h2>
+  <p>Three angles that almost work, and the gyroscope they explain.</p>
+</section>
+
+<section>
+  <p class="eyebrow">16 · Euler angles</p>
+  <h2>Three angles, and where they fail</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Euler angles</span> ($z$–$x$–$z$)</span>
+        <p class="small">$R(\phi,\theta,\psi)=R_z(\phi)\,R_x(\theta)\,R_z(\psi)$: precess by $\phi$
+        about the space $z$, tilt by $\theta$, spin by $\psi$ about the body $3$-axis. In body
+        components,</p>
+        $$\begin{aligned}\omega_1&=\dot\phi\sin\theta\sin\psi+\dot\theta\cos\psi\\ \omega_2&=\dot\phi\sin\theta\cos\psi-\dot\theta\sin\psi\\ \omega_3&=\dot\phi\cos\theta+\dot\psi\end{aligned}$$
+      </div>
+      <p class="small">The Jacobian $\partial(\omega_1,\omega_2,\omega_3)/\partial(\dot\phi,\dot\theta,\dot\psi)$
+      has determinant $\;-\sin\theta$. At $\theta=0$ or $\pi$ it drops rank: only $\dot\phi+\dot\psi$
+      is determined, and the map from angles to rotations is not locally invertible.</p>
+      <p class="small">On the <span class="ref" data-ref="blk">block</span>: put the space $z$ along
+      the conserved $\vec L$, and $\cos\theta = I_3\omega_3/\lVert\vec L\rVert$ — so $\theta$ is the
+      tilt of the cover normal from $\vec L$. In a <span class="ref" data-ref="flip">flip</span> it
+      starts at $\pi/2$, nods towards $\vec L$ and back, while $\phi,\psi$ carry the half-turn. Toss
+      the book about the cover normal, though, and it sits at $\theta\approx0$: the chart is
+      singular precisely where the motion is calmest.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label"><span class="term">gimbal lock</span></span>
+        <p class="small">Not sloppiness, and not fixable by a cleverer choice of angles.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · no global chart</span>
+        <p class="small">There is no homeomorphism from $SO(3)$ onto an open subset of $\mathbb R^3$.</p>
+        <p class="small muted"><b>Why:</b> $SO(3)$ is closed and bounded in $\mathbb R^9$, hence
+        compact; its image would be a compact <em>and</em> open subset of $\mathbb R^3$, hence both
+        closed and open, hence $\varnothing$ or $\mathbb R^3$ — and $\mathbb R^3$ is not
+        compact. $\;\blacksquare$</p>
+      </div>
+      <p class="small">So <em>every</em> three-parameter description of rotations has singular points.
+      Unit 31 says the right response: cover the space with several charts and never insist on one.
+      That is the single idea general relativity cannot do without.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the $\omega$ formulas come from.</b> $\vec\omega$ is the sum of three contributions:
+    $\dot\phi$ about the space $z$-axis, $\dot\theta$ about the line of nodes, $\dot\psi$ about the
+    body $3$-axis. Express each in body components. The body $3$-axis is $(0,0,1)$; the line of nodes
+    is $(\cos\psi,-\sin\psi,0)$; the space $z$-axis is
+    $(\sin\theta\sin\psi,\ \sin\theta\cos\psi,\ \cos\theta)$. Add, weighted by
+    $\dot\psi,\dot\theta,\dot\phi$, and the three displayed lines appear. Checking the middle one:
+    the space $z$ contributes $\dot\phi\sin\theta\cos\psi$ and the nodes contribute
+    $-\dot\theta\sin\psi$ ✓.</p>
+    <p><b>The determinant.</b> Expanding along the third row of the coefficient matrix and using
+    $\sin^2\psi+\cos^2\psi=1$ gives $-\sin\theta$. At $\theta=0$ the first two rows become
+    proportional: the $\dot\phi$ column is $(0,0,1)$, identical to the $\dot\psi$ column, so a change
+    in $\phi$ and an equal, opposite change in $\psi$ produce no motion at all. That is gimbal lock:
+    two of the three axes have become parallel and one degree of freedom is invisible.</p>
+    <p><b>The block's $\theta$, in full.</b> The Euler angle $\theta$ is the angle between the space
+    $z$-axis and the body $3$-axis, because the space $z$-axis has body components
+    $(\sin\theta\sin\psi,\sin\theta\cos\psi,\cos\theta)$ and the body $3$-axis is $(0,0,1)$. Choose
+    the space $z$ along the conserved $\vec L$; its body components are $\vec L/\lVert\vec L\rVert$,
+    whose third entry is $I_3\omega_3/\lVert\vec L\rVert$, so $\cos\theta = I_3\omega_3/\lVert\vec L\rVert$.
+    For the block that is the cover normal's tilt from $\vec L$, and integrating $\dot R = R\Omega$
+    for the thrown book is exactly the job of finding $\phi,\theta,\psi$ as functions of time — the
+    harder half promised in §5, and the half that needs Jacobi elliptic functions.</p>
+    <p><b>The compactness argument, in detail.</b> $SO(3)\subset\mathbb R^9$ is bounded (every entry
+    has modulus at most 1, since columns are unit vectors) and closed (it is the preimage of
+    $(\mathbb 1,1)$ under the continuous map $R\mapsto(R^{\mathsf T}R,\det R)$), hence compact by
+    Heine–Borel. A homeomorphism carries compact to compact; $\mathbb R^3$ is connected, so its only
+    clopen subsets are $\varnothing$ and itself; and $\mathbb R^3$ is not compact. Hence no such
+    homeomorphism exists. The learner's metric-space topology is all this needs.</p>
+    <p><b>What $SO(3)$ actually is.</b> The closed ball of radius $\pi$ in $\mathbb R^3$ — the
+    axis-angle vector $\theta\hat n$ of Rodrigues — with antipodal boundary points identified, since
+    a rotation by $\pi$ about $\hat n$ equals one by $\pi$ about $-\hat n$. That is real projective
+    space $\mathbb{RP}^3$, which unit 31 names. Quaternions give a two-to-one covering by the
+    3-sphere and are how flight software avoids gimbal lock — not by escaping the theorem, but by
+    using four numbers with one constraint instead of three free ones.</p>
+    <p><b>Apollo 11 carried a gimbal-lock warning</b> for its three-gimbal inertial platform, and
+    Michael Collins, near it in lunar orbit, asked Mission Control half in jest for a fourth gimbal
+    for Christmas. The problem was real hardware built to
+    the shape of this theorem.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tops</p>
+  <h2>The symmetric top, free: two cones</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Let $I_1=I_2\ne I_3$ — a <span class="term">symmetric top</span>. Euler's third
+      equation gives $\dot\omega_3=0$, and the first two become</p>
+      $$\dot\omega_1=-\Omega_b\omega_2,\ \ \dot\omega_2=\Omega_b\omega_1,$$
+      $$\Omega_b:=(I_3-I_1)\omega_3/I_1,$$
+      <p class="small">a rotation of $(\omega_1,\omega_2)$ at constant rate (unit 06). So in the
+      <b>body</b> frame $\vec\omega$ sweeps a cone about the symmetry axis at $\Omega_b$; in the
+      <b>space</b> frame $\vec L$ is fixed and $\vec\omega$ sweeps a second cone about it. The body
+      cone rolls on the space cone.</p>
+      <div class="box good"><span class="label">check</span>
+        <p class="small">$I_3\to I_1$: $\Omega_b\to0$, free rotation about a fixed axis — correct for
+        a sphere ✓. Dimensions: $\mathrm{s^{-1}}$ ✓.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the Earth, which is a symmetric top</span>
+        <p class="small">The Earth's dynamical ellipticity is
+        $(I_3-I_1)/I_3=3.2738\times10^{-3}$ (cited: IERS Conventions 2010), so
+        $(I_3-I_1)/I_1=3.2845\times10^{-3}$ and</p>
+        $$\frac{2\pi}{\Omega_b}=\frac{I_1}{I_3-I_1}\,T_{\text{sid}}=\mathbf{303.6}\ \text{d},$$
+        <p class="small">with $T_{\text{sid}} = 86164$ s the sidereal day.</p>
+        <p class="small">The pole should wander in a circle with that period — Euler, 1765.
+        Chandler found the wobble in 1891; its period is <b>433</b> days.</p>
+        <p class="small">Not a failed prediction of this theory but of one of its hypotheses: the
+        Earth is not rigid. Its yielding lengthens the period by $43\%$ — which Newcomb (1892) read
+        at once as evidence of an elastic Earth.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Solving the two equations.</b> Set $\zeta=\omega_1+i\omega_2$; then
+    $\dot\zeta = i\Omega_b\zeta$, so $\zeta=\zeta_0e^{i\Omega_bt}$ — unit 06's complex exponential
+    doing exactly the job it was introduced for. $|\zeta|$ is constant, so $\vec\omega$ keeps a
+    constant angle with the symmetry axis and a constant magnitude.</p>
+    <p><b>Why the space cone.</b> $\vec L$, $\vec\omega$ and the symmetry axis $\vec u_3$ are always
+    coplanar: $\vec L = I_1(\omega_1,\omega_2,0)+I_3\omega_3\vec u_3 = I_1\vec\omega+(I_3-I_1)\omega_3\vec u_3$.
+    With $\vec L$ fixed in space, that identity forces $\vec\omega$ and $\vec u_3$ to precess
+    together about $\vec L$, at the rate $\lVert\vec L\rVert/I_1$. Two rates, then: $\Omega_b$ in the
+    body and $\lVert\vec L\rVert/I_1$ in space. The rolling-cones picture is the two of them drawn at
+    once.</p>
+    <p><b>The Chandler wobble in numbers.</b> Amplitude a few metres of polar displacement, period
+    433 days, and it should have damped out in a few decades — the excitation is now attributed
+    mainly to ocean-bottom pressure and atmospheric variability. The $303.6$-day figure here is the
+    rigid-body Euler period, and the gap between 303.6 and 433 is a measurement of the Earth's
+    elastic response (the Love number $k$), with smaller contributions from the oceans and the fluid
+    core. The arithmetic: $I_1/(I_3-I_1) = 304.46$, and one sidereal day is $86164$ s, so the period
+    is $304.46$ sidereal days $= 303.6$ days of $86400$ s; and $433/303.6 = 1.43$.</p>
+    <p><b>A hand-sized version</b>: a spiral pass in American football is, to a first approximation,
+    a free symmetric top. On a wobbly pass the nose circles the fixed $\vec L$ at the space-cone
+    rate $\lVert\vec L\rVert/I_1$, which is what a spectator sees; $\Omega_b$ is the rate at which
+    $\vec\omega$ circles the ball's own axis, seen only from on board.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tops</p>
+  <h2>The heavy top, from a Lagrangian</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">A symmetric top on a fixed pivot, centre of mass a distance $l$ up the
+      symmetry axis. Using the Euler-angle expressions and $I_1=I_2$,</p>
+      $$\mathcal L=\tfrac12I_1\big(\dot\theta^2+\dot\phi^2\sin^2\theta\big)+\tfrac12I_3\big(\dot\psi+\dot\phi\cos\theta\big)^2-Mgl\cos\theta .$$
+      <p class="small">$\phi$ and $\psi$ are <b>cyclic</b> (unit 12), so</p>
+      $$p_\psi=I_3\omega_3=:L_3,\qquad p_\phi=I_1\dot\phi\sin^2\theta+L_3\cos\theta=:L_z$$
+      <p class="small">are conserved, and $\theta$ alone is left, moving in an
+      effective potential</p>
+      $$V_{\text{eff}}(\theta)=\frac{(L_z-L_3\cos\theta)^2}{2I_1\sin^2\theta}+Mgl\cos\theta .$$
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">steady precession</span></span>
+        <p class="small">$\theta\equiv\theta_0$ requires $V_{\text{eff}}'(\theta_0)=0$, which in terms
+        of $\dot\phi$ is the <b>quadratic</b></p>
+        $$I_1\cos\theta_0\,\dot\phi^2-L_3\,\dot\phi+Mgl=0 .$$
+        <p class="small">Two roots when $L_3^2\ge4I_1Mgl\cos\theta_0$: a <b>slow</b> and a
+        <b>fast</b> precession. Spin the top slower than that and steady precession at that angle is
+        impossible.</p>
+      </div>
+      <p class="small">For $L_3$ large the slow root is
+      $\dot\phi\simeq Mgl/L_3$, independent of $\theta_0$ — the textbook answer. Small oscillations
+      of $\theta$ about $\theta_0$ are <span class="term">nutation</span>, at
+      $\omega_{\text{nut}}=\sqrt{V_{\text{eff}}''(\theta_0)/I_1}\simeq L_3/I_1$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Getting $V_{\text{eff}}$.</b> The energy is
+    $E = \frac12I_1(\dot\theta^2+\dot\phi^2\sin^2\theta)+\frac{L_3^2}{2I_3}+Mgl\cos\theta$. Solve
+    $p_\phi = L_z$ for $\dot\phi = (L_z-L_3\cos\theta)/(I_1\sin^2\theta)$ and substitute; the constant
+    $L_3^2/2I_3$ is dropped. What remains is
+    $E' = \frac12I_1\dot\theta^2+V_{\text{eff}}(\theta)$: one degree of freedom, solvable by
+    quadrature exactly as unit 00 and unit 08 did. $V_{\text{eff}}\to+\infty$ at $\theta\to0,\pi$
+    (unless $L_z=\pm L_3$), so $\theta$ is trapped between two turning points — the top nods.</p>
+    <p><b>The quadratic, derived.</b> The Euler–Lagrange equation for $\theta$ is
+    $I_1\ddot\theta = I_1\dot\phi^2\sin\theta\cos\theta-L_3\dot\phi\sin\theta+Mgl\sin\theta$
+    (using $I_3(\dot\psi+\dot\phi\cos\theta)=L_3$). Set $\ddot\theta=0$ and divide by
+    $\sin\theta\ne0$. Note it is a quadratic in $\dot\phi$, not a formula for it: <em>two</em>
+    precession rates are compatible with the same tilt and spin.</p>
+    <p><b>The two roots.</b> $\dot\phi_\pm = \frac{L_3\pm\sqrt{L_3^2-4I_1Mgl\cos\theta_0}}{2I_1\cos\theta_0}$.
+    For large $L_3$, expand the root: $\dot\phi_-\simeq Mgl/L_3$ and
+    $\dot\phi_+\simeq L_3/(I_1\cos\theta_0)$. The fast one exists mathematically and is almost never
+    what a released top does, because releasing it from rest selects the slow branch. At
+    $\theta_0=\pi/2$ the quadratic degenerates to a linear equation and the fast root goes to
+    infinity: the slow root $Mgl/L_3$ is then <em>exact</em>.</p>
+    <p><b>Nutation frequency.</b> Perturb $\theta=\theta_0+\eta$ in
+    $I_1\ddot\theta=-V_{\text{eff}}'(\theta)$: $I_1\ddot\eta=-V_{\text{eff}}''(\theta_0)\eta$, which
+    is unit 06's harmonic oscillator with $\omega_{\text{nut}}^2=V_{\text{eff}}''(\theta_0)/I_1$. For
+    a fast top the dominant term in $V_{\text{eff}}''$ is $L_3^2/I_1$, giving
+    $\omega_{\text{nut}}\simeq L_3/I_1$ — much faster than the precession, whose rate is
+    $Mgl/L_3$: their ratio is $L_3^2/(I_1Mgl)$, the same large parameter that made the expansion
+    valid.</p>
+    <p><b>Released from rest</b>, a top does not precess steadily: it starts at $\dot\phi=0$, falls,
+    picks up precession, rises again, and traces cusps or loops in $\theta$–$\phi$. Steady precession
+    is the special initial condition that lands exactly on the minimum of $V_{\text{eff}}$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · tops · example 5</p>
+  <h2>A gyroscope, and the approximation nobody mentions</h2>
+  <div class="box ex"><span class="label">worked example · a toy gyroscope</span>
+    <div class="cols">
+      <div>
+        <p class="small">Disc $M=0.15$ kg, radius $R=0.03$ m, pivot distance $l=0.04$ m, spun at
+        $\omega_3=300\ \mathrm{s^{-1}}$, held at $\theta_0=60^\circ$.</p>
+        <p class="small">$I_3=\tfrac12MR^2=6.75\times10^{-5}$,
+        $I_1=\tfrac14MR^2+Ml^2=2.7375\times10^{-4}\ \mathrm{kg\,m^2}$,
+        $L_3=2.025\times10^{-2}\ \mathrm{kg\,m^2\,s^{-1}}$, $Mgl=5.886\times10^{-2}$ N m.</p>
+        <p class="small"><b>Exact:</b> $1.36875\times10^{-4}\dot\phi^2-2.025\times10^{-2}\dot\phi+5.886\times10^{-2}=0$,
+        discriminant $3.7784\times10^{-4}$, roots</p>
+        $$\dot\phi_-=\mathbf{2.9661}\ \mathrm{s^{-1}},\qquad \dot\phi_+=145.0\ \mathrm{s^{-1}} .$$
+      </div>
+      <div>
+        <p class="small"><b>Approximate:</b> $Mgl/L_3=2.9067\ \mathrm{s^{-1}}$ — low by $2.0\%$.
+        Precession period $2.12$ s exactly, $2.16$ s approximately.</p>
+        <p class="small"><b>Nutation:</b> $71.05\ \mathrm{s^{-1}}$ exactly, against
+        $L_3/I_1=73.97$ — high by $4.1\%$. Period $0.088$ s: a fast shiver on the slow sweep.</p>
+        <div class="box warn"><span class="label">what $\vec\tau=\mathrm d\vec L/\mathrm dt$ hides</span>
+          <p class="small">The elementary argument sets $\vec L=L_3\hat u_3$. But
+          $\vec L=I_1\dot\phi\sin\theta\,\hat e_\perp+L_3\hat u_3$: the precession itself contributes
+          angular momentum. Dropping it needs $I_1\dot\phi\ll L_3$: here $8.12\times10^{-4}$
+          against $2.025\times10^{-2}$, a ratio of $4.01\%$, and the error in $\dot\phi$ is
+          $\cos\theta_0$ times that — $2.0\%$, to the digit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="box good"><span class="label">checks</span>
+    <p class="small"><b>Dimensions:</b> $Mgl/L_3$ is $\mathrm{N\,m}/(\mathrm{kg\,m^2\,s^{-1}})=\mathrm{s^{-1}}$ ✓.
+    <b>Limit $\omega_3\to\infty$:</b> $\dot\phi_-\to0$ and the discrepancy $\to0$ ✓.
+    <b>Existence:</b> $L_3^2=4.10\times10^{-4}\gg4I_1Mgl\cos\theta_0=3.22\times10^{-5}$: two real
+    roots, so the top is comfortably fast ✓.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Every number, recomputed.</b> $I_3 = 0.5\times0.15\times0.0009 = 6.75\times10^{-5}$;
+    $I_1 = 0.25\times0.15\times0.0009+0.15\times0.0016 = 3.375\times10^{-5}+2.4\times10^{-4}
+    = 2.7375\times10^{-4}$; $L_3 = 6.75\times10^{-5}\times300 = 0.02025$;
+    $Mgl = 0.15\times9.81\times0.04 = 0.05886$. Quadratic coefficient
+    $I_1\cos60^\circ = 1.36875\times10^{-4}$. Discriminant
+    $0.02025^2-4(1.36875\times10^{-4})(0.05886) = 4.100625\times10^{-4}-3.2226\times10^{-5}
+    = 3.77837\times10^{-4}$, square root $0.0194380$. Slow root
+    $(0.02025-0.0194380)/(2.7375\times10^{-4}) = 2.96613$; fast root
+    $(0.02025+0.0194380)/(2.7375\times10^{-4}) = 144.979$.</p>
+    <p><b>The nutation number.</b> With $\dot\phi=\dot\phi_-$, $L_z = I_1\dot\phi\sin^2\theta_0+L_3\cos\theta_0
+    = 1.0734\times10^{-2}$; then $V_{\text{eff}}''(\theta_0) = 1.3820\ \mathrm{J}$ (evaluated from the
+    formula on the previous slide), and $\sqrt{1.3820/2.7375\times10^{-4}} = 71.05\ \mathrm{s^{-1}}$.
+    The approximation $L_3/I_1 = 73.97$ overshoots because it drops the gravitational and
+    geometric corrections to $V_{\text{eff}}''$.</p>
+    <p><b>The two percentages, related.</b> Expanding the square root,
+    $\dot\phi_- = \frac{Mgl}{L_3}\Big(1+\frac{I_1Mgl\cos\theta_0}{L_3^2}+\dots\Big)$, so the
+    elementary formula is low by the relative amount
+    $\epsilon := I_1Mgl\cos\theta_0/L_3^2 = (2.7375\times10^{-4})(0.05886)(0.5)/(4.1006\times10^{-4})
+    = 0.01965$, i.e. $2.0\%$ ✓. Meanwhile the neglected transverse angular momentum has
+    $I_1\dot\phi_-/L_3 \simeq I_1Mgl/L_3^2 = 2\epsilon = 3.93\%$, against the computed $4.01\%$.
+    So the elementary formula errs at exactly the order of the term it discarded, and the factor
+    between the two is $\cos\theta_0$. That is the honest version of "the gyroscope precesses
+    because torque changes angular momentum".</p>
+    <p><b>What else the elementary argument hides:</b> nutation entirely. It produces one rate, not
+    two roots, and no oscillation in $\theta$. A real gyroscope released at $\theta_0$ nutates
+    visibly until friction damps it onto the steady branch, which is why the elementary formula seems
+    to work in the lecture-room demonstration — you watch it after the nutation has gone.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · closing</p>
+  <h2>The block, closed</h2>
+  <div class="cols wide-left">
+    <div>
+      <table class="dense">
+        <thead><tr><th>section</th><th>what the <span class="ref" data-ref="blk">block</span> gave</th></tr></thead>
+        <tbody>
+          <tr><td>1 · the body</td><td>six degrees of freedom; $\vec\omega$ from $R^{\mathsf T}\dot R$</td></tr>
+          <tr><td>2 · inertia</td><td><span class="ref" data-ref="Icm">$\mathsf I_{\text{cm}}$</span> by integration; <span class="ref" data-ref="Icor">$\mathsf I_O$</span> by Steiner</td></tr>
+          <tr><td>3 · tensors</td><td>$\mathsf I'=R\mathsf IR^{\mathsf T}$ checked against a fresh integral; $\mathrm{diag}(I_{kk})$ shown not to be a tensor — $0.00288$ against $0.00864$</td></tr>
+          <tr><td>4 · principal axes</td><td>three moments and three axes at the corner; the easiest axis $3.38^\circ$ off the diagonal</td></tr>
+          <tr><td>5 · Euler</td><td><span class="ref" data-ref="flip">$\lambda=0.58255\,\Omega$</span>: a flip in $0.63$ s</td></tr>
+          <tr><td>6 · angles</td><td>Euler angles for its orientation, and why they must fail somewhere</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what this unit installed for later</span>
+        <p class="small"><b>22</b> the stress tensor, another symmetric $(0,2)$-tensor, this time a
+        field. <b>27, 28</b> four-vectors and $F_{\mu\nu}$, where raising and lowering stop being
+        invisible. <b>31–33</b> the metric, the connection and the curvature: same definition, on a
+        manifold. <b>35</b> the field equations, an identity between two $(0,2)$-tensors.</p>
+      </div>
+      <p class="small">And one sentence to keep: <em>a tensor is a multilinear map; the
+      transformation law is what its components must do because the map does not move.</em></p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>If one thing survives from this unit, make it the two-line proof of the transformation law.
+    Every later index manipulation in the course is that proof, applied. When unit 32 asks why
+    $\partial_\mu V^\nu$ is not a tensor, the answer is the same shape as this unit's
+    $\mathrm{diag}(I_{kk})$: a rule that assigns arrays to bases, which fails to be equivariant, and
+    fails in a way you can exhibit by computing the same thing twice.</p>
+    <p>The physics that will not be needed again, and is worth having anyway: Poinsot's construction,
+    the heavy top's two precession rates, gimbal lock. The physics that will: the intermediate-axis
+    argument is the prototype of a linear stability analysis around a relative equilibrium, which
+    unit 17 generalises and unit 39 uses on the universe.</p>
+    <p>Two habits to take forward. First, compute every invariant twice — the trace check caught
+    nothing in this unit because everything was right, and it will catch a great deal later. Second,
+    when an index expression is in doubt, evaluate the tensor on basis vectors directly; that is
+    Route B of example 2, and it is always available.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">16 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>For an explicitly given body you compute $\mathsf I$ in two frames, verify
+    $\mathsf I'=R\mathsf IR^{\mathsf T}$ component by component, predict which axis is unstable, and
+    can explain in one sentence why nine numbers per basis is not enough to be a tensor.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Landau &amp; Lifshitz, <i>Mechanics</i>, §§31–37 — terse and complete, and it
+      uses nothing this course has not reached.<br>
+      Arnold, <i>Mathematical Methods</i>, ch. 6 (§§26–30) for the geometry; skip §31, which needs
+      manifolds (unit 31).<br>
+      Goldstein ch. 4–5 for Euler angles and the heavy top in full detail.<br>
+      For the algebra: any linear algebra text's chapter on multilinear maps — the definition matters
+      more than the source.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>17</b> integrability and chaos, which takes the free top as an example of an
+      integrable system · <b>22</b> the stress tensor, this unit's algebra applied to a continuum ·
+      <b>27</b> relativistic dynamics, the first place the index positions matter · and eventually
+      <b>31–35</b>, which are this unit with $\delta$ replaced by $g_{\mu\nu}$.</p>
+      <p class="small"><code>./mr problems 16</code> — thirteen problems, about six hours, including
+      the gyroscope and a collection of nine numbers per basis that you must convict.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Test the checkpoint on a body that is not in this deck, so that no number can be recalled. A
+    good one: point masses of $1$, $2$ and $3$ kg at $(1,0,0)$, $(0,1,0)$, $(0,0,1)$ m. About the
+    origin $\mathsf I = \mathrm{diag}(5,4,3)\ \mathrm{kg\,m^2}$ — check that. Then rotate to a frame
+    whose first axis is $(1,1,1)/\sqrt3$, verify the law component by component, and confirm that the
+    trace is still $12$ and the eigenvalues still $5,4,3$. Predict which axis is unstable: the
+    intermediate moment is $4$, so the $\vec e_2$ axis. If your two frames disagree, the error is
+    almost always a transposed $R$.</p>
+    <p>A second, sharper test of §4: make the three masses <em>equal</em>. Then
+    $\mathsf I = 2\delta$ exactly, every axis is principal, and no axis is unstable. The symmetry
+    theorem predicts only part of this: $(1,1,1)$ is a three-fold axis of that configuration, which
+    forces the two moments perpendicular to it to be equal; that the third equals them too is a
+    property of these particular positions, not of the symmetry.</p>
+    <p>The "one sentence" of the checkpoint should contain the word <em>basis</em> twice: nine
+    numbers do not determine an object until you say which basis they are in, and they do not
+    determine a tensor until the numbers in every other basis are determined too. If your sentence
+    mentions only "the transformation law", press further: why must there be one?</p>
+    <p>Then <code>./mr done 16</code>.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

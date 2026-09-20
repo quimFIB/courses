@@ -1,0 +1,1480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>18 · From N masses to a field: the wave equation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="c">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="pluck"><span class="ref-name">the running example</span>A guitar's top E string, plucked at one fifth of its length. $L = 0.6477$ m, $\mu = 0.3978\ \mathrm{g\,m^{-1}}$, $T = 72.53$ N, so $c = \sqrt{T/\mu} = 427.0\ \mathrm{m\,s^{-1}}$ and $f_1 = c/2L = 329.6$ Hz. Pluck point $a = L/5$, height $h = 3$ mm. <span class="ref-note">Initial profile triangular, initial velocity zero. Period $2L/c = 3.034$ ms; the three snapshots are at $0.379$, $0.758$ and $1.138$ ms</span><svg viewBox="0 0 300 90" width="210" aria-hidden="true"><line x1="20" y1="70" x2="280" y2="70" class="rule" stroke-width="2"/><polyline points="20,70 72,22 280,70" fill="none" class="accent" stroke-width="3"/><circle cx="20" cy="70" r="5" class="fill-ink"/><circle cx="280" cy="70" r="5" class="fill-ink"/><text x="60" y="16" font-size="15" class="soft">h</text><text x="34" y="86" font-size="15" class="soft">a = L/5</text></svg></template>
+  <template data-ref="shape"><span class="ref-name">the pluck at $t = L/2c$</span>Three straight segments, kinks at $x = 0.3L$ and $x = 0.7L$, heights $\mp\tfrac38 h = \mp 1.125$ mm. <span class="ref-note">Outer slopes $-h/(L-a) = -1.25\,h/L$, middle slope $\tfrac{h}{2}\big(\tfrac1a - \tfrac1{L-a}\big) = +1.875\,h/L$ — the mean of the two original slopes</span><svg viewBox="0 0 300 90" width="210" aria-hidden="true"><line x1="20" y1="46" x2="280" y2="46" class="rule" stroke-width="1.5" stroke-dasharray="4 4"/><polyline points="20,46 98,70 202,22 280,46" fill="none" class="accent" stroke-width="3"/><circle cx="20" cy="46" r="5" class="fill-ink"/><circle cx="280" cy="46" r="5" class="fill-ink"/></svg></template>
+  <template data-ref="Lden"><span class="ref-name">the string's densities</span>$\mathcal L = \tfrac12\mu u_t^2 - \tfrac12 T u_x^2$, $\quad e = \tfrac12\mu u_t^2 + \tfrac12 T u_x^2$, $\quad S = -T\,u_t u_x$. <span class="ref-note">Total energy of the pluck $E = \tfrac12 T h^2 L / \big(a(L-a)\big) = 3.149$ mJ, constant. At all three of $t = L/4c$, $L/2c$ and $3L/4c$ it is $37.5\%$ potential and $62.5\%$ kinetic — the same split, because $ct$ lies between $a$ and $L-a$ at each of them</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part C · fields and the crisis · spine</p>
+  <div class="unit-no">18</div>
+  <h1>From N masses to a field: the wave equation</h1>
+  <p class="lede">Let the number of oscillators go to infinity and the system of ordinary differential
+  equations becomes one partial differential equation — the first field in this course, and the
+  first equation whose <em>type</em> decides what you are allowed to ask of it.</p>
+  <p class="meta"><span>needs 07, 12</span><span>~2½ h slides + 5 h problems</span><span>problems: <code>./mr problems 18</code></span></p>
+  <aside class="notes">
+    <p>Part C's thesis is that the continuum limit costs four new pieces of mathematics, and
+    this unit is where the bill arrives. Everything before it has been ordinary differential
+    equations: finitely many unknown numbers, each a function of $t$. From here on the unknown
+    is a function of $x$ and $t$ at once, and almost every habit transfers with a twist.</p>
+    <ul>
+      <li><b>There is no general solution to write down.</b> For $\ddot{\vec y} = A\vec y$ unit 07
+      gave a complete answer in eigenvectors. For a PDE the honest first question is not "what is
+      the solution" but "what data determines a solution, and is the map from data to solution
+      continuous?" — which is what the classification in section 3 is for.</li>
+      <li><b>Uniqueness comes from energy, not from Lipschitz.</b> Unit 01's Picard–Lindelöf has
+      no PDE counterpart of comparable generality. What replaces it here is a quadratic quantity
+      that is conserved, and section 6 turns it into a uniqueness proof in four lines.</li>
+      <li><b>The variational picture survives intact.</b> Unit 12's Lagrangian is a function of
+      finitely many $q_i$ and $\dot q_i$; section 8 replaces the sum over $i$ by an integral over
+      $x$ and gets the wave equation out of unit 11's argument, run twice.</li>
+    </ul>
+    <h4>How to read this deck</h4>
+    <p>One string runs through the whole unit: a guitar's top E, $L = 0.6477$ m, $c = 427.0\ \mathrm{m\,s^{-1}}$,
+    plucked 3 mm out of line at one fifth of its length. Section 1 derives its equation as a limit
+    of unit 07's chain; section 2 derives the same equation from a force balance and names the
+    error; section 3 asks what kind of equation it is; section 4 solves it on the whole line;
+    section 5 puts the two ends back and draws the string at three instants; section 6 gets the
+    energy and a uniqueness theorem; section 7 shows what happens when the type is wrong; section 8
+    writes the Lagrangian density.</p>
+    <p>Proofs are on the slides where they are one line and in these notes under <b>Full proof</b>
+    where they are not; results imported from elsewhere are marked <em>cited</em>. Terms with a
+    dotted underline are in the glossary (<kbd>G</kbd>); <kbd>N</kbd> opens these notes.</p>
+    <p><b>What you are assumed to have.</b> Unit 07's chain of $N$ masses with its exact frequencies
+    $\omega_k = 2\sqrt{\kappa/m}\,\sin\!\big(k\pi/2(N{+}1)\big)$, and the spectral theorem behind them;
+    unit 12's Lagrangian mechanics and $L = T - V$; unit 11's first variation, fundamental lemma
+    and natural boundary conditions; unit 06's superposition for linear equations; unit 04's
+    Taylor theorem in several variables and implicit function theorem; unit 03's multivariable chain rule
+    and Clairaut's theorem; unit 01's continuous dependence on initial data, which is about to be
+    promoted to a definition; unit 00's dimensional bookkeeping. Sylvester's law of inertia is
+    assumed from linear algebra.</p>
+    <p><b>What is deliberately not here.</b> Fourier series — the modes of the finite string are
+    unit 19's subject, and everything in this unit is done without them on purpose, so that
+    d'Alembert's solution and the modal solution can be compared there as two independent routes
+    to the same string. The Fourier transform is unit 20; the wave equation in three dimensions,
+    with its retarded Green's function, is unit 24.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · overview</p>
+  <h2>One string, four questions</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the object</span>
+        <p class="small"><span class="ref" data-ref="pluck">A plucked guitar string</span>. Its displacement $u(x,t)$ is a <span class="term">field</span>: one number at every point of space, at every time. Unit 07 had $N$ numbers; now there are uncountably many.</p></div>
+      <div class="box def"><span class="label">the four questions</span>
+        <p class="small"><b>§1–2</b> what equation? &nbsp; <b>§3</b> what <em>kind</em> of equation, and what may I ask it? &nbsp; <b>§4–5</b> the exact answer, with both ends tied down. &nbsp; <b>§6–8</b> what is conserved, what is well posed, what action is extremised.</p></div>
+      <div class="box warn"><span class="label">the one number to keep</span>
+        <p class="small">$c = \sqrt{T/\mu} = 427.0\ \mathrm{m\,s^{-1}}$. The unit is one long statement about information travelling at exactly that speed — and, in §3 and §7, about equations that have no such speed.</p></div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">getting around</span>
+        <p class="small">A <span class="term" data-term="wave equation">dotted underline</span> is a glossary term: click it, or press <kbd>G</kbd>. <kbd>N</kbd> opens the notes, where the longer proofs live. A solid underline, like <span class="ref" data-ref="pluck">the running example</span>, shows a piece of it on hover.</p></div>
+      <div class="fig">
+        <svg viewBox="0 0 320 120" width="300" role="img" aria-label="a chain of five masses on springs above a smooth continuous string">
+          <line x1="16" y1="34" x2="304" y2="34" class="rule" stroke-width="1.5" stroke-dasharray="3 4"/>
+          <polyline points="16,34 64,20 112,44 160,16 208,40 256,26 304,34" fill="none" class="unit" stroke-width="2"/>
+          <circle cx="64" cy="20" r="6" class="fill-accent"/><circle cx="112" cy="44" r="6" class="fill-accent"/><circle cx="160" cy="16" r="6" class="fill-accent"/><circle cx="208" cy="40" r="6" class="fill-accent"/><circle cx="256" cy="26" r="6" class="fill-accent"/>
+          <text x="16" y="72" font-size="15" class="soft">N masses: N ordinary differential equations</text>
+          <line x1="16" y1="102" x2="304" y2="102" class="rule" stroke-width="1.5" stroke-dasharray="3 4"/>
+          <path d="M16,102 C64,74 112,126 160,88 C208,60 256,112 304,102" fill="none" class="accent" stroke-width="3"/>
+          <text x="16" y="118" font-size="15" class="soft">a field: one partial differential equation</text>
+        </svg>
+        <p class="cap">The limit is $a \to 0$ with $\mu = m/a$ and $T = \kappa a$ held fixed.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The order is deliberate. Sections 1 and 2 derive the same equation twice by completely
+    different arguments — once as a limit of a system you already solved exactly, once from a
+    force balance on a piece of string — and the agreement is the first check. Section 3 then
+    stops and asks a question that has no analogue in Part A: a second-order ODE takes two numbers
+    as data and that is the end of it, but a second-order PDE takes a <em>function</em> as data,
+    and which function, on which curve, depends on the equation's type.</p>
+    <p>If you want the punchline of section 3 in advance: the sign of one discriminant decides
+    whether a problem is a sensible physical question or a numerical catastrophe, and section 7
+    exhibits the catastrophe explicitly.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>From N masses to a field</h2>
+  <p>Unit 07's chain, with the spacing sent to zero.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · continuum limit</p>
+  <h2>Unit 07's chain, one more time</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$N$ beads of mass $m$ at spacing $a$ on a string under tension $T$, ends fixed, $L = (N{+}1)a$. The transverse force on bead $n$ is tension times slope, on each side:</p>
+      $$m\ddot y_n = \frac{T}{a}\big(y_{n+1} - y_n\big) + \frac{T}{a}\big(y_{n-1} - y_n\big)$$
+      <p class="small">so the chain's stiffness is $\kappa = T/a$ and its mass per unit length is $\mu = m/a$. Unit 07 solved it exactly:</p>
+      <div class="box thm"><span class="label">cited · unit 07</span>
+        <p class="small">$\displaystyle \omega_k = 2\sqrt{\kappa/m}\,\sin\frac{k\pi}{2(N{+}1)}, \qquad v^{(k)}_n = \sin\frac{nk\pi}{N{+}1},\quad k = 1,\dots,N.$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Write $q_k = k\pi/L$ for the mode's <span class="term">wavenumber</span> and put $c = a\sqrt{\kappa/m} = \sqrt{T/\mu}$. Since $k\pi/2(N{+}1) = q_k a/2$,</p>
+      $$\omega(q) = \frac{2c}{a}\,\sin\frac{qa}{2}.$$
+      <p class="small">This is the chain's <span class="term">dispersion relation</span>: one exact formula, valid for every $N$, that the rest of this section takes apart.</p>
+      <div class="box warn"><span class="label">which limit</span>
+        <p class="small">$a \to 0$ with $\mu$ and $T$ <b>fixed</b> — not $m$ and $\kappa$ fixed. A real string has a definite mass per metre and a definite tension; the beads are a fiction, and only the two densities survive them.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the force law comes from.</b> Bead $n$ is held by two straight segments of string,
+    each under tension $T$. The segment to the right runs from $(x_n, y_n)$ to $(x_{n+1}, y_{n+1})$;
+    its transverse component of tension is $T\sin\theta$, and for small displacements
+    $\sin\theta \approx (y_{n+1}-y_n)/a$. The same on the left. Section 2 does this again
+    without the approximation and measures what it costs.</p>
+    <p><b>Why $\kappa = T/a$ and not $T$.</b> Halving the spacing at fixed tension doubles every
+    slope for the same displacement, so it doubles the restoring force: the effective spring
+    constant of a segment goes as $1/a$. Meanwhile $m = \mu a$ goes as $a$. The ratio
+    $\kappa/m = T/\mu a^2$ therefore blows up like $a^{-2}$, which is exactly what is needed for
+    $\omega = (2c/a)\sin(qa/2)$ to have a finite limit $cq$: the $a^{-1}$ in front cancels the
+    $a$ inside the sine.</p>
+    <p><b>Dimensions.</b> $[T/\mu] = \mathrm{N}/(\mathrm{kg\,m^{-1}}) = \mathrm{kg\,m\,s^{-2}\,m\,kg^{-1}} = \mathrm{m^2\,s^{-2}}$,
+    so $\sqrt{T/\mu}$ is a speed. For <span class="ref" data-ref="pluck">the running example</span>,
+    $\sqrt{72.53/3.978\times10^{-4}} = 427.0\ \mathrm{m\,s^{-1}}$, comfortably above the
+    $343\ \mathrm{m\,s^{-1}}$ of sound in air, which is why a guitar's pitch is set by the string
+    and not by the room.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · continuum limit</p>
+  <h2>The second difference is a second derivative</h2>
+  <div class="box thm"><span class="label">theorem · the second-difference estimate</span>
+    <p class="small">Let $f$ be $C^4$ on a neighbourhood of $x$. Then the <span class="term">second-difference operator</span> satisfies</p>
+    $$\frac{f(x+a) - 2f(x) + f(x-a)}{a^2} \;=\; f''(x) + \frac{a^2}{12}\,f^{(4)}(\xi)$$
+    <p class="small">for some $\xi \in (x-a, x+a)$. In particular it converges to $f''(x)$ as $a\to0$, and the error is $O(a^2)$, not $O(a)$.</p>
+  </div>
+  <div class="box proof"><span class="label">proof</span>
+    <p class="small">Taylor with Lagrange remainder to fourth order in each direction:
+    $f(x\pm a) = f \pm af' + \tfrac{a^2}{2}f'' \pm \tfrac{a^3}{6}f''' + \tfrac{a^4}{24}f^{(4)}(\xi_\pm)$.
+    Adding, the odd powers cancel exactly:
+    $f(x+a)+f(x-a) - 2f(x) = a^2 f'' + \tfrac{a^4}{24}\big(f^{(4)}(\xi_+) + f^{(4)}(\xi_-)\big)$.
+    Divide by $a^2$; the intermediate value theorem replaces the average of the two fourth
+    derivatives by one value $f^{(4)}(\xi)$. $\square$</p>
+  </div>
+  <aside class="notes">
+    <p><b>Why the cancellation matters.</b> A one-sided difference $(f(x+a)-f(x))/a$ has error
+    $\tfrac a2 f''$, first order. The symmetric second difference is second order for free, purely
+    because it is <em>even</em> in $a$ and every odd Taylor term therefore drops out. The same
+    parity argument is the whole reason the chain's dispersion relation deviates from a straight
+    line at order $(qa)^2$ rather than $qa$ — the next slide but one.</p>
+    <p><b>The $C^4$ hypothesis is not decoration.</b> The running example's initial profile is a
+    triangle, which is not even $C^1$ at the apex. The estimate says nothing there, and section 5
+    is careful about what the formula for the plucked string does and does not claim. The same
+    limit still holds in an averaged sense, but that is unit 20's language, not this unit's.</p>
+    <p><b>Full proof of the intermediate-value step.</b> $f^{(4)}$ is continuous on the closed
+    interval $[x-a, x+a]$, so it attains a minimum $\alpha$ and a maximum $\beta$ there. The average
+    $\tfrac12(f^{(4)}(\xi_+) + f^{(4)}(\xi_-))$ lies in $[\alpha, \beta]$, and by the intermediate
+    value theorem $f^{(4)}$ takes that value at some $\xi$ in the interval. This is the only place
+    continuity of the fourth derivative is used.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · continuum limit</p>
+  <h2>The limit, and the equation it leaves</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Put $y_n(t) = u(na, t)$ and divide the chain's equation by $m = \mu a$:</p>
+      $$\ddot y_n = \frac{T}{\mu}\cdot\frac{y_{n+1} - 2y_n + y_{n-1}}{a^2}
+        \;\xrightarrow[\ a\to0\ ]{}\; \frac{T}{\mu}\,\frac{\partial^2 u}{\partial x^2}.$$
+      <div class="box thm"><span class="label">the <span class="term">wave equation</span></span>
+        $$\boxed{\ \frac{\partial^2 u}{\partial t^2} = c^2\,\frac{\partial^2 u}{\partial x^2}\ ,\qquad c = \sqrt{\frac{T}{\mu}}\ }$$
+        <p class="small">One equation for one unknown function of two variables. The $N$ coupled ordinary equations have become a single partial one, and $N$ has vanished from the statement.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $[u_{tt}] = \mathrm{m\,s^{-2}}$; $[c^2u_{xx}] = \mathrm{m^2s^{-2}}\cdot\mathrm{m^{-1}} = \mathrm{m\,s^{-2}}$ ✓.</p>
+        <p class="small"><b>Limit.</b> $T \to 0$ gives $c \to 0$: a slack string does not transmit anything ✓. $\mu \to 0$ gives $c\to\infty$: a massless string responds instantaneously, which is the rigid-rod idealisation of unit 12 ✓.</p>
+        <p class="small"><b>Modes.</b> $u = \sin(q x)\cos(\omega t)$ solves it exactly when $\omega = cq$ — the $a\to0$ limit of unit 07's $\omega(q)$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What "$\to$" is doing in that line, precisely.</b> Fix a $C^4$ function $u$ and a point
+    $(x,t)$. The theorem on the previous slide says the bracket equals $u_{xx}(x,t) + \tfrac{a^2}{12}u_{xxxx} + O(a^4)$.
+    So the statement being made is: <em>if</em> the chain's displacements are samples of a smooth
+    field, then the field satisfies the wave equation up to $O(a^2)$. The converse — that solutions
+    of the chain converge to solutions of the PDE — is true and is a genuinely harder theorem;
+    the honest version of it needs the mode decomposition of unit 19, and the comparison is set up
+    there. What is proved here is the consistency of the limit, which is what the rest of this
+    unit uses.</p>
+    <p><b>$N$ has vanished, and that is the content.</b> The chain has $N$ frequencies; the string
+    has infinitely many, $\omega_k = ck\pi/L$, one for each $k \in \mathbb N$. The physical
+    consequence is that a real string does not have a highest note, whereas a chain of $N$ beads
+    does: $\omega_N = (2c/a)\sin\big(N\pi/2(N{+}1)\big) \to 2c/a$. Crystals are chains, and that
+    ceiling is the Debye frequency.</p>
+    <p><b>History.</b> The equation is d'Alembert's, 1747, in the memoir <em>Recherches sur la
+    courbe que forme une corde tendue mise en vibration</em>, where the general solution of the next
+    section appears in the same paper. The continuum limit given here is Lagrange's (1759), and the
+    argument between d'Alembert, Euler, Daniel Bernoulli and Lagrange about which initial profiles
+    were admissible ran for fifty years. It is not a footnote: it is the argument that produced
+    Fourier series, and unit 19 picks it up.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · continuum limit</p>
+  <h2>What the limit threw away</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Expand the exact chain relation for small $qa$:</p>
+      $$\omega(q) = \frac{2c}{a}\sin\frac{qa}{2} = cq\Big(1 - \frac{(qa)^2}{24} + \cdots\Big)$$
+      <p class="small">The continuum theory is the first term. The second is its own error bar, and it is negative: <b>short waves travel slow</b> on a chain.</p>
+      <div class="box def"><span class="label">terminology</span>
+        <p class="small">A medium is <span class="term">non-dispersive</span> when $\omega = cq$ exactly, so every wavenumber travels at the same speed and a pulse keeps its shape. The chain is <span class="term">dispersive</span>; the string is not.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">$N = 20$ beads, so $qa/2 = k\pi/42$:</p>
+      <table class="dense small">
+        <thead><tr><th>$k$</th><th class="num">$\omega_k/cq_k$</th><th class="num">$1 - (q_ka)^2/24$</th><th class="num">deficit</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="num">0.99907</td><td class="num">0.99907</td><td class="num">0.09 %</td></tr>
+          <tr><td>5</td><td class="num">0.97685</td><td class="num">0.97669</td><td class="num">2.3 %</td></tr>
+          <tr><td>10</td><td class="num">0.90932</td><td class="num">0.90675</td><td class="num">9.1 %</td></tr>
+          <tr><td>20</td><td class="num">0.66658</td><td class="num">0.62700</td><td class="num">33.3 %</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">The quadratic correction is still good to three digits at $k = 5$ and has itself failed by $k = 20$, where $qa/2 = 1.496$ is not small.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the table.</b> The middle column is the two-term approximation; the deficit is
+    $1 - \omega_k/cq_k$, the fraction by which the true chain frequency falls below the continuum
+    prediction. At $k = 1$ the string's answer is right to one part in a thousand — which is why a
+    twenty-bead model of a guitar string would get the pitch essentially right and the twentieth
+    harmonic badly wrong.</p>
+    <p><b>Where this reappears.</b> Unit 21 will call $(qa)^2/24$ a regular perturbation: a small
+    parameter multiplying a correction that stays uniformly small. Not every correction in this
+    course behaves so well, and the contrast is the point of that unit. The physics reappears in
+    every crystal — the acoustic branch of a phonon spectrum is exactly $(2c/a)\sin(qa/2)$ — and
+    in every finite-difference scheme, where the same deficit is called numerical dispersion.</p>
+    <p><b>A warning about the word.</b> "Dispersive" here means $\omega/q$ depends on $q$. It has
+    nothing to do with dissipation: the chain conserves energy exactly, it simply does not keep a
+    pulse's shape. Unit 06's damping is the other thing, and the two are independent.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>The string itself</h2>
+  <p>The same equation from a force balance, with its error named.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the string</p>
+  <h2>A force balance on one element</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Take the piece of string over $[x, x+\Delta x]$, displaced to $u$. The string pulls on it at each end along the tangent, with magnitude $T$. The tangent direction is $(1, u_x)/\sqrt{1+u_x^2}$, so the <b>transverse</b> component of the pull is $T\,u_x/\sqrt{1+u_x^2}$.</p>
+      <p class="small">Its mass is $\mu$ times its <b>arc length</b>, $\mu\sqrt{1+u_x^2}\,\Delta x$. Newton's second law transversely, then $\Delta x \to 0$:</p>
+      <div class="box thm"><span class="label">the exact transverse equation</span>
+        $$\mu\sqrt{1+u_x^2}\;u_{tt} \;=\; T\,\frac{\partial}{\partial x}\!\left(\frac{u_x}{\sqrt{1+u_x^2}}\right)$$
+        <p class="small">— for a perfectly flexible string of constant tension. It is <b>nonlinear</b>.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 260 200" width="250" role="img" aria-label="an element of string with tension pulling along the tangent at each end, and the transverse components">
+        <path d="M10,150 C70,150 110,96 150,74 C186,54 220,48 250,46" fill="none" class="accent" stroke-width="3"/>
+        <line x1="70" y1="148" x2="34" y2="153" class="unit" stroke-width="2.5" marker-end="none"/>
+        <line x1="150" y1="74" x2="186" y2="56" class="unit" stroke-width="2.5"/>
+        <line x1="70" y1="148" x2="70" y2="176" class="rule" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="150" y1="74" x2="150" y2="176" class="rule" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <text x="52" y="192" font-size="15" class="soft">x</text>
+        <text x="132" y="192" font-size="15" class="soft">x+Δx</text>
+        <text x="24" y="140" font-size="15">T</text>
+        <text x="190" y="50" font-size="15">T</text>
+        <text x="86" y="112" font-size="15" class="soft">θ</text>
+      </svg>
+      <p class="cap">Tension acts along the tangent at both ends, outward. The net transverse force is the difference of $T\sin\theta$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full derivation.</b> Let $\Phi(x,t) = T\,u_x/\sqrt{1+u_x^2}$ be the upward pull exerted by
+    the string to the right of $x$ on the string to the left of it. The element $[x, x+\Delta x]$ is
+    pulled up by $\Phi(x+\Delta x)$ at its right end and down by $\Phi(x)$ at its left end, so the
+    net upward force is $\Phi(x+\Delta x) - \Phi(x)$. Its mass is $\mu \Delta s$ where
+    $\Delta s = \int_x^{x+\Delta x}\sqrt{1+u_x^2}\,\mathrm{d}\bar x$, and its transverse acceleration is
+    $u_{tt}$ evaluated somewhere in the interval. Dividing by $\Delta x$ and letting $\Delta x \to 0$,
+    with $u$ of class $C^2$, gives $\mu\sqrt{1+u_x^2}\,u_{tt} = \partial_x\Phi$. Each step is a
+    difference quotient and a mean value theorem; nothing here is an approximation yet.</p>
+    <p><b>Three idealisations already made, before any linearisation.</b> (i) The string is
+    perfectly flexible: it resists stretching but not bending, so the only internal force is
+    tension along the tangent. A real string has bending stiffness, which is what makes a piano's
+    high harmonics sharp. (ii) The tension is the same everywhere. (iii) Every element moves
+    purely transversely, so there is no longitudinal equation. (ii) and (iii) are not independent:
+    displacing the string stretches it, and a real string's tension therefore rises by a relative
+    amount of order $u_x^2$ — the same order as the term the next slide discards, which is the
+    honest reason (ii) is allowed exactly as far as the linearisation is.</p>
+    <p><b>Why do this at all, having already had the limit?</b> Because the two derivations fail
+    differently. The chain limit is exact for beads and says nothing about a continuous string;
+    the force balance is exact for a string and says nothing about how big its neglected terms are
+    until the next slide measures them. Agreeing, they leave very little room for a mistake.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the string</p>
+  <h2>The small-slope approximation, and its size</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">small-slope approximation</span></span>
+        <p class="small">Replace $\sqrt{1+u_x^2}$ by 1 wherever it appears. Collecting both square roots, the exact equation reads $\mu u_{tt} = Tu_{xx}(1+u_x^2)^{-2}$ (notes), so the linear equation's relative error is</p>
+        $$2\,u_x^2 + O(u_x^4).$$
+        <p class="small">Each factor $(1+u_x^2)^{\pm1/2}$ costs $\tfrac12u_x^2$, and four half-powers combine.</p>
+      </div>
+      <div class="box warn"><span class="label">what is being assumed</span>
+        <p class="small">Not that $u$ is small — $u$ has dimensions and "small" would be meaningless. That the <b>slope</b> $u_x$, which is dimensionless, is small. A long string displaced by a centimetre is fine; a short one is not.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the number, for <span class="ref" data-ref="pluck">this string</span></span>
+        <p class="small">Pluck $h = 3$ mm at $a = L/5 = 129.5$ mm. The two slopes are</p>
+        <p class="small">$h/a = 0.02316$ (an angle of $1.33^\circ$) and $h/(L-a) = 0.00579$.</p>
+        <p class="small">So the largest relative error is $2(0.02316)^2 = 1.07\times10^{-3}$: the linear equation is wrong about this string by <b>0.11 per cent</b>.</p>
+      </div>
+      <p class="small muted">Push the pluck to $h = 1$ cm and the error is 1.2 %; at $h = 3$ cm it is 11 %, audible as a pitch that falls as the note decays.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full computation of the error.</b> Write $s = u_x$. The exact equation is
+    $\mu(1+s^2)^{1/2}u_{tt} = T\,\partial_x\big(s(1+s^2)^{-1/2}\big) = T\,u_{xx}(1+s^2)^{-3/2}$,
+    using $\partial_x$ of $s(1+s^2)^{-1/2}$ = $s_x\big[(1+s^2)^{-1/2} - s^2(1+s^2)^{-3/2}\big]
+    = s_x(1+s^2)^{-3/2}$. So exactly
+    $\mu u_{tt} = T u_{xx}(1+s^2)^{-2}$, and the wave equation is the $s^2 \to 0$ limit with
+    relative error $2s^2 + O(s^4)$: for the running example $1.07\times10^{-3}$, one part in a
+    thousand. The figure $\tfrac12s^2$ is the cost of a <em>single</em> replacement, and is what to
+    quote when asked "how good is $\sin\theta \approx \tan\theta$".</p>
+    <p><b>The pitch drop.</b> A hard pluck stretches the string, raising $T$, hence $c$, hence the
+    pitch; as the amplitude decays the pitch falls back. On a guitar this is a few cents on the
+    first note of a hard attack, and on a piano it is one reason the strings are struck rather than
+    plucked. It is also the simplest nonlinear effect in acoustics, and it is precisely the term
+    this slide throws away.</p>
+    <p><b>Discard the right things.</b> Notice the approximation was applied to the <em>equation</em>,
+    not to the solution. Dropping $u_x^2$ terms in a Lagrangian and then varying gives the same
+    answer here, and section 8 uses that; it is not a general fact, and in unit 21 the order in
+    which one approximates and solves will matter a great deal.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the string · example 1</p>
+  <h2>The running example, with numbers</h2>
+  <div class="box ex"><span class="label">example 1 · a guitar's top E, end to end</span>
+    <div class="cols three">
+      <div>
+        <p class="small"><b>1. The string.</b> Scale length $L = 0.6477$ m (25.5 in). Plain steel, diameter $d = 0.254$ mm, density $\rho = 7850\ \mathrm{kg\,m^{-3}}$:</p>
+        <p class="small">$\mu = \rho\pi d^2/4 = 3.978\times10^{-4}\ \mathrm{kg\,m^{-1}}$.</p>
+      </div>
+      <div>
+        <p class="small"><b>2. The tension.</b> The note is E4, $f_1 = 329.63$ Hz. The fundamental of a fixed–fixed string has $q_1 = \pi/L$, so $f_1 = c/2L$ and</p>
+        <p class="small">$c = 2Lf_1 = 427.00\ \mathrm{m\,s^{-1}}$,<br>
+        $T = \mu c^2 = 72.53$ N.</p>
+      </div>
+      <div>
+        <p class="small"><b>3. The clock.</b> One period is $2L/c = 3.034$ ms. Section 5 draws the string at</p>
+        <p class="small">$t = L/4c = 0.379$ ms,<br>$t = L/2c = 0.758$ ms,<br>$t = 3L/4c = 1.138$ ms.</p>
+      </div>
+    </div>
+    <p class="small"><b>Check.</b> Dimensions: $\mu c^2 = \mathrm{kg\,m^{-1}}\cdot\mathrm{m^2s^{-2}} = \mathrm{kg\,m\,s^{-2}} = \mathrm N$ ✓. Magnitude: 72.5 N is 7.4 kgf, which is what a published tension chart gives for a 0.010-inch E — six strings at comparable tension come to roughly 450 N, which is what a guitar neck is built to hold ✓. Limit: doubling $L$ at fixed $T$ and $\mu$ halves $f_1$, one octave down — the twelfth fret ✓.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Every number above is forced, and that is the check.</b> Three measurable quantities —
+    length, diameter, pitch — fix $\mu$, then $c$, then $T$, with no adjustable parameter. If the
+    resulting tension had come out at 5 N or 500 N the model would be wrong. It comes out at the
+    value printed on the packet.</p>
+    <p><b>The order of the reasoning is worth noting.</b> We did not measure $T$ and predict the
+    pitch; we measured the pitch and deduced $T$. In an experiment you would do the other one, and
+    the same formula serves. This is what having an equation buys: it is a relation among
+    quantities, and which is input and which is output is the experimenter's choice, not the
+    equation's.</p>
+    <p><b>Where the idealisation shows.</b> The real E string is very slightly inharmonic — its
+    $n$th partial sits a little above $nf_1$ — because of bending stiffness, dropped in the
+    force-balance derivation. With $E \approx 2\times10^{11}$ Pa the inharmonicity coefficient is
+    $B = \pi^3Ed^4/(64TL^2) = 1.3\times10^{-5}$ and $f_n = nf_1\sqrt{1+Bn^2}$, putting the tenth
+    partial $1.2$ cents sharp and the twentieth $4.6$ cents sharp: inaudible on a guitar, very
+    audible on a piano's far stiffer bass strings.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>What kind of equation is this?</h2>
+  <p>A quadratic form decides what you are allowed to ask.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · classification</p>
+  <h2>The principal symbol</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">Let $P = \sum_{i,j} A^{ij}\partial_i\partial_j + \sum_i B^i\partial_i + C$ be a second-order linear operator on an open set in $\mathbb R^n$, with $A^{ij} = A^{ji}$ (Clairaut, unit 03, lets us symmetrise). Its <span class="term">principal symbol</span> at a point is the quadratic form on the dual space $(\mathbb R^n)^*$</p>
+        $$\sigma_P(\xi) \;=\; \sum_{i,j} A^{ij}\,\xi_i\xi_j ,\qquad \xi \in (\mathbb R^n)^*.$$
+        <p class="small">A nonzero $\xi$ with $\sigma_P(\xi) = 0$ is a <span class="term">characteristic covector</span>.</p>
+      </div>
+      <p class="small">The object is a symmetric bilinear form — the same kind of object as unit 07's $M$ and $K$, and as the metric of unit 32. Everything below is linear algebra applied to it.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">why a physicist should care</span>
+        <p class="small">Put a fast oscillation into $P$: for $u_\lambda(x) = v(x)\,e^{\mathrm i\lambda\,\xi\cdot x}$ with $\lambda$ large,</p>
+        $$P u_\lambda = -\lambda^2\,\sigma_P(\xi)\,u_\lambda + O(\lambda).$$
+        <p class="small"><b>Proof.</b> Each $\partial_i$ brings down $\mathrm i\lambda\xi_i$ plus a term with no $\lambda$; two of them give $-\lambda^2\xi_i\xi_j$ plus $O(\lambda)$. $\square$</p>
+      </div>
+      <p class="small">So $\sigma_P$ is exactly the operator's grip on short waves, and a characteristic direction is one in which it has <b>no</b> grip at leading order. That is why characteristics will turn out to be the curves along which signals travel and along which data is useless.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Mathematics first, then physics — and here they meet immediately.</b> The definition
+    is a quadratic form, full stop: replace each $\partial_i$ by $\xi_i$ and keep only the
+    top-order terms. The plane-wave computation is not the definition, it is the reason the
+    definition is the right one, and the reason the lower-order terms $B$ and $C$ do not appear:
+    they contribute $O(\lambda)$, and no amount of them can change how the operator treats
+    sufficiently fast oscillations.</p>
+    <p><b>Why $\xi$ lives in the dual space.</b> This is unit 04's covector remark coming due.
+    The natural object attached to a wave $e^{\mathrm i\xi\cdot x}$ is the linear functional
+    $x \mapsto \xi\cdot x$, not a vector; under a change of coordinates it transforms by the
+    transpose Jacobian, which is exactly what the next slide computes. Writing $\xi$ with a lower
+    index is bookkeeping now and will be load-bearing in unit 28, where $F_{\mu\nu}$ makes the
+    distinction unavoidable.</p>
+    <p><b>The wave operator's symbol.</b> With coordinates $(t,x)$ and $P = \partial_t^2 - c^2\partial_x^2$,
+    the matrix is $\mathrm{diag}(1, -c^2)$ and $\sigma_P(\tau,\xi) = \tau^2 - c^2\xi^2$. Its zero set
+    is the pair of lines $\tau = \pm c\xi$: two real characteristic directions. Hold that form up
+    against unit 26's $-c^2t^2 + x^2$ and the resemblance is not a coincidence — the light cone of
+    special relativity is the characteristic cone of the wave operator, and unit 25 gets to
+    relativity by asking which changes of coordinates preserve it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · classification</p>
+  <h2>Type is a theorem, not a convention</h2>
+  <div class="box thm"><span class="label">theorem · the symbol transforms as a quadratic form</span>
+    <p class="small">Let $y = \varphi(x)$ be a $C^2$ change of coordinates with Jacobian $J^k{}_i = \partial y^k/\partial x^i$, invertible at a point. Then the operator written in the $y$ coordinates has principal symbol matrix</p>
+    $$\tilde A = J\,A\,J^{\mathsf T}, \qquad\text{equivalently}\qquad \tilde\sigma(\eta) = \sigma\big(J^{\mathsf T}\eta\big).$$
+    <p class="small"><b>Corollary.</b> By Sylvester's law of inertia the <b>signature</b> of the symbol is unchanged by any invertible change of coordinates. The type of an equation is a property of the equation, not of the letters used to write it.</p>
+  </div>
+  <div class="box proof"><span class="label">proof</span>
+    <p class="small">The chain rule (unit 03) gives $\partial_{x^i} = \sum_k J^k{}_i\,\partial_{y^k}$. Applying it twice,
+    $\partial_{x^i}\partial_{x^j} = \sum_{k,l} J^k{}_i J^l{}_j\,\partial_{y^k}\partial_{y^l} + \sum_k \big(\partial_{x^i}J^k{}_j\big)\partial_{y^k}$.
+    The second sum is first order, so it does not enter the symbol. Hence $\tilde A^{kl} = \sum_{i,j} J^k{}_i A^{ij} J^l{}_j$. $\square$</p>
+  </div>
+  <aside class="notes">
+    <p><b>This is the course's habit, in its first serious instance.</b> The transformation law
+    $\tilde A = JAJ^{\mathsf T}$ is a <em>theorem</em> about a chain rule, derived from a definition
+    that never mentioned coordinates. Unit 16 said the same about the inertia tensor and unit 32
+    will say it about the metric. Any textbook that <em>defines</em> a tensor by its transformation
+    law has taken the theorem and nailed it up as an axiom; the cost is that one can then never say
+    what the object is.</p>
+    <p><b>Note which side the Jacobian lands on.</b> $A$ has upper indices, so it transforms with
+    $J$ on both sides — contravariantly. A covector $\xi$ transforms with $J^{-\mathsf T}$, which is why
+    $\tilde\sigma(\eta) = \sigma(J^{\mathsf T}\eta)$ is the same statement: feed the new symbol a new
+    covector and you are feeding the old symbol the corresponding old one. If the two placements
+    ever look interchangeable, dimensional analysis will separate them — $x$ and $t$ have different
+    dimensions, and $J$ is not orthogonal.</p>
+    <p><b>Full proof of the corollary.</b> Sylvester's law of inertia: for a real symmetric matrix
+    $A$ and any invertible $J$, the matrices $A$ and $JAJ^{\mathsf T}$ have the same number of
+    positive, negative and zero eigenvalues. Since the type is defined by that triple of counts, it
+    is invariant. Note that this is <em>congruence</em>, $A \mapsto JAJ^{\mathsf T}$, not similarity
+    $A \mapsto JAJ^{-1}$: the eigenvalues themselves change, and only their signs survive. That
+    distinction is why $c$ can be scaled out of the wave operator but its sign cannot.</p>
+    <p><b>A caution for variable coefficients.</b> $A$ may depend on the point, so the type may too.
+    The Tricomi equation $u_{yy} + y\,u_{xx} = 0$ on the problem sheet is hyperbolic for $y\lt0$,
+    elliptic for $y\gt0$ and parabolic on the line between. Transonic flow is exactly this, and it
+    is why transonic aerodynamics is hard.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · classification</p>
+  <h2>Three types, in two variables</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">For $a\,u_{xx} + 2b\,u_{xy} + c\,u_{yy} + \text{(lower order)} = 0$ the symbol matrix is $\begin{pmatrix} a & b\\ b & c\end{pmatrix}$, with $\det = ac - b^2$. Write the <span class="term">discriminant</span> $D = b^2 - ac$.</p>
+      <table class="dense small">
+        <thead><tr><th>$D$</th><th>signature</th><th>type</th><th>real characteristics</th><th>model</th></tr></thead>
+        <tbody>
+          <tr><td>$D \gt 0$</td><td>$(+,-)$</td><td><span class="term">hyperbolic</span></td><td>two families</td><td>$u_{tt} - c^2u_{xx} = 0$</td></tr>
+          <tr><td>$D = 0$</td><td>$(+,0)$</td><td><span class="term">parabolic</span></td><td>one family</td><td>$u_t - k u_{xx} = 0$</td></tr>
+          <tr><td>$D \lt 0$</td><td>$(+,+)$</td><td><span class="term">elliptic</span></td><td>none</td><td>$u_{xx} + u_{yy} = 0$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">$D$ is $-\det A$, and $\det \tilde A = (\det J)^2\det A$, so the <b>sign</b> of $D$ is invariant even though $D$ itself is not.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the heat equation, honestly</span>
+        <p class="small">In the ordering $(t,x)$, $u_t - ku_{xx}$ has symbol matrix $\mathrm{diag}(0, -k)$, so $D = 0$: parabolic, with the $u_t$ sitting entirely in the <b>lower-order</b> part. The type therefore does not see the direction of time at all — and yet the equation is famously one-way. That arrow comes from the lower-order term, not the symbol, and it is the one thing this classification does not tell you.</p>
+      </div>
+      <p class="small muted">Signatures up to an overall sign, since multiplying the equation by $-1$ changes nothing. Names by analogy with $ax^2 + 2bxy + cy^2 = 1$: hyperbola, parabola, ellipse — exact, because it is the same quadratic form.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "one family" for the parabolic case.</b> If $D = 0$ the quadratic $am^2 - 2bm + c$
+    has a repeated root, so there is a single family of characteristic curves rather than two.
+    Geometrically the symbol's zero set is a single line in $\xi$-space counted twice, which is
+    the degenerate cone. For the heat equation the symbol is $-k\xi^2$ and vanishes exactly when
+    $\xi = 0$: the characteristics are the lines $t = \mathrm{const}$, which is why heat data is
+    given on such a line and why information spreads along it instantly.</p>
+    <p><b>Infinite propagation speed, in one line.</b> $u(x,t) = (4\pi kt)^{-1/2}e^{-x^2/4kt}$ solves
+    the heat equation for $t\gt0$ (differentiate it and check), and it is strictly positive for
+    every $x$ at every $t\gt0$, from data concentrated at the origin. Heat put in at one point is,
+    mathematically, everywhere an instant later. Nothing of the sort can happen for the wave
+    equation, and section 4 proves it. The contrast is the sharpest statement of what the
+    classification means physically.</p>
+    <p><b>In $n$ variables the trichotomy is not exhaustive.</b> Signature $(+,+,-,-)$ in four
+    variables is none of the three — it is called ultrahyperbolic, its Cauchy problem is ill posed,
+    and no equation of physics has it. Relativity's operator $\partial_t^2/c^2 - \partial_x^2 - \partial_y^2 - \partial_z^2$ has
+    signature $(+,-,-,-)$: one time, three space, exactly the hyperbolic case, and unit 26 will
+    make that count the definition of a spacetime.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · classification</p>
+  <h2>Reduction to canonical form</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A curve $\psi(x,y) = \mathrm{const}$ is a <span class="term">characteristic curve</span> when its conormal $\mathrm d\psi = (\psi_x, \psi_y)$ is characteristic: $\sigma(\mathrm d\psi) = 0$. Along it $m = \mathrm dy/\mathrm dx = -\psi_x/\psi_y$, and substituting turns that into an <b>ordinary</b> differential equation:</p>
+      $$a\,m^2 - 2b\,m + c = 0 \quad\Longrightarrow\quad m = \frac{b \pm \sqrt{D}}{a}.$$
+      <p class="small">Take $\xi, \eta$ constant along the two families. By the transformation theorem the new symbol matrix has $\tilde A^{11} = \sigma(\mathrm d\xi) = 0$ and $\tilde A^{22} = \sigma(\mathrm d\eta) = 0$: the pure second derivatives disappear.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the three <span class="term" data-term="canonical form">canonical forms</span></span>
+        <p class="small"><b>Hyperbolic</b> ($D\gt0$, two real roots): $\ u_{\xi\eta} = \Phi(\xi,\eta,u,u_\xi,u_\eta)$.</p>
+        <p class="small"><b>Parabolic</b> ($D = 0$, one root): take $\xi$ along it and $\eta$ anything independent: $\ u_{\eta\eta} = \Phi$.</p>
+        <p class="small"><b>Elliptic</b> ($D\lt0$, conjugate complex roots $m_\pm$): integrate $\mathrm dy/\mathrm dx = m_+$ to a complex $\zeta$ and take $\alpha = \operatorname{Re}\zeta$, $\beta = \operatorname{Im}\zeta$: $\ u_{\alpha\alpha} + u_{\beta\beta} = \Phi$.</p>
+      </div>
+      <p class="small muted">Everything above the lower-order terms is therefore one of three equations. That is the whole content of the classification, and it is why "the" wave, heat and Laplace equations deserve the definite article.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full derivation of the characteristic ODE.</b> $\sigma(\mathrm d\psi) = a\psi_x^2 + 2b\psi_x\psi_y + c\psi_y^2 = 0$.
+    On a level curve of $\psi$, implicit differentiation (unit 04's implicit function theorem gives
+    the licence) yields $\psi_x + \psi_y\,\mathrm dy/\mathrm dx = 0$, so $\psi_x = -m\psi_y$ with
+    $m = \mathrm dy/\mathrm dx$. Substituting and dividing by $\psi_y^2 \ne 0$:
+    $am^2 - 2bm + c = 0$. Note the sign pattern — the middle term is $-2bm$, not $+2bm$ — which
+    comes from the minus in $\psi_x = -m\psi_y$ and is the commonest slip in this computation.</p>
+    <p><b>Why the pure second derivatives vanish.</b> $\tilde A^{11}$ is, by the transformation
+    theorem, $\sum_{ij}A^{ij}\xi_{,i}\xi_{,j} = \sigma(\mathrm d\xi)$, and $\xi$ was chosen constant
+    along a characteristic, so $\mathrm d\xi$ is a characteristic covector and that number is zero.
+    Same for $\eta$. What survives is the cross term $2\tilde A^{12}u_{\xi\eta}$, and
+    $\det\tilde A = (\det J)^2\det A \ne 0$ in the hyperbolic case guarantees $\tilde A^{12}\ne0$,
+    so dividing by it is legal.</p>
+    <p><b>The elliptic case in detail.</b> With $D\lt0$ the roots are $m_\pm = (b \pm \mathrm i\sqrt{-D})/a$
+    and the "characteristics" are complex. Solve $\mathrm dy/\mathrm dx = m_+$ to get a complex
+    $\zeta(x,y)$, then set $\alpha = \operatorname{Re}\zeta$, $\beta = \operatorname{Im}\zeta$. Real
+    analyticity of the coefficients is needed to make sense of the complex ODE, which is why the
+    clean statement is usually made for analytic coefficients. This is unit 06's complex-exponential
+    move in a new setting: complexify, solve, take real parts.</p>
+    <p><b>A third form for the hyperbolic case.</b> Setting $\xi = \sigma + \tau$, $\eta = \sigma - \tau$
+    turns $u_{\xi\eta} = 0$ into $u_{\sigma\sigma} - u_{\tau\tau} = 0$, which is the wave equation with
+    $c = 1$. The two forms are used interchangeably; the problem sheet asks for both.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · classification · example 2</p>
+  <h2>Classify and reduce, once</h2>
+  <div class="box ex"><span class="label">example 2 · $u_{xx} + 4u_{xy} + 3u_{yy} = 0$</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. Read off the symbol.</b> $a = 1$, $2b = 4$ so $b = 2$, $c = 3$. Matrix $\begin{pmatrix}1&2\\2&3\end{pmatrix}$, $\det = 3 - 4 = -1$, so $D = b^2 - ac = 4 - 3 = 1 \gt 0$: <b>hyperbolic</b>, everywhere.</p>
+        <p class="small"><b>2. Characteristics.</b> $m^2 - 4m + 3 = 0$ gives $m = 1$ and $m = 3$. Integrating $\mathrm dy/\mathrm dx = 1$ and $= 3$:</p>
+        <p class="small">$\xi = y - x$, $\qquad \eta = y - 3x$.</p>
+        <p class="small"><b>3. Change variables.</b> $\partial_x = -\partial_\xi - 3\partial_\eta$, $\ \partial_y = \partial_\xi + \partial_\eta$. Then $u_{xx} = u_{\xi\xi} + 6u_{\xi\eta} + 9u_{\eta\eta}$, $u_{xy} = -u_{\xi\xi} - 4u_{\xi\eta} - 3u_{\eta\eta}$, $u_{yy} = u_{\xi\xi} + 2u_{\xi\eta} + u_{\eta\eta}$.</p>
+      </div>
+      <div>
+        <p class="small"><b>4. Add with weights $1, 4, 3$.</b> Coefficient of $u_{\xi\xi}$: $1 - 4 + 3 = 0$ ✓. Of $u_{\eta\eta}$: $9 - 12 + 3 = 0$ ✓. Of $u_{\xi\eta}$: $6 - 16 + 6 = -4$. So</p>
+        <p class="small">$-4\,u_{\xi\eta} = 0$, that is $\ u_{\xi\eta} = 0$, whose general solution is $u = F(\xi) + G(\eta)$:</p>
+        <p class="small">$\boxed{\ u(x,y) = F(y-x) + G(y-3x)\ }$</p>
+        <p class="small"><b>Check.</b> The two zeros in step 4 are not luck — they are $\sigma(\mathrm d\xi)$ and $\sigma(\mathrm d\eta)$, which the construction forced. Direct check on $u = F(y-x)$: $u_{xx} = F''$, $u_{xy} = -F''$, $u_{yy} = F''$, and $1 - 4 + 3 = 0$ ✓. On $u = G(y-3x)$: $9G'' - 12G'' + 3G'' = 0$ ✓. Special case: $F = G$ linear gives $u$ linear, annihilated by any second-order operator ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $u_{\xi\eta} = 0 \Rightarrow u = F(\xi) + G(\eta)$.</b> $\partial_\eta(u_\xi) = 0$ means
+    $u_\xi$ is independent of $\eta$, so $u_\xi = p(\xi)$ for some function $p$; integrating in
+    $\xi$ at fixed $\eta$, $u = F(\xi) + G(\eta)$ where $F' = p$ and $G$ is the constant of
+    integration, which may depend on $\eta$. The step "independent of $\eta$" needs the domain to
+    be connected in the $\eta$ direction — on a rectangle it is fine, on an annulus it is not, and
+    that is the same topological caveat unit 04 met with the vortex field.</p>
+    <p><b>The two zeros, again.</b> Step 4's cancellations are the transformation theorem made
+    arithmetic. $\mathrm d\xi = (-1, 1)$ and $\sigma(-1,1) = 1\cdot1 + 2\cdot2\cdot(-1)(1) + 3\cdot1 = 1 - 4 + 3 = 0$;
+    $\mathrm d\eta = (-3,1)$ and $\sigma(-3,1) = 9 - 12 + 3 = 0$. If either had failed to vanish, the
+    characteristics were solved wrongly.</p>
+    <p><b>What the answer means.</b> The equation propagates arbitrary profiles along two families
+    of straight lines, at "speeds" $1$ and $3$ in the $(x,y)$ plane. A hyperbolic equation is, up to
+    lower-order terms, always this: transport along characteristics. When $y$ is time, the two
+    speeds are physical; the wave equation's are $+c$ and $-c$, and the symmetry between them is
+    what isotropy of the string means.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · classification</p>
+  <h2>What each type will accept</h2>
+  <table class="dense small">
+    <thead><tr><th>type</th><th>data that makes it well posed</th><th>character of solutions</th><th>data that destroys it</th></tr></thead>
+    <tbody>
+      <tr><td><b>hyperbolic</b></td><td><span class="term">Cauchy data</span> — $u$ and its normal derivative — on any <b>non-characteristic</b> curve. Both time directions.</td><td>finite propagation speed; kinks travel and persist</td><td>data on a characteristic: no solution, or infinitely many (sheet, P12)</td></tr>
+      <tr><td><b>parabolic</b></td><td>$u$ at one instant, plus a boundary condition for all later times. <b>One</b> time direction.</td><td>infinite propagation speed; instant smoothing</td><td>running it backwards; also Cauchy data, which over-determines it</td></tr>
+      <tr><td><b>elliptic</b></td><td>one condition on the <b>whole</b> boundary of a bounded region: $u$ (Dirichlet) or $\partial_n u$ (Neumann).</td><td>no time direction; solutions real-analytic inside (<em>cited</em>: elliptic regularity, Weyl)</td><td>Cauchy data on part of the boundary — §7's catastrophe</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn"><span class="label">the moral</span>
+    <p class="small">"Second-order linear PDE plus enough data" is not a well-posed problem. The <b>amount</b> of data is never the issue; the <b>match</b> between the type and the geometry of the data is. Section 7 makes the failure quantitative.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Backwards heat, in one line.</b> $u_n(x,t) = \tfrac1n e^{-n^2kt}\sin(nx)$ solves $u_t = ku_{xx}$.
+    Solving <em>backwards</em> from data at $t=1$ of size $\epsilon$ returns a solution at $t=0$ of
+    size $\epsilon\,e^{+n^2k}$, which is unbounded over $n$ at fixed $\epsilon$: continuous dependence
+    fails, and the backward problem is ill posed. Forwards the same factor is $e^{-n^2k}$ and damps
+    everything, which is exactly the instant smoothing. Note this is Hadamard's
+    mechanism already, in the parabolic case; §7 does the elliptic one.</p>
+    <p><b>Over-determination for the heat equation.</b> Prescribing both $u$ and $u_t$ at $t = 0$
+    is too much: $u_t = ku_{xx}$ computes $u_t$ from $u$. This is a different failure from the
+    elliptic one — there the data is consistent but the dependence is discontinuous; here the data
+    is generally inconsistent and no solution exists at all.</p>
+    <p><b>Cauchy–Kovalevskaya, and why it is not a rescue.</b> <em>Cited</em> (proved in Evans,
+    <em>Partial Differential Equations</em>, §4.6.3): with real-analytic coefficients and data on a
+    non-characteristic analytic surface, a unique analytic solution exists locally, for every type.
+    Hadamard's example satisfies every one of its hypotheses. Existence and uniqueness are simply
+    not enough: continuous dependence is the condition that does the work, and that is why §7's
+    definition has three clauses and not two.</p>
+    <p><b>Reading.</b> Strauss, <em>Partial Differential Equations</em>, ch. 1 and §2.1–2.5, is the
+    closest match to this unit and uses nothing beyond it. Evans ch. 2 is more thorough but its
+    §2.2 on Laplace's equation assumes the divergence theorem in $\mathbb R^n$, which arrives for
+    the general case only in unit 23 — read §2.4 (the wave equation, one dimension) first, and
+    come back to §2.2 after unit 23.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>d'Alembert</h2>
+  <p>The hyperbolic canonical form, applied to the string on the whole line.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · d'Alembert</p>
+  <h2>Characteristics of the wave operator</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Variables $(t,x)$: the symbol matrix is $\mathrm{diag}(1, -c^2)$, so $D = -\det = c^2 \gt 0$ and the characteristic ODE gives $m = \mathrm dx/\mathrm dt = \pm c$. The characteristics are the straight lines $x \mp ct = \mathrm{const}$. Set</p>
+      $$\xi = x - ct,\qquad \eta = x + ct .$$
+      <div class="box thm"><span class="label">theorem · the operator factorises</span>
+        $$\partial_t^2 - c^2\partial_x^2 \;=\; -4c^2\,\partial_\xi\partial_\eta$$
+        <p class="small">and hence every $C^2$ solution on a rectangle in the $(\xi,\eta)$ variables is $u = F(x - ct) + G(x + ct)$: a shape moving right at speed $c$ plus a shape moving left at speed $c$, and nothing else.</p>
+      </div>
+    </div>
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">Chain rule (unit 03): $\partial_x = \partial_\xi + \partial_\eta$ and $\partial_t = c(\partial_\eta - \partial_\xi)$. Then</p>
+      <p class="small">$\partial_t^2 = c^2(\partial_{\xi\xi} - 2\partial_{\xi\eta} + \partial_{\eta\eta})$,</p>
+      <p class="small">$c^2\partial_x^2 = c^2(\partial_{\xi\xi} + 2\partial_{\xi\eta} + \partial_{\eta\eta})$.</p>
+      <p class="small">Subtract: $-4c^2\partial_{\xi\eta}$. So $u_{\xi\eta} = 0$, and the argument of example 2 gives $u = F(\xi) + G(\eta)$. $\square$</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>An algebraic way to see the same thing.</b> $\partial_t^2 - c^2\partial_x^2 = (\partial_t - c\partial_x)(\partial_t + c\partial_x)$,
+    and the two factors commute because mixed partials commute (Clairaut, unit 03). Each factor is a
+    transport operator: $(\partial_t + c\partial_x)w = 0$ says $w$ is constant along $x - ct = \mathrm{const}$.
+    So the wave operator is two transport operators back to back, which is the whole of $F$ and $G$.
+    In unit 26 the same factorisation is the statement that the Minkowski quadratic form
+    $\tau^2 - c^2\xi^2$ factors over the reals — the Lorentzian analogue of what $x^2+y^2$ refuses
+    to do, and the algebraic root of everything hyperbolic.</p>
+    <p><b>The "on a rectangle" is not pedantry.</b> The step from $u_{\xi\eta}=0$ to $u = F+G$
+    integrates in each variable separately and needs the domain to be a product, or at least simply
+    connected in the right way. On a domain with a hole the conclusion can fail, exactly as unit 04's
+    curl-free vortex failed to be a gradient on the punctured plane.</p>
+    <p><b>Dimensions.</b> $\xi$ and $\eta$ are lengths. $F$ and $G$ take a length and return a
+    length. $\partial_\xi\partial_\eta$ has dimension $\mathrm m^{-2}$ and $c^2$ carries the rest ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · d'Alembert</p>
+  <h2>d'Alembert's formula</h2>
+  <div class="box thm"><span class="label">theorem · d'Alembert, 1747</span>
+    <p class="small">Let $f \in C^2(\mathbb R)$ and $g \in C^1(\mathbb R)$. The unique $C^2$ solution of $u_{tt} = c^2u_{xx}$ on $\mathbb R\times\mathbb R$ with $u(x,0) = f(x)$ and $u_t(x,0) = g(x)$ is</p>
+    $$\boxed{\ u(x,t) = \tfrac12\big[f(x-ct) + f(x+ct)\big] + \frac{1}{2c}\int_{x-ct}^{x+ct} g(s)\,\mathrm{d}s\ }$$
+  </div>
+  <div class="cols">
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">By the factorisation theorem any solution is $F(x-ct) + G(x+ct)$. The data give $F + G = f$ and $c(G' - F') = g$. Integrating the second from $0$ to $x$: $G - F = \tfrac1c\int_0^x g + k$. Solving the pair,</p>
+      <p class="small">$G = \tfrac12 f + \tfrac1{2c}\int_0^x g + \tfrac k2$, $\quad F = \tfrac12 f - \tfrac1{2c}\int_0^x g - \tfrac k2$.</p>
+      <p class="small">Substituting $x \mapsto x\pm ct$ and adding, $k$ cancels and the integrals combine into $\int_{x-ct}^{x+ct}$. The converse — that the formula does solve the problem — is verified in the notes. $\square$</p>
+    </div>
+    <div class="box good"><span class="label">checks</span>
+      <p class="small"><b>Dimensions.</b> $[f] = \mathrm m$; $[g\,\mathrm ds/c] = (\mathrm{m\,s^{-1}})(\mathrm m)/(\mathrm{m\,s^{-1}}) = \mathrm m$ ✓.</p>
+      <p class="small"><b>$t = 0$.</b> Both terms in the bracket are $f(x)$ and the integral is empty: $u = f$ ✓.</p>
+      <p class="small"><b>$g = 0$.</b> The initial shape splits into two half-height copies running apart — which is <span class="ref" data-ref="pluck">the pluck</span>, and is what §5 draws ✓.</p>
+      <p class="small"><b>$f = 0$, $g = $ constant $v_0$.</b> $u = v_0 t$: the whole line rises uniformly, no acceleration, no tension gradient ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full verification of the converse direction.</b> Write $u = \tfrac12[f(x-ct)+f(x+ct)] + \tfrac1{2c}[H(x+ct) - H(x-ct)]$
+    with $H' = g$. Then $u_t = \tfrac c2[f'(x+ct) - f'(x-ct)] + \tfrac12[g(x+ct) + g(x-ct)]$ and
+    $u_{tt} = \tfrac{c^2}2[f''(x+ct) + f''(x-ct)] + \tfrac c2[g'(x+ct) - g'(x-ct)]$. Similarly
+    $u_{xx} = \tfrac12[f''(x+ct) + f''(x-ct)] + \tfrac1{2c}[g'(x+ct) - g'(x-ct)]$. Multiplying the
+    second by $c^2$ gives the first ✓. Setting $t=0$: $u = f$ and $u_t = g$ ✓. The regularity
+    $f\in C^2$, $g\in C^1$ is exactly what makes $u_{tt}$ and $u_{xx}$ continuous, and no less will do
+    for a classical solution.</p>
+    <p><b>Symmetry in time.</b> The formula is unchanged by $t \mapsto -t$ together with
+    $g \mapsto -g$: run the string backwards and it retraces its history. That is the hyperbolic
+    world, and it is exactly what the heat equation cannot do. Reversibility here is not a deep
+    physical postulate; it is the observation that the equation has only even time derivatives.</p>
+    <p><b>The name.</b> Jean le Rond d'Alembert published the formula in 1747. Euler objected the
+    following year that d'Alembert's requirement of a smooth initial profile was physically absurd
+    — a plucked string has a corner — and the two spent a decade arguing about what a "function"
+    was allowed to be. Euler was right about the physics, d'Alembert about the calculus of his day,
+    and the resolution took until Sobolev and Schwartz. §5's warning is a small piece of that
+    argument.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · d'Alembert</p>
+  <h2>Domain of dependence, range of influence</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definitions</span>
+        <p class="small">The <span class="term">domain of dependence</span> of $(x_0, t_0)$, $t_0\gt0$, is $[x_0 - ct_0,\ x_0 + ct_0]$: d'Alembert's formula reads $f$ only at the two endpoints and $g$ only on the interval.</p>
+        <p class="small">The <span class="term">range of influence</span> of a point $x_0$ is $\{(x,t): |x - x_0| \le c|t|\}$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · <span class="term">finite propagation speed</span></span>
+        <p class="small">If $f$ and $g$ vanish outside $[\alpha,\beta]$ then $u(\cdot, t)$ vanishes outside $[\alpha - c|t|,\ \beta + c|t|]$.</p>
+        <p class="small"><b>Proof.</b> If $x \gt \beta + ct$ then $x - ct \gt \beta$ and $x + ct \gt \beta$, so both $f$ terms vanish and the interval of integration lies entirely to the right of $\beta$. Same on the left. $\square$</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 220" width="290" role="img" aria-label="a spacetime diagram showing the backward characteristic cone from a point and the forward cone from an interval">
+        <line x1="20" y1="190" x2="290" y2="190" class="rule" stroke-width="1.5"/>
+        <line x1="30" y1="200" x2="30" y2="14" class="rule" stroke-width="1.5"/>
+        <text x="276" y="208" font-size="15" class="soft">x</text>
+        <text x="16" y="24" font-size="15" class="soft">t</text>
+        <polygon points="170,50 90,190 250,190" class="fill-soft" style="fill-opacity:.35"/>
+        <line x1="170" y1="50" x2="90" y2="190" class="accent" stroke-width="2.5"/>
+        <line x1="170" y1="50" x2="250" y2="190" class="accent" stroke-width="2.5"/>
+        <circle cx="170" cy="50" r="6" class="fill-accent"/>
+        <text x="180" y="44" font-size="15">(x₀, t₀)</text>
+        <line x1="90" y1="186" x2="250" y2="186" class="warn" stroke-width="4"/>
+        <text x="96" y="176" font-size="14" style="fill:var(--warn)">domain of dependence</text>
+        <text x="120" y="130" font-size="14" class="soft">slope ±1/c</text>
+      </svg>
+      <p class="cap">Data outside the marked interval cannot reach $(x_0,t_0)$. Turn the picture upside down and the same cone is the range of influence.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>This is a theorem, not a modelling assumption.</b> Nothing was put into $\mu u_{tt} = Tu_{xx}$
+    about a speed limit; $c$ entered as $\sqrt{T/\mu}$, a ratio of two static material properties.
+    That it is also the speed at which a disturbance travels is a consequence of the equation's
+    type, extracted here from the formula in four lines. Contrast the heat equation, where the
+    analogous statement is false (§3's notes).</p>
+    <p><b>The same fact without the formula, which is how it generalises.</b> Take the triangle
+    with apex $(x_0,t_0)$ and base the domain of dependence, and integrate the local conservation
+    law of §6 over it: the energy in the triangle at time $t$ cannot increase, because the flux
+    through the slanted sides has a sign. Hence data vanishing on the base forces $u \equiv 0$ in
+    the triangle. That argument needs no explicit solution and survives to three dimensions,
+    variable coefficients and curved spacetime; unit 38's gravitational waves rely on it. It is
+    a sketch here and not a proof, because turning $\partial_te + \partial_xS = 0$ into a statement
+    about a slanted region needs the divergence theorem in the plane, which is unit 05's; the proof
+    this unit actually owns is the four-line one on the slide, from d'Alembert's formula.</p>
+    <p><b>Where this is going.</b> The cone in the figure is the light cone of unit 26, drawn eleven
+    units early and for a guitar string. The invariant statement "the causal past of an event is a
+    cone of slope $1/c$" is, in this unit, a statement about which part of a string's initial data
+    d'Alembert's integral happens to read. Unit 25 will observe that a Galilean boost tilts this
+    cone and therefore cannot be a symmetry of the wave equation, and that observation is what ends
+    Newtonian physics.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>The finite string, by images</h2>
+  <p>Two ends, two reflections, and a plucked guitar string drawn exactly.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · images</p>
+  <h2>A fixed end is an odd extension</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem · <span class="term" data-term="method of images">the method of images</span>, fixed–fixed</span>
+        <p class="small">Given $f, g$ on $[0,L]$ with $f(0) = f(L) = g(0) = g(L) = 0$, let $\tilde f, \tilde g$ be their <span class="term">odd periodic extension</span>: odd about $0$, and then $2L$-periodic. Then d'Alembert's formula applied to $\tilde f, \tilde g$, restricted to $0\le x\le L$, solves the <span class="term">initial-boundary-value problem</span> with $u(0,t) = u(L,t) = 0$ for all $t$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">At $x = 0$: $u(0,t) = \tfrac12[\tilde f(-ct) + \tilde f(ct)] + \tfrac1{2c}\int_{-ct}^{ct}\tilde g$. Both vanish because $\tilde f$ and $\tilde g$ are odd. At $x = L$: oddness about $0$ plus $2L$-periodicity gives $\tilde f(L+s) = -\tilde f(L-s)$, so $\tilde f$ is odd about $L$ too, and the same two cancellations occur. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Physically: a wave arriving at a fixed end is met by its mirror image coming the other way. Their sum is zero at the wall at every instant, which is what "fixed" means. The reflected wave is the incoming one <b>flipped in both $x$ and sign</b>: <span class="term">reflection with inversion</span>.</p>
+      <div class="box warn"><span class="label">periodicity, for free</span>
+        <p class="small">$\tilde f$ and $\tilde g$ are $2L$-periodic, so $u(x, t + 2L/c) = u(x,t)$: <b>every</b> motion of the fixed–fixed string repeats after $2L/c$. For <span class="ref" data-ref="pluck">the E string</span> that is $3.034$ ms, and $1/(3.034\ \mathrm{ms}) = 329.6$ Hz — the note.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the oddness about $L$.</b> $\tilde f(L+s) = \tilde f(L + s - 2L) = \tilde f(s - L) = -\tilde f(L - s)$,
+    using periodicity then oddness about $0$. Consequently $\tilde f(L) = -\tilde f(L)$, so
+    $\tilde f(L) = 0$ — which is why the compatibility condition $f(L) = 0$ was required: without it
+    the extension is not even continuous. For the $g$ integral: $\int_{L-ct}^{L+ct}\tilde g$ is an
+    integral of a function odd about $L$ over an interval symmetric about $L$, hence zero.</p>
+    <p><b>How much regularity survives.</b> The extension of a smooth $f$ is $C^2$ across
+    $x = 0$ only if $f(0) = f''(0) = 0$; the odd extension of $x \mapsto x^2$ has a corner in its
+    second derivative at the origin. These are the <em>compatibility conditions</em>, and for a
+    genuinely smooth solution one needs $f$, $g$ and every even derivative to vanish at both ends.
+    A plucked string satisfies none of this beyond $f(0)=f(L)=0$, and the next slides say exactly
+    what its "solution" is.</p>
+    <p><b>Periodicity is special to one dimension and to these boundary conditions.</b> It happens
+    because every characteristic returns to where it started after $2L/c$. A drumhead's motion is
+    generally not periodic at all: its frequencies are the zeros of Bessel functions (unit 09's
+    $J_n$), which are not commensurable, so the sound is a clang rather than a note. That is the
+    single deepest acoustic difference between a string and a drum, and it is a statement about
+    whether an eigenvalue spectrum is an arithmetic progression.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · images</p>
+  <h2>A free end is an even extension</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">A <b>free</b> end — a massless ring sliding without friction on a vertical post — can exert no transverse force, so the transverse tension $T u_x$ must vanish there: the <span class="term">Neumann boundary condition</span> $u_x(L,t) = 0$. Contrast the fixed end's <span class="term">Dirichlet boundary condition</span> $u(L,t) = 0$.</p>
+      <div class="box thm"><span class="label">theorem · images at a free end</span>
+        <p class="small">Extend $f$ and $g$ <b>evenly</b> about $L$. Then $u_x(L,t) = 0$ for all $t$.</p>
+        <p class="small"><b>Proof.</b> $u_x(L,t) = \tfrac12[\tilde f'(L-ct) + \tilde f'(L+ct)] + \tfrac1{2c}[\tilde g(L+ct) - \tilde g(L-ct)]$. If $\tilde f$ is even about $L$ then $\tilde f'$ is odd about $L$, killing the bracket; $\tilde g$ even about $L$ kills the other. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">both signs, in one sentence</span>
+        <p class="small">A pulse hits a <b>fixed</b> end and comes back <b>upside down</b>; it hits a <b>free</b> end and comes back <b>the same way up</b>. In both cases it is reversed left-to-right, and in both cases the reflected amplitude equals the incident one.</p>
+      </div>
+      <p class="small">At the instant a symmetric pulse is centred on the end: at a fixed end the string is momentarily <b>flat</b> (displacements cancel, velocities add); at a free end it is momentarily <b>at rest</b> with doubled displacement (displacements add, velocities cancel). Both moments conserve energy — one puts it all in kinetic, the other all in potential.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the Neumann condition really comes from.</b> Section 8 derives it, rather than
+    arguing it: if the endpoint is left free in the variational principle, unit 11's natural
+    boundary condition at a free endpoint reads $\partial\mathcal L/\partial u_x = 0$ at $x = L$,
+    which is $-Tu_x(L,t) = 0$. That is the honest derivation, and it is the same theorem that told
+    unit 11 what happens at the free end of a hanging chain.</p>
+    <p><b>The two moments, quantitatively.</b> Launch a genuine one-way pulse: $u(x,0) = f(x)$,
+    $u_t(x,0) = -cf'(x)$, with $f$ a symmetric bump of height $h$ centred at $x_0$, so that
+    $u = f(x-ct) - f(2L-x-ct)$ near a fixed end at $L$ (the problem sheet's P3). At the instant
+    $t_* = (L-x_0)/c$ the two arguments are $x_0 + s$ and $x_0 - s$ with $s = x-L$, and $f$ is
+    symmetric about $x_0$, so the terms cancel and $u \equiv 0$: a photograph would show a straight
+    string. The energy has not gone anywhere — $u_t = -c[f'(x_0+s) - f'(x_0-s)] = -2cf'(x_0+s)$ does
+    not vanish, and everything is kinetic. At a free end the sign is $+$: the displacements add to
+    $2h$, $u_t$ vanishes, and the string is instantaneously motionless with all its energy in
+    $\tfrac12 T u_x^2$. The doubling of amplitude
+    at a free end is why an open organ pipe has a pressure node and a displacement antinode at its
+    mouth, and why a whip cracks.</p>
+    <p><b>The mixed problem.</b> Fixed at $0$, free at $L$: extend oddly about $0$ and evenly about
+    $L$, and the result is $4L$-periodic rather than $2L$-periodic, with only odd harmonics
+    $\omega_k = (2k-1)\pi c/2L$. That is a clarinet, and the missing even harmonics are the reason a
+    clarinet sounds hollow and plays an octave-plus-a-fifth above its fundamental when overblown.
+    The problem sheet asks for the period.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · images · example 3</p>
+  <h2>The plucked string, exactly</h2>
+  <div class="box ex"><span class="label">example 3 · <span class="ref" data-ref="pluck">the E string</span> at three instants</span>
+    <div class="cols wide-left">
+      <div>
+        <p class="small"><b>Data.</b> $g \equiv 0$ and $f$ the triangle with apex $h$ at $x = a$: $f = hx/a$ on $[0,a]$, $f = h(L-x)/(L-a)$ on $[a,L]$. With $g = 0$, d'Alembert reduces to $u = \tfrac12[\tilde f(x-ct) + \tilde f(x+ct)]$.</p>
+        <p class="small"><b>Method.</b> $\tilde f$ is piecewise linear with corners exactly at $x = \pm a + 2nL$. So $u(\cdot,t)$ is piecewise linear with corners where $x - ct$ or $x + ct$ hits one: two of them lie in $[0,L]$ at any time, at $x = a + ct$ and $x = a - ct$, each reflected off the ends.</p>
+        <p class="small"><b>Slopes.</b> Away from the corners the slope is $\tfrac12[\tilde f'(x-ct) + \tilde f'(x+ct)]$, and $\tilde f'$ takes only the values $\pm h/a$ and $\mp h/(L-a)$. Between the corners the two copies sit on opposite branches, giving the <b>mean</b> $\tfrac12\big(\tfrac ha - \tfrac h{L-a}\big)$.</p>
+        <p class="small">At all three instants drawn, with $a = L/5$, the three slopes are $-1.25,\ +1.875,\ -1.25$, in units of $h/L$ — as <span class="ref" data-ref="shape">the middle snapshot</span> records.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 420 300" width="400" role="img" aria-label="four snapshots of the plucked string: the initial triangle and the profiles at one quarter, one half and three quarters of L over c">
+          <g>
+            <line x1="40" y1="50" x2="400" y2="50" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+            <polyline points="40,50 112,20 400,50" fill="none" class="accent" stroke-width="2.5"/>
+            <text x="40" y="34" font-size="14" class="soft">t = 0</text>
+          </g>
+          <g>
+            <line x1="40" y1="122" x2="400" y2="122" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+            <polyline points="40,122 58,124 202,101 400,122" fill="none" class="unit" stroke-width="2.5"/>
+            <text x="40" y="106" font-size="14" class="soft">t = L/4c</text>
+          </g>
+          <g>
+            <line x1="40" y1="194" x2="400" y2="194" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+            <polyline points="40,194 148,205 292,183 400,194" fill="none" class="unit" stroke-width="2.5"/>
+            <text x="40" y="178" font-size="14" class="soft">t = L/2c</text>
+          </g>
+          <g>
+            <line x1="40" y1="266" x2="400" y2="266" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+            <polyline points="40,266 238,287 382,264 400,266" fill="none" class="unit" stroke-width="2.5"/>
+            <text x="40" y="250" font-size="14" class="soft">t = 3L/4c</text>
+          </g>
+        </svg>
+        <p class="cap">Same vertical scale throughout. The two corners separate at $\pm c$ from the pluck point and bounce.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The three profiles, as numbers.</b> With $a = L/5$ the corner positions and heights are
+    exactly: at $t = L/4c$, corners at $x = 0.05L$ (height $-h/16$) and $x = 0.45L$ (height $+11h/16$);
+    at $t = L/2c$, corners at $0.3L$ ($-3h/8$) and $0.7L$ ($+3h/8$); at $t = 3L/4c$, corners at
+    $0.55L$ ($-11h/16$) and $0.95L$ ($+h/16$). For $h = 3$ mm those heights are $-0.1875$ and
+    $+2.0625$ mm, then $\mp1.125$ mm, then $-2.0625$ and $+0.1875$ mm. Every one of them is a
+    rational multiple of $h$, because the whole construction is linear interpolation between
+    corners.</p>
+    <p><b>Full derivation of one of them.</b> At $t = L/2c$ and $x = 0.7L$: $x - ct = 0.2L = a$, so
+    $\tilde f(x-ct) = h$; $x + ct = 1.2L$, and by oddness about $L$, $\tilde f(1.2L) = -\tilde f(0.8L) = -h(L-0.8L)/(0.8L) = -h/4$.
+    So $u = \tfrac12(h - h/4) = 3h/8$ ✓, which is the number in the figure.</p>
+    <p><b>A check worth doing.</b> At $t = L/c$ the formula gives $u(x, L/c) = -f(L-x)$: the string is
+    the mirror image of its initial shape, inverted. At $t = 2L/c$ it is back to $f$. So the motion
+    is periodic with period $2L/c$ and antiperiodic with half of it — which is precisely why the
+    spectrum of a plucked string contains no term whose period exceeds $2L/c$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · images</p>
+  <h2>The two kinks, and what a photograph shows</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">what the exact solution says</span>
+        <p class="small">The apex does not survive. At $t = 0^+$ it opens into a <b>straight segment</b> whose two ends run apart at speed $c$, and whose slope is the mean of the two original slopes. At all but the isolated bounce instants the string is three straight pieces.</p>
+        <p class="small">The segment is <b>flat</b> — a genuine flat top — exactly when $a = L/2$. Off-centre, it tilts; at $a = L/5$ its slope is $1.875\,h/L$, against the original $5\,h/L$ and $-1.25\,h/L$.</p>
+      </div>
+      <p class="small">High-speed photographs of a plucked string show exactly this: not a decaying sinusoid, but a corner running round the string, reversing sign at each end, with the period $2L/c$ audible as the pitch.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">in what sense is this a solution?</span>
+        <p class="small">$f$ is not $C^2$ — not even $C^1$ — so d'Alembert's theorem does not apply on its own terms. What is true:</p>
+        <p class="small">• the formula defines a continuous $u$ solving $u_{tt} = c^2u_{xx}$ classically <b>off</b> the two characteristic lines through the apex;<br>
+        • the kinks travel along characteristics and never smooth out — a hyperbolic equation propagates singularities, it does not heal them;<br>
+        • $u$ is the uniform limit of the classical solutions from smoothed data, which is the honest sense in which it is <em>the</em> answer.</p>
+        <p class="small">Unit 20's distributions make "solves the equation" precise for such a $u$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the mean slope.</b> Immediately after $t = 0$, for $x$ strictly between $a - ct$ and
+    $a + ct$, the right-going copy is sampled at $x - ct \lt a$ (left branch, slope $h/a$) while the
+    left-going copy is sampled at $x + ct \gt a$ (right branch, slope $-h/(L-a)$). Since
+    $u_x = \tfrac12[\tilde f'(x-ct) + \tilde f'(x+ct)]$, the slope there is the average. Setting
+    $\tfrac ha = \tfrac h{L-a}$ gives $a = L/2$, the only case where the average is zero.</p>
+    <p><b>The singularity theorem, stated.</b> <em>Cited</em> (Hörmander; the one-dimensional case is
+    immediate from $u = F(x-ct)+G(x+ct)$): for a hyperbolic operator the singular support of a
+    solution is a union of characteristics. This is the exact opposite of the parabolic case, where
+    any data whatsoever becomes real-analytic at once. "Does the equation smooth or propagate?" is
+    a question the principal symbol answers, and the answer is the difference between a musical
+    instrument and a radiator.</p>
+    <p><b>The acoustics.</b> A corner running round the string is why a plucked note is bright:
+    a discontinuity in slope means a Fourier amplitude spectrum falling only as $1/k^2$, so dozens
+    of harmonics are present. Unit 19 computes those amplitudes, finds the $\sin(k\pi a/L)/k^2$
+    factor, and reads off the rule every guitarist knows without knowing why — pluck at $L/5$ and
+    the fifth harmonic vanishes, because $\sin(k\pi/5) = 0$ at $k=5$. Pluck near the bridge, where
+    $a/L$ is small, and the spectrum is flat and the tone is thin and metallic.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Energy</h2>
+  <p>A density, a flux, a local conservation law, and uniqueness for free.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · energy</p>
+  <h2>Energy density and energy flux</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definitions</span>
+        <p class="small">For a solution $u$ of $\mu u_{tt} = Tu_{xx}$ define the <span class="term">energy density</span> and the <span class="term">energy flux</span></p>
+        $$e = \tfrac12\mu u_t^2 + \tfrac12 T u_x^2, \qquad S = -T\,u_t u_x .$$
+        <p class="small">$e$ is kinetic plus potential per unit length, in $\mathrm{J\,m^{-1}}$; $S$ is the power, in watts, carried past a point in the $+x$ direction.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · the <span class="term">local conservation law</span></span>
+        $$\frac{\partial e}{\partial t} + \frac{\partial S}{\partial x} = 0$$
+        <p class="small"><b>Proof.</b> $e_t = \mu u_tu_{tt} + Tu_xu_{xt}$ and $S_x = -Tu_{xt}u_x - Tu_tu_{xx}$. Add: the cross terms cancel and what is left is $u_t(\mu u_{tt} - Tu_{xx}) = 0$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $\mu u_t^2$: $\mathrm{kg\,m^{-1}}\cdot\mathrm{m^2s^{-2}} = \mathrm{J\,m^{-1}}$ ✓. $Tu_x^2$: $\mathrm N$ ✓ (a newton is a joule per metre). $S$: $\mathrm N\cdot\mathrm{m\,s^{-1}} = \mathrm W$ ✓, and $[e_t] = [S_x] = \mathrm{W\,m^{-1}}$ ✓.</p>
+        <p class="small"><b>A right-moving wave.</b> $u = F(x-ct)$: $u_t = -cF'$, $u_x = F'$, so $e = \tfrac12\mu c^2F'^2 + \tfrac12TF'^2 = TF'^2$ and $S = cTF'^2$. Hence $S = c\,e$: energy moves at $c$, as it must ✓. Left-movers give $S = -c\,e$ ✓.</p>
+        <p class="small"><b>Equipartition.</b> In that same wave $\tfrac12\mu u_t^2 = \tfrac12Tu_x^2$ exactly, at every point: a travelling wave is half kinetic, half potential ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the potential term comes from, if you want it derived rather than declared.</b>
+    Stretching the element over $[x,x+\Delta x]$ from length $\Delta x$ to
+    $\Delta x\sqrt{1+u_x^2}$ against constant tension $T$ costs work
+    $T\Delta x(\sqrt{1+u_x^2} - 1) = \tfrac12 T u_x^2\Delta x + O(u_x^4)$. So $\tfrac12Tu_x^2$ is the
+    elastic energy per unit length, to the same order as the wave equation itself, and no further.
+    The kinetic term is $\tfrac12(\mu\Delta x)u_t^2$ with no approximation.</p>
+    <p><b>Read the theorem as a template.</b> "A density whose time derivative is minus the
+    divergence of a flux" is the shape of every conservation law in the rest of this course:
+    unit 22's continuity and momentum equations, unit 24's Poynting vector $\vec E\times\vec B/\mu_0$,
+    unit 29's stress–energy tensor $\partial_\mu T^{\mu\nu} = 0$, and unit 35's Bianchi identity.
+    The statement always says the same thing: the stuff in a region changes only by flowing
+    through its boundary, never by appearing. In one dimension "divergence" is $\partial_x$, and
+    that is the only reason this unit can state it before unit 05's divergence theorem is available
+    in general.</p>
+    <p><b>The sign of $S$.</b> $S = -Tu_tu_x$ is the rate at which the string to the left of $x$ does
+    work on the string to the right: the transverse force it exerts is $-Tu_x$ upward... for a
+    right-moving pulse $u_t$ and $u_x$ have opposite signs, so $S \gt 0$ ✓. Getting this sign
+    wrong is the standard error, and the travelling-wave check above is the cheapest way to catch it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · energy</p>
+  <h2>Differentiating under the integral sign</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">lemma · <span class="term">Leibniz's rule</span> (proved here)</span>
+        <p class="small">Let $F$ and $\partial F/\partial t$ be continuous on $[0,L]\times[t_1,t_2]$. Then $t\mapsto\int_0^L F(x,t)\,\mathrm dx$ is differentiable and</p>
+        $$\frac{\mathrm d}{\mathrm dt}\int_0^L F\,\mathrm dx = \int_0^L \frac{\partial F}{\partial t}\,\mathrm dx$$
+      </div>
+      <div class="box thm"><span class="label">theorem · total energy is constant</span>
+        <p class="small">For a $C^2$ solution with <b>either</b> end fixed ($u_t = 0$ there) <b>or</b> free ($u_x = 0$ there), $E(t) = \int_0^L e\,\mathrm dx$ satisfies</p>
+        $$\dot E = \int_0^L e_t\,\mathrm dx = -\int_0^L S_x\,\mathrm dx$$
+        $$= S(0,t) - S(L,t) = 0$$
+        <p class="small">Both boundary conditions kill $S = -Tu_tu_x$ at the end, for opposite reasons. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">numerical check, on <span class="ref" data-ref="pluck">the pluck</span></span>
+        <p class="small">$\int_0^L u_x^2\,\mathrm dx$ and $\int_0^L u_t^2/c^2\,\mathrm dx$, in units of $h^2/L$:</p>
+        <table class="dense small">
+          <thead><tr><th>$t$</th><th class="num">potential</th><th class="num">kinetic</th><th class="num">sum</th></tr></thead>
+          <tbody>
+            <tr><td>$0$</td><td class="num">6.250</td><td class="num">0.000</td><td class="num">6.250</td></tr>
+            <tr><td>$L/4c$</td><td class="num">2.344</td><td class="num">3.906</td><td class="num">6.250</td></tr>
+            <tr><td>$L/2c$</td><td class="num">2.344</td><td class="num">3.906</td><td class="num">6.250</td></tr>
+            <tr><td>$3L/4c$</td><td class="num">2.344</td><td class="num">3.906</td><td class="num">6.250</td></tr>
+          </tbody>
+        </table>
+        <p class="small muted">The sum is $L^2/\big(a(L-a)\big) = 6.25$ at every time ✓. The split is not constant — at $t=0$ it is all potential — and equipartition holds for a travelling wave, not for a string with two ends.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the lemma.</b> Let $\Phi(t) = \int_0^L F(x,t)\,\mathrm dx$. For $t, t+\delta$ in
+    $[t_1,t_2]$, the mean value theorem in $t$ gives, for each $x$, a $\theta(x)$ between $t$ and
+    $t+\delta$ with $\big(F(x,t+\delta) - F(x,t)\big)/\delta = F_t(x,\theta(x))$. Hence
+    $$\left|\frac{\Phi(t+\delta) - \Phi(t)}{\delta} - \int_0^L F_t(x,t)\,\mathrm dx\right| \le \int_0^L\big|F_t(x,\theta(x)) - F_t(x,t)\big|\,\mathrm dx \le L\,\omega(|\delta|),$$
+    where $\omega$ is the modulus of continuity of $F_t$ on the compact rectangle
+    $[0,L]\times[t_1,t_2]$. $F_t$ is continuous on a compact set, hence <em>uniformly</em> continuous,
+    so $\omega(|\delta|)\to0$ as $\delta\to0$. $\square$ Compactness and uniform continuity are the
+    whole content; this is the one new analytic tool the unit needs and it is not deep.</p>
+    <p><b>Where the table's numbers come from.</b> At $t = 0$ all the energy is potential and
+    $\int f'^2 = (h/a)^2a + \big(h/(L-a)\big)^2(L-a) = h^2L/\big(a(L-a)\big)$, which is $6.25\,h^2/L$
+    at $a = L/5$. The other rows are the piecewise-linear profiles of example 3 with their slopes
+    squared and lengths, and the velocities read off $u_t = \tfrac c2[\tilde f'(x+ct) - \tilde f'(x-ct)]$.
+    In joules, with $L/\big(a(L-a)\big) = 25/(4L) = 9.6494\ \mathrm m^{-1}$,
+    $E = \tfrac12(72.53)(3\times10^{-3})^2(9.6494) = 3.149$ mJ.</p>
+    <p><b>Why all three rows are the same, and why the split is not a half.</b> Since
+    $u_x = \tfrac12[\tilde f'(x-ct) + \tilde f'(x+ct)]$ and $u_t/c = \tfrac12[\tilde f'(x+ct) - \tilde f'(x-ct)]$,
+    the difference potential minus kinetic is exactly the cross term
+    $C(t) = \int_0^L \tilde f'(x-ct)\,\tilde f'(x+ct)\,\mathrm dx$, while the sum is always $6.25\,h^2/L$.
+    For any $ct$ strictly between $a$ and $L-a$ the left-going copy sits on the shallow branch
+    $-1.25\,h/L$ across the whole string, while the right-going copy sits on the steep branch $5\,h/L$
+    over a stretch of length exactly $2a = 0.4L$ and on $-1.25\,h/L$ over the remaining $0.6L$. Hence
+    $C = \big[0.4(5)(-1.25) + 0.6(-1.25)^2\big]h^2/L = -1.5625\,h^2/L$, giving potential
+    $\tfrac12(6.25 - 1.5625) = 2.344$ and kinetic $\tfrac12(6.25 + 1.5625) = 3.906$ — the same numbers
+    at $L/4c$, $L/2c$ and $3L/4c$ alike, since $ct = 0.25L$, $0.5L$ and $0.75L$ all lie in
+    $(0.2L, 0.8L)$. Take $ct = 0.1L$ instead, where the steep stretch is only $2ct$ long, and the split
+    is $68.75\%$ potential: the motion visits many ratios, and none of them has to be a half.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · energy</p>
+  <h2>Uniqueness, by energy</h2>
+  <div class="box thm"><span class="label">theorem · uniqueness for the initial-boundary-value problem</span>
+    <p class="small">There is at most one $C^2$ function on $[0,L]\times[0,\infty)$ with $\mu u_{tt} = Tu_{xx}$, given $u(x,0)$, $u_t(x,0)$, and at each end either $u = 0$ or $u_x = 0$ for all $t$.</p>
+  </div>
+  <div class="cols">
+    <div class="box proof"><span class="label">proof · the <span class="term">energy method</span></span>
+      <p class="small">Let $u_1, u_2$ both qualify and put $w = u_1 - u_2$. By linearity $w$ solves the same equation with the same (homogeneous) boundary conditions and with $w(x,0) = w_t(x,0) = 0$.</p>
+      <p class="small">Its energy $E_w(t) = \int_0^L\big(\tfrac12\mu w_t^2 + \tfrac12Tw_x^2\big)\mathrm dx$ is constant, by the previous slide, and $E_w(0) = 0$ since $w_t(\cdot,0) = 0$ and $w(\cdot,0) = 0$ gives $w_x(\cdot,0) = 0$.</p>
+      <p class="small">So $E_w \equiv 0$. The integrand is continuous and nonnegative, hence identically zero, hence $w_t \equiv w_x \equiv 0$ on a connected set: $w$ is constant, and $w(0,0) = 0$ makes the constant zero. $\square$</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what this replaces</span>
+        <p class="small">Unit 01 got uniqueness for ODEs from a Lipschitz condition and a contraction. There is no comparably general PDE theorem. What works instead is: <b>find a nonnegative conserved quantity that vanishes only for the zero solution</b>. It is not a trick — the same argument gives uniqueness for Maxwell's equations (unit 24), for the linearised Einstein equations (unit 38), and for the heat equation with the sign of $\dot E$ in place of its constancy.</p>
+      </div>
+      <p class="small muted">Note what was <b>not</b> needed: any formula for $u$. The theorem holds where no d'Alembert formula exists.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The step "$w(\cdot,0)=0 \Rightarrow w_x(\cdot,0)=0$".</b> $w$ vanishes identically as a
+    function of $x$ at $t=0$, so its $x$-derivative at $t=0$ vanishes too. This is differentiating
+    along the initial line, not across it, and is legitimate exactly because the data is prescribed
+    on a whole interval — which is the non-characteristic Cauchy data of §3 doing its job.</p>
+    <p><b>The step "integrand continuous, nonnegative, integral zero".</b> If a continuous
+    $\varphi \ge 0$ had $\varphi(x_0) = \epsilon \gt 0$, continuity gives a neighbourhood of width
+    $\delta$ where $\varphi \gt \epsilon/2$, so $\int\varphi \ge \epsilon\delta/2 \gt 0$. Contradiction.
+    The same three lines appear in unit 11's fundamental lemma and are worth keeping to hand.</p>
+    <p><b>Energy methods give more than uniqueness.</b> The same computation run on a triangle
+    rather than a rectangle gives the domain-of-dependence theorem without d'Alembert's formula
+    (§4's notes); run with an inequality it gives continuous dependence, which is the third
+    Hadamard condition of §7; and run on the difference of a solution and its numerical
+    approximation it gives stability. In hyperbolic PDE the energy estimate <em>is</em> the theory.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · energy · example 4</p>
+  <h2>Where the pluck's energy is</h2>
+  <div class="box ex"><span class="label">example 4 · the number, and where it goes</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. Total energy.</b> At $t = 0$ the string is at rest, so all the energy is elastic:</p>
+        $$E = \tfrac12 T\!\int_0^L\! f'^2\,\mathrm dx = \tfrac12 T\Big[\frac{h^2}{a} + \frac{h^2}{L-a}\Big]$$
+        $$= \frac{T h^2 L}{2\,a(L-a)}$$
+        <p class="small"><b>2. Substitute.</b> $T = 72.53$ N, $h = 3.00$ mm, $L = 0.6477$ m, $a = L/5$:</p>
+        <p class="small">$E = \dfrac{(72.53)(9.00\times10^{-6})}{2}\cdot\dfrac{25}{4(0.6477)} = 3.149\times10^{-3}$ J.</p>
+        <p class="small"><b>3. Where it is later.</b> Constant, by the theorem. At each of $t = L/4c$, $L/2c$ and $3L/4c$ the split is the same: $37.5\%$ potential, $62.5\%$ kinetic.</p>
+      </div>
+      <div>
+        <p class="small"><b>Check — dimensions.</b> $Th^2/\big(a(L-a)\big)\cdot L$: $\mathrm N\cdot\mathrm m^2/\mathrm m^2\cdot\mathrm m$… collect: $\mathrm{N\,m} = \mathrm J$ ✓.</p>
+        <p class="small"><b>Check — limits.</b> $a\to0$ at fixed $h$ sends $E\to\infty$: plucking a fixed height right at the bridge requires an infinite slope, hence infinite energy ✓. $a = L/2$ maximises $a(L-a)$ and therefore minimises $E$, giving $E = 2Th^2/L$ — the cheapest place to pluck to a given height ✓.</p>
+        <p class="small"><b>Check — magnitude.</b> The restoring force at full deflection is $ThL/\big(a(L-a)\big) = 2.10$ N, and half of that times $h$ is $\tfrac12(2.10)(3\ \mathrm{mm}) = 3.15$ mJ — the same number from work done, by a route that never mentions $c$ ✓. Spread over a one-second decay it is at most 3 mW of sound: audible, not loud.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full computation of step 1.</b> $f' = h/a$ on $(0,a)$ and $-h/(L-a)$ on $(a,L)$, so
+    $\int_0^Lf'^2 = (h/a)^2\cdot a + \big(h/(L-a)\big)^2\cdot(L-a) = h^2/a + h^2/(L-a) = h^2L/\big(a(L-a)\big)$.
+    At $a = L/5$ the bracket is $L/\big(\tfrac L5\cdot\tfrac{4L}5\big) = 25/(4L) = 9.6494\ \mathrm m^{-1}$,
+    and $\tfrac12(72.53)(9\times10^{-6})(9.6494) = 3.1495\times10^{-3}$ J.</p>
+    <p><b>Why plucking near the bridge is both quiet and bright.</b> $E \propto 1/\big(a(L-a)\big)$ at
+    fixed $h$, so a given displacement near the bridge costs more energy; but a player's finger
+    supplies a roughly fixed <em>force</em>, not a fixed displacement, so the achieved $h$ falls
+    faster still and the note comes out quieter. Meanwhile unit 19's mode amplitudes carry
+    $\sin(k\pi a/L)$, which for small $a/L$ is nearly flat in $k$: many harmonics, thin tone. Both
+    effects are in this one formula and its Fourier companion.</p>
+    <p><b>Energy is conserved and the note still dies.</b> Nothing in this unit damps. A real string
+    loses energy to the bridge — which is the point, since that is what makes the sound — and to
+    air and internal friction. Unit 06's $\gamma$ is how that enters, and $Q$ for a guitar string is
+    of order $10^3$, so the note lasts of order $10^3$ periods, a second or two. The idealisation is
+    good precisely because $Q$ is large.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 7</p>
+  <h2>Well-posedness</h2>
+  <p>Existence and uniqueness are not enough, and here is the counterexample.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · well-posedness</p>
+  <h2>Hadamard's three conditions</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition · <span class="term">well-posedness</span> (Hadamard, 1902)</span>
+        <p class="small">A problem "given data $d$ in a normed space $\mathcal D$, find $u$ in a normed space $\mathcal U$" is <b>well posed</b> when</p>
+        <p class="small"><b>1.</b> a solution exists for every $d \in \mathcal D$;<br>
+        <b>2.</b> it is unique;<br>
+        <b>3.</b> the map $d \mapsto u$ is <span class="term" data-term="continuous dependence">continuous</span>: small data changes produce small solution changes, in the chosen norms.</p>
+        <p class="small">Otherwise it is <span class="term" data-term="ill-posed">ill posed</span>.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">Clause 3 is the one that has content, and it is unit 01's continuous dependence promoted from a theorem to a requirement. There it was <em>proved</em>, from Gronwall, for every Lipschitz ODE. Here it is not automatic, and the next slide shows it failing spectacularly for an equation that has both existence and uniqueness.</p>
+      <div class="box warn"><span class="label">why a physicist must care</span>
+        <p class="small">Data comes from measurement and carries error. If clause 3 fails, the computed solution is a statement about the measurement error and not about the system. No amount of care with the arithmetic repairs this: the <b>problem</b>, not the method, is at fault.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The norms are part of the problem statement, and changing them changes the verdict.</b>
+    The wave equation is well posed for data measured in the energy norm
+    $\|(f,g)\|^2 = \int(\mu g^2 + Tf_x^2)$ — §6's uniqueness proof upgrades directly to the estimate
+    $E_w(t) = E_w(0)$, which is continuity with constant 1. It would <em>not</em> be well posed if one
+    insisted on measuring the solution in a norm involving more derivatives than the data controls.
+    Saying "this problem is well posed" without naming the spaces is saying very little.</p>
+    <p><b>Hadamard's own words, 1902, roughly.</b> A problem is <em>bien posé</em> when it has the
+    features of a physical question: an answer, one answer, and an answer that varies continuously
+    with what was measured. He introduced the idea precisely to argue that the Cauchy problem for
+    Laplace's equation, though it has a unique analytic solution by Cauchy–Kovalevskaya, is not a
+    physical question. The next slide is his example.</p>
+    <p><b>Ill-posed does not mean useless.</b> Deconvolution, tomography and every inverse problem
+    is ill posed, and they are solved daily by <em>regularisation</em>: replace the problem by a
+    nearby well-posed one, at the cost of a bias you can bound. The professional habit is to
+    diagnose the ill-posedness first and then choose the regulariser, rather than to discover it
+    when the output is noise.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · well-posedness · example 5</p>
+  <h2>Hadamard's example: Cauchy data on Laplace</h2>
+  <div class="box ex"><span class="label">example 5 · the classification has teeth</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>The problem.</b> $u_{xx} + u_{yy} = 0$ — elliptic, $D = -1$ — with Cauchy data on the line $y = 0$:</p>
+        <p class="small">$u(x,0) = 0$, $\qquad u_y(x,0) = \dfrac1n\sin(nx)$.</p>
+        <p class="small"><b>The solution.</b> $\ u_n(x,y) = \dfrac1{n^2}\sin(nx)\sinh(ny)$.</p>
+        <p class="small"><b>Verify.</b> $\partial_x^2 u_n = -\sin(nx)\sinh(ny)$ and $\partial_y^2 u_n = +\sin(nx)\sinh(ny)$; they cancel ✓. $u_n(x,0) = 0$ ✓, and $\partial_y u_n|_{y=0} = \tfrac1n\sin(nx)\cosh(0) = \tfrac1n\sin(nx)$ ✓. It is unique, by Cauchy–Kovalevskaya.</p>
+      </div>
+      <div>
+        <p class="small"><b>The failure.</b> The data has size $1/n \to 0$. The solution at $y = 1$ has size $\sinh(n)/n^2 \to \infty$.</p>
+        <table class="dense small">
+          <thead><tr><th>$n$</th><th class="num">$\sup|u_y(x,0)|$</th><th class="num">$\sup|u(x,1)|$</th></tr></thead>
+          <tbody>
+            <tr><td>10</td><td class="num">$1.0\times10^{-1}$</td><td class="num">$1.10\times10^{2}$</td></tr>
+            <tr><td>20</td><td class="num">$5.0\times10^{-2}$</td><td class="num">$6.06\times10^{5}$</td></tr>
+            <tr><td>50</td><td class="num">$2.0\times10^{-2}$</td><td class="num">$1.04\times10^{18}$</td></tr>
+          </tbody>
+        </table>
+        <p class="small"><b>Check against a hyperbolic equation.</b> The same data for $u_{tt} = c^2u_{xx}$ gives $u = \tfrac1{n^2c}\sin(nx)\sin(nct)$, of size $\le 1/n^2c$ — at $n = 20$, $5.9\times10^{-6}$, eleven orders below the elliptic answer. Same data, same amount of it, different type ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The mechanism, in one sentence.</b> $\sin$ has been replaced by $\sinh$: the elliptic
+    equation turns oscillation in $x$ into <em>exponential growth</em> in $y$, at a rate equal to
+    the oscillation's own wavenumber, while the hyperbolic one turns it into oscillation. Ellipticity
+    means no real characteristic covector, which means no direction in which a short wave can simply
+    propagate — so it must grow or decay instead, and the Cauchy problem selects the growing branch.</p>
+    <p><b>"But the data derivatives are not small."</b> A fair objection, and it is met by using
+    $n^{-p}\sin(nx)$ for any fixed $p$: the data and its first $p-1$ derivatives all tend to zero
+    uniformly, and the solution at $y=1$ is $\sinh(n)/n^{p+1}$, which still diverges, because
+    $e^n$ beats every power of $n$. There is no choice of finitely many derivatives that rescues
+    clause 3.</p>
+    <p><b>How small must the data be to keep the answer sane?</b> At $n = 20$, to hold
+    $\sup|u(x,1)| \le 1$ the data amplitude must be below $8.2\times10^{-8}$. At $n=50$ the
+    requirement is $1.9\times10^{-20}$, four orders below what double precision resolves in a
+    datum of order one. This is the practical face of
+    ill-posedness: the noise floor of the measurement sets a wavenumber beyond which the
+    computation is reporting the noise.</p>
+    <p><b>And the physical reading.</b> Laplace's equation describes a steady state — a stretched
+    membrane's shape, an electrostatic potential (unit 23). A steady state is determined by what
+    surrounds it, on the whole boundary, not by what was happening on one wall a moment ago. Asking
+    for Cauchy data on a line is asking a static problem an evolutionary question, and the
+    arithmetic refuses.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 8</p>
+  <h2>The string as a field theory</h2>
+  <p>Unit 12's Lagrangian, with the sum over particles replaced by an integral.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · field theory</p>
+  <h2>From the chain's Lagrangian to a density</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 12's $L = T - V$ for the chain, with $N$ generalised coordinates $y_n$, masses $\mu a$ and stiffnesses $T/a$, and one factor of $a$ pulled out of every term:</p>
+      $$L_N = \sum_n a\Big[\tfrac12\mu\dot y_n^2 - \tfrac12T\Big(\tfrac{y_{n+1}-y_n}{a}\Big)^{2}\Big]$$
+      <p class="small">Every bracket is local now, and $\sum_n a$ is a Riemann sum. Let $a\to0$:</p>
+      <div class="box def"><span class="label">the <span class="term">Lagrangian density</span></span>
+        $$\mathcal L = \tfrac12\mu u_t^2 - \tfrac12 T u_x^2, \quad L[u] = \int_0^L\! \mathcal L\,\mathrm dx$$
+        <p class="small">The <span class="term">action</span> is the iterated integral $\displaystyle \mathcal S[u] = \int_{t_0}^{t_1}\!\!\left(\int_0^L \mathcal L\,\mathrm dx\right)\mathrm dt$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">lemma · iterated integrals commute (proved here)</span>
+        <p class="small">If $\Psi$ is continuous on $[0,L]\times[t_0,t_1]$ then</p>
+        $$\int_{t_0}^{t_1}\!\!\int_0^L \Psi\,\mathrm dx\,\mathrm dt = \int_0^L\!\!\int_{t_0}^{t_1} \Psi\,\mathrm dt\,\mathrm dx .$$
+        <p class="small">Needed once, on the next slide, to integrate by parts in $t$. The proof is in the notes and uses only uniform continuity.</p>
+      </div>
+      <div class="box warn"><span class="label">one letter, two meanings</span>
+        <p class="small">$T$ is the tension, in newtons; unit 12's $T$ was kinetic energy. The clash is universal in the literature, and there is nothing to do but watch it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the lemma.</b> Put $A(s) = \int_{t_0}^{s}\int_0^L\Psi\,\mathrm dx\,\mathrm dt$ and
+    $B(s) = \int_0^L\int_{t_0}^{s}\Psi\,\mathrm dt\,\mathrm dx$. Both vanish at $s = t_0$. $A'(s) = \int_0^L\Psi(x,s)\,\mathrm dx$
+    by the fundamental theorem of calculus, the inner integral being a continuous function of $t$.
+    For $B$, the integrand $G(x,s) = \int_{t_0}^s\Psi(x,t)\,\mathrm dt$ has $\partial_sG = \Psi(x,s)$,
+    continuous on the rectangle, so the previous slide's Leibniz rule gives $B'(s) = \int_0^L\Psi(x,s)\,\mathrm dx$
+    as well. Two functions with the same derivative and the same value at $t_0$ agree. $\square$
+    Continuity of $\Psi$ on a compact rectangle is used exactly twice, both times to get uniform
+    continuity; no measure theory is involved, and this is emphatically the easy case of Fubini's
+    theorem.</p>
+    <p><b>What "density" buys.</b> A Lagrangian is a number attached to a configuration; a Lagrangian
+    <em>density</em> is a number attached to a point, built only from the field and its derivatives
+    <em>there</em>. Locality is the whole content, and it is why field theory has a chance of being
+    compatible with relativity: a local density can be a scalar under a group acting on spacetime,
+    whereas a global sum over particles at one instant cannot, because "one instant" is not
+    invariant. Unit 29 makes that precise; the object $\mathcal L$ is born here.</p>
+    <p><b>The limit of the potential term, carefully.</b> $\tfrac12(T/a)(y_{n+1}-y_n)^2 = \tfrac12 T a\big((y_{n+1}-y_n)/a\big)^2$,
+    and $(y_{n+1}-y_n)/a \to u_x$ by the mean value theorem for a $C^1$ field. So each summand is
+    $a$ times something converging to $\tfrac12 Tu_x^2$, and the sum is a Riemann sum for
+    $\int_0^L\tfrac12Tu_x^2\,\mathrm dx$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · field theory</p>
+  <h2>The Euler–Lagrange equation for a field</h2>
+  <div class="box thm"><span class="label">theorem · the first field equation in this course</span>
+    <p class="small">Let $\mathcal S[u] = \iint_R\mathcal L(u, u_t, u_x, x, t)$ on $R = [0,L]\times[t_0,t_1]$. A $C^2$ stationary point among fields agreeing with $u$ on $\partial R$ satisfies</p>
+    $$\partial_t\Big(\frac{\partial\mathcal L}{\partial u_t}\Big) + \partial_x\Big(\frac{\partial\mathcal L}{\partial u_x}\Big) = \frac{\partial\mathcal L}{\partial u}$$
+  </div>
+  <div class="cols">
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">Take $\eta \in C^2$ vanishing on $\partial R$, $\Phi(\epsilon) = \mathcal S[u+\epsilon\eta]$. Unit 11's first variation, with two integrals:</p>
+      <p class="small">$\Phi'(0) = \iint\big[\mathcal L_{u_t}\eta_t + \mathcal L_{u_x}\eta_x + \mathcal L_u\,\eta\big]$. Integrate the first term by parts in $t$ (order swapped by the lemma) and the second in $x$; both boundary terms die with $\eta$. Hence $\Phi'(0) = -\iint\big[\partial_t\mathcal L_{u_t} + \partial_x\mathcal L_{u_x} - \mathcal L_u\big]\eta$, and the two-variable fundamental lemma (notes) kills the bracket. $\square$</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">apply it to <span class="ref" data-ref="Lden">the string</span></span>
+        <p class="small">$\mathcal L_{u_t} = \mu u_t$, $\ \mathcal L_{u_x} = -Tu_x$, $\ \mathcal L_u = 0$:</p>
+        $$\partial_t(\mu u_t) - \partial_x(Tu_x) = 0$$
+        <p class="small">that is $\mu u_{tt} = Tu_{xx}$ — the wave equation, for the third time ✓.</p>
+      </div>
+      <div class="box good"><span class="label">and the free end, for free</span>
+        <p class="small">Leave $u$ free at $x = L$: the surviving boundary term $\int\mathcal L_{u_x}\eta|_{x=L}\,\mathrm dt$ forces $\mathcal L_{u_x} = 0$ — unit 11's natural boundary condition, and §5's free end ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the two-variable fundamental lemma.</b> Suppose $\Theta$ is continuous on $R$
+    and $\iint\Theta\eta = 0$ for every $C^2$ $\eta$ vanishing on $\partial R$. If
+    $\Theta(x_0,t_0) = \epsilon \gt 0$ at an interior point, continuity gives a closed rectangle
+    $Q \subset \mathrm{int}\,R$ around it on which $\Theta \gt \epsilon/2$. Take
+    $\eta(x,t) = \varphi(x)\psi(t)$ with $\varphi, \psi$ the standard $C^\infty$ bumps of unit 11,
+    positive inside $Q$'s sides and zero outside. Then $\iint\Theta\eta \ge (\epsilon/2)\iint\eta \gt 0$,
+    a contradiction; same with signs reversed. The only new ingredient over unit 11 is that a
+    product of one-dimensional bumps is a two-dimensional bump. $\square$</p>
+    <p><b>The energy density is the Legendre transform of $\mathcal L$.</b>
+    $u_t\,\partial\mathcal L/\partial u_t - \mathcal L = \mu u_t^2 - \tfrac12\mu u_t^2 + \tfrac12Tu_x^2 = \tfrac12\mu u_t^2 + \tfrac12Tu_x^2 = e$,
+    §6's energy density exactly. So the sign flip between $\mathcal L$ and $e$ is not a coincidence
+    or a convention: it is the Legendre transform, in its field version, and the conserved quantity
+    it produces is what unit 29 will call $T^{00}$.</p>
+    <p><b>Why this matters more than the wave equation it reproduces.</b> Everything from here to
+    the end of the course is built this way. Unit 29 runs this argument with $x$ replaced by three
+    spatial coordinates and the rectangle by a region of spacetime, and gets the field equations of
+    electromagnetism from $\mathcal L = -\tfrac14F_{\mu\nu}F^{\mu\nu}$; unit 35 runs it with the
+    metric itself as the field and $\mathcal L = R\sqrt{-g}$, and gets Einstein's equations. The
+    pattern — a density, a variation, boundary terms, a local equation — does not change. What
+    changes is the field and the symmetry group it carries.</p>
+    <p><b>A caution about what was proved.</b> Stationary, not minimal. Unit 11's second variation
+    and conjugate points apply here too, and for a hyperbolic action the stationary point is a
+    saddle, never a minimum — the $-\tfrac12Tu_x^2$ sign guarantees it. "Principle of least action"
+    is a misnomer in field theory more often than not.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · closing</p>
+  <h2>What this unit hands on</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">the string, closed</span>
+        <p class="small"><span class="ref" data-ref="pluck">The E string</span> was derived twice ($c = 427.0\ \mathrm{m\,s^{-1}}$, $T = 72.53$ N), classified (hyperbolic, characteristics $x \mp ct$), solved exactly by images (three straight segments, two corners, period $3.034$ ms), weighed ($3.149$ mJ, conserved), and finally produced from an action. Six views, one string, no Fourier series anywhere.</p>
+      </div>
+      <p class="small muted">Which is the point of doing it this way: unit 19 solves the same problem again by modes, and the two answers must agree. Where they disagree, one of them has a bug.</p>
+    </div>
+    <div>
+      <table class="dense small">
+        <tbody>
+          <tr><td><b>19</b></td><td>the same string in modes: Fourier and Sturm–Liouville, and why the modes are a basis</td></tr>
+          <tr><td><b>22</b></td><td>the local conservation law in three dimensions, with the stress tensor as the flux</td></tr>
+          <tr><td><b>24</b></td><td>the wave equation with a source, in three dimensions: light</td></tr>
+          <tr><td><b>25</b></td><td>the characteristic cone of §4 under a Galilean boost — the crisis</td></tr>
+          <tr><td><b>29</b></td><td>§8 in four dimensions: $T^{\mu\nu}$ and Noether for fields</td></tr>
+          <tr><td><b>38</b></td><td>a hyperbolic equation for the metric itself, solved by exactly these methods</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The single most transferable thing in the unit</b> is not d'Alembert's formula, which is
+    one-dimensional and does not survive. It is the habit of asking, before anything else, what
+    type the equation is and therefore what question may be asked of it. That question has an
+    answer for every linear second-order PDE in the course, and getting it wrong is how one ends
+    up computing Hadamard's example without noticing.</p>
+    <p><b>The second most transferable</b> is the energy method: a nonnegative conserved quadratic
+    gives uniqueness, continuous dependence and finite propagation speed, all three, and it never
+    needs a formula for the solution.</p>
+    <p><b>Reading.</b> Strauss, <em>Partial Differential Equations</em>, §§1.1–1.6, 2.1–2.5, 3.2 —
+    the closest match, and it assumes nothing this unit has not taught. Evans §2.4 for the wave
+    equation done properly. For the physics, Morse and Ingard, <em>Theoretical Acoustics</em>, ch. 4
+    §4.1 (skip §4.2 onward until after unit 19, which is where its normal-mode language begins).
+    Fletcher and Rossing, <em>The Physics of Musical Instruments</em>, ch. 2, for the string
+    measurements and the inharmonicity numbers.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <ul>
+      <li>You solve an <b>initial-boundary-value problem for the finite string by images</b>: given $f$, $g$, and a fixed or free condition at each end, you produce the extension, write d'Alembert's formula for it, and draw the string at a requested time with the corner positions and heights correct.</li>
+      <li>You <b>classify a given second-order PDE</b> — including one whose type changes across a curve — and state precisely what data it will accept and on what curve.</li>
+      <li>You <b>write the Lagrangian density whose Euler–Lagrange equation is the wave equation</b>, and derive the equation from it.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>How to fail it</h3>
+      <p class="small">Extend evenly at a fixed end. Call $u_{yy} + y\,u_{xx} = 0$ hyperbolic everywhere. Write $\mathcal L = \tfrac12\mu u_t^2 + \tfrac12Tu_x^2$ and get the wrong sign. Each is unambiguous.</p>
+    </div>
+    <div>
+      <h3>Then</h3>
+      <p class="small"><code>./mr problems 18</code> — twelve problems, about five hours. When the three claims above are true: <code>./mr done 18</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The three clauses are the three things later units actually call on. Unit 19 needs the first
+    (it re-solves the same IBVP and compares); units 23, 24 and 39 need the second (each meets an
+    equation of a different type and must know which questions are legitimate); units 29 and 35
+    need the third, and they need it fluently, because by then the field is $A_\mu$ or $g_{\mu\nu}$
+    and the argument is identical except in bookkeeping.</p>
+    <p>Problems P3, P4 and P9 on the sheet test clause 1 directly; P5, P6, P7 and P8 test clause 2;
+    P11 tests clause 3 and adds a mass term, which is the first Klein–Gordon equation of the course.
+    If you are short of time, those eight are the unit.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

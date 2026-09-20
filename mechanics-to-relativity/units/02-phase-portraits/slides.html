@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 · Phase portraits: what you know when there is no formula</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="a">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="pend"><span class="ref-name">the damped pendulum</span>$\ddot\theta + \gamma\dot\theta + \sin\theta = 0$, as the planar system $\dot\theta = \omega$, $\dot\omega = -\gamma\omega - \sin\theta$ on the cylinder $S^1 \times \mathbb{R}$. <span class="ref-note">Time is measured in units of $\sqrt{l/g}$, so the only parameter left is the damping $\gamma$. The slides use $\gamma = \tfrac12$</span></template>
+  <template data-ref="down"><span class="ref-name">the down equilibrium</span>$(\theta, \omega) = (0, 0)$ <span class="ref-note">Jacobian $\begin{pmatrix}0 & 1\\ -1 & -\gamma\end{pmatrix}$: $\tau = -\gamma$, $\Delta = 1$. At $\gamma = \tfrac12$ the eigenvalues are $-0.25 \pm 0.9682\,i$ — a stable spiral</span></template>
+  <template data-ref="up"><span class="ref-name">the up equilibrium</span>$(\theta, \omega) = (\pi, 0)$ <span class="ref-note">Jacobian $\begin{pmatrix}0 & 1\\ 1 & -\gamma\end{pmatrix}$: $\tau = -\gamma$, $\Delta = -1$. At $\gamma = \tfrac12$ the eigenvalues are $0.7808$ and $-1.2808$ — a saddle, for every $\gamma$</span></template>
+  <template data-ref="V"><span class="ref-name">the energy $V$</span>$V(\theta, \omega) = \tfrac12\omega^2 + (1 - \cos\theta)$ <span class="ref-note">the mechanical energy in units of $mgl$. Along the flow $\dot V = -\gamma\omega^2 \le 0$: conserved when $\gamma = 0$, a Lyapunov function when $\gamma &gt; 0$</span></template>
+  <template data-ref="sep"><span class="ref-name">the separatrix</span>$\{V = 2\}$, the curve $\omega = \pm 2\cos(\theta/2)$ <span class="ref-note">when $\gamma = 0$ it is the pair of orbits joining the saddles at $\theta = \pm\pi$, and it separates swinging from rotating. Its interior $\{V &lt; 2\}$ is the basin LaSalle proves for $\gamma &gt; 0$</span></template>
+  <template data-ref="torque"><span class="ref-name">the pendulum with torque</span>$\ddot\theta + \gamma\dot\theta + \sin\theta = T$ <span class="ref-note">a constant applied torque, in units of $mgl$. Two equilibria for $T &lt; 1$, none for $T &gt; 1$: they collide at $T = 1$ in a saddle-node bifurcation</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== 1 -->
+<section class="title-slide">
+  <p class="eyebrow">Part A · the equation of motion · spine</p>
+  <div class="unit-no">02</div>
+  <h1>Phase portraits: what you know when there is no formula</h1>
+  <p class="lede">Almost no equation of motion can be solved in closed form. This unit is the
+  set of questions you can still answer exactly: how many equilibria, of what type, with
+  which basins, and whether anything periodic exists.</p>
+  <p class="meta"><span>needs 01</span><span>~2 h slides + 4 h problems</span><span>problems: <code>./mr problems 02</code></span></p>
+  <aside class="notes">
+    <p>Unit 00 solved one-dimensional motion by quadrature in three cases, and unit 01
+    proved that the solution exists and is unique. Neither tells you what the solution
+    looks like when no integral can be evaluated, which is the ordinary situation.
+    This unit answers that, and every answer it gives is a theorem rather than a
+    picture.</p>
+    <h4>How to read this deck</h4>
+    <p>One system runs through all six sections: the damped pendulum
+    $\ddot\theta + \gamma\dot\theta + \sin\theta = 0$, which has no closed-form solution for
+    any $\gamma &gt; 0$ and about which we will nevertheless end up knowing almost
+    everything. Words with a dotted underline are glossary terms — click one, or press
+    <kbd>G</kbd> for the index. A solid thin underline names a piece of the running
+    example; hover it. Press <kbd>N</kbd> for the notes, where the longer proofs are.</p>
+    <p>Proofs are on the slide when they are short. When they are not, the slide says so
+    and the notes carry them under <b>Full proof</b>. Five boxed results are
+    <em>cited</em> rather than proved — Hartman–Grobman, Poincaré–Bendixson, the
+    Umlaufsatz, the Hopf bifurcation theorem, and Bendixson–Dulac, whose proof waits for
+    the integrals of units 04 and 05. Two more quoted only in the notes, Poincaré–Hopf and
+    Massera's converse, are labelled the same way. Each says where its proof is.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 2 -->
+<section>
+  <p class="eyebrow">02 · overview</p>
+  <h2>Six questions, one pendulum</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example</span>
+        <p class="small"><span class="ref" data-ref="pend">$\ddot\theta + \gamma\dot\theta + \sin\theta = 0$</span> — a pendulum with linear damping, in units where the only parameter left is $\gamma$. There is no formula for $\theta(t)$. By the end of the deck we will have proved:</p>
+        <ul class="small">
+          <li>where it can sit still, and what happens to a nudge;</li>
+          <li>that it always stops <em>hanging down</em> if it starts inside <span class="ref" data-ref="sep">the separatrix</span>;</li>
+          <li>that it never repeats itself;</li>
+          <li>and how that portrait breaks when a torque is applied.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <ol class="small">
+        <li><b>Flows.</b> An autonomous equation is a <span class="term">vector field</span>; its solutions partition the state space.</li>
+        <li><b>Linearisation.</b> Near an equilibrium, replace $f$ by its derivative — and know exactly when that is a lie.</li>
+        <li><b>Lyapunov.</b> Prove stability with a function that decreases, when linearisation cannot decide.</li>
+        <li><b>Periodic orbits.</b> Prove one exists without finding it; or prove none does.</li>
+        <li><b>The index.</b> An integer attached to a closed curve that counts equilibria.</li>
+        <li><b>Bifurcations.</b> What the portrait does as a parameter moves.</li>
+      </ol>
+      <p class="small muted">Sections 1–3 work in $\mathbb{R}^n$. Sections 4 and 5 are two-dimensional and say so: they are false in three.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The order is not arbitrary. Linearisation is the first tool and the weakest: it
+    answers the local question at a hyperbolic equilibrium and nothing else. Lyapunov
+    functions answer the non-hyperbolic case and, more importantly, give <em>global</em>
+    information — a basin, not a neighbourhood. Poincaré–Bendixson and the index answer
+    the only genuinely global question the plane allows: is there a cycle. Bifurcation
+    theory then puts a parameter on all of it.</p>
+    <p>The damping $\gamma$ is dimensionless. Starting from
+    $m l^2 \ddot\theta + b\,\dot\theta + m g l \sin\theta = 0$ and measuring time in units
+    of $\sqrt{l/g}$ (unit 00's time scale), the equation becomes
+    $\ddot\theta + \gamma\dot\theta + \sin\theta = 0$ with
+    $\gamma = b / (m\sqrt{g l^3})$. Check the dimensions: $b$ is a torque per unit angular
+    velocity, $[\mathsf{M}\mathsf{L}^2\mathsf{T}^{-1}]$, and
+    $m\sqrt{gl^3}$ is $\mathsf{M}\sqrt{\mathsf{L}\mathsf{T}^{-2}\mathsf{L}^3}
+    = \mathsf{M}\mathsf{L}^2\mathsf{T}^{-1}$ — the same. For a one-metre pendulum the
+    time unit is $\sqrt{1/9.81} = 0.3193$ s.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 3 -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Vector fields, orbits and flows</h2>
+  <p>An autonomous equation is a picture before it is a formula.</p>
+</section>
+
+<!-- ================================================================== 4 -->
+<section>
+  <p class="eyebrow">02 · flows</p>
+  <h2>No formula, and that is the normal case</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 00 reduced $\ddot x = F(x)$ to quadrature by multiplying by $\dot x$. For <span class="ref" data-ref="pend">the pendulum</span> with $\gamma = 0$ that gives</p>
+      $$\tfrac12\dot\theta^2 - \cos\theta = \text{const},$$
+      <p class="small">and then an elliptic integral for the period. Put $\gamma &gt; 0$ back in and the trick fails at the first step: $\dot\theta(\ddot\theta + \gamma\dot\theta + \sin\theta)$ is not a total derivative, because $\gamma\dot\theta^2$ is not.</p>
+      <div class="box warn"><span class="label">the honest position</span>
+        <p class="small">This is not a gap in the literature. The set of equations with elementary solutions has measure zero in any reasonable sense, and almost every system in this course after unit 09 is in the complement.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what is still exactly answerable</span>
+        <ul class="small">
+          <li>How many <span class="term">equilibria</span>, and where.</li>
+          <li>What each looks like nearby — and whether the linear picture is trustworthy.</li>
+          <li>Which initial conditions end where: <span class="term">basin of attraction</span>.</li>
+          <li>Whether a periodic solution exists. Not what it is: whether it exists.</li>
+          <li>How all of that changes with a parameter.</li>
+        </ul>
+      </div>
+      <p class="small">Every one of these is a theorem about $f$ alone, proved without integrating anything. That is the trade this unit offers: less information, all of it certain.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Why $\gamma\dot\theta^2$ blocks the first integral: to integrate
+    $\dot\theta\,\ddot\theta + \gamma\dot\theta^2 + \dot\theta\sin\theta = 0$ term by term you
+    need each term to be $\frac{\mathrm{d}}{\mathrm{d}t}$ of something built from $\theta$
+    and $\dot\theta$. The first is $\frac{\mathrm{d}}{\mathrm{d}t}(\tfrac12\dot\theta^2)$ and
+    the third is $\frac{\mathrm{d}}{\mathrm{d}t}(-\cos\theta)$, but $\gamma\dot\theta^2$ is
+    not: a function $G(\theta,\dot\theta)$ with $\dot G = \gamma\dot\theta^2$ along
+    <em>every</em> solution would make the energy conserved and the pendulum would never
+    stop, which section 3 will prove it does. Section 3 turns the obstruction into the
+    tool: the quantity that fails to be conserved decreases, and a decreasing quantity
+    is worth more than a conserved one here.</p>
+    <p>A sharper version of "measure zero": Liouville's theorem on integration in finite
+    terms (Liouville 1833–41; modern account in Rosenlicht, <i>Amer. Math. Monthly</i> 79
+    (1972) 963) says exactly which elementary functions have elementary antiderivatives,
+    and already $\int e^{-x^2}\mathrm{d}x$ fails. Solving an ODE is strictly harder than
+    integrating. We are not going to be unlucky occasionally; we are going to be unlucky
+    almost always.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 5 -->
+<section>
+  <p class="eyebrow">02 · flows</p>
+  <h2>An autonomous system is a vector field</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">An <span class="term">autonomous system</span> on an open $U \subseteq \mathbb{R}^n$ is $\dot{\mathbf{x}} = f(\mathbf{x})$ with $f : U \to \mathbb{R}^n$ locally Lipschitz. Read $f$ as a <span class="term">vector field</span>: at each point of $U$ it names the velocity of whatever passes through.</p>
+        <p class="small">A <span class="term">solution</span> is a differentiable curve with $\mathbf{x}'(t) = f(\mathbf{x}(t))$; its image is an <span class="term">orbit</span>. The set of all orbits, drawn in $U$, is the <span class="term">phase portrait</span>.</p>
+      </div>
+      <p class="small">"Autonomous" means $f$ does not depend on $t$ — the law is the same today as tomorrow. Unit 01 turned every $m\ddot{\mathbf{x}} = F(\mathbf{x}, \dot{\mathbf{x}})$ into one of these on $\mathbb{R}^{2n}$, so this is not a restriction on mechanics, it is mechanics.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the running example, as a system</span>
+        <p class="small">With $\omega = \dot\theta$, <span class="ref" data-ref="pend">the damped pendulum</span> is</p>
+        $$f(\theta, \omega) = \begin{pmatrix}\omega \\ -\gamma\omega - \sin\theta\end{pmatrix}$$
+        <p class="small">on $U = \mathbb{R}^2$. It is $C^\infty$, hence locally Lipschitz, so unit 01 applies: one solution through each point.</p>
+      </div>
+      <p class="small muted">Nothing here is approximate. The vector field <em>is</em> the equation; a phase portrait is the equation drawn.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why autonomy matters so much.</b> For a non-autonomous system $\dot{\mathbf x} = f(\mathbf x, t)$
+    the arrow at a point changes with time, so curves through the same point at different
+    times go different ways and the picture is useless. Autonomy is what makes the phase
+    portrait a well-defined object. Unit 01's trick of appending $\dot t = 1$ turns any
+    non-autonomous system into an autonomous one in one more dimension, at the cost of
+    never having an equilibrium.</p>
+    <p><b>Local Lipschitz is enough.</b> A $C^1$ map is locally Lipschitz: on a convex compact
+    subset the mean value inequality gives $|f(x) - f(y)| \le (\sup\|Df\|)|x - y|$. Norton's
+    dome in unit 01 was the reminder that "smooth-looking" is not the same as Lipschitz,
+    and that everything in this unit fails without it: orbits would cross.</p>
+    <p>Terminology: many books say <em>trajectory</em> for the parametrised solution and
+    <em>orbit</em> for its image. The distinction matters exactly once — a periodic orbit is
+    one set traversed by infinitely many solutions, each a time shift of the others.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 6 -->
+<section>
+  <p class="eyebrow">02 · flows</p>
+  <h2>Orbits cannot cross</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Let $\dot{\mathbf x} = f(\mathbf x)$ be autonomous with $f$ locally Lipschitz. Then</p>
+        <ul class="small">
+          <li>if $\mathbf x(t)$ is a solution, so is $\mathbf x(t + s)$ for every constant $s$;</li>
+          <li>two orbits are either disjoint or identical.</li>
+        </ul>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Put $\mathbf y(t) = \mathbf x(t+s)$. Then $\mathbf y'(t) = \mathbf x'(t+s) = f(\mathbf x(t+s)) = f(\mathbf y(t))$ — this is where autonomy is used, and it is the only place. If two orbits share a point $\mathbf p$, shift both in time so that each passes through $\mathbf p$ at $t = 0$; by uniqueness (unit 01) the two solutions agree on their common interval, and on the union of their maximal intervals by the usual continuation argument. So the orbits coincide. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what it buys</span>
+        <p class="small">The orbits <b>partition</b> $U$. In the plane that is a severe constraint: an orbit cannot cross itself or any other, so the picture is forced to be orderly, and section 4 turns that orderliness into an existence theorem for cycles.</p>
+      </div>
+      <div class="box warn"><span class="label">two traps</span>
+        <p class="small"><b>1.</b> Orbits may <em>approach</em> each other without meeting — a spiral into a fixed point never arrives.<br>
+        <b>2.</b> An equilibrium is an orbit, a one-point one. A curve running into an equilibrium reaches it only as $t \to \infty$, so nothing crosses there either.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The continuation step, in full.</b> Let $\mathbf x_1, \mathbf x_2$ solve the same
+    equation with $\mathbf x_1(0) = \mathbf x_2(0) = \mathbf p$, on maximal intervals
+    $I_1, I_2$. The set $A = \{t \in I_1 \cap I_2 : \mathbf x_1(t) = \mathbf x_2(t)\}$ is
+    closed in $I_1 \cap I_2$ by continuity, non-empty since $0 \in A$, and open: at any
+    $t_0 \in A$, Picard–Lindelöf applied at the point $\mathbf x_1(t_0)$ gives uniqueness on
+    a small interval around $t_0$. $I_1 \cap I_2$ is an interval, hence connected, so
+    $A = I_1 \cap I_2$. Maximality then forces $I_1 = I_2$ — otherwise one extends the
+    other and the shorter was not maximal.</p>
+    <p><b>Why "an equilibrium is reached only in infinite time".</b> If $f(\mathbf p) = 0$ then the
+    constant curve is a solution through $\mathbf p$, so by uniqueness it is the only one.
+    A non-constant solution therefore never equals $\mathbf p$ at any finite time. This is
+    exactly what fails on Norton's dome, and the failure is the same one: no Lipschitz
+    condition at the peak.</p>
+    <p>Note what is <em>not</em> claimed: distinct orbits may be arbitrarily close, and the
+    closure of an orbit may contain other orbits entirely. Section 4's $\omega$-limit sets
+    are made of exactly those.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 7 -->
+<section>
+  <p class="eyebrow">02 · flows</p>
+  <h2>The flow is a one-parameter group</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For $\mathbf x_0 \in U$ let $t \mapsto \varphi_t(\mathbf x_0)$ be the maximal solution with $\varphi_0(\mathbf x_0) = \mathbf x_0$ (unit 01). The family $\{\varphi_t\}$ is the <span class="term">flow</span> of $f$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · the <span class="term">one-parameter group property</span></span>
+        <p class="small">$\varphi_{t+s}(\mathbf x_0) = \varphi_t\big(\varphi_s(\mathbf x_0)\big)$ whenever either side is defined, and $\varphi_0 = \mathrm{id}$. If every solution is defined for all $t$, the map $t \mapsto \varphi_t$ is a group homomorphism $(\mathbb{R}, +) \to \mathrm{Homeo}(U)$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Fix $s$ and set $\mathbf u(t) = \varphi_{t+s}(\mathbf x_0)$, $\mathbf v(t) = \varphi_t(\varphi_s(\mathbf x_0))$. By the previous slide $\mathbf u$ solves the equation; so does $\mathbf v$; and $\mathbf u(0) = \mathbf v(0) = \varphi_s(\mathbf x_0)$. Uniqueness gives $\mathbf u = \mathbf v$. Taking $s = -t$ gives $\varphi_{-t} = \varphi_t^{-1}$, so each $\varphi_t$ is a bijection, and continuity of $\varphi_t$ and of its inverse is unit 01's continuous dependence on initial data. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">"whenever defined"</span>
+        <p class="small">Solutions can blow up in finite time (unit 01), and then $\varphi_t$ is only defined on part of $U$: a <span class="term">local flow</span>, not a group. <span class="ref" data-ref="pend">The pendulum</span> is safe — see the note — and so is every system in this unit that lives on a compact invariant set.</p>
+      </div>
+      <p class="small">The group property is the reason the phase portrait is a complete description: knowing the picture for one second is knowing it forever, by composition.</p>
+      <p class="small muted">It returns in unit 13 as the one-parameter groups Noether's theorem differentiates, and in unit 14 as the Hamiltonian flow, which additionally preserves a volume.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the pendulum's solutions are global.</b> $V = \tfrac12\omega^2 + (1-\cos\theta)$ satisfies
+    $\dot V = -\gamma\omega^2 \le 0$, so $V(\mathbf x(t)) \le V(\mathbf x(0))$ for $t \ge 0$,
+    which bounds $|\omega|$ by $\sqrt{2V(0)}$; then $|\theta|$ grows at most linearly. A
+    solution that stays in a compact set for all finite times has maximal interval
+    $[0,\infty)$ — that is unit 01's escape-from-compacta criterion. Backwards in time $V$
+    rises rather than falls, but not fast enough to escape: $\omega^2 = 2\big(V - (1-\cos\theta)\big) \le 2V$,
+    so $|\mathrm{d}V/\mathrm{d}\tau| = \gamma\omega^2 \le 2\gamma V$ and Gronwall (unit 01)
+    gives $V \le V(0)e^{2\gamma\tau}$ — finite at every finite time, so the orbit is again
+    trapped in a compact set. The flow is complete and $\{\varphi_t\}$ is a genuine group.</p>
+    <p><b>Group, precisely.</b> The map $\Phi: \mathbb{R} \to \mathrm{Homeo}(U)$, $t \mapsto \varphi_t$,
+    is a homomorphism into the group of homeomorphisms of $U$ under composition. Its image
+    is an abelian subgroup: $\varphi_t\varphi_s = \varphi_{t+s} = \varphi_s\varphi_t$. It is
+    almost always injective: $\Phi$ has a kernel only if $\varphi_T = \mathrm{id}$ for some
+    $T \ne 0$, which asks <em>every</em> orbit to be periodic with period dividing $T$ — and
+    for the pendulum that happens only in the undamped linear approximation, where every
+    orbit has period $2\pi$.</p>
+    <p>Continuous dependence gives more than continuity: Gronwall's inequality from unit 01
+    gives the quantitative bound $|\varphi_t(x) - \varphi_t(y)| \le e^{Lt}|x - y|$ on a set
+    where $f$ is $L$-Lipschitz. That bound grows, and unit 17 is about what happens when
+    the growth is real rather than an artefact of the estimate.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 8 -->
+<section>
+  <p class="eyebrow">02 · flows · example</p>
+  <h2>The pendulum's state space is a cylinder</h2>
+  <div class="fig">
+    <svg viewBox="0 0 770 344" width="1000" role="img" aria-label="phase portrait of the damped pendulum: orbits spiralling into the down equilibria at theta = 0 and 2 pi, saddles at theta = plus or minus pi, and the undamped separatrix dashed">
+      <line x1="26" y1="168" x2="746" y2="168" class="rule" stroke-width="1.2"/>
+      <line x1="206" y1="20" x2="206" y2="316" class="rule" stroke-width="1.2"/>
+      <line x1="26" y1="20" x2="26" y2="316" class="ink" stroke-width="1.6" stroke-dasharray="3 4"/>
+      <line x1="746" y1="20" x2="746" y2="316" class="ink" stroke-width="1.6" stroke-dasharray="3 4"/>
+        <polyline points="154,29 160,30 165,31 170,32 175,34 181,35 186,36 191,38 196,40 200,41 205,43 210,45 215,47 219,49 225,52 231,55 237,58 242,61 248,64 253,68 258,71 263,74 268,78 272,81 276,85 281,88 285,91 288,94 293,99 297,102 301,106 305,110 309,114 313,118 317,122 320,126 324,130 327,134 330,138 333,143 336,147 339,152 341,157 342,162 343,167 343,172 341,177 339,181 336,186 332,189 328,193 324,196 320,199 315,202 311,204 306,207 301,209 296,211 291,213 286,215 282,217 277,218 271,219 266,220 261,221 255,222 250,222 244,223 239,222 233,222 227,221 222,220 217,219 212,218 207,216 202,214 197,212 192,209 188,206 184,203 179,200 176,196 172,192 169,188 166,183 164,179 162,174 162,169 162,163 164,159 167,154 170,151 174,148 179,146 184,145 189,144 194,144 199,145 204,147 209,148 213,151 218,154 221,158 224,162 225,167 224,172 221,176 216,178 211,178 206,177 202,175 198,171 198,166 202,163 207,164 210,169 205,169 206,168" fill="none" class="unit" stroke-width="1.7" opacity=".8"/>
+        <polyline points="355,54 361,57 366,60 372,62 377,65 382,67 387,69 392,71 397,72 402,74 408,76 414,77 420,78 426,79 431,80 437,80 442,81 448,81 454,81 459,81 465,81 470,81 476,81 481,81 487,81 493,81 498,81 504,81 509,81 515,82 520,82 526,83 531,83 537,84 542,85 547,87 552,88 557,90 562,91 567,93 572,95 576,97 582,100 587,103 592,106 596,109 601,112 605,115 609,119 613,122 617,126 621,130 624,134 627,138 630,143 632,147 635,152 636,157 638,162 638,167 638,172 637,177 635,182 632,186 629,190 625,194 620,197 616,199 611,201 606,203 601,204 596,204 590,205 585,204 580,204 575,203 570,202 565,200 560,198 556,195 551,192 547,189 544,185 541,181 538,176 537,171 537,166 538,161 541,157 545,154 550,153 555,152 560,152 565,153 569,155 574,158 577,162 579,167 578,172 574,175 569,175 564,173 561,169 563,165 568,166 566,168" fill="none" class="unit" stroke-width="1.7" opacity=".8"/>
+        <polyline points="263,285 257,284 251,283 246,282 240,281 234,279 228,278 223,276 217,274 212,273 207,271 202,269 196,266 191,264 187,262 182,259 177,257 173,254 169,251 164,248 159,245 155,241 150,238 146,234 142,230 138,227 134,223 130,219 126,215 123,211 120,207 116,203 113,198 111,194 108,189 106,184 104,179 103,174 102,169 103,164 104,159 106,154 108,149 112,145 115,141 119,138 124,135 128,132 133,130 138,127 143,126 148,124 153,123 158,122 163,121 169,120 174,120 180,120 185,121 191,122 196,123 201,124 206,126 211,128 216,131 220,133 224,136 229,140 232,143 236,147 239,151 241,156 243,161 244,166 244,171 243,176 240,180 236,184 232,186 227,188 222,189 217,189 212,188 207,187 202,185 198,182 194,179 191,174 189,170 190,165 193,161 198,159 203,159 208,161 212,164 213,168 210,172 205,171 206,168" fill="none" class="unit" stroke-width="1.7" opacity=".8"/>
+        <polyline points="527,305 522,302 517,299 512,296 507,293 502,290 497,287 493,284 489,281 484,278 480,275 475,271 470,267 465,263 460,260 455,256 451,253 447,250 443,247 438,243 433,239 429,236 424,233 419,229 415,226 411,223 406,220 401,217 396,215 392,212 387,210 382,209 377,207 372,206 367,205 361,205 356,205 351,206 345,207 340,208 335,209 330,211 325,212 320,214 315,215 310,217 305,218 300,220 294,221 289,223 284,224 279,225 274,226 268,227 263,227 258,228 252,228 247,228 242,228 236,228 231,227 226,226 220,225 215,224 211,222 206,220 201,218 195,216 191,213 186,210 182,207 178,204 174,200 170,197 167,193 164,188 161,184 159,179 158,174 157,169 157,164 159,159 161,154 165,151 169,147 173,145 178,143 183,142 189,142 194,142 199,143 204,144 209,146 214,149 218,152 221,155 224,159 226,164 227,169 225,174 221,178 217,179 212,179 207,178 202,176 198,173 197,168 199,164 204,163 209,165 208,170 206,168" fill="none" class="unit" stroke-width="1.7" opacity=".8"/>
+        <polyline points="172,222 168,219 163,215 159,211 156,207 152,204 149,199 146,195 143,190 141,186 139,181 137,176 136,170 136,165 137,160 139,156 142,151 145,147 149,143 153,140 157,138 162,136 167,134 173,133 178,133 183,132 188,133 193,133 199,134 204,136 208,138 213,140 218,143 222,146 226,150 229,153 232,158 234,163 235,168 234,173 232,177 228,181 223,183 218,184 213,184 208,183 203,181 199,178 196,174 194,170 194,165 198,162 203,161 208,163 211,167 209,171 204,169 206,168" fill="none" class="unit" stroke-width="1.7" opacity=".8"/>
+        <polyline points="452,123 458,121 462,120 467,118 473,117 478,115 483,114 488,113 493,112 498,111 504,110 509,109 514,109 519,108 525,108 530,108 535,109 541,109 546,110 551,111 556,113 561,114 566,116 571,118 576,120 581,123 585,126 589,129 594,132 598,136 601,139 604,143 608,148 610,152 612,157 614,162 614,166 614,172 613,177 610,181 607,185 603,188 599,191 594,192 589,194 583,194 578,194 573,193 568,191 563,189 559,187 554,184 551,180 548,176 546,172 545,167 547,162 551,158 556,157 561,157 566,158 570,160 574,164 575,169 572,173 567,173 563,170 565,166 566,168" fill="none" class="unit" stroke-width="1.7" opacity=".8"/>
+        <polyline points="601,110 606,113 610,116 614,120 618,124 621,128 625,132 628,136 631,141 634,145 636,150 638,155 640,160 641,165 641,170 640,175 638,180 636,185 633,189 629,193 625,196 620,199 616,201 611,203 606,204 601,205 595,206 590,206 585,205 580,205 575,204 570,202 565,201 560,198 556,196 551,193 547,190 544,186 541,182 538,177 536,173 536,167 537,162 539,158 543,155 548,152 553,152 558,151 563,152 568,154 572,157 576,160 578,164 579,169 577,173 572,175 567,175 563,172 560,168 564,165 568,167 566,168" fill="none" class="unit" stroke-width="1.7" opacity=".8"/>
+        <polyline points="26,168 32,163 38,159 44,154 50,149 56,145 62,140 68,136 74,131 80,127 86,123 92,119 98,115 104,111 110,108 116,104 122,101 128,98 134,95 140,93 147,90 153,88 159,86 165,84 171,83 177,81 183,80 189,79 195,79 201,78 207,78 213,78 219,79 225,80 231,80 237,82 243,83 249,85 255,86 261,88 267,91 273,93 279,96 285,99 291,102 297,105 303,109 309,112 315,116 321,120 327,124 333,128 339,132 345,137 351,141 357,146 363,150 369,155 375,160 381,164 388,169 394,174 400,179 406,183 412,188 418,192 424,197 430,201 436,206 442,210 448,214 454,218 460,222 466,226 472,229 478,232 484,236 490,239 496,241 502,244 508,246 514,249 520,251 526,252 532,254 538,255 544,256 550,257 556,257 562,258 568,258 574,257 580,257 586,256 592,255 598,254 604,253 610,251 616,249 622,247 629,245 635,242 641,239 647,236 653,233 659,230 665,226 671,223 677,219 683,215 689,211 695,207 701,202 707,198 713,194 719,189 725,184 731,180 737,175 743,170 746,168" fill="none" class="warn" stroke-width="1.8" stroke-dasharray="7 5" opacity=".85"/>
+        <polyline points="26,168 32,173 38,177 44,182 50,187 56,191 62,196 68,200 74,205 80,209 86,213 92,217 98,221 104,225 110,228 116,232 122,235 128,238 134,241 140,243 147,246 153,248 159,250 165,252 171,253 177,255 183,256 189,257 195,257 201,258 207,258 213,258 219,257 225,256 231,256 237,254 243,253 249,251 255,250 261,248 267,245 273,243 279,240 285,237 291,234 297,231 303,227 309,224 315,220 321,216 327,212 333,208 339,204 345,199 351,195 357,190 363,186 369,181 375,176 381,172 388,167 394,162 400,157 406,153 412,148 418,144 424,139 430,135 436,130 442,126 448,122 454,118 460,114 466,110 472,107 478,104 484,100 490,97 496,95 502,92 508,90 514,87 520,85 526,84 532,82 538,81 544,80 550,79 556,79 562,78 568,78 574,79 580,79 586,80 592,81 598,82 604,83 610,85 616,87 622,89 629,91 635,94 641,97 647,100 653,103 659,106 665,110 671,113 677,117 683,121 689,125 695,129 701,134 707,138 713,142 719,147 725,152 731,156 737,161 743,166 746,168" fill="none" class="warn" stroke-width="1.8" stroke-dasharray="7 5" opacity=".85"/>
+      <circle cx="206" cy="168" r="7" class="fill-accent"/>
+      <circle cx="566" cy="168" r="7" class="fill-accent"/>
+      <circle cx="26" cy="168" r="7" class="fill-warn"/>
+      <circle cx="386" cy="168" r="7" class="fill-warn"/>
+      <circle cx="746" cy="168" r="7" class="fill-warn"/>
+      <text x="196" y="196" font-size="15" class="mono">0</text>
+      <text x="368" y="196" font-size="15" class="mono">π</text>
+      <text x="548" y="196" font-size="15" class="mono">2π</text>
+      <text x="6" y="196" font-size="15" class="mono">−π</text>
+      <text x="728" y="196" font-size="15" class="mono">3π</text>
+      <text x="216" y="32" font-size="15" class="mono soft">ω</text>
+      <text x="700" y="160" font-size="15" class="mono soft">θ</text>
+      <text x="408" y="150" font-size="15" style="fill:var(--warn)">saddle</text>
+      <text x="220" y="150" font-size="15" style="fill:var(--accent)">spiral</text>
+    </svg>
+    <p class="cap">Orbits of <span class="ref" data-ref="pend">the damped pendulum</span> at $\gamma = \tfrac12$, integrated numerically for the picture only — every claim on the next slides is proved without them. Dashed red: <span class="ref" data-ref="sep">the separatrix</span> of the <em>undamped</em> system. The two dashed vertical lines are the same line: $\theta$ and $\theta + 2\pi$ are the same state.</p>
+  </div>
+  <aside class="notes">
+    <p>The configuration space of a pendulum is a circle, not a line: $\theta$ and
+    $\theta + 2\pi$ are the same physical position with the same velocity, so the state
+    space is $S^1 \times \mathbb{R} = (\mathbb{R}/2\pi\mathbb{Z}) \times \mathbb{R}$, a
+    cylinder. Drawing it as a strip of the plane with the edges identified is a choice of
+    chart, and the strip is what the figure shows.</p>
+    <p>This matters twice later. In section 5, a loop that goes once round the cylinder
+    cannot be shrunk to a point, so the index theorem — which is about loops bounding a
+    disc — says nothing about it. And a rotating pendulum is a closed orbit on the
+    cylinder that encloses no equilibrium, which on a genuine plane would be impossible.
+    Getting the state space wrong makes both statements come out false.</p>
+    <p>Reading the figure: every orbit drawn ends at $(0,0)$ or at $(2\pi, 0)$ — the same
+    point on the cylinder, the bob hanging down. The saddles at $\theta = \pm\pi, 3\pi$ are
+    the bob balanced on end. The dashed curve is the $\gamma = 0$ separatrix $V = 2$; with
+    $\gamma = \tfrac12$ the actual orbits cut inwards across it, because $V$ decreases.</p>
+    <p>The curves were produced by fourth-order Runge–Kutta at step $0.01$ from seven
+    initial conditions. They are illustration, not evidence: a numerical picture can miss a
+    cycle of tiny amplitude or invent one out of step error, which is exactly why the rest
+    of this unit proves things instead.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 9 -->
+<section>
+  <p class="eyebrow">02 · flows</p>
+  <h2>Two flows with extra structure</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">first integral</span></span>
+        <p class="small">$E : U \to \mathbb{R}$, non-constant, with $E(\mathbf x(t))$ constant along every solution. Then every orbit lies inside one level set $\{E = c\}$, and in the plane that <em>is</em> the phase portrait: draw the level curves.</p>
+      </div>
+      <div class="box def"><span class="label">a <span class="term">gradient system</span></span>
+        <p class="small">$\dot x_i = -\partial V/\partial x_i$. Then (next section's chain rule) $\dot V = -\sum_i (\partial V/\partial x_i)^2 \le 0$, with equality only at equilibria: $V$ decreases along every non-constant orbit, so <b>no periodic orbit and no cycle of any kind can exist</b>.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the pendulum is both, nearly</span>
+        <p class="small">$\gamma = 0$: <span class="ref" data-ref="V">$V = \tfrac12\omega^2 + (1-\cos\theta)$</span> is a first integral, $\dot V = 0$. The orbits <em>are</em> the level curves of $V$, and unit 00's quadrature is the statement that a level curve can be parametrised by an integral.</p>
+        <p class="small">$\gamma &gt; 0$: $\dot V = -\gamma\omega^2 \le 0$. Not a gradient system — but $V$ still falls, which is all the proofs in section 3 need. Call such a flow <b>gradient-like</b>.</p>
+      </div>
+      <p class="small muted">Conserving a function and contracting one are the two structures that make a flow tractable. Unit 14 shows that mechanics without friction always has the first, in a strong form: the flow preserves $H$ <em>and</em> a volume, which is the symplectic structure.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why a first integral solves a planar system.</b> Level sets of a $C^1$ function
+    $E: \mathbb{R}^2 \to \mathbb{R}$ are curves wherever $DE \ne 0$, and orbits lie in
+    them; since orbits cannot cross, each regular level curve is a single orbit or a chain
+    of them. This is why the undamped pendulum needs no theory: $V = c$ drawn for a range
+    of $c$ is the complete portrait, closed curves inside $\{V &lt; 2\}$ and unbounded ones
+    outside. In three dimensions one first integral leaves a surface, which is still plenty
+    of room — and unit 17 is about what lives there.</p>
+    <p><b>Gradient systems have no cycles.</b> Suppose $\mathbf x(t)$ is periodic with period
+    $T$ and not constant. Then
+    $0 = V(\mathbf x(T)) - V(\mathbf x(0)) = \int_0^T \dot V\,\mathrm{d}t = -\int_0^T \sum_i(\partial_i V)^2\,\mathrm{d}t \le 0$,
+    so every $\partial_i V$ vanishes along the orbit and the orbit is a single equilibrium. The
+    identical argument, run in section 4 with $\dot V = -\gamma\omega^2$, kills every
+    periodic orbit of the damped pendulum. Notice it needs no two-dimensionality at all.</p>
+    <p>A gradient system's orbits cross the level sets of $V$ orthogonally, and its
+    equilibria are the critical points of $V$; Morse theory is the study of what that
+    forces, and it is how the index theorem of section 5 generalises to surfaces.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 10 -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Equilibria and linearisation</h2>
+  <p>Replace $f$ by its derivative, and know exactly when that is a lie.</p>
+</section>
+
+<!-- ================================================================== 11 -->
+<section>
+  <p class="eyebrow">02 · linearisation</p>
+  <h2>The derivative of a map, in one slide</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">$f : U \subseteq \mathbb{R}^n \to \mathbb{R}^m$ is <span class="term">differentiable</span> at $\mathbf a$ if there is a <b>linear map</b> $A : \mathbb{R}^n \to \mathbb{R}^m$ with</p>
+        $$\begin{gathered}f(\mathbf a + \mathbf h) = f(\mathbf a) + A\mathbf h + r(\mathbf h),\\ |r(\mathbf h)|\,/\,|\mathbf h| \to 0 .\end{gathered}$$
+        <p class="small">$A$ is unique; write $Df(\mathbf a)$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · the <span class="term">Jacobian matrix</span></span>
+        <p class="small">If $f$ is differentiable at $\mathbf a$ then every partial derivative exists and the matrix of $Df(\mathbf a)$ in the standard bases is $\big(\partial f_i/\partial x_j\big)$.</p>
+        <p class="small muted"><b>Proof.</b> Put $\mathbf h = t\mathbf e_j$: $\;\frac{f(\mathbf a + t\mathbf e_j) - f(\mathbf a)}{t} = A\mathbf e_j + \frac{r(t\mathbf e_j)}{t} \to A\mathbf e_j$. The left side is by definition $\partial f/\partial x_j$, so $A\mathbf e_j$ is column $j$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the converse needs more</span>
+        <p class="small">Partial derivatives can all exist at a point where $f$ is not even continuous. <em>Continuous</em> partials do imply differentiability — proved in unit 03, which is where multivariable calculus is done properly. Everything here is $C^\infty$, so the distinction never bites; it is flagged because it is the standard place to go wrong.</p>
+      </div>
+      <div class="box ex"><span class="label">for the pendulum</span>
+        <p class="small">$f(\theta,\omega) = (\omega,\; -\gamma\omega - \sin\theta)$, so</p>
+        $$Df(\theta,\omega) = \begin{pmatrix} 0 & 1 \\ -\cos\theta & -\gamma\end{pmatrix}.$$
+        <p class="small">Two entries are constant; the whole $\theta$-dependence is one cosine.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Definition first, matrix second — and this is a habit, not a preference.</b> The
+    derivative is the linear map that best approximates $f$ near $\mathbf a$; the array of
+    partials is what that map looks like once bases are chosen. Everything structural
+    follows from the map (the chain rule is composition of linear maps, as unit 03 shows),
+    and everything computational from the matrix. When unit 16 defines a tensor as a
+    multilinear map and derives its transformation law as a theorem, it is doing the same
+    thing again, and this slide is where the pattern starts.</p>
+    <p><b>Uniqueness of $A$.</b> If $A$ and $B$ both work, then $(A-B)\mathbf h = o(|\mathbf h|)$;
+    putting $\mathbf h = t\mathbf v$ and letting $t \to 0$ gives $(A-B)\mathbf v = 0$ for every
+    $\mathbf v$.</p>
+    <p><b>The standard counterexample</b> for the warning box:
+    $f(x,y) = xy/(x^2+y^2)$ for $(x,y) \ne 0$ and $f(0,0) = 0$. Both partials at the origin
+    are $0$ (the function vanishes on both axes), yet $f = \tfrac12$ along $y = x$, so $f$ is
+    not continuous at $0$, let alone differentiable.</p>
+    <p>Dimensions: if $f$ has dimensions $[F]$ and $x_j$ has $[X_j]$, then
+    $\partial f_i/\partial x_j$ has $[F_i]/[X_j]$. For the pendulum every entry of $Df$ has
+    dimensions of inverse time, and in our units time is dimensionless — which is why the
+    matrix can be written with bare numbers at all. Undo the scaling and the eigenvalues
+    carry a factor $\sqrt{g/l}$, as they must.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 12 -->
+<section>
+  <p class="eyebrow">02 · linearisation</p>
+  <h2>Linearisation: what it is, and what it claims</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">$\mathbf x^*$ is an <span class="term">equilibrium</span> of $\dot{\mathbf x} = f(\mathbf x)$ if $f(\mathbf x^*) = 0$. Write $\mathbf x = \mathbf x^* + \boldsymbol\xi$; then</p>
+        $$\dot{\boldsymbol\xi} = f(\mathbf x^* + \boldsymbol\xi) = \underbrace{Df(\mathbf x^*)}_{=:\,A}\boldsymbol\xi + o(|\boldsymbol\xi|).$$
+        <p class="small">The <span class="term">linearisation</span> at $\mathbf x^*$ is the linear system $\dot{\boldsymbol\xi} = A\boldsymbol\xi$, obtained by deleting the remainder.</p>
+      </div>
+      <div class="box warn"><span class="label">deleting the remainder is an assumption</span>
+        <p class="small">Nothing so far says the two systems behave alike. They do when $A$ is <span class="term">hyperbolic</span> — no eigenvalue with zero real part — and can disagree completely when it is not. Two slides from here, both halves are made precise.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the pendulum's equilibria</span>
+        <p class="small">$f = 0$ forces $\omega = 0$ and $\sin\theta = 0$: the points $(k\pi, 0)$. On the cylinder there are exactly <b>two</b>: <span class="ref" data-ref="down">$(0,0)$, hanging down</span>, and <span class="ref" data-ref="up">$(\pi, 0)$, balanced up</span>. Their Jacobians are</p>
+        $$\begin{pmatrix}0&1\\-1&-\gamma\end{pmatrix}, \qquad \begin{pmatrix}0&1\\1&-\gamma\end{pmatrix}$$
+        <p class="small">— the whole difference is the sign of $\cos\theta$, and it decides everything.</p>
+      </div>
+      <p class="small muted">Two equations in two unknowns, solved exactly, with no integration. This is the first question of the six and it is always answerable.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the equilibria are the right first question.</b> They are the only orbits you can
+    write down for a general $f$, they organise the portrait (everything else flows between
+    them), and they are what bifurcation theory watches. In mechanics an equilibrium of the
+    phase-space system is a configuration of zero velocity and zero force — unit 00 read
+    them off $V'(x) = 0$ in one dimension, and this is the same statement with the phase-space
+    reformulation of unit 01 applied.</p>
+    <p><b>The remainder, exactly.</b> $f(\mathbf x^* + \boldsymbol\xi) - A\boldsymbol\xi = r(\boldsymbol\xi)$
+    with $|r(\boldsymbol\xi)|/|\boldsymbol\xi| \to 0$. For the pendulum at the down position,
+    $-\sin\theta = -\theta + \theta^3/6 - \dots$, so $r$ is $O(|\boldsymbol\xi|^3)$ — cubically
+    small, which is why the linear pendulum is such a good approximation in practice and
+    why unit 00's correction to the period started at $\theta_0^2$.</p>
+    <p>Counting on the cylinder: on the strip $[-\pi, \pi)$ the equilibria are $\theta = 0$
+    and $\theta = \pi$ only. Writing "$(k\pi, 0)$, $k \in \mathbb{Z}$" describes the same two
+    points repeated, and a count of equilibria that forgets the identification will
+    disagree with the index theorem in section 5.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 13 -->
+<section>
+  <p class="eyebrow">02 · linearisation</p>
+  <h2>Planar linear systems: two numbers decide</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">For $\dot{\boldsymbol\xi} = A\boldsymbol\xi$ with $A$ real $2\times2$, the eigenvalues solve $\lambda^2 - \tau\lambda + \Delta = 0$ with $\tau = \operatorname{tr}A$, $\Delta = \det A$:</p>
+      $$\lambda_\pm = \tfrac12\Big(\tau \pm \sqrt{\tau^2 - 4\Delta}\Big).$$
+      <p class="small">So the <span class="term">trace–determinant plane</span> classifies everything. $\Delta &lt; 0$: real eigenvalues of opposite sign, a <span class="term">saddle</span>. $\Delta &gt; 0$ and $\tau^2 &gt; 4\Delta$: a <span class="term">node</span>, stable iff $\tau &lt; 0$. $\tau^2 &lt; 4\Delta$: a <span class="term">spiral</span>, stable iff $\tau &lt; 0$. $\tau = 0 &lt; \Delta$: a <span class="term">centre</span>.</p>
+      <p class="small muted">Stability is $\tau &lt; 0$ and $\Delta &gt; 0$ — both conditions, and neither alone.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 560 360" width="520" role="img" aria-label="the trace-determinant plane with the parabola tau squared equals four Delta separating nodes from spirals, saddles below the horizontal axis">
+        <path d="M 40 170 Q 280 410 520 170" fill="none" class="ink" stroke-width="2"/>
+        <line x1="20" y1="290" x2="540" y2="290" class="rule" stroke-width="1.6"/>
+        <line x1="280" y1="20" x2="280" y2="345" class="rule" stroke-width="1.6"/>
+        <text x="524" y="308" font-size="17" class="mono soft">τ</text>
+        <text x="288" y="34" font-size="17" class="mono soft">Δ</text>
+        <text x="86" y="86" font-size="16">stable spiral</text>
+        <text x="352" y="86" font-size="16">unstable spiral</text>
+        <text x="60" y="246" font-size="16">stable node</text>
+        <text x="368" y="246" font-size="16">unstable node</text>
+        <text x="120" y="330" font-size="16">saddle</text>
+        <text x="398" y="330" font-size="16">saddle</text>
+        <text x="196" y="52" font-size="15" style="fill:var(--warn)">centre</text>
+        <line x1="256" y1="58" x2="278" y2="72" class="warn" stroke-width="1.4"/>
+        <text x="30" y="150" font-size="14" class="soft">τ² = 4Δ</text>
+        <circle cx="250" cy="260" r="7" class="fill-accent"/>
+        <text x="150" y="196" font-size="15" style="fill:var(--accent)">down (γ=½)</text>
+        <line x1="216" y1="202" x2="244" y2="252" class="accent" stroke-width="1.4"/>
+        <circle cx="250" cy="320" r="7" class="fill-warn"/>
+        <text x="254" y="342" font-size="15" style="fill:var(--warn)">up</text>
+      </svg>
+      <p class="cap">Where <span class="ref" data-ref="down">the down equilibrium</span> ($\tau=-\tfrac12$, $\Delta=1$) and <span class="ref" data-ref="up">the up equilibrium</span> ($\tau=-\tfrac12$, $\Delta=-1$) sit. Moving $\gamma$ slides both horizontally.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the quadratic comes from.</b> $\det(A - \lambda I) = \lambda^2 - (\operatorname{tr}A)\lambda + \det A$
+    for any $2\times2$ matrix: expand. So the eigenvalues are symmetric functions of the two
+    entries that survive a change of basis, and the classification is basis-independent as
+    it must be.</p>
+    <p><b>Reading the picture.</b> The parabola $\tau^2 = 4\Delta$ is where the discriminant
+    vanishes: above it the eigenvalues are complex, below it real. The horizontal axis
+    $\Delta = 0$ is where one eigenvalue is zero — $A$ singular, a whole line of equilibria
+    rather than an isolated one. The vertical segment $\tau = 0$, $\Delta &gt; 0$ is the centre
+    case. Those two lines are precisely the non-hyperbolic cases, and they are exactly where
+    the next slide's theorem gives up: hyperbolicity is an open dense condition, and the
+    failures form a set of measure zero that mechanics nevertheless lands on constantly,
+    because conservative systems have $\tau = 0$ identically.</p>
+    <p><b>Why $\tau = 0$ for a conservative mechanical system.</b> For $\ddot x = -V'(x)$ the
+    Jacobian is $\begin{pmatrix}0&1\\-V''&0\end{pmatrix}$, trace zero always. Friction is what
+    moves $\tau$ off the axis. So every frictionless equilibrium is either a saddle
+    ($V'' &lt; 0$) or a centre ($V'' &gt; 0$) — and the centre is the case the theory cannot
+    decide, which is the whole reason section 3 exists.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 14 -->
+<section>
+  <p class="eyebrow">02 · linearisation</p>
+  <h2>Solving $\dot{\boldsymbol\xi} = A\boldsymbol\xi$, all three cases</h2>
+  <div class="cols three">
+    <div class="box"><span class="label">real, distinct</span>
+      <p class="small">$A\mathbf v_i = \lambda_i \mathbf v_i$, $\lambda_1 \ne \lambda_2$ real. Then</p>
+      <p class="small">$\boldsymbol\xi(t) = c_1 e^{\lambda_1 t}\mathbf v_1 + c_2 e^{\lambda_2 t}\mathbf v_2 .$</p>
+      <p class="small">Differentiate: it solves. The $\mathbf v_i$ are a basis, so any initial condition is met; uniqueness (unit 01) says there is nothing else. Orbits leave along the eigendirection of larger $\lambda$.</p>
+    </div>
+    <div class="box"><span class="label">repeated</span>
+      <p class="small">$\lambda$ twice. Either $A = \lambda I$ (a <span class="term">star node</span>, every ray an orbit), or there is $\mathbf w$ with $(A-\lambda I)\mathbf w = \mathbf v$ and</p>
+      <p class="small">$\boldsymbol\xi(t) = e^{\lambda t}\big(c_1\mathbf v + c_2(\mathbf w + t\mathbf v)\big),$</p>
+      <p class="small">a <span class="term">degenerate node</span>: one eigendirection, approached by everything.</p>
+    </div>
+    <div class="box"><span class="label">complex, $\alpha \pm i\beta$</span>
+      <p class="small">There is a real basis in which $A = \begin{pmatrix}\alpha&-\beta\\\beta&\alpha\end{pmatrix}$ (proof in the notes — no complex exponential needed). In it,</p>
+      <p class="small">$\boldsymbol\xi(t) = r_0e^{\alpha t}\begin{pmatrix}\cos(\beta t + \phi)\\ \sin(\beta t + \phi)\end{pmatrix}.$</p>
+      <p class="small">A spiral: $r$ grows by $e^{\alpha t}$, the angle advances at rate $\beta$.</p>
+    </div>
+  </div>
+  <div class="box good"><span class="label">check</span>
+    <p class="small">Every case is <em>verified</em>, not derived: differentiate the formula, then invoke uniqueness. That is legitimate and it is all we need — the systematic solution of $\dot{\mathbf x} = A\mathbf x$ in $n$ dimensions, by the matrix exponential, is unit 07. Dimensions: $\lambda$, $\alpha$, $\beta$ are all inverse times, so $\lambda t$ is a pure number, as an exponent must be.</p>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the real canonical form</h4>
+    <p>Let $A$ be real $2\times2$ with $\tau^2 &lt; 4\Delta$, so it has no real eigenvalue. Set
+    $\alpha = \tau/2$ and $\beta = \sqrt{\Delta - \tau^2/4} &gt; 0$. Pick any $\mathbf p \ne 0$.
+    Then $\{\mathbf p, A\mathbf p\}$ is a basis: if $A\mathbf p = c\mathbf p$ then $c$ would be a
+    real eigenvalue. Every $2\times2$ matrix satisfies its own characteristic polynomial —
+    $A^2 - \tau A + \Delta I = 0$, which for $2\times2$ is a one-line computation — so
+    $A^2\mathbf p = \tau A\mathbf p - \Delta\mathbf p$. Now put
+    $\mathbf q = \beta^{-1}(A\mathbf p - \alpha\mathbf p)$, also a basis vector with $\mathbf p$. Then
+    $A\mathbf p = \alpha\mathbf p + \beta\mathbf q$ by construction, and</p>
+    <p>$A\mathbf q = \beta^{-1}(A^2\mathbf p - \alpha A\mathbf p) = \beta^{-1}\big((\tau-\alpha)A\mathbf p - \Delta\mathbf p\big) = \beta^{-1}\big(\alpha(\alpha\mathbf p + \beta\mathbf q) - \Delta\mathbf p\big) = \beta^{-1}(\alpha^2-\Delta)\mathbf p + \alpha\mathbf q = -\beta\mathbf p + \alpha\mathbf q,$</p>
+    <p>using $\alpha^2 - \Delta = -\beta^2$. In the basis $\{\mathbf p, \mathbf q\}$ the matrix of
+    $A$ is therefore $\begin{pmatrix}\alpha&-\beta\\\beta&\alpha\end{pmatrix}$. $\square$ The
+    complex pair $\alpha \pm i\beta$ names the eigenvalues, as linear algebra always has;
+    what does <em>not</em> appear anywhere is the complex exponential $e^{(\alpha+i\beta)t}$,
+    which is unit 06's tool. The real canonical form reaches the same solution without it.</p>
+    <p><b>Verifying the spiral solution.</b> With $u = re^{\alpha t}\cos(\beta t + \phi)$,
+    $v = re^{\alpha t}\sin(\beta t+\phi)$: $\dot u = \alpha u - \beta v$ and
+    $\dot v = \beta u + \alpha v$, which is the system. Any initial condition is reached by
+    choosing $r_0$ and $\phi$ in polar form, so uniqueness finishes it.</p>
+    <p><b>The repeated case.</b> If $\lambda$ is a double root and $A \ne \lambda I$, then
+    $N = A - \lambda I$ is nonzero with $N^2 = 0$ (Cayley–Hamilton again), so $\operatorname{im}N \subseteq \ker N$
+    and any $\mathbf w \notin \ker N$ gives $\mathbf v = N\mathbf w \ne 0$ with $N\mathbf v = 0$.
+    Differentiating $e^{\lambda t}(c_1\mathbf v + c_2\mathbf w + c_2 t\mathbf v)$ and using
+    $A\mathbf v = \lambda\mathbf v$, $A\mathbf w = \lambda\mathbf w + \mathbf v$ confirms it solves.
+    This is the $2\times2$ Jordan form, done by hand.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 15 -->
+<section>
+  <p class="eyebrow">02 · linearisation · example</p>
+  <h2>The pendulum's two equilibria, classified</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label"><span class="ref" data-ref="down">down</span>: $\tau = -\gamma$, $\Delta = 1$</span>
+        <p class="small">$\lambda_\pm = \tfrac12(-\gamma \pm \sqrt{\gamma^2-4})$. For $0 &lt; \gamma &lt; 2$ complex with $\alpha = -\gamma/2 &lt; 0$: a <b>stable spiral</b>. At $\gamma = 2$, a double root $\lambda = -1$: degenerate node, <em>critical damping</em>. For $\gamma &gt; 2$, two negative real roots: a stable node.</p>
+        <p class="small">At $\gamma = \tfrac12$: $\;\lambda = -0.25 \pm 0.9682\,i$. The angle advances at $\beta = 0.9682$, so a turn takes $2\pi/\beta = 6.489$ time units and the amplitude is multiplied by $e^{-0.25 \times 6.489} = 0.1974$ each turn.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label"><span class="ref" data-ref="up">up</span>: $\tau = -\gamma$, $\Delta = -1$</span>
+        <p class="small">$\Delta &lt; 0$ for every $\gamma$, so always a <b>saddle</b>: one direction leaves, one arrives, and the balanced pendulum is unstable however much damping you add.</p>
+        <p class="small">At $\gamma = \tfrac12$: $\lambda = 0.7808$ and $-1.2808$. Check: their sum is $-0.5 = \tau$ and their product is $-1.0000 = \Delta$.</p>
+      </div>
+      <div class="box good"><span class="label">back to seconds</span>
+        <p class="small">For $l = 1$ m, one time unit is $\sqrt{l/g} = 0.3193$ s. The small undamped period $2\pi$ is $2.006$ s; at $\gamma=\tfrac12$ the damped period $6.489$ is $2.072$ s — damping makes it slower, by $3.3\%$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every number here.</b> $\gamma = \tfrac12$: $\gamma^2 - 4 = -3.75$, so
+    $\lambda = -0.25 \pm \tfrac12\sqrt{3.75}\,i = -0.25 \pm 0.96825\,i$, and $\beta = 0.96825$,
+    $2\pi/\beta = 6.48925$, $e^{-0.25\cdot 6.48925} = 0.19744$. At the up position,
+    $\lambda = \tfrac12(-0.5 \pm \sqrt{0.25+4}) = \tfrac12(-0.5 \pm 2.06155)$, giving
+    $0.78078$ and $-1.28078$; their product is $-1.00000$ and their sum $-0.5$. Seconds:
+    $\sqrt{1/9.81} = 0.31928$ s; $2\pi \times 0.31928 = 2.00607$ s;
+    $6.48925 \times 0.31928 = 2.07186$ s; the ratio is $1.0328$.</p>
+    <p><b>The saddle's eigendirections.</b> For $A = \begin{pmatrix}0&1\\1&-\gamma\end{pmatrix}$ an
+    eigenvector for $\lambda$ is $(1, \lambda)$, since the first row reads
+    $0\cdot1 + 1\cdot\lambda = \lambda\cdot1$. So the unstable direction at the top is
+    $(1, 0.7808)$ and the stable one $(1, -1.2808)$: to balance the pendulum you must give
+    it a velocity <em>towards</em> the upright position, in exactly that ratio. Anything else
+    and the saddle's unstable direction takes over. The stable direction is the
+    separatrix of the damped system, and it is a one-dimensional set of initial conditions
+    in a two-dimensional space — hence unobservable in practice, which is what "unstable"
+    means physically.</p>
+    <p><b>Critical damping</b> at $\gamma = 2$ is $b = 2m\sqrt{gl^3}$, the classic
+    door-closer condition: return without overshoot, in the shortest time. It is the
+    boundary between spiral and node, and unit 06 does the driven version of this whole
+    calculation properly.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 16 -->
+<section>
+  <p class="eyebrow">02 · linearisation</p>
+  <h2>Hartman–Grobman, and the hole in it</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (Hartman 1960) · <em>cited</em></span>
+        <p class="small">Let $f$ be $C^1$ near an equilibrium $\mathbf x^*$ and let $A = Df(\mathbf x^*)$ be <span class="term">hyperbolic</span>: $\operatorname{Re}\lambda \ne 0$ for every eigenvalue. Then there are neighbourhoods $U \ni \mathbf x^*$, $W \ni 0$ and a homeomorphism $h : U \to W$ carrying orbits of $\dot{\mathbf x} = f(\mathbf x)$ onto orbits of $\dot{\boldsymbol\xi} = A\boldsymbol\xi$, preserving the time parameter — a <span class="term">topological conjugacy</span>.</p>
+        <p class="proof-pointer">not proved here: Perko, <i>Differential Equations and Dynamical Systems</i>, §2.8</p>
+      </div>
+      <p class="small">So at a hyperbolic equilibrium the linear picture is the true picture, up to a continuous change of coordinates: saddles stay saddles, sinks stay sinks, and nothing new appears nearby.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">what it does not say</span>
+        <p class="small"><b>Centres are excluded.</b> $\operatorname{Re}\lambda = 0$ is precisely the case left out, and it is not an oversight: the next slide shows two systems with the <em>same</em> linearisation $\begin{pmatrix}0&-1\\1&0\end{pmatrix}$, one with every orbit spiralling in, one with every orbit spiralling out.</p>
+        <p class="small"><b>$h$ is only a homeomorphism.</b> It need not be differentiable, so it does not preserve eigenvalues or rates — only the qualitative picture. Making $h$ smooth needs non-resonance conditions (Sternberg's theorem).</p>
+      </div>
+      <p class="small muted">Every frictionless mechanical equilibrium that is not a saddle is a centre. The exclusion is not an edge case in this course; it is half of it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why hyperbolicity is the right hypothesis.</b> If $\operatorname{Re}\lambda \ne 0$ for all
+    eigenvalues, the linear flow expands in some directions and contracts in others at
+    definite exponential rates, and the $o(|\boldsymbol\xi|)$ remainder is too small to
+    compete near the equilibrium. If some $\operatorname{Re}\lambda = 0$ there is a direction
+    along which the linear flow neither grows nor decays, and then the remainder — however
+    small — decides the behaviour by itself. That is not a defect of the proof; it is the
+    truth, as the next slide demonstrates with an explicit family.</p>
+    <p><b>What "preserving the time parameter" means.</b> Writing $\psi_t$ for the flow of the
+    linear system — the one written down by hand on
+    "Solving $\dot{\boldsymbol\xi} = A\boldsymbol\xi$, all three cases", without any matrix
+    exponential — the requirement is $h(\varphi_t(\mathbf x)) = \psi_t(h(\mathbf x))$
+    for all small $t$ and $\mathbf x \in U$. Without it one could conjugate a sink to a source
+    by reversing time, and the theorem would be worthless.</p>
+    <p><b>History.</b> Proved by Hartman in 1960 and independently by Grobman in 1959. The
+    proof is a fixed-point argument in a space of bounded continuous maps — the same
+    Banach fixed-point theorem unit 01 used for Picard–Lindelöf, applied to a different
+    operator. It is not long, but it needs the stable manifold theorem's machinery to be
+    set up first, and this course does not need the machinery elsewhere, so it is cited
+    rather than proved. That is the only kind of citation this course allows: a named
+    theorem with a stated proof location.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 17 -->
+<section>
+  <p class="eyebrow">02 · linearisation · example</p>
+  <h2>When linearisation lies</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">one parameter, three different truths</span>
+        <p class="small">For $a \in \mathbb{R}$ consider</p>
+        $$\dot x = -y + a\,x(x^2+y^2), \qquad \dot y = x + a\,y(x^2+y^2).$$
+        <p class="small">The Jacobian at the origin is $\begin{pmatrix}0&-1\\1&0\end{pmatrix}$ for <b>every</b> $a$: $\tau = 0$, $\Delta = 1$, a centre. Now put $r^2 = x^2+y^2$ and differentiate:</p>
+        $$r\dot r = x\dot x + y\dot y = a(x^2+y^2)^2 = a r^4 \;\Longrightarrow\; \dot r = a r^3 .$$
+        <p class="small">So $r$ grows for $a &gt; 0$, shrinks for $a &lt; 0$, and is constant for $a = 0$. The origin is an unstable spiral, an asymptotically stable spiral, and a centre — with identical linearisations.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">check the algebra</span>
+        <p class="small">$x\dot x + y\dot y = x(-y + axr^2) + y(x + ayr^2) = -xy + xy + a r^2(x^2+y^2) = ar^4$. The linear parts cancel exactly — that is what $\tau = 0$ means — and the cubic terms are what is left.</p>
+      </div>
+      <div class="box warn"><span class="label">the lesson, precisely</span>
+        <p class="small">A centre in the linearisation is <b>no information at all</b> about the nonlinear system. Deciding such a case needs a different instrument, and section 3 is that instrument: for $a &lt; 0$, $V = x^2+y^2$ decreases, and that single fact settles it.</p>
+      </div>
+      <p class="small muted">Problem P4 is the same trap with $\dot x = -y-x^3$, $\dot y = x-y^3$, where the rescue is less obvious.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Solving it completely, for once.</b> The angle satisfies
+    $\dot\theta = (x\dot y - y\dot x)/r^2 = (x^2+y^2)/r^2 = 1$ — the cubic terms are radial and
+    contribute nothing to the rotation. So $\theta = t + \theta_0$ and
+    $\dot r = ar^3$ separates (unit 00): $r(t) = r_0(1 - 2ar_0^2 t)^{-1/2}$. For $a &gt; 0$ this
+    blows up at $t = 1/(2ar_0^2)$, a finite time — unit 01's blow-up, met again. For $a &lt; 0$
+    it decays like $t^{-1/2}$, which is <em>not</em> exponential: the approach to the origin is
+    slower than any hyperbolic sink, another sign that the linearisation is not in charge.</p>
+    <p><b>Dimensional sanity.</b> With $a &lt; 0$, $|a|r_0^2$ has dimensions of inverse time, so
+    $t^{-1/2}$ decay carries the right scale. The $1$ in $\dot\theta = 1$ is the linear
+    frequency, and the whole family has the same one.</p>
+    <p>This example is the reason the course insists on stating Hartman–Grobman with its
+    hypothesis rather than as "linearise and look". A student who has only ever met
+    hyperbolic examples will believe the linearisation always; a student who has met this
+    one will not. Note also that the three cases here are not exotic: $a$ passing through
+    zero is a Hopf bifurcation, section 6's last topic, and the family is its normal form.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 18 -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Lyapunov's direct method</h2>
+  <p>Prove stability with a function that falls, and get a basin for free.</p>
+</section>
+
+<!-- ================================================================== 19 -->
+<section>
+  <p class="eyebrow">02 · lyapunov</p>
+  <h2>Stability, defined</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition (Lyapunov, 1892)</span>
+        <p class="small">Let $\mathbf x^*$ be an equilibrium. It is</p>
+        <ul class="small">
+          <li><span class="term">stable</span> if for every $\varepsilon &gt; 0$ there is $\delta &gt; 0$ such that $|\mathbf x_0 - \mathbf x^*| &lt; \delta$ implies $|\varphi_t(\mathbf x_0) - \mathbf x^*| &lt; \varepsilon$ for all $t \ge 0$;</li>
+          <li><span class="term">asymptotically stable</span> if stable and, in addition, $\varphi_t(\mathbf x_0) \to \mathbf x^*$ for all $\mathbf x_0$ near enough;</li>
+          <li><span class="term">unstable</span> otherwise.</li>
+        </ul>
+      </div>
+      <div class="box warn"><span class="label">both halves are needed</span>
+        <p class="small">Attraction does not imply stability: there are systems in which every orbit converges to $\mathbf x^*$ but some first travel a long way away. Stability is the uniform statement, and it is the one that matters physically.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 250" width="290" role="img" aria-label="a delta ball inside an epsilon ball around the equilibrium, with an orbit starting in the delta ball and never leaving the epsilon ball">
+        <circle cx="150" cy="125" r="104" fill="none" class="ink" stroke-width="1.6"/>
+        <circle cx="150" cy="125" r="40" fill="none" class="rule" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <path d="M 176 104 C 214 126 196 186 146 190 C 96 194 74 140 112 110 C 140 88 168 108 160 128" fill="none" class="accent" stroke-width="2.2"/>
+        <circle cx="150" cy="125" r="6" class="fill-ink"/>
+        <circle cx="176" cy="104" r="4.5" class="fill-accent"/>
+        <text x="182" y="98" font-size="14" class="mono">x₀</text>
+        <line x1="150" y1="125" x2="222" y2="50" class="rule" stroke-width="1.2"/>
+        <text x="196" y="44" font-size="14" class="mono soft">ε</text>
+        <line x1="150" y1="125" x2="178" y2="153" class="rule" stroke-width="1.2"/>
+        <text x="172" y="172" font-size="14" class="mono soft">δ</text>
+      </svg>
+      <p class="cap">Stability: whatever $\varepsilon$ you are given, some $\delta$ works. Asymptotic stability additionally sends the orbit to the centre.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The order of quantifiers is the definition.</b> $\forall\varepsilon\,\exists\delta\,\forall \mathbf x_0\,\forall t \ge 0$.
+    Swapping the first two gives a false statement (one $\delta$ for all $\varepsilon$), and
+    dropping "$\forall t$" gives nothing at all. Write it out in full once; every
+    stability proof in this course is an instance of it.</p>
+    <p><b>An attracting but unstable equilibrium.</b> In polar coordinates take
+    $\dot r = r(1-r)$, $\dot\theta = \sin^2(\theta/2)$. On the circle $r = 1$ the angular
+    equation has an equilibrium at $\theta = 0$ that every other point approaches by going
+    all the way round. Adding the radial equation, every orbit except the one sitting at the
+    origin converges to $(r,\theta)=(1,0)$,
+    yet a point just past $\theta = 0$ must travel the full circle to return: not stable.
+    Vinograd's example is the classical version of this. (This is a statement about an
+    equilibrium of the whole plane after the standard polar-to-Cartesian check; the point of
+    citing it is only that the two halves of the definition are independent.)</p>
+    <p><b>Why the flow, not the formula.</b> The definition mentions $\varphi_t$ and nothing
+    else, so it can be checked for systems nobody can solve — which is the whole programme
+    of this unit. Lyapunov's 1892 thesis, <i>The General Problem of the Stability of Motion</i>,
+    introduced both the definition and the method on the next slides; it was written in
+    Russian, translated into French in 1907, and largely ignored in the West until the
+    1940s.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 20 -->
+<section>
+  <p class="eyebrow">02 · lyapunov</p>
+  <h2>Differentiating along a solution</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem · the <span class="term">orbital derivative</span></span>
+        <p class="small">Let $V : U \to \mathbb{R}$ be differentiable and $\mathbf x(t)$ a solution of $\dot{\mathbf x} = f(\mathbf x)$. Then $t \mapsto V(\mathbf x(t))$ is differentiable, with derivative $\dot V(\mathbf x(t))$, where</p>
+        $$\dot V(\mathbf x) \;:=\; DV(\mathbf x)\,f(\mathbf x) = \sum_{i=1}^n \partial_i V(\mathbf x)\,f_i(\mathbf x).$$
+        <p class="small">The right-hand side is a function of position alone: <b>no solving required</b>.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Write $\mathbf x(t+s) - \mathbf x(t) = s\,f(\mathbf x(t)) + \boldsymbol\rho(s)$ with $\boldsymbol\rho(s)/s \to 0$. Differentiability of $V$ at $\mathbf x(t)$ gives $V(\mathbf x(t+s)) - V(\mathbf x(t)) = DV(\mathbf x(t))\big(s f + \boldsymbol\rho(s)\big) + r$, where $|r|/|s f + \boldsymbol\rho(s)| \to 0$ and $|sf + \boldsymbol\rho(s)| = O(s)$. Divide by $s$ and let $s \to 0$: the $\boldsymbol\rho$ and $r$ terms vanish. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">on the pendulum</span>
+        <p class="small">With <span class="ref" data-ref="V">$V = \tfrac12\omega^2 + (1-\cos\theta)$</span> and $f = (\omega,\,-\gamma\omega-\sin\theta)$:</p>
+        $$\begin{aligned}\dot V &= \underbrace{\sin\theta}_{\partial_\theta V}\,\omega + \underbrace{\omega}_{\partial_\omega V}\,(-\gamma\omega - \sin\theta)\\ &= -\gamma\omega^2 .\end{aligned}$$
+        <p class="small">Three lines, no solution of anything, and it is exact: <b>the energy of the damped pendulum falls at rate $\gamma\omega^2$, always</b>.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Dimensions: $V$ is an energy over $mgl$, $\dot V$ an inverse time; $\gamma\omega^2$ is $\text{(number)}\times\text{(inverse time)}^2$ — and one power of inverse time is the time unit itself, so both sides match. Limit: $\gamma\to0$ gives $\dot V = 0$, the conservation of unit 00.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What the theorem really is.</b> It is the multivariable chain rule for the special
+    case of a curve composed with a scalar function; unit 03 proves the general chain rule
+    for $D(g\circ f) = Dg\,Df$ as composition of linear maps, of which this is the case
+    $\mathbb{R} \to \mathbb{R}^n \to \mathbb{R}$. The proof above is written out because
+    this unit needs it now and cannot wait a unit for it.</p>
+    <p><b>Why $\dot V$ is computable without solving.</b> The formula
+    $\dot V(\mathbf x) = \sum_i \partial_i V(\mathbf x) f_i(\mathbf x)$ contains no $t$. You evaluate
+    it at a point and learn whether $V$ is rising or falling there, for every orbit through
+    it at once. That is the entire trick of the direct method, and the word "direct" in
+    Lyapunov's name for it means exactly "without integrating the equations".</p>
+    <p><b>On notation.</b> $DV$ is a linear map $\mathbb{R}^n \to \mathbb{R}$ — a row, a
+    covector — and $\dot V = DV \cdot f$ pairs it with a vector. The gradient
+    $\nabla V$, which unit 04 introduces, is the vector you get from $DV$ after choosing an
+    inner product; they have the same components in an orthonormal basis and different ones
+    otherwise. The distinction is invisible here and unavoidable from unit 28 onward, so
+    the pairing is written as a row acting on a column deliberately.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 21 -->
+<section>
+  <p class="eyebrow">02 · lyapunov</p>
+  <h2>Lyapunov's theorem</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Let $\mathbf x^*$ be an equilibrium and $N$ a neighbourhood of it. Suppose $V \in C^1(N)$ satisfies</p>
+        <ul class="small">
+          <li>$V(\mathbf x^*) = 0$ and $V &gt; 0$ on $N \setminus \{\mathbf x^*\}$ &nbsp;(<em>positive definite</em>);</li>
+          <li>$\dot V \le 0$ on $N$.</li>
+        </ul>
+        <p class="small">Then $\mathbf x^*$ is stable. If moreover $\dot V &lt; 0$ on $N \setminus \{\mathbf x^*\}$, it is asymptotically stable. Such a $V$ is a <span class="term">Lyapunov function</span>.</p>
+      </div>
+      <div class="box proof"><span class="label">proof of stability</span>
+        <p class="small">Given $\varepsilon$ with $\overline B_\varepsilon(\mathbf x^*) \subset N$, let $m = \min\{V(\mathbf x) : |\mathbf x - \mathbf x^*| = \varepsilon\}$, which is $&gt;0$ by compactness of the sphere and positivity of $V$. By continuity pick $\delta \in (0,\varepsilon)$ with $V &lt; m$ on $B_\delta$. For $\mathbf x_0 \in B_\delta$, $V(\varphi_t(\mathbf x_0)) \le V(\mathbf x_0) &lt; m$ as long as the orbit stays in $B_\varepsilon$ — so it can never reach the sphere, where $V \ge m$. $\square$</p>
+        <p class="proof-pointer">asymptotic part in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">why this is the better instrument</span>
+        <p class="small">It needs no eigenvalues, no hyperbolicity and no linear algebra. It works at the centres Hartman–Grobman excludes. And its conclusion is not local: if $\{V &lt; c\}$ is bounded and $\dot V \le 0$ on it, the whole sublevel set is an invariant region — a <b>basin estimate</b>, which linearisation can never supply.</p>
+      </div>
+      <div class="box warn"><span class="label">the catch</span>
+        <p class="small">There is no algorithm for finding $V$. In mechanics there is a standard first guess — the energy — and it works remarkably often, because dissipation is exactly the statement that energy falls.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the asymptotic part</h4>
+    <p>Assume $\dot V &lt; 0$ on $N\setminus\{\mathbf x^*\}$ and take $\mathbf x_0 \in B_\delta$ as in
+    the stability proof, so the orbit stays in $\overline B_\varepsilon$ for all $t \ge 0$ and
+    exists for all $t \ge 0$ (unit 01: a solution remaining in a compact subset of $U$ has
+    maximal interval $[0,\infty)$). Then $t \mapsto V(\varphi_t(\mathbf x_0))$ is non-increasing
+    and bounded below by $0$, so it converges to some $c \ge 0$. Suppose $c &gt; 0$. The set
+    $K = \{\mathbf x \in \overline B_\varepsilon : c \le V(\mathbf x) \le V(\mathbf x_0)\}$ is compact
+    and does not contain $\mathbf x^*$ (where $V = 0 &lt; c$), so $-k := \max_K \dot V &lt; 0$ by
+    continuity of $\dot V$ and compactness. The orbit stays in $K$ for all $t \ge 0$, hence
+    $V(\varphi_t(\mathbf x_0)) \le V(\mathbf x_0) - kt \to -\infty$, contradicting $V \ge 0$. So
+    $c = 0$.</p>
+    <p>Finally $V(\varphi_t) \to 0$ forces $\varphi_t \to \mathbf x^*$: if not, there are
+    $\eta &gt; 0$ and $t_n \to \infty$ with $|\varphi_{t_n} - \mathbf x^*| \ge \eta$; those points
+    lie in the compact set $\overline B_\varepsilon \setminus B_\eta$, so a subsequence
+    converges to some $\mathbf y$ there, and continuity gives $V(\mathbf y) = 0$ with
+    $\mathbf y \ne \mathbf x^*$ — contradicting positive definiteness. $\square$</p>
+    <p><b>Where each hypothesis is used.</b> Positive definiteness makes the sublevel sets
+    shrink around $\mathbf x^*$ (used twice, and it is what fails if $V$ has a saddle at
+    $\mathbf x^*$). $\dot V \le 0$ makes sublevel sets forward invariant. Compactness of
+    spheres in $\mathbb{R}^n$ is used for $m &gt; 0$ and for $-k &lt; 0$; in infinite dimensions
+    both steps fail, which is why the infinite-dimensional theory is a different subject.</p>
+    <p>A converse holds — an asymptotically stable equilibrium always admits a Lyapunov
+    function — so nothing is lost by the method, only by our ingenuity in guessing.
+    <em>Cited</em>: Massera, "On Liapounoff's conditions of stability", <i>Ann. of Math.</i>
+    50 (1949) 705–721.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 22 -->
+<section>
+  <p class="eyebrow">02 · lyapunov · example</p>
+  <h2>The undamped pendulum: a centre, proved stable</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">$\gamma = 0$</span>
+        <p class="small">Linearisation at <span class="ref" data-ref="down">$(0,0)$</span>: $\tau = 0$, $\Delta = 1$ — a centre, and by the two slides above that is <b>no information</b>. Take <span class="ref" data-ref="V">$V = \tfrac12\omega^2 + (1-\cos\theta)$</span> on $N = \{|\theta| &lt; \pi\} \times \mathbb{R}$:</p>
+        <ul class="small">
+          <li>$V(0,0) = 0$, and $V &gt; 0$ elsewhere in $N$ since $1 - \cos\theta &gt; 0$ for $0 &lt; |\theta| &lt; \pi$;</li>
+          <li>$\dot V = -\gamma\omega^2 = 0 \le 0$.</li>
+        </ul>
+        <p class="small">Lyapunov's theorem applies: <b>the hanging position is stable</b>. Not asymptotically — $\dot V$ is not negative anywhere — and indeed it is not, since the orbits are the closed curves $V = c$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">this is a proof, and it is sharp</span>
+        <p class="small">It gives exactly what is true and nothing more. The same $V$ with the same argument fails to show asymptotic stability, and asymptotic stability is false. A method that had "proved" it would be wrong.</p>
+      </div>
+      <div class="box ex"><span class="label">and it settles the previous slide's family</span>
+        <p class="small">For $\dot x = -y + a x r^2$, $\dot y = x + a y r^2$ with $a &lt; 0$, take $V = x^2+y^2$. Then $\dot V = 2ar^4 &lt; 0$ off the origin, so the origin is asymptotically stable. With $a = 0$, $\dot V = 0$: stable, not asymptotically. With $a &gt; 0$, $\dot V &gt; 0$: unstable. One function, all three cases, where the linearisation could not distinguish them.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $N$ must exclude $\theta = \pm\pi$.</b> $V(\pm\pi, 0) = 2 \ne 0$, so positivity is
+    not the problem — but if $N$ contained the whole cylinder, the sublevel set
+    $\{V &lt; c\}$ for $c &gt; 2$ would wrap all the way round and no longer shrink to the
+    origin, and the $\delta$ produced by the proof would be useless. Keeping
+    $|\theta| &lt; \pi$ keeps the sublevel sets compact and centred, which is exactly what
+    the proof consumes.</p>
+    <p><b>A physicist's reading.</b> Total energy is conserved and has a strict minimum at the
+    hanging position; therefore a state of small energy stays a state of small energy,
+    and small energy means small displacement and small speed. That is <em>Dirichlet's
+    stability theorem</em> (1846), which predates Lyapunov and is the special case
+    $V = $ energy, $\dot V = 0$, of the theorem on the previous slide. Lyapunov's advance
+    was to see that the function need not be the energy and need not be conserved.</p>
+    <p><b>Why $\dot V &gt; 0$ gives instability</b>, since the theorem opposite does not say so.
+    Fix $\varepsilon$ and start at $\mathbf x_0 \ne 0$ with $a := V(\mathbf x_0) &gt; 0$ inside
+    $B_\varepsilon$. While the orbit stays in $B_\varepsilon$ it stays in the compact set
+    $\{a \le V \le \varepsilon^2\}$, which misses the origin, so $\dot V \ge k &gt; 0$ there by
+    continuity and compactness; then $V \ge a + kt$ passes $\varepsilon^2$ in finite time and
+    the orbit must have left $B_\varepsilon$. This works for every $a$, however small, which
+    is exactly instability. Problem P4 runs the same argument on a harder pair.</p>
+    <p><b>Sharpness, once more.</b> A centre in the linearisation is compatible with stable,
+    asymptotically stable and unstable. The energy argument here decides which, in the one
+    case where mechanics hands us the function. When it does not — the damped case, where
+    the energy is not conserved — LaSalle two slides on rescues the argument.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 23 -->
+<section>
+  <p class="eyebrow">02 · lyapunov</p>
+  <h2>Where orbits end up: $\omega$-limit sets</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">For a forward orbit define its <span class="term">omega-limit set</span></p>
+        $$\begin{aligned}\omega(\mathbf x_0) = \{\mathbf y :\ &\varphi_{t_n}(\mathbf x_0) \to \mathbf y\\ &\text{for some } t_n \to \infty\}.\end{aligned}$$
+        <p class="small">A set $S$ is <span class="term">invariant</span> if $\varphi_t(S) = S$ for all $t$, and <span class="term">forward invariant</span> if $\varphi_t(S) \subseteq S$ for $t \ge 0$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">If the forward orbit of $\mathbf x_0$ stays in a compact $K \subset U$, then $\omega(\mathbf x_0)$ is <b>non-empty, compact, connected and invariant</b>, and $\operatorname{dist}(\varphi_t(\mathbf x_0), \omega(\mathbf x_0)) \to 0$.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">The proof is pure metric topology plus one input from unit 01. Non-emptiness and compactness are Bolzano–Weierstrass; invariance is <b>continuous dependence on initial data</b>:</p>
+      $$\begin{aligned}\varphi_s(\mathbf y) &= \varphi_s\big(\lim \varphi_{t_n}(\mathbf x_0)\big)\\ &= \lim \varphi_{t_n + s}(\mathbf x_0) \in \omega(\mathbf x_0).\end{aligned}$$
+      <div class="box good"><span class="label">why we want it</span>
+        <p class="small">"Where does the orbit go?" becomes "what is $\omega(\mathbf x_0)$?", and that is a question about a <em>set</em>, which can be pinned down by inequalities. LaSalle (next) and Poincaré–Bendixson (section 4) are both statements about $\omega$-limit sets and nothing else.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Non-empty and compact.</b> Take $t_n = n$; the points $\varphi_n(\mathbf x_0)$ lie in the
+    compact $K$, so a subsequence converges and its limit is in $\omega$. Each
+    $\mathbf y \in \omega$ is a limit of points of $K$, so $\omega \subseteq K$ is bounded;
+    and $\omega$ is closed, being an intersection:
+    $\omega(\mathbf x_0) = \bigcap_{T \ge 0}\overline{\{\varphi_t(\mathbf x_0) : t \ge T\}}$, a
+    nested intersection of non-empty compacta — which incidentally re-proves
+    non-emptiness.</p>
+    <p><b>Invariant.</b> Let $\mathbf y = \lim\varphi_{t_n}(\mathbf x_0)$ and fix $s$. Continuous
+    dependence (unit 01, via Gronwall) says $\varphi_s$ is continuous where defined, so
+    $\varphi_s(\mathbf y) = \lim \varphi_s(\varphi_{t_n}(\mathbf x_0)) = \lim\varphi_{t_n+s}(\mathbf x_0)$,
+    and $t_n + s \to \infty$, so the limit lies in $\omega$. Applying this to $s$ and $-s$
+    gives $\varphi_s(\omega) = \omega$.</p>
+    <p><b>Convergence to $\omega$.</b> If not, there are $\eta &gt; 0$ and $t_n \to \infty$ with
+    $\operatorname{dist}(\varphi_{t_n}(\mathbf x_0), \omega) \ge \eta$. Those points are in $K$, so a
+    subsequence converges to some $\mathbf z$, which is in $\omega$ by definition and at
+    distance $\ge \eta$ from $\omega$ — impossible.</p>
+    <p><b>Connected.</b> If $\omega = A \sqcup B$ with $A, B$ non-empty, compact, and at positive
+    distance $d$, then the orbit comes within $d/3$ of $A$ and of $B$ at arbitrarily large
+    times, so by continuity of $t \mapsto \varphi_t$ and the intermediate value theorem
+    applied to $t \mapsto \operatorname{dist}(\varphi_t, A)$ it is at distance exactly $d/2$ from
+    $A$ at a sequence of times $s_n \to \infty$; a limit point of $\varphi_{s_n}$ lies in
+    $\omega$ and in neither $A$ nor $B$. $\square$</p>
+    <p>Backward time gives $\alpha$-limit sets, with the same proofs. For the damped
+    pendulum every $\omega$-limit set turns out to be a single equilibrium; for the systems
+    of section 4 it can be a closed curve; in three dimensions it can be far stranger, which
+    is unit 17.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 24 -->
+<section>
+  <p class="eyebrow">02 · lyapunov</p>
+  <h2>LaSalle's invariance principle</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (LaSalle, 1960)</span>
+        <p class="small">Let $\Omega \subset U$ be compact and forward invariant, $V \in C^1$ with $\dot V \le 0$ on $\Omega$. Put</p>
+        $$\begin{gathered}E = \{\mathbf x \in \Omega : \dot V(\mathbf x) = 0\},\\ M = \text{the largest invariant subset of } E .\end{gathered}$$
+        <p class="small">Then every solution starting in $\Omega$ satisfies $\operatorname{dist}(\varphi_t(\mathbf x_0), M) \to 0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$V(\varphi_t)$ is non-increasing and bounded below on the compact $\Omega$, so $V(\varphi_t) \to c$. For $\mathbf y \in \omega(\mathbf x_0)$, continuity gives $V(\mathbf y) = c$: <b>$V \equiv c$ on $\omega(\mathbf x_0)$</b>. But $\omega$ is invariant, so the whole orbit through $\mathbf y$ lies in $\omega$ and $V$ is constant along it, whence $\dot V(\mathbf y) = 0$. Thus $\omega \subseteq E$ and $\omega$ is invariant, so $\omega \subseteq M$; and $\varphi_t \to \omega$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what it fixes</span>
+        <p class="small">Lyapunov's asymptotic half needs $\dot V &lt; 0$ <em>everywhere</em> nearby. In mechanics that almost never holds: damping acts on velocity, so $\dot V$ vanishes on the whole set $\{\text{velocity} = 0\}$, not just at the equilibrium. LaSalle replaces "$\dot V &lt; 0$" by "nothing can <em>stay</em> in $\dot V = 0$", which is exactly the true statement.</p>
+      </div>
+      <p class="small muted">Note what it does not need: $V$ positive definite, or $\Omega$ small, or an equilibrium at all. It is a statement about where orbits go, and the conclusion is as global as $\Omega$ is large.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Finding $M$ in practice</b> is a two-line argument every time: take a solution that
+    lies in $E$ for all time, and push the constraint through the equations until it forces
+    a point. For the damped pendulum, $E = \{\omega = 0\}$; a solution with $\omega \equiv 0$
+    has $\dot\omega \equiv 0$ too, and $\dot\omega = -\sin\theta$, so $\sin\theta = 0$. That is
+    the whole calculation, and it is done on the next slide.</p>
+    <p><b>Why forward invariance of $\Omega$ is needed.</b> Without it the orbit may leave
+    $\Omega$, where nothing is assumed. In applications $\Omega$ is produced by the Lyapunov
+    function itself: a bounded sublevel set $\{V \le c\}$ is forward invariant precisely
+    because $\dot V \le 0$ on it. So one function supplies both hypotheses.</p>
+    <p><b>Attribution.</b> J. P. LaSalle, "Some extensions of Liapunov's second method",
+    <i>IRE Transactions on Circuit Theory</i> 7 (1960) 520–527. Barbashin and Krasovskii had
+    the special case for globally positive definite $V$ a decade earlier. The principle is
+    the reason control engineers can prove convergence for systems with no formula and
+    plenty of damping, and it is the tool that makes the pendulum result below a theorem
+    rather than a picture.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 25 -->
+<section>
+  <p class="eyebrow">02 · lyapunov · example</p>
+  <h2>The damped pendulum stops, and we can say where from</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">the theorem this unit was built for</span>
+        <p class="small">Take $\gamma &gt; 0$ and $\Omega = \{V \le c\}$ for any $c &lt; 2$, inside the cylinder. Then:</p>
+        <ul class="small">
+          <li><b>$\Omega$ is compact and forward invariant.</b> $\dot V = -\gamma\omega^2 \le 0$ keeps $V$ from rising; $V \le c &lt; 2$ bounds $|\omega| \le \sqrt{2c}$ and confines $\theta$ to $|\theta| \le \arccos(1-c) &lt; \pi$.</li>
+          <li><b>$E = \{\omega = 0\} \cap \Omega$</b>, since $\dot V = 0$ iff $\omega = 0$.</li>
+          <li><b>$M = \{(0,0)\}$.</b> A solution staying in $E$ has $\omega \equiv 0$, hence $\dot\omega \equiv 0$; but there $\dot\omega = -\sin\theta$, so $\sin\theta = 0$, and the only such point in $\Omega$ is the origin.</li>
+        </ul>
+        <p class="small">LaSalle: <b>every orbit starting with $V &lt; 2$ converges to the hanging position</b> — letting $c \uparrow 2$, the basin contains all of <span class="ref" data-ref="sep">$\{V &lt; 2\}$</span>.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Limit $\gamma \to 0$:</b> $E$ becomes all of $\Omega$ and $M$ all of it too — no convergence claimed, correctly.<br>
+        <b>Sharpness:</b> $\{V &lt; 2\}$ cannot be enlarged to $\{V \le 2\}$, which contains the saddle.<br>
+        <b>Numbers:</b> released from rest at $\theta_0$, $V = 1-\cos\theta_0 &lt; 2$ unless $\theta_0 = \pi$: from any angle but exactly upright, it ends hanging.</p>
+      </div>
+      <div class="box warn"><span class="label">what linearisation could not do</span>
+        <p class="small">It gives asymptotic stability of <span class="ref" data-ref="down">the down position</span> for $\gamma &gt; 0$ — Hartman–Grobman applies, the equilibrium is hyperbolic — but only on <em>some</em> unspecified neighbourhood. The basin $\{V &lt; 2\}$ is not a local statement and no linear argument produces it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The compactness claim in detail.</b> On the cylinder, $\{V \le c\}$ with $c &lt; 2$ is
+    $\{(\theta,\omega) : \tfrac12\omega^2 + 1 - \cos\theta \le c\}$. It requires
+    $1 - \cos\theta \le c &lt; 2$, i.e. $\cos\theta \ge 1 - c &gt; -1$, so $|\theta|$ is bounded away
+    from $\pi$; and $\omega^2 \le 2c$. Closed and bounded in the chart, hence compact.
+    Forward invariance: if $V(\mathbf x_0) \le c$ then $V(\varphi_t(\mathbf x_0)) \le c$ because
+    $V$ is non-increasing along orbits — and the orbit cannot leave the chart because it
+    cannot cross $V = c$.</p>
+    <p><b>Why $c &lt; 2$ and not $c = 2$.</b> $\{V \le 2\}$ contains the saddle $(\pi, 0)$, so $M$
+    would contain it as well and the conclusion would weaken to "converges to the hanging
+    position or to the upright one". Both do occur: the saddle's stable manifold is a
+    one-dimensional set of initial conditions that really do end balanced. LaSalle is
+    telling the exact truth again.</p>
+    <p><b>What happens outside $\{V &lt; 2\}$.</b> A fast enough initial spin makes the pendulum
+    go over the top one or more times, losing energy each pass, until $V$ drops below $2$ —
+    after which this theorem applies. Section 4 completes the argument by proving no
+    periodic orbit exists anywhere, so no initial condition can rotate forever; every orbit
+    of the damped pendulum ends at one of the two equilibria, and all but a
+    one-dimensional set end hanging down.</p>
+    <p>Numbers for the release check: $V(\theta_0, 0) = 1 - \cos\theta_0$, which is
+    $0.5$ at $60°$, $1$ at $90°$, $1.866$ at $150°$ and $2$ only at $180°$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 26 -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Periodic orbits</h2>
+  <p>Proving a cycle exists without computing it — and proving none does.</p>
+</section>
+
+<!-- ================================================================== 27 -->
+<section>
+  <p class="eyebrow">02 · cycles</p>
+  <h2>Periodic orbits and limit cycles</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">A <span class="term">periodic orbit</span> is a non-equilibrium orbit with $\varphi_T(\mathbf x_0) = \mathbf x_0$ for some $T &gt; 0$; the least such $T$ is its period. A <span class="term">limit cycle</span> is a periodic orbit that is the $\omega$-limit set of some orbit not on it — an <em>isolated</em> cycle, which attracts or repels.</p>
+      </div>
+      <div class="box warn"><span class="label">the distinction is not pedantic</span>
+        <p class="small">The undamped pendulum has a continuum of periodic orbits and <b>no limit cycle</b>: each orbit is surrounded by others, none attracts. A limit cycle is a self-sustained oscillation with an amplitude of its own, picked out by the equations rather than by the initial data — a heartbeat, not a bell.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">one you can see whole</span>
+        <p class="small">$\dot x = x - y - x(x^2+y^2)$, $\dot y = x + y - y(x^2+y^2)$. With $r^2 = x^2+y^2$,</p>
+        $$\begin{gathered}r\dot r = x\dot x + y\dot y = r^2 - r^4,\\ \dot\theta = (x\dot y - y\dot x)/r^2 = 1,\end{gathered}$$
+        <p class="small">so $\dot r = r(1-r^2)$ and $\dot\theta = 1$. The circle $r = 1$ is a periodic orbit of period $2\pi$; $r$ increases for $0 &lt; r &lt; 1$ and decreases for $r &gt; 1$, so every orbit but the origin tends to it. A limit cycle, and we know it exactly because the system was built to be separable in polar form.</p>
+      </div>
+      <p class="small muted">Almost nothing else is. The next slide is how one proves a cycle exists when nothing separates.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Checking the polar computation.</b> $x\dot x + y\dot y = x(x - y - xr^2) + y(x + y - yr^2)
+    = x^2 - xy - x^2r^2 + xy + y^2 - y^2r^2 = r^2 - r^4$; and
+    $x\dot y - y\dot x = x(x+y-yr^2) - y(x-y-xr^2) = x^2 + xy - xyr^2 - xy + y^2 + xyr^2 = r^2$.
+    Both cross terms cancel, which is the design of the example.</p>
+    <p><b>Why the period is exactly $2\pi$.</b> On the cycle $r \equiv 1$ and $\dot\theta = 1$, so
+    the angle takes time $2\pi$ to advance by $2\pi$. In the units of a mechanical problem
+    that $1$ would be a frequency and the period $2\pi/\omega_0$; dimensionally the period
+    of any cycle is (angle)/(angular velocity), a time, as required.</p>
+    <p><b>An orbit that returns is periodic.</b> If $\varphi_T(\mathbf x_0) = \mathbf x_0$ for some
+    $T &gt; 0$ then by the group property $\varphi_{t+T} = \varphi_t$ for all $t$, so the whole
+    solution is $T$-periodic — there is no such thing as a solution that comes back once. The
+    set of such $T$ is a closed subgroup of $(\mathbb{R}, +)$, hence either $\{0\}$,
+    all of $\mathbb{R}$ (an equilibrium) or $T_0\mathbb{Z}$ with $T_0$ the minimal period.
+    That is elementary group theory doing a small honest job.</p>
+    <p>Limit cycles are what makes clocks, lasers, heartbeats and the Van der Pol circuit of
+    problem P6 possible: the amplitude is a property of the system, so it is reproducible and
+    robust to a knock. A conservative oscillator cannot do this — knock it and the amplitude
+    changes forever.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 28 -->
+<section>
+  <p class="eyebrow">02 · cycles</p>
+  <h2>Poincaré–Bendixson</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">theorem (Poincaré 1885, Bendixson 1901) · <em>cited</em></span>
+        <p class="small">Let $f$ be $C^1$ on an open $U \subseteq \mathbb{R}^2$, and suppose the forward orbit of $\mathbf x_0$ stays in a compact $K \subset U$ containing <b>no equilibrium</b>. Then $\omega(\mathbf x_0)$ is a periodic orbit.</p>
+        <p class="proof-pointer">not proved here: Perko §3.7, or Hartman, <i>Ordinary Differential Equations</i>, ch. VII</p>
+      </div>
+      <p class="small">In practice one supplies $K$ as a <span class="term">trapping region</span>: a compact set with the field pointing inwards along its boundary, so no orbit can leave. If it also contains no equilibrium, a cycle exists inside it — proved, without any idea what the cycle looks like.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">it is a theorem about the plane</span>
+        <p class="small">The proof runs on a transverse segment: successive crossings of an orbit are <b>monotone</b> along it, because the orbit plus the segment forms a closed curve and the Jordan curve theorem traps everything on one side. In $\mathbb{R}^3$ there is no inside, the argument dies, and the conclusion is false — a bounded, equilibrium-free orbit can be chaotic. That is unit 17.</p>
+      </div>
+      <p class="small muted">So two-dimensionality is not a convenience of the proof. It is the content.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>The proof, in outline</h4>
+    <p>A <em>transverse segment</em> $\Sigma$ is a closed line segment on which $f$ is nowhere
+    tangent, so every orbit crosses it in the same direction. <b>Step 1:</b> successive
+    intersections $\mathbf p_1, \mathbf p_2, \dots$ of one orbit with $\Sigma$ are monotone along
+    $\Sigma$. Proof: the arc of orbit from $\mathbf p_1$ to $\mathbf p_2$ together with the piece
+    of $\Sigma$ between them is a simple closed curve; by the Jordan curve theorem it splits
+    the plane, and the flow crosses $\Sigma$ one way only, so the orbit is confined to one
+    side afterwards and cannot return past $\mathbf p_1$. <b>Step 2:</b> an $\omega$-limit set
+    meets a transverse segment in at most one point — otherwise monotonicity is violated.
+    <b>Step 3:</b> take $\mathbf y \in \omega(\mathbf x_0)$; $\omega$ is invariant and compact, so
+    $\omega(\mathbf y) \subseteq \omega(\mathbf x_0)$ is non-empty; pick $\mathbf z$ in it, which is
+    not an equilibrium by hypothesis, and lay a transverse segment through $\mathbf z$. The
+    orbit of $\mathbf y$ meets it infinitely often but $\omega(\mathbf x_0)$ meets it once, so the
+    orbit of $\mathbf y$ returns to the same point: it is periodic. A last step shows
+    $\omega(\mathbf x_0)$ is that whole orbit and nothing more.</p>
+    <p>Everything above except the Jordan curve theorem is elementary; the Jordan curve
+    theorem is exactly the input that has no analogue in higher dimensions. The theorem is
+    stated as <em>cited</em> here because doing step 1 honestly needs the flow-box theorem
+    (local rectification of a vector field), which needs the inverse function theorem of
+    unit 03.</p>
+    <p><b>The general form</b> allows equilibria: if $K$ contains finitely many, then
+    $\omega(\mathbf x_0)$ is an equilibrium, a periodic orbit, or a union of equilibria and
+    orbits joining them (a "graphic", such as a homoclinic loop). The undamped pendulum's
+    separatrix is exactly such a union, which is why it is worth knowing the general
+    statement.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 29 -->
+<section>
+  <p class="eyebrow">02 · cycles · example</p>
+  <h2>A trapping annulus, with the inequalities shown</h2>
+  <div class="cols wide-right">
+    <div>
+      <div class="box ex"><span class="label">the construction</span>
+        <p class="small">For $\dot r = r(1-r^2)$, $\dot\theta = 1$ take $K = \{\tfrac12 \le r \le 2\}$, compact.</p>
+        <ul class="small">
+          <li>On $r = \tfrac12$: $\dot r = \tfrac12(1-\tfrac14) = +0.375 &gt; 0$, pointing <b>outwards</b> into $K$.</li>
+          <li>On $r = 2$: $\dot r = 2(1-4) = -6 &lt; 0$, pointing <b>inwards</b> into $K$.</li>
+          <li>The only equilibrium of the system is the origin ($\dot\theta = 1 \ne 0$ elsewhere), and it is not in $K$.</li>
+        </ul>
+        <p class="small">Poincaré–Bendixson: every orbit starting in $K$ has a periodic orbit as its $\omega$-limit set, so <b>a cycle exists in $K$</b>. Here we happen to know it is $r=1$ with period $2\pi$; the argument never used that.</p>
+      </div>
+      <p class="small muted">Problem P6 runs the same three steps on Van der Pol, where no formula for the cycle exists at all.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 350 330" width="330" role="img" aria-label="an annulus between radius one half and radius two, with the flow entering at both boundaries and orbits spiralling onto the unit circle">
+        <circle cx="175" cy="165" r="124" fill="none" class="warn" stroke-width="2" stroke-dasharray="6 4"/>
+        <circle cx="175" cy="165" r="31" fill="none" class="warn" stroke-width="2" stroke-dasharray="6 4"/>
+        <circle cx="175" cy="165" r="62" fill="none" class="ink" stroke-width="2.6"/>
+        <polyline points="157,140 149,141 140,144 132,151 126,160 122,174 124,189 128,200 136,210 146,218 157,223 170,226 182,226 195,223 206,218 217,211 225,201 232,190 236,178 237,165 236,152 232,140 225,129 217,119 206,112 195,106 182,103 169,103 157,106" fill="none" class="accent" stroke-width="2"/>
+        <polyline points="102,65 106,79 109,93 110,104 110,119 109,131 109,141 108,151 108,158 109,167 111,176 116,188 122,200 131,210 141,217 153,223 165,226 178,227 191,225 203,220 214,214 223,205 230,194 235,182 237,169 237,161 235,148 230,136 223,125 213,116 203,109 191,105 178,103 165,104" fill="none" class="accent" stroke-width="2"/>
+        <circle cx="175" cy="165" r="5" class="fill-ink"/>
+        <text x="182" y="108" font-size="15" class="mono">r=1</text>
+        <text x="144" y="196" font-size="14" class="mono soft">r=½</text>
+        <text x="228" y="296" font-size="14" class="mono soft">r=2</text>
+      </svg>
+      <p class="cap">The annulus $K$. The field crosses both dashed circles inwards; one orbit from each side is drawn winding onto $r=1$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "pointing outwards at $r = \tfrac12$" is inwards for $K$.</b> $K$ is the annulus, so
+    its boundary has two pieces and "into $K$" means away from the hole at the inner circle
+    and towards the centre at the outer one. Both inequalities say the same thing: once in
+    $K$, always in $K$. A trapping region need not be simply connected, and for
+    Poincaré–Bendixson it usually must not be — a simply connected trapping region with no
+    equilibrium is impossible. Why: along the boundary of a disc an inward-pointing field is
+    homotopic, without vanishing, to the pure inward normal $-\boldsymbol\xi$, whose index is
+    $+1$; the index theorem of section 5 then demands equilibria inside summing to $+1$, and
+    there are none.</p>
+    <p><b>Forward invariance from a strict inequality.</b> If $g \in C^1$, $K = \{g \le 0\}$ is
+    compact and $\dot g &lt; 0$ on $\{g = 0\}$, then no orbit leaves $K$: at a first exit time
+    $t_1$ we would have $g(\mathbf x(t_1)) = 0$ and $g &gt; 0$ just after, so
+    $\dot g(\mathbf x(t_1)) \ge 0$, a contradiction. Here $g = \tfrac14 - r^2$ and $g = r^2 - 4$,
+    and $\dot g$ is $-2r\dot r$ and $2r\dot r$ respectively; both are negative on their
+    boundary pieces. When the inequality is only $\le$, the same conclusion needs a little
+    more care, and problem P6 shows how to handle the two tangential points it meets.</p>
+    <p><b>The explicit solution, for comparison only.</b> $\dot r = r(1-r^2)$ separates
+    (unit 00): $r(t) = r_0e^t/\sqrt{1 + r_0^2(e^{2t}-1)} \to 1$ for every $r_0 &gt; 0$. The
+    drawn spirals use it. But an example one can solve is a bad advertisement for a theorem
+    one needs when one cannot, so read the box, not the picture.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 30 -->
+<section>
+  <p class="eyebrow">02 · cycles</p>
+  <h2>Ruling cycles out</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem · the damped pendulum has no periodic orbit</span>
+        <p class="small">Let $\gamma &gt; 0$ and suppose $\varphi_t$ is $T$-periodic. Then</p>
+        $$\begin{aligned}0 &= V(\mathbf x(T)) - V(\mathbf x(0))\\ &= \int_0^T \dot V\,\mathrm{d}t = -\gamma\int_0^T \omega^2\,\mathrm{d}t \le 0,\end{aligned}$$
+        <p class="small">so $\omega \equiv 0$ on the orbit, hence $\dot\omega = -\sin\theta \equiv 0$, and the orbit is one of the two equilibria — not a periodic orbit. $\square$</p>
+      </div>
+      <p class="small">Three lines, valid on the whole cylinder, covering both the swinging orbits and the rotating ones. It needs no two-dimensionality and no index theory: a strictly decreasing quantity is incompatible with returning.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the general tool · <em>cited forward</em></span>
+        <p class="small"><b><span class="term">Bendixson–Dulac criterion</span>.</b> If $\partial_x f_1 + \partial_y f_2$ has one strict sign on a simply connected region $D$, then $D$ contains no periodic orbit.</p>
+        <p class="small muted">Proof by Green's theorem: $\oint_\Gamma (f_1\,\mathrm{d}y - f_2\,\mathrm{d}x) = 0$ along an orbit, while the double integral of the divergence over the enclosed region is nonzero. The line and area integrals arrive in units 04 and 05, and the proof is given there.</p>
+      </div>
+      <p class="small">For the pendulum $\partial_\theta(\omega) + \partial_\omega(-\gamma\omega-\sin\theta) = -\gamma &lt; 0$: the criterion applies at once. Note it needs <b>simply connected</b>, so on the cylinder it kills only the contractible cycles — the energy argument above is the one that also kills rotation.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the energy argument is worth more than the criterion here.</b> The cylinder is not
+    simply connected. A rotating pendulum orbit goes once round it and bounds no disc, so
+    Bendixson–Dulac says nothing about it, and neither will the index theorem of section 5.
+    The integral argument does not care: it only uses that $V$ is a well-defined function on
+    the cylinder that strictly decreases whenever the pendulum moves.</p>
+    <p><b>Dulac's refinement</b> replaces $f$ by $\rho f$ for a positive $C^1$ function $\rho$,
+    which does not change the orbits but can change the sign of the divergence. Finding a
+    suitable $\rho$ is as much of an art as finding a Lyapunov function, and for the same
+    reason: both are certificates, easy to check and hard to invent.</p>
+    <p><b>The full picture of the damped pendulum, now complete.</b> Every forward orbit is
+    bounded (the note on "The flow is a one-parameter group"), so it has a non-empty compact invariant $\omega$-limit
+    set. That set contains no periodic orbit by the theorem above. Poincaré–Bendixson in the
+    general form then forces it to be an equilibrium or a union of equilibria and connecting
+    orbits — and since $V$ is constant on an $\omega$-limit set while $\dot V &lt; 0$ off
+    $\omega = 0$, it must be a single equilibrium. So <em>every</em> orbit converges to the
+    hanging or the upright position. "The damped pendulum stops, and we can say where from"
+    gave the basin of the first; this gives the dichotomy.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 31 -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>The index of a vector field</h2>
+  <p>An integer attached to a closed curve, which counts what is inside.</p>
+</section>
+
+<!-- ================================================================== 32 -->
+<section>
+  <p class="eyebrow">02 · index</p>
+  <h2>The index of a closed curve</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">Let $f$ be a continuous planar field and $\Gamma$ a closed curve $\sigma : [0,1] \to \mathbb{R}^2$, $\sigma(0)=\sigma(1)$, on which $f \ne 0$. There is a continuous $\vartheta : [0,1] \to \mathbb{R}$ with</p>
+        $$f(\sigma(s)) = |f(\sigma(s))|\,\big(\cos\vartheta(s),\, \sin\vartheta(s)\big),$$
+        <p class="small">unique up to a constant in $2\pi\mathbb{Z}$. The <span class="term">index</span> of $\Gamma$ is</p>
+        $$I_f(\Gamma) = \frac{\vartheta(1) - \vartheta(0)}{2\pi} \in \mathbb{Z}.$$
+      </div>
+      <p class="small muted">In words: the net number of turns the field makes as you walk once round $\Gamma$ — read off the arrows, with no derivatives, no solving and no linearity.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">theorem · homotopy invariance</span>
+        <p class="small">If $\Gamma_0$ and $\Gamma_1$ are homotopic through closed curves on which $f$ never vanishes, then $I_f(\Gamma_0) = I_f(\Gamma_1)$.</p>
+        <p class="small muted"><b>Why:</b> the index along the homotopy is a continuous $\mathbb{Z}$-valued function of the parameter, hence constant on $[0,1]$.</p>
+      </div>
+      <div class="box good"><span class="label">two immediate corollaries</span>
+        <p class="small"><b>1.</b> A curve shrinkable to a point inside a region where $f \ne 0$ has index $0$: a constant curve turns not at all.<br>
+        <b>2.</b> No deformation that avoids the zeros of $f$ changes the index — it depends only on which equilibria are enclosed.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that the continuous angle exists</h4>
+    <p>The map $g = f\circ\sigma / |f\circ\sigma| : [0,1] \to S^1$ is continuous on a compact
+    interval, hence uniformly continuous: choose a partition
+    $0 = s_0 &lt; \dots &lt; s_N = 1$ so fine that $|g(s) - g(s_i)| &lt; 1$ for $s \in [s_i, s_{i+1}]$,
+    which keeps $g$ on that subinterval inside an open half-circle. On a half-circle the
+    angle has a continuous branch (an explicit arctangent), so define $\vartheta$ on
+    $[s_0,s_1]$ by that branch, then on $[s_1,s_2]$ by the branch agreeing with
+    $\vartheta(s_1)$, and so on. The result is continuous, and any two such differ by a
+    continuous integer multiple of $2\pi$, hence by a constant. Since
+    $g(1) = g(0)$, $\vartheta(1) - \vartheta(0) \in 2\pi\mathbb{Z}$, so the index is an
+    integer. $\square$ (This is the covering-space lifting property of
+    $\mathbb{R} \to S^1$, proved by hand.)</p>
+    <p><b>Why the index varies continuously with the homotopy.</b> Let $H : [0,1]^2 \to \mathbb{R}^2$
+    be the homotopy, with $f\circ H \ne 0$. $|f \circ H|$ has a positive minimum by
+    compactness, and $f\circ H$ is uniformly continuous, so the same partition argument
+    lifts $H$ to a continuous angle $\vartheta(s, u)$; then
+    $u \mapsto \vartheta(1,u) - \vartheta(0,u)$ is continuous and $2\pi\mathbb{Z}$-valued.
+    $\square$</p>
+    <p>The index is the winding number of $f$ along $\Gamma$ about the origin of the
+    <em>target</em> plane, not of $\Gamma$ about a point of the domain. Confusing the two is
+    the standard first error. It is also the degree of a map $S^1 \to S^1$, and this whole
+    slide is degree theory in its smallest non-trivial case — the case that, in unit 34's
+    language, will be an integral of a $1$-form.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 33 -->
+<section>
+  <p class="eyebrow">02 · index</p>
+  <h2>Indices of equilibria, and what they count</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">For an isolated equilibrium $\mathbf x^*$, the <span class="term">index of an equilibrium</span> $\operatorname{ind}(\mathbf x^*)$ is $I_f(\Gamma)$ for any small circle around it; homotopy invariance makes the choice irrelevant.</p>
+      <div class="box thm"><span class="label">theorem · an invertible $Df$ settles it</span>
+        <p class="small">If $A = Df(\mathbf x^*)$ is invertible then $\operatorname{ind}(\mathbf x^*) = \operatorname{sign}(\det A)$: $\;+1$ for nodes, spirals, stars and centres, $\;-1$ for saddles. Hyperbolic is not needed — only $\det A \ne 0$, which is why centres are included.</p>
+        <p class="proof-pointer">proof in the notes (N)</p>
+      </div>
+      <div class="box thm"><span class="label">theorem · the <span class="term">Poincaré index theorem</span></span>
+        <p class="small">If $\Gamma$ bounds a disc $D$ with $f \ne 0$ on $\Gamma$ and finitely many equilibria inside, $\;I_f(\Gamma) = \sum_{\mathbf x^* \in D}\operatorname{ind}(\mathbf x^*)$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem (Umlaufsatz, Hopf 1935) · <em>cited</em></span>
+        <p class="small">A periodic orbit has index $+1$: the field is tangent to the curve, and the tangent of a simple closed curve turns once.</p>
+        <p class="proof-pointer">not proved here: do Carmo, <i>Differential Geometry of Curves and Surfaces</i>, §5-7</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 410 220" width="400" role="img" aria-label="arrows of a sink turning once anticlockwise around a circle, and arrows of a saddle turning once clockwise">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--unit)"/></marker></defs>
+        <circle cx="105" cy="110" r="66" fill="none" class="rule" stroke-width="1.6"/>
+        <circle cx="305" cy="110" r="66" fill="none" class="rule" stroke-width="1.6"/>
+        <line x1="184" y1="110" x2="158" y2="110" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="161" y1="54" x2="142" y2="73" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="105" y1="31" x2="105" y2="57" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="49" y1="54" x2="68" y2="73" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="26" y1="110" x2="52" y2="110" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="49" y1="166" x2="68" y2="147" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="105" y1="189" x2="105" y2="163" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="161" y1="166" x2="142" y2="147" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="358" y1="110" x2="384" y2="110" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="342" y1="54" x2="361" y2="73" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="305" y1="31" x2="305" y2="57" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="268" y1="54" x2="249" y2="73" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="252" y1="110" x2="226" y2="110" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="268" y1="166" x2="249" y2="147" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="305" y1="189" x2="305" y2="163" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <line x1="342" y1="166" x2="361" y2="147" class="unit" stroke-width="2.4" marker-end="url(#ah)"/>
+        <text x="66" y="212" font-size="16">sink: index +1</text>
+        <text x="258" y="212" font-size="16">saddle: index −1</text>
+      </svg>
+      <p class="cap">Walk anticlockwise round each circle and watch the arrow. On the left it turns once anticlockwise; on the right, once clockwise.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Proof of the index theorem.</b> Deform $\Gamma$ inside $D$ into a "flower": small
+    circles $\Gamma_i$ round each equilibrium joined by pairs of thin corridors traversed in
+    opposite directions. The corridor contributions cancel, and the deformation never
+    crosses a zero, so $I_f(\Gamma) = \sum_i I_f(\Gamma_i) = \sum_i \operatorname{ind}(\mathbf x_i^*)$.
+    The one step not done here is that $D$ minus finitely many points deformation-retracts
+    onto such a flower; that is standard plane topology, and the whole construction is
+    written out in Perko's chapter on index theory in the plane (ch. 3).</p>
+    <h4>Full proof that $\operatorname{ind}(\mathbf x^*) = \operatorname{sign}\det A$</h4>
+    <p>Take $\mathbf x^*$ at the origin. On a circle $|\boldsymbol\xi| = \rho$ we have
+    $|A\boldsymbol\xi| \ge c\rho$ with $c = 1/\|A^{-1}\| &gt; 0$, while
+    $|f(\boldsymbol\xi) - A\boldsymbol\xi| = o(\rho)$; so for $\rho$ small enough the
+    straight-line homotopy $A\boldsymbol\xi + u\,(f(\boldsymbol\xi) - A\boldsymbol\xi)$,
+    $u \in [0,1]$, never vanishes on that circle, and homotopy invariance gives
+    $\operatorname{ind}(\mathbf x^*) = I_A(\Gamma_\rho)$. It remains to compute the index of a
+    linear field. For the sink $A = -I$, on
+    $\sigma(s) = \rho(\cos 2\pi s, \sin 2\pi s)$ the field has angle $2\pi s + \pi$, so
+    $\vartheta$ increases by $2\pi$: index $+1$. For the saddle $A = \operatorname{diag}(1,-1)$
+    the field at angle $\phi$ has angle $-\phi$, decreasing by $2\pi$: index $-1$. Every other
+    invertible $A$ is joined to one of these two by a path inside $GL_2(\mathbb{R})$, along
+    which the index is a continuous integer, hence constant. $\square$</p>
+    <p><b>Why such a path exists.</b> $\det$ is continuous and non-zero on $GL_2(\mathbb{R})$,
+    so it keeps its sign along any path: the two determinant signs are in different
+    components. Conversely Gaussian elimination writes any $A$ as a product of elementary
+    matrices, and each of those is joined to $I$ by scaling its off-diagonal entry to $0$ or
+    its diagonal entry continuously to $\pm1$ without passing through a singular matrix; the
+    resulting path carries $A$ to $I$ or to $\operatorname{diag}(1,-1)$. So $GL_2(\mathbb{R})$
+    has exactly two connected components, and they are the two determinant signs.</p>
+    <p><b>The consequences are what we actually use.</b> A periodic orbit has index $+1$, so the
+    equilibria it encloses have indices summing to $+1$. Therefore: (i) a periodic orbit
+    must enclose at least one equilibrium; (ii) a region with no equilibria contains no
+    periodic orbit; (iii) a region whose only equilibrium is a saddle contains none either,
+    since $-1 \ne +1$. Each is a genuine non-existence theorem obtained by counting.</p>
+    <p>The same counting on a surface gives the <b>Poincaré–Hopf theorem</b>, <em>cited</em>:
+    for a compact surface, with the field pointing inwards along any boundary, the indices of
+    its isolated zeros sum to the Euler characteristic — $2$ for a sphere (hence the hairy
+    ball theorem), $0$ for a torus, and $0$ for a compact piece of cylinder, which is a
+    sphere with two discs removed. Proof: Milnor, <i>Topology from the Differentiable
+    Viewpoint</i>, §6. That is why the pendulum's $+1$ and $-1$ cancel.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 34 -->
+<section>
+  <p class="eyebrow">02 · index · example</p>
+  <h2>The pendulum: $+1$, $-1$, and the orbits that escape the theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">counting on the cylinder</span>
+        <p class="small">$\det Df = \cos\theta$ at an equilibrium, so <span class="ref" data-ref="down">$(0,0)$</span> has index $\operatorname{sign}(+1) = +1$ and <span class="ref" data-ref="up">$(\pi,0)$</span> has $\operatorname{sign}(-1) = -1$: the two indices sum to zero, and along the line of equilibria $(k\pi, 0)$ in the covering strip they alternate $+1, -1, +1, \dots$</p>
+        <p class="small">Consequences, for any $\gamma$ including $0$:</p>
+        <ul class="small">
+          <li>a contractible periodic orbit must enclose equilibria of total index $+1$, so it must enclose <span class="ref" data-ref="down">the hanging position</span> — and cannot enclose the upright one alone;</li>
+          <li>any region of the cylinder containing no equilibrium, or only the saddle, contains no contractible cycle at all.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">the escape clause, and it is real</span>
+        <p class="small">A <b>rotating</b> pendulum orbit — the bob going over the top again and again, which exists for $\gamma = 0$ and large enough energy — is a closed orbit encircling <em>no</em> equilibrium. It does not contradict anything: it wraps once round the cylinder, so it bounds no disc, and the index theorem assumes a disc.</p>
+      </div>
+      <div class="box good"><span class="label">the running example, closed for cycles</span>
+        <p class="small">$\gamma = 0$: contractible cycles exist (the swinging orbits inside <span class="ref" data-ref="sep">the separatrix</span>, each enclosing the index-$+1$ point, as required), and non-contractible ones exist (rotations).<br>
+        $\gamma &gt; 0$: <b>neither</b> exists — the energy argument of "Ruling cycles out", which never mentions the index.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\det Df = \cos\theta$.</b> $Df = \begin{pmatrix}0&1\\-\cos\theta&-\gamma\end{pmatrix}$ has
+    determinant $0\cdot(-\gamma) - 1\cdot(-\cos\theta) = \cos\theta$. At $\theta = 0$ that is
+    $+1$ and at $\theta = \pi$ it is $-1$, for every $\gamma$ — the damping never enters the
+    index, which is the point: the index is a robust, discrete invariant, blind to
+    everything the parameter does until an equilibrium actually collides with another.
+    Section 6 is about exactly that moment.</p>
+    <p><b>The sum is zero, and that is forced.</b> The $\pm1$ above was computed directly, for
+    every $\gamma$; here is why it could not have come out otherwise. Take $\gamma &gt; 0$ and
+    cut the cylinder at $|\omega| = \Omega$ with $\Omega &gt; 1/\gamma$: there
+    $\dot\omega = -\gamma\omega - \sin\theta$ has the sign opposite to $\omega$, so the field
+    points strictly inwards along both cut circles. Poincaré–Hopf then makes the total index
+    the Euler characteristic of that compact cylinder, which is zero. So equilibria must come
+    in $\pm$ pairs. The pendulum has
+    one of each, and a pendulum with a torque (section 6) loses both at once, never one.</p>
+    <p><b>How to use this in practice.</b> Given a planar system, find the equilibria, compute
+    $\operatorname{sign}\det Df$ at each, and you have ruled out cycles in large parts of the
+    plane before doing anything else. It costs two determinants and it is the cheapest
+    global information available anywhere in this unit.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 35 -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Bifurcations</h2>
+  <p>What the portrait does as you turn a knob.</p>
+</section>
+
+<!-- ================================================================== 36 -->
+<section>
+  <p class="eyebrow">02 · bifurcations</p>
+  <h2>Families, and where the portrait breaks</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">A family $\dot{\mathbf x} = f(\mathbf x, \mu)$ has a <span class="term">bifurcation</span> at $\mu_0$ if the phase portrait at $\mu_0$ is not topologically equivalent to those at nearby $\mu$: equilibria or cycles are created, destroyed or change type.</p>
+      </div>
+      <p class="small">By Hartman–Grobman, nothing can happen while every equilibrium is hyperbolic and stays so. Bifurcations live exactly where hyperbolicity fails — on the two lines $\Delta = 0$ and $\tau = 0$ of "Planar linear systems: two numbers decide". That is the whole organising principle.</p>
+      <div class="box thm"><span class="label">the <span class="term">saddle-node bifurcation</span></span>
+        <p class="small"><b>Normal form</b> $\dot x = \mu - x^2$. For $\mu &gt; 0$ two equilibria $x = \pm\sqrt\mu$, one stable ($f'=-2\sqrt\mu&lt;0$) and one unstable; at $\mu = 0$ they collide at $x=0$ with $f'(0) = 0$; for $\mu &lt; 0$ none at all.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 250 200" width="240" role="img" aria-label="saddle-node bifurcation diagram: a sideways parabola, upper branch solid and stable, lower branch dashed and unstable">
+        <line x1="20" y1="100" x2="230" y2="100" class="rule" stroke-width="1.4"/>
+        <line x1="60" y1="16" x2="60" y2="186" class="rule" stroke-width="1.4"/>
+        <path d="M 60 100 Q 60 66 210 26" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M 60 100 Q 60 134 210 174" fill="none" class="warn" stroke-width="2.4" stroke-dasharray="6 5"/>
+        <text x="214" y="118" font-size="15" class="mono soft">μ</text>
+        <text x="40" y="26" font-size="15" class="mono soft">x</text>
+        <text x="118" y="46" font-size="14">stable</text>
+        <text x="106" y="166" font-size="14" style="fill:var(--warn)">unstable</text>
+      </svg>
+      <p class="cap">Two equilibria for $\mu&gt;0$, none for $\mu&lt;0$. Solid: stable. Dashed: unstable.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "normal form".</b> The claim behind the name is that <em>any</em> one-parameter family
+    whose equilibrium has $f = 0$, $\partial_x f = 0$, $\partial_{xx} f \ne 0$ and
+    $\partial_\mu f \ne 0$ at the bifurcation point is, after a smooth change of coordinates
+    and of parameter, equal to $\dot x = \mu - x^2$ near that point. So the picture drawn
+    once is the picture in every such case. Proving it is the implicit function theorem plus
+    Taylor expansion — unit 03 supplies the first, and the statement is used here as a
+    classification, with the verification done case by case on the examples.</p>
+    <p><b>Where the name comes from.</b> In the plane, the two colliding equilibria are a saddle
+    and a node: the two-dimensional version is $\dot x = \mu - x^2$, $\dot y = -y$, whose
+    equilibria have Jacobians $\operatorname{diag}(\mp2\sqrt\mu, -1)$ — a stable node and a
+    saddle. Their determinants are $\pm2\sqrt\mu$, so their indices are $+1$ and $-1$: a
+    saddle-node bifurcation annihilates a $+1$ with a $-1$, and the total index is conserved,
+    exactly as the previous slide's counting demands. That is not a coincidence, it is a
+    theorem about degree.</p>
+    <p><b>Reading the diagram.</b> Horizontal axis the parameter, vertical the equilibrium
+    position, solid for stable and dashed for unstable. It is a picture of a <em>set</em> —
+    the zero set of $f(x,\mu)$ — not of a trajectory, and it is the standard way to
+    summarise a whole family at once. Every bifurcation diagram in physics, up to and
+    including phase transitions, is read the same way.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 37 -->
+<section>
+  <p class="eyebrow">02 · bifurcations</p>
+  <h2>Transcritical and pitchfork</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">transcritical bifurcation</span></span>
+        <p class="small"><b>Normal form</b> $\dot x = \mu x - x^2$. Equilibria $x = 0$ and $x = \mu$ for every $\mu$: they cross at $\mu = 0$ and <b>exchange stability</b>, since $f'(0) = \mu$ and $f'(\mu) = -\mu$. Nothing is created or destroyed.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">pitchfork bifurcation</span></span>
+        <p class="small"><b>Supercritical normal form</b> $\dot x = \mu x - x^3$: $x=0$ for all $\mu$, plus $x = \pm\sqrt\mu$ for $\mu &gt; 0$, which are stable ($f' = -2\mu$) while $x=0$ turns unstable.</p>
+        <p class="small"><b>Subcritical</b> $\dot x = \mu x + x^3$: the two extra branches exist for $\mu &lt; 0$ and are <b>unstable</b>. Same picture, reflected — and physically opposite, since nothing nearby catches the system when $x=0$ loses stability.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 250 420" width="240" role="img" aria-label="transcritical diagram with two crossing lines exchanging stability, and a supercritical pitchfork diagram">
+        <line x1="20" y1="90" x2="230" y2="90" class="rule" stroke-width="1.4"/>
+        <line x1="125" y1="14" x2="125" y2="170" class="rule" stroke-width="1.4"/>
+        <line x1="25" y1="90" x2="125" y2="90" class="unit" stroke-width="2.6"/>
+        <line x1="125" y1="90" x2="225" y2="90" class="warn" stroke-width="2.4" stroke-dasharray="6 5"/>
+        <line x1="25" y1="154" x2="125" y2="90" class="warn" stroke-width="2.4" stroke-dasharray="6 5"/>
+        <line x1="125" y1="90" x2="225" y2="26" class="unit" stroke-width="2.6"/>
+        <text x="214" y="108" font-size="15" class="mono soft">μ</text>
+        <text x="104" y="24" font-size="15" class="mono soft">x</text>
+        <text x="40" y="160" font-size="15">transcritical</text>
+        <line x1="20" y1="310" x2="230" y2="310" class="rule" stroke-width="1.4"/>
+        <line x1="125" y1="232" x2="125" y2="396" class="rule" stroke-width="1.4"/>
+        <line x1="25" y1="310" x2="125" y2="310" class="unit" stroke-width="2.6"/>
+        <line x1="125" y1="310" x2="225" y2="310" class="warn" stroke-width="2.4" stroke-dasharray="6 5"/>
+        <path d="M 125 310 Q 125 278 225 246" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M 125 310 Q 125 342 225 374" fill="none" class="unit" stroke-width="2.6"/>
+        <text x="214" y="328" font-size="15" class="mono soft">μ</text>
+        <text x="104" y="244" font-size="15" class="mono soft">x</text>
+        <text x="40" y="392" font-size="15">pitchfork</text>
+      </svg>
+      <p class="cap">Solid stable, dashed unstable. The transcritical branches are $x=0$ and $x=\mu$; the pitchfork's two new ones are $x=\pm\sqrt\mu$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>When each one occurs.</b> A transcritical bifurcation needs a solution branch that
+    persists for all $\mu$ — typically $x = 0$ forced by the physics, as in a population that
+    can always be zero or a laser below threshold. A pitchfork needs a symmetry: if
+    $f(-x,\mu) = -f(x,\mu)$, then equilibria come in $\pm$ pairs and a single branch cannot
+    peel off on its own. Buckling of a symmetric strut is the mechanical example, and the
+    two new equilibria are "buckled left" and "buckled right". Take the symmetry away and
+    the pitchfork breaks into a saddle-node plus a surviving branch — the imperfect
+    bifurcation, which problem P9 does not ask for but which is the reason real struts
+    always buckle the same way.</p>
+    <p><b>Supercritical versus subcritical matters more than the names suggest.</b> Supercritical:
+    as $\mu$ crosses zero the state moves continuously to a nearby new equilibrium, a soft
+    transition. Subcritical: at $\mu = 0$ the state has nowhere nearby to go and leaves the
+    neighbourhood entirely — a jump, hysteresis, and in engineering a failure. The algebraic
+    difference is one sign in a cubic term.</p>
+    <p><b>Stability by the derivative.</b> In one dimension the whole classification is
+    $\operatorname{sign} f'(x^*)$, which is Hartman–Grobman in its simplest case: $f' &lt; 0$
+    stable, $f' &gt; 0$ unstable, $f' = 0$ undecided and therefore exactly where the
+    bifurcations sit. Each normal form above has $f' = 0$ at its bifurcation point, as it
+    must.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 38 -->
+<section>
+  <p class="eyebrow">02 · bifurcations</p>
+  <h2>Hopf: an equilibrium trades stability for a cycle</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Hopf bifurcation</span>, normal form</span>
+        <p class="small">$\dot r = \mu r - r^3$, $\dot\theta = \omega_0$, i.e.</p>
+        $$\begin{aligned}\dot x &= \mu x - \omega_0 y - x(x^2+y^2),\\ \dot y &= \omega_0 x + \mu y - y(x^2+y^2).\end{aligned}$$
+        <p class="small">Eigenvalues $\mu \pm i\omega_0$ at the origin: stable spiral for $\mu &lt; 0$, unstable for $\mu &gt; 0$, non-hyperbolic exactly at $\mu = 0$. For $\mu &gt; 0$ a limit cycle appears at $r = \sqrt\mu$, period $2\pi/\omega_0$.</p>
+      </div>
+      <div class="box thm"><span class="label">the theorem · <em>cited</em></span>
+        <p class="small">If a planar family has eigenvalues $\alpha(\mu) \pm i\beta(\mu)$ crossing the imaginary axis transversally ($\alpha(0)=0$, $\alpha'(0) \ne 0$, $\beta(0) \ne 0$) and one cubic coefficient is non-zero, a unique small limit cycle is born, amplitude $\propto\sqrt{|\mu|}$, period $\to 2\pi/\beta(0)$.</p>
+        <p class="proof-pointer">Marsden &amp; McCracken, <i>The Hopf Bifurcation and its Applications</i>, §3; Perko §4.4</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">two checks on the normal form</span>
+        <p class="small"><b>Amplitude:</b> $\dot r = 0$ at $r = \sqrt\mu$; $\partial_r(\mu r - r^3) = \mu - 3r^2 = -2\mu &lt; 0$ there, so the cycle attracts. At $\mu = 0.25$ the amplitude is exactly $0.5$.<br>
+        <b>Scaling:</b> $r \sim \sqrt\mu$ means the cycle grows as the square root of the distance past the threshold — the signature that distinguishes a Hopf bifurcation in data from anything else.</p>
+      </div>
+      <div class="box warn"><span class="label">subcritical again</span>
+        <p class="small">With $+r^3$ instead, the cycle exists for $\mu &lt; 0$ and is <b>unstable</b>: it is the boundary of the basin of the stable origin, and it shrinks to nothing as $\mu \to 0^-$. Past the threshold the system jumps somewhere far away. Aeroelastic flutter is this case, and it is why the distinction is worth a slide.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>"When linearisation lies" was already this.</b> The family $\dot r = ar^3$, $\dot\theta = 1$ is the
+    degenerate Hopf normal form with $\mu \equiv 0$: the linear term never crosses, and the
+    cubic alone decides. Adding $\mu r$ to it produces exactly the family above, so the
+    example that broke linearisation and the bifurcation that organises the breaking are the
+    same two lines of algebra.</p>
+    <p><b>Why the cubic coefficient must be checked.</b> The linear crossing tells you the
+    equilibrium changes stability; it does not tell you what catches the orbit. The sign of
+    the first Lyapunov coefficient (the cubic term after normal-form reduction) decides
+    supercritical versus subcritical, and computing it for a real system is a genuinely
+    messy calculation — which is why the theorem is cited and its hypotheses are stated
+    carefully rather than waved at.</p>
+    <p><b>Physically</b>, a Hopf bifurcation is the birth of an oscillation from a steady
+    state: the onset of flutter, the Belousov–Zhabotinsky reaction starting to tick, a
+    laser passing threshold, the Van der Pol circuit of problem P6 as its feedback is turned
+    up. In every case the amplitude is not free, unlike a conservative oscillator's, and the
+    $\sqrt{\mu}$ growth is measurable.</p>
+    <p>There is no Hopf bifurcation in one dimension: complex eigenvalues need two. This is
+    the first bifurcation on the deck that is genuinely two-dimensional, and the reason
+    section 6 is placed after section 4 rather than before.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 39 -->
+<section>
+  <p class="eyebrow">02 · bifurcations · example</p>
+  <h2>The pendulum with a constant torque</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">the running example, with a knob</span>
+        <p class="small">Drive it: <span class="ref" data-ref="torque">$\ddot\theta + \gamma\dot\theta + \sin\theta = T$</span>, $T$ the applied torque in units of $mgl$. Equilibria need $\omega = 0$ and $\sin\theta = T$:</p>
+        <ul class="small">
+          <li>$T &lt; 1$: <b>two</b> on the cylinder, $\theta_1 = \arcsin T$ (with $\cos\theta_1 &gt; 0$) and $\theta_2 = \pi - \arcsin T$ ($\cos\theta_2 &lt; 0$);</li>
+          <li>$T = 1$: <b>one</b>, at $\theta = \pi/2$, with $\det Df = \cos\theta = 0$ — non-hyperbolic;</li>
+          <li>$T &gt; 1$: <b>none</b> — the torque beats gravity at every angle and the pendulum turns forever.</li>
+        </ul>
+        <p class="small">$\det Df = \cos\theta$ and $\operatorname{tr}Df = -\gamma$, so $\theta_1$ is a sink and $\theta_2$ a saddle: a <b>saddle-node bifurcation at $T = 1$</b>, a $+1$ and a $-1$ annihilating as the note on "Families, and where the portrait breaks" requires.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">numbers, at $\gamma = \tfrac12$, $T = 0.8$</span>
+        <p class="small"><b>Sink</b> at $\theta_1 = 0.9273$ rad $= 53.13°$, $\cos\theta_1 = 0.6$: eigenvalues $-0.25 \pm 0.7331\,i$ — still a spiral, but slower than the undriven $0.9682$.<br>
+        <b>Saddle</b> at $\theta_2 = 2.2143$ rad $= 126.87°$, $\cos\theta_2 = -0.6$: eigenvalues $0.5639$ and $-1.0639$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Limit $T \to 0$:</b> $\theta_1 \to 0$, $\theta_2 \to \pi$ — the original two equilibria. <br>
+        <b>Nearing threshold:</b> $\beta = \tfrac12\sqrt{4\cos\theta_1-\gamma^2}$ hits $0$ at $\cos\theta_1 = \gamma^2/4$, i.e. $T = 0.9980$ here: past that the sink is a node, so the colliding pair is real and merges along the $\theta$ axis.<br>
+        <b>Dimensions:</b> $T$ is a torque over $mgl$, a pure number, so comparing it with $\sin\theta$ is legitimate.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every number.</b> $\arcsin 0.8 = 0.927295$ rad $= 53.1301°$; $\cos = 0.6$. Eigenvalues
+    of $\begin{pmatrix}0&1\\-0.6&-0.5\end{pmatrix}$: $\lambda = \tfrac12(-0.5\pm\sqrt{0.25-2.4})$,
+    complex with $\beta = \tfrac12\sqrt{2.15} = 0.733144$. At $\theta_2$: $\cos = -0.6$,
+    $\lambda = \tfrac12(-0.5\pm\sqrt{0.25+2.4}) = \tfrac12(-0.5 \pm 1.627882)$, giving
+    $0.563941$ and $-1.063941$; product $-0.600000 = \det$, sum $-0.5 = \tau$. Both checks
+    pass. The spiral-to-node threshold: $4\cos\theta_1 = \gamma^2 = 0.25$ gives
+    $\cos\theta_1 = 0.0625$ and $T = \sin\theta_1 = \sqrt{1 - 0.0625^2} = 0.998045$.</p>
+    <p><b>What happens for $T$ just above $1$.</b> With no equilibrium left, every orbit must go
+    somewhere, and on the cylinder the only remaining possibility is a rotating periodic
+    orbit — a <em>running solution</em>, the pendulum turning at a steady average rate.
+    Poincaré–Bendixson does not prove it (the cylinder is not simply connected and the
+    theorem's plane version does not apply), but the index count does the negative half: no
+    contractible cycle can exist, since there is nothing of index $+1$ to enclose.</p>
+    <p><b>Hysteresis, for the curious.</b> For small $\gamma$ the running solution persists as
+    $T$ is lowered back below $1$, down to a second threshold $T_c(\gamma) &lt; 1$, so the
+    system remembers which way it came: two stable states coexist in between. This is the
+    driven damped pendulum's celebrated bistability, and it is the mechanical analogue of
+    the Josephson junction's current–voltage curve — the same equation, with $\theta$ the
+    superconducting phase difference.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 40 -->
+<section>
+  <p class="eyebrow">02 · closing</p>
+  <h2>One pendulum, six instruments</h2>
+  <table style="font-size:.72em">
+    <thead><tr><th>question</th><th>tool</th><th>what it gave, exactly</th></tr></thead>
+    <tbody>
+      <tr><td>Where can it rest?</td><td>solve $f = 0$</td><td>two points on the cylinder: hanging and upright.</td></tr>
+      <tr><td>What happens to a nudge?</td><td>linearisation + Hartman–Grobman</td><td>$\gamma=\tfrac12$: stable spiral $-0.25\pm0.9682\,i$ below, saddle $0.7808 / -1.2808$ above.</td></tr>
+      <tr><td>And when $\gamma = 0$?</td><td>Lyapunov with the energy</td><td>a centre, stable but not asymptotically — the case linearisation cannot decide.</td></tr>
+      <tr><td>Where does it end up?</td><td>LaSalle on $\{V &lt; 2\}$</td><td>every orbit inside the separatrix converges to the hanging position.</td></tr>
+      <tr><td>Can it repeat itself?</td><td>$\int_0^T\dot V = -\gamma\int\omega^2$</td><td>no periodic orbit at all for $\gamma&gt;0$, swinging or rotating.</td></tr>
+      <tr><td>Which cycles are even possible?</td><td>the index</td><td>a contractible cycle must enclose the $+1$ point; rotations bound no disc and escape the count.</td></tr>
+      <tr><td>What if we drive it?</td><td>saddle-node at $T=1$</td><td>the $+1$ and the $-1$ collide and annihilate; beyond it, no rest at all.</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">Not one line of $\theta(t)$ was ever written down, because none exists. Everything above is exact.</p>
+  <aside class="notes">
+    <p>The row that matters most is the fourth. A basin is a global statement about a
+    nonlinear system with no closed-form solution, obtained from one guessed function and
+    two compactness arguments. That is the technique to carry forward: in unit 14 the same
+    move gives Liouville's theorem, in unit 17 it gives the invariant tori, and in unit 39
+    the Friedmann equations' qualitative behaviour is read off a potential in exactly this
+    way.</p>
+    <p>What this unit deliberately did not do: compute anything approximately. There are no
+    numerical trajectories in the argument (only in one figure, flagged as such), no
+    perturbation series (unit 21), and no claims about how long convergence takes. The
+    qualitative theory answers "what, and where to", never "when" — and knowing which
+    questions a method cannot answer is half of knowing the method.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== 41 -->
+<section>
+  <p class="eyebrow">02 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p class="small">Given a planar nonlinear system you have not seen before, you:</p>
+    <ol class="small">
+      <li><b>locate and classify every equilibrium</b> — solve $f=0$, compute $Df$, read $\tau$ and $\Delta$;</li>
+      <li><b>decide at each whether linearisation is conclusive</b>, by checking hyperbolicity, and say which theorem you are invoking;</li>
+      <li><b>construct a Lyapunov function where it is not</b>, and state what it proves — stability, asymptotic stability, or a basin;</li>
+      <li><b>either prove or rule out a periodic orbit</b>, using a trapping region with Poincaré–Bendixson, or the index theorem, or a strictly monotone quantity.</li>
+    </ol>
+    <p class="small">Failing it is unambiguous: an unclassified equilibrium, a linearisation trusted at a centre, or a cycle neither produced nor excluded.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Strogatz, <i>Nonlinear Dynamics and Chaos</i>, ch. 5–8 — the same material, slower · Perko, <i>Differential Equations and Dynamical Systems</i>, ch. 2–4 — the proofs cited here · Hirsch, Smale &amp; Devaney, ch. 4–10 (optional).</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>06</b> the damped driven oscillator, which linearises everything on this deck and then solves it · <b>03</b> multivariable calculus, done properly · <b>14</b> where the conserved function becomes a symplectic form · <b>17</b> where Poincaré–Bendixson runs out.</p>
+    </div>
+  </div>
+  <p class="small"><code>./mr problems 02</code> — twelve problems, four hours. hints one rung at a time and the worked solution under each problem, after your attempt; <code>./mr done 02</code> when the checkpoint holds.</p>
+  <aside class="notes">
+    <p>Try the checkpoint on this before the problem sheet:
+    $\dot x = y$, $\dot y = -x + y(1 - x^2 - 2y^2)$. Equilibrium at the origin only;
+    $Df(0,0) = \begin{pmatrix}0&1\\-1&1\end{pmatrix}$, $\tau = 1$, $\Delta = 1$, an unstable
+    spiral, hyperbolic, so linearisation is conclusive there. Then look for a trapping
+    annulus: $\frac{\mathrm{d}}{\mathrm{d}t}\tfrac12(x^2+y^2) = y^2(1-x^2-2y^2)$, which is
+    $\le 0$ once $x^2 + 2y^2 \ge 1$ and $\ge 0$ once $x^2+2y^2 \le 1$ — so the annulus
+    between the circles of radius $1/\sqrt2$ and $1$ traps, contains no equilibrium, and
+    Poincaré–Bendixson gives a cycle. Problem P6 is the harder version of the same three
+    steps.</p>
+    <p>If step 3 is the one that feels impossible, that is the correct feeling: there is no
+    method, only a small catalogue of guesses — the energy, a quadratic form
+    $\mathbf x^\top P\mathbf x$ solving a linear equation for $P$, a sum of squares. Problems P4
+    and P5 exercise the first two.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

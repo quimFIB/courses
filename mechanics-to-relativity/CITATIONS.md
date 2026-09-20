@@ -1,0 +1,792 @@
+# The citations that are still unchecked
+
+A pass on 2026-09-20 checked **1461 citations** across the course against outside
+sources: 983 were confirmed, 30 were wrong and were fixed, and the 196 below could
+not be settled from anything reachable online by that pass. They are not known to
+be wrong. They are what is left for someone with the books on a shelf.
+
+A second, adversarial pass then re-tried 39 of them and settled 31 — those are
+listed at the end of this file and can be struck off the lists above. Several
+turned out to be one fetch away (Michelson and Morley's own 1886 paper on
+Wikisource; CERN's page for the LHC beam energy; a full-text Landau and Lifshitz
+on archive.org), which is worth knowing before trusting any "unreachable" below:
+the first pass leaned on a search engine where a direct source would have
+answered.
+
+Each entry records what was already tried, so nobody repeats a search that failed.
+The rule the audit worked under, and the rule for finishing it: **an unconfirmed
+citation is left exactly as it stands.** Replacing a remembered locator with
+another remembered locator is worse than leaving it, because it looks checked.
+
+
+## Units 00-newton-as-ode, 01-determinism, 02-phase-portraits, 03-frames
+
+- **units/00-newton-as-ode/slides.html:604 — "the definition of the metre as the length of a seconds pendulum, proposed in 1668 and again in 1790"**
+  - citation: the 1668 proposal
+  - already tried: The 1790 half is solid: Wikipedia "Seconds pendulum" states "In 1790, Talleyrand proposed that the metre be the length of the seconds pendulum at a latitude of 45°". For 1668 I checked en.wikipedia.org/wiki/History_of_the_metre (which names Picard 1671, Burattini 1675, Royal Society 1660, Huygens 1673 — not 1668) and en.wikipedia.org/wiki/John_Wilkins (confirms the 1668 Essay towards a Real Character proposed "an integrated system of measurement, similar to the metric system", but does not say it was based on a seconds pendulum). The claim is probably Wilkins 1668 and probably right, but I found no source that ties 1668 to the seconds pendulum specifically. Left unchanged.
+- **units/00-newton-as-ode/slides.html:706 — "Trinity was fired at 1470 m altitude, where ρ ≈ 1.0"**
+  - citation: site elevation 1470 m
+  - already tried: en.wikipedia.org/wiki/Trinity_(nuclear_test) gives coordinates but no elevation; Wikipedia's Jornada del Muerto article gives the basin's average elevation as "about 5,000 feet (1,500 m)", which is consistent with 1470 m but is not a ground-zero figure. The DTRA NTPR Trinity report and the National Security Archive briefing book were in the result set but did not surface an elevation. Needs a gazetteer or the NTPR report read directly. Left unchanged.
+- **units/00-newton-as-ode/slides.html:686-687 and units/00-newton-as-ode/problems.html:545-549 — "the five late frames (15–62 ms, radii 106.5–185 m)", and P9's "R = 106.5 m at t = 15.0 ms and R = 185.0 m at t = 62.0 ms"**
+  - citation: the individual (t, R) pairs from Taylor's 1950 Part II table
+  - already tried: The upper end is corroborated — a secondary source quoting Taylor Part II says the R ∝ t^{2/5} law "is surprisingly accurately verified over a range from R = 20 to 185 m" — but I could not reach Taylor's actual table. arXiv:2403.19657 ("Revisiting Taylor and the Trinity Test") and the Cambridge translational article on the same topic both cite Taylor's data without reproducing the table, and Proc. R. Soc. A 201 (1950) 175 is paywalled. Needs the paper itself. Left unchanged.
+- **units/01-determinism/slides.html:120-121 — "the Essai philosophique sur les probabilités (1814), the introduction Laplace wrote for the second edition of his Théorie analytique"**
+  - citation: the Essai as the introduction to the 2nd edition of the Théorie analytique
+  - already tried: The 1814 date for the Essai is not in doubt. The relationship to the Théorie analytique des probabilités — that the Essai was written as, and folded into, the introduction of the second edition — is the standard account but I ran out of search budget before finding a bibliographic record (a BnF/Gallica or Internet Archive title page of the 2nd edition would settle it). Left unchanged.
+- **units/01-determinism/slides.html:1362-1363 — "Arnold, Ordinary Differential Equations, ch. 2"**
+  - citation: Arnold ch. 2 as the existence/uniqueness chapter
+  - already tried: Searched for Arnold's TOC; the Wikipedia article on the textbook has no chapter list, the MIT Press and AbeBooks pages give none, and the full-text PDF at eclass.uoa.gr exceeded the fetch size limit. One source confirms Arnold calls the local existence-uniqueness result "the basic theorem", which is consistent with ch. 2 being "Basic Theorems", but that is inference, not evidence. Left unchanged.
+- **units/02-phase-portraits/slides.html:1035-1036 — "Barbashin and Krasovskii had the special case for globally positive definite V a decade earlier"**
+  - citation: "a decade earlier" than LaSalle 1960
+  - already tried: LaSalle's own citation is confirmed exactly (IRE Trans. Circuit Theory 7 (1960) 520–527). The Barbashin–Krasovskii paper is normally dated 1952, which is eight years earlier, not ten; several sources call the result the Barbashin–Krasovskii–LaSalle theorem without dating it. Since "a decade" is prose rounding rather than a locator, and I could not pin the paper's year from an independent record, I did not touch it. Someone with the Russian reference should decide whether to write "eight years earlier".
+- **units/02-phase-portraits/slides.html:781 — "Vinograd's example is the classical version of this"**
+  - citation: Vinograd, for the attracting-but-unstable equilibrium
+  - already tried: No year, journal or locator is given, so there is nothing to correct; I could not find an independent record of the original paper within budget. The attribution is standard in the textbook literature. Left unchanged.
+- **units/03-frames/slides.html:80-82 — "after a trial in the cellar of his house in the rue d'Assas and a second in the Paris Observatory"**
+  - citation: the rue d'Assas address
+  - already tried: The sequence and the dates are confirmed: a private basement observation in January 1851, the Paris Observatory (Meridian Room) demonstration on 3 February 1851, and the Panthéon on 26/31 March 1851 with a 67 m wire (Wikipedia Panthéon; Smithsonian; EBSCO history starter). None of the sources I reached names the street of Foucault's house. Left unchanged.
+
+## units/08-central-forces, units/09-keplers-equation, units/10-multipoles-legendre, units/11-calculus-of-variati
+
+- **08-central-forces/slides.html:1688 — "Hermann and Bernoulli (1710), Laplace (1799), Hamilton, Gibbs, Runge (1919), Lenz (1924)"**
+  - citation: Laplace (1799) for the Laplace–Runge–Lenz vector
+  - already tried: Wikipedia's LRL history section dates Laplace's rediscovery only as "at the end of the century"; German Wikipedia's Laplace-Runge-Lenz-Vektor gives no year for Laplace. Traité de mécanique céleste vol. 1 is 1799 (Wikipedia, Smithsonian digital library), which is consistent, but no source I reached ties the LRL derivation to that volume/year explicitly. The 1710 (Hermann/Bernoulli), 1919 (Runge, Vektoranalysis Vol. I, Hirzel Leipzig) and 1924 (Lenz, Z. Phys. 24, 197) dates in the same list are all confirmed.
+- **08-central-forces/slides.html:1524 — "Kepler had Tycho's naked-eye positions of Mars, good to about two arcminutes"**
+  - citation: Tycho Brahe's Mars astrometry accurate to ~2 arcminutes
+  - already tried: Not resolved against a source; quoted figures in the literature range from ~1 to ~4 arcmin depending on which instrument and which reduction. Needs a history-of-astronomy source (e.g. Gingerich) with the book to hand.
+- **08-central-forces/slides.html:1583 — "$365.25$ days is a definition, and so, since 2012, is the astronomical unit"**
+  - citation: IAU fixed the astronomical unit as an exact number of metres in 2012
+  - already tried: Not fetched. The value 1.495978707e11 m used on the same slide is the IAU 2012 Resolution B2 number; the resolution's date was not independently verified this session.
+- **09-keplers-equation/slides.html:90, 570 — "Lagrange (1770) expanded the solution in powers of $e$" / "Lagrange published it in 1770 for exactly this problem"**
+  - citation: Lagrange inversion, 1770
+  - already tried: Wikipedia's Laplace-limit article refers to "the Lagrange reversion theorem" without a year; no source reached gave the date of Lagrange's memoir. (The usual reference is Lagrange, "Nouvelle méthode pour résoudre les équations littérales par le moyen des séries", Mém. Acad. Berlin 24 (1770).)
+- **09-keplers-equation/slides.html:1130 — "then (Frobenius, Fuchs) the larger indicial root always gives a Frobenius series solution"**
+  - citation: Attribution of the general regular-singular-point theorem to Frobenius and Fuchs
+  - already tried: The Teschl chapter-4 locator in the same sentence is confirmed, but no source was found this session dating or apportioning the Frobenius/Fuchs attribution.
+- **09-keplers-equation/slides.html:159 — "Mars's own mass (a part in $3\times10^6$ of the Sun's)"**
+  - citation: Mars/Sun mass ratio ≈ 1/3e6
+  - already tried: The NASA Mars fact sheet gives GM but no Sun-mass ratio; the IAU planetary-mass-ratio table was reached only for Jupiter and Earth+Moon. (Sun/Mars ≈ 3.098e6, so the claim looks right, but I did not source it.)
+- **10-multipoles-legendre/slides.html:1465 — "the Lapland expedition of 1736–37, one of the two (the other went to Peru)"**
+  - citation: The companion French geodetic expedition to Peru
+  - already tried: Wikipedia's Alexis Clairaut confirms he took part in the 1736 Lapland expedition with Maupertuis and published Théorie de la figure de la terre in 1743, but does not mention the Peru expedition; the Peru claim was not separately sourced.
+- **10-multipoles-legendre/slides.html:1463 — "Laplace turned them into the theory of spherical harmonics within a decade, for the figure of the Earth and the shape of Saturn's rings"**
+  - citation: Laplace's spherical-harmonic theory within ten years of Legendre, motivated partly by Saturn's rings
+  - already tried: Search results on Legendre 1782 note that Laplace's own memoir was received in 1782, but nothing reached confirms the decade-scale claim or the Saturn's-rings motivation.
+- **10-multipoles-legendre/slides.html:698–700, 641 — $\omega = 7.292115\times10^{-5}$ s⁻¹, $R = 6378.137$ km, $GM = 3.986004418\times10^{14}$, $f = 1/298.257223563$, $J_2 = 1.08263\times10^{-3}$**
+  - citation: The WGS-84 Earth constants used throughout the unit
+  - already tried: Jupiter's and Mars's constants were checked against the NSSDC fact sheets; the Earth's were not fetched (the Earth fact sheet was not retrieved and no WGS-84 document was opened). They are internally consistent and are the standard WGS-84 set, but that is not evidence.
+- **10-multipoles-legendre/slides.html:647 and problems.html:162 — Earth $C = 0.3307MR^2$; mean radius "published as $6371.0088$ km"**
+  - citation: Earth's polar moment-of-inertia factor and the IUGG mean radius R1
+  - already tried: Not fetched. 6371.0088 km is reproduced exactly by the deck's own $(2R+c)/3$ arithmetic from WGS-84, which is a consistency check, not an independent source.
+- **10-multipoles-legendre/slides.html:1457 — "Mercury's perihelion advances by $43''$ per century"**
+  - citation: Mercury's anomalous perihelion advance
+  - already tried: Not checked here — it is a forward reference to unit 37, which is another agent's scope. Flagged so it is not assumed checked.
+- **11-calculus-of-variations/slides.html:123, 202 — "Fermat, 1662" / "Fermat asserted least time in 1662"**
+  - citation: Fermat's statement of the principle of least time, 1662
+  - already tried: Web-search budget was exhausted before this one; the Wikipedia Brachistochrone fetch covers the 1696 material but not Fermat. (Usual reference: Fermat's 1662 "Synthesis ad refractiones" and the letter to de la Chambre.)
+- **11-calculus-of-variations/slides.html:163–165 — catenary: "proposed by Jacob Bernoulli in 1690 and solved in 1691 by Huygens, Leibniz and Johann Bernoulli. Galileo had asserted a parabola in 1638; Huygens had shown as a teenager in 1646 that it is not one"**
+  - citation: Catenary chronology and the three 1691 solvers
+  - already tried: Not fetched — the budget ran out. Every date is internally consistent (Huygens b. 1629, so 17 in 1646; Galileo's Two New Sciences is 1638), but none was independently sourced.
+- **11-calculus-of-variations/slides.html:419–421 — "Maupertuis announced a 'principle of least action' in 1744 with theological framing... Euler had the correct mathematical statement the same year"**
+  - citation: Maupertuis 1744 and Euler 1744
+  - already tried: Not separately sourced. The Euler-1744 half is indirectly supported by the confirmed Euler/Lagrange calculus-of-variations chronology, but Maupertuis's announcement date was not checked.
+- **11-calculus-of-variations/slides.html:422–423 — "in his lectures on dynamics of 1842–43"**
+  - citation: Jacobi's Vorlesungen über Dynamik, 1842–43
+  - already tried: The adjacent Jacobi-1837 citation is confirmed (Crelle 17, 68–82); the lecture-course dates were not sourced before the search budget ran out.
+- **11-calculus-of-variations/slides.html:1560–1567 and GLOSSARY.org:152–156 — Weierstrass's counterexample "to the Berlin Academy in 1870"; Riemann "in 1851 and 1857"; "Hilbert rehabilitated it in 1900"**
+  - citation: Dirichlet-principle chronology
+  - already tried: Not fetched — search budget exhausted. These are the conventional dates (Weierstrass's Berlin Academy note of 14 July 1870; Riemann's 1851 dissertation and 1857 Abelian-functions paper; Hilbert's 1900 rehabilitation) but I found no evidence for them this session.
+- **08-central-forces/problems.html:159–164, 638–641 — Moon/Earth mass ratio 1/81.30, lunar $a = 3.84399\times10^{8}$ m, barycentre 4671 km; $m_\alpha c^2 = 3727.379$ MeV, $m_{\mathrm{Au}}c^2 = 183\,473$ MeV**
+  - citation: Lunar and nuclear constants in P2 and P9
+  - already tried: Not independently fetched. They are mutually consistent (6371 − 4671 = 1700 km below the surface, as stated; 196.9666 u × 931.494 MeV/u = 183 473 MeV) but no source was opened for them.
+
+## Units 04 (work-vector-calculus), 05 (flux-gauss), 06 (driven-oscillator), 07 (normal-modes)
+
+- **04-work-vector-calculus/slides.html:762 — "It stops being harmless in 1956, when the weak interaction turned out not to respect it"**
+  - citation: parity violation dated to 1956
+  - already tried: Lee and Yang's "Question of Parity Conservation in Weak Interactions" is Phys. Rev. 104, 254 (October 1956), but the experimental demonstration (Wu et al.) was announced January 1957 and published Phys. Rev. 105, 1413 (February 1957); Wu's decisive runs were late December 1956. Whether "turned out" means 1956 or 1957 is a genuine judgement call, so the year was left alone. A human should decide whether the sentence means the proposal or the measurement.
+- **06-driven-oscillator/slides.html:1458 — "Duhamel's name is attached to it from his 1833 work on heat conduction with time-dependent boundary conditions"**
+  - citation: Duhamel, 1833, heat conduction
+  - already tried: en.wikipedia.org/wiki/Duhamel%27s_principle confirms the principle was first applied by Jean-Marie Duhamel to the inhomogeneous heat equation but gives no year and no original reference; fr.wikipedia.org/wiki/Jean-Marie_Duhamel likewise gives no date for the memoir. The usual citation is Journal de l'École Polytechnique 14 (1833) 20-77, but I found no independent record of it. The subject matter (heat conduction, time-varying boundary conditions) is confirmed; only the year 1833 is unverified.
+- **06-driven-oscillator/slides.html:1222 and GLOSSARY.org:114 — "Lagrange introduced the method in 1808, for planetary perturbations"**
+  - citation: Lagrange, 1808, variation of parameters
+  - already tried: encyclopediaofmath.org/wiki/Variation_of_constants credits Lagrange with "the complete elaboration" but gives no year (reference: Lagrange, Oeuvres 4, Paris 1869, pp. 151-251) and notes Euler and D. Bernoulli applied the method earlier in concrete problems. en.wikipedia.org/wiki/Variation_of_parameters says Lagrange first used the method in 1766, developed it 1778-1783 in memoirs on planetary motion, and gave it its final form in 1808-1810 — but every sentence of that history section is tagged [citation needed], which is too weak to act on. Left unchanged; a human with a history of mechanics should decide between "introduced in 1766" and "given final form in 1808".
+- **06-driven-oscillator/slides.html:1712 — "Coddington & Levinson ch. 3"**
+  - citation: Coddington & Levinson, Theory of Ordinary Differential Equations, ch. 3
+  - already tried: The Internet Archive scan (archive.org/details/theoryofordinary00codd) is lending-restricted and its search-inside endpoint returns "Item not available"; openlibrary.org refused connections; the Princeton catalog served a bot-check page; AbeBooks and Semantic Scholar list no contents; the Google Books API is over its daily quota. No table of contents reached. The chapter number could not be checked either way.
+- **06-driven-oscillator/slides.html:751 — "Car suspension Q ≈ 1 ... guitar string ≈ 10^3; quartz watch crystal ≈ 10^5; LIGO's test-mass suspension ≈ 10^8"**
+  - citation: order-of-magnitude Q values
+  - already tried: en.wikipedia.org/wiki/Q_factor gives tuning forks ~1000 and atomic clocks/SRF cavities ~10^11 but none of these four systems. The closest published figure found is arXiv (Dissipation of mechanical energy in fused silica fibers): a measured maximum fibre Q of 21 million and an extrapolated intrinsic fused-silica Q of 30 million — the material Q, not the dilution-enhanced pendulum-mode Q that the 10^8 figure refers to. Plausible but not evidenced; left alone.
+- **07-normal-modes/slides.html:1299 — "(Weinstein's method is another, named here and not used.)"**
+  - citation: Weinstein's method for lower bounds on eigenvalues
+  - already tried: No source reached this session (web-search budget exhausted before this item). A bare name with no locator or year; a human should confirm it is A. Weinstein's intermediate-problems method rather than a different Weinstein.
+- **07-normal-modes/slides.html:1231 — "the min–max (Courant–Fischer) characterisation"**
+  - citation: Courant–Fischer min-max theorem
+  - already tried: No independent source reached (search budget exhausted). The attribution carries no year or locator and is the standard name, but it was not verified against a source this session, so it is reported rather than counted as confirmed.
+
+## Units 12 (lagrangian), 13 (noether), 14 (hamiltonian), 15 (hamilton-jacobi)
+
+- **units/14-hamiltonian/slides.html — Fenchel–Moreau theorem box, "Rockafellar, Convex Analysis, Theorem 12.2"; and the reading list, "Rockafellar, Convex Analysis, §12"**
+  - citation: Rockafellar, Convex Analysis, Theorem 12.2 / §12
+  - already tried: Princeton University Press book page (no TOC served); Wikipedia Fenchel–Moreau theorem (cites Borwein–Lewis, Zalinescu, not Rockafellar with a number); Wikipedia Convex conjugate (cites Rockafellar 1970 but no theorem number); K10plus SRU catalogue for a TOC scan (none held); no full text of the book found on a non-piracy host. Needs someone with the 1970 Princeton edition to check that Section 12 is "Conjugates of Convex Functions" and that Theorem 12.2 is the biconjugate/closure statement.
+- **units/14-hamiltonian/slides.html:430 — "P. A. M. Dirac, Lectures on Quantum Mechanics (1964), lecture 1"**
+  - citation: Dirac, Lectures on Quantum Mechanics (1964), lecture 1 — primary/secondary, first/second-class constraints
+  - already tried: Dover product page for ISBN 9780486417134 (no contents listed); no accessible contents page for the 1964 Belfer Graduate School / Yeshiva original. The 1964 date is standard but I found no page listing the lecture titles, so I could not confirm that the constraint taxonomy is in lecture 1 rather than lectures 1–2.
+- **units/14-hamiltonian/slides.html — Hamilton's-equations history note: "the canonical form was anticipated by Lagrange (1809) and Poisson (1809) for perturbation theory, and the name 'canonical equations' is Jacobi's"**
+  - citation: Lagrange (1809); Poisson (1809); "canonical equations" coined by Jacobi
+  - already tried: Wikipedia Hamiltonian mechanics and Hamilton's equations (no history section covering Lagrange/Poisson 1809 or the coinage); Wikipedia Poisson bracket (confirms Poisson's 1809 "Memoire sur la variation des constantes arbitraires" for the bracket, but says nothing about the canonical form or about Jacobi naming it). Web-search budget was exhausted before I could chase the Lagrange 1809 memoir or a history-of-mechanics source on "canonical".
+- **units/14-hamiltonian/slides.html — Liouville's-formula note, "Abel's identity (1827) is its second-order case"**
+  - citation: Abel's identity (1827)
+  - already tried: https://en.wikipedia.org/wiki/Abel%27s_identity — the only Abel reference there is "Precis d'une theorie des fonctions elliptiques", J. Reine Angew. Math. 4 (1829) 309–348; 1827 is not mentioned. That is weak counter-evidence, not a refutation (1827 is the usual date given for Abel's "Recherches sur les fonctions elliptiques", Crelle 2). Left unchanged; someone should check which Abel paper carries the identity.
+- **units/14-hamiltonian/slides.html:1548 — "(the Pfaffian identity Pf(M⊤JM) = det M · Pf J; Arnold, §41)"**
+  - citation: Arnold, Mathematical Methods of Classical Mechanics, §41, for det M = 1 for an arbitrary symplectic matrix, via the Pfaffian
+  - already tried: OCR full text of Arnold 2nd ed. (Internet Archive item v-arnold-mathematical-methods-of-classical-mechanics-1989). §41 "Symplectic geometry" DOES contain "Corollary. The determinant of any symplectic transformation is equal to 1" — so the locator is right for the claim. But the word "Pfaffian" does not occur anywhere in the book's OCR text; Arnold proves it from exterior powers of omega (via §38B), not from a Pfaffian identity. Partial mismatch between the mechanism named and the source cited; I did not edit it because the fix would touch the mathematics, not just the locator.
+- **units/15-hamilton-jacobi/slides.html and GLOSSARY.org — envelope lemma, "Proof: Courant and Hilbert, Methods of Mathematical Physics, vol. II, chapter II, §4"**
+  - citation: Courant & Hilbert, Methods of Mathematical Physics, vol. II, ch. II, §4
+  - already tried: Internet Archive copies (methodsofmathema0002cour) are lending-restricted, no djvu text served; Wiley online TOC returns 403; K10plus SRU found no TOC scan for any edition. Needs someone with the book to check that ch. II ("General theory of partial differential equations of first order") §4 is where complete integrals and their envelopes are treated.
+- **units/15-hamilton-jacobi/slides.html — Halley's comet worked example: inclination i = 162.26°, longitude of node 58.42°, argument of perihelion 111.33°, perihelion 9 February 1986**
+  - citation: Halley (1P) orbital elements and 1986 perihelion date
+  - already tried: JPL SBDB API (https://ssd-api.jpl.nasa.gov/sbdb.api?sstr=1P&full-prec=true), solution of 2025-11-21, epoch JD 2439875.5: i = 162.1905°, node = 59.0989°, argument of perihelion = 112.2414°, tp = JD 2446469.9736 = 1986 Feb 8.47 TDB. Current Wikipedia gives i = 161.96°, node = 59.396°, argument of periapsis = 112.05°, last perihelion 8 February 1986. The deck's triple (162.26 / 58.42 / 111.33) is the widely republished set for a different (1986-apparition) epoch, and comet elements are osculating and epoch-dependent, so I could not call it wrong. Left unchanged. Someone should either state the epoch or adopt one published set; note also that the perihelion date is given as 8 February by both JPL and Wikipedia, against the deck's 9 February (9.46 Feb is the figure in much of the 1986-apparition literature).
+- **units/13-noether/slides.html:997 — "a reflex velocity of order 50 m/s" for 51 Pegasi b**
+  - citation: 51 Peg b reflex (radial-velocity) semi-amplitude
+  - already tried: Mayor & Queloz 1995 and the discovery itself are confirmed; the measured semi-amplitude is K ≈ 59 m/s ("nearly 60 m/s"). The deck says "of order 50 m/s", which is defensible as an order-of-magnitude statement and is not a misquoted value, so I did not change it — flagged only in case the author wants the actual 59 m/s.
+
+## Units 16 (rigid-bodies-tensors), 17 (chaos), 18 (wave-equation), 19 (fourier-sturm-liouville)
+
+- **unit 17, slides.html — "the corrected memoir — 270 pages against 158"**
+  - citation: original printed Poincaré prize memoir = 158 pages
+  - already tried: Confirmed the 270: Poincaré, "Sur le problème des trois corps et les équations de la dynamique", Acta Mathematica 13 (1890) 1–270 (projecteuclid volume listing; henripoincare.fr bibliography item 1924). Also confirmed the 3585 crowns Poincaré paid (May 1890) and the 2500 kronor + gold medal prize. The 158-page figure for the destroyed original printing is in Barrow-Green's book; no online source I could reach states it. Needs the book.
+- **unit 17, slides.html — "the editor Edvard Phragmén asked about a step"**
+  - citation: Phragmén described as "the editor" of Acta Mathematica
+  - already tried: Springer/AHES abstract of Barrow-Green (1994) and the Mittag-Leffler Institute's prize-competition page both call Phragmén the *sub-editor*; Mittag-Leffler was the editor. Not clearly a factual error (the deck may be simplifying) but worth a human eye. Left unedited.
+- **unit 17, slides.html — "(cited: Barrow-Green, Poincaré and the Three Body Problem, 1997, ch. 3–5.)" and the reading-list "Chapters 3–5"**
+  - citation: Barrow-Green ch. 3–5
+  - already tried: Book, year and series confirmed (AMS/LMS History of Mathematics vol. 11, 1997, ISBN 0-8218-0367-0, 272 pp — AMS bookstore, Math. Gazette review). No chapter-level table of contents found online; archive.org copy is lending-restricted.
+- **unit 17, slides.html — "(cited: Dumas, The KAM Story, 2014, §6.)"**
+  - citation: Dumas §6
+  - already tried: Book and year confirmed (World Scientific, 2014, ISBN 9789814556583). Chapter titles found (Introduction; Minimum Mathematical Background; Leading Up to KAM: A Sketch of the History; KAM Theory; KAM in Context; Other Results in HPT; Physical Applications) but not numbered in any source I could reach; worldscientific.com returns 403. If the numbering is 1–7 as listed, §6 would be "Other Results in HPT", which is not where Hénon's mass-ratio numbers would sit (more likely "KAM in Context" or "Physical Applications"). The numbers themselves are right — see notes.
+- **unit 17, slides.html — "Moser the finitely-differentiable case (originally $C^{333}$, since reduced to $C^{3+}$) in 1962"**
+  - citation: "since reduced to C^{3+}"
+  - already tried: Moser 1962 and C^333 confirmed (Broer, "KAM theory: the legacy of Kolmogorov's 1954 paper", Bull. AMS 41 (2004); Wikipedia KAM article). Rüssmann's 1970 reduction to 5 derivatives is documented; the sharp C^{3+ε} statement (Herman) was not found in a source I could reach.
+- **unit 17, slides.html — "(cited: Chirikov, Phys. Rep. 52 (1979); Lichtenberg & Lieberman, §4.1b.)" and reading-list "§4.1b is where the improved overlap estimate comes from"**
+  - citation: Lichtenberg & Lieberman §4.1b
+  - already tried: Chirikov Phys. Rep. 52, 263–379 (1979) confirmed via ADS. Lichtenberg & Lieberman chapter titles confirmed via Crossref (10.1007/978-1-4757-2184-3): ch. 3 "Mappings and Linear Stability", ch. 4 "Transition to Global Stochasticity" — so the deck's "ch. 3–4" is right. The lettered subsection 4.1b could not be verified; no ToC at subsection depth is online.
+- **unit 17, slides.html — "The data. $a_{\mathrm J} = 5.2044$ AU and $T_{\mathrm J} = 11.862$ yr are Jupiter's mean elements"**
+  - citation: a_J = 5.2044 AU
+  - already tried: NASA NSSDCA Jupiter fact sheet gives semi-major axis 5.20336301 AU and sidereal period 4332.589 d = 11.862 yr. The period is exact; the semi-major axis is 0.0006 AU (0.01%) from NASA's mean value and from the 5.2038 AU derived from 778.479 Gm. That is far inside the 0.01 AU precision the deck itself claims for this table, and several conventions (osculating vs mean elements, epoch) are in circulation, so I did not treat it as wrong. A human may want to make it 5.2038 AU for consistency with NASA.
+- **unit 17, GLOSSARY.org — "cantorus … Aubry and Mather, 1982; /cited/."**
+  - citation: Aubry and Mather, 1982
+  - already tried: Mather 1982 is right (Topology 21, 457–467). Aubry's published work on the same result is Aubry & Le Daeron, Physica D 8 (1983) 381 (earlier conference announcements exist from 1978–80). The joint date "1982" is therefore right for Mather and off for Aubry; too marginal to edit without a historian's source.
+- **unit 18, slides.html — "Morse and Ingard, Theoretical Acoustics, ch. 4 §4.1 (skip §4.2 onward …)"**
+  - citation: Morse & Ingard ch. 4 §4.1
+  - already tried: Book confirmed (McGraw-Hill 1968; Princeton UP paperback 1986, ISBN 9780691024011). No chapter-level table of contents reachable: Princeton UP's page carries only the blurb, archive.org's copy is lending-restricted, and searches returned only page-offset listings with no chapter titles.
+- **unit 19, slides.html:419 and :556 and GLOSSARY.org:91 — "du Bois-Reymond, 1876"**
+  - citation: du Bois-Reymond 1876 (continuous function whose Fourier series diverges at a point)
+  - already tried: Genuinely two-dated in the literature and I could not settle which convention the deck should use, so I left it. MacTutor and several analysis notes date the first example to the 1873 Göttinger Nachrichten paper; the detailed memoir is "Untersuchungen über die Convergenz und Divergenz der Fourierschen Darstellungsformeln", Abh. Bayer. Akad. 12 (1876) 118–166, which is the citation Zygmund-style bibliographies give, plus "Zusätze…", Math. Ann. 10 (1876) 431–445. 1876 is defensible; a human should pick one and say which paper.
+- **unit 19, slides.html — "Coddington & Levinson, Theory of Ordinary Differential Equations, ch. 9; Weidmann, Spectral Theory of Ordinary Differential Operators, ch. 5."**
+  - citation: Weidmann ch. 5
+  - already tried: Coddington & Levinson ch. 9 confirmed as "Singular self-adjoint boundary value problems for second order equations" (library catalogue ToC, Assam Don Bosco University) — exactly the limit-point/limit-circle chapter. Weidmann's Lecture Notes in Mathematics 1258 has no reachable chapter-level ToC.
+- **unit 19, slides.html — "Cited: Coddington & Levinson ch. 8; Al-Gwaiz §3.3" (Prüfer angle, discrete unbounded spectrum)**
+  - citation: Al-Gwaiz §3.3
+  - already tried: C&L ch. 8 = "Oscillation and comparison theorems for second-order linear equations and applications" — correct. Al-Gwaiz ch. 3 is "Fourier Series" (Crossref chapter metadata), and the publisher says the Sturm–Liouville results are established in ch. 2, so §3.3 looks misplaced; but no section-level ToC is online (Springer blocks non-JS fetches, Google Books quota exhausted), so I could not name the right subsection and left it alone.
+- **unit 19, slides.html — "Cited: Coddington & Levinson ch. 7 §§3–4" (expansion theorem) and "ch. 8 §2" (Sturm oscillation)**
+  - citation: C&L ch. 7 §§3–4 and ch. 8 §2
+  - already tried: Both chapters confirmed by title (ch. 7 "Self-adjoint eigenvalue problems on a finite interval", ch. 8 "Oscillation and comparison theorems…"), which is the right home for each statement. Section numbers within those chapters could not be checked: the archive.org scan is access-restricted and no section-level ToC is online.
+- **unit 19, slides.html (twice) — "Sansone, Orthogonal Functions, ch. III, for Legendre" and "complete in $L^2(S^2)$ (cited: Sansone ch. III)"**
+  - citation: Sansone ch. III
+  - already tried: Only one archive.org copy exists (orthogonalfuncti00sans_0, 1977 reprint) and it is access-restricted; search-inside returns "Item not available". No publisher ToC found. Watson ch. XVIII, cited beside it, IS confirmed — "Series of Fourier-Bessel and Dini" in the ToC of A Treatise on the Theory of Bessel Functions.
+- **unit 19, slides.html — "Körner's Fourier Analysis is a collection of short chapters: 1–8, 15–18 are this unit"**
+  - citation: Körner chapters 1–8, 15–18
+  - already tried: Book confirmed (CUP). Chapter-level ToC not retrieved before the search budget ran out; CUP's page 500s and the ETH/LoC ToC mirrors have no record.
+- **unit 19, slides.html — "cited: Titchmarsh, Eigenfunction Expansions, Part I, ch. I, the equiconvergence theorem"**
+  - citation: Titchmarsh Part I ch. I
+  - already tried: No table of contents for Titchmarsh, Eigenfunction Expansions Associated with Second-order Differential Equations, Part I (OUP) reachable; not on archive.org in open form. Needs the book.
+- **unit 19, problems.html — "(cited: Zygmund, Trigonometric Series, vol. I, ch. II)" for a uniform form of Riemann's localisation principle**
+  - citation: Zygmund vol. I ch. II
+  - already tried: Zygmund, Trigonometric Series (CUP, 2 vols) confirmed as a work; no chapter-level ToC found online and the search budget was exhausted before I could chase a library record.
+
+## Units 20 (fourier-transform-complex), 21 (asymptotics), 22 (continuum-stress), 23 (static-fields)
+
+- **unit 20 slides.html:192**
+  - citation: dominated convergence (cited, Stein–Shakarchi, Real Analysis, ch. 2 Thm 1.13)
+  - already tried: Confirmed the chapter is right (Princeton UP TOC: ch. 2 'Integration Theory', §1 'The Lebesgue integral: basic properties and convergence theorems'), but could not verify the theorem NUMBER. No full text on archive.org (no copy of vol. III), dokumen.pub down, Google Books blocked (429/captcha), JSTOR blocked. Searched for course notes quoting 'Stein Shakarchi Theorem 1.13' — one hit claims Theorem 1.13 is 'the exterior measure of the Cantor set is zero', which is CHAPTER 1, so the number may well be wrong, but that hit is not reliable evidence. Needs someone with the book open at ch. 2.
+- **unit 20 slides.html:1661**
+  - citation: de Bruijn, Asymptotic Methods in Analysis, §4.5 (Stirling's correction series)
+  - already tried: Both archive.org copies (asymptoticmethod0000brui, asymptoticmethod0000ngde) are lending-restricted — djvu.txt returns the 'Item not available' page. Dover's product page carries no TOC; no GBV/Bowker TOC exists for ISBN 9780486642215. The series itself (1 + 1/12n + 1/288n² − 139/51840n³) is confirmed against Wikipedia's Stirling's approximation; only the section locator is unverified.
+- **unit 20 slides.html:1971-1973**
+  - citation: Strichartz, A Guide to Distribution Theory and Fourier Transforms, ch. 1–4 … skip ch. 5 onwards
+  - already tried: Title and author confirmed as a real book, but no accessible TOC (no archive.org copy, no GBV TOC). The claim that ch. 1–4 cover distributions and the Fourier transform and that ch. 5 onward is skippable is unverified.
+- **unit 20 slides.html:1552**
+  - citation: Bromwich (1916) supplied the contour integral
+  - already tried: Crossref (DOI 10.1112/plms/s2-15.1.401) gives 'Normal Coordinates in Dynamical Systems', Proc. London Math. Soc. s2-15, 401–448, issued 1917; en.wikipedia.org/wiki/Inverse_Laplace_transform also says 1917. Much of the Laplace-transform literature cites 1916 (the volume year). Genuinely ambiguous between volume year and issue year, so LEFT UNCHANGED. Someone with the bound volume can settle which part carried the paper.
+- **unit 20 slides.html:1784**
+  - citation: De Moivre had n!≈Cn^{n+1/2}e^{-n} in 1730 and Stirling found C = √(2π) the same year
+  - already tried: Wikipedia's Stirling's approximation confirms Stirling 1730 for C = √(2π) but dates de Moivre's discovery to 1721, not 1730. Other standard accounts put de Moivre's published statement in Miscellanea Analytica (1730). Conflicting sources; left unchanged.
+- **unit 20 slides.html:1788**
+  - citation: Stokes (1850, for the Airy integral) and Kelvin (1887, for water waves) — stationary phase
+  - already tried: en.wikipedia.org/wiki/Stationary_phase_approximation credits Stokes and Kelvin but gives no years. Could not reach a source naming the 1850 (Trans. Camb. Phil. Soc. 9) and 1887 (Proc. Roy. Soc. 42) papers. WebSearch budget was exhausted before this could be pursued.
+- **unit 20 slides.html:1789**
+  - citation: The Fresnel integrals are Fresnel's, 1818, from diffraction at an edge
+  - already tried: en.wikipedia.org/wiki/Fresnel_integral gives no attribution year. Not verified.
+- **unit 20 slides.html:1884**
+  - citation: Stokes (1876) distinguished the two velocities [group vs phase]
+  - already tried: en.wikipedia.org/wiki/Group_velocity confirms Hamilton 1839 and Rayleigh's Theory of Sound 1877 but does not mention Stokes. The 1876 Smith's Prize examination attribution is standard lore; unverified here.
+- **unit 20 slides.html:1886**
+  - citation: Sommerfeld and Brillouin (1914) showed the signal front still travels at c
+  - already tried: Checked en.wikipedia.org/wiki/Faster-than-light — Sommerfeld appears only for a 1907 note, no 1914 signal-velocity discussion. Ann. Physik 44 (1914) is the standard reference; not independently confirmed.
+- **unit 20 slides.html:756, 978**
+  - citation: Cauchy, 1831, in Turin (integral formula); Cauchy introduced the residue in 1826; the theorem in this form is in his 1831 Turin memoir
+  - already tried: en.wikipedia.org/wiki/Residue_theorem gives no dates at all. No accessible source confirming 1826 (Exercices de Mathématiques) or the 1831 Turin memoir.
+- **unit 20 slides.html:1274**
+  - citation: Feynman made the iε explicit in 1949
+  - already tried: Not pursued to a source; the 1949 Phys. Rev. papers ('Theory of positrons', 'Space-time approach to QED') are the obvious referent but were not independently checked.
+- **unit 20 slides.html:259, 434**
+  - citation: Fourier wrote the inversion formula in 1807–1822; Heaviside had been using the step function since the 1890s; Sobolev (1936)
+  - already tried: en.wikipedia.org/wiki/Dirac_delta_function confirms Dirac 1927 and Schwartz 1945 but says nothing about Sobolev's date and gives no date for Heaviside. Fourier's 1807 memoir / 1822 Théorie analytique de la chaleur not independently checked.
+- **unit 21 slides.html:1096**
+  - citation: Jeffreys had it in 1924
+  - already tried: Sources disagree: en.wikipedia.org/wiki/WKB_approximation says 1923; en.wikipedia.org/wiki/Harold_Jeffreys says 'By 1924 Jeffreys had developed a general method…'; Crossref (10.1112/plms/s2-23.1.428) dates the paper 1925 (Proc. LMS s2-23, 428–436). Because one source positively supports 1924, LEFT UNCHANGED.
+- **unit 21 slides.html:423, 439**
+  - citation: Hardy, Divergent Series (for Borel summation theory and for the general non-uniqueness statement)
+  - already tried: Book existence is not in doubt but no locator is given and no independent check of the content claim was made.
+- **unit 21 slides.html:795-798, 965-966, 1383**
+  - citation: Kevorkian and Cole, Multiple Scale and Singular Perturbation Methods; Verhulst, Nonlinear Differential Equations and Dynamical Systems; Hinch, Perturbation Methods (CUP, 1991); Van Dyke, Perturbation Methods in Fluid Mechanics (1964/1975)
+  - already tried: Cambridge's Hinch page returned HTTP 500 and the Elsevier/Springer pages needed authentication; no TOC or imprint could be fetched. Titles are cited without chapter numbers (the deck says 'the chapter on …'), so only the year/publisher claims are at risk — in particular Hinch's 1991 and Van Dyke's 1964/1975 dual date.
+- **unit 21 GLOSSARY.org:111**
+  - citation: Prandtl, 1904
+  - already tried: The Kolmogorov-microscales article did not cover Prandtl; no other source fetched. (Kolmogorov 1941 in problems.html P12 WAS confirmed from the same page's citation of 'Local structure of turbulence', 1941.)
+- **unit 22 slides.html:148-151, 205**
+  - citation: Cauchy (1822–23) assumed …; box labelled 'Cauchy's stress theorem (1823)'; also 'Cauchy (1822–28)' for the elastic constants at line 1025
+  - already tried: en.wikipedia.org/wiki/Cauchy_stress_tensor and /Cauchy%27s_stress_theorem give no dates for Cauchy's memoirs. The 1823 Bull. Soc. Philomathique note and the 1827–28 Exercices de Mathématiques are the standard referents but were not independently confirmed.
+- **unit 22 slides.html:306, 1558**
+  - citation: Gurtin, An Introduction to Continuum Mechanics, 'the chapter on stress' / 'the chapters on stress, balance laws and linear elasticity'
+  - already tried: Elsevier's TOC (shop.elsevier.com/books/an-introduction-to-continuum-mechanics/gurtin/978-0-12-309750-7) lists: Tensor Algebra, Tensor Analysis, Kinematics, Mass. Momentum, Force, Constitutive Assumptions. Inviscid Fluids, Change in Observer…, Newtonian Fluids. The Navier-Stokes Equations, Finite Elasticity, Linear Elasticity. There is NO chapter titled 'stress' or 'balance laws' — Cauchy's theorem lives in the chapter 'Force' and the balance laws in 'Mass. Momentum'. Not edited because these are descriptive pointers, not numbered locators, but a reader will not find the chapter by that name.
+- **unit 22 slides.html:1559-1560**
+  - citation: Landau and Lifshitz, Theory of Elasticity, §§1–5 and §22 (elastic waves)
+  - already tried: Elsevier's page for 978-0-08-057069-3 lists only part titles (Fundamental equations; The equilibrium of rods and plates; Elastic waves; …), not § numbers; ScienceDirect returned 403. The Fluid Mechanics §§ (1, 2, 6, 15, 64) WERE all confirmed from the Elsevier TOC; the Theory of Elasticity ones were not.
+- **unit 22 slides.html:1025**
+  - citation: Green (1839), who derived the count of 21 from the existence of an energy
+  - already tried: en.wikipedia.org/wiki/George_Green_(mathematician): the relevant paper was read 11 Dec 1837 and published in Trans. Camb. Phil. Soc. vol. 7, part I — dated 1842 there, while vol. 6 part III (1838) carries the shorter 'On the reflexion and refraction of light'. '1839' is Love's dating in his Treatise and is standard in the elasticity literature. Ambiguous; left unchanged.
+- **unit 22 slides.html:1028, 1220, 1253, 1460**
+  - citation: Kaye and Laby, Tables of Physical and Chemical Constants: steel μ ≈ 79–82 GPa and K ≈ 160–170 GPa; sound speed in gases; c_L ≈ 5.9–6.0 and c_T ≈ 3.2 km/s for carbon steel; and 'standard tables' for air k = 0.0259 W m⁻¹K⁻¹, c_p = 1006 J kg⁻¹K⁻¹, mean free path 0.07 μm, 2.5×10²⁵ molecules m⁻³
+  - already tried: The Kaye & Laby online edition (npl.co.uk) is no longer served and no page-level source was reachable. The derived values that could be checked independently WERE confirmed (343.2 m/s at 20 °C, 331.3 at 0 °C, 340.3 at 15 °C, γ = 1.400, R = 8.314 — all against en.wikipedia.org/wiki/Speed_of_sound and /Gas_constant). The tabulated material properties themselves need someone with the tables.
+- **unit 22 slides.html:1146, 1169**
+  - citation: Fermi, Thermodynamics, ch. I–II (ideal gas law, first law, U = nc_V T)
+  - already tried: No accessible TOC for the Dover edition. Chapter I 'Thermodynamic Systems' / II 'The First Law of Thermodynamics' is the expected structure but was not verified.
+- **unit 22 slides.html:1265, 1267**
+  - citation: Newton's derivation (Principia, Book II, Section VIII); his agreement with the measured 1142 ft/s in the second edition; Laplace published the adiabatic correction in 1816
+  - already tried: en.wikipedia.org/wiki/Speed_of_sound confirms Newton's 1687 Principia result being ~15% low (the deck says 15.5%) and confirms Laplace's role, but dates Laplace's input via the Clément–Desormes experiment of 1819, not 1816. The 1816 Annales de chimie et de physique note is the standard first publication; the Principia Book II Section VIII locator and the 1142 ft/s second-edition figure were not independently confirmed. (1142 ft = 348.08 m, so the deck's arithmetic is right.)
+- **unit 22 slides.html:1513-1514**
+  - citation: Oldham (1906) inferred a core from the delay of P-waves through the Earth's centre; Gutenberg (1914) put its boundary near 2900 km
+  - already tried: en.wikipedia.org/wiki/Richard_Dixon_Oldham says he inferred the core 'around 1900' and, notably, describes the evidence as a discontinuity in S-wave travel times at ~120°, not delayed P-waves. en.wikipedia.org/wiki/Beno_Gutenberg and /Core–mantle_boundary give no year or value for the 2900 km determination. Both the 1906 date and the P-vs-S mechanism deserve a check against Oldham's actual Q. J. Geol. Soc. 62 (1906) 456 paper. Left unchanged — the accounts conflict rather than one clearly winning.
+- **unit 22 GLOSSARY.org:187**
+  - citation: Boyle's law :: p ∝ ρ at fixed temperature (1662)
+  - already tried: Not independently checked.
+- **unit 23 slides.html:576**
+  - citation: Evans, Partial Differential Equations, §2.2.4, for the construction on balls and half-spaces
+  - already tried: Tried the AMS bookstore (403), GBV/Bowker TOC (chapter level only), archive.org (partialdifferent0019evan is lending-restricted), WorldCat (429), HathiTrust (403), four mirrored PDFs (all dead), and both DuckDuckGo endpoints (blocked); WebSearch budget was already exhausted. Evans' §2.2 is 'Laplace's Equation' and 2.2.4 'Green's function' is the expected subsection, but I could not see a TOC. NOTE: the companion citation on the same line, Gilbarg & Trudinger §2.8 Perron's method, WAS confirmed.
+- **unit 23 slides.html:1645-1647**
+  - citation: Jackson writes ∇²(1/r) = −4πδ(x) from §1.2 on
+  - already tried: Read the book (archive.org john-david-jackson-classical-electrodynamics-wiley-1999, djvu text). The Dirac delta IS introduced in §1.2 'Electric Field', but the formula ∇²(1/r) = −4πδ(x) first appears as eq. (1.31) at the end of §1.7 'Poisson and Laplace Equations'. So 'from §1.2 on' is right about the δ shorthand and wrong about that particular equation. Left unchanged as a compound claim rather than a mislocated citation. Every other Jackson locator in unit 23 (§1.1–1.10, §1.11–1.13, ch. 2 §2.1–2.9 with §2.5, ch. 3 §3.1–3.3, ch. 5 §5.1–5.4) was confirmed verbatim against the same TOC.
+- **unit 23 slides.html:1648-1650**
+  - citation: Griffiths, Introduction to Electrodynamics, ch. 2–3 and 5 … (his §1.5); its Appendix B proves Helmholtz
+  - already tried: Cambridge's product page 404'd; no other TOC reachable. §1.5 'The Dirac Delta Function' and Appendix B 'The Helmholtz Theorem' are the expected structure but unverified.
+- **unit 23 slides.html:801**
+  - citation: The breakdown field of dry air at sea level is about 3 MV/m (cited: … the engineering literature quotes 3.0 for uniform fields at one atmosphere)
+  - already tried: No source fetched; the deck already labels this as a measured, condition-dependent property rather than naming a reference.
+- **unit 23 slides.html:622**
+  - citation: Paul traps (Nobel 1989)
+  - already tried: Not independently checked (Wolfgang Paul shared the 1989 physics prize, but no source was fetched).
+- **unit 23 slides.html:1500**
+  - citation: Helmholtz's own 1858 paper was on vortex motion in fluids
+  - already tried: Not independently checked. The companion citation on the same line, Blumenthal, Math. Ann. 61 (1905) 235, WAS confirmed (pp. 235–250, 'Über die Zerlegung unendlicher Vektorfelder', DOI 10.1007/BF01457564).
+- **unit 23 slides.html:904-905**
+  - citation: Thomson … introduced electrical images in 1845–1848, the same years in which he rediscovered Green's essay
+  - already tried: en.wikipedia.org/wiki/William_Thomson,_1st_Baron_Kelvin confirms 1845 for 'the mathematical technique of electrical images' but gives no end date and says nothing about Green's essay. The 1845 acquisition of the essay from Hopkins is standard but unverified here.
+- **unit 23 slides.html:1155-1156**
+  - citation: the law in its differential form is Laplace's reworking of their result; Ampère's force law … followed within months
+  - already tried: en.wikipedia.org/wiki/Biot–Savart_law confirms 1820 for Biot and Savart but mentions neither Laplace's role nor Ampère's timing.
+
+## Units 24-maxwell, 25-the-crisis, 26-minkowski, 27-relativistic-dynamics (slides.html, problems.html, GLOSSARY.
+
+- **units/24-maxwell/slides.html:453**
+  - citation: "The four vector equations are Heaviside's (1885) and, independently, Hertz's"
+  - already tried: https://en.wikipedia.org/wiki/Oliver_Heaviside ("In 1884 he recast Maxwell's mathematical analysis ... reducing twelve of the original twenty equations in twenty unknowns down to the four differential equations") and https://en.wikipedia.org/wiki/History_of_Maxwell%27s_equations ("Oliver Heaviside accomplished the reduction in 1884 ... concurrently with similar work by Gibbs and Hertz"). Both say 1884, not 1885. But Heaviside's serial 'Electromagnetic Induction and Its Propagation' ran in The Electrician from January 1885, so 1885 is a defensible publication date and 1884 a defensible date-of-work. NOT CHANGED — the two Wikipedia articles are not independent and neither settles work-vs-publication. Needs Nahin's Heaviside biography or Hunt, The Maxwellians. The 'independently, Hertz's' half is supported (Hertz 1890, Ann. Phys. 277, 369 — see confirmed list).
+- **units/24-maxwell/slides.html:722-730**
+  - citation: Maxwell "used 4.3945e8/sqrt2 = 3.1074e8, quoting it in miles, as 193,088 miles per second. He quoted Fizeau as 195,647 miles per second"; "3.13e8 ... usually given for Fizeau's own result"
+  - already tried: Wikisource 'On Physical Lines of Force' index page (gives Part III = Phil. Mag. ser. 4 vol. 23, 1862, pp. 28-40, but the fetcher returned only page metadata, not the body text, so the numeric table was not reachable). Wikipedia 'Speed of light' history table was truncated before the measurements table. Wikipedia 'Wilhelm Eduard Weber' confirms sqrt(2)c = 4.39e8 m/s and Weber constant ~3.1e8 m/s, which supports 3.1074e8 but not the miles-per-second figures. Needs the Phil. Mag. scan (Philosophical magazine 23 series 4.djvu, pp. 28-40).
+- **units/24-maxwell/slides.html:857**
+  - citation: "Malus found polarisation by reflection in 1808; Fresnel and Arago (1819) showed that light polarised at right angles does not interfere"
+  - already tried: https://en.wikipedia.org/wiki/%C3%89tienne-Louis_Malus says "His discovery of the polarization of light by reflection was published in 1809" but elsewhere on the same page says the Luxembourg-palace observation was "In 1810" — the article contradicts itself, so it is not evidence either way for 1808 (discovery) vs 1809 (publication). https://en.wikipedia.org/wiki/Fresnel%E2%80%93Arago_laws, /Augustin-Jean_Fresnel and /Fran%C3%A7ois_Arago all describe the experiments but give no year for them. Needs Buchwald, The Rise of the Wave Theory of Light, or the 1819 Annales de Chimie et de Physique volume.
+- **units/24-maxwell/slides.html:1325-1328**
+  - citation: "Poisson had the formula for spherical means in 1819; Kirchhoff (1882) gave the general representation that bears his name"
+  - already tried: https://en.wikipedia.org/wiki/Kirchhoff%27s_diffraction_formula cites Kirchhoff, "Zur Theorie der Lichtstrahlen", Annalen der Physik, 1883 — the Annalen reprint; the Berlin Academy Sitzungsberichte version is 1882, so 1882 is plausible but not evidenced here. https://en.wikipedia.org/wiki/Wave_equation mentions Kirchhoff's formulae but gives no dates and does not mention Poisson at all. Crossref has nothing pre-1850. Needs the Sitzungsberichte der Kgl. Preuss. Akad. 1882 record and Poisson's 1819 Mem. Acad. Sci. Paris.
+- **units/24-maxwell/slides.html:1328**
+  - citation: "Courant and Hilbert, Methods of Mathematical Physics II, ch. VI, on the wave equation in higher dimensions"
+  - already tried: https://en.wikipedia.org/wiki/Methods_of_Mathematical_Physics gives only "The second volume is devoted to the theory of partial differential equations" with no chapter list. Wiley's online-library page for the book returned HTTP 403. No table of contents reachable.
+- **units/24-maxwell/slides.html:1544-1551**
+  - citation: Griffiths, Introduction to Electrodynamics (4th ed.): §7.2-7.3, §8.1-8.2, §9.1-9.2, §10.1-10.2, §11.1-11.2, §1.5, §10.3, §11.2.2
+  - already tried: Chapter-level structure CONFIRMED against https://en.wikipedia.org/wiki/Introduction_to_Electrodynamics (ch. 1 Vector Analysis, 7 Electrodynamics, 8 Conservation Laws, 9 Electromagnetic Waves, 10 Potentials and Fields, 11 Radiation) and every cited chapter matches the described topic. Section-level numbers not verified: cambridge.org book page returned HTTP 500, assets.cambridge.org TOC PDF failed, and the Wikipedia TOC is for the 5th edition. Needs the 4th-edition TOC.
+- **units/24-maxwell/slides.html:1551**
+  - citation: "Evans, Partial Differential Equations, §2.4.1, which proves everything this deck does with spherical means"
+  - already tried: bookstore.ams.org/gsm-19-r returned HTTP 403, as did both AMS front-matter PDF paths (gsm-19-r-prev.pdf, gsm-19-r-toc.pdf). Google Books API returned HTTP 429. Springer link redirected to an auth endpoint. No TOC reachable.
+- **units/25-the-crisis/slides.html:166-168**
+  - citation: "Galileo's ship (Dialogo, 1632)"; "Newton's Corollary V to the laws of motion (1687)"; "The name 'Galilean transformation' is Philipp Frank's, 1909"
+  - already tried: https://en.wikipedia.org/wiki/Galilean_transformation contains no naming attribution at all and does not mention Philipp Frank. The Dialogo-1632 and Principia-1687 dates were not independently checked (they are not in dispute, but I gathered no evidence for them, so I am not counting them as confirmed). The Frank attribution is the one that actually needs a source.
+- **units/25-the-crisis/slides.html:567, 589 and GLOSSARY.org:77**
+  - citation: "Measured by Michelson and Morley in 1886: 0.434 ± 0.02"
+  - already tried: The journal reference is CONFIRMED (https://en.wikipedia.org/wiki/Fizeau_experiment: Michelson & Morley 1886, "Influence of Motion of the Medium on the Velocity of Light", Am. J. Sci. 31(185): 377-386). The numeric value and its uncertainty are not: that page explicitly "does not provide a specific uncertainty value for their measured drag coefficient". Needs the 1886 paper itself.
+- **units/25-the-crisis/slides.html:634-636**
+  - citation: "Morley and Miller repeated the experiment at other times of year (1902-05)"
+  - already tried: https://en.wikipedia.org/wiki/Michelson%E2%80%93Morley_experiment: "additional experiments with Dayton Miller from 1902 to 1904". Morley & Miller also published in 1905 (Proc. Am. Acad. Arts Sci. 41, 321) and ran at Euclid Heights in 1905, so 1902-05 is defensible. NOT CHANGED — the evidence narrows the range but does not falsify the endpoint.
+- **units/25-the-crisis/slides.html:845-846**
+  - citation: "Lorentz acknowledged it [Voigt's transformation] in The Theory of Electrons (1909)"
+  - already tried: https://en.wikipedia.org/wiki/Woldemar_Voigt cites the acknowledgment to "Lorentz (1916), The Theory of Electrons" — i.e. the second edition — while noting Lorentz was "on record as saying" it in 1909 without giving the venue. So 1909 may be right for the statement but wrong for the book. Needs the 1909 first edition's note list.
+- **units/25-the-crisis/slides.html:1058-1060**
+  - citation: "J. Larmor, Aether and Matter (Cambridge, 1900), which has the full transformation including the factor gamma on time"; also "time dilation, Larmor 1897-1900" (slides.html:1038)
+  - already tried: https://en.wikipedia.org/wiki/Lorentz_ether_theory lists Lorentz 1892/1895/1904 and Poincaré 1905/1906 in full but has no Larmor 1900 book citation ("the article mentions Larmor's 1897 work but does not include a 1900 book citation"). Needs a library catalogue entry for Aether and Matter and the content claim about the gamma factor on time.
+- **units/25-the-crisis/slides.html:1087**
+  - citation: "the Lorentz group (Poincaré's name, 1905)"
+  - already tried: https://en.wikipedia.org/wiki/Lorentz_ether_theory and /History_of_Lorentz_transformations confirm Poincaré's two 1905-06 papers (CR 140, 1504; Rendiconti 21, 129) but neither states that the term 'Lorentz group' was coined there. Needs the Rendiconti text.
+- **units/25-the-crisis/slides.html:708, 1140, 1188, 1301-1305**
+  - citation: Born and Wolf, Principles of Optics, §2.4 (Ewald-Oseen); "Zeeman measured the extra term in 1914-15"; Schottenloher, A Mathematical Introduction to Conformal Field Theory, ch. 1-2; Darrigol, Electrodynamics from Ampère to Einstein (Oxford, 2000); Jackson 3rd ed §11.1-11.3 / stop at §11.4; Pais, Subtle is the Lord (Oxford, 1982), ch. 6-8
+  - already tried: The Ewald-Oseen extinction theorem itself is CONFIRMED as the right objection (https://en.wikipedia.org/wiki/Emission_theory_(relativity)), and Jackson's ch. 11 is CONFIRMED as "Special Theory of Relativity" (https://en.wikipedia.org/wiki/Classical_Electrodynamics_(book)). The section-level and chapter-level locators inside all six books are not verified: no publisher TOC was reachable (Wiley 403, Cambridge 500, AMS 403, Springer auth-redirect) and no general web search was available. Zeeman's 1914-15 dispersion measurement was not found in any fetched source.
+- **units/25-the-crisis/slides.html:746**
+  - citation: "Hertz also fails the later experiments of Eichenwald, 1903, on rotating dielectrics"
+  - already tried: https://en.wikipedia.org/wiki/Trouton%E2%80%93Noble_experiment does not mention Eichenwald. No other fetched page covers it. Needs Eichenwald, Ann. Phys. 1903/1904.
+- **units/26-minkowski/slides.html:206**
+  - citation: "the fundamental theorem of affine geometry, cited (e.g. Berger, Geometry I, §2.6)"
+  - already tried: Springer's book page for Berger, Geometry I redirected to an authentication endpoint and a guessed DOI path returned 404. No TOC reachable. The theorem itself is standard; only the §2.6 locator is unverified.
+- **units/26-minkowski/slides.html:445-446**
+  - citation: "Sylvester's law of inertia (cited: any linear algebra text, e.g. Lang, Linear Algebra, ch. V, or Axler's chapter on bilinear forms)"
+  - already tried: No TOC for Lang's Linear Algebra was reachable (Springer auth-redirect). Note also that bilinear forms are a chapter of Axler's Linear Algebra Done Right only from the 4th edition (2024) onward; the deck does not name an edition. Needs both TOCs.
+- **units/26-minkowski/slides.html:402-403**
+  - citation: "Poincaré noticed the invariance of x²+y²+z²−c²t² in 1905-06 and even wrote it with an imaginary fourth coordinate ict"
+  - already tried: The two Poincaré papers are CONFIRMED to exist with the cited volumes and pages (https://en.wikipedia.org/wiki/Lorentz_ether_theory), but no fetched source states that the ict device appears in them. Needs the Rendiconti text.
+- **units/26-minkowski/slides.html:407-408**
+  - citation: "This course uses (−,+,+,+), as Misner–Thorne–Wheeler, Wald, Carroll and Schutz do; particle physicists usually use (+,−,−,−)"
+  - already tried: Not checked — four separate textbook conventions, no TOC or front-matter reachable. This is the kind of claim that a reader with the books settles in a minute.
+- **units/26-minkowski/slides.html:755-757**
+  - citation: "The ring had radius about 7 m, so the muons' acceleration in the lab was ~1.1e19 m s^-2, about 1e18 g"
+  - already tried: The Bailey et al. result itself is CONFIRMED (gamma = 29.327, 64.378 microseconds, 0.9 ± 0.4 parts per thousand — https://en.wikipedia.org/wiki/Time_dilation; Nature 268, 301-305, 1977 via Crossref). The ring radius was not found: the ADS abstract page returned HTTP 405 and nature.com redirected to an auth endpoint. Needs the CERN Muon Storage Ring machine parameters.
+- **units/26-minkowski/slides.html:1121-1122**
+  - citation: "the argument goes back to Einstein (1907) and Tolman (1917)"
+  - already tried: The name attribution IS confirmed (Benford, Book & Newcomb, "The Tachyonic Antitelephone", Phys. Rev. D 2, 263 (1970), via Crossref), but no fetched source traces the argument to Einstein 1907 or Tolman 1917. Needs Einstein's 1907 Ann. Phys. review and Tolman's The Theory of the Relativity of Motion (1917).
+- **units/26-minkowski/slides.html:1372**
+  - citation: "Naber, The Geometry of Minkowski Spacetime, chapter 1 ... its section on causality relations is Zeeman's theorem in full"
+  - already tried: No TOC reachable (Springer auth-redirect). Zeeman's theorem itself is CONFIRMED (J. Math. Phys. 5, 490-493, 1964, via Crossref); only the chapter locator is open.
+- **units/27-relativistic-dynamics/slides.html:398-401**
+  - citation: "the form −mc²∫dτ as a statement about Minkowski geometry is Minkowski's (1908) and was made standard by Landau and Lifshitz, The Classical Theory of Fields, §8"
+  - already tried: The Planck half IS confirmed (Planck 1906, Verh. Deutsch. Phys. Ges. 8, 136-141, eq. 8: H = −mc²sqrt(1−q²/c²) + const — https://en.wikisource.org/wiki/Translation:The_Principle_of_Relativity_and_the_Fundamental_Equations_of_Mechanics). The Minkowski-1908 attribution and the L&L §8 locator are not: no L&L table of contents was reachable (archive.org items have no OCR text, ScienceDirect 403, Wikipedia's Course of Theoretical Physics article has no TOC). Same gap for "§§8-13" and "chapter 3 (§16 on)" at slides.html:1361-1362.
+- **units/27-relativistic-dynamics/slides.html:423, 434, 1007-1008**
+  - citation: "A 6.8 TeV LHC proton"; "Two 6.8 TeV beams: sqrt(s) = 13.6 TeV"
+  - already tried: Not checked against a CERN source. 6.8 TeV per beam is the LHC Run 3 figure and the arithmetic is internally consistent, but I gathered no evidence, so I am not counting it confirmed.
+- **units/27-relativistic-dynamics/slides.html:1314-1316**
+  - citation: "Einstein cited exactly this [the rotating disc] in 1912-1916 as the moment he realised that accelerated frames ... need non-Euclidean geometry"
+  - already tried: The Ehrenfest paradox (1909) and Born rigidity (1909) are CONFIRMED (https://en.wikipedia.org/wiki/Ehrenfest_paradox), but that page does not carry the Einstein-realisation claim with dates. Needs Stachel, 'The Rigidly Rotating Disk as the Missing Link', or Einstein's 1912 manuscript.
+
+## Units 28 (field-tensor), 29 (classical-field-theory), 30 (equivalence-principle), 31 (manifolds)
+
+- **units/30-equivalence-principle/slides.html:1600**
+  - citation: Pais, Subtle is the Lord, chapters 9 and 11–12 (for the history of the equivalence principle and the Prague/Grossmann period)
+  - already tried: Bowker/Blackwell TOC scans via gbv.de for ISBNs 9780192806727 and 9780195204384 return only the seven part titles (Introductory; Statistical Physics; Relativity, the Special Theory; Relativity, the General Theory; The Later Journey; The Quantum Theory; Journey's End) with no chapter numbers. archive.org has the book (subtleislordscie0000pais) but its djvu.txt is access-restricted. CUP/OUP product pages 403. A human with the book need only check that ch. 9 is "The Happiest Thought of My Life" and ch. 11–12 are the Prague papers and the Einstein–Grossmann collaboration.
+- **units/30-equivalence-principle/slides.html:15 (running-example template) and :540**
+  - citation: Pound and Rebka "measured the source-up minus source-down difference, 2gh/c², as (5.13±0.51)×10⁻¹⁵"; per one-way trip "(2.57±0.26)×10⁻¹⁵"; "1.05±0.10 in Pound and Rebka's own normalisation"
+  - already tried: The APS abstract page for PRL 4, 337 (1960) carries metadata only, no abstract text or numbers; the paper is paywalled. Wikipedia's Pound–Rebka article quotes the paper's net one-way figure as −(2.56±0.25)×10⁻¹⁵ (twice that is 5.12±0.50, not 5.13±0.51), and says only that this "corresponds to the predicted value with an error margin of 10%" — it gives no 1.05±0.10. So the deck's figures are right to within a last-digit rounding but the exact 5.13±0.51 / 2.57±0.26 / 1.05±0.10 triple could not be sourced. NOT changed. The 1965 follow-up in the same note IS confirmed exactly: Pound & Snider, Phys. Rev. 140, B788 (1965) report "(0.9990±0.0076) times the value 4.905×10⁻¹⁵ of 2gh/c²".
+- **units/31-manifolds/slides.html:307**
+  - citation: "Milnor's exercise, and Gelfand's theorem in the continuous category, make that precise" (that C^∞(M) determines M)
+  - already tried: No specific book, paper, exercise number or Gelfand result is named, so there is nothing locatable to verify. Gelfand–Naimark for commutative C*-algebras is presumably meant, and the "Milnor exercise" is presumably Milnor–Stasheff or Milnor's Characteristic Classes problem set, but neither is identified. A human should either pin the reference or drop the names.
+
+## Unit 40 only
+
+- **slides.html:170**
+  - citation: Chandrasekhar, The Mathematical Theory of Black Holes, §58 — for the Kerr Kretschmann scalar
+  - already tried: Book confirmed to exist (OUP, 645 pp., ISBN 0198520506) via archive.org metadata. Could not obtain a section-level table of contents: OUP product page returned an empty body to WebFetch; archive.org copies are lending-restricted and search-inside/fulltext APIs return nothing anonymously; HathiTrust 403; Google Books API over daily quota; every general search engine reachable from here (Bing, DuckDuckGo, Mojeek, searx.be, disroot, baresearch) returned CAPTCHAs, 403s or spam. WebSearch budget for this session was exhausted before I started. Needs someone with the book.
+- **slides.html:1043**
+  - citation: Chandrasekhar §62 — for the explicit Kerr Killing tensor
+  - already tried: Same as above; no section-level TOC obtainable. (The co-cited Walker & Penrose, Commun. Math. Phys. 18, 265 in the same parenthesis IS confirmed exactly.)
+- **slides.html:426**
+  - citation: Hawking & Ellis §9.3 — for the rigidity theorem
+  - already tried: Confirmed at chapter level: Cambridge Core (doi 10.1017/CBO9780511524646) gives ch. 9 = "Gravitational collapse and black holes", pp. 299-347, which is the right chapter. Cambridge Core lists chapters only, not §9.1/9.2/9.3 titles; Cambridge frontmatter PDFs are unreachable from this sandbox (curl 000). Section number unverified.
+- **problems.html:396**
+  - citation: "Wald §12.5.2, where it reads \\(\\kappa^2 = -\\tfrac12(\\nabla^a\\xi^b)(\\nabla_a\\xi_b)\\)"
+  - already tried: The University of Chicago Press TOC (https://press.uchicago.edu/ucp/books/book/chicago/G/bo5952261.html) lists ch. 12 as having exactly five sections, 12.1-12.5 (12.5 = "Black Holes and Thermodynamics"), i.e. no numbered subsection 12.5.2 — so "§12.5.2" is very likely an equation number, (12.5.2), written as a section. slides.html:545 cites the same formula as "Wald §12.5", which is consistent with that reading. I did NOT change it: I could not open Wald's text to confirm that equation (12.5.2) is that formula, and the locator is right to within the section either way.
+- **slides.html:1248**
+  - citation: "its luminosity decays as $e^{-tc^3/3\\sqrt3\\,GM}$ (cited: MTW §32.4)"
+  - already tried: Princeton University Press TOC (https://press.princeton.edu/books/hardcover/9780691177793/gravitation) confirms MTW ch. 32 "Gravitational Collapse" has §32.4 = "Collapse of a Star with Uniform Density and Zero Pressure" (the Oppenheimer-Snyder section, topically right for the slide). But the exponential luminosity decay seen by a distant observer is plausibly in §32.3 "Exterior Geometry of a Collapsing Star" instead, and I could not open MTW to settle which section carries the formula. Left alone.
+- **slides.html:1264-1265**
+  - citation: Poisson, A Relativist's Toolkit, §3.7 and §3.8 — junction conditions and Oppenheimer-Snyder
+  - already tried: Book confirmed (Cambridge, 2004, doi 10.1017/CBO9780511606601) and Cambridge Core confirms ch. 3 = "Hypersurfaces", pp. 59-117 — the right chapter for junction conditions. Cambridge Core does not expose §3.x titles and the frontmatter PDF is unreachable from this sandbox. Poisson's public lecture notes URL redirects to a department landing page. Section numbers unverified.
+- **slides.html:34**
+  - citation: "the rotating solution was not found until 1963 — forty-eight years after Schwarzschild's"
+  - already tried: Kerr 1963 confirmed (PRL 11, 237, 1 Sept 1963, Crossref). The arithmetic depends on whether Schwarzschild is dated to his December 1915 derivation (48 years) or his January 1916 publication (47 years). Both datings are in common use; the course may state one of them in unit 36. Defensible as written, so not changed — a human should decide which dating the course uses and make it consistent.
+- **slides.html:153**
+  - citation: "Kerr wrote his solution in what are now called Kerr-Schild coordinates"
+  - already tried: Kerr 1963 PRL is paywalled and I could not read it. Wikipedia's Kerr metric article dates the Kerr-Schild form to "Kerr and Schild in 1965", which does not settle whether the 1963 PRL already used that form (it is widely said to). Plausible but unverified.
+- **slides.html:928**
+  - citation: "'Black holes have no hair' is Wheeler's, from around 1970; the story is that Feynman found it indecent."
+  - already tried: Wikipedia (Black hole) confirms the phrase was "dubbed" by Wheeler in the late 1960s/early 1970s, so "Wheeler's, from around 1970" is supported. The Feynman anecdote I could not source independently — no search engine available. Not changed.
+- **slides.html:940**
+  - citation: "Extreme-mass-ratio inspirals seen by LISA are expected to do this to a part in $10^{4}$"
+  - already tried: Could not reach a LISA science-requirements document or the Barack-Cutler EMRI papers without search. Plausible order of magnitude; unverified.
+- **slides.html:106**
+  - citation: "GRS 1915+105 sits near the top" of the stellar-mass spin distribution
+  - already tried: Wikipedia's GRS 1915+105 article gives a conservative "spin parameter >0.82"; other continuum-fitting measurements (McClintock et al. 2006) give a*>0.98. The deck's claim is vague enough to be true on either. The adjacent claim "Cygnus X-1 at $a_* > 0.95$" IS confirmed exactly (Gou et al. 2011, arXiv:1106.3690, "a/M>0.95 (3 sigma)").
+- **slides.html:1765 and problems.html:1096**
+  - citation: "LIGO published a direct test of the area law ... in 2021 and found it satisfied at 95% confidence"
+  - already tried: Isi, Farr, Giesler, Scheel & Teukolsky, PRL 127, 011103 (2021), arXiv:2012.04486, abstract: "agreement with the prediction with 97% (95%) probability when we model the ringdown including (excluding) overtones". So 95% is the excluding-overtones figure and 97% is the headline. Not false, so I did not change it — but a human may want 97%, or both numbers.
+- **slides.html:934**
+  - citation: "Geroch and Hansen showed that a stationary asymptotically flat vacuum spacetime is determined by its multipole moments"
+  - already tried: Undated in the deck and I could not source Geroch 1970 / Hansen 1974 without search. The attribution is the standard one; unverified here.
+- **slides.html:1561**
+  - citation: "The known quantum energy inequalities (Ford-Roman)"
+  - already tried: Undated in the deck; could not source the Ford & Roman QEI papers without search. Attribution is standard; unverified here.
+
+## Units 32 (metric-geodesics), 33 (curvature), 34 (differential-forms), 35 (field-equations)
+
+- **unit 32 slides.html, note on the connection's name — "Einstein ... wrote to Sommerfeld in October 1912 that he had acquired a great respect for mathematics"**
+  - citation: Einstein to Sommerfeld, October 1912
+  - already tried: Wikipedia (Marcel Grossmann, Hermann Weyl), arXiv:1803.10662 (CPAE vol. 15 introduction), Crossref. The CPAE volume that holds the 1912 correspondence is vol. 5, which I could not reach. Needs the Collected Papers of Albert Einstein, vol. 5, Doc. 421.
+- **unit 32 slides.html, holonomy note — "The Ambrose–Singer theorem ... cited: Kobayashi and Nomizu, vol. I, ch. II"; unit 33 slides.html repeats it as "Also cited"**
+  - citation: Kobayashi and Nomizu, Foundations of Differential Geometry, vol. I, ch. II
+  - already tried: Wikipedia 'Holonomy' (cites Kobayashi–Nomizu vol. 1 & 2 but with no chapter), Crossref (Wiley Classics not chapter-indexed), archive.org (item foundationsofdif0001koba exists but is lending-restricted, search-inside needs a login), Wiley and Springer pages blocked. Needs the book.
+- **unit 32 slides.html (Gauss–Bonnet note) and unit 32 problems.html (Girard's theorem); unit 33 slides.html (global Gauss–Bonnet); unit 34 slides.html ("the theorem unit 32 cited")**
+  - citation: do Carmo, Differential Geometry of Curves and Surfaces, §4-5
+  - already tried: archive.org (differentialgeom0000carm, 1976 — access-restricted, djvu.txt returns 403), Dover store page (no TOC), Wikipedia Gauss–Bonnet and Theorema Egregium (no section locators), Crossref (Prentice-Hall/Dover not chapter-indexed). General web search was unavailable this session (WebSearch budget exhausted; Brave/DDG/Bing/Mojeek/Startpage/Ecosia/searx all returned captchas or junk). Needs the book.
+- **unit 33 slides.html, Theorema Egregium slide — "the equality det(II) = R_1212 is Gauss's equation, proved in do Carmo, Curves and Surfaces, §4-3"; also unit 33 GLOSSARY.org:130**
+  - citation: do Carmo, Curves and Surfaces, §4-3
+  - already tried: Same sources as the §4-5 locator above. Needs the book.
+- **unit 34 slides.html, Gauss–Bonnet-by-forms slide — "Hopf's theorem of turning tangents (cited: do Carmo, Differential Geometry of Curves and Surfaces, §5-7)"**
+  - citation: do Carmo, Curves and Surfaces, §5-7
+  - already tried: Same sources. Worth a hard look with the book in hand: do Carmo's §5-7 is a 'Global Theorems for Curves' section, and the theorem of turning tangents is stated in §4-5 and proved in an appendix, so the locator may point at the statement or at the proof depending on printing.
+- **unit 33 slides.html, sectional-curvature slide — "That the sectional curvatures determine R is do Carmo, Riemannian Geometry, ch. 4, Lemma 3.3"**
+  - citation: do Carmo, Riemannian Geometry, ch. 4, Lemma 3.3
+  - already tried: Crossref (Birkhauser Mathematics: Theory and Applications, not chapter-indexed), archive.org, Springer (all book/chapter pages redirect to an auth wall). Needs the book.
+- **unit 32 slides.html, smoothness of exp_p — "the smooth version is cited: Hartman, Ordinary Differential Equations, ch. V"**
+  - citation: Hartman, Ordinary Differential Equations, ch. V
+  - already tried: archive.org (ordinarydifferen0000hart, 1964 — lending-restricted, fulltext/inside.php needs a login), SIAM Classics page (HTTP 403), Crossref. Needs the book. Hartman numbers chapters with Roman numerals, so the form of the locator is at least right.
+- **unit 34 slides.html — "Bott and Tu, §4" (Poincaré lemma), "Bott and Tu, §5, by the Mayer–Vietoris argument on a finite good cover" (finite dimensionality), and the reading list "Bott and Tu, §1–4 ... the Mayer–Vietoris sequence of §2"**
+  - citation: Bott and Tu, Differential Forms in Algebraic Topology, §§1, 2, 4, 5
+  - already tried: Crossref gives only the four chapter divisions (Introduction pp. 1-11; de Rham Theory pp. 13-88; The Cech-de Rham Complex pp. 89-153; Spectral Sequences pp. 154-265: https://api.crossref.org/works?filter=container-title:Differential+Forms+in+Algebraic+Topology), which is consistent with §1-§8 all sitting inside 'de Rham Theory' but does not give the section titles. Springer front-matter PDF and book page are behind an auth wall. Needs the book.
+- **unit 34 slides.html reading list — "Flanders, Differential Forms with Applications to the Physical Sciences, ch. 1–5"**
+  - citation: Flanders, ch. 1–5
+  - already tried: Crossref (Dover/Academic Press not chapter-indexed), archive.org, Dover store page. Needs the book.
+- **unit 34 slides.html, History note — "Poincaré (1899) and then Cartan (1899, 1901) made the exterior derivative the centre of the subject"; and "its modern form and name settled after Cartan's 1945 Les systèmes différentiels extérieurs"**
+  - citation: Poincaré 1899; Cartan 1899, 1901; Cartan 1945
+  - already tried: Wikipedia (Élie Cartan, Exterior derivative, Stokes' theorem) confirms Cartan created and developed exterior differential forms in the decade after his thesis but gives no paper years; Crossref does not index Ann. Sci. ENS / Bull. Soc. Math. France from that period. The 1945 book title is right but I found no record fixing the year.
+- **unit 33 slides.html, Bianchi name note — "the differential one had been found earlier by Aurel Voss (1880) and by Padova"**
+  - citation: Padova (contracted Bianchi identity)
+  - already tried: Wikipedia Luigi Bianchi and Aurel Voss confirm Bianchi 1902, Voss 1880 and Ricci c. 1889, but say nothing about Ernesto Padova. Crossref does not index Rend. Lincei of that period.
+- **unit 33 slides.html, geodesic-deviation name note — "The equation goes back to Jacobi's theory of the second variation (1837); Levi-Civita gave it the curvature form in 1926. In relativity it is due to Synge (1926)"**
+  - citation: Jacobi 1837; Levi-Civita 1926; Synge 1926
+  - already tried: Crossref finds Levi-Civita, 'Sur l'écart géodésique', Math. Ann. 97, 291-320, doi 10.1007/BF01447869-era record, but dates volume 97 to December 1927, not 1926 — the paper is commonly cited as 1926 and the discrepancy is probably the volume's completion date, so this needs someone with the volume. Jacobi 1837 and Synge 1926 turned up nothing in Crossref or Wikipedia.
+- **unit 33 slides.html, Weyl-tensor slide — "for n ≥ 4, C = 0 on an open set iff the metric is conformally flat there (Weyl 1918, Schouten 1921)"; unit 33 GLOSSARY.org:193 repeats it as "Weyl–Schouten, cited"**
+  - citation: Weyl 1918; Schouten 1921
+  - already tried: Wikipedia 'Weyl–Schouten theorem' confirms the theorem and the two names but gives no years; Crossref does not have Weyl's Math. Z. 1918 or Schouten's 1921 paper under a query I could make work. The attribution is right; the two years are the unchecked part.
+- **unit 33 slides.html, holonomy/Gauss note — "Gauss's triangulation of Hanover (1821–25)"**
+  - citation: Hanover triangulation, 1821–25
+  - already tried: Wikipedia 'Carl Friedrich Gauss' dates the geodetic survey of the Kingdom of Hanover and the arc measurement 'from 1820 to 1844'. Gauss's own field seasons are usually given as 1821-1825, which is what the deck means, but I found no source stating that window. Not changed.
+- **unit 33 slides.html, section 1 history — "The tensor was written down properly only in his 1861 Paris prize essay, unpublished in his lifetime"**
+  - citation: Riemann, 1861 Paris prize essay
+  - already tried: Wikipedia Bernhard Riemann; Crossref. The Commentatio mathematica (Paris Academy prize essay) is standardly dated 1861 and was published posthumously, but I found no page stating it in a form I could cite.
+- **unit 35 slides.html, Lovelock slide — "Vermeil (1917), Cartan (1922) and Weyl (1922) had it assuming linearity"**
+  - citation: Vermeil 1917; Cartan 1922; Weyl 1922
+  - already tried: Crossref (Nachr. Ges. Wiss. Göttingen and the 4th edition of Raum-Zeit-Materie are not indexed). These three are the attribution Lovelock himself gives in J. Math. Phys. 12 (1971) 498, which would settle it; I could not reach that paper's text.
+- **unit 35 slides.html, Bianchi history note — "it did not reach Einstein until after November 1915, through the work of Hilbert, Klein and Weyl in 1916-18"**
+  - citation: transmission of the Bianchi identity to Einstein via Hilbert, Klein and Weyl, 1916-18
+  - already tried: Wikipedia 'General relativity priority dispute' confirms Hilbert derived the contracted Bianchi identity as theorem III of his 1915/16 paper, and Wikipedia 'Luigi Bianchi' confirms the 1902 publication and the Voss/Ricci priority, but neither documents the 1916-18 route to Einstein. Needs a history-of-GR source (Pais or Sauer).
+- **unit 35 slides.html, cosmological-constant history — "Einstein dropped the term after 1931 and wrote that it was 'theoretically unsatisfactory anyway'"**
+  - citation: Einstein, post-1931, on the cosmological term
+  - already tried: Wikipedia 'Cosmological constant' confirms the Gamow attribution of the 'biggest blunder' phrase but not this quotation or its date. The quoted phrase needs the Einstein 1931/1932 papers.
+- **unit 35 slides.html, numerical-relativity note — "The breakthroughs of 2005 (Pretorius; Campanelli et al.; Baker et al.)"**
+  - citation: the 2005 numerical-relativity breakthroughs
+  - already tried: Crossref: Pretorius, PRL 95, 14 September 2005 — so that one is 2005. Campanelli, Lousto, Marronetti & Zlochower, PRL 96, and Baker, Centrella, Choi, Koppitz & van Meter, PRL 96, were both published 22 March 2006 (their arXiv preprints are November 2005). 'The breakthroughs of 2005' is the usual framing and is defensible as a preprint date, but a reader chasing the two moving-puncture papers will find 2006 on them. Not changed — flagging so a human can decide whether to say 'of 2005-06'.
+- **unit 32 slides.html and unit 33 slides.html — Gauss's Disquisitiones generales circa superficies curvas dated 1827**
+  - citation: Disquisitiones generales circa superficies curvas (1827)
+  - already tried: Wikipedia 'Theorema Egregium' says it was 'proved by Carl Friedrich Gauss in 1827'; Wikipedia 'Carl Friedrich Gauss' says the work was published in 1828. The memoir was presented to the Göttingen Royal Society on 8 October 1827 and printed in 1828, so both dates are in use and 1827 is defensible. Not changed.
+- **unit 33 problems.html, P7 note — "Weyl's 1918 theory, whose failure is a story for another course" (non-metric connection, R^rho_{rho mu nu} nonzero)**
+  - citation: Weyl 1918 (gauge/non-metric connection)
+  - already tried: Wikipedia 'Hermann Weyl' confirms 'In 1918, he introduced the notion of gauge, and gave the first example of what is now known as a gauge theory', which supports the year and the subject but not the specific claim about the trace of the curvature. Treated as unconfirmed rather than confirmed.
+
+## Units 36 (schwarzschild), 37 (classical-tests), 38 (gravitational-waves), 39 (cosmology)
+
+- **units/36-schwarzschild/slides.html:586**
+  - citation: "For $r_s \ne 0$ the Killing fields are exactly $\mathbb R\,\partial_t \oplus \mathfrak{so}(3)$: four, against Minkowski's ten. Cited: Hawking and Ellis, §5.5."
+  - already tried: Downloaded the full OCR text of Hawking & Ellis, The Large Scale Structure of Space-Time (archive.org item the-large-scale-structure-of-space-time-hawking-ellis) and read §5.5 in full (pp. 149-156, from the section head "5.5 The Schwarzschild and Reissner-Nordström solutions" to "5.6 The Kerr solution"). The section title and subject are right, but the word "Killing" occurs exactly once in it ("0/dt is a timelike Killing vector which is a gradient") and there is no derivation that the Killing algebra is exactly four-dimensional. So the section exists and is about Schwarzschild, but it does not appear to contain the cited claim. I did NOT change it because I could not find the right locator and OCR could in principle have dropped material. A human with the book should check §5.5 and, if it is not there, find where (Hawking & Ellis Appendix B, or another text) the full symmetry algebra is established. NOTE: the OTHER §5.5 citation in this unit (slides.html:1307-1308, geodesic completeness / maximal extension of Kruskal) IS confirmed — §5.5 discusses the inextendible extension at length.
+- **units/36-schwarzschild/slides.html:458-459**
+  - citation: "the form above is due to Droste and to Hilbert, both in 1916"
+  - already tried: Droste 1916 is confirmed (Wikipedia, Schwarzschild metric: "found by Karl Schwarzschild and independently of him by Johannes Droste in 1916"; https://en.wikipedia.org/wiki/Schwarzschild_metric ). Hilbert's contribution is in the second communication of "Die Grundlagen der Physik", which was presented 23 December 1916 but printed in the Göttinger Nachrichten for 1917; I found no record that settles which year the deck should name. Crossref and arXiv have no record of either paper. Needs someone with the Nachrichten volume or a Hilbert bibliography.
+- **units/36-schwarzschild/slides.html:886**
+  - citation: "Kretschmann ... who, in 1917, made the objection to general covariance"
+  - already tried: The sources disagree and I did not change it. Crossref dates the paper to 1918: "Über den physikalischen Sinn der Relativitätspostulate, A. Einsteins neue und seine ursprüngliche Relativitätstheorie", Annalen der Physik 358(16), 575-614, published-print 1918-01, DOI 10.1002/andp.19183581602 (https://api.crossref.org/works/10.1002/andp.19183581602 ). Wikipedia's Erich Kretschmann article lists it under "Major works" as 1917. Units 31 and 36 both say 1917, so changing one would desynchronise the course. A human should pick one date and apply it to units 31 and 36 together. (Confirmed alongside it: the Kretschmann scalar is indeed due to the same Erich Kretschmann, from his 1915 papers.)
+- **units/36-schwarzschild/slides.html:936**
+  - citation: "Lemaître had shown in 1933 that $r_s$ was not a real singularity"
+  - already tried: The usual reference is G. Lemaître, "L'Univers en expansion", Ann. Soc. Sci. Bruxelles A53, 51 (1933), reprinted as Gen. Rel. Grav. 29, 641 (1997) — Crossref confirms the 1997 reprint (10.1023/a:1018855621348) but not the original's year. Wikipedia's "Lemaître coordinates" article says "introduced by Georges Lemaître in 1932". Springer blocked the reprint's front matter (303 to an auth endpoint), so I could not read the editor's note that gives the original reference. 1932 vs 1933 unresolved.
+- **units/36-schwarzschild/slides.html:1311**
+  - citation: "Kruskal and Szekeres found the chart independently in 1960."
+  - already tried: Kruskal 1960 is confirmed (Phys. Rev. 119, 1743, Crossref 10.1103/physrev.119.1743). Szekeres, "On the singularities of a Riemannian manifold", Publ. Math. Debrecen 7, 285 (1960) is not in Crossref and I found no independent record of its year — Publicationes Mathematicae Debrecen is not indexed there, and the Wikipedia extract API returned only the article body, not the reference list. A human with a GR bibliography can settle it in a minute.
+- **units/37-classical-tests/slides.html:590-593**
+  - citation: Clemence's per-planet breakdown: "Venus $277.856$, Earth $90.038$, Mars $2.536$, Jupiter $153.584$, Saturn $7.302$, Uranus $0.141$, Neptune $0.042$, and solar oblateness $0.010$ ... The planets sum to $531.50$."
+  - already tried: The three headline numbers ARE confirmed: MTW Box 40.3, "Data for Mercury from optical studies [Clemence (1943, 1947)]", gives total observed 5599".74 ± 0".41, general precession 5025".645 ± 0.50, residual 42.56 ± 0.94 — all matching the deck (read from the OCR of MTW, archive.org item gravitation-charles-w.-misner-kip-s.-thorne-john-archibald-wheeler). But MTW gives the planetary total as 531.54 ± 0.68, whereas the deck's itemisation sums to 531.499 and the deck says 531.50 — a 0.04 discrepancy. Rev. Mod. Phys. 19, 361 is paywalled at APS and I could not reach Clemence's Table I. Someone with the 1947 paper should check the per-planet column and the 531.50/531.54 difference.
+- **units/37-classical-tests/slides.html:1000-1002**
+  - citation: "1.7 million delay measurements of 541 radio sources over twenty years" (Shapiro, Davis, Lebach and Gregory, PRL 92, 121101)
+  - already tried: The paper and its headline result are confirmed: Crossref gives PRL 92, 121101 (2004), and the APS abstract page (https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.92.121101 ) gives γ = 0.99983 ± 0.00045 and the 1979–1999 span in the title, so "twenty years" and the γ value are right. The counts "1.7 million" and "541 sources" are in the paper body, which is paywalled. Needs the full text.
+- **units/37-classical-tests/slides.html:583, 1110-1113**
+  - citation: "Le Verrier ... found $38''$ unexplained ... Newcomb (1882) revised the residual to $43''$"; "The first measurements ... came in 1967–1971 and agreed with general relativity to within about 5% ... The Viking landers on Mars (1976–77) reached $0.1\%$."
+  - already tried: These are standard textbook statements and nothing I found contradicts them, but I found no primary record for the Newcomb 1882 value or the 5% / 0.1% figures. WebSearch was exhausted at the start of this session, so I could only reach Crossref, arXiv, Wikipedia's API and a few publisher pages directly; none carried these. A human with Will's Living Reviews article (which reviews exactly these) can confirm them quickly.
+- **units/37-classical-tests/slides.html:1124-1126 and problems.html:277**
+  - citation: Cassini geometry: "Earth $1.0162$ au, Cassini $7.4216$ au from the Sun", "minimum impact parameter $1.6R_\odot$ is the figure given in the paper"
+  - already tried: Bertotti, Iess and Tortora, Nature 425, 374 (2003) is confirmed (Crossref 10.1038/nature01997) and the quoted result γ−1 = (2.1 ± 2.3)×10⁻⁵ is the paper's famous number. The three geometric figures are stated as coming from the paper / JPL ephemerides and Nature is paywalled; I could not check them.
+- **units/38-gravitational-waves/slides.html:907**
+  - citation: "Blanchet, Living Reviews in Relativity 17 (2014) 2, §§1–3"
+  - already tried: The article is confirmed: Blanchet, "Gravitational Radiation from Post-Newtonian Sources and Inspiralling Compact Binaries", Living Reviews in Relativity 17 (2014), article 2, DOI 10.12942/lrr-2014-2. The section range §§1–3 I could not check — livingreviews.org now redirects into SpringerLink, which returned a JavaScript challenge to every fetch.
+- **units/38-gravitational-waves/slides.html:987 and 1607-1610**
+  - citation: "Maggiore vol. 1, §1.4" (Isaacson tensor) and "skip §3.4 onwards on first reading"
+  - already tried: Chapter-level locators in this unit ARE confirmed, from the Crossref chapter records for ISBN 9780198570745: ch. 1 "The geometric approach to GWs" (pp. 3-51), ch. 3 "Generation of GWs in linearized theory" (101-166), ch. 4 "Applications" (167-235), ch. 5 "GW generation by post-Newtonian sources" (236-301). Section-level numbering is not in Crossref, global.oup.com returned HTTP 202 with an empty body, and academic.oup.com served a Cloudflare challenge / navigation shell instead of the chapter contents. §1.4 and §3.4 need the book.
+- **units/38-gravitational-waves/slides.html:1180**
+  - citation: "The radiation-reaction force ... (MTW §36.11; Maggiore vol. 1, ch. 3)"
+  - already tried: MTW §36.11 is confirmed as "Derivation of the radiation-reaction potential in linearized theory" (read from the MTW OCR text, p. 1001). The Maggiore half is the doubtful one: ch. 3 is "Generation of GWs in linearized theory", while radiation reaction in Maggiore may instead sit in ch. 5, "GW generation by post-Newtonian sources". I could not get section titles for either chapter (see the previous entry), so I left it alone.
+- **units/38-gravitational-waves/slides.html:1054**
+  - citation: "cited: Weyl, The Classical Groups, ch. II" (isotropic rank-4 tensors)
+  - already tried: No table of contents found. Crossref holds only front matter for Princeton's edition (ISBN 9780691057569 / 9781400883905): preface, table-of-contents page, bibliography, errata, index — no chapter records. press.princeton.edu's page carries no contents list, and the archive.org copies are lending-restricted (HTTP 401 on the OCR text). Needs the book.
+- **units/38-gravitational-waves/slides.html:1607**
+  - citation: "Maggiore, Gravitational Waves, vol. 1 (OUP, 2008)"
+  - already tried: Crossref's record for the book (DOI 10.1093/acprof:oso/9780198570745.001.0001) gives publication date 2007-10-04, which is the Oxford Scholarship Online date; the print copyright is usually cited as 2008 and both years appear widely in the literature. Not enough to call the deck wrong, so unchanged. Someone with the book's copyright page can settle it.
+- **units/38-gravitational-waves/slides.html:17**
+  - citation: "chirp mass $28.1\,M_\odot$ at the source, $30.6\,M_\odot$ as the detector sees it"
+  - already tried: Everything else in this template is confirmed against the discovery paper (arXiv:1602.03837 = PRL 116, 061102): 35→150 Hz, ~0.2 s, about 8 cycles, peak strain 1.0e-21, 410 Mpc, z = 0.09, masses 36+5-4 and 29±4, 3.0±0.5 M_sun c² radiated, peak luminosity 3.6e56 erg/s = 3.6e49 W. But the discovery paper quotes only "a chirp mass of M ≈ 30 M_sun" in the detector frame; the source-frame 28.1 M_sun comes from the companion properties paper (PRL 116, 241102), which the deck does not cite. The numbers are almost certainly right (28.1 × 1.09 = 30.6), but the deck's stated source does not contain them.
+- **units/38-gravitational-waves/slides.html:924**
+  - citation: "Damour's 1983 treatment of binary motion, and the Walker–Will analysis"
+  - already tried: Standard history of the quadrupole-formula controversy; I ran out of checking budget before pinning these two to papers (presumably Damour 1983, Phys. Rev. Lett. 51, 1019 and Walker & Will 1980, ApJ 242, L129). Nothing suggests they are wrong.
+- **units/38-gravitational-waves/problems.html:362-363**
+  - citation: "cited: Chandrasekhar's potential-energy tensor, Ellipsoidal Figures of Equilibrium, ch. 2"
+  - already tried: Book confirmed to exist (S. Chandrasekhar, Yale UP 1969; archive.org item ellipsoidalfigur0000scha) but the copy there is lending-restricted (401 on the OCR text) and neither the Yale nor the Dover edition has chapter records in Crossref. The chapter number could not be checked.
+- **units/39-cosmology/slides.html:186 and 196**
+  - citation: "do Carmo ch. 4, Lemma 3.3" and "it is among the exercises of do Carmo ch. 4"
+  - already tried: The CHAPTER is confirmed: Crossref's chapter records for do Carmo, Riemannian Geometry (ISBN 9780817634902 / 9781475722017) give, in page order, ch. 0 Differentiable Manifolds, 1 Riemannian Metrics, 2 Affine Connections, 3 Geodesics; Convex Neighborhoods (60-87), 4 Curvature (88-109), ... 8 Spaces of Constant Curvature (155-190). So ch. 3 (Gauss lemma), ch. 4 (curvature) and ch. 8 (space forms) are all right. The internal numbering "Lemma 3.3" and the claim that Schur's theorem is an exercise in ch. 4 need the book; Springer's page returned a JavaScript challenge.
+- **units/39-cosmology/slides.html:148-149**
+  - citation: "Milne named the principle in 1933"
+  - already tried: Milne is the standard originator of the term "cosmological principle" and 1933 is the date usually given (Z. Astrophys. 6, 1), but I found no indexed record — Crossref has nothing for that journal and Milne's 1934 QJM paper (confirmed, see below) is a different one. Needs a history-of-cosmology source.
+- **units/39-cosmology/slides.html:297-298**
+  - citation: "Robertson (1935) and Walker (1936) proved independently that the symmetries force it"
+  - already tried: Robertson 1935 is confirmed ("Kinematics and World-Structure", ApJ 82, 284, Crossref 10.1086/143681). Walker is the doubtful one: Crossref dates A. G. Walker, "On Milne's Theory of World-Structure", Proc. London Math. Soc. s2-42(1), 90-127 to 1937, not 1936 (https://api.crossref.org/works/10.1112/plms/s2-42.1.90 , published-print 1937). The volume spans 1936-37 and both years are used in the literature, so I did NOT change it — but a human should decide whether the deck should say 1937.
+- **units/39-cosmology/slides.html:1405**
+  - citation: "Mukhanov and Chibisov 1981"
+  - already tried: The paper is Mukhanov & Chibisov, JETP Letters 33, 532 (1981); JETP Letters of that era is not in Crossref and a bibliographic search there returned only unrelated later papers. arXiv predates it. The attribution is the standard one and nothing contradicts it, but I have no independent record.
+
+## Course-level pages only: CURRICULUM.html, README.md, AUTHORING.md, units/readiness/problems.html. No unit file
+
+- **CURRICULUM.html:2931 — "Weinberg and the particle-physics literature use (+,−,−,−)"**
+  - citation: Weinberg, Gravitation and Cosmology, assigned the (+,−,−,−) signature
+  - already tried: HIGHEST-PRIORITY ITEM — I have specific reason to doubt this one. Wikipedia's "Sign convention" article (fetched twice, incl. ?action=raw, asking explicitly for every row) reproduces the MTW front-cover table: it lists Landau-Lifshitz, Chandrasekhar, Witten, D'Inverno and Hobson-Efstathiou-Lasenby as (+,−,−,−), and MTW, Carroll and Wald as (−,+,+,+) — Weinberg appears in NEITHER column. Wikipedia has no "Gravitation and Cosmology" article (404). Google Books API 429-rate-limited on every attempt; archive.org refusing connections; physics.stackexchange blocked by the fetch tool; DAMTP PDF failed TLS verification. Weinberg is widely reputed to be the particle physicist who uses mostly-PLUS, which if true makes the sentence right about the particle-physics literature and wrong about Weinberg. NOT CHANGED — needs someone to open the book's conventions page. Note the rest of the sentence IS confirmed: Carroll (verified directly from his notes, eta = diag(−1,1,1,1)), Wald and MTW are all (−,+,+,+).
+- **CURRICULUM.html:2910**
+  - citation: Lightman, Press, Price & Teukolsky, Problem Book in Relativity and Gravitation — "475 problems"
+  - already tried: Authors, title and 1975 date CONFIRMED (archive.org metadata search; Wikipedia's Alan Lightman article lists W. H. Press, R. H. Price, S. A. Teukolsky, 1975). The problem COUNT is what I could not verify: Princeton UP pages 404 on both the 9780691081625 and 9780691177717 slugs and on /isbn/, press.princeton.edu/search returns only chrome, WorldCat and HathiTrust returned empty/403, Goodreads slug resolved to an unrelated book, Google Books API 429 on four separate attempts, archive.org details pages 404 with Retry-After 3600. Needs the publisher's blurb or the book's own preface.
+- **units/readiness/problems.html:50-52**
+  - citation: Spivak, Calculus (3rd or 4th ed.), chapter 19 "Integration in elementary terms", chapter 20 "Approximation by polynomial functions", plus its chapter on infinite series
+  - already tried: Book and editions CONFIRMED (Wikipedia: Calculus, 1967; 4th edition 2008 — so "3rd or 4th ed." is real). The CHAPTER NUMBERS AND TITLES are unverified: publishorperish.net/.com/calculus 404s on both, MIT OCW 18.014 uses Apostol not Spivak, Berkeley course page 404, en.wikipedia.org/wiki/Calculus_(Spivak) does not exist, Google Books API 429. Note the chapter numbers may differ between the 3rd and 4th editions, which the sheet offers interchangeably — worth checking both.
+- **units/readiness/problems.html:64-66**
+  - citation: Hoffman and Kunze, Linear Algebra (2nd ed.) — Sylvester's law of inertia and its proof in the chapter on bilinear forms
+  - already tried: No table of contents obtained: en.wikipedia.org/wiki/Linear_Algebra_(Hoffman_and_Kunze) does not exist, the Pearson catalogue URL I tried served Friedberg-Insel-Spence instead, and Wikipedia's "Sylvester's law of inertia" article cites Norman, Carrell, Ostrowski, Higham-Cheng, Ikramov and Garling — but NOT Hoffman and Kunze. The 2nd edition is real and does have a bilinear-forms chapter by reputation, but I have no evidence the law of inertia is proved there.
+- **units/readiness/problems.html:56-58 and :70**
+  - citation: Abbott, Understanding Analysis (2nd ed.) — "the section on the factorial (Gamma) function in chapter 8" and "Abbott's metric-space section in chapter 8"
+  - already tried: Chapter level CONFIRMED from Springer's TOC (2nd ed., Springer New York 2015): ch. 6 Sequences and Series of Functions, ch. 7 The Riemann Integral, ch. 8 Additional Topics — all three match the sheet exactly. The SUBSECTIONS of chapter 8 are what I could not list: Springer's page gives chapter titles only, archive.org 404 with Retry-After 3600. Whether 8.x is a factorial/Gamma section and whether another 8.x is metric spaces is unverified.
+- **units/readiness/problems.html:69-70**
+  - citation: Sutherland, Introduction to Metric and Topological Spaces (2nd ed.) — "its chapters on complete spaces and on compactness"
+  - already tried: Both OUP product URLs I tried (global.oup.com .../9780199563081 with and without the slug) returned an empty body. Edition and chapter titles unverified.
+- **units/readiness/problems.html:48-49**
+  - citation: Demidovich, Problems in Mathematical Analysis — "the chapters on indefinite integrals, definite integrals and series", odd-numbered problems, answers at the back
+  - already tried: Not checked against any source; I ran out of fetch budget on the higher-value items and archive.org / Google Books were both unavailable. The book is real by reputation but its chapter structure and the "odd-numbered problems" claim are unverified.
+- **CURRICULUM.html:2890**
+  - citation: Strauss, Partial Differential Equations — unit 18; "Evans chapters 2–4 when you want more"
+  - already tried: Neither Strauss's TOC nor Evans's chapter 2-4 titles fetched. Evans ch. 2-4 by reputation are "Four Important Linear PDE", "Nonlinear First-Order PDE" and "Other Ways to Represent Solutions", which fits "classification and well-posedness … when you want more" only loosely — worth a look.
+- **CURRICULUM.html:2876-2909, plain title-and-author mentions**
+  - citation: Arnold (Mathematical Methods of Classical Mechanics); Goldstein, Poole & Safko; Morin (Introduction to Classical Mechanics); Lim (Problems and Solutions on Mechanics); Strogatz (Nonlinear Dynamics and Chaos); Hubbard & Hubbard (Vector Calculus, Linear Algebra, and Differential Forms); Stein & Shakarchi (Fourier Analysis, Complex Analysis); Bender & Orszag; Griffiths (Introduction to Electrodynamics); Zangwill; Jackson; Purcell & Morin (Electricity and Magnetism); Schwartz (Principles of Electrodynamics, Dover); Gelfand & Fomin (Calculus of Variations, Dover); Rindler (Relativity: Special, General and Cosmological); Lee (Introduction to Riemannian Manifolds); do Carmo; O'Neill (Semi-Riemannian Geometry with Applications to Relativity); Frankel (The Geometry of Physics); Misner, Thorne & Wheeler (Gravitation); Hartle (Gravity); Zee (Einstein Gravity in a Nutshell); Poisson (A Relativist's Toolkit); Maggiore (Gravitational Waves, Volume 1); Weinberg (Gravitation and Cosmology)
+  - already tried: Grouped deliberately. These 25 entries carry no edition, chapter range, publisher, year or ISBN — they are bare title-plus-author plus an editorial opinion, so the only falsifiable content is that the book exists under that title and author. I did not independently verify each one and my recollection does not count as evidence. Worth noting the two that the course itself makes checkable claims about are confirmed below (Lee ISM's chapter numbers, Wald's chapter ranges), and the Dover/free-PDF claims for Gelfand-Fomin and Schwartz were not checked.
+- **CURRICULUM.html:2594 and :2777**
+  - citation: "about 531.5 from the other planets" in Mercury's arcsecond budget
+  - already tried: This is the Clemence (1947) figure (531.54), and it is the one consistent with the other numbers in the same line (5025.6 + 531.5 + 0.03 + 42.98 = 5600.11, against "5600 observed"). But Wikipedia's Tests of General Relativity table gives the modern value as 532.3035 arcsec/Julian century, and Wikipedia's Apsidal Precession article says 532. I could not reach Clemence 1947 itself (ADS returned 405). NOT CHANGED — the budget is internally coherent as an equinox-referred Clemence-era table, and the text hedges with "about", but a human should decide whether to cite the Clemence budget explicitly or move to the modern ICRF one (574.10 ± 0.65 observed, 532.3035 planetary).
+- **CURRICULUM.html:2261**
+  - citation: GPS budget: "+45.7 μs per day gravitational, −7.2 kinematic, net +38.5"
+  - already tried: The two inputs are right: I computed +45.72 μs/day for the gravitational term and −7.21 μs/day for the velocity term from standard GPS orbital elements, and Wikipedia's "Error analysis for the Global Positioning System" gives +45.8 and −7.2. But the same article gives the NET as +38.6 μs/day, not +38.5, and +38.6 is the canonical published figure (Ashby). The 0.1 μs gap is the Earth-rotation contribution to the ground clock's second-order Doppler, which turns the −7.2 into a −7.1 in Ashby's budget. NOT CHANGED — 45.7 − 7.2 = 38.5 is internally consistent arithmetic and changing only the net would break it; fixing this properly means changing the kinematic term to −7.1, which is a physics edit, not a citation edit. The "about 11 km of position error per day" is right either way (38.5 μs × c = 11.5 km).
+- **CURRICULUM.html:2641 and :2780**
+  - citation: Hulse-Taylor: "matching prediction to 0.2 per cent over forty years"; "(−2.423 ± 0.001) × 10⁻¹²"
+  - already tried: The 0.2 per cent is CONFIRMED — Weisberg & Huang 2016 (arXiv:1606.02744) abstract gives the observed/predicted ratio as 0.9983 ± 0.0016, i.e. 0.17%. Two things I could not pin down: (a) the abstract says the data were "acquired over the last thirty-five years", not forty — the system has been watched since 1974, so "forty years" is defensible for the system but not for the published fit; (b) the Pdot value (−2.423 ± 0.001) × 10⁻¹² is in the paper's tables, not its abstract, and pdftotext could not extract the 4.2 MB PDF's tables. Both NOT CHANGED.
+- **CURRICULUM.html:2902**
+  - citation: Lee, Introduction to Smooth Manifolds (chapters 1–14 and 17)
+  - already tried: The chapter numbers are CONFIRMED against the 2nd edition (Springer 2013) TOC: 1-14 run Smooth Manifolds through Differential Forms, and 17 is De Rham Cohomology. Two things for a human: the course does not name the edition, and the 1st edition (2003) numbers its chapters completely differently, so the citation is only right for the 2nd; and reading 1-14 then jumping to 17 skips 15 (Orientations) and 16 (Integration on Manifolds), which is where Stokes' theorem lives and which de Rham cohomology depends on. The second point is a pedagogical judgement, not a citation error, so I left it.
+- **units/readiness/problems.html:72-74**
+  - citation: Armstrong, Groups and Symmetry — "its opening chapters, up to and including the one on actions, orbits and stabilizers", in "a few days to a week"
+  - already tried: The citation is CONFIRMED and exact: Springer UTM, 1988, and chapter 17 is titled "Actions, Orbits, and Stabilizers". Flagging only the characterisation: chapter 17 of 28 is past the midpoint of a 187-page book, reached via Lagrange, Cauchy, conjugacy, quotient groups and homomorphisms — calling that "its opening chapters" and budgeting "a few days to a week" looks optimistic. Pedagogy, not citation, so untouched.
+- **CURRICULUM.html:2599**
+  - citation: "The photon sphere at 3GM/c², which is the ring in the Event Horizon Telescope images"
+  - already tried: The photon sphere radius 3GM/c² is standard and right. The identification with the EHT ring is loose: the bright ring's apparent diameter is set by the photon capture cross-section (shadow radius √27 GM/c² ≈ 5.2 GM/c²), not by 3GM/c²; and Wikipedia's Event Horizon Telescope article records that the 2022 "remastered" M87* photon-ring claim "has been subsequently disputed". NOT CHANGED — this is a physics/pedagogy statement rather than a bibliographic citation, and the brief forbids touching either.
+- **CURRICULUM.html:2888**
+  - citation: Spivak, Calculus on Manifolds — "the 140-page alternative"
+  - already tried: Wikipedia gives the page count as 146 (Benjamin Cummings, 1965), and confirms it contains the statement and proof of the generalized Stokes' theorem, which is the substance of the claim. "140-page" is a rounding of 146, not an error; noting it only so nobody re-flags it.
+
+## Cross-cutting consistency pass over all 41 units (units/00–40, slides.html + problems.html + GLOSSARY.org) plu
+
+- **units/38-gravitational-waves/slides.html:987 — "Isaacson 1968; MTW ch. 35, §35.13–35.15; Maggiore vol. 1, §1.4."**
+  - citation: MTW ch. 35, §35.13–35.15 for the Isaacson effective stress-energy tensor
+  - already tried: Confirmed at chapter level only: Princeton UP TOC for Gravitation puts chapters 35–37 in Part VIII "Gravitational Waves" (ch. 35 = propagation), so the chapter is right. Could not reach a section-level TOC: press.princeton.edu gives chapter titles without section numbers; archive.org holds two scans (gravitation0000misn, gravitation0000misn_o3a5) but search-inside and the _djvu.txt download both require authentication (302/empty). Note that MTW's better-known home for this result is §35.7 "The stress-energy tensor for gravitational waves", so §35.13–35.15 is worth a human check against the book. Isaacson 1968 itself IS confirmed (Phys. Rev. 166, 1272, via Crossref).
+- **units/38-gravitational-waves/slides.html:1180 "(MTW §36.11; Maggiore vol. 1, ch. 3)"; units/32-metric-geodesics/slides.html:1262 "Misner, Thorne and Wheeler, Gravitation, §11.6"; units/40-rotating-charged-holes/slides.html:1248 "(cited: MTW §32.4)"; units/32-metric-geodesics/slides.html:757 "Gravitation, §6.5"**
+  - citation: Four MTW section-level locators
+  - already tried: All four confirmed at chapter level against the Princeton UP TOC (ch. 6 Accelerated Observers, 6 sections — so §6.5 exists and Fermi–Walker fits; ch. 11 in the curvature block; ch. 32 in Part VII Gravitational Collapse; ch. 36 Generation of Gravitational Waves). Section-level verification blocked by the same archive.org authentication wall. Not searched further — no search engine was available (WebSearch budget exhausted session-wide at 200/200; DuckDuckGo and Bing return CAPTCHAs to WebFetch; Google Books API quota exhausted).
+- **units/02-phase-portraits/slides.html:1366 and units/34-differential-forms/slides.html:1624 — both "do Carmo, Differential Geometry of Curves and Surfaces, §5-7"**
+  - citation: do Carmo, Curves and Surfaces §5-7 for Hopf's Umlaufsatz / theorem of turning tangents
+  - already tried: The two units agree exactly with each other on both the locator and the result (unit 02: "Umlaufsatz, Hopf 1935 … A periodic orbit has index +1"; unit 34: "Hopf's theorem of turning tangents"), which is the cross-cutting test I can apply. No external TOC for the 1976 Prentice-Hall edition was reachable: Crossref has no chapter records for it, and no search engine was available. A human with the book should check whether §5-7 ("Global Theorems for Curves") is where the turning-tangents proof is deferred to from §4-5. Same for the §4-3 / §4-5 citations in units 32, 33 and 34, which are mutually consistent but externally unverified.
+- **units/08-central-forces/GLOSSARY.org:126 and units/15-hamilton-jacobi/slides.html:894 — "Goldstein … §3.6 (Appendix A of the 2nd edition)"**
+  - citation: Bertrand's theorem at Appendix A of Goldstein 2nd ed.
+  - already tried: Partly settled and partly not. Confirmed from Wikipedia's Classical Mechanics (Goldstein) article that the 3rd edition has exactly three appendices — A (Euler Angles / Cayley–Klein), B (Groups and Algebras), C (Solutions to Select Exercises) — which independently justifies units/15-hamilton-jacobi/GLOSSARY.org:63 naming the 2nd edition for "appendix D" (the Stäckel conditions), since the 3rd has no Appendix D. But the same article says the 2nd edition "added a new SECTION on Bertrand's theorem", not an appendix, which sits awkwardly with the course's "Appendix A of the 2nd edition". No 2nd-edition TOC was reachable (archive.org 404/rate-limited, no search engine). A human with the 1980 edition should settle where Bertrand sits. https://en.wikipedia.org/wiki/Classical_Mechanics_(Goldstein)
+- **units/40-rotating-charged-holes/slides.html:170 "Chandrasekhar, The Mathematical Theory of Black Holes, §58" and :1043 "Chandrasekhar §62"**
+  - citation: Chandrasekhar section numbers
+  - already tried: Not verifiable without the book or a search engine; Chandrasekhar numbers sections continuously across chapters, so these cannot be sanity-checked against a chapter list. The companion citation on the same line, "Walker & Penrose, Commun. Math. Phys. 18, 265", IS confirmed via Crossref (Walker & Penrose 1970, CMP 18, 265–274).
+- **units/33-curvature/slides.html:757 and units/39-cosmology/slides.html:186 — "do Carmo, Riemannian Geometry, ch. 4, Lemma 3.3"**
+  - citation: The exact lemma number 3.3 inside do Carmo Riemannian Geometry ch. 4
+  - already tried: Chapter confirmed: Springer/Crossref for ISBN 978-1-4757-2201-7 places "Spaces of Constant Curvature" at DOI suffix _9 and "Affine Connections" at _3, which fixes do Carmo's 0-based chapter numbering and makes ch. 4 = Curvature, ch. 3 = Geodesics; Convex Neighborhoods, ch. 8 = Spaces of Constant Curvature — all three matching how units 33 and 39 use them. The within-chapter lemma number could not be reached.
+
+
+---
+
+# Settled by the second pass, 2026-09-20
+
+These were on the lists above and are now closed. Struck off, not fixed, unless the action says otherwise.
+
+- **Report 09: Hartman, Ordinary Differential Equations, ch. V, cited in unit 32 for smoothness of exp_p. Report gave up: "SIAM Classics page (HTTP 403) ... Needs the book."**
+  - SETTLED — the citation is CORRECT, and the report should not have given up on it
+  - evidence: Crossref indexes the SIAM Classics edition chapter-by-chapter under DOI prefix 10.1137 (ISBN 9780898719222). Chapter 5 is 'Dependence on Initial Conditions and Parameters', pp. 93-116 — precisely the smooth-dependence theorem the deck cites it for. Neighbours confirm the numbering: 1. Preliminaries (1-7), 2. Existence (8-23), 3. Differential Inequalities and Uniqueness (24-44), 4. Linear Different
+  - action: none needed — citation verified correct, left as is
+- **Report 09: do Carmo, Riemannian Geometry, ch. 4, Lemma 3.3, cited in unit 33 for sectional curvatures determining R. Report gave up: "Springer (all book/chapter pages redirect to an auth wall). Needs **
+  - SETTLED at chapter level — ch. 4 is the right chapter; only the lemma number remains unverified
+  - evidence: Crossref chapter records for DOI 10.1007/978-1-4757-2201-7 give the full ordered listing: _1 Differentiable Manifolds (1-34), _2 Riemannian Metrics, _3 Affine Connections, _4 Geodesics; Convex Neighborhoods, _5 Curvature (88-109), _6 Jacobi Fields, _7 Isometric Immersions, _8 Complete Manifolds, ... _14 The Sphere Theorem (265-291). do Carmo numbers his own chapters from 0 (Chapter 0: Differentiab
+  - action: none — citation left as is; the chapter is right, Lemma 3.3 still wants the book
+- **Report 09: the 2005 numerical-relativity breakthroughs (Pretorius; Campanelli et al.; Baker et al.) in unit 35**
+  - SETTLED — report's reading is right; two of the three are 2006 journal papers
+  - evidence: OpenAlex/Crossref by DOI: Pretorius, 'Evolution of Binary Black-Hole Spacetimes', PRL 95, 121101, published 2005-09-14; Campanelli, Lousto, Marronetti & Zlochower, PRL 96, 111101, published 2006-03-22; Baker, Centrella, Choi, Koppitz & van Meter, PRL 96, 111102, published 2006-03-22. The deck gives no years or journal refs for the two moving-puncture papers, so 'the breakthroughs of 2005' is defen
+  - action: none — no citation error to fix; flagged for the author if they want '2005-06'
+- **Report 09: Levi-Civita, 'Sur l'ecart geodesique', Math. Ann. 97 — deck says 1926, Crossref says 1927**
+  - SETTLED — the report was right to refuse the change; changing it would have been a fabricated fix
+  - evidence: My own Crossref query returns DOI 10.1007/bf01447869, Math. Ann. 97, 291-320, issued 1927-12 — the volume completion stamp, not the paper date. The same artifact shows up on Levi-Civita's parallel-transport paper, which unit 33:417 dates 1917: Crossref gives 'Nozione di parallelismo in una varieta qualunque', Rend. Circ. Mat. Palermo 42, 173-204, issued 1916-12, while the paper is universally cite
+  - action: none — both dates left alone, deliberately
+- **Report 07 EDITION CAVEAT (its notes, deferred to a human): Lee, Introduction to Smooth Manifolds ch. 9 / ch. 19 cited bare in unit 31, correct for the 2nd edition but the 1st-edition contents could no**
+  - SETTLED and FIXED — ch. 9 genuinely differs between editions
+  - evidence: The same Crossref two-edition pull that substantiated the units 32/34 fixes closes this. 1st ed. ch. 9 = 'Lie Group Actions' (206-240); 2nd ed. ch. 9 = 'Integral Curves and Flows' (205-248). unit 31 slides.html:970 cites ch. 9 for the uniqueness-of-integral-curves argument, which is 2nd-edition-only. By contrast ch. 19 is harmless in both — 1st ed. 'Integral Manifolds and Foliations' (494-517), 2n
+  - action: EDITED units/31-manifolds/slides.html:970 to read 'Lee, Introduction to Smooth Manifolds, 2nd ed., chapter 9', matching what units 32 and 34 already say. Re-ran node slides/tools/deck-overflow.mjs on unit 31: 'no overflow', exit 0.
+- **Report 10: units/36-schwarzschild/slides.html:886 and unit 31 — "Kretschmann ... who, in 1917, made the objection to general covariance". Report found Crossref dating it 1918 and flagged 1917 vs 1918 **
+  - SETTLED — 1917 is correct; the deck is right as printed in both units. Crossref's 1918 is Wiley's retro-digitisation date for the bound volume (continuous-numbering vol. 358, issue 16), not the paper's year.
+  - evidence: Wolfgang Gebhardt, "Erich Kretschmann. The Life of a Theoretical Physicist in Difficult Times", Max-Planck-Institut für Wissenschaftsgeschichte Preprint 482 (2016) — a scholarly biography built from Kretschmann's own records. I downloaded the PDF (https://www.mpiwg-berlin.mpg.de/Preprints/P482.PDF) and extracted the text. Its section "Kretschmann's Publications" reads: "———. 1917. Über den physika
+  - action: none needed — units 31 and 36 both already say 1917
+- **Report 10: units/36-schwarzschild/slides.html:1311 — "Kruskal and Szekeres found the chart independently in 1960." Report confirmed Kruskal but said Szekeres's Publ. Math. Debrecen paper "is not in Cr**
+  - SETTLED — confirmed. Deck is right.
+  - evidence: INSPIRE-HEP literature API (https://inspirehep.net/api/literature?q=a Szekeres and t singularities of a Riemannian manifold): one hit, G. Szekeres, "On the singularities of a Riemannian manifold", Publ. Math. Debrecen 7, 285-301, year 1960. INSPIRE indexes this journal even though Crossref does not; the report simply did not try INSPIRE.
+  - action: none needed
+- **Report 10: units/39-cosmology/slides.html:1405 — "Mukhanov and Chibisov 1981". Report: "JETP Letters of that era is not in Crossref ... I have no independent record."**
+  - SETTLED — confirmed. Deck is right.
+  - evidence: INSPIRE-HEP: Mukhanov & Chibisov, "Quantum Fluctuations and a Nonsingular Universe", JETP Lett. 33, 532-535 (1981) [= Pisma Zh. Eksp. Teor. Fiz. 33, 549-553]. Same query route as above.
+  - action: none needed
+- **Report 10: units/39-cosmology/slides.html:297-298 — "Robertson (1935) and Walker (1936)". Report found Crossref dating Walker's Proc. LMS s2-42, 90-127 to 1937 and asked whether the deck should say 19**
+  - SETTLED as acceptable — leave 1936. The volume straddles 1936-37; the course's own principal source for this passage uses 1936.
+  - evidence: Weinberg, Gravitation and Cosmology (1972), chapter 14 reference list, read from the archive.org OCR I downloaded: "1. H. P. Robertson, Ap. J., 82, 284 (1935); ibid., 83, 187, 257 (1936). 2. A. G. Walker, Proc. Lond. Math. Soc. (2), 42, 90 (1936). 3. A. Friedmann, Z. Phys., 10, 377 (1922); ibid., 21, 326 (1924)." INSPIRE and Crossref both say 1937 (Wiley's issue date). Since the deck cites Weinber
+  - action: none — deliberately left as 1936
+- **Report 10: units/37-classical-tests/slides.html:1000-1002 — "1.7 million delay measurements of 541 radio sources over twenty years" (Shapiro et al., PRL 92, 121101). Report: "The counts ... are in the**
+  - PARTLY SETTLED — 541 sources confirmed from an independent open-access source; "1.7 million" is corroborated but not pinned to the digit.
+  - evidence: Clifford Will, "The Confrontation between General Relativity and Experiment", Living Reviews in Relativity 17 (2014) 4, §3.4.1, read in full from https://ar5iv.labs.arxiv.org/html/1403.7377: "A 2004 analysis of almost 2 million VLBI observations of 541 radio sources, made by 87 VLBI sites yielded (1+γ)/2 = 0.99992 ± 0.00023, or equivalently γ−1 = (−1.7 ± 4.5)×10⁻⁴ [335]." Will's reference [335] is
+  - action: none — left as written
+- **Report 10: units/37-classical-tests/slides.html:1110-1113 — "came in 1967–1971 and agreed with general relativity to within about 5% ... The Viking landers on Mars (1976–77) reached 0.1%". Report: "I **
+  - PARTLY SETTLED — the 0.1% Viking figure is confirmed; the 5% for 1967-71 remains unverified.
+  - evidence: Will, Living Reviews in Relativity 17 (2014) 4, §3.4.2 (same ar5iv full text): "The 1976 Viking experiment resulted in a 0.1 percent measurement [306]", where [306] is Reasenberg, R.D. et al., "Viking relativity experiment: Verification of signal retardation by solar gravity", ApJL 234, L219-L221 (1979). Will does not give a single figure for the 1967-71 Haystack/Arecibo radar results, so that cla
+  - action: none — left as written
+- **Report 10: units/38-gravitational-waves/slides.html:17 — "chirp mass 28.1 M_⊙ at the source, 30.6 M_⊙ as the detector sees it", with the deck citing only "(Abbott et al. 2016)". Report worried the dis**
+  - SETTLED — both values confirmed exactly, and the deck's attribution is fine because both LVC 2016 papers are "Abbott et al. 2016".
+  - evidence: I downloaded the arXiv PDF of the companion properties paper (https://arxiv.org/pdf/1602.03840 = PRL 116, 241102) and ran pdftotext. Table I, "Overall" column: detector-frame chirp mass 30.6 (+1.8/−1.8) M_⊙, source-frame chirp mass 28.1 (+1.7/−1.6) M_⊙. Exactly the deck's pair.
+  - action: none needed
+- **Report 08: slides.html:426 — "Hawking & Ellis §9.3" for the rigidity theorem. Report: "Cambridge Core lists chapters only ... Section number unverified."**
+  - SETTLED — confirmed. §9.3 is the right locator.
+  - evidence: I downloaded the full OCR of Hawking & Ellis, The Large Scale Structure of Space-Time (archive.org item the-large-scale-structure-of-space-time-hawking-ellis, _djvu.txt) and read the section. §9.3 is headed "The final state of black holes" (p. 323) and contains the rigidity argument verbatim: "We shall show that in the latter case the solution would spontaneously become either axisymmetric or stat
+  - action: none needed
+- **Report 08: slides.html:1765 / problems.html:1096 — LIGO area-law test "satisfied at 95% confidence".**
+  - SETTLED — the report's reading is exactly right. 95% is the excluding-overtones figure; 97% is the headline.
+  - evidence: arXiv:2012.04486 abstract (Isi, Farr, Giesler, Scheel, Teukolsky; PRL 127, 011103 (2021)), fetched directly: "finding agreement with the prediction with 97% (95%) probability when we model the ringdown including (excluding) overtones of the quadrupolar mode."
+  - action: none — 95% is defensible as printed; the parent may prefer to quote both
+- **Report 10: units/36-schwarzschild/slides.html:936 — "Lemaître had shown in 1933". Report found Wikipedia saying 1932 and could not reach the GRG reprint's editor note.**
+  - LEANS CONFIRMED but not definitively settled — 1933 is the year carried by the standard bibliographic record.
+  - evidence: Wikipedia's Lemaître coordinates article reference (fetched via the REST HTML API) gives "G. Lemaitre (1933). 'L'Univers en expansion'. Annales de la Société Scientifique de Bruxelles. A53: 51–85. Bibcode:1933ASSB...53...51L" — the ADS bibcode itself encodes 1933. Crossref confirms only the 1997 GRG reprint (10.1023/A:1018855621348, vol 29, pp 641-680) and its editor's note (vol 29, pp 637-640); S
+  - action: none — left as 1933
+- **Report 08: book section locators (Chandrasekhar MTBH §58 and §62, Poisson §3.7/§3.8, MTW §32.4, Wald §12.5.2); Report 10: Maggiore vol. 1 §1.4 and §3.4, Weyl Classical Groups ch. II, Chandrasekhar Ell**
+  - NOT PADDING — I independently reproduced the blocks. These lists are genuinely unavailable, not search-budget artefacts.
+  - evidence: Chandrasekhar MTBH: archive.org items mathematicaltheo0000chan and mathematicaltheo0006chan exist, but the _djvu.txt returns HTTP 403 "Item not available" (lending-restricted) — I tried the direct ia801407.us.archive.org path, not just the archive.org redirect. Maggiore: academic.oup.com/book/43336 returns HTTP 403 even with a browser user-agent, and global.oup.com/academic/product/gravitational-w
+  - action: none possible without the physical books
+- **Report 11, flagged HIGHEST-PRIORITY: CURRICULUM.html:2931 "Weinberg and the particle-physics literature use (+,−,−,−)".**
+  - SETTLED — the course was WRONG. Weinberg's Gravitation and Cosmology uses (−,+,+,+), the same signature as this course.
+  - evidence: Two independent sources. (1) MTW's own sign-convention table, reproduced in Wikipedia's Einstein field equations article citing MTW 1973 p.501ff: it defines g_{μν} = [S1] × diag(−1,+1,+1,+1) and classifies MTW as (+ + +) and "Weinberg (1972)" as (+ − −) — [S1] = + for both, i.e. Weinberg is mostly-plus; the two minus signs are the Riemann and Einstein sign conventions, not the signature. (2) Prima
+  - action: FIXED. CURRICULUM.html:2931 now reads "matching Carroll, Wald, MTW, O'Neill and Weinberg; the particle-physics literature uses (+,−,−,−)". Weinberg moved to the correct side of the sentence; nothing else in the line touched.
+- **Report 11: Hulse–Taylor orbital period derivative "(−2.423 ± 0.001) × 10⁻¹²" (CURRICULUM.html:2780), which the report could not extract from the 4.2 MB Weisberg & Huang PDF.**
+  - SETTLED — CONFIRMED correct, to the digit.
+  - evidence: Downloaded the paper's LaTeX source rather than its PDF: https://arxiv.org/e-print/1606.02744, file ms-accept.tex line 520 — "$\dot{P}_b^{\rm obs}$ \dotfill & $-$2.423(1) $\times 10^{-12}$". The same source gives the intrinsic value −(2.398 ± 0.004)e−12, the GR prediction −(2.40263 ± 0.00005)e−12 and the ratio 0.9983 ± 0.0016 (line 946), so the course's "0.2 per cent" is right too. The arXiv e-pri
+  - action: none — the course value is correct as printed.
+- **Report 12: units/38-gravitational-waves/slides.html:987 "MTW ch. 35, §35.13–35.15" for the Isaacson effective stress-energy tensor, which the report doubted in favour of §35.7.**
+  - SETTLED — CONFIRMED correct as printed. The report's doubt was misplaced.
+  - evidence: Green & Wald, "Comments on Backreaction" (arXiv:1506.06452), p. 4: "The Brill-Hartle approach was then significantly generalized by Isaacson [8, 9]. The Isaacson work is nicely summarized in subsections 35.13–15 of Misner, Thorne, and Wheeler [18]." Wald is about as authoritative a witness to an MTW locator as exists. (§35.7 also exists and is also about the gravitational-wave stress-energy tensor
+  - action: none — no edit needed.
+- **Report 12: units/32-metric-geodesics/slides.html:1262 "Misner, Thorne and Wheeler, Gravitation, §11.6" for the normal-coordinate metric expansion g_ij = η_ij − (1/3)R_ikjl y^k y^l, confirmed by the re**
+  - SETTLED — CONFIRMED at section level.
+  - evidence: arXiv:2312.03487 p. 4 "normal coordinates [3, §11.6]", with [3] = "C. W. Misner, K. S. Thorne, and J. A. Wheeler, Gravitation" in its bibliography; corroborated by arXiv:gr-qc/0612061, which introduces the normal-coordinate metric and connection with "(see, e.g. [6], §11.6)". Method: INSPIRE-HEP's full-text search API (inspirehep.net/api/literature?q=ft "..."), which searches the body text of the 
+  - action: none — no edit needed.
+- **Report 12: units/15-hamilton-jacobi and units/08-central-forces cite "Goldstein §3.6 (Appendix A of the 2nd edition)" for Bertrand's theorem, and unit 15's glossary cites "Appendix D of the 2nd editio**
+  - PARTLY SETTLED. §3.6 CONFIRMED; Appendix D CONFIRMED from the primary source; "Appendix A of the 2nd edition" for Bertrand still unproven (but no longer suspicious).
+  - evidence: Downloaded the full text of the 3rd edition (archive.org item ClassicalMechanicsGoldstein3ed, file Classical_Mechanics_Goldstein_3ed_djvu.txt, unrestricted). Its TOC line 91: "3.6 Conditions for Closed Orbits (Bertrand's Theorem) 89" — the course's §3.6 is exact. Its §10.x text states verbatim: "A proof of the sufficiency of the [Staeckel] conditions and references will be found in Appendix D of t
+  - action: none — left as printed; a human with the 1980 edition should settle the Appendix A half.
+- **Report 12's checks_run claims "all 13 in-course Wald citations (… S12.5.2 …) match the published section titles". I re-verified the Wald claim against the source.**
+  - The Wald verification is genuine for 12 of 13 — and the 13th is a defect BOTH reports missed. Wald has no §12.5.2: 12.5.2 is an EQUATION number.
+  - evidence: University of Chicago Press TOC for Wald, General Relativity: ch. 5 Homogeneous, Isotropic Cosmology (5.1 Homogeneity and Isotropy), 6.1 Derivation of the Schwarzschild Solution, 9.2 Timelike and Null Geodesic Congruences, 10.2 Initial Value Formulation of General Relativity, 11.2 Energy, 12.3 The Charged Kerr Black Holes, 12.5 Black Holes and Thermodynamics, App. D Conformal Transformations, App.
+  - action: FIXED. units/40-rotating-charged-holes/problems.html:396 changed from "(Wald §12.5.2, where it reads" to "(Wald, eq. (12.5.2), where it reads". Re-ran node slides/tools/sheet-check.mjs on that file: "12 problems, 1076 formulas — ok".
+- **Report 06: units/25-the-crisis/slides.html:567, 589 and GLOSSARY.org:77 — 'Measured by Michelson and Morley in 1886: 0.434 +/- 0.02' (Fresnel drag coefficient). Report could confirm the journal refere**
+  - CONFIRMED CORRECT, exactly as written. This one was settleable with a single fetch of the primary source; its presence on the unconfirmed list is padding.
+  - evidence: https://en.wikisource.org/wiki/Influence_of_Motion_of_the_Medium_on_the_Velocity_of_Light — the full text of Michelson & Morley, Am. J. Sci. (3) 31 no. 185 (1886) 377-386. The paper's own final result reads 'x = .434 with a possible error of +/- .02', against the Fresnel prediction (n^2-1)/n^2 = .437. Deck value and uncertainty both verbatim.
+  - action: none needed — deck already correct
+- **Report 06: units/27-relativistic-dynamics/slides.html:423, 434, 1007-1008 — 'A 6.8 TeV LHC proton'; 'Two 6.8 TeV beams: sqrt(s) = 13.6 TeV'. Report: 'Not checked against a CERN source.'**
+  - CONFIRMED CORRECT. Also padding — one fetch of CERN's own page settles it.
+  - evidence: https://home.cern/science/accelerators/large-hadron-collider — CERN's key-figures section gives 6.8 TeV per beam, and the energy section states the LHC 'reached 13,6 TeV in 2022, at the start of its third run.'
+  - action: none needed — deck already correct
+- **Report 06: units/27-relativistic-dynamics/slides.html:398-401 and 1361-1362 — Landau & Lifshitz, The Classical Theory of Fields, §8 for the -mc^2 integral-dtau action; also '§§8-13' and 'chapter 3 (§1**
+  - ALL THREE LOCATORS CONFIRMED CORRECT. Reachable after all — an unrestricted archive.org copy exists.
+  - evidence: Full OCR text of the 4th English edition at https://ia601809.us.archive.org/15/items/landau-l.-d.-lifshitz-e.-m.-course-of-theoretical-vol-2/[Landau_L.D.,_Lifshitz_E.M.]_Course_of_theoreticalVol2_djvu.txt. Its own TOC: Chapter 2 'Relativistic Mechanics' p.24 = §8 The principle of least action, §9 Energy and momentum, §10 Transformation of distribution functions, §11 Decay of particles, §12 Invaria
+  - action: none needed — deck already correct
+- **Report 05: unit 23 slides.html:1648-1650 — Griffiths, Introduction to Electrodynamics, 'his §1.5' for the Dirac delta and 'its Appendix B proves Helmholtz'; also 'ch. 2-3 and 5'. Report: 'Cambridge's **
+  - CONFIRMED CORRECT.
+  - evidence: Full OCR text of Griffiths 3rd ed. at https://ia800706.us.archive.org/13/items/fc-00-introduction-to-electrodynamics-griffiths-1999/FC00 INTRODUCTION TO ELECTRODYNAMICS Griffiths 1999_djvu.txt. TOC and body headings: '1.5 The Dirac Delta Function' (p.45, with 1.5.1 The Divergence of r-hat/r^2, 1.5.2 One-Dimensional, 1.5.3 Three-Dimensional); 'Appendix B — The Helmholtz Theorem' p.555, and §1.6.1 s
+  - action: none needed — deck already correct
+- **Report 06: units/24-maxwell/slides.html:1544-1551 — Griffiths 4th ed. §7.2-7.3, §8.1-8.2, §9.1-9.2, §10.1-10.2, §11.1-11.2, §1.5, §10.3, §11.2.2. Report confirmed chapter level only, said section leve**
+  - ALL EIGHT SECTION LOCATORS CONFIRMED against a real TOC, with one caveat: the copy I reached is the 3rd edition, whose numbering in chapters 7-11 is unchanged in the 4th.
+  - evidence: Same Griffiths OCR text as above. §7.2 Electromagnetic Induction / §7.3 Maxwell's Equations (7.3.2 How Maxwell Fixed Ampere's Law — the displacement current); §8.1 Charge and Energy (8.1.2 Poynting's Theorem) / §8.2 Momentum (8.2.2 Maxwell's Stress Tensor); §9.1 Waves in One Dimension (9.1.4 Polarization) / §9.2 EM Waves in Vacuum (9.2.3 Energy and Momentum); §10.1 The Potential Formulation (10.1.
+  - action: none needed — deck already correct
+- **Report 06: units/24-maxwell/slides.html:1551 — 'Evans, Partial Differential Equations, §2.4.1, which proves everything this deck does with spherical means' (Kirchhoff, descent, Huygens). Report: AMS 4**
+  - §2.4.1 CONFIRMED CORRECT from the book's own cross-references. §2.2.4 confirmed to section level (§2.2 = Laplace's Equation), subsection still open. The AMS 403 was transient rate-limiting, not a block: retrying the same URLs a few seconds apart returned both PDFs.
+  - evidence: https://www.ams.org/bookstore/pspdf/gsm-19-r-toc.pdf gives Chapter 2 'Four Important Linear Partial Differential Equations': §2.1 Transport Equation p.17, §2.2 Laplace's Equation p.19, §2.3 Heat Equation p.42, §2.4 Wave Equation p.63. https://www.ams.org/bookstore/pspdf/gsm-19-r-prev.pdf (the sample-pages PDF) contains the book's own internal pointers: 'This is a variant of the method of descent, 
+  - action: none needed — deck already correct at §2.4.1; §2.2.4 left alone, now supported at section level
+- **Report 05: unit 22 slides.html:1513-1514 — 'Oldham (1906) inferred a core...'. Report doubted both the 1906 date and the P-wave mechanism on the strength of a Wikipedia biography, and left it unchange**
+  - DATE CONFIRMED CORRECT. The report's doubt was misplaced — it was reading a secondary summary rather than the record of the paper.
+  - evidence: Crossref, api.crossref.org query: R. D. Oldham, 'The Constitution of the Interior of the Earth, as Revealed by Earthquakes', Quarterly Journal of the Geological Society, vol. 62, pp. 456-475, issued February 1906, DOI 10.1144/gsl.jgs.1906.062.01-04.21. Exactly the volume and starting page the deck's note refers to.
+  - action: none needed — deck already correct
+- **Report 06: units/26-minkowski/slides.html:755-757 — 'The ring had radius about 7 m, so the muons' acceleration ... ~1.1e19 m s^-2, about 1e18 g'. Report: 'The ring radius was not found: ADS 405, natur**
+  - SUBSTANTIATED to the precision the deck claims ('about 7 m').
+  - evidence: The Fermilab E989 Technical Design Report, https://arxiv.org/pdf/1501.06858v2, states p_magic = 3.094 GeV/c with gamma_magic = 29.3 and notes 'The magic momentum was first employed by the third CERN collaboration', and repeatedly gives 'magic radius = 7112 mm' for a magic-momentum muon storage ring. A 3.094 GeV/c muon in a ~1.47 T field has p/(qB) = 7.0 m, so the CERN III ring is ~7 m as the deck 
+  - action: none needed. One non-citation nit, deliberately left alone per the brief: the deck labels gamma^2 v^2/r 'the acceleration in the lab', but that expression is the proper (rest-frame) acceleration; the lab centripetal acceleration is v^2/r = 1.3e16. Th
+- **Report 05: unit 20 slides.html:1552 'Bromwich (1916)' and unit 21 slides.html:1096 'Jeffreys had it in 1924' — both left unchanged as ambiguous.**
+  - RE-TESTED; both remain genuinely ambiguous. The reports' decision to leave them was right.
+  - evidence: Crossref 10.1112/plms/s2-15.1.401: Bromwich, 'Normal Coordinates in Dynamical Systems', Proc. LMS s2-15, 401-448, issued 1917. Crossref 10.1112/plms/s2-23.1.428: Jeffreys, 'On Certain Approximate Solutions of Linear Differential Equations of the Second Order', Proc. LMS s2-23, 428-436, issued 1925. In both cases the deck's year is the volume/reading year and Crossref's is the issue year; neither i
+  - action: none
+
+## Re-tried and still open
+
+The second pass reached the same walls independently, so these are genuinely unavailable rather than under-searched.
+
+- **Report 09: do Carmo, Differential Geometry of Curves and Surfaces §4-5, §4-3, §5-7 (four separate unconfirmed entries across units 32, 33, 34)** — NOT SETTLED — I hit the same walls independently; the report's account is accurate
+- **Report 07: Pound and Rebka's exact figures (5.13+/-0.51, 2.57+/-0.26, 1.05+/-0.10) in unit 30** — NOT SETTLED — got closer than the report but not to the numbers
+- **Report 09: Bott and Tu, Differential Forms in Algebraic Topology, §§1, 2, 4, 5** — NOT SETTLED, but the report's evidence was incomplete
+- **Report 07: Pais, Subtle is the Lord, chapters 9 and 11-12** — NOT SETTLED — confirmed genuinely unavailable
+- **Report 10: units/36-schwarzschild/slides.html:586 — "For r_s ≠ 0 the Killing fields are exactly ℝ∂_t ⊕ 𝔰𝔬(3) ... Cited: Hawking and Ellis, §5.5." Report suspect** — CORROBORATED, still unsettled — the report's suspicion is right, and I could not find a correct replacement locator in the same book either, so I did not invent one.
+- **Report 11: Lightman, Press, Price & Teukolsky, Problem Book in Relativity and Gravitation — "475 problems" (CURRICULUM.html:2910).** — NOT SETTLED. Authorship, title, publisher and year confirmed; the count still unverified. Report 11's account of why is honest — this one really is unreachable, not padding.
+- **Report 11: do Carmo, Differential Geometry of Curves and Surfaces §5-7 (units 02 and 34) and the Spivak/Hoffman-Kunze/Sutherland/Demidovich readiness-sheet loca** — NOT SETTLED — and here the reports' pessimism is justified. These are pre-1990 non-Springer books with no chapter DOIs, no reachable publisher TOC and no full-text index; INSPIRE's corpus is physics, so it does not help for do Carmo, Spivak or Hoffma
+- **Report 05: unit 20 slides.html:192 — 'dominated convergence (cited, Stein-Shakarchi, Real Analysis, ch. 2 Thm 1.13)', which the report suspected might carry a w** — STILL UNCONFIRMED. This one is genuinely unavailable, not padding — I tried and failed independently.

@@ -1,0 +1,2018 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19 · Fourier and Sturm–Liouville: the modes are a basis, and that is a theorem</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="c">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="drum"><span class="ref-name">the running example</span>A circular drum: a membrane of radius $a$ clamped at its rim, obeying $\sigma\,u_{tt} = T\,\nabla^2 u$ with $c = \sqrt{T/\sigma}$. Numbers throughout: $a = 0.150\ \mathrm m$, $\sigma = 0.265\ \mathrm{kg\,m^{-2}}$, $T = 3200\ \mathrm{N\,m^{-1}}$, so $c = 109.89\ \mathrm{m\,s^{-1}}$. <span class="ref-note">Separating in polar coordinates gives Bessel's equation (unit 09); the rim gives the eigenvalue condition $J_m(\kappa a) = 0$; the centre gives a boundary condition that is not a boundary condition</span><svg viewBox="0 0 200 200" width="150" aria-hidden="true"><circle cx="100" cy="100" r="86" class="fill-soft unit" stroke-width="4"/><circle cx="100" cy="100" r="47" fill="none" class="accent" stroke-width="2.5" stroke-dasharray="6 4"/><line x1="14" y1="100" x2="186" y2="100" class="accent" stroke-width="2.5" stroke-dasharray="6 4"/><circle cx="100" cy="100" r="4" class="fill-ink"/><text x="104" y="92" font-size="14" class="mono soft">r</text></svg></template>
+  <template data-ref="modes"><span class="ref-name">the drum's spectrum</span>$\omega_{mk} = c\,j_{mk}/a$, where $j_{mk}$ is the $k$-th positive zero of $J_m$. <span class="ref-note">$j_{01} = 2.404826$, $j_{11} = 3.831706$, $j_{21} = 5.135622$, $j_{02} = 5.520078$ — ratios $1 : 1.5933 : 2.1355 : 2.2954$, and with the numbers above $280.39$, $446.76$, $598.79$, $643.62\ \mathrm{Hz}$</span></template>
+  <template data-ref="SL"><span class="ref-name">the drum, in Sturm–Liouville form</span>$-(r R')' + \dfrac{m^2}{r}R = \lambda\,r\,R$ on $(0, a)$: $p(r) = r$, $q(r) = m^2/r$, $w(r) = r$. <span class="ref-note">$p(0) = 0$, so $r = 0$ is a <i>singular</i> endpoint and boundedness replaces a boundary condition. The weight $r$ is the polar area element — which is why the eigenfunctions are orthogonal with respect to $\int_0^a f g\, r\,\mathrm dr$ and not $\int_0^a fg\,\mathrm dr$</span></template>
+  <template data-ref="trial"><span class="ref-name">the trial function</span>$u_p(r) = 1 - (r/a)^p$, one parameter $p &gt; 0$, vanishing at the rim and bounded at the centre. <span class="ref-note">Rayleigh quotient $a^2R[u_p] = p + 3 + 2/p$, minimised at $p = \sqrt2$ giving $\lambda_1 \le (3 + 2\sqrt2)/a^2 = 5.82843/a^2$ against the true $j_{01}^2/a^2 = 5.78319/a^2$: high by $0.78\%$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part C · the analytic toolkit · spine</p>
+  <div class="unit-no">19</div>
+  <h1>Fourier and Sturm–Liouville: the modes are a basis, and that is a theorem</h1>
+  <p class="lede">Separation of variables produces modes and then asks you to believe that every
+  initial shape is a sum of them. It is true, it is not obvious, and the reason is that one
+  differential operator is symmetric with respect to one inner product.</p>
+  <p class="meta"><span>needs 18, 09, 10, 11</span><span>~3½ h slides + 7 h problems</span><span>problems: <code>./mr problems 19</code></span></p>
+  <aside class="notes">
+    <p>Unit 18 gave the wave equation and solved it on the infinite line with d'Alembert's
+    formula. On a <em>finite</em> string d'Alembert still works, by reflecting the data
+    forever, but it tells you nothing about pitch. Separation of variables answers the
+    other question — which frequencies can this object have — and immediately runs up
+    against a debt it cannot pay by itself: it produces a family of special solutions and
+    then claims that superpositions of them reach every initial condition.</p>
+    <p>That claim is <b>completeness</b>, and this unit is about why it holds. The short
+    answer: the modes are eigenfunctions of a symmetric operator, and a symmetric operator
+    with compact resolvent has an orthonormal basis of eigenfunctions. That is the spectral
+    theorem of unit 07 — the one that gave the normal modes of a chain of masses — moved
+    from $\mathbb R^n$ to a space of functions. Sturm–Liouville theory is the machinery that
+    makes the move legitimate.</p>
+    <h4>How to read this deck</h4>
+    <p>One object runs through it: a circular drum, radius $a$, clamped at the rim. Section 1
+    separates it and the string beside it; section 2 builds the inner product that makes
+    coefficients unique; section 3 asks in what sense the series converges and how fast;
+    section 4 proves the Sturm–Liouville theorems that the drum, the string, Bessel and
+    Legendre are all instances of; section 5 bounds the drum's lowest frequency without
+    solving anything; section 6 puts the three geometries side by side and explains why a
+    drum has no pitch.</p>
+    <p>Every number quoted was computed. Proofs are on the slides where they are short;
+    the longer ones are in these notes under <b>Full proof</b>, and anything imported is
+    labelled <i>cited</i> with where its proof lives. Terms with a dotted underline are
+    glossary entries — click one, or press <kbd>G</kbd>. <kbd>N</kbd> opens the notes,
+    <kbd>R</kbd> stacks the deck into one readable page.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · overview</p>
+  <h2>One drum, six sections</h2>
+  <p class="small"><span class="ref" data-ref="drum">A drum of radius 15 cm</span>. Strike it and it makes a noise, not a note; a string of the same fundamental makes a note. The difference is a list of numbers, and this unit computes it — by separating the equation, getting an eigenvalue problem for an ordinary differential operator, finding that the operator is <em>symmetric</em> for one inner product, and harvesting reality, orthogonality, discreteness, oscillation and a variational principle from that one fact.</p>
+  <div class="cols three">
+    <div class="box def"><span class="label">1 · separation</span>
+      <p class="small">String and drum split into a time factor and a shape; the debt that leaves.</p></div>
+    <div class="box def"><span class="label">2 · orthogonality</span>
+      <p class="small">Projection, Bessel, Parseval, completeness.</p></div>
+    <div class="box def"><span class="label">3 · convergence</span>
+      <p class="small">Pointwise, uniform, mean-square; Gibbs; smoothness against decay.</p></div>
+    <div class="box def"><span class="label">4 · Sturm–Liouville</span>
+      <p class="small">$-(pu')' + qu = \lambda wu$: one identity, five theorems.</p></div>
+    <div class="box def"><span class="label">5 · Rayleigh</span>
+      <p class="small">The lowest eigenvalue is a minimum, so a guess bounds it.</p></div>
+    <div class="box def"><span class="label">6 · three geometries</span>
+      <p class="small">Sines, Bessel, Legendre — why drums have no pitch.</p></div>
+  </div>
+  <div class="box good"><span class="label">getting around</span>
+    <p class="small">A <span class="term" data-term="separation of variables">dotted underline</span> is a glossary term — click it, or press <kbd>G</kbd>. A solid underline like <span class="ref" data-ref="drum">the drum</span> is the running example: hover it. <kbd>N</kbd> shows the notes, where the long proofs are.</p>
+  </div>
+  <aside class="notes">
+    <p>The problem sheet follows the same order. P1–P5 are Fourier series and their
+    convergence; P6–P10 are the Sturm–Liouville theorems, most of them proofs; P11–P13 use
+    the theory — a Rayleigh bound, a system that is orthogonal but not complete, and
+    Fourier's own heat problem. Seven end in a number.</p>
+    <p>A warning about what this unit is <em>not</em>. It is not a catalogue of special
+    functions. Bessel functions arrived in unit 09 and Legendre polynomials in unit 10, each
+    for its own reason, and neither will be re-derived. What is new is that both are
+    eigenfunctions of the same kind of operator, so that everything one knows about sines —
+    orthogonality, expansions, Parseval, a variational principle for the lowest frequency —
+    is true of them too, for one reason and not three.</p>
+    <p>It is also not the Fourier <em>transform</em>. That is unit 20, and it needs complex
+    analysis. Here the interval is finite, the spectrum is a sequence, and no contour
+    integral is required.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Separation of variables, and the question it leaves</h2>
+  <p>A method that produces infinitely many special solutions, and then needs a theorem to turn them into every solution.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · separation</p>
+  <h2>Splitting the string</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 18's wave equation on $0 \le x \le L$ with clamped ends:</p>
+      $$u_{tt} = c^2u_{xx},\qquad u(0,t) = u(L,t) = 0 .$$
+      <p class="small">Look for solutions of the special form $u(x,t) = X(x)\,T(t)$ — not because every solution has it, but because for these the equation becomes two ordinary ones. Substituting and dividing by $XT$ wherever it is nonzero:</p>
+      $$\frac{T''(t)}{c^2T(t)} = \frac{X''(x)}{X(x)} .$$
+      <p class="small">The left side does not depend on $x$; the right side does not depend on $t$; they are equal. So both are one constant, written $-\lambda$.</p>
+    </div>
+    <div>
+      <div class="box def"><span class="label"><span class="term">separation of variables</span></span>
+        <p class="small">Seeking solutions of a linear PDE as a product of functions of one variable each. It converts the PDE into a family of ODEs indexed by the <span class="term">separation constant</span>, which then turns out to be an eigenvalue.</p>
+      </div>
+      <div class="box warn"><span class="label">two things are being assumed</span>
+        <p class="small">That a product solution exists at all, and — much more seriously — that superposing them reaches every initial condition. The first is checked by substitution, in a line. The second is the content of the unit.</p>
+      </div>
+      <p class="small muted">The division by $XT$ is legitimate on any open set where neither vanishes; the resulting ODEs then hold everywhere by continuity.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "both sides are constant" is a proof and not a slogan.</b> Write
+    $F(t) = T''/c^2T$ and $G(x) = X''/X$ on an open rectangle where $XT \ne 0$. The identity
+    $F(t) = G(x)$ holds for all $(x,t)$ in it. Fix $t_0$: then $G(x) = F(t_0)$ for all $x$,
+    a constant. Fix $x_0$: then $F(t) = G(x_0)$, the same constant. No differentiation is
+    needed, though differentiating $F(t) - G(x) = 0$ in $x$ gives $G' = 0$ just as fast.</p>
+    <p><b>Why $-\lambda$ and not $+\lambda$.</b> Pure convention, chosen so that the
+    physically relevant case comes out with $\lambda &gt; 0$. Nothing is assumed: all three
+    signs are tested on the next slide and two of them die on the boundary conditions.</p>
+    <p><b>Where the method fails.</b> Separation needs the domain to be a product of
+    coordinate ranges in a coordinate system in which the operator separates. A rectangle
+    and a disc are fine; an L-shaped membrane is not, and its eigenfunctions have no
+    closed form. That is not a defect of this unit's theorems — Sturm–Liouville theory is
+    one-dimensional, but the spectral theory it is a model of applies to the L-shape too.
+    What fails is only the computation, and unit 21's asymptotics and numerical eigenvalue
+    methods take over.</p>
+    <h4>History</h4>
+    <p>D'Alembert published the travelling-wave solution in 1747; Daniel Bernoulli replied
+    in 1753 that the general solution was instead a sum of sinusoidal modes. Euler and
+    d'Alembert both rejected Bernoulli's claim, on the grounds that a sum of smooth
+    periodic functions could not possibly equal an arbitrary hand-drawn initial shape. They
+    were wrong, but not stupidly wrong: what they were denying is exactly the completeness
+    theorem of section 2, which nobody could prove for another seventy years. Fourier
+    asserted it for heat conduction in 1807, was refereed harshly by Lagrange for exactly
+    that assertion, and was right.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · separation</p>
+  <h2>The boundary conditions do the selecting</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">The spatial half is $X'' = -\lambda X$ with $X(0) = X(L) = 0$. Take the three cases in turn — the general solution of a constant-coefficient linear ODE is unit 06's.</p>
+      <table class="dense">
+        <thead><tr><th>$\lambda$</th><th>general $X$</th><th>after $X(0)=X(L)=0$</th></tr></thead>
+        <tbody>
+          <tr><td>$\lambda = -\mu^2 &lt; 0$</td><td>$A\mathrm e^{\mu x} + B\mathrm e^{-\mu x}$</td><td>$A = B = 0$</td></tr>
+          <tr><td>$\lambda = 0$</td><td>$A + Bx$</td><td>$A = B = 0$</td></tr>
+          <tr><td>$\lambda = k^2 &gt; 0$</td><td>$A\cos kx + B\sin kx$</td><td>$A = 0$, $\sin kL = 0$</td></tr>
+        </tbody>
+      </table>
+      <div class="box thm"><span class="label">the string's spectrum</span>
+        <p class="small">$\lambda_n = (n\pi/L)^2$ and $X_n(x) = \sin(n\pi x/L)$, $n = 1, 2, 3,\dots$, and nothing else. The time factor is then $T'' = -c^2\lambda_nT$, so</p>
+        $$u_n = \sin\tfrac{n\pi x}{L}\,\big(\alpha_n\cos\omega_nt + \beta_n\sin\omega_nt\big),\quad \omega_n = \tfrac{n\pi c}{L}.$$
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $[\lambda] = \mathrm L^{-2}$, and $\omega_n = n\pi c/L$ has $[\mathrm{L\,T^{-1}}]/[\mathrm L] = \mathrm T^{-1}$ ✓.</p>
+        <p class="small"><b>Special case.</b> $N$ masses on a chain had $\omega_n = 2\sqrt{k/m}\sin\big(n\pi/2(N+1)\big)$ (unit 07). For $n \ll N$ this is $\approx n\pi c/L$ with $c = a\sqrt{k/m}$ — the same formula, as unit 18's continuum limit requires ✓.</p>
+        <p class="small"><b>Limit.</b> $L \to \infty$ at fixed $n$ sends $\omega_n \to 0$: an infinite string has no lowest note ✓.</p>
+      </div>
+      <p class="small">The <span class="term">eigenvalues</span> $\lambda_n$ are the separation constants the boundary conditions permit; the <span class="term">eigenfunctions</span> $X_n$ are the shapes that go with them. A <span class="term">normal mode</span> is one $u_n$: every point moving at one frequency, in fixed proportion.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The $\lambda &lt; 0$ row in full.</b> $X = A\mathrm e^{\mu x} + B\mathrm e^{-\mu x}$
+    with $\mu &gt; 0$. $X(0) = 0$ gives $B = -A$, so $X = 2A\sinh\mu x$; $X(L) = 0$ then needs
+    $A\sinh\mu L = 0$, and $\sinh$ has no positive zero, so $A = 0$. The $\lambda = 0$ row:
+    $A = 0$ from the left end, $BL = 0$ from the right. Both cases give only $X \equiv 0$,
+    which is not an eigenfunction by definition.</p>
+    <p><b>Why that is worth doing rather than skipping.</b> Section 4 proves, for every
+    Sturm–Liouville problem of this type, that the eigenvalues are real and bounded below —
+    so the case analysis above will never again have to be done by hand. The general theorem
+    also says something the case analysis cannot: that there are infinitely many
+    eigenvalues and they run off to $+\infty$. Here we can see that; on the drum we could
+    not.</p>
+    <p><b>Completeness of the list.</b> $\sin kL = 0$ with $k &gt; 0$ forces $kL \in \pi\mathbb Z_{&gt;0}$,
+    and $k$ and $-k$ give the same $\lambda$ and proportional $X$, so $n \ge 1$ counts every
+    eigenvalue exactly once. Each is <em>simple</em>: one eigenfunction up to scale. Section 4
+    proves that simplicity in general, for separated boundary conditions, and exhibits the
+    periodic case where it fails.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · separation</p>
+  <h2>Superposition, and the debt it runs up</h2>
+  <div class="cols">
+    <div>
+      <p class="small">The equation is linear and the boundary conditions are homogeneous, so any finite sum of the $u_n$ solves the problem. Allow infinite sums and the general candidate is</p>
+      $$u(x,t) = \sum_{n\ge1}\sin\tfrac{n\pi x}{L}\,\big(\alpha_n\cos\omega_nt + \beta_n\sin\omega_nt\big).$$
+      <p class="small">Matching $u(\cdot,0)$ and $u_t(\cdot,0)$ to the initial data $f$ and $g$:</p>
+      $$f = \sum_{n\ge1}\alpha_n\sin\tfrac{n\pi x}{L},\qquad g = \sum_{n\ge1}\omega_n\beta_n\sin\tfrac{n\pi x}{L}.$$
+      <div class="box warn"><span class="label">the debt</span>
+        <p class="small">Everything rests on this: <b>can every admissible $f$ be written that way, and with which coefficients?</b> Separation cannot answer it — it is a question about the sines, not about the wave equation.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the same debt, in heat</span>
+        <p class="small">Fourier's own problem (1807). A rod, $\theta_t = \kappa\,\theta_{xx}$, ends held at zero. Separation gives the same $X_n$ and $T_n = \mathrm e^{-\kappa\lambda_nt}$, so</p>
+        $$\theta = \sum_n \alpha_n\sin\tfrac{n\pi x}{L}\,\mathrm e^{-t/\tau_n},\ \ \tau_n = \frac{L^2}{\kappa n^2\pi^2}.$$
+        <p class="small">Copper, $\kappa = 1.11\times10^{-4}\ \mathrm{m^2\,s^{-1}}$, $L = 1\ \mathrm m$: $\tau_1 = 912.8\ \mathrm s = 15.2$ min, and $\tau_{10} = 9.13\ \mathrm s$. The tenth harmonic is gone a hundred times sooner than the first.</p>
+        <p class="small">That is why heat conduction <em>smooths</em>: the high modes, which carry the detail, die as $\mathrm e^{-n^2t/\tau_1}$. It is also why running it backwards is hopeless, which is unit 18's ill-posedness with a rate attached.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The three loose ends in "allow infinite sums".</b> Differentiating the series
+    twice term by term to check it still solves the equation is not free: it multiplies the
+    $n$-th coefficient by $n^2$, and a convergent series need not survive that. Section 3's
+    slide on term-by-term differentiation says exactly what it costs. For the heat equation
+    the factor $\mathrm e^{-\kappa\lambda_nt}$ beats every power of $n$ for $t &gt; 0$, so the
+    sum is smooth for positive time no matter how rough $f$ is — a property the wave
+    equation does not share, and the cleanest statement of the difference between parabolic
+    and hyperbolic (unit 18's classification).</p>
+    <p><b>The numbers.</b> $\tau_1 = L^2/(\kappa\pi^2) = 1/(1.11\times10^{-4}\times9.8696) = 912.8\ \mathrm s$,
+    which is $15.21$ minutes; $\tau_{10} = \tau_1/100 = 9.128\ \mathrm s$. Dimensions:
+    $[\kappa] = \mathrm{L^2T^{-1}}$, so $L^2/\kappa$ is a time ✓.</p>
+    <p><b>Why the sine series and not some other.</b> Because the boundary conditions were
+    $u = 0$ at both ends. Change them and the eigenfunctions change: free ends
+    ($u_x = 0$) give cosines, a periodic ring gives both, an elastic support gives a
+    transcendental condition and eigenfunctions that are neither. The dictionary is on
+    "Sine, cosine, complex: one system each". The unifying statement is section 4's: the
+    boundary conditions are not decoration, they are half of the operator.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · separation · example</p>
+  <h2>Worked: what a pluck puts into each mode</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">the plucked string</span>
+        <p class="small">Pull the string aside by $h$ at $x = a$ and release from rest: $g = 0$, and $f$ is the triangle $hx/a$ on $[0,a]$, $h(L-x)/(L-a)$ on $[a,L]$. Use section 2's formula $\alpha_n = \frac2L\int_0^Lf\sin\frac{n\pi x}{L}\mathrm dx$ and integrate each leg by parts. With $k = n\pi/L$, the legs give $\frac{2h}{La}\big[\frac{\sin ka}{k^2} - \frac{a\cos ka}{k}\big]$ and $\frac{2h}{L(L-a)}\big[\frac{\sin ka}{k^2} + \frac{(L-a)\cos ka}{k}\big]$: the $\cos ka$ terms are $\mp2h/Lk$ and cancel, leaving</p>
+        $$\alpha_n = \frac{2hL^2}{\pi^2a(L-a)}\cdot\frac{1}{n^2}\,\sin\frac{n\pi a}{L}.$$
+        <p class="small">$1/n^2$ is the <b>kink</b>; $\sin(n\pi a/L)$ is <b>where</b> it is.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $hL^2/(a(L-a))$ is a length ✓.</p>
+        <p class="small"><b>Special case.</b> $a = L/2$: $\sin(n\pi/2)$ kills every even $n$ — a symmetric shape cannot excite an antisymmetric mode ✓.</p>
+        <p class="small"><b>Limit.</b> $a \to 0$: for $n \ll L/a$ the sine is $\approx n\pi a/L$, so $\alpha_n \approx 2h/(n\pi)$ — decay $1/n$, not $1/n^2$, over the first $\sim L/a$ modes. A sharper corner is brighter ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">pluck at $a = L/7$ and mode 7 is silent</span>
+        <p class="small">$\sin(7\pi/7) = 0$ exactly. Amplitudes $\alpha_n/\alpha_1$ for $n = 1,\dots,8$: $1$, $.450$, $.250$, $.140$, $.072$, $.028$, $\mathbf 0$, $-.016$. Helmholtz used this to explain why piano hammers strike near $L/7$ to $L/9$: the seventh partial is the first that lies well off the tempered scale.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full computation of the cancellation</h4>
+    <p>Write $k = n\pi/L$. First leg:
+    $\int_0^a x\sin kx\,\mathrm dx = \big[-\tfrac{x}{k}\cos kx\big]_0^a + \tfrac1k\int_0^a\cos kx\,\mathrm dx
+    = -\tfrac ak\cos ka + \tfrac1{k^2}\sin ka$.
+    Second leg, substituting $s = L - x$ so that $\sin kx = \sin(kL - ks) = -\cos kL\sin ks + \sin kL\cos ks$, and
+    $\sin kL = \sin n\pi = 0$, $\cos kL = (-1)^n$:
+    $\int_a^L (L-x)\sin kx\,\mathrm dx = -(-1)^n\int_0^{L-a}s\sin ks\,\mathrm ds
+    = -(-1)^n\big[-\tfrac{L-a}{k}\cos k(L-a) + \tfrac1{k^2}\sin k(L-a)\big]$.
+    Now $\cos k(L-a) = (-1)^n\cos ka$ and $\sin k(L-a) = -(-1)^n\sin ka$, so this is
+    $\tfrac{L-a}{k}\cos ka + \tfrac1{k^2}\sin ka$. Multiply the first leg by $2h/(La)$ and
+    the second by $2h/(L(L-a))$ and add: the $\cos ka$ terms are
+    $\tfrac{2h}{La}\big(-\tfrac ak\big)\cos ka + \tfrac{2h}{L(L-a)}\tfrac{L-a}{k}\cos ka
+    = \big(-\tfrac{2h}{Lk} + \tfrac{2h}{Lk}\big)\cos ka = 0$, and the $\sin ka$ terms combine to
+    $\tfrac{2h}{Lk^2}\big(\tfrac1a + \tfrac1{L-a}\big)\sin ka = \tfrac{2hL}{k^2a(L-a)}\sin ka$.
+    With $k^2 = n^2\pi^2/L^2$ that is the boxed formula.</p>
+    <p><b>The table, computed.</b> $\alpha_n/\alpha_1 = n^{-2}\sin(n\pi/7)/\sin(\pi/7)$ with
+    $\sin(\pi/7) = 0.433884$: $1$, $0.45048$, $0.24966$, $0.14044$, $0.07208$, $0.02778$, $0$,
+    $-0.01562$. The sign flip at $n = 8$ is $\sin(8\pi/7) &lt; 0$; it is inaudible, since the ear
+    does not hear the relative phase of partials for a steady tone, but it is real and
+    it matters for the waveform.</p>
+    <p><b>Does it actually work?</b> Yes, and it is the standard demonstration. Pluck a
+    string at its midpoint and every even partial vanishes, which is why a centre-plucked
+    string sounds hollow and clarinet-like. Pluck very near the bridge, $a \ll L$, and the
+    decay is $1/n$ over the first $L/a$ modes instead of $1/n^2$: that is the thin, bright
+    <i>sul ponticello</i> sound. The whole of timbre, for a plucked string, is in this one
+    formula.</p>
+    <p><b>Honesty about one step.</b> The coefficient formula was used before it was
+    derived. Section 2 derives it in two lines from orthogonality, and proves that it is
+    the <em>only</em> possible choice; nothing above depends on the order.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · separation · the drum</p>
+  <h2>The drum, separated</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><span class="ref" data-ref="drum">The membrane</span> obeys $u_{tt} = c^2\nabla^2u$ on the disc $r &lt; a$, with $u = 0$ on $r = a$. In polar coordinates (unit 05) the Laplacian is</p>
+      $$\nabla^2u = u_{rr} + \frac1r u_r + \frac1{r^2}u_{\theta\theta}.$$
+      <p class="small">Try $u = R(r)\Theta(\theta)T(t)$; the time factor separates as before, with constant $-c^2\lambda$. Multiplying what is left by $r^2/(R\Theta)$,</p>
+      $$\frac{r^2R'' + rR'}{R} + \lambda r^2 \;=\; -\frac{\Theta''}{\Theta} \;=\; m^2,$$
+      <p class="small">a function of $r$ equal to a function of $\theta$, hence constant.</p>
+      <p class="small">$\Theta$ must be $2\pi$-periodic — not imposed by hand, but required for $u$ to be a function on the disc at all — so $\Theta = \cos m\theta$ or $\sin m\theta$, $m \in \{0,1,2,\dots\}$.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">what is left is <span class="term">Bessel's equation</span></span>
+        <p class="small">With $\kappa = \sqrt\lambda$ and $s = \kappa r$,</p>
+        $$r^2R'' + rR' + (\lambda r^2 - m^2)R = 0,$$
+        <p class="small">i.e. $s^2\ddot R + s\dot R + (s^2 - m^2)R = 0$,</p>
+        <p class="small">which is exactly the equation unit 09 solved by Frobenius, with solutions $J_m$ (regular at $0$) and $Y_m$ (logarithmically singular there).</p>
+      </div>
+      <div class="box warn"><span class="label">the centre is not a boundary</span>
+        <p class="small">$r = 0$ is a coordinate singularity, not an edge of the drum (unit 05). Nothing physical can be imposed there — only that $u$ be <b>bounded</b>, which discards $Y_m$. Section 4 shows this is what a <i>singular</i> endpoint is.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full derivation: the membrane equation</h4>
+    <p>A membrane under uniform tension $T$ (force per unit <em>length</em> across any cut,
+    $\mathrm{N\,m^{-1}}$) with surface density $\sigma$ ($\mathrm{kg\,m^{-2}}$). Take a small
+    rectangle $[x, x+\Delta x]\times[y, y+\Delta y]$ of the membrane, displaced by $u(x,y,t)$.
+    The two edges normal to $x$ pull with vertical components $T\Delta y\sin\vartheta \approx
+    T\Delta y\,u_x$ evaluated at the two ends, so their net vertical force is
+    $T\Delta y[u_x(x+\Delta x) - u_x(x)] \approx T\,u_{xx}\Delta x\Delta y$; likewise for $y$.
+    Newton's second law on the patch, mass $\sigma\Delta x\Delta y$, gives
+    $\sigma u_{tt} = T(u_{xx} + u_{yy}) = T\nabla^2u$, and $c^2 = T/\sigma$ has dimensions
+    $(\mathrm{N\,m^{-1}})/(\mathrm{kg\,m^{-2}}) = \mathrm{m^2\,s^{-2}}$ ✓. The small-slope
+    approximation is the same one unit 18 made for the string, with the same error: the
+    dropped terms are $O(|\nabla u|^2)$ relative to those kept.</p>
+    <h4>Full derivation: the Laplacian in polar coordinates</h4>
+    <p>With $x = r\cos\theta$, $y = r\sin\theta$, the chain rule (unit 03) gives
+    $\partial_r = \cos\theta\,\partial_x + \sin\theta\,\partial_y$ and
+    $\partial_\theta = -r\sin\theta\,\partial_x + r\cos\theta\,\partial_y$. Hence
+    $\partial_{rr} = \cos^2\!\theta\,\partial_{xx} + 2\sin\theta\cos\theta\,\partial_{xy} + \sin^2\!\theta\,\partial_{yy}$, and
+    $\partial_{\theta\theta} = r^2(\sin^2\!\theta\,\partial_{xx} - 2\sin\theta\cos\theta\,\partial_{xy} + \cos^2\!\theta\,\partial_{yy}) - r\partial_r$.
+    Adding $\partial_{rr} + r^{-2}\partial_{\theta\theta} + r^{-1}\partial_r$, the cross terms
+    cancel, the $\sin^2 + \cos^2$ pairs give $\partial_{xx} + \partial_{yy}$, and the stray
+    $-r^{-1}\partial_r$ cancels the one added. So
+    $\nabla^2 = \partial_{rr} + r^{-1}\partial_r + r^{-2}\partial_{\theta\theta}$, valid on
+    $r &gt; 0$. The three-dimensional spherical version is the same computation with one more
+    angle; it is <i>cited</i> here and used on "The sphere, separated", where it is written out.</p>
+    <p><b>Why $m$ must be an integer.</b> $\Theta'' = -m^2\Theta$ with $\Theta(\theta + 2\pi)
+    = \Theta(\theta)$. For $m^2 &lt; 0$ the solutions are real exponentials and never periodic;
+    for $m^2 = 0$, $\Theta = A + B\theta$ is periodic only if $B = 0$; for $m^2 = k^2 &gt; 0$,
+    periodicity needs $k \in \mathbb Z$. This is the first <em>periodic</em> Sturm–Liouville
+    problem in the course, and note what is different: $m^2 = k^2$ has a
+    <b>two-dimensional</b> eigenspace, spanned by $\cos k\theta$ and $\sin k\theta$. Section 4
+    explains why — periodic boundary conditions are not separated, and simplicity is exactly
+    the conclusion that fails.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · separation · the drum</p>
+  <h2>The drum's spectrum, in numbers</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Boundedness leaves $R(r) = J_m(\kappa r)$; the clamped rim needs $J_m(\kappa a) = 0$. So $\kappa a$ must be a zero of $J_m$, and with $j_{mk}$ the $k$-th positive one:</p>
+      <div class="box thm"><span class="label"><span class="ref" data-ref="modes">the drum's frequencies</span></span>
+        $$\omega_{mk} = \frac{c\,j_{mk}}{a},\qquad u_{mk} = J_m\!\Big(\frac{j_{mk}r}{a}\Big)\begin{Bmatrix}\cos m\theta\\ \sin m\theta\end{Bmatrix}.$$
+      </div>
+      <table class="dense">
+        <thead><tr><th>$(m,k)$</th><th class="num">$j_{mk}$</th><th class="num">$j_{mk}/j_{01}$</th><th class="num">$f$ / Hz</th><th>nodes inside</th></tr></thead>
+        <tbody>
+          <tr><td>$(0,1)$</td><td class="num">2.404826</td><td class="num">1.0000</td><td class="num">280.39</td><td>none</td></tr>
+          <tr><td>$(1,1)$</td><td class="num">3.831706</td><td class="num">1.5933</td><td class="num">446.76</td><td>1 diameter</td></tr>
+          <tr><td>$(2,1)$</td><td class="num">5.135622</td><td class="num">2.1355</td><td class="num">598.79</td><td>2 diameters</td></tr>
+          <tr><td>$(0,2)$</td><td class="num">5.520078</td><td class="num">2.2954</td><td class="num">643.62</td><td>1 circle</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> $j_{mk}$ is a pure number, so $cj_{mk}/a$ is $\mathrm{T^{-1}}$ ✓.</p>
+        <p class="small"><b>Asymptotic limit.</b> Unit 09's large-argument form $J_m(s) \sim \sqrt{2/\pi s}\cos(s - m\pi/2 - \pi/4)$ predicts $j_{mk} \approx (k + \tfrac m2 - \tfrac14)\pi$. For $(0,3)$: $2.75\pi = 8.6394$ against $8.6537$, out by $0.17\%$; for $(0,1)$, $2.0\%$ ✓ — high modes become string-like, as they must.</p>
+        <p class="small"><b>The number.</b> $c = \sqrt{3200/0.265} = 109.89\ \mathrm{m\,s^{-1}}$ and $f_{01} = 109.89\times2.404826/(2\pi\times0.150) = 280.39\ \mathrm{Hz}$.</p>
+      </div>
+      <p class="small">A string's frequencies are $1 : 2 : 3 : 4$. The drum's are $1 : 1.5933 : 2.1355 : 2.2954$ — ratios of Bessel zeros, and there is no reason for them to be rational. The last slide of the unit cashes that observation.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the mode shapes.</b> $u_{mk}$ vanishes on $m$ diameters (the zeros of
+    $\cos m\theta$ in $[0,2\pi)$, which come in $m$ collinear pairs) and on $k-1$ interior
+    circles (the zeros $j_{m1},\dots,j_{m,k-1}$ pulled back by $r = j_{mk}^{-1}a\,j_{mi}$).
+    Those are Chladni's figures, which he produced in 1787 by bowing plates and watching
+    sand collect on the still lines — the first direct sight of an eigenfunction, more than
+    a century before there was a word for one.</p>
+    <p><b>Two eigenfunctions per $(m,k)$ when $m \ge 1$.</b> $\cos m\theta$ and $\sin m\theta$
+    give the same frequency, so the eigenvalue $\lambda_{mk}$ has multiplicity 2 for
+    $m \ge 1$ and 1 for $m = 0$. The degeneracy is forced by the rotational symmetry of the
+    disc: rotating an eigenfunction gives an eigenfunction of the same eigenvalue, and for
+    $m \ge 1$ the rotate is genuinely new. Break the symmetry — a drum with a coin stuck to
+    it — and the pair splits, which is audible as a beat (unit 07's beats, with the same
+    mechanism).</p>
+    <p><b>Where the real drum differs.</b> A real timpano is loaded by the air inside the
+    kettle and by the air it radiates into, which lowers $(1,1)$, $(2,1)$, $(3,1)$ and
+    $(4,1)$ towards the ratios $1 : 1.5 : 2 : 2.5$ relative to $(1,1)$ — approximately
+    harmonic, which is precisely why a timpano can be tuned and a bare membrane cannot. The
+    ideal membrane computed here is the baseline that the kettle's design is fighting
+    against, and it is the right baseline for this unit because it is the one with a
+    Sturm–Liouville problem behind it.</p>
+    <p>Zeros used: $j_{01} = 2.4048255577$, $j_{11} = 3.8317059702$, $j_{21} = 5.1356223018$,
+    $j_{02} = 5.5200781103$, $j_{03} = 8.6537279129$, all computed to twelve digits.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Orthogonality, and the best approximation</h2>
+  <p>One inner product turns "find the coefficients" into a projection, and "is every shape reachable" into a theorem.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · orthogonality</p>
+  <h2>An inner product on a space of functions</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">On the real vector space $PC[a,b]$ of piecewise continuous functions on $[a,b]$, with a fixed <span class="term">weight</span> $w$ continuous and $w &gt; 0$, put</p>
+        $$\langle f,g\rangle_w := \int_a^b\! fg\,w\,\mathrm dx,\ \ \lVert f\rVert_w := \langle f,f\rangle_w^{1/2}.$$
+        <p class="small">Bilinear and symmetric by linearity of the integral; positive because $w &gt; 0$ — and definite once functions agreeing off a finite set are identified.</p>
+      </div>
+      <p class="small">Everything from unit 07 applies verbatim: Cauchy–Schwarz, the triangle inequality, orthogonal projection, Pythagoras. The space is infinite-dimensional, which changes nothing here and everything in section 3.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the sines are orthogonal</span>
+        <p class="small">On $[0,L]$ with $w = 1$, write $S_n(x) = \sin(n\pi x/L)$. Then for $m \ne n$</p>
+        $$\langle S_m, S_n\rangle = 0,\qquad \lVert S_n\rVert^2 = L/2 .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\sin A\sin B = \tfrac12[\cos(A-B) - \cos(A+B)]$, so the integral is</p>
+        $$\tfrac12\int_0^L\!\Big[\cos\tfrac{(m-n)\pi x}{L} - \cos\tfrac{(m+n)\pi x}{L}\Big]\mathrm dx$$
+        <p class="small">and $\int_0^L\cos(k\pi x/L)\mathrm dx = (L/k\pi)\sin k\pi = 0$ for nonzero integer $k$. For $m = n$ the first cosine is $1$: contribution $L/2$. $\square$</p>
+      </div>
+      <p class="small muted">A computation — but section 4 proves it without computing, and that proof also covers $J_m$ and $P_n$, which this one does not.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "piecewise continuous" and not "continuous".</b> Because the initial data we
+    care about — the plucked string's kink, a struck string's step, Fourier's rod at
+    two temperatures — are not smooth, and the whole point is to expand them anyway. A
+    piecewise continuous function on $[a,b]$ is continuous except at finitely many points,
+    with one-sided limits there. It is Riemann integrable, and that is all the integration
+    theory this unit needs.</p>
+    <p><b>Why definiteness needs the identification.</b> $\lVert f\rVert_w = 0$ forces
+    $f = 0$ at every point of continuity — if $f(x_0) \ne 0$ with $f$ continuous at $x_0$,
+    then $f^2w &gt; \varepsilon$ on a neighbourhood and the integral is positive. So $f$ can
+    be nonzero only at its finitely many jump points. Declaring two functions equal when
+    they agree off a finite set makes $\langle\cdot,\cdot\rangle_w$ an honest inner product.
+    This is the elementary shadow of the measure-theoretic identification "equal almost
+    everywhere" that defines $L^2$; we do not need the general version.</p>
+    <p><b>What is genuinely missing.</b> $PC[a,b]$ with this norm is <em>not complete</em> as a
+    metric space: Cauchy sequences of piecewise continuous functions can converge to things
+    that are not. The completion is $L^2_w(a,b)$ and constructing it needs the Lebesgue
+    integral. Everything proved in this unit is proved for piecewise continuous $f$ with
+    the Riemann integral, so nothing here rests on that gap; but the clean statement
+    "the eigenfunctions are an orthonormal basis of a Hilbert space" does, and it is
+    flagged as <i>cited</i> when it is used.</p>
+    <p><b>Cosines and the constant.</b> The same product formula gives
+    $\langle\cos(m\pi x/L),\cos(n\pi x/L)\rangle = 0$ for $m \ne n \ge 0$, with norm$^2$
+    equal to $L/2$ for $n \ge 1$ and $L$ for $n = 0$. The exceptional norm of the constant
+    is why the constant term of a cosine series is written $a_0/2$: it makes one formula
+    cover every coefficient.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · orthogonality</p>
+  <h2>Coefficients are a projection, and that is optimal</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Let $\{e_n\}$ be orthogonal and nonzero in an inner-product space $V$, $f \in V$, and $S = \sum_{n\le N}c_ne_n$.</p>
+      <div class="box thm"><span class="label"><span class="term">best approximation</span></span>
+        <p class="small">$\lVert f - S\rVert$ is smallest exactly when $c_n = \hat f_n := \langle f, e_n\rangle/\lVert e_n\rVert^2$ for $n \le N$, and then $f - S \perp e_1,\dots,e_N$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Expand, using orthogonality, then complete the square in each $c_n$ separately:</p>
+        $$\lVert f - S\rVert^2 = \lVert f\rVert^2 - 2\sum_{n\le N} c_n\langle f,e_n\rangle + \sum_{n\le N}c_n^2\lVert e_n\rVert^2$$
+        $$= \lVert f\rVert^2 - \sum_{n\le N}\hat f_n^2\lVert e_n\rVert^2 + \sum_{n\le N}\lVert e_n\rVert^2(c_n - \hat f_n)^2 .$$
+        <p class="small">Only the last sum depends on $c$; it is nonnegative and zero exactly at $c = \hat f$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label"><span class="term">Fourier coefficient</span></span>
+        <p class="small">$\hat f_n = \langle f,e_n\rangle/\lVert e_n\rVert^2$ — the coordinate of $f$ along $e_n$, for <b>any</b> orthogonal system in any inner-product space. For the sines on $[0,L]$: $\alpha_n = \frac2L\int_0^Lf\sin\frac{n\pi x}{L}\mathrm dx$, the formula the plucked string used.</p>
+      </div>
+      <div class="box good"><span class="label">three things follow at once</span>
+        <p class="small"><b>Uniqueness.</b> If $f = \sum c_ne_n$ in norm then $c_n = \hat f_n$: take $\langle\cdot,e_m\rangle$ through the limit by Cauchy–Schwarz.</p>
+        <p class="small"><b>Independence of $N$.</b> $\hat f_n$ does not move when more terms are allowed. Fit a non-orthogonal family and every coefficient moves.</p>
+        <p class="small"><b>The error is orthogonal</b> to the span — Pythagoras, and the next slide.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The completion of the square, step by step.</b> For one index,
+    $-2c_n\langle f,e_n\rangle + c_n^2\lVert e_n\rVert^2
+    = \lVert e_n\rVert^2\big(c_n^2 - 2c_n\hat f_n\big)
+    = \lVert e_n\rVert^2\big((c_n - \hat f_n)^2 - \hat f_n^2\big)$,
+    using $\langle f,e_n\rangle = \hat f_n\lVert e_n\rVert^2$. Summing over $n \le N$ gives
+    the displayed line. Note that the cross terms between different $e_n$ never appeared —
+    that is exactly where orthogonality is spent, and it is the only place.</p>
+    <p><b>Why this is the important slide of the section.</b> It says the truncated series
+    is not merely <em>a</em> approximation but the <em>best</em> one in the mean-square sense,
+    among all combinations of those $N$ modes. So the question "does the series converge to
+    $f$?" becomes "do the spans of the $e_n$ eventually come arbitrarily close to $f$?" —
+    a question about the <em>system</em>, not about $f$'s coefficients. That is
+    completeness, and separating the two questions is what makes it provable.</p>
+    <p><b>The physics reading.</b> $\hat f_n$ is how much of mode $n$ the initial shape
+    contains, and the best-approximation property says a mode-$N$ truncation of a
+    synthesiser is doing the best any $N$-mode instrument could. It also says the modes do
+    not interfere in the accounting: adding a higher partial never changes how much of the
+    fundamental is there. That is false for non-orthogonal building blocks, and it is why
+    physicists reach for orthogonal ones every time.</p>
+    <p><b>The complex case.</b> With $\langle f,g\rangle = \int f\bar g\,w$, the same proof
+    runs with $|c_n - \hat f_n|^2$ in place of the square and
+    $\hat f_n = \langle f,e_n\rangle/\lVert e_n\rVert^2$ unchanged. Only the bookkeeping of
+    conjugates differs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · orthogonality</p>
+  <h2>Bessel's inequality, and what it hands you free</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Bessel's inequality</span></span>
+        <p class="small">For any orthogonal system $\{e_n\}$ and any $f$,</p>
+        $$\sum_{n=1}^{\infty}\hat f_n^2\,\lVert e_n\rVert^2 \;\le\; \lVert f\rVert^2 .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The previous slide with $c = \hat f$ reads</p>
+        $$0 \le \lVert f - S_Nf\rVert^2 = \lVert f\rVert^2 - \sum_{n\le N}\hat f_n^2\lVert e_n\rVert^2 ,$$
+        <p class="small">so the partial sums are bounded by $\lVert f\rVert^2$; nondecreasing, they converge. $\square$</p>
+      </div>
+      <p class="small">Free: no hypothesis on $f$, none on the system beyond orthogonality.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">corollary: <span class="term">Riemann–Lebesgue</span></span>
+        <p class="small">A convergent series has terms tending to zero, so $\hat f_n\lVert e_n\rVert \to 0$. For the normalised trigonometric system on $[-\pi,\pi]$:</p>
+        $$\int_{-\pi}^{\pi}\!\!f\sin nx\,\mathrm dx \to 0,\quad \int_{-\pi}^{\pi}\!\!f\cos nx\,\mathrm dx \to 0$$
+        <p class="small">for every piecewise continuous $f$. Oscillate fast enough against anything and the average wins.</p>
+      </div>
+      <div class="box good"><span class="label">check</span>
+        <p class="small"><b>Dimensions.</b> Both sides carry $[f]^2\,[w]\,\mathrm L$ ✓. <b>Special case.</b> $f = e_1$: the left side is $\lVert e_1\rVert^2$ and the right is the same — equality, as it must be for $f$ in the span ✓.</p>
+      </div>
+      <p class="small muted">Riemann–Lebesgue is the engine of Dirichlet's pointwise theorem, and the reason it works for merely piecewise smooth data.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Riemann–Lebesgue in the form actually used.</b> Dirichlet's theorem needs
+    $\int_0^{\pi}g(t)\sin\big((N+\tfrac12)t\big)\,\mathrm dt \to 0$ for piecewise continuous
+    $g$, with the half-integer frequency. Expand
+    $\sin\big((N+\tfrac12)t\big) = \sin Nt\cos\tfrac t2 + \cos Nt\sin\tfrac t2$ and apply the
+    boxed statement to the two piecewise continuous functions $g(t)\cos(t/2)$ and
+    $g(t)\sin(t/2)$, extended by zero to $[-\pi,\pi]$. Both integrals tend to zero, so their
+    sum does.</p>
+    <p><b>What equality would mean.</b> Bessel's inequality is an equality for every $f$
+    exactly when the system is complete — that equality is Parseval's identity, next slide.
+    A strict inequality for some $f$ means the system has missed a direction: there is
+    something in the space that the $e_n$ cannot reach. Problem P12 builds such a system
+    on purpose, from perfectly good orthogonal functions, so that "orthogonal" and
+    "complete" stop being able to blur into each other.</p>
+    <p><b>A caution about the name.</b> This Bessel is the same Bessel as the functions of
+    unit 09 — Friedrich Wilhelm Bessel, astronomer, who met both objects in the same line
+    of work. The inequality has nothing to do with the functions.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · orthogonality</p>
+  <h2>Completeness, and Parseval</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="term">completeness</span></span>
+        <p class="small">$\{e_n\}$ is <b>complete</b> in $V$ if $\lVert f - S_Nf\rVert \to 0$ for every $f \in V$. Then the only $f$ orthogonal to every $e_n$ is $0$; the converse needs more (notes).</p>
+      </div>
+      <div class="box thm"><span class="label"><span class="term">Parseval's identity</span></span>
+        <p class="small">Complete $\iff$ Bessel's inequality is an equality for every $f$:</p>
+        $$\lVert f\rVert^2 = \sum_{n\ge1}\hat f_n^2\,\lVert e_n\rVert^2 .$$
+        <p class="small"><b>Proof.</b> Immediate from $\lVert f - S_Nf\rVert^2 = \lVert f\rVert^2 - \sum_{n\le N}\hat f_n^2\lVert e_n\rVert^2$, which is the best-approximation identity. $\square$</p>
+      </div>
+      <p class="small">Physically: <b>the energy is the sum of the modes' energies</b>, no cross terms.</p>
+      <div class="box warn"><span class="label">why not just use $S_N$?</span>
+        <p class="small">Because $S_Nf$ need not converge pointwise for continuous $f$: du Bois-Reymond, 1876 (<i>cited</i>). The averaged sums $\sigma_N$ opposite do, being $f$ convolved with a <b>nonnegative</b> kernel — which $S_N$ is not.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the trigonometric system is complete</span>
+        <p class="small">$\{1,\cos nx,\sin nx\}$ is complete in $PC[-\pi,\pi]$; so are $\{\sin(n\pi x/L)\}$ and $\{\cos(n\pi x/L)\}$ in $PC[0,L]$.</p>
+        <p class="proof-pointer">full proof in the notes (N) — the Fejér route</p>
+      </div>
+      <p class="small">Three steps: (i) <span class="term">Fejér's theorem</span> — the averages $\sigma_N = \frac1{N+1}\sum_{k\le N}S_k$ converge <em>uniformly</em> to $f$ for continuous periodic $f$; (ii) any piecewise continuous $f$ is within $\varepsilon$ in norm of a continuous periodic one; (iii) best approximation: once a trigonometric polynomial of degree $D$ is within $\varepsilon$, so is $S_Nf$ for $N \ge D$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, step (i): Fejér's theorem</h4>
+    <p>Write $S_kf(x) = \frac1{2\pi}\int_{-\pi}^{\pi}f(x-t)D_k(t)\,\mathrm dt$ with the
+    Dirichlet kernel $D_k(t) = \sum_{|n|\le k}\mathrm e^{\mathrm int} = \sin\big((k+\tfrac12)t\big)/\sin(t/2)$.
+    Averaging, $\sigma_Nf = \frac1{2\pi}\int f(x-t)F_N(t)\,\mathrm dt$ with the <b>Fejér kernel</b>
+    $F_N = \frac1{N+1}\sum_{k\le N}D_k$. Summing the geometric-type series gives
+    $$F_N(t) = \frac{1}{N+1}\left(\frac{\sin\frac{(N+1)t}{2}}{\sin\frac t2}\right)^{\!2},$$
+    from which three facts: $F_N \ge 0$; $\frac1{2\pi}\int_{-\pi}^{\pi}F_N = 1$ (each $D_k$
+    integrates to $2\pi$); and for any $\delta &gt; 0$, $\sup_{\delta\le|t|\le\pi}F_N \le
+    \frac{1}{(N+1)\sin^2(\delta/2)} \to 0$. A family with those three properties is an
+    <b>approximate identity</b>. Then, for $f$ continuous and $2\pi$-periodic, hence
+    uniformly continuous, choose $\delta$ with $|f(x-t) - f(x)| &lt; \varepsilon$ for
+    $|t| &lt; \delta$ and all $x$; splitting the integral,
+    $$|\sigma_Nf(x) - f(x)| \le \tfrac1{2\pi}\!\int_{|t|&lt;\delta}\!\!|f(x-t)-f(x)|F_N
+      + \tfrac1{2\pi}\!\int_{\delta\le|t|\le\pi}\!\!2\lVert f\rVert_\infty F_N
+      \le \varepsilon + \frac{2\lVert f\rVert_\infty}{(N+1)\sin^2(\delta/2)},$$
+    uniformly in $x$. Let $N \to \infty$, then $\varepsilon \to 0$. $\square$</p>
+    <h4>Full proof, steps (ii) and (iii)</h4>
+    <p>(ii) Let $f$ be piecewise continuous on $[-\pi,\pi]$, bounded by $M$, with jumps at
+    $x_1,\dots,x_J$ (count $\pm\pi$ as one, for periodicity). Given $\varepsilon &gt; 0$, let
+    $g$ agree with $f$ outside intervals of half-width $\eta$ about each jump and
+    interpolate linearly across them. Then $g$ is continuous and periodic and
+    $\lVert f-g\rVert^2 \le (2M)^2\cdot 2\eta J$, which is below $\varepsilon^2$ for small
+    $\eta$.</p>
+    <p>(iii) Fejér gives a trigonometric polynomial $T = \sigma_Ng$ with
+    $\lVert g-T\rVert_\infty &lt; \varepsilon$, hence $\lVert g-T\rVert_2 \le \sqrt{2\pi}\,\varepsilon$.
+    Say $T$ has degree $D$. For $N \ge D$, $T$ lies in the span of $e_1,\dots$ up to degree
+    $N$, so best approximation gives $\lVert f - S_Nf\rVert \le \lVert f - T\rVert \le
+    \lVert f-g\rVert + \lVert g-T\rVert \le \varepsilon(1 + \sqrt{2\pi})$. Since
+    $\varepsilon$ was arbitrary, $\lVert f - S_Nf\rVert \to 0$. $\square$ (du Bois-Reymond's
+    continuous function whose Fourier series diverges at a point is <i>cited</i>: Stein &amp;
+    Shakarchi, <i>Fourier Analysis</i>, ch. 3 §2.2.) For the sine system
+    on $[0,L]$, apply this to the odd $2L$-periodic extension of $f$, whose full Fourier
+    series is its sine series.</p>
+    <p><b>Complete, and "nothing is orthogonal to all of them".</b> If the system is complete
+    and $\langle f,e_n\rangle = 0$ for every $n$, then every $S_Nf = 0$ and
+    $\lVert f\rVert = \lim\lVert f - S_Nf\rVert = 0$. The converse — no nonzero $f$ orthogonal
+    to every $e_n$, hence complete — is true in a metrically complete space such as
+    $L^2_w$ (<i>cited</i>: it is the projection theorem for Hilbert spaces), but it can fail
+    in $PC$, which is not metrically complete. So in this unit completeness is always
+    checked through the definition, $\lVert f - S_Nf\rVert \to 0$, and the orthogonality test
+    is used only in the safe direction: to <em>refute</em> completeness, as P12 does.</p>
+    <p><b>The two senses of "complete".</b> This unit's sense — the span is dense — is a
+    property of a <em>system</em>. The metric sense — every Cauchy sequence converges — is a
+    property of a <em>space</em>, and $PC$ does not have it. The words collide and always
+    have; the context always disambiguates, because a system is complete <i>in</i> a space.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · orthogonality</p>
+  <h2>Sine, cosine, complex: one system per boundary condition</h2>
+  <div class="cols wide-left">
+    <div>
+      <table class="dense">
+        <thead><tr><th>problem on $[0,L]$</th><th>eigenfunctions</th><th>expansion of $f$</th><th>extension</th></tr></thead>
+        <tbody>
+          <tr><td>$u(0) = u(L) = 0$</td><td>$\sin\frac{n\pi x}{L}$, $n\ge1$</td><td>sine series</td><td>odd, $2L$-periodic</td></tr>
+          <tr><td>$u'(0) = u'(L) = 0$</td><td>$\cos\frac{n\pi x}{L}$, $n\ge0$</td><td>cosine series</td><td>even, $2L$-periodic</td></tr>
+          <tr><td>$u(0)=u(L),\ u'(0)=u'(L)$</td><td>$\mathrm e^{2\pi\mathrm inx/L}$, $n\in\mathbb Z$</td><td>complex series</td><td>$L$-periodic</td></tr>
+        </tbody>
+      </table>
+      <p class="small">One function on one interval has all three expansions, with different coefficients and different behaviour at the ends, because the extensions differ there.</p>
+      <div class="box def"><span class="label">the <span class="term">complex Fourier series</span></span>
+        <p class="small">With $\langle f,g\rangle = \int_0^L f\bar g$, the $\mathrm e^{2\pi\mathrm inx/L}$ are orthogonal with norm$^2$ $L$, so</p>
+        $$f \sim \sum_{n\in\mathbb Z}c_n\mathrm e^{2\pi\mathrm inx/L},\quad c_n = \frac1L\int_0^Lf(x)\mathrm e^{-2\pi\mathrm inx/L}\mathrm dx .$$
+        <p class="small">$f$ real $\iff c_{-n} = \overline{c_n}$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">$f(x) = x$ on $[0,L]$, three ways</span>
+        <p class="small"><b>Sine:</b> $\alpha_n = \dfrac{2L(-1)^{n+1}}{n\pi}$ — decay $1/n$, because the odd extension jumps from $L$ to $-L$ at $x = L$.</p>
+        <p class="small"><b>Cosine:</b> $a_0/2 = L/2$, $a_n = \dfrac{-4L}{n^2\pi^2}$ for odd $n$ and $0$ for even — decay $1/n^2$, because the even extension is continuous with a kink.</p>
+        <p class="small"><b>Complex:</b> $c_0 = L/2$, $c_n = \dfrac{\mathrm iL}{2\pi n}$ — decay $1/n$, jump at $x = 0$.</p>
+        <p class="small">At $x = L$ the three converge to $0$, to $L$, and to $L/2$. All three are right; they are answering different questions.</p>
+      </div>
+      <p class="small muted">Choosing an expansion is choosing a boundary condition. Section 4 says why: the boundary condition <em>is</em> part of the operator.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The three coefficient computations.</b> Sine:
+    $\alpha_n = \frac2L\int_0^Lx\sin\frac{n\pi x}L\mathrm dx
+    = \frac2L\big[-\frac{xL}{n\pi}\cos\frac{n\pi x}L\big]_0^L + \frac{2}{n\pi}\int_0^L\cos\frac{n\pi x}L\mathrm dx
+    = -\frac{2L}{n\pi}(-1)^n + 0$. Cosine:
+    $a_n = \frac2L\int_0^Lx\cos\frac{n\pi x}L\mathrm dx
+    = \frac2L\big(\big[\frac{xL}{n\pi}\sin\big]_0^L - \frac{L}{n\pi}\int_0^L\sin\big)
+    = \frac{2L}{n^2\pi^2}\big((-1)^n - 1\big)$, which is $-4L/n^2\pi^2$ for odd $n$; and
+    $a_0 = \frac2L\int_0^Lx\,\mathrm dx = L$. Complex:
+    $c_n = \frac1L\int_0^Lx\mathrm e^{-2\pi\mathrm inx/L}\mathrm dx$; integrating by parts,
+    the boundary term is $\frac1L\cdot\frac{L}{-2\pi\mathrm in}\big[x\mathrm e^{-2\pi\mathrm inx/L}\big]_0^L
+    = \frac{L}{-2\pi\mathrm in} = \frac{\mathrm iL}{2\pi n}$ and the remaining integral vanishes.</p>
+    <p><b>The end values, from Dirichlet's theorem (next slide).</b> At $x = L$ the odd
+    $2L$-periodic extension has left limit $L$ and right limit $-L$, midpoint $0$. The even
+    extension is continuous there, value $L$. The $L$-periodic extension jumps from $L$ to
+    $0$, midpoint $L/2$. All three predictions are confirmed by the formulas: the sine
+    series is a sum of $\sin n\pi = 0$; the cosine series at $x = L$ is
+    $L/2 + \sum_{\text{odd}}\frac{4L}{n^2\pi^2} = L/2 + \frac{4L}{\pi^2}\cdot\frac{\pi^2}{8} = L$ ✓,
+    using $\sum_{\text{odd}}n^{-2} = \pi^2/8$; the complex series at $x = L$ is
+    $c_0 = L/2$, since every other term is $c_n\mathrm e^{-2\pi\mathrm in} = c_n$ and
+    $\sum_{n\ne0}c_n = 0$ by the cancellation of $\pm n$ ✓.</p>
+    <p><b>Why the decay rates differ, in one line.</b> A jump in the periodic extension gives
+    $1/n$; a jump in its first derivative gives $1/n^2$. That is the dictionary on
+    "Smoothness against decay", and it is the practical reason to prefer a cosine series
+    when either will do: the same accuracy for the square root of the terms.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · orthogonality · example</p>
+  <h2>Worked: Parseval, twice, with the drum's weight</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">a sum from a square wave</span>
+        <p class="small">$f \equiv 1$ on $[0,L]$ in sines: $\alpha_n = \frac2L\int_0^L\sin\frac{n\pi x}L\mathrm dx = \frac{2}{n\pi}(1 - (-1)^n)$, so $4/n\pi$ for odd $n$, $0$ for even. Parseval, with $\lVert S_n\rVert^2 = L/2$:</p>
+        $$L = \frac L2\sum_{n\ \text{odd}}\frac{16}{n^2\pi^2}
+          \ \Longrightarrow\ \sum_{k\ge0}\frac{1}{(2k+1)^2} = \frac{\pi^2}{8}$$
+        <p class="small">Summing the left side to $10^6$ terms gives $1.2337003$, against $\pi^2/8 = 1.2337006$ ✓. The same manoeuvre on $f(x) = x$, with $\alpha_n = 2L(-1)^{n+1}/n\pi$, gives $\sum n^{-2} = \pi^2/6$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> Both sides of each identity carry $[f]^2$ times a length (a length$^2$ for the drum) ✓.</p>
+        <p class="small"><b>Special case.</b> $f = J_0(j_{01}r/a)$ gives $\hat f_1 = 1$ and all other $\hat f_k = 0$, and Parseval reduces to the norm formula ✓.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the drum's version, with $w = r$</span>
+        <p class="small">A radial initial shape on <span class="ref" data-ref="drum">the drum</span> expands in $\{J_0(j_{0k}r/a)\}$, orthogonal with weight $w = r$ — the polar area element (section 4). So</p>
+        $$\hat f_k = \frac{\int_0^a f(r)J_0\!\big(\tfrac{j_{0k}r}{a}\big)\,r\,\mathrm dr}{\int_0^a J_0\!\big(\tfrac{j_{0k}r}{a}\big)^2\,r\,\mathrm dr},$$
+        <p class="small">with $\int_0^aJ_0(j_{0k}r/a)^2r\,\mathrm dr = \tfrac12a^2J_1(j_{0k})^2$, and Parseval reads</p>
+        $$\int_0^a f^2\,r\,\mathrm dr = \tfrac12a^2\sum_{k\ge1}\hat f_k^2\,J_1(j_{0k})^2 .$$
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The weight is not a decoration.</b> Without the $r$, the $J_0(j_{0k}r/a)$ are
+    <em>not</em> orthogonal: $\int_0^aJ_0(j_{01}r/a)J_0(j_{02}r/a)\,\mathrm dr = 0.19608\,a$
+    for the first pair, while with the weight it is zero to every digit computed. The $r$
+    is there because $\mathrm dA = r\,\mathrm dr\,\mathrm d\theta$ in polar coordinates
+    (unit 05), so $\int_{\text{disc}}fg\,\mathrm dA = 2\pi\int_0^afg\,r\,\mathrm dr$ for
+    radial $f,g$. The inner product that makes the operator symmetric is the one the
+    geometry hands you, every time.</p>
+    <h4>Full derivation of the norm $\tfrac12a^2J_1(j_{0k})^2$</h4>
+    <p>Let $R(r) = J_0(\kappa r)$ with $\kappa = j_{0k}/a$, so $(rR')' = -\kappa^2rR$.
+    Multiply by $2r R'$ and integrate:
+    $\int_0^a 2rR'(rR')'\,\mathrm dr = \big[(rR')^2\big]_0^a$, while the right side is
+    $-2\kappa^2\int_0^ar^2RR'\,\mathrm dr = -\kappa^2\big[r^2R^2\big]_0^a + 2\kappa^2\int_0^arR^2\mathrm dr$.
+    With $R(a) = J_0(j_{0k}) = 0$ the term $[r^2R^2]_0^a$ vanishes, leaving
+    $\int_0^arR^2\mathrm dr = \frac{a^2R'(a)^2}{2\kappa^2}$. Since $J_0' = -J_1$ (unit 09's
+    recurrence), $R'(a) = -\kappa J_1(j_{0k})$, so the integral is $\tfrac12a^2J_1(j_{0k})^2$.
+    Dimensions: length$^2$ ✓. Numerically $J_1(j_{01}) = 0.5191474973$, so the norm$^2$ is
+    $0.1347571\,a^2$.</p>
+    <p><b>Euler and the Basel problem.</b> $\sum n^{-2} = \pi^2/6$ is what Euler found in
+    1735 by a formal factorisation of $\sin x$; Parseval gives it in three lines and with
+    no leap of faith. Parseval himself stated the identity in 1799, also formally — the
+    proof above, via best approximation and Fejér, is a nineteenth- and
+    twentieth-century assembly.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Convergence: which kind, and how fast</h2>
+  <p>Mean-square convergence is free and says nothing about any single point. Pointwise and uniform cost hypotheses, and the price is exactly the smoothness of the data.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · convergence</p>
+  <h2>Dirichlet: what the series converges to at a jump</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Dirichlet's theorem</span> (1829)</span>
+        <p class="small">Let $f$ be $2\pi$-periodic and <span class="term">piecewise $C^1$</span>: continuous but for finitely many points, $f'$ piecewise continuous, with one-sided limits $f(x\pm)$, $f'(x\pm)$ everywhere. Then for every $x$,</p>
+        $$S_Nf(x) \longrightarrow \tfrac12\big(f(x+) + f(x-)\big).$$
+        <p class="small">In particular $S_Nf(x) \to f(x)$ at every point of continuity, and to the <b>midpoint</b> of the jump elsewhere.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <p class="small">It cannot do better: the coefficients are integrals of $f$, which cannot see the value at one point. Changing $f$ at a single point changes no coefficient at all.</p>
+      <div class="box warn"><span class="label">the hypothesis is not decoration</span>
+        <p class="small">Continuity alone is not enough — du Bois-Reymond, 1876. What piecewise $C^1$ buys is a bounded difference quotient, which is exactly what the proof feeds to Riemann–Lebesgue.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the square wave</span>
+        <p class="small">$f = +1$ on $(0,\pi)$, $-1$ on $(-\pi,0)$, extended $2\pi$-periodically. Then $b_n = \frac{2}{n\pi}(1-(-1)^n)$ and</p>
+        $$S_N(x) = \frac4\pi\sum_{k\ \text{odd}\le N}\frac{\sin kx}{k}.$$
+        <p class="small">At $x = 0$ every term is zero, so $S_N(0) = 0 = \tfrac12(1 + (-1))$ ✓ — the theorem, visible without any analysis.</p>
+        <p class="small">At $x = \pi/2$: $\frac4\pi(1 - \tfrac13 + \tfrac15 - \cdots) = \frac4\pi\cdot\frac\pi4 = 1$ ✓, Leibniz's series recovered.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of Dirichlet's theorem</h4>
+    <p>With the Dirichlet kernel $D_N(t) = \sum_{|n|\le N}\mathrm e^{\mathrm int}
+    = \dfrac{\sin\big((N+\frac12)t\big)}{\sin(t/2)}$, convolution gives
+    $S_Nf(x) = \frac{1}{2\pi}\int_{-\pi}^{\pi}f(x-t)D_N(t)\,\mathrm dt$, and $D_N$ is even
+    with $\frac1{2\pi}\int_{-\pi}^{\pi}D_N = 1$, hence
+    $\frac1{2\pi}\int_0^{\pi}D_N = \tfrac12$. Therefore
+    $$S_Nf(x) - \tfrac12\big(f(x+)+f(x-)\big)
+      = \frac1{2\pi}\int_0^{\pi}\Big[\big(f(x-t)-f(x-)\big) + \big(f(x+t)-f(x+)\big)\Big]D_N(t)\,\mathrm dt .$$
+    Write the bracket as $\Delta(t)$ and set
+    $g(t) := \Delta(t)/\sin(t/2)$, so that the integral is
+    $\frac1{2\pi}\int_0^\pi g(t)\sin\big((N+\tfrac12)t\big)\mathrm dt$. The only question is
+    whether $g$ is piecewise continuous on $(0,\pi]$ <em>including at $t = 0^+$</em>, since
+    $\sin(t/2)$ vanishes there. It is: by the mean value theorem, for small $t &gt; 0$,
+    $f(x+t) - f(x+) = t\,f'(\xi)$ for some $\xi \in (x, x+t)$, and $f'$ is bounded near $x$
+    on that side, so $|\Delta(t)| \le Ct$; and $\sin(t/2) \ge t/\pi$ on $[0,\pi]$, giving
+    $|g(t)| \le \pi C$. Better, $f'(\xi) \to f'(x+)$ as $t \to 0^+$ (and likewise on the left),
+    so $g$ has a one-sided limit at $0$. Hence $g$ is piecewise continuous on $[0,\pi]$, and the
+    Riemann–Lebesgue corollary of Bessel's inequality — in the half-integer form spelt out
+    in the notes of "Bessel's inequality" — sends the integral to zero. $\square$</p>
+    <p><b>Where each hypothesis is spent.</b> Piecewise continuity of $f$ makes the
+    coefficients exist. Existence of the one-sided limits $f(x\pm)$ makes the statement
+    meaningful. Boundedness of $f'$ on each side near $x$ — the piecewise-$C^1$ part — is
+    what bounds $g$; it can be weakened to a Dini or Hölder condition at the single point
+    $x$, and the same proof runs. Nothing about $f$ away from $x$ matters beyond
+    integrability: this is <b>Riemann's localisation principle</b>, and it is surprising,
+    because the coefficients depend on all of $f$ while the convergence at $x$ does not.</p>
+    <h4>The geometric series behind $D_N$</h4>
+    <p>$\sum_{n=-N}^{N}z^n = \frac{z^{-N} - z^{N+1}}{1-z}$ with $z = \mathrm e^{\mathrm it}$;
+    multiplying numerator and denominator by $\mathrm e^{-\mathrm it/2}$ turns it into
+    $\frac{\mathrm e^{-\mathrm i(N+1/2)t} - \mathrm e^{\mathrm i(N+1/2)t}}{\mathrm e^{-\mathrm it/2} - \mathrm e^{\mathrm it/2}}
+    = \frac{\sin((N+\frac12)t)}{\sin(t/2)}$. Only unit 06's complex exponential algebra is
+    used; nothing here needs complex analysis.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · convergence</p>
+  <h2>Uniform convergence, and exactly when it fails</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">when the series converges uniformly</span>
+        <p class="small">If $f$ is continuous, $2\pi$-periodic and piecewise $C^1$, then $\sum_n|c_n| &lt; \infty$ and $S_Nf \to f$ <b>uniformly</b> and absolutely.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Integrating by parts, with continuity and periodicity killing the boundary term, $c_n(f') = \mathrm in\,c_n(f)$; Bessel for $f'$ gives $\sum n^2|c_n|^2 \lt \infty$. Then by Cauchy–Schwarz</p>
+        $$\sum_{n\ne0}|c_n| = \sum_{n\ne0}\big(n|c_n|\big)\tfrac1{|n|}$$
+        $$\le \Big(\sum n^2|c_n|^2\Big)^{\!1/2}\Big(\sum_{n\ne0}\tfrac1{n^2}\Big)^{\!1/2} \lt \infty .$$
+        <p class="small">The $M$-test then gives uniform convergence to <em>some</em> continuous limit, and Dirichlet identifies it as $f$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">and when it cannot</span>
+        <p class="small">A uniform limit of continuous functions is continuous, and each $S_Nf$ is a trigonometric polynomial. So <b>if $f$ jumps, the convergence is not uniform on any interval containing the jump</b> — no hypothesis can rescue it. The series still converges in norm and pointwise to the midpoint; the next slide measures by how much uniformity fails.</p>
+      </div>
+      <div class="box good"><span class="label">the three modes, ranked</span>
+        <p class="small"><b>Mean-square:</b> free, for every piecewise continuous $f$.<br>
+        <b>Pointwise:</b> guaranteed by piecewise $C^1$; midpoints at jumps.<br>
+        <b>Uniform:</b> guaranteed by continuity as well, through $\sum|c_n| &lt; \infty$.</p>
+        <p class="small">Each hypothesis is sufficient, not necessary; only the first mode is automatic.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The integration by parts, in full.</b> $c_n(f') = \frac1{2\pi}\int_{-\pi}^{\pi}f'(x)\mathrm e^{-\mathrm inx}\mathrm dx
+    = \frac1{2\pi}\big[f\mathrm e^{-\mathrm inx}\big]_{-\pi}^{\pi} + \frac{\mathrm in}{2\pi}\int_{-\pi}^{\pi}f\mathrm e^{-\mathrm inx}\mathrm dx$.
+    The bracket is $f(\pi)\mathrm e^{-\mathrm in\pi} - f(-\pi)\mathrm e^{\mathrm in\pi}
+    = (-1)^n\big(f(\pi)-f(-\pi)\big) = 0$ by periodicity <em>and continuity</em> — drop
+    continuity and this is exactly the term that survives and destroys the whole argument.
+    For piecewise $C^1$ $f$ with $f$ continuous, do the same on each subinterval where $f'$
+    is continuous and note the interior boundary terms cancel in pairs.</p>
+    <p><b>Why $\sum|c_n| &lt; \infty$ is the right criterion.</b> It is sufficient for uniform
+    convergence by the $M$-test, and it is not necessary in general — there exist continuous
+    functions with uniformly convergent Fourier series and $\sum|c_n| = \infty$. What is
+    true and clean: $\sum|c_n| &lt; \infty$ $\implies$ uniform, and $f$ merely continuous
+    $\implies$ nothing. The gap between them is the subject of a century of hard analysis
+    (Carleson's 1966 theorem: for $f \in L^2$, $S_Nf \to f$ almost everywhere. <i>Cited</i>;
+    the proof is far outside this course).</p>
+    <p><b>What this means for term-by-term integration, which is easy.</b> If
+    $\lVert f - S_Nf\rVert_2 \to 0$ then $\int_0^xS_Nf \to \int_0^xf$ uniformly in $x$,
+    by Cauchy–Schwarz against the indicator of $[0,x]$. So a Fourier series may
+    <em>always</em> be integrated term by term, even when it does not converge. Integration
+    divides the $n$-th coefficient by $n$; differentiation multiplies by $n$. That asymmetry
+    is the whole story of the next two slides.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · convergence · example</p>
+  <h2>Worked: Gibbs, and the number 8.9490 %</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">the overshoot at a jump</span>
+        <p class="small">Square wave, $S_{2M-1} = \frac4\pi\sum_{j&lt;M}\frac{\sin(2j+1)x}{2j+1}$. Differentiate and sum the cosines (the geometric sum is in the notes):</p>
+        $$S'(x) = \frac4\pi\sum_{j=0}^{M-1}\cos(2j+1)x = \frac{2}{\pi}\,\frac{\sin 2Mx}{\sin x},$$
+        <p class="small">so the first maximum right of the jump is at $x_M = \pi/2M$. Integrate from $0$, where $S = 0$, and put $u = 2Mt$:</p>
+        $$S(x_M) = \frac2\pi\int_0^{\pi/2M}\!\!\frac{\sin 2Mt}{\sin t}\mathrm dt
+          = \frac{2}{\pi}\int_0^{\pi}\!\frac{\sin u\,\mathrm du}{2M\sin\frac{u}{2M}} .$$
+        <p class="small">As $M\to\infty$, $2M\sin(u/2M) \to u$ uniformly on $[0,\pi]$, so</p>
+        $$S(x_M) \to \frac2\pi\int_0^{\pi}\frac{\sin u}{u}\mathrm du = \frac2\pi\mathrm{Si}(\pi) = 1.17898 .$$
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Gibbs phenomenon</span></span>
+        <p class="small">Near a jump of size $J$ the partial sums overshoot by $\big(\tfrac2\pi\mathrm{Si}(\pi) - 1\big)\tfrac J2 = 0.08948987\,J$ — <b>8.9490 %</b> of the jump, on each side. It does not shrink with $N$; it only moves closer to the jump, at distance $\pi/2M$.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Dimensions.</b> A fraction of a jump; dimensionless ✓.</p>
+        <p class="small"><b>Numbers.</b> Summing directly at $x = \pi/2M$: $9.116\%$ at $M=5$, $8.959\%$ at $M=20$, $8.9494\%$ at $M=100$, $8.94899\%$ at $M=1000$ ✓.</p>
+        <p class="small"><b>Consistency.</b> The width $\pi/2M \to 0$, so the overshoot occupies a vanishing interval and contributes nothing to $\lVert f - S_Nf\rVert_2$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The cosine sum.</b> $\sum_{j=0}^{M-1}\cos(2j+1)x = \operatorname{Re}\sum_{j=0}^{M-1}\mathrm e^{\mathrm i(2j+1)x}
+    = \operatorname{Re}\Big(\mathrm e^{\mathrm ix}\dfrac{\mathrm e^{2\mathrm iMx}-1}{\mathrm e^{2\mathrm ix}-1}\Big)$.
+    Pull a half-angle out of each difference of exponentials:
+    $\mathrm e^{2\mathrm iMx}-1 = \mathrm e^{\mathrm iMx}\cdot2\mathrm i\sin Mx$ and
+    $\mathrm e^{2\mathrm ix}-1 = \mathrm e^{\mathrm ix}\cdot2\mathrm i\sin x$, so the
+    quotient is $\mathrm e^{\mathrm i(M-1)x}\sin Mx/\sin x$ and the whole bracket is
+    $\mathrm e^{\mathrm iMx}\sin Mx/\sin x$. Its real part is
+    $\cos Mx\,\sin Mx/\sin x = \sin(2Mx)/(2\sin x)$. Multiplying by $4/\pi$ gives the
+    displayed $S'$.</p>
+    <p><b>Why $x_M = \pi/2M$ is the first maximum.</b> $S'$ has the sign of $\sin 2Mx$ for
+    $0 &lt; x &lt; \pi$, so $S$ increases on $(0,\pi/2M)$ and decreases after it. The
+    subsequent stationary points give the decaying ripples, at $x = k\pi/2M$.</p>
+    <p><b>The uniform limit, justified.</b> For $u \in [0,\pi]$ and $M \ge 1$,
+    $\big|\frac{1}{2M\sin(u/2M)} - \frac1u\big| = \frac{|u - 2M\sin(u/2M)|}{2Mu\sin(u/2M)}
+    \le \frac{u^3/24M^2}{u\cdot 2u/\pi} = \frac{\pi u}{48M^2} \le \frac{\pi^2}{48M^2}$. The
+    numerator bound is $|s - \sin s| \le s^3/6$ with $s = u/2M$, so
+    $|u - 2M\sin s| \le 2M s^3/6 = u^3/24M^2$; the denominator bound is $\sin s \ge 2s/\pi$ on
+    $[0,\pi/2]$, so $2M\sin s \ge 2u/\pi$. Multiplying by $|\sin u| \le 1$ and integrating
+    over $[0,\pi]$, the two integrals differ by at most $\pi^3/48M^2 \to 0$, so the limit may
+    be taken inside.</p>
+    <p><b>History, and a correction.</b> Henry Wilbraham found this in 1848 and was ignored.
+    J. Willard Gibbs described it in a letter to <i>Nature</i> in 1899, after Michelson's
+    mechanical harmonic analyser produced the ripples and Michelson suspected his machine.
+    It was not the machine. The name is Bôcher's, from 1906.</p>
+    <p><b>What is actually done about it.</b> Nothing, if you are computing $\lVert\cdot\rVert_2$.
+    If you need pointwise accuracy near a jump, average the partial sums — Fejér's
+    $\sigma_N$, whose kernel is nonnegative and which therefore <em>cannot</em> overshoot
+    the range of $f$ at all. That is the same repair that made the completeness proof work,
+    used for a second reason, and it costs a slower convergence rate away from the jump.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · convergence</p>
+  <h2>Smoothness against decay: a dictionary, and an error bar</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">smoothness controls decay</span>
+        <p class="small">If $f$ is $2\pi$-periodic and $C^{k-1}$ with $f^{(k)}$ piecewise continuous, integrating by parts $k$ times gives $c_n(f^{(k)}) = (\mathrm in)^kc_n(f)$; Bessel applied to $f^{(k)}$ then gives $\sum_nn^{2k}|c_n|^2 \lt \infty$, so $|c_n| = o(|n|^{-k})$, and by Parseval</p>
+        $$\lVert f - S_Nf\rVert_2^2 = 2\pi\!\!\sum_{|n|&gt;N}\!\!|c_n|^2 \le \frac{2\pi}{N^{2k}}\!\!\sum_{|n|&gt;N}\!\!n^{2k}|c_n|^2 .$$
+      </div>
+      <table class="dense">
+        <thead><tr><th>lowest derivative that jumps</th><th>$|c_n|$</th><th>$\lVert f-S_Nf\rVert_2$</th><th>example</th></tr></thead>
+        <tbody>
+          <tr><td>$f$ itself</td><td>$\sim1/n$</td><td>$\sim N^{-1/2}$</td><td>square wave</td></tr>
+          <tr><td>$f'$</td><td>$\sim1/n^2$</td><td>$\sim N^{-3/2}$</td><td>plucked string</td></tr>
+          <tr><td>$f''$</td><td>$\sim1/n^3$</td><td>$\sim N^{-5/2}$</td><td>a parabolic arch</td></tr>
+          <tr><td>none ($C^\infty$)</td><td>faster than every power</td><td>same</td><td>$\mathrm e^{\cos x}$</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">The same dictionary governs <span class="ref" data-ref="drum">the drum</span>, with $J_0(j_{0k}r/a)$ for sines: a finger-pressed dimple has a kink and needs many modes; a smooth bulge needs few.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">what it is worth, in decibels</span>
+        <p class="small">Plucked: $\alpha_n \propto n^{-2}$, so partial $n$ is $40\log_{10}n$ dB below the first — partial 10 at $-40$ dB. Struck by a hammer of width $\varepsilon \ll L$: $\alpha_n \propto n^{-1}$ while $n \ll L/\pi\varepsilon$ — partial 10 at $-20$ dB.</p>
+        <p class="small">Twenty decibels at the tenth partial, idealised pluck against idealised strike — and it is a statement about smoothness.</p>
+      </div>
+      <div class="box good"><span class="label">check</span>
+        <p class="small"><b>Special case.</b> $f = \cos x$ exactly: $k$ is unbounded and all but two coefficients are zero, so every bound is satisfied trivially ✓. <b>Dimensions.</b> $|c_n|$ carries $[f]$, and $n$ is a pure number ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the table's "lowest derivative that jumps" is the right index.</b> If
+    $f^{(m)}$ has a jump of size $J$ at $x_0$ and $f^{(m-1)}$ is continuous, integrating by
+    parts $m+1$ times leaves a surviving boundary term $\propto J\mathrm e^{-\mathrm inx_0}/n^{m+1}$
+    together with terms that are $o(n^{-(m+1)})$. So $c_n \sim CJ/n^{m+1}$ exactly — the
+    decay rate is not merely bounded but <em>determined</em>, and the constant carries the
+    size of the jump. That is why the table's third column is an asymptotic and not only an
+    inequality, and it is the practical version of the theorem: to find out how smooth a
+    signal is, look at how its coefficients fall.</p>
+    <p><b>The truncation bound made usable.</b> The displayed inequality holds for each
+    fixed $N$ with an explicit constant if $f^{(k)}$ has a known $L^2$ norm: by Parseval,
+    $\sum n^{2k}|c_n|^2 = \lVert f^{(k)}\rVert_2^2/2\pi$, so
+    $\lVert f - S_Nf\rVert_2 \le \lVert f^{(k)}\rVert_2/N^k$. That is a genuine
+    <em>a priori</em> error bar: it says how many modes are needed, before any of them is
+    computed. Problem P3 computes both sides for the plucked and the struck string and
+    reads the answer as a statement about brightness.</p>
+    <p><b>The decibel arithmetic.</b> An amplitude ratio $\rho$ is $20\log_{10}\rho$
+    decibels. For $\alpha_n/\alpha_1 = n^{-2}$ and $n = 10$ that is
+    $-20\log_{10}100 = -40$ dB; for $n^{-1}$ it is $-20$ dB. Both refer to amplitude, not
+    energy; the energy ratios are the same numbers because the decibel already accounts
+    for the square.</p>
+    <p><b>Where the hammer width cuts in.</b> A hammer of half-width $\varepsilon$ striking
+    at $x = a$ gives velocity coefficients $\propto \sin(n\pi a/L)\sin(n\pi\varepsilon/L)/n$,
+    hence displacement coefficients $\propto \sin(n\pi a/L)\sin(n\pi\varepsilon/L)/n^2$.
+    While $n\pi\varepsilon/L \ll 1$ the second sine is $\approx n\pi\varepsilon/L$ and the
+    net decay is $1/n$; beyond $n \approx L/\pi\varepsilon$ it saturates and the true
+    $1/n^2$ resumes. A real piano hammer is soft and wide, which is exactly a designer's
+    choice about where that knee sits. Real instruments blur the idealised contrast in both
+    directions: a harpsichord plucks close to the end, and by the $a \to 0$ limit of the
+    plucked-string slide that is itself $1/n$-bright over the first $L/a$ partials, while a
+    felt hammer's width pulls the piano's knee down. The dictionary is exact; the
+    instruments are engineered compromises on it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · convergence</p>
+  <h2>Differentiating term by term, and what it costs</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">when it is legal</span>
+        <p class="small">Let $f$ be $2\pi$-periodic, <b>continuous</b>, and piecewise $C^1$. Then the Fourier series of $f'$ is obtained by differentiating that of $f$ term by term, and it converges to $f'$ in mean square — and to midpoints pointwise if $f'$ is itself piecewise $C^1$.</p>
+        <p class="small"><b>Proof.</b> $c_n(f') = \mathrm inc_n(f)$, proved on the uniform-convergence slide; then completeness for the piecewise continuous $f'$, and Dirichlet for $f'$ under the extra hypothesis. $\square$</p>
+      </div>
+      <div class="box warn"><span class="label">the price</span>
+        <p class="small">Differentiation multiplies $c_n$ by $\mathrm in$: <b>one power of decay is lost each time</b>. A series with $c_n \sim n^{-2}$ that converged uniformly differentiates to one with $c_n \sim n^{-1}$, which converges in mean square and not uniformly. Differentiate once more and it need not converge at all.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">two failures, for two different reasons</span>
+        <p class="small"><b>Continuity fails.</b> The square wave has $S(x) = \frac4\pi\sum_{\text{odd}}\frac{\sin kx}{k}$; differentiating termwise gives $\frac4\pi\sum_{\text{odd}}\cos kx$, whose terms do not tend to zero, so it diverges at every $x$ except $\pm\pi/2$. The theorem's hypothesis is exactly what is missing: $f$ jumps.</p>
+        <p class="small"><b>Continuity holds and it still fails.</b> $\displaystyle f(x) = \sum_{n\ge1}\frac{\sin n^2x}{n^2}$ converges uniformly by the $M$-test, so $f$ is continuous. Termwise, $\sum\cos n^2x$ — terms not tending to zero, divergent everywhere. Here $f$ is continuous but <b>not piecewise $C^1$</b>; the second hypothesis is the one being used.</p>
+      </div>
+      <p class="small muted">This is why the wave equation's series solution needs care and the heat equation's does not: $\mathrm e^{-\kappa\lambda_nt}$ restores every power of $n$ lost, for any $t &gt; 0$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The rule, in one sentence.</b> Integration is always safe and gains a power of
+    $n$; differentiation needs continuity of the function being differentiated and costs a
+    power of $n$. Both facts come from the same integration by parts, read in opposite
+    directions.</p>
+    <p><b>Where the square wave's derived series converges.</b> If $\cos kx \to 0$ along odd
+    $k$, then $\cos 2kx = 2\cos^2kx - 1 \to -1$ along odd $k$, so both $2kx$ and
+    $2(k+2)x = 2kx + 4x$ tend to $\pi$ modulo $2\pi$, forcing $4x \in 2\pi\mathbb Z$. Of the
+    four candidates $x = 0, \pm\pi/2, \pi$, the terms are $\pm1$ at $0$ and $\pi$ and exactly
+    $0$ at $\pm\pi/2$. So the derived series converges at $\pm\pi/2$ and nowhere else. For
+    $\sum\cos n^2x$ the analogous argument (P4) leaves no exceptional point at all.</p>
+    <p><b>Why the second counterexample is worth having.</b> Without it a reader concludes
+    that "continuous" is the real hypothesis and "piecewise $C^1$" is bookkeeping. It is
+    not: $\sum n^{-2}\sin(n^2x)$ is continuous everywhere, and it is differentiable at no
+    irrational multiple of $\pi$ — a dense set (Hardy, 1916; <i>cited</i>, with the exact set
+    of points of differentiability found by Gerver in 1970–71). A continuous function can be far too
+    rough to differentiate at all, and its Fourier series knows.</p>
+    <p><b>Back to the wave equation.</b> The series
+    $u(x,t) = \sum\alpha_n\sin(n\pi x/L)\cos(\omega_nt)$ must be differentiated twice in
+    each variable for the equation to hold classically, which $\sum n^2|\alpha_n| &lt;
+    \infty$ guarantees — true, for instance, when the odd periodic extension of $f$ is $C^2$
+    with a piecewise continuous third derivative (the uniform-convergence argument, two
+    derivatives up). The
+    plucked string has $\alpha_n \sim n^{-2}$ and does <em>not</em> qualify: the series
+    converges uniformly to a continuous $u$, but that $u$ is not twice differentiable at
+    the travelling kinks, as unit 18's d'Alembert picture already showed. The honest
+    statement is that $u$ is a <em>weak</em> solution, and the machinery that makes "weak"
+    precise is unit 20's distributions. Until then, the physical claim stands on unit 18's
+    d'Alembert formula, which needs no differentiation of a series at all — and it agrees
+    with the mode sum wherever both make sense, by uniqueness.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Sturm–Liouville: why any of this was inevitable</h2>
+  <p>One operator, one identity, and five theorems that were proved separately for sines, Bessel functions and Legendre polynomials before anyone noticed they were the same proof.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville</p>
+  <h2>The operator, and the weight that comes with it</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Sturm–Liouville operator</span></span>
+        <p class="small">On $[a,b]$ let $p \in C^1$ with $p &gt; 0$, $q \in C^0$ real, $w \in C^0$ with $w &gt; 0$. Define a linear map on $C^2[a,b]$ by</p>
+        $$\mathcal Lu := -(p\,u')' + q\,u .$$
+        <p class="small">The <span class="term">Sturm–Liouville problem</span> is: find $\lambda \in \mathbb C$ and $u \not\equiv 0$ with</p>
+        $$\mathcal Lu = \lambda\,w\,u \quad\text{on }(a,b),$$
+        <p class="small">together with boundary conditions.</p>
+      </div>
+      <p class="small">Divide by $w$ and it is an eigenvalue problem for the operator $\mathcal A := w^{-1}\mathcal L$ on the inner-product space $\big(PC[a,b],\ \langle\cdot,\cdot\rangle_w\big)$ of the last section. <b>The weight in the equation and the weight in the inner product are the same $w$.</b> That is not a coincidence; it is the next slide.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">every second-order equation has this form</span>
+        <p class="small">Given $A(x)u'' + B(x)u' + C(x)u + \lambda D(x)u = 0$ with $A &gt; 0$, multiply through by the integrating factor $\mu = A^{-1}\exp\!\int\! (B/A)$. Then $\mu A = \exp\!\int\!(B/A) =: p$ and $\mu(Au'' + Bu') = (pu')'$ exactly, giving $-(pu')' - \mu Cu = \lambda\mu Du$. $\square$</p>
+      </div>
+      <table class="dense">
+        <thead><tr><th>equation</th><th>$p$</th><th>$q$</th><th>$w$</th><th>on</th></tr></thead>
+        <tbody>
+          <tr><td>string, $u''=-\lambda u$</td><td>$1$</td><td>$0$</td><td>$1$</td><td>$[0,L]$</td></tr>
+          <tr><td><span class="ref" data-ref="SL">Bessel, order $m$</span></td><td>$r$</td><td>$m^2/r$</td><td>$r$</td><td>$(0,a]$</td></tr>
+          <tr><td>Legendre (unit 10)</td><td>$1-x^2$</td><td>$0$</td><td>$1$</td><td>$[-1,1]$</td></tr>
+          <tr><td>non-uniform string</td><td>$T$</td><td>$0$</td><td>$\rho(x)$</td><td>$[0,L]$</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">The weight is where the physics hides: for a string it is the <b>mass density</b>, for the drum it is the <b>area element</b>. Orthogonality is always with respect to the thing that measures how much stuff is there.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Sign convention.</b> Many texts write the problem as $(pu')' + qu + \lambda wu = 0$,
+    which is the same equation with $q \to -q$ and the operator negated. The convention used
+    here, $\mathcal L = -(pu')' + q$, is chosen because it makes $\mathcal L$ bounded
+    <em>below</em> and the eigenvalues increase to $+\infty$, matching the physical reading
+    "$\lambda = \omega^2/c^2$" and matching unit 07's positive semidefinite $K$. When
+    comparing with a book, check the sign of $q$ and the sign of $\lambda$ before comparing
+    anything else; the two conventions differ in exactly those two places.</p>
+    <p><b>The integrating factor, checked.</b> With $p = \exp\int^x(B/A)$, we have
+    $p' = (B/A)p$, so $(pu')' = pu'' + p'u' = p\big(u'' + (B/A)u'\big) = (p/A)(Au'' + Bu')$,
+    and $p/A = \mu$ ✓. The construction needs $A &gt; 0$ on the interval — where $A$
+    vanishes the endpoint is <em>singular</em>, which is exactly Bessel at $r = 0$ and
+    Legendre at $x = \pm1$, and the reason those two need separate handling.</p>
+    <p><b>Why the domain is not yet specified.</b> $\mathcal A$ is not defined on all of
+    $PC[a,b]$ — it needs two derivatives and it needs the boundary conditions. The honest
+    object is an unbounded operator with a domain
+    $D(\mathcal A) = \{u \in C^2[a,b] : u \text{ satisfies the boundary conditions}\}$,
+    dense in the space. Everything proved below is proved for $u, v \in D(\mathcal A)$ and
+    is elementary; the functional-analytic theory of unbounded self-adjoint operators,
+    which distinguishes "symmetric" from "self-adjoint" and matters enormously in quantum
+    mechanics, is not needed here and is not developed. What is called self-adjointness
+    below is symmetry on this domain.</p>
+    <p><b>Where the name comes from.</b> Charles Sturm and Joseph Liouville, in a sequence
+    of joint and separate papers in 1836–1837, in the <i>Journal de mathématiques pures et
+    appliquées</i> that Liouville had just founded. They were the first to study an
+    eigenvalue problem for a differential operator as an object in its own right rather
+    than as a step in solving one equation, and the first to prove things about
+    eigenfunctions they could not write down.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville</p>
+  <h2>Lagrange's identity: one line, everything follows</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Lagrange's identity</span></span>
+        <p class="small">For any $u, v \in C^2[a,b]$ (complex-valued, $p$ and $q$ real),</p>
+        $$\bar v\,\mathcal Lu - u\,\overline{\mathcal Lv} = \big[\,p\,(u\bar v{}' - u'\bar v)\,\big]' .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The $q$ terms cancel ($q$ real), leaving $u(p\bar v{}')' - \bar v(pu')'$. With $W := u\bar v{}' - u'\bar v$, expand the right-hand side:</p>
+        $$(pW)' = p'W + p\,(u\bar v{}'' - u''\bar v)$$
+        $$= (p\bar v{}')'u - (pu')'\bar v .\ \square$$
+      </div>
+      <p class="small">Integrate; the $w$ in $\mathcal A = w^{-1}\mathcal L$ cancels the $w$ in $\langle\cdot,\cdot\rangle_w$:</p>
+      $$\langle \mathcal Au, v\rangle_w - \langle u, \mathcal Av\rangle_w = \big[\,p(u\bar v{}' - u'\bar v)\,\big]_a^b .$$
+    </div>
+    <div>
+      <div class="box def"><span class="label">the <span class="term">bilinear concomitant</span></span>
+        <p class="small">$\;[u,v](x) := p(x)\big(u\bar v{}' - u'\bar v\big)(x)$ — a weighted Wronskian, and the only obstruction to symmetry.</p>
+      </div>
+      <div class="box good"><span class="label">what has just happened</span>
+        <p class="small">$\mathcal A$ is symmetric <b>up to a boundary term</b>, for every $p$, $q$, $w$, with no conditions at all. The differential operator is <span class="term">formally self-adjoint</span> by construction.</p>
+        <p class="small">So self-adjointness reduces to: which boundary conditions kill $[u,v]$ at both ends? A finite-dimensional question, settled next slide.</p>
+      </div>
+      <p class="small muted">Notice where the weight went: $\langle\mathcal Au,v\rangle_w = \int(w^{-1}\mathcal Lu)\bar vw = \int(\mathcal Lu)\bar v$. Choose the wrong inner product and there is no identity to have.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "Lagrange".</b> Lagrange used the identity in the 1760s to construct adjoint
+    equations, long before there was an inner product to interpret it in. The modern reading
+    — a differential operator is symmetric precisely when an exact derivative integrates to
+    zero — is Sturm's and Liouville's, and it is the template for every self-adjointness
+    argument that follows in this course: the same manoeuvre proves the Laplacian symmetric
+    in unit 23 (Green's identities), and the same boundary-term bookkeeping produces the
+    Gibbons–Hawking–York term in unit 35.</p>
+    <p><b>The real case, for orientation.</b> For real $u, v$ the identity reads
+    $v\mathcal Lu - u\mathcal Lv = [p(uv' - u'v)]'$, and $uv' - u'v$ is the Wronskian of
+    $u$ and $v$ (unit 06). So the concomitant is $p$ times the Wronskian, and Abel's
+    identity from unit 06 — that $pW$ is constant for two solutions of the <em>same</em>
+    equation — is the special case $\mathcal Lu = \lambda wu$, $\mathcal Lv = \lambda wv$, where the left
+    side vanishes identically. Two facts that looked unrelated are one line apart.</p>
+    <p><b>A check of the identity.</b> Take $p = 1$, $q = 0$, so $\mathcal L = -\mathrm d^2/\mathrm dx^2$.
+    The identity says $-v u'' + u v'' = (uv' - u'v)'$, and differentiating the right side
+    gives $u'v' + uv'' - u''v - u'v' = uv'' - u''v$ ✓. Take $u = \sin x$, $v = \cos x$ on
+    $[0,\pi]$: the concomitant is $\sin x\cdot(-\sin x) - \cos x\cos x = -1$, constant, so the right
+    side is zero; and since $\mathcal L\sin = \sin$ and $\mathcal L\cos = \cos$, the left side
+    is $\cos x\sin x - \sin x\cos x = 0$. Both sides vanish, as Abel promised, since both are
+    solutions of the same equation with $\lambda = 1$ ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville</p>
+  <h2>Three families of boundary conditions, and one that fails</h2>
+  <div class="cols three">
+    <div>
+      <div class="box def"><span class="label">1 · <span class="term">separated</span></span>
+        <p class="small">$\alpha_1u(a) + \alpha_2u'(a) = 0$ and $\beta_1u(b) + \beta_2u'(b) = 0$, with $\alpha,\beta$ <b>real</b> and each pair not both zero.</p>
+        <p class="small"><b>Why it works.</b> At $a$, both $(u,u')$ and $(\bar v,\bar v{}')$ lie in the complex line $\alpha^\perp$ ($\alpha$ real), so the determinant $u\bar v{}' - u'\bar v$ vanishes. Same at $b$. Dirichlet ($\alpha_2 = 0$), Neumann ($\alpha_1 = 0$), Robin (neither) are the cases.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">2 · <span class="term">periodic</span></span>
+        <p class="small">$p(a) = p(b)$, $u(a) = u(b)$, $u'(a) = u'(b)$.</p>
+        <p class="small"><b>Why it works.</b> $[u,v](a)$ and $[u,v](b)$ are then literally the same number, so the difference is zero.</p>
+        <p class="small">The drum's angular problem is this one, on $[0,2\pi]$ with $p = 1$. Each eigenvalue $m^2$, $m \ge 1$, carries a <b>two-dimensional</b> eigenspace — the exception this family is responsible for.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">3 · <span class="term">singular</span></span>
+        <p class="small">$p \to 0$ at an endpoint. Then $[u,v] \to 0$ there provided $u, v$ and their derivatives do not blow up faster than $1/p$ — in practice, provided both are <b>bounded</b> with bounded derivative.</p>
+        <p class="small"><span class="ref" data-ref="SL">Bessel at $r = 0$</span>: $p = r \to 0$, and boundedness discards $Y_m$. Legendre at $x = \pm1$: $p = 1 - x^2 \to 0$, and boundedness discards $Q_n$ and forces $\lambda = n(n+1)$.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box warn"><span class="label">and one that fails</span>
+    <p class="small">$\mathcal L = -\mathrm d^2/\mathrm dx^2$ on $[0,1]$ with $u(0) = 0$, $u'(1) = \mathrm i\,u(1)$ — a Robin condition with a <b>complex</b> coefficient, which is what an absorbing boundary looks like. Then $u = \sin kx$ needs $\tan k = -\mathrm ik$, which no real $k \ne 0$ satisfies: the first root is $k = 1.77927 - 0.54554\,\mathrm i$, so $\lambda = 2.86819 - 1.94131\,\mathrm i$. Reality goes first, and orthogonality with it. Problem P6 runs it through.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The determinant argument in full.</b> Let $\alpha = (\alpha_1,\alpha_2) \in
+    \mathbb R^2\setminus\{0\}$. The condition at $a$ says
+    $\alpha\cdot(u(a),u'(a)) = 0$ and $\alpha\cdot(v(a),v'(a)) = 0$; conjugating the second
+    (legitimate because $\alpha$ is real) gives
+    $\alpha\cdot(\bar v(a),\bar v{}'(a)) = 0$. Two vectors of $\mathbb C^2$ both annihilated
+    by the same nonzero real functional are linearly dependent, so
+    $\det\begin{pmatrix}u & \bar v\\ u' & \bar v{}'\end{pmatrix}(a) = u\bar v{}' - u'\bar v = 0$.
+    Realness of $\alpha$ is doing genuine work: it is the hypothesis that fails in the warn
+    box, and the failure is not cosmetic.</p>
+    <p><b>The singular case, stated honestly.</b> "Bounded with bounded derivative" is
+    sufficient here and is what every example in this course satisfies, but it is not the
+    general criterion. The general theory is Weyl's limit-point/limit-circle
+    classification: at a singular endpoint either every solution is square-integrable near
+    it (limit circle, and a boundary condition is still needed) or only a one-dimensional
+    family is (limit point, and no condition is needed — square-integrability selects the
+    solution by itself). Bessel of order $m \ge 1$ is limit-point at $r = 0$: $Y_m \sim r^{-m}$
+    is not square-integrable against $r\,\mathrm dr$, so boundedness only confirms a choice
+    already forced. Bessel of order $0$ and Legendre at $x = \pm1$ are limit-circle: $Y_0$ and
+    $Q_\ell$ grow only logarithmically and <em>are</em> square-integrable, so a condition is
+    genuinely needed there, and boundedness is that condition. <i>Cited</i>: Coddington &amp;
+    Levinson, <i>Theory of Ordinary Differential Equations</i>, ch. 9; Weidmann,
+    <i>Spectral Theory of Ordinary Differential Operators</i>, ch. 5.</p>
+    <p><b>Check on Bessel's concomitant.</b> Near $r = 0$, $J_m(\kappa r) \sim (\kappa r/2)^m/m!$
+    so $p(u\bar v{}' - u'\bar v) = r\cdot O(r^{2m-1}) = O(r^{2m}) \to 0$ for $m \ge 1$, and
+    for $m = 0$, $J_0 \to 1$ with $J_0' \sim -\kappa^2r/2$, giving $r\cdot O(r) \to 0$ ✓.
+    With $Y_0 \sim (2/\pi)\log r$ instead, $rY_0' \sim 2/\pi$ does <em>not</em> tend to zero,
+    and the symmetry is genuinely lost — boundedness is not a convenience.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville</p>
+  <h2>Real eigenvalues, orthogonal eigenfunctions</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Let the boundary conditions be self-adjoint, so $\langle\mathcal Au,v\rangle_w = \langle u,\mathcal Av\rangle_w$ on the domain. Then:</p>
+        <p class="small"><b>(i)</b> every eigenvalue is real, and every eigenfunction may be taken real;<br>
+        <b>(ii)</b> eigenfunctions with different eigenvalues are orthogonal in $\langle\cdot,\cdot\rangle_w$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof of (i)</span>
+        <p class="small">$\mathcal Au = \lambda u$ with $u \ne 0$; drop the subscript $w$ on every product. Then</p>
+        $$\lambda\lVert u\rVert^2 = \langle\mathcal Au,u\rangle = \langle u,\mathcal Au\rangle = \bar\lambda\lVert u\rVert^2 ,$$
+        <p class="small">and $\lVert u\rVert_w^2 &gt; 0$ because $w &gt; 0$, so $\lambda = \bar\lambda$. For the eigenfunction: $\mathcal L$ and the boundary conditions have real coefficients, so $\bar u$ is an eigenfunction for the same $\lambda$; hence so are $\operatorname{Re}u$ and $\operatorname{Im}u$, and one is nonzero. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof of (ii)</span>
+        <p class="small">$\mathcal Au = \lambda u$, $\mathcal Av = \mu v$ with $\lambda \ne \mu$, both real by (i). Then</p>
+        $$\lambda\langle u,v\rangle = \langle\mathcal Au,v\rangle = \langle u,\mathcal Av\rangle = \mu\langle u,v\rangle ,$$
+        <p class="small">so $(\lambda - \mu)\langle u,v\rangle_w = 0$, hence $\langle u,v\rangle_w = 0$. $\square$</p>
+      </div>
+      <div class="box good"><span class="label">what this has just replaced</span>
+        <p class="small">The trigonometric orthogonality computed by a product formula in section 2 — now a corollary with $p = w = 1$, $q = 0$. And the Bessel and Legendre relations, <b>and every case nobody has computed yet</b>.</p>
+        <p class="small">Unit 07's $M$-orthogonality of normal modes is the same statement for $\mathbb R^n$: $M$ for $w$, the spectral theorem for Lagrange's identity.</p>
+      </div>
+      <p class="small muted">Both proofs used only symmetry. Neither used $p &gt; 0$, the form of $\mathcal L$, or anything about the interval.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where positivity of $w$ is genuinely needed in (i).</b> If $w$ changed sign, then
+    $\langle u,u\rangle_w$ could vanish for $u \ne 0$ and the division would be illegal —
+    and indeed indefinite-weight problems (which occur physically, in stability analysis of
+    stratified fluids) do have complex eigenvalues. This is the exact analogue of unit 07's
+    insistence that the mass matrix $M$ be positive definite: the same hypothesis, in the
+    same role, one dimension count later.</p>
+    <p><b>Orthogonality when eigenvalues repeat.</b> Conclusion (ii) says nothing about two
+    eigenfunctions of the <em>same</em> eigenvalue. For separated conditions this is empty,
+    since the next slide proves eigenvalues simple. For periodic conditions it is not: the
+    drum's $\cos m\theta$ and $\sin m\theta$ share an eigenvalue, and they happen to be
+    orthogonal for a different reason (parity). In general one applies Gram–Schmidt inside
+    each eigenspace, which is finite-dimensional — at most two-dimensional here, since the
+    ODE is second order.</p>
+    <p><b>The physical reading of reality.</b> $\lambda = \omega^2/c^2$, so a complex
+    $\lambda$ would mean a complex frequency, which means exponential growth or decay. A
+    self-adjoint boundary condition is precisely one through which no energy flows — clamped,
+    free, or periodic — and the theorem says energy conservation forces purely oscillatory
+    modes. Break it by letting the boundary absorb, as the warn box on the previous slide
+    does, and the eigenvalues go complex immediately, with the imaginary part measuring the
+    damping rate. The mathematics and the physics are the same statement.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville</p>
+  <h2>Simple, discrete, unbounded above</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">simplicity — separated conditions only</span>
+        <p class="small">Each eigenvalue has a one-dimensional eigenspace.</p></div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Let $u, v$ satisfy $\mathcal Ly = \lambda wy$ and $\alpha_1y(a) + \alpha_2y'(a) = 0$, both real (previous slide). The pairs $(u,u')$ and $(v,v')$ at $a$ lie in the one-dimensional $\alpha^\perp \subset \mathbb R^2$, so $(v,v')(a) = c(u,u')(a)$; then $v$ and $cu$ solve the same ODE with the same data at $a$, so $v = cu$ — Picard–Lindelöf, unit 01. $\square$</p>
+      </div>
+      <div class="box warn"><span class="label">why periodic is different</span>
+        <p class="small">It constrains the two ends jointly, so the argument has nothing to start from: $-y'' = \lambda y$ on $[0,2\pi]$, periodic, has eigenspace $\operatorname{span}(\cos m\theta,\sin m\theta)$ at $\lambda = m^2$, $m \ge 1$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">bounded below</span>
+        <p class="small">With Dirichlet conditions, one integration by parts — boundary term $-[pu'\bar u]_a^b = 0$ — gives $\lambda\lVert u\rVert_w^2 = \int_a^b(p|u'|^2 + q|u|^2)$, which is at least $\inf(q/w)\lVert u\rVert_w^2$. So $\lambda \ge \inf(q/w)$. $\square$</p>
+      </div>
+      <div class="box thm"><span class="label">discrete and unbounded — <i>cited</i></span>
+        <p class="small">The eigenvalues form a strictly increasing sequence $\lambda_1 \lt \lambda_2 \lt \cdots \to +\infty$, with no accumulation point.</p>
+        <p class="small">By the Prüfer angle: $pu' = \rho\cos\vartheta$, $u = \rho\sin\vartheta$, and $\vartheta$ obeys a first-order ODE, increasing through multiples of $\pi$, monotone in $\lambda$. <i>Cited</i>: Coddington &amp; Levinson ch. 8; Al-Gwaiz §3.3.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The integration by parts, in full.</b>
+    $\langle\mathcal Au,u\rangle_w = \int_a^b(\mathcal Lu)\bar u
+    = \int_a^b\big[-(pu')'\bar u + q|u|^2\big]
+    = \big[-pu'\bar u\big]_a^b + \int_a^b\big[p|u'|^2 + q|u|^2\big]$.
+    The boundary term vanishes for Dirichlet ($\bar u = 0$ at both ends) and for Neumann
+    ($u' = 0$); for Robin it becomes
+    $(\beta_1/\beta_2)p(b)|u(b)|^2 - (\alpha_1/\alpha_2)p(a)|u(a)|^2$, which is $\ge 0$ for the
+    usual sign choice $\alpha_1/\alpha_2 \le 0 \le \beta_1/\beta_2$ and only improves the
+    lower bound. Dimensions: every term carries $[p][u]^2\mathrm L^{-1}$
+    against $[w][u]^2\mathrm L$, and their ratio is $[\lambda]$ ✓ — for $p = w = 1$ that is
+    $\mathrm L^{-2}$, as it must be.</p>
+    <p><b>A check of the lower bound.</b> String, $p = w = 1$, $q = 0$, Dirichlet: the bound
+    says $\lambda \ge 0$. The true $\lambda_1 = \pi^2/L^2 &gt; 0$ ✓. Bessel of order $m$,
+    $q = m^2/r &gt; 0$, $w = r$: the bound says $\lambda \ge \inf m^2/r^2 = m^2/a^2$, and the
+    true $\lambda_{m1} = j_{m1}^2/a^2$ with $j_{m1} &gt; m$ ✓ (indeed $j_{11} = 3.83 &gt; 1$,
+    $j_{21} = 5.14 &gt; 2$). The bound is crude and correct, which is what a bound is for.</p>
+    <p><b>Why discreteness is not obvious.</b> Nothing said so far forbids a continuum of
+    eigenvalues; the Laplacian on the whole line has one. What rules it out is the
+    compactness of $[a,b]$ together with $p &gt; 0$ on it. In the operator-theoretic
+    language: the resolvent $(\mathcal A - \mu)^{-1}$ is an integral operator whose kernel
+    is the Green's function, continuous on the compact square $[a,b]^2$, hence a compact
+    operator; a compact self-adjoint operator has a discrete spectrum accumulating only at
+    zero, and inverting sends that to a discrete spectrum running off to infinity. The
+    Prüfer route proves the same thing by staying with the ODE and is the one to read
+    first, because it also delivers the oscillation theorem two slides on.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville</p>
+  <h2>Completeness — the theorem the whole method was waiting for</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">the expansion theorem — <i>cited</i></span>
+        <p class="small">For a regular problem with self-adjoint boundary conditions, the eigenfunctions $\{u_n\}$ are <b>complete</b> in $L^2_w(a,b)$: for every $f$ there,</p>
+        $$\Big\lVert f - \sum_{n\le N}\hat f_nu_n\Big\rVert_w \to 0,\quad \hat f_n = \frac{\langle f,u_n\rangle_w}{\lVert u_n\rVert_w^2},$$
+        <p class="small">and Parseval holds. If $f$ is also $C^1$ and satisfies the boundary conditions, the convergence is <b>uniform</b> and <b>absolute</b>.</p>
+      </div>
+      <p class="small"><b>Why, in one sentence.</b> $(\mathcal A - \mu)^{-1}$ is an integral operator whose kernel — a Green's function for $\mathcal L$, built by unit 06's jump-matching — is continuous on a compact square, hence compact and self-adjoint; and a compact self-adjoint operator has an orthonormal basis of eigenfunctions.</p>
+      <div class="box good"><span class="label">the debt from section 1, paid</span>
+        <p class="small">"Is every initial shape a superposition of modes?" — <b>yes</b>: in mean square always, uniformly when the shape is smooth and respects the boundary conditions.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">what this unit is not proving, and why</span>
+        <p class="small">That needs three things this course has not built: the Lebesgue integral, metric completeness of $L^2_w$, and the spectral theorem for compact operators. None is hard; all are long.</p>
+        <p class="small">What <b>is</b> proved in full here is the trigonometric case, by Fejér — the case every other is modelled on, and enough for the string, the rod, and units 20, 23 and 38.</p>
+        <p class="small"><i>Cited</i>: Coddington &amp; Levinson ch. 7 §§3–4; Courant &amp; Hilbert vol. I ch. V–VI; Al-Gwaiz ch. 2.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The singular cases.</b> The theorem as stated is for a <em>regular</em> problem:
+    $[a,b]$ compact, $p &gt; 0$ and $w &gt; 0$ on the closed interval. The drum ($p = w = r$,
+    vanishing at $r = 0$) and Legendre ($p = 1 - x^2$, vanishing at both ends) are singular,
+    and the corresponding completeness statements — the Fourier–Bessel expansion theorem and
+    the Legendre expansion theorem — are true and are proved separately, by Weyl's theory or
+    by direct kernel estimates. <i>Cited</i>: Watson, <i>A Treatise on the Theory of Bessel
+    Functions</i>, ch. XVIII, for Fourier–Bessel; Sansone, <i>Orthogonal Functions</i>, ch. III,
+    for Legendre. Every use of them in this course is a use of the statement, never of the
+    proof.</p>
+    <p><b>Why the uniform-convergence clause matters in practice.</b> Mean-square convergence
+    permits the truncation to be wrong by a lot at any given point, as Gibbs showed. The
+    extra hypothesis — $f$ is $C^1$ and satisfies the boundary conditions — buys pointwise
+    control everywhere at once, and it is a hypothesis one can arrange: for the drum it says
+    the initial shape must actually vanish at the rim, which a physical membrane does.</p>
+    <p><b>What "the modes are a basis" does and does not mean.</b> It means: the finite
+    linear combinations are dense, so every element is a limit of them. It does <em>not</em>
+    mean every element is a finite combination, and it does not mean the infinite sum
+    converges pointwise. An orthonormal basis of a Hilbert space is a topological notion, not
+    the linear-algebraic one of unit 07 — an infinite-dimensional space has no countable
+    algebraic basis at all. The title of the unit says "the modes are a basis, and that is a
+    theorem"; the theorem is this, with that meaning.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville</p>
+  <h2>Sturm's comparison theorem, and counting nodes</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Sturm comparison</span></span>
+        <p class="small">Let $u'' + Qu = 0$ and $v'' + \tilde Qv = 0$ on $[x_1,x_2]$ with $\tilde Q \ge Q$ and $\tilde Q \not\equiv Q$. If $x_1 &lt; x_2$ are consecutive zeros of $u$, then $v$ vanishes somewhere in $(x_1,x_2)$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Suppose not; normalise $u &gt; 0$ and $v &gt; 0$ on $(x_1,x_2)$. Then</p>
+        $$(u'v - uv')' = (\tilde Q - Q)\,uv \ \ge\ 0 ,$$
+        <p class="small">since $u''v - uv'' = (\tilde Q - Q)uv$. So $u'v - uv'$ is nondecreasing. But $u(x_1) = u(x_2) = 0$ with $u'(x_1) &gt; 0$, $u'(x_2) &lt; 0$, so it is $u'(x_1)v(x_1) \ge 0$ at the left end and $u'(x_2)v(x_2) \le 0$ at the right. Nondecreasing from $\ge0$ to $\le0$ forces both to vanish and $(\tilde Q-Q)uv \equiv 0$ — impossible on the interior. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Sturm oscillation theorem</span> — <i>cited</i></span>
+        <p class="small">For a regular problem with separated conditions, ordering $\lambda_1 &lt; \lambda_2 &lt; \cdots$, the eigenfunction $u_n$ has <b>exactly $n-1$ zeros in the open interval</b> $(a,b)$.</p>
+        <p class="small">Comparison gives the monotone half — larger $\lambda$ means at least as many zeros — and the Prüfer angle supplies exactness. <i>Cited</i>: Coddington &amp; Levinson ch. 8 §2.</p>
+      </div>
+      <div class="box good"><span class="label">checks, on things already known</span>
+        <p class="small"><b>String.</b> $u_n = \sin(n\pi x/L)$ has zeros at $x = kL/n$, $k = 1,\dots,n-1$: exactly $n-1$ ✓.</p>
+        <p class="small"><b>Legendre.</b> $P_n$ has $n$ zeros in $(-1,1)$, and $\lambda_n = n(n+1)$ is the $(n+1)$-st eigenvalue counting from $\lambda_0 = 0$ ✓.</p>
+        <p class="small"><b><span class="ref" data-ref="drum">The drum.</span></b> $J_0(j_{0k}r/a)$ vanishes at $r = aj_{0i}/j_{0k}$, $i \lt k$: $k-1$ nodal circles ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Getting a general $\mathcal L$ into the form $u'' + Qu = 0$.</b> Substitute the
+    Liouville transformation $t = \int_a^x\sqrt{w/p}$, $y = (pw)^{1/4}u$; then
+    $-(pu')' + qu = \lambda wu$ becomes $\ddot y + (\lambda - \tilde q(t))y = 0$ for a
+    computable $\tilde q$. So the comparison theorem applies to every Sturm–Liouville
+    problem, with $Q = \lambda - \tilde q$, and "larger $\lambda$" is literally "larger $Q$".
+    Zeros are preserved because $(pw)^{1/4} &gt; 0$ and $t(x)$ is strictly increasing.</p>
+    <p><b>The intuition, worth having.</b> $u'' = -Qu$ says the curve bends towards the axis
+    at a rate $Q$. Bend harder and you cross sooner. Every statement in this slide is that
+    sentence, made precise: higher eigenvalue, more bending, more crossings; heavier string
+    (larger $w$), more bending per unit length, lower frequency for the same number of
+    crossings.</p>
+    <p><b>Two corollaries worth naming.</b> (1) If $Q \le 0$ on an interval, a nontrivial
+    solution has at most one zero there — compare with $v'' = 0$, whose solutions are
+    straight lines. For $p = w = 1$ that is another proof that a problem with $q \ge 0$ and
+    Dirichlet conditions has no eigenvalue $\le 0$; P10 gives the direct argument for any $p$.
+    (2) Zeros of consecutive eigenfunctions interlace: between two consecutive zeros of
+    $u_n$ — counting the endpoints, for Dirichlet conditions — there is at least one zero of
+    $u_{n+1}$. Both are one application of the boxed proof.</p>
+    <p><b>What it is used for later.</b> Counting nodes is how one identifies which mode a
+    measured resonance is, without computing eigenvalues: count the still lines. It is also
+    how unit 21's WKB approximation is normalised — the Bohr–Sommerfeld counting rule is
+    the oscillation theorem with an asymptotic estimate of the number of zeros.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Sturm–Liouville · example</p>
+  <h2>Worked: the drum is a singular Sturm–Liouville problem</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">put Bessel's equation into the form</span>
+        <p class="small">Section 1's radial equation is $r^2R'' + rR' + (\lambda r^2 - m^2)R = 0$ on $(0,a)$. Divide by $r$ — the integrating-factor recipe, since $A = r^2$, $B = r$, $\exp\int(B/A) = r$:</p>
+        $$rR'' + R' + \Big(\lambda r - \frac{m^2}{r}\Big)R = 0,$$
+        <p class="small">i.e. $(rR')' - \frac{m^2}{r}R = -\lambda rR$,</p>
+        <p class="small">since $(rR')' = rR'' + R'$. Negated, this is <span class="ref" data-ref="SL">$-(pR')' + qR = \lambda wR$</span> with</p>
+        $$p = r,\qquad q = m^2/r,\qquad w = r .$$
+        <p class="small"><b>Endpoints.</b> $r = a$ is regular with $R(a) = 0$; at $r = 0$, $p(0) = 0$ and $q$ blows up — <b>singular</b>, and boundedness is the condition.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what the theorems now say, for free</span>
+        <p class="small"><b>Real.</b> Every $\lambda_{mk}$ is real, so $\omega_{mk} = c\sqrt{\lambda_{mk}}$ is a genuine frequency and no mode grows ✓.</p>
+        <p class="small"><b>Orthogonal.</b> $\int_0^aJ_m(\tfrac{j_{mk}r}{a})J_m(\tfrac{j_{ml}r}{a})r\,\mathrm dr = 0$ for $k \ne l$, proved without an integral ✓.</p>
+        <p class="small"><b>Bounded below.</b> $\lambda \ge \inf(q/w) = m^2/a^2$, true since $j_{mk} &gt; m$ ✓. <b>Nodes.</b> The $k$-th radial eigenfunction has $k-1$ interior zeros ✓. <b>Complete</b> (<i>cited</i>: Watson ch. XVIII).</p>
+      </div>
+      <div class="box warn"><span class="label">check the concomitant at the centre</span>
+        <p class="small">As $r \to 0^+$, $p(u\bar v{}' - u'\bar v) = r\cdot O(r^{2m-1}) \to 0$ for $J_m$; but $Y_0 \sim \frac2\pi\log r$ gives $rY_0' \to \frac2\pi \ne 0$. Without boundedness the operator is not symmetric and every line above fails.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this example is the point of the section.</b> Everything in the right-hand
+    column was known for Bessel functions by 1850, each fact proved by its own manipulation
+    of the series or the integral representation. Sturm–Liouville theory says: none of that
+    was about Bessel functions. It was about $p = w = r$ and a symmetric operator, and any
+    other $(p,q,w)$ gives the same list with no new work. That is the difference between a
+    catalogue of special functions and a theory.</p>
+    <p><b>The orthogonality, if one insists on seeing the integral.</b>
+    Let $u = J_m(\kappa r)$, $v = J_m(\kappa'r)$ with $J_m(\kappa a) = J_m(\kappa'a) = 0$.
+    Lagrange's identity integrated over $[\varepsilon,a]$ gives
+    $(\kappa^2 - \kappa'^2)\int_\varepsilon^a uv\,r\,\mathrm dr = \big[r(uv' - u'v)\big]_\varepsilon^a$.
+    At $r = a$ both $u$ and $v$ vanish; at $r = \varepsilon$ the bracket is $O(\varepsilon^{2m})$
+    or, for $m = 0$, $O(\varepsilon^2)$. Let $\varepsilon \to 0$ ✓. That is the classical
+    computation, and it <em>is</em> Lagrange's identity — which is the whole thesis of the
+    section restated.</p>
+    <p><b>A caution about $q$.</b> Here $q = m^2/r$ is unbounded at the singular endpoint,
+    so even the standing hypothesis "$q \in C^0[a,b]$" is violated. That is normal for
+    singular problems and is exactly what Weyl's theory is for. In the course's later use
+    — separating the Laplacian in units 23 and 39 — the same structure recurs with the same
+    resolution, and it is always worth naming which endpoint is singular before trusting a
+    boundary condition there.</p>
+    <p><b>The angular factor, for completeness of the picture.</b> $\Theta'' = -m^2\Theta$
+    on $[0,2\pi]$ with periodic conditions is a second, independent Sturm–Liouville problem,
+    regular, with $p = w = 1$ and $q = 0$. The full two-dimensional eigenfunctions are
+    products of the two problems' eigenfunctions, and their orthogonality on the disc is the
+    product of the two orthogonality relations, with the measure
+    $r\,\mathrm dr\,\mathrm d\theta$ factorising to match.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>The Rayleigh quotient</h2>
+  <p>The lowest eigenvalue is the minimum of a functional, so any admissible guess is an upper bound — and unit 11's machinery is what proves it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Rayleigh</p>
+  <h2>The quotient, and the identity behind it</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Rayleigh quotient</span></span>
+        <p class="small">For $u$ in the domain, $u \not\equiv 0$,</p>
+        $$R[u] := \frac{\displaystyle\int_a^b\big(p\,u'^2 + q\,u^2\big)\mathrm dx}{\displaystyle\int_a^b w\,u^2\,\mathrm dx}
+          \;=\; \frac{\langle\mathcal Au,u\rangle_w}{\langle u,u\rangle_w}.$$
+        <p class="small">The second equality is one integration by parts, with the boundary term killed by the boundary conditions — the same computation as the lower bound on "Simple, discrete, unbounded above".</p>
+      </div>
+      <p class="small">For a string, the numerator is twice the elastic potential energy stored in the shape $u$, and the denominator is twice the kinetic energy of the same profile read as a velocity: $R$ is <b>stiffness over inertia</b>, as $\omega^2 = k/m$ is for one oscillator and $v^{\!\top}\!Kv/v^{\!\top}\!Mv$ was in unit 07.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the variational principle</span>
+        <p class="small">$\displaystyle \lambda_1 = \min_{u \ne 0} R[u]$, attained exactly on the multiples of $u_1$. In particular <b>every admissible $u$ gives $\lambda_1 \le R[u]$</b> — admissible meaning continuous, piecewise $C^1$, meeting the Dirichlet conditions (notes).</p>
+      </div>
+      <div class="box proof"><span class="label">proof (granting completeness)</span>
+        <p class="small">Expand $u = \sum_nc_nu_n$ with $\{u_n\}$ orthonormal in $\langle\cdot,\cdot\rangle_w$. Then $\langle u,u\rangle_w = \sum c_n^2$ and, by symmetry and $\mathcal Au_n = \lambda_nu_n$,</p>
+        $$\langle\mathcal Au,u\rangle_w = \sum_n\lambda_nc_n^2 \ \ge\ \lambda_1\sum_nc_n^2 ,$$
+        <p class="small">so $R[u] \ge \lambda_1$, with equality iff $c_n = 0$ whenever $\lambda_n &gt; \lambda_1$, i.e. iff $u \in \operatorname{span}(u_1)$. Taking $u = u_1$ gives $R = \lambda_1$. $\square$</p>
+      </div>
+      <p class="small muted">One-sided by construction: a trial function bounds $\lambda_1$ from <b>above</b>, never below. Lower bounds are genuinely harder and need a different idea.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The integration by parts once more, with the boundary term retained.</b>
+    $\int_a^b(\mathcal Lu)u = [-pu'u]_a^b + \int_a^b(pu'^2 + qu^2)$. For Dirichlet or Neumann
+    the bracket is zero. For Robin, $u'(a) = -(\alpha_1/\alpha_2)u(a)$ makes it
+    $-p(a)(\alpha_1/\alpha_2)u(a)^2$ at the left end, so the correct Rayleigh quotient for a
+    Robin problem carries extra boundary terms in the numerator:
+    $R[u] = \big(\int(pu'^2 + qu^2) + \sigma_ap(a)u(a)^2 + \sigma_bp(b)u(b)^2\big)/\int wu^2$
+    with $\sigma$ the appropriate ratios. Forgetting them is the single commonest error in
+    using this method, and the practice problem in the checkpoint's notes makes the reader
+    meet it.</p>
+    <p><b>Why an <em>upper</em> bound is the useful direction.</b> $\lambda_1$ is the lowest
+    frequency: the pitch of the string, the resonance of the bridge, the buckling load of the
+    column. An engineer needs to know the structure is stiff <em>enough</em>, which is a
+    lower bound on $\lambda_1$ — so the Rayleigh quotient is on the wrong side. The reason
+    it is used anyway is that it is extraordinarily accurate: the error in $R$ is
+    <em>quadratic</em> in the error of the trial function, because $\lambda_1$ is a
+    stationary point. Guess the shape to 10 % and get the eigenvalue to 1 %, which the drum's
+    worked example demonstrates and problem P11 repeats.</p>
+    <h4>Full proof: trial functions outside the domain</h4>
+    <p>The proof on the slide takes $u$ in the domain, $C^2$ and meeting every boundary
+    condition. The trial functions actually used are rougher: the drum's cone has a corner
+    at the centre, and $1 - x^{\sqrt2}$ has an unbounded second derivative there. The bound
+    survives. Take Dirichlet conditions and $q \ge 0$, so every $\lambda_n &gt; 0$, and the
+    energy form $E(u,v) = \int_a^b(pu'v' + quv)$, an inner product on admissible functions.
+    For an eigenfunction $u_n$, orthonormal in $\langle\cdot,\cdot\rangle_w$, one integration
+    by parts moves the derivative onto the smooth $u_n$:
+    $E(u,u_n) = \int_a^bu\,\mathcal Lu_n = \lambda_n\langle u,u_n\rangle_w = \lambda_nc_n$,
+    the boundary term $[pu_n'u]$ vanishing because $u = 0$ at a regular end and $p \to 0$
+    with $u$, $u_n'$ bounded at a singular one. So the $u_n/\sqrt{\lambda_n}$ are orthonormal
+    for $E$, and Bessel's inequality in the inner product $E$ gives
+    $E(u,u) \ge \sum_nE(u,u_n)^2/\lambda_n = \sum_n\lambda_nc_n^2 \ge \lambda_1\sum_nc_n^2
+    = \lambda_1\lVert u\rVert_w^2$, the last step by Parseval (completeness, cited). That is
+    $R[u] \ge \lambda_1$ for every admissible $u$. Neumann conditions need not be imposed on
+    a trial function at all — they are natural, next slide — and Robin ones enter through the
+    boundary terms of $E$.</p>
+    <p><b>Quadratic accuracy, proved.</b> If $u = u_1 + \varepsilon\eta$ with
+    $\eta \perp_w u_1$ and $\lVert u_1\rVert_w = 1$, then
+    $\langle\mathcal Au,u\rangle_w = \lambda_1 + \varepsilon^2\langle\mathcal A\eta,\eta\rangle_w$
+    and $\langle u,u\rangle_w = 1 + \varepsilon^2\lVert\eta\rVert_w^2$, so
+    $R[u] = \lambda_1 + \varepsilon^2\big(\langle\mathcal A\eta,\eta\rangle_w - \lambda_1\lVert\eta\rVert_w^2\big) + O(\varepsilon^4)$.
+    The first-order term is absent — which is precisely the statement that $u_1$ is a
+    stationary point of $R$, the next slide's content.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Rayleigh</p>
+  <h2>Unit 11's second job: the eigenvalue problem is an Euler–Lagrange equation</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">Run it the other way: minimise $J[u] = \int_a^b(pu'^2 + qu^2)\,\mathrm dx$ subject to $G[u] = \int_a^b wu^2\,\mathrm dx = 1$ — unit 11's <b>isoperimetric problem</b>.</p>
+      <div class="box thm"><span class="label">the Euler–Lagrange equation is $\mathcal Lu = \lambda wu$</span>
+        <p class="small">With a multiplier $\lambda$, the first variation along $\eta$ is</p>
+        $$\delta(J - \lambda G)[\eta] = 2\!\int_a^b\!\big(pu'\eta' + (q{-}\lambda w)u\eta\big)$$
+        $$= 2\big[pu'\eta\big]_a^b + 2\!\int_a^b\!\big(\mathcal Lu - \lambda wu\big)\eta .$$
+        <p class="small">For $\eta$ vanishing at the ends the bracket dies and the fundamental lemma (unit 11) forces $\mathcal Lu = \lambda wu$. $\square$</p>
+      </div>
+      <p class="small">No <em>ansatz</em>, then: the equation is what "least stiffness per inertia" means, and the multiplier <em>is</em> the eigenvalue.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">natural boundary conditions, free</span>
+        <p class="small">Drop $\eta(a) = \eta(b) = 0$ and the bracket must vanish by itself, forcing $pu' = 0$ at each free end — the Neumann condition, arriving as unit 11's <span class="term">natural boundary condition</span> rather than imposed.</p>
+      </div>
+      <div class="box thm"><span class="label">higher eigenvalues: min–max — <i>cited</i></span>
+        <p class="small">$\lambda_n = \min_{\dim V = n}\max_{u \in V\setminus0}R[u]$; equivalently, $\lambda_n = \min\{R[u] : u \perp_w u_1,\dots,u_{n-1}\}$.</p>
+        <p class="small">Courant–Fischer, proved for matrices in unit 07; the proof transfers given completeness. <i>Cited</i>: Courant &amp; Hilbert vol. I ch. VI §1.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The integration by parts in the first variation.</b>
+    $\int_a^b pu'\eta' = [pu'\eta]_a^b - \int_a^b(pu')'\eta$. That is the only step; the rest
+    is collecting terms. Note that the variation was taken of $J - \lambda G$ with $\lambda$
+    treated as a constant, which is legitimate because unit 11's multiplier theorem for
+    isoperimetric constraints says exactly that: at a constrained extremum there exists a
+    $\lambda$ making the unconstrained variation of $J - \lambda G$ vanish, provided $u$ is
+    not a critical point of $G$ alone — and $\delta G[\eta] = 2\int wu\eta$ vanishes for all
+    $\eta$ only if $u \equiv 0$, which is excluded.</p>
+    <p><b>Rayleigh's own use of it.</b> Rayleigh's <i>Theory of Sound</i> (1877) introduces
+    the quotient to estimate the pitch of bells, plates and air columns whose exact
+    eigenfunctions were hopeless. Ritz's 1909 refinement — minimise $R$ over a
+    finite-dimensional family of trial functions, which reduces the problem to a matrix
+    generalised eigenvalue problem $Kc = \lambda Mc$, unit 07's — is the Rayleigh–Ritz
+    method, and it is the direct ancestor of the finite element method. The whole of
+    structural engineering computation is this slide, iterated.</p>
+    <p><b>What "unit 11's second job" means.</b> Unit 11 built the calculus of variations to
+    get equations of motion out of an action, and unit 12 spent it on Lagrangian mechanics.
+    This is its other, independent use: characterising eigenvalues. The two look unrelated
+    and share every theorem — first variation, fundamental lemma, natural boundary
+    conditions, multipliers.</p>
+    <p><b>A warning about "min" versus "inf".</b> The variational principle as stated asserts
+    the minimum is <em>attained</em>. On a compact interval with $p, w &gt; 0$ it is, and that
+    is a theorem, not a formality — Weierstrass's critique of Dirichlet's principle (unit 11)
+    is exactly the observation that a bounded-below functional need not attain its infimum.
+    Here attainment comes from the cited spectral theorem: $u_1$ exists, and
+    $R[u_1] = \lambda_1$. The direct method of unit 11 is the other route, and the one that
+    generalises.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Rayleigh · example</p>
+  <h2>Worked: bounding the drum's lowest note, one parameter</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box ex"><span class="label">a family of guesses</span>
+        <p class="small"><span class="ref" data-ref="drum">The drum's</span> radial modes have $m = 0$, so <span class="ref" data-ref="SL">$p = w = r$, $q = 0$</span>:</p>
+        $$R[u] = \int_0^a\! u'^2 r\,\mathrm dr \;\Big/\; \int_0^a\! u^2 r\,\mathrm dr .$$
+        <p class="small">Take the <span class="ref" data-ref="trial">family</span> $u_p = 1 - x^p$, $x = r/a$, $p &gt; 0$: bounded at the centre, zero at the rim. With $u_p' = -(p/a)x^{p-1}$,</p>
+        $$\int_0^a\!u_p'^2\,r\,\mathrm dr = p^2\!\int_0^1\!\!x^{2p-1}\,\mathrm dx = \tfrac p2 .$$
+        <p class="small">And $\int_0^au_p^2r\,\mathrm dr = a^2(\tfrac12 - \tfrac{2}{p+2} + \tfrac1{2p+2}) = a^2p^2/[2(p+1)(p+2)]$, the numerator collapsing to $p^2$ (notes). So</p>
+        $$a^2R[u_p] = \frac{(p+1)(p+2)}{p} = p + 3 + \frac2p .$$
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">minimise, and compare</span>
+        <p class="small">$1 - 2/p^2 = 0$ at $p = \sqrt2$, a minimum as $4/p^3 &gt; 0$. There</p>
+        $$a^2\lambda_1 \le 3 + 2\sqrt2 = 5.8284 .$$
+        <p class="small">So $\sqrt{a^2\lambda_1} \le 1 + \sqrt2 = 2.414214$; $j_{01} = 2.404826$.</p>
+        <table class="dense">
+          <thead><tr><th>trial</th><th class="num">$a^2R$</th><th class="num">error</th></tr></thead>
+          <tbody>
+            <tr><td>$p = 1$ (a cone)</td><td class="num">6.000000</td><td class="num">$+3.75\%$</td></tr>
+            <tr><td>$p = 2$ (a paraboloid)</td><td class="num">6.000000</td><td class="num">$+3.75\%$</td></tr>
+            <tr><td>$p = \sqrt2$ (best)</td><td class="num">5.828427</td><td class="num">$+0.78\%$</td></tr>
+            <tr><td>exact $J_0$</td><td class="num">5.783186</td><td class="num">—</td></tr>
+          </tbody>
+        </table>
+        <p class="small"><b>Checks.</b> $a^2R$ dimensionless ✓; every entry above the exact value ✓; the $p = 1$, $2$ tie is the symmetry $p \mapsto 2/p$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The algebraic collapse, in full.</b>
+    $\tfrac12 - \tfrac2{p+2} + \tfrac1{2(p+1)}$ over $2(p+1)(p+2)$ has numerator
+    $(p+1)(p+2) - 4(p+1) + (p+2) = (p^2+3p+2) - (4p+4) + (p+2) = p^2$. So the denominator
+    integral is $a^2p^2/[2(p+1)(p+2)]$, and
+    $a^2R = (p/2)\cdot 2(p+1)(p+2)/p^2 = (p+1)(p+2)/p$ ✓. At $p = \sqrt2$:
+    $(\sqrt2+1)(\sqrt2+2)/\sqrt2 = (2 + 3\sqrt2 + 2)/\sqrt2 = 4/\sqrt2 + 3 = 2\sqrt2 + 3$ —
+    and $3 + 2\sqrt2 = (1+\sqrt2)^2$, so the bound on $\sqrt\lambda$ is exactly $1 + \sqrt2$.
+    A one-parameter guess, in closed form, within $0.4\%$ of a Bessel zero.</p>
+    <p><b>In frequency.</b> For the deck's numbers, $a = 0.150\ \mathrm m$ and
+    $c = 109.89\ \mathrm{m\,s^{-1}}$: the exact fundamental is $280.39$ Hz and the bound is
+    $c(1+\sqrt2)/(2\pi a) = 281.49$ Hz — one hertz high, from a guess that did not know
+    Bessel functions exist.</p>
+    <p><b>Why $p = 1$ and $p = 2$ tie.</b> $a^2R = p + 3 + 2/p$ is symmetric under
+    $p \mapsto 2/p$, which swaps $1$ and $2$. The symmetry is an accident of this family and
+    proves nothing. Quadratic accuracy shows instead in the sizes: in the weighted norm the
+    cone's shape is $6.9\%$ away from $J_0(j_{01}r/a)$, the paraboloid's $8.6\%$ and the best
+    trial's $2.5\%$, while their eigenvalues are off by $3.75\%$, $3.75\%$ and $0.78\%$ —
+    each a modest multiple of the square of the shape error, never of the shape error
+    itself.</p>
+    <p><b>The obvious improvement.</b> Use two parameters — Rayleigh–Ritz with
+    $u = (1-x^2) + \beta(1-x^4)$, say — and the bound drops to within a few parts in $10^4$.
+    That computation is a generalised eigenvalue problem $Kc = \lambda Mc$ for a
+    $2\times2$ pencil, which is unit 07's slide "The generalised eigenvalue problem"
+    verbatim. Problem P11 does a two-term version for a string of varying density
+    and lands within one part in $10^5$ of the exact eigenvalue.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Three geometries, one theorem</h2>
+  <p>Interval, disc and sphere. The equations look unrelated and the proofs are identical, because the operator is.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · geometries</p>
+  <h2>One table, three special functions</h2>
+  <table class="dense">
+    <thead><tr><th>domain</th><th>separated equation</th><th>$p$</th><th>$q$</th><th>$w$</th><th>endpoints</th><th>eigenfunctions</th><th>eigenvalue condition</th></tr></thead>
+    <tbody>
+      <tr><td>interval $[0,L]$</td><td>$-u'' = \lambda u$</td><td>$1$</td><td>$0$</td><td>$1$</td><td>both regular</td><td>$\sin(n\pi x/L)$</td><td>$\sin\sqrt\lambda L = 0$</td></tr>
+      <tr><td><span class="ref" data-ref="drum">disc, radius $a$</span></td><td>$-(rR')' + \tfrac{m^2}{r}R = \lambda rR$</td><td>$r$</td><td>$m^2/r$</td><td>$r$</td><td>$r=0$ singular</td><td>$J_m(\sqrt\lambda r)$</td><td>$J_m(\sqrt\lambda a) = 0$</td></tr>
+      <tr><td>sphere, in $x=\cos\theta$</td><td>$-\big((1-x^2)\Theta'\big)' + \tfrac{m^2}{1-x^2}\Theta = \lambda\Theta$</td><td>$1-x^2$</td><td>$\tfrac{m^2}{1-x^2}$</td><td>$1$</td><td>both singular</td><td>$P_\ell^m(x)$</td><td>$\lambda = \ell(\ell+1)$, $\ell \ge m$</td></tr>
+    </tbody>
+  </table>
+  <div class="cols">
+    <div class="box good"><span class="label">what is the same</span>
+      <p class="small">Real eigenvalues. Orthogonality in $\langle\cdot,\cdot\rangle_w$ — $\mathrm dx$, $r\,\mathrm dr$, $\mathrm dx = \sin\theta\,\mathrm d\theta$. Simplicity for the separated cases. Discrete spectrum running to $+\infty$. Node counting. The Rayleigh quotient with the same $p$, $q$, $w$. Completeness.</p>
+    </div>
+    <div class="box warn"><span class="label">what is different, and only this</span>
+      <p class="small">Which endpoints are singular, and therefore what plays the role of a boundary condition there — and hence which solutions survive. On the sphere, boundedness at $x = \pm1$ is what quantises $\lambda$ to $\ell(\ell+1)$: the <b>integers of spherical harmonics come from a boundary condition</b>, not from anywhere else.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The weight is the geometry, every time.</b> $\mathrm d\ell = \mathrm dx$ on the
+    interval; $\mathrm dA = r\,\mathrm dr\,\mathrm d\theta$ on the disc;
+    $\mathrm d\Omega = \sin\theta\,\mathrm d\theta\,\mathrm d\varphi = \mathrm dx\,\mathrm d\varphi$
+    on the sphere, which is why the Legendre weight is $1$ in the variable $x = \cos\theta$
+    and $\sin\theta$ in the variable $\theta$. Both statements are the same statement, and
+    the change of variable is why $x = \cos\theta$ is universally used. Unit 10 chose it for
+    the generating function and got the measure right by luck; here one can see it was never
+    luck.</p>
+    <p><b>Why $\ell \ge m$.</b> $P_\ell^m \equiv 0$ for $m &gt; \ell$, since its definition
+    differentiates the degree-$\ell$ polynomial $P_\ell$ $m$ times. So for each
+    $m$ the eigenvalues are $\ell(\ell+1)$ with $\ell = m, m+1,\dots$ — an infinite
+    increasing sequence, exactly as the general theory demands, but with the first few
+    eigenvalues of the $m = 0$ problem missing from the $m = 3$ problem. The pattern is the
+    same on the disc, where $j_{mk}$ increases with $m$ at fixed $k$.</p>
+    <p><b>A fourth row worth knowing about.</b> Hermite's equation
+    ($p = \mathrm e^{-x^2}$, $w = \mathrm e^{-x^2}$, on all of $\mathbb R$) and Laguerre's
+    ($p = x\mathrm e^{-x}$, $w = \mathrm e^{-x}$, on $(0,\infty)$) are singular
+    Sturm–Liouville problems on unbounded intervals, and they are the quantum harmonic
+    oscillator and the hydrogen atom's radial equation. This course does not go there, but
+    the row is the same row, and the reason those polynomial families are orthogonal is this
+    section's reason and no other.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · geometries</p>
+  <h2>The sphere, separated</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">In spherical coordinates (unit 05, <i>cited</i> — the derivation is the polar computation with one more angle):</p>
+      $$\nabla^2\Phi = \frac1{r^2}\partial_r\big(r^2\partial_r\Phi\big) + \frac{1}{r^2}\Delta_{S^2}\Phi,$$
+      $$\Delta_{S^2} = \frac{1}{\sin\theta}\partial_\theta\big(\sin\theta\,\partial_\theta\big) + \frac{1}{\sin^2\theta}\partial_\varphi^2 .$$
+      <p class="small">Separate $\Phi = R(r)Y(\theta,\varphi)$: the two pieces depend on different variables, so both equal one constant, written $\ell(\ell+1)$, and $-\Delta_{S^2}Y = \ell(\ell+1)Y$. Separate again, $Y = \Theta(\theta)\mathrm e^{\mathrm im\varphi}$ with $m \in \mathbb Z$ by periodicity, and put $x = \cos\theta$, so that $\sin\theta\,\partial_\theta = -(1-x^2)\partial_x$:</p>
+      $$\big((1-x^2)\Theta'\big)' + \Big(\ell(\ell+1) - \frac{m^2}{1-x^2}\Big)\Theta = 0,$$
+      <p class="small">the <b>associated Legendre equation</b>, whose $m = 0$ case is unit 10's.</p>
+      <p class="small muted">Unit 10 got the $P_\ell$ from a generating function and their orthogonality from Rodrigues' formula; both are now corollaries.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">spherical harmonics</span></span>
+        <p class="small">$Y_\ell^m = N_{\ell m}P_\ell^{|m|}(\cos\theta)\mathrm e^{\mathrm im\varphi}$, $|m| \le \ell$, with $P_\ell^m := (1-x^2)^{m/2}P_\ell^{(m)}$ (notes): $2\ell+1$ per $\ell$, orthonormal for the right $N_{\ell m}$, <b>complete</b> in $L^2(S^2)$ (<i>cited</i>: Sansone ch. III).</p>
+      </div>
+      <div class="box good"><span class="label">what the singular endpoints buy</span>
+        <p class="small">$p = 1-x^2$ vanishes at the poles $x = \pm1$, coordinate singularities, not edges. Boundedness forces $\lambda = \ell(\ell+1)$ with $\ell \in \{0, 1, \dots\}$ (P7 for $m = 0$, <i>cited</i> for $m \ge 1$), and discards $Q_\ell$. The integer $\ell$ is a <b>consequence of the geometry being closed</b>; nothing was quantised by hand.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The substitution, checked.</b> With $x = \cos\theta$, $\mathrm dx = -\sin\theta\,\mathrm d\theta$,
+    so $\partial_\theta = -\sin\theta\,\partial_x$ and
+    $\frac1{\sin\theta}\partial_\theta(\sin\theta\,\partial_\theta\Theta)
+    = \frac1{\sin\theta}\cdot(-\sin\theta\,\partial_x)\big(\sin\theta\cdot(-\sin\theta\,\partial_x\Theta)\big)
+    = \partial_x\big(\sin^2\theta\,\partial_x\Theta\big) = \big((1-x^2)\Theta'\big)'$ ✓.
+    And $1/\sin^2\theta = 1/(1-x^2)$ ✓. This is why $x = \cos\theta$ is not a trick: it is the
+    substitution that turns the angular Laplacian into Sturm–Liouville form, and the
+    measure $\sin\theta\,\mathrm d\theta$ into $\mathrm dx$, at one stroke.</p>
+    <h4>Full proof: $P_\ell^m$ solves the associated equation</h4>
+    <p>Differentiate Legendre's equation $(1-x^2)y'' - 2xy' + \ell(\ell+1)y = 0$ $m$ times by
+    Leibniz's rule. The first term gives $(1-x^2)v'' - 2mxv' - m(m-1)v$ with $v = y^{(m)}$, the
+    second $-2xv' - 2mv$, so
+    $(1-x^2)v'' - 2(m+1)xv' + \big(\ell(\ell+1) - m(m+1)\big)v = 0$. Now put
+    $\Theta = (1-x^2)^{m/2}v$. Then $(1-x^2)\Theta' = (1-x^2)^{m/2}\big((1-x^2)v' - mxv\big)$,
+    and differentiating once more and collecting,
+    $\big((1-x^2)\Theta'\big)' + \big(\ell(\ell+1) - \tfrac{m^2}{1-x^2}\big)\Theta
+    = (1-x^2)^{m/2}\big[(1-x^2)v'' - 2(m+1)xv' + (\ell(\ell+1) - m(m+1))v\big] = 0$. With
+    $y = P_\ell$ this is $P_\ell^m$: a polynomial times $(1-x^2)^{m/2}$, bounded on $[-1,1]$,
+    nonzero exactly when $m \le \ell$. The converse — that for $m \ge 1$ boundedness at both
+    poles <em>forces</em> $\lambda = \ell(\ell+1)$ with $\ell \ge m$ — is <i>cited</i>:
+    Sansone, <i>Orthogonal Functions</i>, ch. III. The $m = 0$ case is proved in P7.</p>
+    <p><b>Where this is spent.</b> Unit 23 solves Laplace's equation outside a charged body
+    by expanding the boundary data in $Y_\ell^m$ and matching term by term — the multipole
+    expansion of unit 10, now with a completeness theorem behind it, so that "the expansion
+    exists" is no longer an assumption. Unit 39 uses the same harmonics on the sphere of
+    directions to classify perturbations of a cosmological model, and unit 38 uses the
+    $\ell = 2$ subspace to explain why gravitational radiation is quadrupolar.</p>
+    <p><b>The count $2\ell+1$, and why it is a degeneracy.</b> All $2\ell+1$ functions
+    $Y_\ell^m$ share the eigenvalue $\ell(\ell+1)$. On the drum the analogous degeneracy was
+    $2$ and came from rotations of the disc; here it is $2\ell+1$ and comes from rotations of
+    the sphere, a three-parameter group. Degeneracy usually has a symmetry behind it — which
+    is Noether's theorem's near neighbour (unit 13), and exactly the mechanism unit 07 saw
+    for zero modes. Not always: a square membrane has eigenvalues proportional to
+    $j^2 + k^2$, and $1^2 + 7^2 = 5^2 + 5^2$ gives a degeneracy between the $(1,7)$ and
+    $(5,5)$ modes that no symmetry of the square explains. Such coincidences are called
+    <i>accidental</i>.</p>
+    <p><b>What the radial half becomes.</b> $\big(r^2R'\big)' = \ell(\ell+1)R$ is an Euler
+    equation with solutions $r^\ell$ and $r^{-\ell-1}$ — the growing and decaying multipoles
+    of unit 10, recovered as the radial companion of each harmonic. For Laplace's equation
+    the radial problem has no eigenvalue; for the wave equation in a ball it becomes a Bessel
+    problem of half-integer order, and the spherical Bessel functions appear.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · geometries</p>
+  <h2>Legendre's orthogonality, with no generating function</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">two lines, where unit 10 needed a page</span>
+        <p class="small">Legendre's equation is $\big((1-x^2)P'\big)' = -\ell(\ell+1)P$ on $[-1,1]$: Sturm–Liouville with $p = 1-x^2$, $q = 0$, $w = 1$, both endpoints singular because $p(\pm1) = 0$.</p>
+        <p class="small">Lagrange's identity for $P_\ell$ and $P_n$, integrated:</p>
+        $$(\lambda_\ell - \lambda_n)\!\int_{-1}^{1}\!\!P_\ell P_n\,\mathrm dx = \big[(1{-}x^2)W\big]_{-1}^{1} = 0,$$
+        <p class="small">writing $\lambda_\ell = \ell(\ell+1)$, $W = P_\ell P_n' - P_\ell'P_n$,</p>
+        <p class="small">because $1 - x^2$ vanishes at both ends while $P_\ell$, $P_n$ and their derivatives are polynomials, hence finite there. Since $\ell \ne n$ gives $\ell(\ell+1) \ne n(n+1)$ for non-negative integers, the integral is zero. $\square$</p>
+      </div>
+      <p class="small">The whole content is that $p$ vanishes at the endpoints and the eigenfunctions do not blow up. Rodrigues' formula was never needed.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Special case.</b> $P_0 = 1$, $P_1 = x$: $\int_{-1}^1x\,\mathrm dx = 0$ ✓. $P_2 = \tfrac12(3x^2-1)$ against $P_0$: $\int_{-1}^1\tfrac12(3x^2-1) = \tfrac12(2 - 2) = 0$ ✓.</p>
+        <p class="small"><b>Monotonicity of eigenvalues.</b> $\ell(\ell+1)$ is strictly increasing in $\ell \ge 0$: $0, 2, 6, 12, 20$ — discrete, bounded below, unbounded above, as section 4 requires ✓.</p>
+        <p class="small"><b>Nodes.</b> $P_\ell$ has $\ell$ zeros in $(-1,1)$, and $\lambda_\ell = \ell(\ell+1)$ is the $(\ell+1)$-st eigenvalue: "index minus one" ✓.</p>
+      </div>
+      <div class="box warn"><span class="label">where $Q_\ell$ went</span>
+        <p class="small">The second solution is $Q_0 = \tfrac12\log\frac{1+x}{1-x}$ and its relatives, infinite at $x = \pm1$. Keep it and the concomitant $\big[(1-x^2)(\cdot)\big]_{-1}^1$ no longer vanishes — $(1-x^2)Q_0' = 1$, a constant — so the operator stops being symmetric and the proof above collapses. Boundedness at a singular endpoint is load-bearing, once again.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\lambda = \ell(\ell+1)$ and not something else.</b> Nothing above assumed it.
+    Feeding a general $\lambda$ into Legendre's equation and demanding boundedness at both
+    $x = 1$ and $x = -1$ is what forces $\lambda = \ell(\ell+1)$: the Frobenius series about
+    $x = 1$ (unit 09's method, with a regular singular point) terminates — and so stays
+    bounded at the other end — only for those $\lambda$. Unit 10 derived this; the point here
+    is that "the series must terminate" is the analytic face of "the endpoint is singular
+    and the eigenfunction must be bounded", which is the operator-theoretic face. One
+    statement, two languages.</p>
+    <p><b>$(1-x^2)Q_0' = 1$, checked.</b> $Q_0 = \tfrac12\log\frac{1+x}{1-x}$ gives
+    $Q_0' = \tfrac12\big(\tfrac1{1+x} + \tfrac1{1-x}\big) = \tfrac1{1-x^2}$, so
+    $(1-x^2)Q_0' = 1$ exactly ✓. The concomitant of $P_0 = 1$ and $Q_0$ is then
+    $(1-x^2)(P_0Q_0' - P_0'Q_0) = 1$ at every $x$, and $[1]_{-1}^{1} = 0$ — so this
+    particular pair happens not to break it, but $P_1$ and $Q_0$ do:
+    $(1-x^2)(xQ_0' - Q_0) = x - (1-x^2)Q_0$, which tends to $1$ at $x = 1$ and $-1$ at
+    $x = -1$, giving a concomitant difference of $2 \ne 0$.</p>
+    <p><b>The norm, for completeness of the record.</b> $\int_{-1}^1P_\ell^2\,\mathrm dx
+    = 2/(2\ell+1)$, proved in unit 10 from Rodrigues' formula. Sturm–Liouville theory gives
+    orthogonality for free but says nothing about norms — those always need a computation
+    specific to the family, exactly as the drum's $\tfrac12a^2J_1(j_{0k})^2$ did.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · geometries</p>
+  <h2>Why a string has a pitch and a drum has not</h2>
+  <div class="cols wide-left">
+    <div>
+      <table class="dense">
+        <thead><tr><th></th><th class="num">string, $f_n/f_1$</th><th class="num">cents</th><th class="num"><span class="ref" data-ref="modes">drum</span>, $j/j_{01}$</th><th class="num">cents</th></tr></thead>
+        <tbody>
+          <tr><td>2nd partial</td><td class="num">2.0000</td><td class="num">1200.0</td><td class="num">1.5933</td><td class="num">806.5</td></tr>
+          <tr><td>3rd</td><td class="num">3.0000</td><td class="num">1902.0</td><td class="num">2.1355</td><td class="num">1313.5</td></tr>
+          <tr><td>4th</td><td class="num">4.0000</td><td class="num">2400.0</td><td class="num">2.2954</td><td class="num">1438.5</td></tr>
+          <tr><td>5th</td><td class="num">5.0000</td><td class="num">2786.3</td><td class="num">2.6531</td><td class="num">1689.2</td></tr>
+        </tbody>
+      </table>
+      <p class="small">The string's partials are exact integer multiples, because $\lambda_n = (n\pi/L)^2$ makes $\sqrt{\lambda_n}$ linear in $n$. The drum's are ratios of Bessel zeros, with no reason to be rational: its second partial sits $806.5$ cents up, where a harmonic series puts the octave, and no low harmonic series fits the four together.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the mechanism, stated once</span>
+        <p class="small">Pitch is the brain's estimate of the fundamental of a <b>harmonic series</b>. Feed it $f, 2f, 3f,\dots$ and it reports $f$, even if $f$ itself is missing. Feed it $f, 1.5933f, 2.1355f,\dots$ and there is no harmonic series to fit: the report is a thud. "Has a pitch" is a statement about the eigenvalues of a Sturm–Liouville problem.</p>
+      </div>
+      <div class="box warn"><span class="label">why one dimension is special</span>
+        <p class="small">$\sqrt{\lambda_n}$ linear in $n$ needs $\sqrt{\lambda_n}$ to be an arithmetic progression, and Weyl's law (<i>cited</i>, notes) says $\lambda_n \sim Cn^{2/d}$ in $d$ dimensions — so $\sqrt{\lambda_n} \sim n^{1/d}$, linear only when $d = 1$. Tuned percussion is the craft of deforming an object until a few modes take ratios they had no reason to take.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The cents.</b> An interval of ratio $\rho$ is $1200\log_2\rho$ cents; $100$ cents is
+    a semitone. $1200\log_2 1.59334 = 806.5$, $1200\log_2 2.13555 = 1313.5$,
+    $1200\log_2 2.29542 = 1438.5$, $1200\log_2 2.65307 = 1689.2$. For comparison, the
+    just intervals: octave $1200$, fifth $702$, twelfth $1902$, double octave $2400$. The
+    drum's second partial is $104.5$ cents above a fifth — beyond a semitone — and its third
+    is $113.5$ cents above an octave. Taken one at a time, any ratio lies within $50$ cents of
+    some tempered interval (the second partial is $6.5$ cents from a tempered minor sixth), so
+    "is it near an interval?" is not the test. The test is whether the partials sit near
+    multiples of one frequency, where a harmonic series puts them at $1200$, $1902$ and
+    $2400$ cents; the drum's sit at $806.5$, $1313.5$ and $1438.5$.</p>
+    <p><b>Weyl's law</b> is Hermann Weyl's theorem of 1911: for the Dirichlet Laplacian on a
+    bounded domain in $\mathbb R^d$, $\lambda_n \sim C_d\,(n/\mathrm{vol})^{2/d}$. <i>Cited</i>:
+    Courant &amp; Hilbert vol. I ch. VI §4, where it is proved by the min–max principle of
+    section 5 and a comparison with boxes.</p>
+    <p><b>How a timpano is fixed.</b> Three things push the ideal membrane's ratios towards
+    $1 : 1.5 : 2 : 2.5$ relative to the $(1,1)$ mode, which is then heard as the pitch:
+    the air in the kettle stiffens the low modes selectively; radiation loading adds
+    effective mass, most to the modes that move the most air; and the strike point, about a
+    quarter of the way in from the rim, is where the $(0,1)$ mode moves with only $0.34$ of
+    its centre amplitude, since $J_0(0.75\,j_{01}) = 0.338$ — so the mode that fits worst is
+    weakly excited. It has no interior node to strike at; the kettle designer settles for
+    small. The result is a genuine pitch, and every one of those three is an engineered
+    departure from the Sturm–Liouville problem computed here.</p>
+    <p><b>"Can one hear the shape of a drum?"</b> Mark Kac asked it in 1966 — does the
+    spectrum determine the domain? Weyl's law makes the area audible, and its two-term refinement the perimeter.
+    The full answer is <b>no</b>: Gordon, Webb and Wolpert exhibited two different plane
+    domains with identical spectra in 1992. <i>Cited</i>; the construction is elementary
+    but outside this course. The question is the exact converse of this unit, which has
+    spent forty slides going from a shape to its spectrum.</p>
+    <p><b>The running example, closed.</b> A drum of radius $15$ cm under $3200\ \mathrm{N\,m^{-1}}$
+    of tension has modes at $280.39$, $446.76$, $598.79$ and $643.62$ Hz; those numbers are
+    zeros of Bessel functions, which are eigenvalues of the Sturm–Liouville problem
+    $p = w = r$, $q = m^2/r$, singular at the centre, Dirichlet at the rim; their
+    eigenfunctions are real, orthogonal with weight $r$, node-counted, complete, and bounded
+    from below by a one-parameter guess to within $0.78\%$. Every one of those adjectives
+    came from one identity on one slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · where it is spent</p>
+  <h2>What this unit bought</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <tbody>
+          <tr><td><b>20</b> Fourier transform</td><td>the same idea with the interval sent to $\mathbb R$: the sequence of eigenvalues becomes a continuum, and Parseval becomes Plancherel.</td></tr>
+          <tr><td><b>23</b> static fields</td><td>boundary-value problems for Laplace's equation solved by expanding the data in $Y_\ell^m$ — legitimate because of this unit's completeness.</td></tr>
+          <tr><td><b>24</b> Maxwell</td><td>mode expansions in a cavity and a waveguide; the cut-off frequency is a lowest eigenvalue.</td></tr>
+          <tr><td><b>32</b> geodesics</td><td>the Rayleigh quotient's parent idea — a differential equation as the stationarity condition of a quotient — reappears as the geodesic equation.</td></tr>
+          <tr><td><b>38</b> gravitational waves</td><td>the $\ell = 2$ subspace of spherical harmonics, and why radiation starts at the quadrupole.</td></tr>
+          <tr><td><b>39</b> cosmology</td><td>harmonics on a maximally symmetric space; the same separation, one curvature term further on.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the three sentences to keep</span>
+        <p class="small"><b>1.</b> The eigenfunctions of a symmetric operator are orthogonal, and that one fact is what makes an expansion's coefficients computable and unique.</p>
+        <p class="small"><b>2.</b> The boundary conditions are half of the operator. Change them and you change the eigenfunctions, the expansion, and what it converges to at the ends.</p>
+        <p class="small"><b>3.</b> How fast the coefficients fall is how smooth the function is — a dictionary, not a heuristic, and it prices every truncation in advance.</p>
+      </div>
+      <p class="small muted">And one habit: when a new orthogonal family turns up — Hermite, Laguerre, Chebyshev, Mathieu — the first question is never "what are its identities?" but "what are $p$, $q$ and $w$, and which endpoints are singular?". Everything else is on this deck already.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading.</b> For the Fourier half: Stein &amp; Shakarchi, <i>Fourier Analysis</i>,
+    ch. 2–3 — ch. 2 is Dirichlet and the kernels, ch. 3 is mean-square convergence;
+    <b>skip §3.3 onwards</b>, which needs the Lebesgue integral this course has not built.
+    Körner's <i>Fourier Analysis</i> is a collection of short chapters: 1–8, 15–18 are this
+    unit, and each is self-contained. For the Sturm–Liouville half: Al-Gwaiz,
+    <i>Sturm–Liouville Theory and its Applications</i>, ch. 2–3 is the shortest complete
+    account, with the drum in ch. 5. Coddington &amp; Levinson ch. 7–8 is the reference for
+    the two theorems cited here, and is harder going. Courant &amp; Hilbert vol. I ch. V–VI
+    is where the variational characterisation is done properly, and is still the best
+    written account of why it is the right way to think.</p>
+    <p><b>What was deliberately left out.</b> The Fourier transform and everything needing
+    contour integration (unit 20). Distributions, so no delta functions and no Green's
+    function for $\mathcal L$ written as $\mathcal LG = \delta$ — the Green's function was
+    named only inside a citation. Weyl's limit-point/limit-circle theory, beyond a mention.
+    Convergence of Fourier series in $L^p$ for $p \ne 2$, and Carleson's theorem. Numerical
+    eigenvalue methods. Each is a real subject and none of them is needed to get to the
+    field equations.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>Given a Sturm–Liouville problem you can, on paper and without notes:</p>
+    <ul>
+      <li>prove that its eigenvalues are real and its eigenfunctions $w$-orthogonal, starting from Lagrange's identity and naming where the boundary conditions are spent;</li>
+      <li>say how many zeros the <b>third</b> eigenfunction has in the open interval, and be right;</li>
+      <li>bound the lowest eigenvalue from above, to within a few per cent, with a trial function of your own choosing — and say which side of the truth the bound is on and why;</li>
+      <li>expand a given initial profile in its eigenfunctions, and state <b>which kind</b> of convergence you have — mean-square, pointwise, or uniform — together with the hypothesis that buys it.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">Two eigenfunctions declared orthogonal without a weight; a third eigenfunction with the wrong number of nodes; a Rayleigh bound below the true eigenvalue; or "the series converges to $f$" at a jump.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>20</b> the Fourier transform and complex analysis · <b>21</b> asymptotics · <b>23</b> static fields, which is the first place this unit's completeness is cashed for a physical answer.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on a problem not in the deck before opening the sheet. A good one:
+    $-u'' = \lambda u$ on $[0,1]$ with $u(0) = 0$ and $u(1) + u'(1) = 0$. The eigenvalue
+    condition is $\tan k = -k$; the first three roots are $k = 2.0288$, $4.9132$, $7.9787$,
+    so $\lambda_3 = 63.66$ and $u_3 = \sin(7.9787x)$ has zeros at $x = \pi/7.9787 = 0.3938$
+    and $2\pi/7.9787 = 0.7875$ — two of them, as the oscillation theorem demands. Then bound
+    $\lambda_1 = 4.1159$ from above with any trial function vanishing at $0$, remembering the
+    Robin boundary term $+u(1)^2$ in the numerator: $u = x$ gives $(1 + 1)/(1/3) = 6$, which
+    is high by $46\%$ and correctly on the high side; $u = \sin(\pi x/2)$ gives
+    $(\pi^2/8 + 1)/(1/2) = 4.4674$, high by $8.5\%$. Then expand $f(x) = 1$ in those
+    eigenfunctions and say what kind of convergence you have: mean-square, by completeness
+    (cited); pointwise to $f$ on $(0,1]$, by the Sturm&ndash;Liouville analogue of Dirichlet's
+    theorem (<i>cited</i>: Titchmarsh, <i>Eigenfunction Expansions</i>, Part I, ch. I, the
+    equiconvergence theorem), with the value $0$ at $x = 0$, where every $\sin k_nx$
+    vanishes; and <em>not</em> uniform, provably: each partial sum $S_N$ is continuous and
+    vanishes at $0$, so $\sup_{(0,1]}|S_N - 1| \ge 1$ for every $N$. Saying
+    &ldquo;uniform&rdquo; is the fourth way to fail the checkpoint.</p>
+    <p>Every number in that paragraph was computed. If yours disagree, the deck is not
+    the thing to re-read first — the arithmetic is.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>
