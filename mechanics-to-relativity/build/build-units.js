@@ -7,9 +7,16 @@ export const meta = {
   ],
 }
 
-const ROOT = '/home/feynman/workspace/random/courses/mechanics-to-relativity'
-const SIS = '/home/feynman/workspace/random/courses/combinatorial-optimization'
-const S = '/home/feynman/workspace/random/courses/mechanics-to-relativity/build'
+// Derived, never hardcoded. BUILD.md launches this as
+// Workflow({scriptPath: "build/build-units.js"}), so the cwd is the course root, and
+// the sister course sits beside it in the same repository. No import here on purpose:
+// the runner wraps this file's body in a function (note the top-level `return` below),
+// where import statements and import.meta are both illegal.
+// The absolute paths that used to be here published a username, and broke outright the
+// moment the two courses moved into published-courses/.
+const ROOT = process.cwd()
+const S = `${ROOT}/build`
+const SIS = ROOT.replace(/\/[^/]+$/, '/combinatorial-optimization')
 
 const COMMON = `
 THE COURSE. "Mechanics to Relativity": a self-study curriculum of 41 units taking one learner from Newton's second law to the Einstein field equations. The learner is mathematically mature — proofs, abstraction, linear algebra, single-variable real analysis, metric-space topology, elementary group theory — and knows NO physics and NO vector calculus, ODE methods, Fourier analysis, complex analysis, PDEs, asymptotics, calculus of variations, tensors or differential geometry. All of that is taught here, physics-first and just-in-time. There is no lab and no code: a unit is a slide deck with worked examples, a problem sheet whose every problem has a full worked solution and a hint ladder, and one falsifiable checkpoint.
