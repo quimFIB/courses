@@ -113,6 +113,7 @@ tests, and a `then.py` whose numbers the slides and lab sheet quote.
 | 17 Constraint satisfaction and propagation | 18 | 291 |
 | 18 Global constraints and their filtering algorithms | 17 | 234 |
 | 19 Search, restarts, and large neighbourhood search | 17 | 28 |
+| 19b Backjumping, and why search is complete (addendum, theory only) | 20 | — |
 | 20 SAT and the CDCL engine | 17 | 271 |
 | 21 Lazy clause generation, or what CP-SAT actually is | 16 | 106 |
 | 22 Hardness, and the shape of what is possible | 20 | 233 |
@@ -126,6 +127,9 @@ tests, and a `then.py` whose numbers the slides and lab sheet quote.
 | 30 Automatic differentiation | 17 | 46 |
 | 31 Where discrete meets differentiable | 17 | 52 |
 | Capstone: one problem, four traditions (`co test capstone`) | 18 | 114 |
+
+Unit 19b is a theory-only addendum between 19 and 20: slides, notes and a
+glossary, with no lab and so no reference tests.
 
 ## Conventions for writing the next unit
 

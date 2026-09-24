@@ -1,0 +1,151 @@
+#+title: Glossary — unit 19b
+#+startup: content latexpreview
+#+options: ^:{}
+
+The terms this unit introduces, in the order the deck meets them. The slides
+stay the definition of record; each entry names the slide it comes from, so a
+term can be looked up here and read properly there.
+
+* Conflict sets and backjumping
+
+- chronological backtracking :: When a frame runs out of values, go back to the
+  frame just above and undo the most recent choice first; stop only when the top
+  frame runs out. /Slide: Thrashing, on four variables./
+- thrashing :: Rediscovering the same failure under choices that played no part in
+  it. On the running example, chronological search repeats the \(c, d\) failure
+  for \(b = 2\) although \(b\) is in no constraint: 33 steps and 12 rejections
+  where 17 and 6 suffice.
+- conflict-directed backjumping (CBJ) :: Backtracking that, when a frame runs out of
+  values, jumps straight back to the deepest choice its conflict set blames,
+  skipping the frames in between (Prosser 1993). Refutes the running example in 17
+  steps and 6 rejections.
+- frame :: One level of the search stack: the variable chosen for that depth, its
+  candidate values in order with a cursor at the current one, and a conflict set.
+  /Slide: Frames, closed values, reasons, conflict sets./
+- closed value :: A value search is finished with while the assignments above its
+  frame stay put: a constraint rejected it, a learned nogood matched it, or
+  everything below it failed and a backjump landed here.
+- reason :: The earlier variables that caused a value to be closed: a rejecting
+  constraint's other variables; a deeper exhausted frame's conflict set minus this
+  frame's variable; or a matching nogood's other variables.
+- conflict set :: The union of the reasons of a frame's closed values. It starts
+  empty when the frame is opened, and then claims nothing.
+- backjump :: Prosser's rule for a frame whose every value is closed, with conflict
+  set \(E\): if \(E\) is empty, stop, unsatisfiable; otherwise jump to the deepest
+  frame whose variable is in \(E\), discard the frames below it, merge \(E\) minus
+  that variable into its conflict set, and close its current value. /Slide: The
+  backjump rule, and the example step by step./
+- exhausted frame :: A frame whose every value is closed; the only place the
+  backjump rule acts.
+
+* Completeness
+
+- nogood :: A set of assignments that no solution contains (unit 19). A reason
+  \(R\) for closing \(x = v\) under assignment \(A\) is one: no solution agrees with
+  \(A\) on \(R\) and has \(x = v\), that is,
+  \(\{y = A(y) : y \in R\} \cup \{x = v\}\) is a nogood. /Slide: Reasons are
+  nogoods, and one invariant./
+- reason invariant :: Every closed value of every frame has a valid reason that
+  names only variables of frames above it. It holds after every step, which is
+  what makes both answers of the search correct.
+- combining lemma :: If every value of \(x\) is closed, with reasons \(R_v\), then
+  no solution agrees with the current assignment on \(E = \bigcup_v R_v\): a
+  solution gives \(x\) some value \(v\), and agrees on \(R_v \subseteq E\). So
+  \(E\) minus the jump target's variable is a valid reason for closing the jump
+  target's current value, and \(E = \emptyset\) means there is no solution at all.
+- learned clause :: In CDCL (unit 20), a nogood over earlier assignments written as
+  a clause: the same kind of object as a conflict set written out as values. Both
+  searches go back past the decisions the nogood does not mention: CBJ stops at the
+  deepest variable of \(E\) and closes its value there, CDCL goes further up, to
+  the second-highest level, and asserts the flipped UIP there. Deriving the empty
+  clause is \(E = \emptyset\). /Slide:
+  Why an empty conflict set means "no solution"./
+- nogood store :: The learned nogoods kept during search. It starts empty; a
+  reason written out as values is an absolute nogood, so recording it is sound; a
+  store hit is one more way to close a value; forgetting is safe for soundness and
+  for termination of a single run (with restarts, see /Restarts with a dynamic order/),
+  and only adding needs a proof. /Slide: Learned nogoods./
+- decision nogood :: A nogood naming every choice above the failure, such as
+  \(\{a = 1, b = 1, c = 2\}\) at step 7 of the example. It does not fire under
+  \(b = 2\); the reason form \(\{a = 1, c = 2\}\) leaves \(b\) out and does. The
+  difference between the two is exactly the thrashing.
+
+* Termination
+
+- termination measure :: \(\mu = \sum_{d<n} r_d \, B^{n-1-d}\) with radix
+  \(B = D_{\max} + 2\), where \(r_d\) counts the values of the frame at depth \(d\) not
+  yet closed, the current one included, or is \(\top = B - 1\) when depth \(d\) has
+  no frame: the per-depth counts read as one number in base \(B\), shallowest digit
+  first. Every step lowers the shallowest digit it changes, so \(\mu\) drops on
+  every step; on the example it goes from 191 to 63. /Slide: The measure./
+
+* Choosing the variable at each level
+
+- dynamic variable ordering :: Choosing the next variable each time a frame is
+  opened, as first-fail or dom/wdeg do (unit 19), so that the variable at a given
+  depth can differ from branch to branch. It never reorders the variables already
+  on the stack. /Slide: The heuristic's contract./
+- ordering contract :: The one obligation of a variable-ordering heuristic: return
+  an unassigned variable whenever one exists. It may read anything to choose (the
+  assignments, the conflict history, weights, randomness). Neither the termination
+  measure, which counts values per depth, nor the reason invariant, which names
+  variables, looks at which variable was chosen, so both proofs hold for any
+  heuristic that keeps the contract. Returning an assigned variable breaks both.
+- live domain :: The values of an unassigned variable still consistent with the
+  assignments so far. With no propagation the domains never shrink, so a dynamic
+  first-fail must count the live domain; it is computed only for choosing, and the
+  frame still opens on the full domain.
+- dom/wdeg :: Live domain size over the summed weights of the variable's
+  constraints to unassigned variables. Every weight starts at 1, and a rejection
+  bumps the rejecting constraint, so the choice is a function of the run so far,
+  not of the current assignment alone: after a restart with the weights kept, the
+  same partial assignment can get a different next variable. It is still inside
+  the contract. A variable with no constraints to unassigned variables comes last.
+- max-cardinality ordering :: A static order: next is the unassigned variable with
+  the most already-ordered neighbours, ties by degree, then by input order. On the example
+  it gives \(a, c, d, b\), and both chronological search and CBJ refute it in 15
+  steps, 6 rejections: \(b\) is never opened. /Slide: Ordering against
+  backjumping, measured./
+- dom :: Dynamic first-fail: the unassigned variable with the smallest live
+  domain, ties by input order.
+- dom/deg :: Live domain size over the number of the variable's constraints to
+  unassigned variables; a variable with none comes last.
+- index rule :: Taking as jump target the variable of the conflict set that comes
+  last in the input order. Right only when the search follows the input order,
+  where index order is depth order; under any other order, dynamic or static (such
+  as max-cardinality), it can jump above the deepest culprit and leave a conflict
+  set naming a discarded variable. /Slide: The jump-target pitfall./
+- stack-position rule :: Taking as jump target the deepest frame on the stack whose
+  variable is in the conflict set, for instance with a depth array kept on assign
+  and unassign. It is the rule the proofs use, under any order. /Slide: The
+  correction: jump by stack position./
+- invariant check :: A runtime assertion, after each step, that every variable in a
+  frame's conflict set is on the stack above that frame: the checkable half of the
+  reason invariant. It catches the index rule, under orders other than the input
+  order, before it answers.
+- restart :: Abandoning the current search stack and starting again from a fresh
+  one, keeping any learned nogoods and heuristic state (unit 19). It sends \(\mu\)
+  back up, so termination needs an argument across runs. /Slide: Restarts with a
+  dynamic order./
+- cutoff :: The budget of one run before a restart, here counted in steps. A run
+  that is not cut off stops within \(B^n\) steps, so a run whose cutoff is at least
+  \(B^n\) always finishes.
+- Luby sequence :: \(1, 1, 2, 1, 1, 2, 4, 1, 1, 2, \dots\), unit 19's restart
+  schedule. It is unbounded, so some run gets a cutoff of at least \(B^n\) and
+  finishes: restarts with Luby cutoffs keep the search terminating and complete.
+
+* Where the argument stops
+
+- dynamic backtracking :: Ginsberg's algorithm (1993), which unassigns only the
+  culprit variable and keeps the assignments made after it, reordering the
+  assigned variables. The per-depth counters no longer decrease, and its
+  termination argument rests on the recorded nogoods instead. /Slide: Where the
+  argument stops./
+- soundness :: Every answer the search gives is correct: a reported solution
+  satisfies every constraint, and "unsatisfiable" is reported only when there is
+  no solution.
+- completeness :: The search finds a solution if and only if there is one:
+  soundness together with termination. It holds for any search that closes values
+  only with valid, upward-pointing reasons, jumps by Prosser's rule, opens frames on
+  unassigned variables in any order, and restarts, if at all, with unbounded
+  cutoffs.

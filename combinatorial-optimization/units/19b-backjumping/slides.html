@@ -1,0 +1,1116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19b · Backjumping and completeness</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="cp">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="tri"><span class="ref-name">the running example</span>variables $a, b, c, d$, each in $\{1, 2\}$; constraints $a \ne c$, $a \ne d$, $c \ne d$; $b$ is in no constraint <span class="ref-note">unsatisfiable: $a, c, d$ form a triangle, which needs three colours. Static order $a, b, c, d$.</span><svg viewBox="0 0 200 104" width="170" aria-hidden="true"><g class="ink" stroke-width="2"><path d="M40,20 L100,86"/><path d="M40,20 L160,20"/><path d="M160,20 L100,86"/></g><g class="fill-ground ink" stroke-width="1.5"><circle cx="40" cy="20" r="14"/><circle cx="160" cy="20" r="14"/><circle cx="100" cy="86" r="14"/><circle cx="180" cy="86" r="14" stroke-dasharray="3 3"/></g><g font-size="14" text-anchor="middle"><text x="40" y="25" class="mono">a</text><text x="160" y="25" class="mono">c</text><text x="100" y="91" class="mono">d</text><text x="180" y="91" class="mono">b</text></g></svg></template>
+  <template data-ref="va"><span class="ref-name">variable <span style="text-transform:none">$a$</span></span>domain $\{1, 2\}$; in $a \ne c$ and $a \ne d$ <span class="ref-note">depth 0 in the static order, and in the max-cardinality order</span></template>
+  <template data-ref="vb"><span class="ref-name">variable <span style="text-transform:none">$b$</span></span>domain $\{1, 2\}$; in <b>no</b> constraint <span class="ref-note">depth 1 in the static order: no failure below it has anything to do with it. Last, and never opened, in the max-cardinality order.</span></template>
+  <template data-ref="vc"><span class="ref-name">variable <span style="text-transform:none">$c$</span></span>domain $\{1, 2\}$; in $a \ne c$ and $c \ne d$ <span class="ref-note">depth 2 in the static order, 1 in the max-cardinality order</span></template>
+  <template data-ref="vd"><span class="ref-name">variable <span style="text-transform:none">$d$</span></span>domain $\{1, 2\}$; in $a \ne d$ and $c \ne d$ <span class="ref-note">depth 3 in the static order, 2 in the max-cardinality order</span></template>
+  <template data-ref="cbj"><span class="ref-name">the CBJ run, all 17 steps</span>static order $a, b, c, d$ <span style="display:block;white-space:pre;font-family:var(--f-mono);font-size:10px;line-height:1.35;margin-top:6px"> 1 descend a=1, open b
+ 2 descend b=1, open c
+ 3 reject  c=1 by a≠c, reason {a}
+ 4 descend c=2, open d
+ 5 reject  d=1 by a≠d, reason {a}
+ 6 reject  d=2 by c≠d, reason {c}
+ 7 d exhausted, E={a,c}: jump to c
+ 8 c exhausted, E={a}: jump to a
+ 9 descend a=2, open b
+10 descend b=1, open c
+11 descend c=1, open d
+12 reject  d=1 by c≠d, reason {c}
+13 reject  d=2 by a≠d, reason {a}
+14 d exhausted, E={a,c}: jump to c
+15 reject  c=2 by a≠c, reason {a}
+16 c exhausted, E={a}: jump to a
+17 a exhausted, E=∅: UNSAT</span><span class="ref-note">6 rejections</span></template>
+  <template data-ref="chrono"><span class="ref-name">the chronological run, 33 steps</span>static order $a, b, c, d$; always back to the frame just above, stopping only when the top frame is exhausted <span style="display:block;white-space:pre;font-family:var(--f-mono);font-size:10px;line-height:1.35;margin-top:6px"> 1–7   as CBJ
+ 8     c exhausted: back to b
+ 9–15  b=2: the same c, d failure again
+16     b exhausted: back to a
+17–32 a=2: the c, d failure under b=1,
+      then again under b=2
+33     a exhausted: UNSAT</span><span class="ref-note">12 rejections: every c, d failure happens twice, once per value of $b$</span></template>
+  <template data-ref="mu"><span class="ref-name">the measure <span style="text-transform:none">$\mu$</span></span>$\mu = \sum_{d&lt;n} r_d\, B^{\,n-1-d}$, with $B = D_{\max} + 2$ <span class="ref-note">$r_d$: values of the frame at depth $d$ not yet closed, the current one included; $\top = B - 1$ if depth $d$ has no frame. The example: $B = 4$, $\mu$ goes from 191 to 63.</span></template>
+  <template data-ref="mcs"><span class="ref-name">the max-cardinality order</span>a static order: next = the unassigned variable with the most already-ordered neighbours; ties by degree, then by input order <span class="ref-note">on the example: $a, c, d, b$. Chronological search and CBJ both refute it in 15 steps, 6 rejections.</span></template>
+  <template data-ref="myc"><span class="ref-name">the Mycielski graph of C5, 3 colours</span>11 variables $u_0, \dots, u_4$, $w_0, \dots, w_4$, $z$, each in $\{1, 2, 3\}$; 20 constraints $\ne$: the 5-cycle $u_0 \dots u_4$, each $w_i$ with the two cycle-neighbours of $u_i$, and $z$ with every $w_i$ <span class="ref-note">unsatisfiable: the graph needs 4 colours. Degrees: 4 for each $u_i$, 3 for each $w_i$, 5 for $z$. $B = 5$, $B^n = 48\,828\,125$.</span></template>
+  <template data-ref="pig"><span class="ref-name">5 pigeons, 4 holes</span>$p_1, \dots, p_5$, each in $\{1, 2, 3, 4\}$, all different: 10 constraints $\ne$, the complete graph on 5 vertices with 4 colours <span class="ref-note">unsatisfiable. $B = 6$, $B^n = 7\,776$.</span></template>
+  <template data-ref="rnd"><span class="ref-name">a random binary CSP</span>$x_0, \dots, x_9$, each in $\{0, 1, 2\}$; each pair constrained with probability 0.5, giving 22 constraints; in each, each pair of values forbidden with probability 0.35 (seed 3) <span class="ref-note">unsatisfiable (brute force). $B = 5$, $B^n = 9\,765\,625$.</span></template>
+  <template data-ref="t291"><span class="ref-name">trial 291 of the pitfall generator</span>$v_0, \dots, v_5$ with 2, 3, 3, 1, 3, 3 values ($v_3$ has one); 6 constraints, each a random set of allowed pairs: $v_0 v_1$, $v_0 v_3$, $v_0 v_5$, $v_1 v_3$, $v_1 v_5$, $v_2 v_3$ <span class="ref-note">satisfiable: $v_0 = 1$, $v_1 = 1$, $v_2 = 1$, $v_3 = 0$, $v_4 = 0$, $v_5 = 1$, which the stack rule finds at step 30. The first instance the index rule, dropping discarded variables, answers wrongly.</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<section class="title-slide">
+  <p class="eyebrow">Part IV · trunk C · constraint programming and SAT · addendum</p>
+  <div class="unit-no">19b</div>
+  <h1>Backjumping, and why search is complete</h1>
+  <p class="lede">When a dead end has nothing to do with the last choice, go back to the choice that caused it. Why a search that skips subtrees this way still misses no solution, and why it always stops.</p>
+  <p class="meta"><span>needs 19</span><span>~1½ h slides</span><span>no lab</span></p>
+  <aside class="notes">
+    <p>Unit 19's slide "What to remember across restarts" defined a nogood and said that the strong,
+    reason-based form is clause learning, which unit 20 builds. Unit 20 then does first-UIP learning
+    and non-chronological backjumping on clauses, and states that a formula is unsatisfiable iff the
+    empty clause can be derived. Between the two, three things go unsaid. What does backjumping look
+    like in a plain CSP search, with no clauses in sight? What is a conflict set? And why is a search
+    that skips whole subtrees still complete, and why does it stop, even when unit 19's first-fail
+    or dom/wdeg picks the variables in a different order every time?</p>
+    <p>This addendum answers those three questions, and section 4 spends the most time on the last
+    one: what a variable-ordering heuristic may do without breaking either proof, a bug that tests
+    run in the input order cannot expose, and restarts. It is theory only: no lab, and no measurements beyond a
+    few small instances and a correctness check of the reference implementation. It is the CSP
+    version of what unit 20's engine does with clauses, and it is where the words "sound",
+    "complete" and "terminates" get an argument instead of an assertion.</p>
+    <h4>How to read this deck</h4>
+    <p>One four-variable instance runs through the whole deck: hover it wherever it is named. Every
+    number in the deck comes from the unit's reference implementation,
+    <code>slides/viz/traces/u19b.py</code>: CBJ with explicit frames, conflict sets and the
+    termination measure, which it asserts drops on every step; the same loop in chronological
+    mode; the five variable orders of section 4; the pitfall's variants; and the instances.
+    From the course root, <code>uv run python -m slides.viz.traces.u19b</code> prints, labelled,
+    every number the deck quotes. The slides give each argument's idea, and
+    the notes give the full proofs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · overview</p>
+  <h2>The route</h2>
+  <div class="cols">
+    <div class="box def"><span class="label">1 · conflict sets and backjumping</span>
+      <p class="small">Why chronological search thrashes; frames, closed values, reasons; Prosser's jump rule, step by step.</p></div>
+    <div class="box def"><span class="label">2 · completeness</span>
+      <p class="small">Reasons are nogoods; one invariant; why an empty conflict set means "no solution"; learned nogoods.</p></div>
+  </div>
+  <div class="cols">
+    <div class="box def"><span class="label">3 · termination</span>
+      <p class="small">A number that drops on every step, even when a jump sends the digits below it up.</p></div>
+    <div class="box def"><span class="label">4 · choosing the variable at each level</span>
+      <p class="small">The heuristic's contract, and why both proofs survive it; orders against CBJ, measured; a jump-target bug that tests in the input order cannot show; restarts; where the argument stops.</p></div>
+  </div>
+  <div class="box good"><span class="label">getting around</span>
+    <p class="small">Words with a <span class="term" data-term="conflict set">dotted underline</span> are glossary terms: click one for its definition. <span class="ref" data-ref="tri">Solid-underlined names</span> are pieces of the running example, or of the other small instances: hover to see them. <kbd>G</kbd> lists every term in the unit, <kbd>N</kbd> shows the notes. Optional extra: <a href="explore.html" target="_blank" rel="noopener">interactive figures</a>, linked from the slides they support by a small ▸ chip; skip them freely.</p></div>
+  <aside class="notes">
+    <p>The checkpoint asks for these explanations: why CBJ needs 17 steps on the example where
+    chronological search needs 33; why an empty conflict set at an exhausted frame proves
+    unsatisfiability while an empty set at a new frame proves nothing; how the measure drops on a
+    jump even though the digits below the jump go up; what a variable-ordering heuristic must do,
+    and why neither proof looks at its choice; why a jump target taken by index is wrong under
+    any order but the input order, and what test would catch it; and why Luby restarts still end.</p>
+    <p>Section 4 is the longest because it answers the question a solver writer actually meets:
+    unit 19's heuristics choose a different variable on every branch, so is the search still
+    complete, and does it still stop? Yes, under one condition on the heuristic, and one
+    condition on the engine that is easy to get wrong.</p>
+    <p>There is no lab. In a plain backtracking search with no propagation, adding a conflict set
+    to each frame and the jump rule to its backtrack step is a short exercise, and the running
+    example is then a ready-made test: 17 steps and 6 rejections with the static order. The engine
+    of units 17 and 19 propagates, and there it is not short: after $a = 1$, propagation already
+    empties $c$ or $d$, and the values it removes need reasons of their own (unit 21's
+    explanations; see the fine print in section 2).</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Conflict sets and backjumping</h2>
+  <p>Go back to the choice that caused the failure.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19b · backjumping</p>
+  <h2>Thrashing, on four variables</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small"><span class="ref" data-ref="tri">The running example</span>: $a, b, c, d \in \{1, 2\}$, constraints $a \ne c$, $a \ne d$, $c \ne d$. <span class="ref" data-ref="vb">$b$</span> is in no constraint. Unsatisfiable: $a, c, d$ form a triangle, which needs three colours. Static order $a, b, c, d$.</p>
+      <p class="small"><span class="term">Chronological backtracking</span> undoes the most recent choice first. When the $c, d$ part fails under $a = 1, b = 1$, it tries $b = 2$ and fails in exactly the same way: $b$ played no part. That is <span class="term">thrashing</span>, the same failure rediscovered under an irrelevant choice.</p>
+      <p class="small"><span class="term" data-term="conflict-directed backjumping (CBJ)">Conflict-directed backjumping</span> (CBJ) sees that the failure below $b$ only blames $a$, and jumps straight back to $a$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 12 470 210" width="600" role="img" aria-label="Chronological search tree of the example; the two b = 2 subtrees, which CBJ never enters, are greyed">
+          <defs><marker id="arj" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fill-accent"/></marker></defs>
+          <g stroke-width="1.5" fill="none">
+            <path d="M83,148 L64,180" class="ink"/>
+            <path d="M83,148 L102,180" class="ink"/>
+            <path d="M54.5,96 L26,128" class="ink"/>
+            <path d="M54.5,96 L83,128" class="ink"/>
+            <path d="M111.5,44 L54.5,76" class="ink"/>
+            <path d="M273,148 L254,180" class="ink"/>
+            <path d="M273,148 L292,180" class="ink"/>
+            <path d="M301.5,96 L273,128" class="ink"/>
+            <path d="M301.5,96 L330,128" class="ink"/>
+            <path d="M358.5,44 L301.5,76" class="ink"/>
+          </g>
+          <g stroke-width="1.5" fill="none" stroke-dasharray="4 3">
+            <path d="M197,148 L178,180" class="rule"/>
+            <path d="M197,148 L216,180" class="rule"/>
+            <path d="M168.5,96 L140,128" class="rule"/>
+            <path d="M168.5,96 L197,128" class="rule"/>
+            <path d="M111.5,44 L168.5,76" class="rule"/>
+            <path d="M387,148 L368,180" class="rule"/>
+            <path d="M387,148 L406,180" class="rule"/>
+            <path d="M415.5,96 L387,128" class="rule"/>
+            <path d="M415.5,96 L444,128" class="rule"/>
+            <path d="M358.5,44 L415.5,76" class="rule"/>
+          </g>
+          <g>
+            <rect x="9" y="128" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2"/><text x="26" y="142" font-size="11" class="mono" text-anchor="middle">c=1</text>
+            <rect x="66" y="128" width="34" height="20" rx="4" class="fill-ground ink" stroke-width="1.5"/><text x="83" y="142" font-size="11" class="mono" text-anchor="middle">c=2</text>
+            <rect x="47" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2"/><text x="64" y="194" font-size="11" class="mono" text-anchor="middle">d=1</text>
+            <rect x="85" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2"/><text x="102" y="194" font-size="11" class="mono" text-anchor="middle">d=2</text>
+            <rect x="37.5" y="76" width="34" height="20" rx="4" class="fill-ground ink" stroke-width="1.5"/><text x="54.5" y="90" font-size="11" class="mono" text-anchor="middle">b=1</text>
+            <rect x="94.5" y="24" width="34" height="20" rx="4" class="fill-ground ink" stroke-width="1.5"/><text x="111.5" y="38" font-size="11" class="mono" text-anchor="middle">a=1</text>
+            <rect x="256" y="128" width="34" height="20" rx="4" class="fill-ground ink" stroke-width="1.5"/><text x="273" y="142" font-size="11" class="mono" text-anchor="middle">c=1</text>
+            <rect x="313" y="128" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2"/><text x="330" y="142" font-size="11" class="mono" text-anchor="middle">c=2</text>
+            <rect x="237" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2"/><text x="254" y="194" font-size="11" class="mono" text-anchor="middle">d=1</text>
+            <rect x="275" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2"/><text x="292" y="194" font-size="11" class="mono" text-anchor="middle">d=2</text>
+            <rect x="284.5" y="76" width="34" height="20" rx="4" class="fill-ground ink" stroke-width="1.5"/><text x="301.5" y="90" font-size="11" class="mono" text-anchor="middle">b=1</text>
+            <rect x="341.5" y="24" width="34" height="20" rx="4" class="fill-ground ink" stroke-width="1.5"/><text x="358.5" y="38" font-size="11" class="mono" text-anchor="middle">a=2</text>
+          </g>
+          <g font-size="10" text-anchor="middle">
+            <text x="26" y="160" class="mono soft">{a}</text><text x="64" y="212" class="mono soft">{a}</text><text x="102" y="212" class="mono soft">{c}</text>
+            <text x="330" y="160" class="mono soft">{a}</text><text x="254" y="212" class="mono soft">{c}</text><text x="292" y="212" class="mono soft">{a}</text>
+          </g>
+          <g>
+            <rect x="123" y="128" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2" stroke-opacity=".45"/><text x="140" y="142" font-size="11" class="mono soft" text-anchor="middle">c=1</text>
+            <rect x="180" y="128" width="34" height="20" rx="4" class="fill-ground rule" stroke-width="1.5"/><text x="197" y="142" font-size="11" class="mono soft" text-anchor="middle">c=2</text>
+            <rect x="161" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2" stroke-opacity=".45"/><text x="178" y="194" font-size="11" class="mono soft" text-anchor="middle">d=1</text>
+            <rect x="199" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2" stroke-opacity=".45"/><text x="216" y="194" font-size="11" class="mono soft" text-anchor="middle">d=2</text>
+            <rect x="151.5" y="76" width="34" height="20" rx="4" class="fill-ground rule" stroke-width="1.5"/><text x="168.5" y="90" font-size="11" class="mono soft" text-anchor="middle">b=2</text>
+            <rect x="370" y="128" width="34" height="20" rx="4" class="fill-ground rule" stroke-width="1.5"/><text x="387" y="142" font-size="11" class="mono soft" text-anchor="middle">c=1</text>
+            <rect x="427" y="128" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2" stroke-opacity=".45"/><text x="444" y="142" font-size="11" class="mono soft" text-anchor="middle">c=2</text>
+            <rect x="351" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2" stroke-opacity=".45"/><text x="368" y="194" font-size="11" class="mono soft" text-anchor="middle">d=1</text>
+            <rect x="389" y="180" width="34" height="20" rx="4" class="fill-ground warn" stroke-width="2" stroke-opacity=".45"/><text x="406" y="194" font-size="11" class="mono soft" text-anchor="middle">d=2</text>
+            <rect x="398.5" y="76" width="34" height="20" rx="4" class="fill-ground rule" stroke-width="1.5"/><text x="415.5" y="90" font-size="11" class="mono soft" text-anchor="middle">b=2</text>
+          </g>
+          <g fill="none" stroke-width="2" stroke-dasharray="5 3">
+            <path d="M100,134 C 136,122 140,64 126,47" class="accent" marker-end="url(#arj)"/>
+            <path d="M347,134 C 376,122 386,64 373,47" class="accent" marker-end="url(#arj)"/>
+          </g>
+          <g font-size="10"><text x="140" y="112" class="mono fill-accent">jump</text><text x="384" y="112" class="mono fill-accent">jump</text></g>
+        </svg>
+        <p class="cap">The chronological tree. Red outline: rejected by a constraint, with its reason under it. Greyed: the two $b = 2$ subtrees, which only chronological search enters. Dashed arrows: CBJ's jumps from the exhausted $c$ frame back to $a$ (steps 8 and 16).</p>
+      </div>
+      <div class="box ex"><span class="label">to prove it unsatisfiable</span>
+        <table class="dense" style="margin:0">
+          <thead><tr><th>search</th><th class="num">steps</th><th class="num">rejections</th></tr></thead>
+          <tbody>
+            <tr><td><span class="ref" data-ref="chrono">chronological</span></td><td class="num">33</td><td class="num">12</td></tr>
+            <tr><td><span class="ref" data-ref="cbj">conflict-directed backjumping</span></td><td class="num"><b>17</b></td><td class="num"><b>6</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/1" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>Counting the waste.</b> The tree has four $b$ subtrees and each ends in three
+    rejections: one of $c$'s values and both of $d$'s. So chronological search makes 12
+    rejections; CBJ enters only the two $b = 1$ subtrees and makes 6. Steps count every move of
+    the search, not only rejections: descending into a new frame, rejecting a value, going back up,
+    and the final stop. Chronological search needs 33 of them, CBJ 17. Hover the two table rows
+    for both runs.</p>
+    <p><b>Why it is called thrashing.</b> The failure of $c$ and $d$ under $a = 1$ is a fact
+    about $a$, $c$ and $d$ alone. Chronological search does not know that, so it rediscovers
+    the fact once for each combination of values of the variables between $a$ and $c$. With
+    one irrelevant variable that doubles the work; with $k$ irrelevant two-valued variables
+    between $a$ and $c$ it multiplies it by $2^k$. For $k = 0, 1, 2, 3, 4$ chronological search
+    makes 6, 12, 24, 48, 96 rejections (15, 33, 69, 141, 285 steps), while CBJ makes 6 every
+    time (15, 17, 19, 21, 23 steps): <code>slides/viz/traces/u19b.py</code>, whose
+    <code>uv run python -m slides.viz.traces.u19b</code> prints both full runs of this slide and
+    these counts. Propagation (unit 17) is one cure, stopping
+    the failure before it is reached. This deck is about the other cure, going back to the right
+    place after the failure.</p>
+    <p>Why $b$ is in the example at all: it stands in for everything in a real model that is
+    assigned between the variables of a conflict, which in practice is most variables.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · backjumping</p>
+  <h2>Frames, closed values, reasons, conflict sets</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the search stack</span>
+        <p class="small">A <span class="term">frame</span> is one level of the stack: the variable chosen for that depth, its candidate values in order with a cursor at the current one, and a conflict set.</p>
+        <p class="small">A value is <span class="term" data-term="closed value">closed</span> at a frame when search is finished with it while the assignments above stay put: a constraint rejected it, a learned nogood matched it, or everything below it failed and a backjump landed here.</p>
+        <p class="small">Each closed value has a <span class="term">reason</span>: the earlier variables that caused it to be closed.</p>
+        <p class="small">The <span class="term">conflict set</span> of a frame starts <b>empty</b> when the frame is opened, and is the union of the reasons of its closed values.</p>
+      </div>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>closed because</th><th>reason</th></tr></thead>
+        <tbody>
+          <tr><td>rejected by a constraint</td><td>the constraint's other variables (assigned, earlier)</td></tr>
+          <tr><td>a deeper frame was exhausted and jumped here</td><td>that frame's conflict set, minus this frame's variable</td></tr>
+          <tr><td>a stored nogood matched</td><td>the nogood's other variables</td></tr>
+        </tbody>
+      </table>
+      <div class="box ex"><span class="label">after step 6 of <span class="ref" data-ref="cbj">the CBJ run</span></span>
+        <p class="small">Stack $a = 1$, $b = 1$, $c = 2$, and a frame for <span class="ref" data-ref="vd">$d$</span> with both values closed: $d = 1$ by $a \ne d$, reason $\{a\}$; <span style="white-space:nowrap">$d = 2$ by $c \ne d$,</span> reason $\{c\}$. Conflict set of $d$: $\{a, c\}$.</p>
+        <p class="small">Frame <span class="ref" data-ref="vc">$c$</span>: $c = 1$ closed by $a \ne c$, reason $\{a\}$; cursor on $c = 2$. Frame <span class="ref" data-ref="vb">$b$</span>: nothing closed, conflict set empty. <b>$b$ appears in no reason.</b></p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why frames, and not just an assignment.</b> Chronological backtracking can be written
+    as a recursive function, and the stack is then hidden in the call stack. Backjumping has to
+    leave several levels at once and carry information up with it, so it helps to make the stack
+    explicit. Each frame is a small record: which variable, which values in which order, how far
+    along the list we are, and a set of variables. Everything in this deck is a statement about
+    that stack.</p>
+    <p><b>"Closed" is deliberately broader than "rejected".</b> A value can be closed without
+    ever being tested against a constraint: when a deeper frame runs out of values and jumps
+    here, the current value is closed because everything below it failed. All three ways of
+    closing a value come with a reason, and the rest of the deck only ever uses the reason.</p>
+    <p><b>Reasons point upwards.</b> In each of the three rows of the table the reason names
+    only variables of frames above the one being closed. For a rejection this is because only
+    assigned variables are checked; for a jump, because the conflict set of a deeper frame names
+    variables above it and the target's own variable is removed; for a nogood, because it can only
+    match if its other variables are already assigned. This is the fact the completeness proof
+    rests on.</p>
+    <p>Some texts store one reason per closed value; the reference implementation
+    (<code>slides/viz/traces/u19b.py</code>), and Prosser's CBJ, keep only their union, the
+    conflict set. The union is all the jump rule needs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · backjumping</p>
+  <h2>The backjump rule, and the example step by step</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term" data-term="backjump">backjump</span> rule (Prosser 1993)</span>
+        <p class="small">When every value of a frame is closed (the frame is <span class="term" data-term="exhausted frame">exhausted</span>), let $E$ be its conflict set.</p>
+        <ul class="small">
+          <li>If $E$ is empty, stop: <b>unsatisfiable</b>.</li>
+          <li>Otherwise jump to the <b>deepest</b> frame whose variable is in $E$, discard the frames below it, merge $E$ minus that variable into its conflict set, and close its current value.</li>
+        </ul>
+      </div>
+      <p class="small">Chronological backtracking is the same loop with the jump always going to the frame just above, and stopping only when the top frame is exhausted. It differs from step 8: "$c$ exhausted, back to $b$", and then it repeats the $c, d$ failure under $b = 2$, for $a = 1$ and again for $a = 2$.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th class="num">step</th><th>what happens</th><th>reason, or $E$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1–2</td><td>descend $a = 1$, $b = 1$</td><td></td></tr>
+          <tr><td class="num">3</td><td>reject $c = 1$ by $a \ne c$</td><td>$\{a\}$</td></tr>
+          <tr><td class="num">4</td><td>descend $c = 2$</td><td></td></tr>
+          <tr><td class="num">5</td><td>reject $d = 1$ by $a \ne d$</td><td>$\{a\}$</td></tr>
+          <tr><td class="num">6</td><td>reject $d = 2$ by $c \ne d$</td><td>$\{c\}$</td></tr>
+          <tr><td class="num">7</td><td>$d$ exhausted: jump to $c$</td><td>$E = \{a, c\}$</td></tr>
+          <tr><td class="num"><b>8</b></td><td>$c$ exhausted: jump to $a$, <b>skipping $b$</b></td><td>$E = \{a\}$</td></tr>
+          <tr><td class="num">9–13</td><td>$a = 2$, $b = 1$, $c = 1$; $d = 1$, $d = 2$ rejected</td><td>$\{c\}$, $\{a\}$</td></tr>
+          <tr><td class="num">14</td><td>$d$ exhausted: jump to $c$</td><td>$E = \{a, c\}$</td></tr>
+          <tr><td class="num">15</td><td>reject $c = 2$ by $a \ne c$</td><td>$\{a\}$</td></tr>
+          <tr><td class="num">16</td><td>$c$ exhausted: jump to $a$</td><td>$E = \{a\}$</td></tr>
+          <tr><td class="num"><b>17</b></td><td>$a$ exhausted: <b>unsatisfiable</b></td><td>$E = \emptyset$</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">All 17 steps: hover <span class="ref" data-ref="cbj">the CBJ run</span>; compare <span class="ref" data-ref="chrono">the chronological run</span>.</p>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/1" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>Following the conflict sets.</b> At step 7 the frame of $d$ has $E = \{a, c\}$. The
+    deepest frame whose variable is in $E$ is $c$'s (depth 2), so the jump goes there, which
+    happens to be the frame just above. It merges $E \setminus \{c\} = \{a\}$ into $c$'s conflict
+    set, which was already $\{a\}$ from step 3, and closes $c = 2$. Now both values of $c$ are
+    closed, and at step 8 $E = \{a\}$. The deepest frame with a variable in $\{a\}$ is $a$'s, at
+    depth 0: the jump discards the frames of $b$ and $c$, merges
+    $\{a\} \setminus \{a\} = \emptyset$ into $a$'s conflict set, and closes $a = 1$. That is the step where CBJ and
+    chronological search part ways.</p>
+    <p>Under $a = 2$ the order of events inside the $c, d$ subtree changes ($c = 1$ now passes
+    and $c = 2$ is rejected), but the conflict sets come out the same, and step 16 jumps from
+    $c$ to $a$ again. At step 17 both values of $a$ are closed, each with an empty reason, so
+    $a$'s conflict set is empty and the search stops.</p>
+    <p><b>History.</b> Gaschnig's backjumping (1979) jumped back only from a frame whose values
+    were all rejected by constraints directly. Dechter's graph-based backjumping (1990) used the
+    constraint graph instead of the actual conflicts. Prosser's CBJ (1993) is the version here:
+    it keeps a conflict set per frame, and carries it up through a jump, so it can jump again from
+    an internal frame (step 8 is such a second jump).</p>
+    <p>The reference implementation, <code>solve</code> in <code>slides/viz/traces/u19b.py</code>,
+    checks a new value against every constraint whose other variable is already assigned, and
+    takes the first one violated, in the model's order, as the reason. With
+    several violated constraints, the choice changes the reason, and possibly the jump, but not
+    correctness.</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Completeness</h2>
+  <p>Skipping a subtree is safe when the reason says it must fail.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19b · completeness</p>
+  <h2>Reasons are nogoods, and one invariant</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">what a reason says</span>
+        <p class="small">A reason $R$ for closing value $v$ of frame variable $x$, under the current assignment $A$: <b>no solution agrees with $A$ on $R$ and has $x = v$</b>.</p>
+        <p class="small">Equivalently, $\{y = A(y) : y \in R\} \cup \{x = v\}$ is a <span class="term">nogood</span> in unit 19's sense. That is what makes it safe to <b>store</b>.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term" data-term="reason invariant">invariant</span></span>
+        <p class="small">Every closed value of every frame has a valid reason that names only variables of frames <b>above</b> it.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">combining lemma</span></span>
+        <p class="small">If every value of $x$ is closed, with reasons $R_v$, then no solution agrees with $A$ on $E = \bigcup_v R_v$.</p>
+        <p class="small muted"><b>Why:</b> a solution gives $x$ <em>some</em> value $v$ of its domain, and agrees with $A$ on $R_v \subseteq E$: exactly what the reason for $v$ rules out.</p>
+        <p class="small">So $E$ minus the jump target's variable is a valid reason for closing the target's value. Discarding the frames below the target breaks nothing: reasons mention only variables above their own frame, and those keep their values.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <div class="box ex"><span class="label">step 7</span>
+        <p class="small">$d = 1$ has reason $\{a\}$, $d = 2$ has $\{c\}$, so no solution has $a = 1$ and $c = 2$. Closing $c = 2$ with reason $\{a\}$ says exactly that.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading a reason.</b> "Reason $\{a\}$ for closing $d = 1$ with $a = 1$" means: there
+    is no solution with $a = 1$ and $d = 1$. It says nothing about $b$ or $c$, which is the whole
+    point: the claim holds whatever values they take, so it survives when they change.</p>
+    <h4>Full proof</h4>
+    <p>Write $A$ for the current assignment: each frame's variable maps to the value under its
+    cursor. The claim is that the invariant holds after every step: for each frame $f$ with
+    variable $x_f$, its conflict set $\mathrm{CS}(f)$ contains only variables of frames above $f$,
+    and for every closed value $v$ of $f$, no solution agrees with $A$ on $\mathrm{CS}(f)$ and has
+    $x_f = v$. (This is the per-value statement with $R_v$ replaced by the union: agreeing on the
+    larger set $\mathrm{CS}(f) \supseteq R_v$ is a stronger hypothesis, so the claim is weaker and
+    follows from the per-value one.) By cases on the step.</p>
+    <p><b>Start.</b> One frame, nothing closed, empty conflict set: nothing to prove.</p>
+    <p><b>Reject.</b> Value $v$ of the deepest frame $f$ violates a constraint whose other
+    variable $y$ is assigned above $f$. Any solution with $y = A(y)$ and $x_f = v$ would violate
+    the same constraint, so $\{y\}$ is a valid reason; it is added to $\mathrm{CS}(f)$ and is
+    above $f$. The values of $f$ closed earlier keep valid reasons, since $\mathrm{CS}(f)$ only
+    grew and agreeing on a larger set is a stronger hypothesis. The frames above $f$ are untouched, and their reasons mention only variables above
+    them, whose values did not change.</p>
+    <p><b>Descend.</b> A new frame is opened with nothing closed and an empty conflict set.
+    $A$ gains one variable, below every existing frame, so no existing reason is affected.</p>
+    <p><b>Jump.</b> Frame $f$ has every value closed, and $E = \mathrm{CS}(f) \ne \emptyset$.
+    <em>Combining lemma:</em> suppose a solution $s$ agrees with $A$ on $E$. It gives $x_f$ some
+    value $v$ from $f$'s candidate list (see the fine print on the next slide), $v$ is closed, and
+    $s$ agrees with $A$ on $E = \mathrm{CS}(f)$ with $x_f = v$, which the invariant for $f$ rules
+    out. So no solution agrees with $A$ on $E$. Let $t$ be the deepest frame whose variable is in
+    $E$. Every variable of $E$ is above $f$, and $t$ is the deepest of them, so
+    $E \setminus \{x_t\}$ consists of variables above $t$. "No solution agrees with $A$ on $E$" is
+    the same statement as "no solution agrees with $A$ on $E \setminus \{x_t\}$ and has
+    $x_t = A(x_t)$", which is a valid reason for closing $t$'s current value. Merging it into
+    $\mathrm{CS}(t)$ keeps the conflict set above $t$, and the reasons of $t$'s older closed
+    values stay valid because agreeing on a larger set is a stronger hypothesis. The frames below
+    $t$ are discarded, along with their invariants. The frames at and above $t$ keep their values
+    except $t$ itself, whose cursor moves; but $x_t$ appears in no reason of $t$ or of any frame
+    above $t$, since those reasons name only variables above their own frame.</p>
+    <p><b>Stop, unsatisfiable.</b> Frame $f$ has every value closed and $E = \emptyset$. The
+    combining lemma with $E = \emptyset$ says no solution agrees with $A$ on the empty set, which
+    every assignment does: there is no solution. So the answer is correct.</p>
+    <p><b>Stop, satisfiable.</b> Every value on the stack passed every constraint whose other
+    variable was assigned above it. Each constraint is checked when the later of its two
+    variables is assigned, so the full assignment satisfies them all.</p>
+    <p>Both answers are therefore correct whenever the search stops. That it always stops is
+    section 3. Together: the search is <em>complete</em>, it finds a solution if and only if
+    there is one.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · completeness</p>
+  <h2>Why an empty conflict set means "no solution"</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the stopping rule, justified</span>
+        <p class="small">Take $E = \emptyset$ in the combining lemma: no solution agrees with $A$ on nothing, that is, <b>there is no solution at all</b>.</p>
+      </div>
+      <div class="box warn"><span class="label">two different empty sets</span>
+        <p class="small">A conflict set is also empty when its frame is <b>opened</b>, and then it claims nothing. The conclusion needs <b>both</b>: every value closed, and $E$ empty.</p>
+        <p class="small">At the top frame $E$ is necessarily empty, since there are no variables above it. It can also become empty deeper, and search stops there.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">unit 20's empty clause</span>
+        <p class="small">CDCL's <span class="term" data-term="learned clause">learned clause</span> is the same kind of object: a nogood written as a clause. Both go back past decisions it does not mention: CBJ to the deepest variable of $E$, closing its value; CDCL further up, to the second-highest level, asserting the flipped UIP. The empty clause is $E = \emptyset$.</p>
+      </div>
+      <div class="box ex"><span class="label">in the example</span>
+        <p class="small">Step 17: <span class="ref" data-ref="va">$a$</span>'s two values were closed at steps 8 and 16, each with reason $\{a\} \setminus \{a\} = \emptyset$. Every value closed, $E = \emptyset$: unsatisfiable.</p>
+      </div>
+      <p class="small muted"><b>Fine print.</b> "Every value" means every value of the domain. A value propagation removed under the current assignment is closed only if its reason goes into the conflict set; if not, $E = \emptyset$ can be reported on a satisfiable problem (notes).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The confusion, spelled out.</b> A conflict set is a record of what has been proved so
+    far about the values already closed. A frame that was just opened has closed nothing, so its
+    set is empty because nothing has been learned, not because something was proved from no
+    assumptions. Only when every value is closed does the conflict set become a statement about
+    the frame's variable as a whole, and only then does "empty" mean "unconditionally".</p>
+    <p><b>An empty set below the top.</b> A small case, computed with
+    <code>slides/viz/traces/u19b.py</code> (<code>uv run python -m slides.viz.traces.u19b</code>
+    prints the run): variables $p \in \{1, 2\}$, $x \in \{1\}$, $y \in \{1\}$, one constraint
+    $x \ne y$, order $p, x, y$. CBJ descends $p = 1$ and $x = 1$, rejects $y = 1$ with reason
+    $\{x\}$, jumps from $y$ to $x$ merging $\{x\} \setminus \{x\} = \emptyset$, and then $x$ is
+    exhausted at depth 1 with an empty conflict set: unsatisfiable, after 5 steps, without ever
+    trying $p = 2$. That is right: $x$ and $y$ conflict whatever $p$ is. Chronological search,
+    which stops only when the top frame is exhausted, goes on to try $p = 2$ and takes 11 steps
+    (the same module, in its chronological mode).</p>
+    <p><b>The relation to CDCL, precisely.</b> In unit 20's example the learned clause
+    $\lnot x_2 \lor \lnot x_3$ is the nogood $\{x_2 = 1, x_3 = 1\}$. Its deepest literal is at
+    the current level (the first UIP); the backjump goes to the level of the next-deepest literal
+    and asserts the negation of the UIP there, so the flipped variable moves up to a shallower
+    level. CBJ's nogood $E$-as-values has the target $t$ as its deepest variable; CBJ returns to
+    $t$'s own depth and closes $t$'s value there. So under this matching (the UIP plays $t$), CDCL
+    lands at the level of the nogood's <em>second</em>-deepest variable and CBJ at its deepest.
+    The two differ in where the flipped variable ends up, but both go back past decisions the
+    nogood does not mention, and both certify unsatisfiability by the same object: a nogood with
+    nothing left in it.</p>
+    <p><b>The fine print, in practice.</b> Two kinds of pruning must be kept apart. Pruning done
+    <em>once, before search</em>, that removes only values in no solution (or in no solution that
+    a symmetry-breaking rule keeps) is harmless: the search then refutes a problem with the same
+    solutions. Pruning done <em>under the current assignment</em>, as forward checking and
+    maintained arc consistency do, is different: there is no fixed "pruned problem", and a value
+    removed that way is a closed value like any other. It needs a reason, the variables whose
+    values caused the removal, and that reason must go into the frame's conflict set. This is
+    why Prosser's FC-CBJ adds the pruning variables to the conflict set, and what unit 21's
+    explanations provide for general propagators.</p>
+    <p>Without it the stop rule is unsound. A three-variable case, computed with
+    <code>slides/viz/traces/u19b.py</code> with each frame opening on its list pruned against the
+    assignments so far (its <code>fc</code> option; <code>uv run python -m
+    slides.viz.traces.u19b</code> prints the three runs): $a \in \{1, 2\}$, $b \in \{2\}$, $x \in \{1, 2\}$, constraints $a \ne x$ and
+    $b \ne x$, order $a, b, x$. Under $a = 1$, $b = 2$ both values of $x$ are pruned, so $x$ opens
+    with no values and an empty conflict set, and the search reports "unsatisfiable" at step 3. But
+    $a = 2$, $b = 2$, $x = 1$ is a solution. With the pruning variables recorded, $x$'s conflict set
+    is $\{a, b\}$ from the start: the search jumps to $b$, then to $a$, and finds that solution in 7
+    steps. A heuristic that silently drops values, for instance to keep a list short, breaks the
+    stop rule in the same way.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · completeness</p>
+  <h2>Learned nogoods</h2>
+  <div class="cols">
+    <div>
+      <ul class="small">
+        <li>A <span class="term">nogood store</span> starts empty.</li>
+        <li>A reason written out as values is an <b>absolute</b> nogood: it holds whatever the rest of the assignment is. So <b>recording it is sound</b>.</li>
+        <li>A store hit is one more way to close a value, with the nogood's other variables as the reason.</li>
+        <li><b>Forgetting is safe</b> for soundness, and for termination of a single run: a store is only a source of closings. With restarts, see section 4. Only adding needs a proof, and the reason invariant is that proof.</li>
+      </ul>
+      <p class="small">The invariant and the measure of section 3 do not care where a closing came from, so a store changes neither soundness nor the termination of a single run.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">what <span class="ref" data-ref="cbj">the run</span> could record</span>
+        <p class="small">Step 7 closes $c = 2$ with reason $\{a\}$ under $a = 1$: the nogood $\{a = 1, c = 2\}$.</p>
+        <p class="small">Step 8 closes $a = 1$ with reason $\emptyset$: the nogood $\{a = 1\}$, so $a = 1$ is in no solution.</p>
+      </div>
+      <div class="box def"><span class="label">back to unit 19: decision against reason</span>
+        <p class="small">The <span class="term">decision nogood</span> at step 7 is $\{a = 1, b = 1, c = 2\}$: every choice above. It does not fire under $b = 2$. The reason form $\{a = 1, c = 2\}$ leaves <span class="ref" data-ref="vb">$b$</span> out, so it does: the difference between the two is exactly the thrashing.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why forgetting is free.</b> Nothing in the completeness proof depends on a nogood
+    staying in the store: each store hit is justified when it happens, by the nogood being
+    absolute. Removing a nogood only removes future opportunities to close values early. That is
+    why SAT solvers can delete learned clauses by LBD (unit 20), and why a CP solver can bound its
+    store's memory however it likes. Unit 20's one exception, never deleting a clause that is
+    currently the reason for an assignment, comes from CDCL storing its reasons as clauses; here
+    the reason already lives in the conflict set, so the store can lose anything. (Termination
+    across restarts is another matter: section 4.)</p>
+    <p><b>Why adding needs the proof.</b> A stored nogood is used under assignments quite
+    different from the one it was learned under, possibly after a restart. The reason names only
+    some of the assigned variables. Read together with every decision above it, it would be the
+    decision nogood, which is true but fires only on that exact path. Using $R$ with $x = v$
+    <em>alone</em>, with the others (here $b$) dropped, needs more: the reason invariant, through
+    the combining lemma for reasons that come from jumps, shows that it is a nogood by itself, so
+    it can be used under any assignment, even after a restart.</p>
+    <p><b>Decision against reason nogoods.</b> Unit 19 called decision nogoods weak and said the
+    strong form records why the branch failed. This is the smallest example of the difference.
+    $\{a = 1, b = 1, c = 2\}$ is true, but it mentions $b$, so it prunes nothing under $b = 2$.
+    $\{a = 1, c = 2\}$ is also true, and it is exactly what a search at $a = 1$, $b = 2$ would need
+    to skip $c = 2$ at once. Unit 20's first-UIP clauses and unit 21's explanations are ways of
+    computing such reason-based nogoods when propagation, not just a single constraint check,
+    closed the values.</p>
+    <p>Plain CBJ, as in Prosser's paper, stores nothing between jumps: its conflict sets are
+    forgotten when frames are discarded. Adding a store is what turns it into a learning
+    search.</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Termination</h2>
+  <p>One number that goes down on every step.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19b · termination</p>
+  <h2>The measure</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$n$ variables, $D_{\max}$ the largest domain, radix $B = D_{\max} + 2$. For depth $d &lt; n$, $r_d$ counts the values of its frame <b>not yet closed</b>, the current one included, or is $\top = B - 1$ if depth $d$ has no frame.</p>
+      $$\mu = \sum_{d&lt;n} r_d \, B^{\,n-1-d}$$
+      <p class="small">The <span class="term">termination measure</span>: the counts read as one number in base $B$, shallowest digit first.</p>
+      <div class="box ex"><span class="label"><span class="ref" data-ref="cbj">the CBJ run</span>: <span style="text-transform:none">$n = 4$, $D_{\max} = 2$, $B = 4$</span></span>
+        <table class="dense" style="margin:0">
+          <thead><tr><th>after step</th><th>digits, depth 0 1 2 3</th><th class="num">$\mu$</th></tr></thead>
+          <tbody>
+            <tr><td>start</td><td class="mono">2 3 3 3</td><td class="num">191</td></tr>
+            <tr><td>6</td><td class="mono">2 2 1 0</td><td class="num">164</td></tr>
+            <tr><td>7, jump to $c$</td><td class="mono">2 2 0 3</td><td class="num">163</td></tr>
+            <tr><td>8, jump to $a$</td><td class="mono"><b>1</b> 3 3 3</td><td class="num">127</td></tr>
+            <tr><td>9, descend</td><td class="mono">1 2 3 3</td><td class="num">111</td></tr>
+            <tr><td>16, jump to $a$</td><td class="mono"><b>0</b> 3 3 3</td><td class="num">63</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">every step lowers <span style="text-transform:none">$\mu$</span></span>
+        <p class="small">Each step lowers the shallowest digit it changes, and changes only digits below it.</p>
+        <ul class="small">
+          <li><b>Reject</b>: $r_d - 1$.</li>
+          <li><b>Descend</b>: $r_{d+1}$ from $\top$ to $|\mathrm{dom}\,x| \le D_{\max}$.</li>
+          <li><b>Jump to $j$</b>: $r_j - 1$, and every digit below $j$ reset to $\top$.</li>
+          <li><b>Stop</b> ends it.</li>
+        </ul>
+        <div class="small">$$\sum_{d&gt;j} (B-1)\,B^{\,n-1-d} = B^{\,n-1-j} - 1 &lt; B^{\,n-1-j}$$</div>
+        <p class="small">Lowering digit $j$ by one outweighs anything below it.</p>
+        <p class="small muted"><b>Why $+2$:</b> $\top$ must exceed every open frame's $r_d \le D_{\max}$, so that opening a frame is a decrease.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <p class="small">In the table, step 8: depths 1 and 2 <b>go up</b> (2 → 3, 0 → 3), but depth 0 drops from 2 to 1, which outweighs them: $163 \to 127$. Digits are per <b>depth</b>, not per variable.</p>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/2" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>Reading the table.</b> At the start only $a$'s frame is open, with both values
+    unclosed ($r_0 = 2$); depths 1 to 3 have no frame ($\top = 3$). So
+    $\mu = 2 \cdot 64 + 3 \cdot 16 + 3 \cdot 4 + 3 = 191$. After step 6 the stack is $a, b, c, d$
+    with $r = (2, 2, 1, 0)$: $128 + 32 + 4 = 164$. The reference implementation,
+    <code>slides/viz/traces/u19b.py</code>, asserts on every step that $\mu$ drops, and
+    <code>uv run python -m slides.viz.traces.u19b</code> prints the digits and $\mu$ before and
+    after every step of both runs: for the 16 steps before the stop it drops every time, and the
+    stop leaves it at 63.</p>
+    <h4>Full proof</h4>
+    <p>First, the digits are digits. The stack holds at most $n$ frames, because each frame's
+    variable is unassigned when the frame is opened (the heuristic's contract, section 4), so the
+    variables on the stack are distinct.
+    An open frame has $0 \le r_d \le |\mathrm{dom}\,x| \le D_{\max} &lt; B - 1$, and an empty
+    depth has $r_d = B - 1$. So every $r_d$ lies in $\{0, \dots, B - 1\}$, and $\mu$ is a natural
+    number below $B^n$ whose base-$B$ digits are the $r_d$.</p>
+    <p>Second, comparing two such numbers: if they agree on digits $0, \dots, j - 1$ and the
+    first has a smaller digit $j$, the first is smaller, because the second's digit $j$ is worth
+    at least $B^{n-1-j}$ more, while the first's digits below $j$ are worth at most
+    $\sum_{d&gt;j} (B-1) B^{n-1-d} = B^{n-1-j} - 1$, a geometric sum.</p>
+    <p>Third, each step, where $d$ is the depth of the deepest frame:</p>
+    <ul>
+      <li><b>Reject</b> closes the current value of frame $d$: $r_d$ drops by 1, nothing else changes.</li>
+      <li><b>Descend</b> opens a frame at depth $d + 1$, which had no frame: $r_{d+1}$ goes from $B - 1$ to $|\mathrm{dom}\,x| \le D_{\max} = B - 2$. Digits $0, \dots, d$ are unchanged: the current value of frame $d$ is not closed by descending.</li>
+      <li><b>Jump</b> to depth $j &lt; d$: $r_j$ drops by 1 (its current value is closed), digits above $j$ are unchanged, and the discarded depths $j+1, \dots, n-1$ become $B - 1$.</li>
+      <li><b>Stop</b> (satisfiable or unsatisfiable) is the last step.</li>
+    </ul>
+    <p>In each case the shallowest changed digit decreases, so $\mu$ decreases. The starting value
+    is below $B^n$ and every step but the stop lowers $\mu$ by at least 1 without going below 0,
+    so there are at most $\mu_0 \le B^n - 1$ such steps, plus the stop: the search stops after at
+    most $B^n$ steps. For the example, $4^4 = 256$ (and $\mu_0 + 1 = 192$); the actual run takes
+    17.</p>
+    <p>A store hit is a closing, and counts as a reject here. The bound $B^n$ is far from
+    tight, since it is larger than the whole search tree; its only job is to show that the
+    search ends.</p>
+  </aside>
+</section>
+
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Choosing the variable at each level, and why the proofs survive it</h2>
+  <p>Any variable, as long as it is a new one.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19b · variable ordering</p>
+  <h2>The heuristic's contract</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term" data-term="ordering contract">contract</span></span>
+        <p class="small">In <span class="term">dynamic variable ordering</span> the heuristic is consulted <b>each time a frame opens</b>. It may read anything: the assignments so far, the conflict history, unit 19's weights, randomness. Its <b>one obligation</b>: return an <b>unassigned</b> variable whenever one exists.</p>
+      </div>
+      <div class="box warn"><span class="label">what breaks it</span>
+        <p class="small">Returning a variable already on the stack: the stack's variables stop being distinct, the depth is no longer bounded by $n$, and $\mu$ is undefined.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">why neither proof looks at the choice</span>
+        <p class="small"><b><span class="ref" data-ref="mu">The measure</span></b> counts values per <b>depth</b>. On a descend, the new frame's digit drops from $\top$ to at most $D_{\max}$, whichever variable it holds. On a jump, the digits that change sit below the one that decreases.</p>
+        <p class="small"><b>The invariant</b> names <b>variables</b>, not depths: "above" means above on the stack as it is now.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+    </div>
+  </div>
+  <div class="box def"><span class="label">first-fail, with no propagation</span>
+    <p class="small">Plain CBJ never shrinks a domain, so "smallest domain first" is a <b>static</b> order. A dynamic first-fail counts the <span class="term">live domain</span>: the values still consistent with the assignments so far, computed only for choosing; the frame still opens on the full domain. <span class="term">dom/wdeg</span> also reads the history, bumping the constraint that rejected a value: on <span class="ref" data-ref="myc">the Mycielski graph</span> (next slide) CBJ with dom/wdeg puts 10 different variables at depth 5 in one run, with dom 3. Both stop with the right answer.</p>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/2" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>The argument in one paragraph.</b> Look at what each step does to the stack. A reject
+    moves one cursor. A jump truncates the stack and moves one cursor. A descend pushes one frame,
+    and only there does the heuristic act, choosing which variable the new frame gets. The measure
+    reads each frame only through "how many values are left", and the domain size bounds that by
+    $D_{\max}$ whichever variable was chosen; the jump resets discarded depths to $\top$ whichever
+    variables they held. The invariant speaks of "variables of frames above", which is a property
+    of the stack as it is, not of any global order. Neither argument ever needs the order to be
+    the same across the run.</p>
+    <p><b>What the heuristic must guarantee.</b> A variable that is not on the stack, returned
+    whenever the stack is not complete. The engine only descends when fewer than $n$ frames are
+    open, so an unassigned variable always exists when the heuristic is asked; the obligation is
+    only not to return an assigned one. Everything else is allowed, including randomness, reading
+    the weights that failures bump, or looking at the learned store.</p>
+    <p><b>Why first-fail needs the live domain here.</b> In units 17 and 19 the engine
+    propagates, so domains shrink under the assignments and "smallest domain" changes from branch
+    to branch. A plain CBJ engine removes no value from any domain, so the domain sizes are the
+    model's and "smallest domain first" is fixed before search starts. The live domain restores the
+    dynamic behaviour without propagating: for each unassigned variable, the values consistent
+    with every assigned neighbour, computed afresh each time a frame opens and used only to choose
+    (<code>live_domain</code> in <code>slides/viz/traces/u19b.py</code>). It is the domain forward
+    checking would leave, but the frame does not open on it: opening on it would need the pruning
+    variables in the conflict set (the fine print in section 2). Reading the live domains, like
+    reading anything else, is inside the contract.</p>
+    <p><b>dom/wdeg and history.</b> Every constraint's weight starts at 1, and each rejection adds
+    1 to the weight of the constraint that rejected. The choice is therefore a function of the run
+    so far, not of the current assignment alone. Within one run this cannot show at a single
+    assignment, since no partial assignment is visited twice (the nodes a run visits form a tree);
+    it shows across restarts with the weights kept, where the same partial assignment reached again
+    can get a different next variable. The contract does not mind: at each descend the
+    heuristic returns some unassigned variable, and that is all either proof uses. The counts on
+    the slide are the distinct variables seen at each depth over one CBJ run, printed by
+    <code>uv run python -m slides.viz.traces.u19b</code>: on the Mycielski graph, depths 0 to 9
+    see 1, 1, 1, 2, 2, 3, 3, 2, 2, 1 variables under dom, and depths 0 to 7 see 1, 3, 4, 7, 8,
+    10, 10, 5 under dom/wdeg.</p>
+    <h4>Full proof</h4>
+    <p>Let the heuristic be any procedure, with any state of its own (weights, a random
+    generator, a store), that returns an unassigned variable whenever it is called with fewer
+    than $n$ frames on the stack. We show that the search is sound and stops within $B^n$ steps.</p>
+    <p><b>Distinct variables.</b> Only a descend adds a frame, and its variable is the
+    heuristic's answer, which is unassigned, that is, not on the stack. Rejects and jumps add no
+    frame. By induction the variables on the stack are always distinct, so there are at most $n$
+    frames, and with $n$ frames every variable is assigned: a passing value there stops the search
+    with "satisfiable" instead of descending, so the heuristic is never asked with $n$ frames
+    open.</p>
+    <p><b>Termination.</b> The proof on the measure slide uses three facts about the stack:
+    at most $n$ frames, so $\mu$ has $n$ digits; an open frame's count is at most its domain size,
+    at most $D_{\max}$; a descend fills the first empty depth, and a jump truncates the stack at the
+    target and closes the target's value. None of the three names the variable the heuristic
+    chose, so the case analysis goes through word for word, and each run stops within $B^n$
+    steps.</p>
+    <p><b>Soundness.</b> The proof on the invariant slide says "above" for "earlier on the current
+    stack", and uses distinctness in two places. After a jump to $t$, the variable $x_t$, whose
+    value changes, appears in no reason of $t$ or of a frame above $t$, because those reasons name
+    only variables above their own frame and $x_t$ is on the stack once. And the descend case needs
+    the new variable to appear in no existing reason: reasons name variables on the stack, and the
+    new variable was not on it. The jump case needs the target to be the deepest frame whose
+    variable is in $E$, by position on the stack; the pitfall slides show what happens otherwise.
+    Nothing else in the proof refers to the order.</p>
+    <p>So soundness and termination hold for every heuristic that keeps the contract, and with them
+    completeness. If the heuristic returns an assigned variable, the first part of the proof (distinct
+    variables) fails: the stack
+    has a variable twice, its depth can grow past $n$, and $\mu$ is not defined.</p>
+    <p><b>Checked.</b> <code>slides/viz/traces/u19b.py</code> was run on 4 000 random binary CSPs
+    (seed 19; 2 to 7 variables, domains of 1 to 3 values, each pair constrained with probability
+    one half), each solved twice: with the static order, and with a dynamic order that picks a
+    uniformly random unassigned variable at each descend. Of the 8 000 runs, 3 458 were
+    unsatisfiable. Every answer matched brute force, every reported solution satisfied all
+    constraints, and $\mu$ decreased on every step. <code>uv run python -m
+    slides.viz.traces.u19b</code> repeats the check. A random order is a demanding test of the
+    claim: it makes no attempt to be consistent from branch to branch.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · variable ordering</p>
+  <h2>Ordering against backjumping, measured</h2>
+  <div class="cols wide-right">
+    <div>
+      <div class="box def"><span class="label">five orders, ties by input order</span>
+        <ul class="small">
+          <li><b>input</b>: as the model lists the variables.</li>
+          <li><b><span class="term" data-term="max-cardinality ordering">max-cardinality</span></b> (static): most already-ordered neighbours, ties by degree.</li>
+          <li><b><span class="term" data-term="dom">dom</span></b>: smallest live domain.</li>
+          <li><b><span class="term">dom/deg</span></b>: live domain over the number of constraints to unassigned variables.</li>
+          <li><b>dom/wdeg</b>: live domain over the summed weights of those constraints; weights start at 1, a rejection bumps the rejecting one.</li>
+        </ul>
+      </div>
+      <p class="small muted">All four instances are unsatisfiable. Every run checks $\mu$ at every step, and its answer against brute force.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead>
+          <tr><th rowspan="2">steps</th><th colspan="2"><span class="ref" data-ref="tri">example</span></th><th colspan="2"><span class="ref" data-ref="myc">Mycielski</span></th><th colspan="2"><span class="ref" data-ref="pig">pigeons</span></th><th colspan="2"><span class="ref" data-ref="rnd">random</span></th></tr>
+          <tr><th class="num">chron.</th><th class="num">CBJ</th><th class="num">chron.</th><th class="num">CBJ</th><th class="num">chron.</th><th class="num">CBJ</th><th class="num">chron.</th><th class="num">CBJ</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>input</td><td class="num">33</td><td class="num">17</td><td class="num">1888</td><td class="num">1175</td><td class="num">325</td><td class="num">325</td><td class="num">468</td><td class="num">174</td></tr>
+          <tr><td><span class="ref" data-ref="mcs">max-card.</span></td><td class="num">15</td><td class="num">15</td><td class="num">1312</td><td class="num">1050</td><td class="num">325</td><td class="num">325</td><td class="num">164</td><td class="num">91</td></tr>
+          <tr><td>dom</td><td class="num">15</td><td class="num">15</td><td class="num">568</td><td class="num">568</td><td class="num">325</td><td class="num">325</td><td class="num">72</td><td class="num">64</td></tr>
+          <tr><td>dom/deg</td><td class="num">15</td><td class="num">15</td><td class="num">652</td><td class="num">652</td><td class="num">325</td><td class="num">325</td><td class="num">68</td><td class="num">68</td></tr>
+          <tr><td>dom/wdeg</td><td class="num">15</td><td class="num">15</td><td class="num">700</td><td class="num">659</td><td class="num">325</td><td class="num">325</td><td class="num">68</td><td class="num">68</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">what the numbers say</span>
+        <p class="small">Under the input order CBJ saves 16, 713 and 294 steps on the example, the Mycielski graph and the random CSP; under dom, 0, 0 and 8. Ordering and backjumping attack the <b>same waste</b>: a good order leaves CBJ less to save. On the pigeons there is nothing to skip under any order.</p>
+      </div>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/2" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>Where the numbers come from.</b> <code>slides/viz/traces/u19b.py</code>; <code>uv run
+    python -m slides.viz.traces.u19b</code> prints this table with rejections and jumps too.
+    A step is a descend, a reject, a jump or the stop, as on the earlier slides. "Chronological"
+    is the deck's chronological backtracking: back to the frame just above, stopping only when the
+    top frame is exhausted. dom, dom/deg and dom/wdeg read the live domain of the previous slide;
+    a variable with an empty live domain is chosen first whatever its degree, and under dom/deg and
+    dom/wdeg a variable with no constraints to unassigned variables, whose ratio would divide by
+    zero, comes last (on the example that is <span class="ref" data-ref="vb">$b$</span>). Chronological search
+    and CBJ are separate runs, so under dom/wdeg they bump different weights and can choose
+    differently.</p>
+    <p><b>The instances.</b> The running example. The Mycielski graph of the 5-cycle (the
+    Grötzsch graph): 11 vertices, 20 edges, chromatic number 4, so 3 colours are refuted; with 4
+    colours CBJ finds a colouring, which the module checks. Five pigeons in four holes, as a CSP:
+    all-different of 5 variables over 4 values, that is, the complete graph on 5 vertices with 4
+    colours. One random binary CSP (seed 3, 10 variables with 3 values each, each pair constrained
+    with probability 0.5, each value pair forbidden with probability 0.35), which has 22
+    constraints and, by brute force, no solution.</p>
+    <p><b>Rejections</b>, chronological then CBJ, in the order of the table's rows. Example: 12, 6;
+    then 6, 6 for every other order. Mycielski: 945, 574; 657, 524; 285, 285; 327, 327; 351, 331.
+    Pigeons: 196, 196 for every order. Random CSP: 235, 84; 83, 42; 37, 32; 35, 35; 35, 35. CBJ's
+    jumps: example 4 for every order; Mycielski 237, 225, 141, 162, 161; pigeons 64 for every
+    order; random CSP 28, 18, 14, 16, 16.</p>
+    <p><b>The point.</b> Thrashing is failure rediscovered under choices that played no part in
+    it. Backjumping skips those choices after the fact; a good order avoids making them between
+    the culprits in the first place. On the example the max-cardinality order is $a, c, d, b$: the
+    triangle is refuted before <span class="ref" data-ref="vb">$b$</span> is reached, $b$ is never
+    opened, and both searches take the same 15 steps; so do the three dynamic orders. On the Mycielski graph and the random CSP, CBJ saves hundreds of steps under
+    the input order and little or nothing under dom. On the pigeons every order gives the same 325
+    steps, and CBJ saves none of them: all-different constrains every pair of variables, so no
+    choice is irrelevant to a failure. dom/wdeg is not the best order on the Mycielski graph (700
+    and 659 steps, against dom's 568), which is unit 19's point that heuristics are bets on an
+    instance family.</p>
+    <p><b>The literature.</b> Chen and van Beek (2001) give both sides of this interaction. In
+    theory, there is a "perfect" dynamic variable ordering that makes CBJ redundant (the
+    $a, c, d, b$ order is a small case of the same effect), and the more local consistency is
+    maintained, the less backjumping can improve on it. In practice, they find that adding CBJ to
+    a search that maintains generalized arc consistency can still give speedups of orders of
+    magnitude.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · variable ordering</p>
+  <h2>The jump-target pitfall</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">two readings of "the deepest frame whose variable is in E"</span>
+        <p class="small"><b>By stack position</b>: the deepest frame on the stack whose variable is in $E$. This is the rule the proofs use.</p>
+        <p class="small"><b>By index</b>: the variable of $E$ that comes last in the input order. A CBJ written to search in the input order may do this, since there index order <em>is</em> depth order.</p>
+      </div>
+      <div class="box warn"><span class="label">the <span class="term">index rule</span> under any other order</span>
+        <p class="small">It can jump to a frame <b>above</b> the deepest frame in $E$. Then it merges $E$ minus the target's variable into the target's conflict set: a set naming a variable <b>below</b> the target, whose frame the jump discards. The invariant is broken.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box ex"><span class="label"><span class="ref" data-ref="t291">trial 291</span>, one random dynamic order</span>
+        <p class="small">Stack $v_5, v_3, v_0, v_2, v_4, v_1$. Step 10: $v_1$ is exhausted with $E = \{v_0, v_3\}$.</p>
+        <ul class="small">
+          <li><b>Stack rule</b>: jump to $v_0$, at depth 2. It finds a solution at step 30.</li>
+          <li><b>Index rule</b>: jump to $v_3$, at depth 1, discarding $v_0$; $v_3$'s set becomes $\{v_0\}$. Step 11: $v_3$, which has one value, is exhausted. Dropping the discarded $v_0$ leaves $E = \emptyset$: <b>"unsatisfiable"</b>.</li>
+        </ul>
+      </div>
+      <table class="dense">
+        <thead><tr><th>index rule, 3 000 random CSPs</th><th class="num">input order</th><th class="num">random order</th></tr></thead>
+        <tbody>
+          <tr><td>the jump looks for a discarded variable: crash</td><td class="num">0</td><td class="num">319</td></tr>
+          <tr><td>such variables dropped: a satisfiable instance called unsatisfiable</td><td class="num">0</td><td class="num"><b>31</b></td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">A static order is not enough: under <span class="ref" data-ref="mcs">max-cardinality</span>, static but not the input order, 159 crashes and 12 wrong answers.</p>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/3" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>The experiment.</b> <code>pitfall_stats</code> in <code>slides/viz/traces/u19b.py</code>;
+    <code>uv run python -m slides.viz.traces.u19b</code> prints the counts and both runs of trial
+    291 step by step. 3 000 random binary CSPs (seed 7; 3 to 7 variables, domains of 1 to 3
+    values, each pair constrained with probability one half, each value pair allowed with
+    probability 0.6), each solved with the static input order and with a random dynamic order
+    seeded by the trial number. The index rule comes in two variants. As written, it looks up the
+    frame of the chosen variable, and when that variable is no longer on the stack the lookup
+    fails (319 dynamic runs): in the module that raises an error, in a real solver it might read a
+    stale entry or jump somewhere arbitrary. That lookup is where the break shows, not where it
+    happens: an earlier jump already left a conflict set naming a discarded variable, and the next
+    slide counts those runs. The second variant avoids the crash the way a hurried fix would, by
+    silently removing from $E$ every variable that is not on the stack. That turns the crash into
+    a wrong answer: 31 satisfiable instances reported unsatisfiable, the first of them trial 291.
+    Under the static input order neither variant ever goes wrong, in 3 000 runs each. What
+    protects it is not that the order is static but that it is the input order: under
+    max-cardinality, a static order that equals the input order on only 456 of the 3 000
+    instances, the index rule crashes in 159 runs and the dropping variant answers 12 satisfiable
+    instances "unsatisfiable". The same module prints these counts.</p>
+    <p><b>Trial 291, step by step.</b> The two runs agree for nine steps: $v_5 = 0$, $v_3 = 0$,
+    $v_0 = 0$ descend; $v_2 = 0$ is rejected by the constraint $v_2 v_3$, reason $\{v_3\}$;
+    $v_2 = 1$ and $v_4 = 0$ descend; the three values of $v_1$ are rejected with reasons
+    $\{v_3\}$, $\{v_0\}$, $\{v_3\}$. At step 10 $E = \{v_0, v_3\}$. On the stack $v_0$ is deeper
+    (depth 2) than $v_3$ (depth 1), but $v_3$ has the larger index. The index rule jumps to $v_3$,
+    closes $v_3 = 0$, and records $\{v_0\}$ as the reason, although $v_0$'s frame has just been
+    discarded. The stack rule jumps to $v_0$, closes $v_0 = 0$ with reason $\{v_3\}$, and goes on:
+    it answers "satisfiable" at step 30 with $v_0 = 1$, $v_1 = 1$, $v_2 = 1$, $v_3 = 0$,
+    $v_4 = 0$, $v_5 = 1$.</p>
+    <p><b>Where the proof breaks.</b> The jump case of the completeness proof shows that no
+    solution agrees with the assignment on $E$, and then needs $E \setminus \{x_t\}$ to consist of
+    variables above the target $t$, so that it is a valid, upward-pointing reason for closing
+    $t$'s value. That holds because $t$ is the <em>deepest</em> frame whose variable is in $E$.
+    With $t = v_3$ it fails: $E \setminus \{v_3\} = \{v_0\}$ names a variable below $v_3$. The
+    claim "no solution has $v_0 = 0$ and $v_3 = 0$" is true, but once $v_0$'s frame is gone it no
+    longer says anything about $v_3 = 0$ alone; and the jump has discarded $v_0$'s untried value
+    $v_0 = 1$ with no reason at all. Dropping $v_0$ from the set turns "no solution with $v_3 = 0$
+    <em>and</em> $v_0 = 0$" into "no solution with $v_3 = 0$", which is false: the solution has
+    $v_3 = 0$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · variable ordering</p>
+  <h2>The correction: jump by stack position</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">the <span class="term">stack-position rule</span></span>
+        <p class="small">Keep an array depth[$x$], set when $x$ is assigned and cleared when it is unassigned. The jump target is the frame at the largest depth[$x$] over $x \in E$.</p>
+      </div>
+      <div class="box def"><span class="label">a cheap <span class="term">invariant check</span></span>
+        <p class="small">After each step, assert: every variable in a frame's conflict set is on the stack <b>above</b> that frame. On <span class="ref" data-ref="t291">trial 291</span> the index rule trips it at step 10: $v_3$'s set, at depth 1, is $\{v_0\}$, and above it is only $v_5$.</p>
+      </div>
+      <div class="box warn"><span class="label">the lesson</span>
+        <p class="small">When the search follows the input order the two rules coincide, so <b>tests that always search in index order cannot see the bug</b>. Test with other orders, dynamic ones included, and assert the invariant.</p>
+      </div>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>3 000 random CSPs</th><th class="num">input order</th><th class="num">random order</th></tr></thead>
+        <tbody>
+          <tr><td>index rule: the check fires</td><td class="num">0</td><td class="num">417</td></tr>
+          <tr><td>index rule, dropping: wrong answers</td><td class="num">0</td><td class="num">31</td></tr>
+          <tr><td>stack rule: wrong answers</td><td class="num">0</td><td class="num"><b>0</b></td></tr>
+          <tr><td>stack rule: the check fires</td><td class="num">0</td><td class="num"><b>0</b></td></tr>
+        </tbody>
+      </table>
+      <p class="small">With the check on, the index rule is stopped in all 31 wrong-answer runs <b>before</b> it answers. It also fires on runs that crash, and on runs that break the invariant and still, by luck, answer correctly.</p>
+    </div>
+  </div>
+  <p class="viz-link-row"><a class="viz-link" href="explore.html#/3" target="_blank" rel="noopener">explore interactively</a></p>
+  <aside class="notes">
+    <p><b>The numbers.</b> <code>pitfall_stats</code> in <code>slides/viz/traces/u19b.py</code>,
+    on the same 3 000 instances and orders as the previous slide; <code>uv run python -m
+    slides.viz.traces.u19b</code> prints them. The stack rule, with the check switched on,
+    answered all 6 000 runs correctly and never tripped the check. The index rule with the check
+    switched on trips it in no run under the input order and in 417 under the random order: a
+    conflict set named a discarded variable. That is more than the 319 runs
+    that crash without the check, and since the index rule without dropping gives no wrong answer,
+    the rest broke the invariant and answered correctly anyway: a broken invariant does not always
+    show in the answer, which is why asserting it catches more than comparing answers does. Every
+    one of the 31 runs that the dropping variant answers wrongly is stopped by the check before an
+    answer.</p>
+    <p><b>Implementing the rule.</b> A depth array indexed by variable, written on assign and
+    cleared on unassign, makes the target the maximum of depth[$x$] over $E$: one pass over the
+    conflict set, the same cost as the index rule's maximum. Reading positions off the stack
+    directly works too. Whichever is used, the rule is "deepest on the stack", never "last in the
+    model".</p>
+    <p><b>The check.</b> For each frame, every variable in its conflict set must be the variable of
+    a frame above it. Checked after every step it costs a pass over the conflict sets, which a
+    debug build can afford; checking only the frame a step touched (the exhausted frame before a
+    jump, the target after it) is cheaper and catches the same breaks, because a step changes at
+    most one conflict set: if the invariant held before the step, only that set can break it. It is the invariant of section 2, with "valid" left out and only
+    "points upward" kept: the part a program can check.</p>
+    <p><b>The lesson, in general.</b> A rule that is only correct under an assumption the tests
+    always satisfy cannot be caught by those tests. Here the assumption is "index order is depth
+    order", which holds whenever the search follows the input order, and fails under
+    max-cardinality as it does under dynamic orders. Randomised dynamic orders on small random
+    instances, with answers checked against brute force and the invariant asserted, found it in
+    seconds.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · variable ordering</p>
+  <h2>Restarts with a dynamic order</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">assumed</span>
+        <ul class="small">
+          <li>Each run starts from a <b>fresh stack</b>.</li>
+          <li>A <span class="term">cutoff</span> counts <b>steps</b>.</li>
+          <li>The instance is fixed, so $n$ and $B$ are the same in every run.</li>
+        </ul>
+        <p class="small">The heuristic may carry anything from run to run, such as dom/wdeg's weights. So may the nogood store: a reason written out as values is absolute.</p>
+      </div>
+      <div class="box thm"><span class="label">the restart loop ends, and is complete</span>
+        <p class="small">A <span class="term">restart</span> sends <span class="ref" data-ref="mu">$\mu$</span> back up. But a run that is not cut off stops within $B^n$ steps, whatever the order. The <span class="term">Luby sequence</span> (unit 19) is unbounded, so some run gets a cutoff of at least $B^n$, and that run finishes. Every answer is sound, so the loop is complete.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+    </div>
+    <div>
+      <table class="dense" style="white-space:nowrap">
+        <thead><tr><th></th><th class="num">$B^n$</th><th class="num">run allowed<br>$B^n$ steps</th><th class="num">run that<br>ended</th><th class="num">steps<br>in all</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ref" data-ref="tri">example</span></td><td class="num">256</td><td class="num">511</td><td class="num">31</td><td class="num">79</td></tr>
+          <tr><td><span class="ref" data-ref="myc">Mycielski</span></td><td class="num">48 828 125</td><td class="num">134 217 727</td><td class="num">2 046</td><td class="num">10 236</td></tr>
+          <tr><td><span class="ref" data-ref="pig">pigeons</span></td><td class="num">7 776</td><td class="num">16 383</td><td class="num">1 023</td><td class="num">4 933</td></tr>
+          <tr><td><span class="ref" data-ref="rnd">random</span></td><td class="num">9 765 625</td><td class="num">33 554 431</td><td class="num">126</td><td class="num">384</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Luby cutoffs (run $i$ may take luby($i$) steps), CBJ with dom/wdeg, weights kept across runs. The guarantee is crude: every loop ended long before the run it promises.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The table.</b> <code>restart_loop</code> in <code>slides/viz/traces/u19b.py</code>;
+    <code>uv run python -m slides.viz.traces.u19b</code> prints it. Run $i$ has a cutoff of
+    luby($i$) steps (unit 19's sequence with a unit of one step), CBJ with dom/wdeg, the weights
+    kept from run to run, a fresh stack for every run, and no nogood store. "Run allowed
+    $B^n$ steps" is the first $i$ with luby($i$) $\ge B^n$; the loop is guaranteed to have ended by
+    then. The runs that ended had cutoffs 16 (example), 512 (Mycielski), 512 (pigeons) and 32
+    (random CSP). All four answers are "unsatisfiable", as they must be.</p>
+    <h4>Full proof</h4>
+    <p><b>Assumptions.</b> (1) Every run starts from a fresh stack: one frame, opened on the
+    heuristic's first choice, nothing closed. (2) A run's cutoff $c$ is a number of steps: the run
+    is abandoned once it has made $c$ steps without stopping. (3) The instance does not change
+    between runs, so $n$ and $B = D_{\max} + 2$ are the same for every run. (Root-level pruning
+    between runs would only lower $D_{\max}$, and the bound with it.) (4) The heuristic keeps the
+    contract in every run; it may carry any state between runs. (5) A nogood store, if any, holds
+    only reasons written out as values.</p>
+    <p><b>One run.</b> Within a run, the measure proof applies as it is: the run starts at some
+    $\mu_0 \le B^n - 1$, every step but the stop lowers $\mu$ by at least 1, so a run that is not
+    cut off stops, with an answer, after at most $\mu_0 + 1 \le B^n$ steps. Carried-over weights,
+    random state or store contents change which steps are taken, not this bound: the proof holds
+    for any heuristic that keeps the contract, and a store hit is a closing like a reject.</p>
+    <p><b>Some run finishes.</b> luby($2^{k+1} - 1$) $= 2^k$ for every $k$, so the sequence is
+    unbounded, and there is a first index $i^*$ with luby($i^*$) $\ge B^n$. If the loop reaches run
+    $i^*$, that run has a cutoff of at least $B^n$ steps, and it stops by itself within $B^n$
+    steps, so it is not cut off. So the loop makes at most $i^*$ runs, and it stops.</p>
+    <p><b>Every answer is sound.</b> A run that answers does so by the rules of section 2, whose
+    invariant holds within the run from its fresh stack. A store hit closes a value with a reason
+    that is valid under any assignment, because a stored nogood is absolute; that is why nogoods
+    may be kept across runs, while conflict sets, which are relative to the stack they were built
+    on, may not. So the loop's answer is correct, and since it always gives one, the restart loop
+    is complete.</p>
+    <p><b>Other cutoffs.</b> A cutoff in failures or conflicts, as SAT solvers use, works the
+    same way, because each step adds at most one failure: a run cut off after $c$ failures has
+    made at least $c$ steps. What the argument needs is a schedule that is unbounded and a cutoff
+    that a run of $B^n$ steps cannot exceed. With cutoffs that stay bounded it says nothing: see
+    the next slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · scope</p>
+  <h2>Where the argument stops</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">restarts with bounded cutoffs</span>
+        <p class="small">If the cutoffs stay below $B^n$, no run need finish, and the last slide's argument says nothing. Termination then needs the <b>learned nogoods</b>: if every run adds one the store did not have and none is forgotten, there can be only finitely many runs.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label"><span class="term">dynamic backtracking</span> (Ginsberg 1993)</span>
+        <p class="small">Reordering the <b>assigned</b> variables is a different algorithm. It moves the culprit variable without erasing the assignments in between, so the per-depth counters no longer decrease. Its termination argument rests on the recorded nogoods instead.</p>
+      </div>
+    </div>
+  </div>
+  <div class="box def"><span class="label">what this deck proved, and for what</span>
+    <p class="small">For any search that keeps a stack of frames, closes values only with valid reasons that point upwards, jumps by Prosser's rule, opens frames on unassigned variables in any order, and restarts, if at all, with unbounded cutoffs: <b><span class="term" data-term="soundness">sound</span></b> in both answers, <b>terminating</b>, hence <b><span class="term" data-term="completeness">complete</span></b>.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Restarts, with bounded cutoffs.</b> The previous slide's argument needs one run with a
+    cutoff of at least $B^n$ steps. A fixed cutoff, or a schedule that stops growing, never
+    provides one, and then nothing in the measure prevents every run from being cut off
+    forever.</p>
+    <p><b>Restarts, with nogoods.</b> If every restart happens only after the run has stored at
+    least one nogood not already in the store, and nothing is forgotten, then the number of
+    restarts is bounded by the number of possible nogoods, which is finite. This is the classical
+    argument for CDCL with restarts when learned clauses are kept. Solvers that delete clauses by
+    LBD (unit 20) cannot use it as it stands, since forgetting could let the same nogood be learned
+    again and again: they fall back on unbounded restart intervals, the argument above, or on
+    limits on deletion, or they have no guarantee.</p>
+    <p><b>Dynamic backtracking.</b> Ginsberg's algorithm, when a variable runs out of values,
+    unassigns only the culprit variable and keeps every other assignment, including the ones made
+    after the culprit. The stack is then no longer a stack of depths in the sense used here: the
+    culprit leaves the middle of the order, and variables after it stay assigned. So $\mu$, which
+    reads counts per depth, is the wrong measure. Ginsberg's paper proves termination from the
+    nogoods it records (its eliminating explanations) instead. See the paper for the argument; this
+    deck does not reproduce it.</p>
+    <p><b>The scope statement.</b> The box on the slide is the precise claim of this addendum.
+    Propagation fits inside it as long as every value it removes comes with a valid,
+    upward-pointing reason that goes into the conflict set, which is exactly what unit 21's
+    explanations provide (the fine print in section 2 shows what goes wrong without it).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <ul>
+      <li>You can explain, on <span class="ref" data-ref="tri">the example</span>, why CBJ takes 17 steps and chronological search 33.</li>
+      <li>You can say why $E = \emptyset$ at an exhausted frame means unsatisfiable, and at a new frame nothing.</li>
+      <li>You can show <span class="ref" data-ref="mu">$\mu$</span> decreasing on a jump, although the digits below it go up.</li>
+      <li>You can state the heuristic's contract, why neither proof looks at the choice, and why Luby restarts still end.</li>
+      <li>You can say why a jump target by index fails under any order but the input order, and how to test for it.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Prosser, "Hybrid algorithms for the constraint satisfaction problem", <em>Computational Intelligence</em> 9(3), 1993.<br>
+      Ginsberg, "Dynamic backtracking", <em>JAIR</em> 1, 1993.<br>
+      Dechter, <em>Constraint Processing</em>, 2003, the look-back chapter.<br>
+      Chen &amp; van Beek, "Conflict-directed backjumping revisited", <em>JAIR</em> 14, 2001.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small"><b>20</b> SAT and CDCL: the same ideas with clauses, where the reasons come from unit propagation and the nogoods are kept.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>The one-sentence version: every closed value carries a reason that points upwards, the
+    reasons of an exhausted frame combine into a reason at the jump target, the deepest frame
+    whose variable they name, an empty combined reason is a
+    proof that there is no solution, and a base-$B$ counter over the depths shows that the whole
+    process stops whatever order the variables are chosen in, provided each choice is a variable
+    not yet on the stack and the jump target is found by its position on the stack. Luby restarts
+    keep both properties, because some run is always allowed to finish.</p>
+    <p>For the reading: Prosser's paper introduces CBJ alongside hybrids with forward checking.
+    Dechter's look-back chapter covers Gaschnig's, graph-based and conflict-directed backjumping
+    together, with learning. Ginsberg's paper is the place for dynamic backtracking and its own
+    termination argument. Chen and van Beek revisit CBJ in combination with look-ahead and
+    variable ordering: in theory a perfect dynamic ordering, or enough local consistency, leaves
+    backjumping little or nothing to save; in their experiments, adding CBJ to a search that
+    maintains generalized arc consistency can still be faster by orders of magnitude.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

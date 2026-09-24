@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19b · Explore: backjumping and completeness</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+<link rel="stylesheet" href="../../slides/viz/viz.css">
+<link rel="stylesheet" href="../../slides/viz/widgets/backjump.css">
+</head>
+<body data-trunk="cp">
+<div class="reveal"><div class="slides">
+
+<section class="title-slide">
+  <p class="eyebrow">optional · interactive figures</p>
+  <div class="unit-no">19b</div>
+  <h1>Explore: backjumping and completeness</h1>
+  <p class="lede">The running example replayed frame by frame, the variable order and the termination measure on four instances, and a jump rule that is only right when the search follows the input order.</p>
+  <p class="meta"><span>optional: nothing in the unit depends on it</span><span><a href="slides.html">back to the slides</a></span></p>
+  <aside class="notes">
+    <p>These figures support the slides; they don't replace them, and the unit is complete
+    without them. Each one is computed from the unit's reference implementation,
+    <code>slides/viz/traces/u19b.py</code>, so what you see agrees with the numbers on the slides
+    (<code>uv run python -m slides.viz.traces.u19b</code> prints them all).</p>
+    <p>Inside a figure, the arrow keys and drags belong to the figure; click outside it (or
+    press Esc) to use them for the slides again.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · explore</p>
+  <h2>The running example, frame by frame</h2>
+  <div class="viz" data-viz="cbj-replay" data-key="cbj-replay"></div>
+  <p class="small muted">Try: step CBJ to step 8, where it jumps from c straight back to a; then pick the chronological run, which enters the two b = 2 subtrees CBJ never does. Static versions: <a href="slides.html#/3">thrashing</a>, <a href="slides.html#/5">the backjump rule</a>.</p>
+  <aside class="notes">
+    <p><b>What it shows.</b> Top: the search tree of the running example that chronological search
+    visits, one box per value tried; a box turns solid when this run touches it, red when a
+    constraint rejects the value, grey when a backjump closes it. A dashed arrow is a jump. Bottom:
+    the stack, one row per frame: the variable, its values (struck through when closed, outlined
+    when current, red when this step closed it), and its conflict set. The deepest frame is
+    shaded, red when every value is closed.</p>
+    <ul>
+      <li><b>CBJ</b> (17 steps): at step 7 the frame of d is exhausted with E = {a, c} and jumps to c;
+      at step 8 the frame of c is exhausted with E = {a} and jumps to a, skipping b. It ends at step 17
+      with every value of a closed and E empty. The two b = 2 subtrees stay dashed.</li>
+      <li><b>Chronological</b> (33 steps): the same until step 8, where it goes back to b; it then
+      repeats the c, d failure under b = 2, for a = 1 and again for a = 2.</li>
+    </ul>
+    <p><b>Data.</b> <code>slides/viz/traces/u19b.py</code>, <code>data()["cbj-replay"]</code>: the
+    reference engine <code>solve()</code> on <code>running_example()</code> with the static order, in
+    modes <code>"chrono"</code> and <code>"cbj"</code>, with a full stack snapshot after every step.
+    The tree is the set of nodes the chronological run touches; the recording asserts that CBJ
+    touches none outside it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · explore</p>
+  <h2>The variable at each depth, and the measure</h2>
+  <div class="viz" data-viz="ordering" data-key="ordering"></div>
+  <p class="small muted">Try: Mycielski with dom, past step 29, where depth 5 gets a new variable; watch the measure drop while the digits below a jump go back up. Static versions: <a href="slides.html#/11">the measure</a>, <a href="slides.html#/13">the contract</a>, <a href="slides.html#/14">ordering, measured</a>.</p>
+  <aside class="notes">
+    <p><b>What it shows.</b> One recorded run, chosen by instance, variable order and search. Each
+    row is a depth: the variable of its frame (blue and boxed when the order put a different
+    variable there than the last time this depth was occupied), its digit of the measure (the values not yet
+    closed, or the radix minus one when the depth has no frame), its values, and every variable
+    that has sat at this depth so far. Below: the measure after each step, and how much each step
+    lowered it on a log scale, since a jump high up lowers it by far more than a rejection deep
+    down; jumps are the blue bars, and the stop has none. The figure opens on CBJ. Every bar is
+    above zero: the measure falls at every step, whichever order chose the
+    variables.</p>
+    <p>Under the static orders every depth keeps one variable. Under dom, dom/deg and dom/wdeg
+    the variable at a depth changes between branches: on the Mycielski graph from step 29 (dom) or
+    step 16 (dom/deg, dom/wdeg), on the random CSP from step 7 (dom) or 10, on the pigeons only
+    under dom/wdeg, from step 82. The panel says when two choices give the same run step for step,
+    as on the pigeons, where every CBJ jump goes to the frame just above, exactly as chronological search does.</p>
+    <p><b>Data.</b> <code>slides/viz/traces/u19b.py</code>, <code>data()["ordering"]</code>: the
+    reference engine on the four instances of the heuristic table, with each of the five orders,
+    chronological and CBJ. Each run is stored as one token per step and replayed in the page into
+    the stack; the recording checks the replay against the engine's snapshots and digits, and the
+    page checks that it ends at the recorded stack and measure. Runs are cut at the first 120 steps
+    (the panel says so); the full counts come from the same runs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · explore</p>
+  <h2>The jump-target pitfall, replayed</h2>
+  <div class="viz" data-viz="pitfall" data-key="pitfall"></div>
+  <p class="small muted">Try: step to step 10, where the two rules pick different frames, then to step 11, where the index rule answers UNSAT; the stack rule goes on to a solution at step 30. Static versions: <a href="slides.html#/15">the pitfall</a>, <a href="slides.html#/16">the correction</a>.</p>
+  <aside class="notes">
+    <p><b>What it shows.</b> Trial 291 of the pitfall generator, the first instance on which the
+    index rule with silent dropping answers wrongly, solved twice with the same random dynamic
+    order (seed 291). Left: the correct rule, jump to the deepest frame whose variable is in E.
+    Right: the rule written for a search in the input order, jump to the variable of E with the
+    largest input index. Up to step 9 no frame is exhausted and the runs are identical. At step 10 the frame of
+    v1 is exhausted with E = {v0, v3}; the order placed v3 at depth 1 and v0 at depth 2. The
+    index rule jumps to v3, discards v0's frame, and leaves v3's conflict set naming v0, which is
+    no longer on the stack (marked red): the invariant is broken. At step 11 v3 is exhausted;
+    dropping v0 empties E and the run answers UNSAT. The stack rule finds a solution at step 30.</p>
+    <p><b>Data.</b> <code>slides/viz/traces/u19b.py</code>, <code>data()["pitfall"]</code>: the
+    reference engine through <code>pitfall_replay(291)</code>, with
+    <code>jump_rule="stack"</code> and with <code>jump_rule="index", drop=True</code>, a full
+    snapshot per step. The red marks are the invariant's breaches found in each recorded snapshot;
+    the recording asserts that the stack rule has none, and that the first breach is the step where
+    the traces diverge. The solution is checked against every constraint, and brute force agrees.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+<script src="../../slides/viz/viz.js"></script>
+<script src="../../slides/viz/widgets/backjump.js"></script>
+<script src="viz-data.js"></script>
+</body>
+</html>
