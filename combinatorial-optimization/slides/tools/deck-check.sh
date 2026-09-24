@@ -12,7 +12,11 @@
 # socket in its profile directory, and a path over ~100 characters makes it exit silently.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-unit=$(ls -d "$ROOT"/units/"$(printf %s "$1" | sed 's/^\([0-9]\)$/0\1/')"* | head -1)
+key=$(printf %s "$1" | sed 's/^\([0-9]\)$/0\1/')
+# "<key>-*" first: a bare "19*" also matches 19b-..., which the locale sorts before 19-...
+hits=("$ROOT"/units/"$key"-*)
+[ -e "${hits[0]}" ] || hits=("$ROOT"/units/"$key"*)
+unit=${hits[0]}
 shift
 BROWSER=$(command -v brave || command -v chromium || command -v google-chrome-stable)
 OUT=${OUT:-${TMPDIR:-/tmp}/deck-check-$(basename "$unit")}

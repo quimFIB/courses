@@ -7,7 +7,11 @@
 #   slides/tools/viz-check.sh 02
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-unit=$(ls -d "$ROOT"/units/"$(printf %s "$1" | sed 's/^\([0-9]\)$/0\1/')"* | head -1)
+key=$(printf %s "$1" | sed 's/^\([0-9]\)$/0\1/')
+# "<key>-*" first: a bare "19*" also matches 19b-..., which the locale sorts before 19-...
+hits=("$ROOT"/units/"$key"-*)
+[ -e "${hits[0]}" ] || hits=("$ROOT"/units/"$key"*)
+unit=${hits[0]}
 BROWSER=$(command -v brave || command -v chromium || command -v google-chrome-stable)
 OUT=${OUT:-${TMPDIR:-/tmp}/viz-check-$(basename "$unit" | cut -d- -f1)}
 rm -rf "$OUT"; mkdir -p "$OUT"
