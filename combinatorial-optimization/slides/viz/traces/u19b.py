@@ -38,11 +38,14 @@ NEQ = lambda p, q: p != q  # noqa: E731
 @dataclass
 class Instance:
     """A binary CSP. `vars` is the input order (the static order, and every tie-break);
-    `cons` holds (x, y, ok, label) with ok(value of x, value of y) -> bool."""
+    `cons` holds (x, y, ok, label) with ok(value of x, value of y) -> bool. With `obj`, the
+    search minimises obj(full assignment), which reads only the variables in `obj_vars`."""
     name: str
     vars: list[str]
     doms: dict[str, list]
     cons: list[tuple[str, str, Callable, str]]
+    obj: Callable | None = None
+    obj_vars: list[str] = field(default_factory=list)
 
     @property
     def n(self) -> int:
@@ -79,6 +82,31 @@ def running_example() -> Instance:
     """a, b, c, d in {1, 2}; a != c, a != d, c != d; b in no constraint. Unsatisfiable."""
     return neq_instance("running example", "abcd", {v: [1, 2] for v in "abcd"},
                         [("a", "c"), ("a", "d"), ("c", "d")])
+
+
+def opt_example() -> Instance:
+    """a, b, c in {1, 2}; a != c; minimise f = a + 2c; b in nothing. Optimum a = 2, c = 1, cost 4."""
+    inst = neq_instance("optimization example", "abc", {v: [1, 2] for v in "abc"}, [("a", "c")])
+    inst.obj, inst.obj_vars = (lambda s: s["a"] + 2 * s["c"]), ["a", "c"]
+    return inst
+
+
+def restart_example() -> Instance:
+    """a..e in {1, 2}; the triangle a != c, a != d, c != d, and a != b, b != e. Unsatisfiable.
+    Under dom/wdeg with Luby restarts (unit 4 steps, weights kept) the first runs open b after a;
+    from run 4 the weights put c there instead, and run 7 answers."""
+    return neq_instance("restart example", "abcde", {v: [1, 2] for v in "abcde"},
+                        [("a", "b"), ("a", "c"), ("a", "d"), ("b", "e"), ("c", "d")])
+
+
+def restart_runs(inst: Instance, order: Order, unit: int):
+    """The runs of `restart_loop`, traced: a list of (cutoff, Run), the last one not cut off."""
+    out = []
+    for i in itertools.count(1):
+        r = solve(inst, order, "cbj", trace=True, max_steps=luby(i) * unit)
+        out.append((luby(i) * unit, r))
+        if r.answer != "CUTOFF":
+            return out
 
 
 def irrelevant_example(k: int) -> Instance:
@@ -348,7 +376,7 @@ class InvariantBroken(AssertionError):
 
 @dataclass
 class Run:
-    answer: str                      # 'SAT', 'UNSAT' or 'CUTOFF'
+    answer: str                      # 'SAT', 'UNSAT', 'OPTIMAL' or 'CUTOFF'
     steps: int
     solution: dict | None
     rejections: int = 0
@@ -356,6 +384,7 @@ class Run:
     descends: int = 0
     max_depth: int = 0
     mu0: int = 0
+    incumbents: list = field(default_factory=list)   # (solution, cost), in the order found
     trace: list | None = field(default=None, repr=False)
 
 
@@ -375,6 +404,15 @@ def solve(inst: Instance, pick: Order, mode: str = "cbj", *, trace: bool = False
                merge the set minus the target's variable into the target's set, close its value
       unsat    the frame is exhausted and the stop rule holds
       sat      every variable is assigned
+
+    With an objective (inst.obj), the search is branch and bound on the same loop: the bound
+    f < U is one more constraint, checked once every variable of f is assigned, with the other
+    variables of f as the reason; U starts at +infinity. "sat" becomes
+
+      solution every variable is assigned: record the incumbent, set U to its cost, and close the
+               value (it now breaks f < U) with the other variables of f as its reason
+
+    and the stop answers 'OPTIMAL' if there is an incumbent, 'UNSAT' otherwise.
 
     mode      'cbj': the target is the deepest frame whose variable is in the set, and the stop
               rule is "the set is empty". 'chrono': the target is the frame just above, and the
@@ -404,6 +442,7 @@ def solve(inst: Instance, pick: Order, mode: str = "cbj", *, trace: bool = False
     chrono = mode != "cbj"
     stack = []
     run = Run("?", 0, None, trace=[] if trace else None)
+    U = None                                                   # the incumbent's cost
     pick.reset(inst)
 
     def assigned():
@@ -462,8 +501,8 @@ def solve(inst: Instance, pick: Order, mode: str = "cbj", *, trace: bool = False
             if drop:
                 cs &= {g[0] for g in stack}
             if (not chrono and not cs) or (mode == "chrono+empty" and not cs) or (chrono and len(stack) == 1):
-                kind, out = "unsat", "UNSAT"
-                detail = f"{x} exhausted, E={{{','.join(sorted(cs, key=varkey.get))}}}: UNSAT"
+                kind, out = "unsat", ("OPTIMAL" if run.incumbents else "UNSAT")
+                detail = f"{x} exhausted, E={{{','.join(sorted(cs, key=varkey.get))}}}: {out}"
             else:
                 if chrono:
                     j = len(stack) - 2
@@ -486,7 +525,17 @@ def solve(inst: Instance, pick: Order, mode: str = "cbj", *, trace: bool = False
             a = assigned()
             a.pop(x, None)
             bad = violated(x, v, a)
-            if bad:
+            full = {**a, x: v}
+            bound = (inst.obj is not None and U is not None and not bad
+                     and all(y in full for y in inst.obj_vars) and inst.obj(full) >= U)
+            reason = sorted(set(inst.obj_vars) - {x}, key=varkey.get)
+            if bound:
+                cs.update(reason)
+                f[2] += 1
+                kind = "reject"
+                run.rejections += 1
+                detail = f"{x}={v} rejected by f < {U}, reason {{{','.join(reason)}}}"
+            elif bad:
                 i, other = bad
                 cs.add(other)
                 f[2] += 1
@@ -494,6 +543,13 @@ def solve(inst: Instance, pick: Order, mode: str = "cbj", *, trace: bool = False
                 kind = "reject"
                 run.rejections += 1
                 detail = f"{x}={v} rejected by {cons[i][3]}, reason {{{other}}}"
+            elif len(stack) == n and inst.obj is not None:
+                U = inst.obj(full)
+                run.incumbents.append((full, U))
+                cs.update(reason)
+                f[2] += 1
+                kind = "solution"
+                detail = f"{x}={v} ok: solution, cost {U}, U={U}"
             elif len(stack) == n:
                 kind, out = "sat", "SAT"
                 detail = f"{x}={v} ok: SAT"
@@ -513,7 +569,7 @@ def solve(inst: Instance, pick: Order, mode: str = "cbj", *, trace: bool = False
         if out:
             record(kind, detail, m0, r0, m0, r0)
             run.answer = out
-            run.solution = assigned() if out == "SAT" else None
+            run.solution = assigned() if out == "SAT" else run.incumbents[-1][0] if out == "OPTIMAL" else None
             return run
         m1, r1 = mu()
         record(kind, detail, m0, r0, m1, r1)
@@ -887,6 +943,19 @@ def _main():
         t = cbj[s - 1]
         print(f"  {s:>5}: {_fmt_r(t['r1'])}  {t['mu1']}   ({t['detail']})")
 
+    print("\n-- optimization (the two slides after 'Where the argument stops'): a, b, c in {1, 2}; a!=c;")
+    print("   minimise f = a + 2c; static order a, b, c; branch and bound with f < U as a constraint")
+    oe = opt_example()
+    best = min(oe.obj(s) for s in (dict(zip(oe.vars, t)) for t in itertools.product(*(oe.doms[v] for v in oe.vars)))
+               if oe.satisfied_by(s))
+    for mode in ("cbj", "chrono"):
+        r = solve(oe, StaticOrder(), mode, trace=True, check=True)
+        assert r.answer == "OPTIMAL" and r.incumbents[-1][1] == best
+        print(f"  {mode}: {r.answer} in {r.steps} steps, {r.rejections} rejections, {r.jumps} jumps; "
+              f"incumbents {[c for _, c in r.incumbents]}; brute-force optimum {best}")
+        for t in r.trace:
+            print(f"     {t['step']:3} {t['kind']:8} {t['detail']}")
+
     print("\n-- max-cardinality order on the running example")
     order = max_cardinality_order(ex)
     print("order:", ", ".join(order))
@@ -1001,6 +1070,21 @@ def _main():
         bn = inst.B ** inst.n
         i = first_luby_at_least(bn)
         print(f"   {inst.name}: B^n = {bn}; luby(i) >= B^n first at i = {i} (luby = {luby(i)})")
+    print("\n-- the restarts slide's example: triangle a, c, d plus a!=b, b!=e; dom/wdeg, weights kept,")
+    print("   Luby cutoffs of 4 steps per unit, a fresh stack per run")
+    rx = restart_example()
+    print(f"   B = {rx.B}, B^n = {rx.B ** rx.n}; first Luby index with 4 * luby(i) >= B^n: "
+          f"{first_luby_at_least(-(-rx.B ** rx.n // 4))}")
+    for i, (cut, r) in enumerate(restart_runs(rx, DomWdeg(keep_weights=True), 4), 1):
+        opened = []
+        for t in r.trace:
+            for fr in t["stack"]:
+                if fr[0] not in opened:
+                    opened.append(fr[0])
+        print(f"   run {i}: cutoff {cut}, {r.answer} after {r.steps} steps; mu starts at {r.mu0}; "
+              f"variables opened, in order: {', '.join(opened)}")
+        for t in r.trace:
+            print(f"        {t['step']:3} {t['kind']:8} {t['detail']}")
     print("   Luby, unit 1 step, dom/wdeg with weights kept across runs, fresh stack per run:")
     for inst in insts:
         ans, nruns, total, cut = restart_loop(inst, DomWdeg(keep_weights=True))
