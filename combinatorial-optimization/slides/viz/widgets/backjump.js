@@ -1,5 +1,6 @@
 // Backjumping figures (unit 19b): the running example replayed by chronological search and by
-// conflict-directed backjumping; one recorded run per instance, variable order and search, with
+// conflict-directed backjumping (and, with data-key="opt-replay", the optimization example, where
+// a solution tightens the bound f < U and the search goes on); one recorded run per instance, variable order and search, with
 // the variable at each depth and the termination measure; and the jump-target pitfall under a
 // dynamic order. Needs slides/viz/viz.js and backjump.css. Data: window.VIZ_DATA, recorded by
 // slides/viz/traces/u19b.py from its reference engine.
@@ -23,10 +24,11 @@
     });
   }
 
-  // Which value this step closed, as [depth, index], from a recorded snapshot: a reject closes
-  // the deepest frame's previous value, a jump closes the target's (the new deepest frame).
+  // Which value this step closed, as [depth, index], from a recorded snapshot: a reject or a
+  // solution closes the deepest frame's previous value, a jump closes the target's (the new
+  // deepest frame).
   const freshOf = (state) => {
-    if (state.kind !== "reject" && state.kind !== "jump") return null;
+    if (state.kind !== "reject" && state.kind !== "jump" && state.kind !== "solution") return null;
     const d = state.stack.length - 1;
     return [d, state.stack[d][2] - 1];
   };
@@ -58,6 +60,7 @@
 
   // ---------------------------------------------------------------- 1. the running example
   //   data-key="cbj-replay": both runs step by step, on the tree chronological search visits
+  //   data-key="opt-replay": the same for branch and bound; D.objective is set, states carry U
   V.register("cbj-replay", (host) => {
     const D = V.data(host, host.dataset.key || "cbj-replay");
     if (!D) return;
@@ -85,7 +88,7 @@
         const status = new Map(), shut = new Set();
         for (let i = 1; i <= k; i++) {
           const s = run.states[i];
-          if (s.node) status.set(key(s.node), s.kind === "reject" ? "rej" : "ok");
+          if (s.node) status.set(key(s.node), s.kind === "reject" ? "rej" : s.kind === "solution" ? "sol" : "ok");
           if (s.to) shut.add(key(s.to));
         }
         const cls = (nd) => (status.has(key(nd.p)) ? "" : " bj-ghost");
@@ -94,7 +97,7 @@
         const now = state.node ? key(state.node) : state.to ? key(state.to) : null;
         for (const nd of nodes.values()) {
           const kk = key(nd.p), st = status.get(kk);
-          let c = "bj-node" + (st === "rej" ? " bj-rej" : st ? (shut.has(kk) ? " bj-shut" : "") : " bj-ghost");
+          let c = "bj-node" + (st === "rej" ? " bj-rej" : st === "sol" ? " bj-sol" : st ? (shut.has(kk) ? " bj-shut" : "") : " bj-ghost");
           if (kk === now) c += " bj-now";
           el("rect", { x: nd.x - 17, y: nd.y - 10, width: 34, height: 20, rx: 4, class: c }, svg);
           V.text(svg, nd.x, nd.y + 4, nd.label, "bj-nodetext" + (st ? "" : " bj-ghost"));
@@ -108,7 +111,8 @@
           const x1 = a.x + 17, y1 = a.y, x2 = b.x + 19, y2 = b.y;
           el("path", { d: `M${x1},${y1} C ${x1 + 40},${y1 - 10} ${x2 + 40},${y2 + 10} ${x2 + 2},${y2}`, class: "bj-jump", "marker-end": `url(#${id})` }, svg);
         }
-        V.text(svg, 10, 222, "red: rejected · grey: closed by a jump · dashed: not entered by this run (yet)", "bj-small", "start");
+        V.text(svg, 10, 222, D.objective ? "green: solution · red: rejected · grey: closed by a jump · dashed: not entered (yet)"
+          : "red: rejected · grey: closed by a jump · dashed: not entered by this run (yet)", "bj-small", "start");
 
         // the stack
         const y0 = 262;
@@ -120,28 +124,38 @@
                                             target: state.kind === "jump" ? state.stack.length - 1 : null });
         const top = state.stack[state.stack.length - 1];
         const ty = y0 + (state.stack.length - 1) * 42 + 15;
-        if (state.kind === "unsat") V.text(svg, 312, ty, run.mode === "cbj" ? "exhausted, E = ∅: no solution" : "top frame exhausted: no solution", "bj-stop bj-ok", "start");
+        const opt = D.objective && state.U != null;
+        if (state.kind === "unsat") V.text(svg, 312, ty, opt ? (run.mode === "cbj" ? "E = ∅: optimal" : "exhausted: optimal")
+          : run.mode === "cbj" ? "exhausted, E = ∅: no solution" : "top frame exhausted: no solution", "bj-stop bj-ok", "start");
+        else if (state.kind === "solution") V.text(svg, 312, ty, `solution, cost ${state.cost}`, "bj-stop bj-ok", "start");
         else if (top[2] >= top[1].length) V.text(svg, 312, ty, "exhausted", "bj-stop bj-bad", "start");
         else if (state.kind === "jump") V.text(svg, 312, ty, "the jump landed here", "bj-small", "start");
 
         // panel
         const other = run === D.runs[0] ? D.runs[1] : D.runs[0];
         const f = html("div", { class: "bj-facts" }, panel);
-        f.innerHTML = `step <b>${k}</b> of ${run.steps} · rejections <b>${state.rej}</b> of ${run.rejections} · jumps <b>${state.jumps}</b>`;
+        f.innerHTML = `step <b>${k}</b> of ${run.steps} · rejections <b>${state.rej}</b> of ${run.rejections} · jumps <b>${state.jumps}</b>` +
+          (D.objective ? ` · ${D.objective}, U = <b>${state.U == null ? "∞" : state.U}</b>` : "");
         html("div", { class: "bj-same" }, panel, `The other run, ${other.mode === "cbj" ? "CBJ" : "chronological"}: ${other.answer} in ${other.steps} steps, ${other.rejections} rejections.`);
-        html("div", { class: "viz-explain" }, panel, explain1(run, k, state, nodes, key, status));
+        html("div", { class: "viz-explain" }, panel, explain1(D, run, k, state, nodes, key, status));
       },
     });
   });
 
-  function explain1(run, k, state, nodes, key, status) {
+  function explain1(D, run, k, state, nodes, key, status) {
     const st = state.stack, top = st[st.length - 1];
     if (state.kind === "start") return "One frame, for a, with nothing closed. Step with → or the step button.";
     if (state.kind === "descend") {
       const f = st[st.length - 2];
       return `${f[0]} = ${f[1][f[2]]} passes every constraint with the variables above it, so a frame opens for ${top[0]}, with an empty conflict set.`;
     }
+    if (state.kind === "reject" && / f < /.test(state.note))
+      return `The value passes every constraint, but f would be at least U = ${state.U}: it cannot beat the incumbent. The bound f < U acts as one more constraint, and the other variables of f are the reason.`;
     if (state.kind === "reject") return "The value fails a constraint whose other variable is assigned above. That variable is the reason, and joins the frame's conflict set.";
+    if (state.kind === "solution") {
+      const prevU = run.states[k - 1].U;
+      return `Every variable is assigned and every constraint holds: ${prevU == null ? "the first incumbent" : `a better incumbent than ${prevU}`}, with cost ${state.cost}, so now U = ${state.cost}. The search does not stop. The value is closed, since it now breaks f < U, and its reason is the other variables of f: ${setStr(top[3])}.`;
+    }
     if (state.kind === "jump") {
       const prev = run.states[k - 1].stack, x = prev[prev.length - 1][0], t = top[0];
       const skipped = prev.slice(st.length, -1).map((f) => f[0]);
@@ -157,8 +171,117 @@
       const ghosts = [...nodes.values()].filter((nd) => !status.has(key(nd.p)) && (nd.p.length === 1 || status.has(key(nd.p.slice(0, -1)))));
       const where = ghosts.map((nd) => nd.label + (nd.p.length > 1 ? ` under ${nd.p.slice(0, -1).map((_, i) => nodes.get(key(nd.p.slice(0, i + 1))).label).join(", ")}` : ""));
       const tail = ghosts.length ? ` Never entered: ${where.join("; ")}, the subtrees chronological search visits (dashed).` : "";
-      return (run.mode === "cbj" ? `Every value of ${top[0]} is closed and E = ∅: no solution, whatever the other variables are.` : "The top frame is exhausted: no solution.") + tail;
+      const what = D.objective && state.U != null ? `no solution costs less than U = ${state.U}, so the incumbent is optimal` : "no solution";
+      return (run.mode === "cbj" ? `Every value of ${top[0]} is closed and E = ∅: ${what}, whatever the other variables are.` : `The top frame is exhausted: ${what}.`) + tail;
     }
+    return "";
+  }
+
+  // ---------------------------------------------------------------- 1b. restarts
+  //   data-key="restart-replay": the runs of a Luby restart loop with dom/wdeg, weights kept, on
+  //   one tree of every node any run touches. The variable at a depth can change between runs,
+  //   so nodes are keyed by "var=value" labels.
+  V.register("restart-replay", (host) => {
+    const D = V.data(host, host.dataset.key || "restart-replay");
+    if (!D) return;
+    if (!D.tree || !D.tree.length || !D.runs.length) return V.fail(host, "restart-replay: no tree or no runs");
+    const key = (p) => p.join(",");
+    const nodes = new Map(D.tree.map((p) => [key(p), { p, kids: [] }]));
+    for (const nd of nodes.values()) {
+      if (nd.p.length > 1) {
+        const parent = nodes.get(key(nd.p.slice(0, -1)));
+        if (!parent) return V.fail(host, `restart-replay: node ${key(nd.p)} has no parent`);
+        parent.kids.push(nd);
+      }
+    }
+    const leaves = [...nodes.values()].filter((nd) => !nd.kids.length);
+    leaves.forEach((nd, i) => { nd.x = 30 + i * (460 / Math.max(1, leaves.length - 1)); });
+    const place = (nd) => { if (nd.x === undefined) nd.x = nd.kids.map(place).reduce((a, b) => a + b, 0) / nd.kids.length; return nd.x; };
+    for (const nd of nodes.values()) { place(nd); nd.y = 22 + (nd.p.length - 1) * 44; nd.label = nd.p[nd.p.length - 1]; }
+    const earlier = new Set();                 // nodes touched by some run before the chosen one
+
+    V.stepper(host, {
+      runs: D.runs, width: 520, height: 430, label: "restarts: each run's search tree and stack",
+      setup({ run }) {
+        earlier.clear();
+        for (const r of D.runs) {
+          if (r === run) break;
+          for (const s of r.states) if (s.node) earlier.add(key(s.node));
+        }
+      },
+      render({ svg, panel, run, k, state }) {
+        const status = new Map(), shut = new Set();
+        for (let i = 1; i <= k; i++) {
+          const s = run.states[i];
+          if (s.node) status.set(key(s.node), s.kind === "reject" ? "rej" : "ok");
+          if (s.to) shut.add(key(s.to));
+        }
+        const ghost = (kk) => !status.has(kk);
+        for (const nd of nodes.values())
+          for (const c of nd.kids) el("line", { x1: nd.x, y1: nd.y + 10, x2: c.x, y2: c.y - 10, class: "bj-edge" + (ghost(key(c.p)) ? " bj-ghost" : "") }, svg);
+        const now = state.node ? key(state.node) : state.to ? key(state.to) : null;
+        for (const nd of nodes.values()) {
+          const kk = key(nd.p), st = status.get(kk);
+          let c = "bj-node" + (st === "rej" ? " bj-rej" : st ? (shut.has(kk) ? " bj-shut" : "") : earlier.has(kk) ? " bj-earlier" : " bj-ghost");
+          if (kk === now) c += " bj-now";
+          el("rect", { x: nd.x - 17, y: nd.y - 10, width: 34, height: 20, rx: 4, class: c }, svg);
+          V.text(svg, nd.x, nd.y + 4, nd.label, "bj-nodetext" + (st ? "" : " bj-ghost"));
+        }
+        if (state.kind === "jump" && key(state.from) !== key(state.to)) {
+          const a = nodes.get(key(state.from)), b = nodes.get(key(state.to));
+          if (!a || !b) throw new Error("a jump names a node outside the tree");
+          const defs = el("defs", {}, svg), id = `bj-ah-${svg.dataset.vizId}`;
+          const m = el("marker", { id, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto" }, defs);
+          el("path", { d: "M0,0 L10,5 L0,10 z", class: "bj-jumphead" }, m);
+          const x1 = a.x + 17, y1 = a.y, x2 = b.x + 19, y2 = b.y;
+          el("path", { d: `M${x1},${y1} C ${x1 + 40},${y1 - 10} ${x2 + 40},${y2 + 10} ${x2 + 2},${y2}`, class: "bj-jump", "marker-end": `url(#${id})` }, svg);
+        }
+        V.text(svg, 10, 196, "red: rejected · grey: closed by a jump · outlined: an earlier run went here", "bj-small", "start");
+        V.text(svg, 10, 212, "dashed: no run up to this one went here", "bj-small", "start");
+
+        const y0 = 250;
+        V.text(svg, 10, y0 - 12, "DEPTH", "bj-colhead", "start");
+        V.text(svg, 80, y0 - 12, "FRAME", "bj-colhead", "middle");
+        V.text(svg, 110, y0 - 12, "VALUES", "bj-colhead", "start");
+        V.text(svg, 190, y0 - 12, "CONFLICT SET", "bj-colhead", "start");
+        stackRows(svg, state.stack, state, { x: 4, y: y0, rowH: 40, varX: 76, cellX: 106, csX: 186, width: 300,
+                                            target: state.kind === "jump" ? state.stack.length - 1 : null });
+        const top = state.stack[state.stack.length - 1];
+        const ty = y0 + (state.stack.length - 1) * 40 + 15;
+        if (state.kind === "unsat") V.text(svg, 312, ty, "E = ∅: no solution", "bj-stop bj-ok", "start");
+        else if (state.kind === "cutoff") V.text(svg, 312, ty, "cut off: restart", "bj-stop bj-bad", "start");
+        else if (top[2] >= top[1].length) V.text(svg, 312, ty, "exhausted", "bj-stop bj-bad", "start");
+        else if (state.kind === "jump") V.text(svg, 312, ty, "the jump landed here", "bj-small", "start");
+
+        const i = D.runs.indexOf(run);
+        const f = html("div", { class: "bj-facts" }, panel);
+        const stepsNow = Math.min(k, run.steps);
+        f.innerHTML = `run <b>${i + 1}</b> of ${D.runs.length} · cutoff <b>${run.cutoff}</b> steps · step <b>${stepsNow}</b> · rejections <b>${state.rej}</b> · jumps <b>${state.jumps}</b>`;
+        html("div", { class: "bj-same" }, panel, "Weights at the start of this run: " +
+          D.cons.map((c, j) => `${c}: ${run.weights[j]}`).join("; ") + ".");
+        html("div", { class: "viz-explain" }, panel, explainR(D, run, i, k, state));
+      },
+    });
+  });
+
+  function explainR(D, run, i, k, state) {
+    const st = state.stack, top = st[st.length - 1];
+    if (state.kind === "start")
+      return i === 0 ? "The first run: a fresh stack with one frame, for a. Every weight is 1."
+        : `A restart: the stack of run ${i} is gone and nothing on it carries over. What does carry over is dom/wdeg's weights, raised by every rejection so far. Step with → or the step button.`;
+    if (state.kind === "descend") {
+      const f = st[st.length - 2];
+      return `${f[0]} = ${f[1][f[2]]} passes, and dom/wdeg picks ${top[0]} next: the unassigned variable with the fewest live values per unit of weight on its constraints to other unassigned variables, ties broken by input order.`;
+    }
+    if (state.kind === "reject") return "The value fails a constraint with a variable above. That variable is the reason, and the constraint's weight goes up by one, for this run and the ones after it.";
+    if (state.kind === "jump") {
+      const prev = run.states[k - 1].stack, x = prev[prev.length - 1][0], t = top[0];
+      return `Every value of ${x} is closed; E = ${setStr(state.E)}. The jump goes to the deepest frame whose variable is in E, ${t}'s, and closes its value.`;
+    }
+    if (state.kind === "cutoff")
+      return `The run has used its ${run.cutoff} steps without an answer, so it is abandoned. Its conflict sets go with it; only the weights stay. The next cutoff comes from the Luby sequence times ${D.unit}.`;
+    if (state.kind === "unsat")
+      return `Every value of ${top[0]} is closed and E = ∅: no solution. This run had room: a run that is not cut off stops within Bⁿ = ${D.Bn} steps whatever the order, and this one needed ${run.steps} of its ${run.cutoff}.`;
     return "";
   }
 

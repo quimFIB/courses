@@ -762,20 +762,27 @@ def _path(frames) -> list:
     return [f[1][f[2]] for f in frames]
 
 
-def _cbj_replay() -> dict:
-    ex = running_example()
-    runs = {m: solve(ex, StaticOrder(), m, trace=True) for m in ("chrono", "cbj")}
+def _cbj_replay(ex: Instance | None = None, objective: str | None = None) -> dict:
+    """Both runs of `ex` (default: the running example) on the tree chronological search visits.
+    With an objective, each state also carries U, the incumbent's cost (None for +infinity)."""
+    ex = ex or running_example()
+    runs = {m: solve(ex, StaticOrder(), m, trace=True, check=True) for m in ("chrono", "cbj")}
     tree = []                                # every node chronological search touches, first-visit order
     out = {"vars": ex.vars, "doms": [ex.doms[v] for v in ex.vars], "runs": []}
+    if objective:
+        out["objective"] = objective
     for mode, title in (("chrono", "chronological backtracking"), ("cbj", "conflict-directed backjumping")):
         r = runs[mode]
         prev = _start_snapshot(ex, r)
         states = [{"stack": prev, "kind": "start", "note": f"start: a frame for {prev[0][0]}, nothing closed",
                    "rej": 0, "jumps": 0}]
         rej = jumps = 0
+        U, found = None, iter(r.incumbents)
+        if objective:
+            states[0]["U"] = None
         for t in r.trace:
             st = {"stack": t["stack"], "kind": t["kind"], "note": f"step {t['step']}: {_pretty(t['detail'])}"}
-            if t["kind"] in ("descend", "reject", "sat"):
+            if t["kind"] in ("descend", "reject", "sat", "solution"):
                 st["node"] = _path(prev)
                 if mode == "chrono" and st["node"] not in tree:
                     tree.append(st["node"])
@@ -789,17 +796,84 @@ def _cbj_replay() -> dict:
             rej += t["kind"] == "reject"
             jumps += t["kind"] == "jump"
             st["rej"], st["jumps"] = rej, jumps
+            if t["kind"] == "solution":
+                sol, U = next(found)
+                assert _path(prev) == [sol[v] for v in ex.vars]
+                st["cost"] = U
+            if objective:
+                st["U"] = U
             states.append(st)
             prev = t["stack"]
         assert (rej, jumps) == (r.rejections, r.jumps)
-        out["runs"].append({"title": f"{title}: {r.answer} in {r.steps} steps", "mode": mode, "states": states,
-                            "steps": r.steps, "rejections": r.rejections, "answer": r.answer})
+        answer = f"optimal, cost {r.incumbents[-1][1]}," if r.answer == "OPTIMAL" else r.answer
+        out["runs"].append({"title": f"{title}: {answer} in {r.steps} steps", "mode": mode, "states": states,
+                            "steps": r.steps, "rejections": r.rejections, "answer": answer})
     # CBJ never touches a node chronological search does not (same static order)
     for st in out["runs"][1]["states"]:
         assert "node" not in st or st["node"] in tree
     out["runs"].reverse()                    # CBJ first; the tree needed the chronological run first
     out["tree"] = tree
     return out
+
+
+def _labels(frames) -> list:
+    """The node of these frames as "var=value" labels: the variable at a depth changes between
+    runs under a dynamic order, so the restart tree is keyed by labels, not values."""
+    return [f"{f[0]}={f[1][f[2]]}" for f in frames]
+
+
+def _restart_replay(unit: int = 4) -> dict:
+    """The restarts slide's example: every run of the Luby loop with dom/wdeg, weights kept,
+    a full stack snapshot per step, the weights each run starts with, and one tree: every node any
+    run touches, keyed by labels, in depth-first order (children in the order first touched)."""
+    ex, order = restart_example(), DomWdeg(keep_weights=True)
+    runs, touched = [], []
+    for i in itertools.count(1):
+        cutoff = luby(i) * unit
+        order.reset(ex)
+        weights = list(order.w)
+        r = solve(ex, order, "cbj", trace=True, check=True, max_steps=cutoff)
+        prev = _start_snapshot(ex, r)
+        states = [{"stack": prev, "kind": "start", "note": f"run {i}: a fresh stack, one frame for {prev[0][0]}",
+                   "rej": 0, "jumps": 0}]
+        rej = jumps = 0
+        for t in r.trace:
+            st = {"stack": t["stack"], "kind": t["kind"], "note": f"run {i}, step {t['step']}: {_pretty(t['detail'])}"}
+            if t["kind"] in ("descend", "reject"):
+                st["node"] = _labels(prev)
+            elif t["kind"] == "jump":
+                j = len(t["stack"]) - 1
+                last = prev[-1]
+                st["from"] = _labels(prev[:-1]) + [f"{last[0]}={last[1][-1]}"]
+                st["to"] = _labels(prev[:j + 1])
+                st["E"] = prev[-1][3]
+            else:
+                st["E"] = prev[-1][3]
+            if "node" in st and st["node"] not in touched:
+                touched.append(st["node"])
+            rej += t["kind"] == "reject"
+            jumps += t["kind"] == "jump"
+            st["rej"], st["jumps"] = rej, jumps
+            states.append(st)
+            prev = t["stack"]
+        if r.answer == "CUTOFF":
+            states.append({"stack": prev, "kind": "cutoff", "rej": rej, "jumps": jumps,
+                           "note": f"run {i}: cut off after {cutoff} steps"})
+        answer = "unsatisfiable" if r.answer == "UNSAT" else r.answer.lower()
+        runs.append({"title": f"run {i}: cutoff {cutoff}, " + ("cut off" if r.answer == "CUTOFF" else f"{answer} after {r.steps} steps"),
+                     "mode": "cbj", "states": states, "steps": r.steps, "cutoff": cutoff,
+                     "answer": answer, "weights": weights})
+        if r.answer != "CUTOFF":
+            break
+    assert runs[-1]["answer"] == "unsatisfiable" and brute(ex) is None
+
+    def dfs(path):
+        kids = [p for p in touched if len(p) == len(path) + 1 and p[:len(path)] == path]
+        return [q for k in kids for q in [k] + dfs(k)]
+    tree = dfs([])
+    assert len(tree) == len(touched)
+    return {"vars": ex.vars, "cons": [c[3].replace("!=", " ≠ ") for c in ex.cons], "unit": unit,
+            "B": ex.B, "Bn": ex.B ** ex.n, "runs": runs, "tree": tree}
 
 
 def _events(inst: Instance, r: Run) -> tuple[int, str]:
@@ -908,7 +982,9 @@ def _pitfall(trial: int = 291) -> dict:
 
 
 def data():
-    return {"cbj-replay": _cbj_replay(), "ordering": _ordering(), "pitfall": _pitfall()}
+    return {"cbj-replay": _cbj_replay(), "ordering": _ordering(), "pitfall": _pitfall(),
+            "opt-replay": _cbj_replay(opt_example(), "minimise f = a + 2c"),
+            "restart-replay": _restart_replay()}
 
 
 # --------------------------------------------------------------------------------------------

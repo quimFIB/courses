@@ -19,7 +19,7 @@
   <p class="eyebrow">optional · interactive figures</p>
   <div class="unit-no">19b</div>
   <h1>Explore: backjumping and completeness</h1>
-  <p class="lede">The running example replayed frame by frame, the variable order and the termination measure on four instances, and a jump rule that is only right when the search follows the input order.</p>
+  <p class="lede">The running example replayed frame by frame, the variable order and the termination measure on four instances, a jump rule that is only right when the search follows the input order, backjumping inside branch and bound, and restarts run by run.</p>
   <p class="meta"><span>optional: nothing in the unit depends on it</span><span><a href="slides.html">back to the slides</a></span></p>
   <aside class="notes">
     <p>These figures support the slides; they don't replace them, and the unit is complete
@@ -108,6 +108,59 @@
     snapshot per step. The red marks are the invariant's breaches found in each recorded snapshot;
     the recording asserts that the stack rule has none, and that the first breach is the step where
     the traces diverge. The solution is checked against every constraint, and brute force agrees.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · explore</p>
+  <h2>Optimization, frame by frame</h2>
+  <div class="viz" data-viz="cbj-replay" data-key="opt-replay"></div>
+  <p class="small muted">Try: step CBJ to step 4, the first solution, and step 5, the jump back to a; in the chronological run, the bound rejects a value at steps 8 and 17. Static version: <a href="slides.html#/20">the example</a>.</p>
+  <aside class="notes">
+    <p><b>What it shows.</b> The same figure as the running example, on the optimization
+    example: a, b, c in {1, 2}, a ≠ c, minimise f = a + 2c, static order a, b, c. A green box is a
+    solution; the panel shows U, the cost of the incumbent (∞ before the first one). A solution does
+    not stop the search: it sets U and closes its value, with the other variable of f, a, as the
+    reason. A red box is a value rejected by a constraint or, once U is set, by the bound f &lt; U.</p>
+    <ul>
+      <li><b>CBJ</b> (11 steps): the first solution, a = 1, c = 2, cost 5, at step 4; c is then
+      exhausted with E = {a} and the jump at step 5 skips b. Under a = 2 the solution at step 8 costs
+      4; step 11 ends with every value of a closed and E empty: cost 4 is optimal.</li>
+      <li><b>Chronological</b> (21 steps): after step 4 it goes back to b and tries b = 2, where the
+      bound rejects c = 2 (step 8); under a = 2 it rejects c = 1 the same way (step 17). Both runs
+      find the same two incumbents.</li>
+    </ul>
+    <p><b>Data.</b> <code>slides/viz/traces/u19b.py</code>, <code>data()["opt-replay"]</code>: the
+    reference engine <code>solve()</code> on <code>opt_example()</code>, in modes
+    <code>"chrono"</code> and <code>"cbj"</code>, with the invariant checked after every step. The
+    printout of <code>uv run python -m slides.viz.traces.u19b</code> checks the optimum against
+    brute force.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · explore</p>
+  <h2>Restarts, run by run</h2>
+  <div class="viz" data-viz="restart-replay" data-key="restart-replay"></div>
+  <p class="small muted">Try: step through run 1 and watch it open b after a; then pick run 4, where the weights have moved c there, and run 7, the first with room to finish. Static version: <a href="slides.html#/18">restarts</a>.</p>
+  <aside class="notes">
+    <p><b>What it shows.</b> The restarts slide's example, a triangle a, c, d plus a ≠ b and
+    b ≠ e, all in {1, 2}, under CBJ with dom/wdeg, the weights kept from run to run, and Luby cutoffs
+    of 4 steps per unit (4, 4, 8, 4, 4, 8, 16). Pick a run and step through it. Top: every node any of
+    the seven runs touches, keyed by "variable = value", since the variable at a depth changes between
+    runs. Solid: touched by this run so far; outlined: only an earlier run went there; dashed: no run
+    up to this one did. Bottom: the stack, which every run builds from scratch. The panel shows the
+    weights each run starts with.</p>
+    <ul>
+      <li><b>Runs 1 to 3</b> open b right after a (every weight is 1, and ties go to the input order).
+      Their rejections raise the weights of a ≠ b, a ≠ c and c ≠ d.</li>
+      <li><b>From run 4</b> the triangle's weights put c after a, and b is never opened again.</li>
+      <li><b>Run 7</b> has a cutoff of 16, and the search needs 15 steps in that order: it answers
+      unsatisfiable.</li>
+    </ul>
+    <p><b>Data.</b> <code>slides/viz/traces/u19b.py</code>, <code>data()["restart-replay"]</code>:
+    the reference engine on <code>restart_example()</code>, one traced run per restart, with the
+    invariant checked after every step; the answer is checked against brute force.</p>
   </aside>
 </section>
 
