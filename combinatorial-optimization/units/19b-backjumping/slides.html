@@ -1121,6 +1121,55 @@
 </section>
 
 <section>
+  <p class="eyebrow">19b · scope</p>
+  <h2>CBJ with a nogood store, against CDCL</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">the same idea</span>
+        <p class="small">Explain each dead end by a nogood that names only the choices that caused it; go back past the choices it does not name; an empty nogood proves there is no solution. Unit 20's learned clause is such a nogood, written as a clause.</p>
+      </div>
+      <div class="box def"><span class="label">when, and what is learned</span>
+        <p class="small"><b>CBJ</b> jumps only when a frame is <b>exhausted</b>, and what it carries up is that frame's conflict set: the union of the reasons of its closed values.</p>
+        <p class="small"><b>CDCL</b> analyses <b>every conflict</b> at once, resolving back through the implication graph to the first UIP: one literal of the current level, the rest from earlier levels.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">where it lands</span>
+        <p class="small"><b>CBJ</b> goes to the deepest variable of $E$ and closes its value; the next value is a new choice.</p>
+        <p class="small"><b>CDCL</b> goes to the second-deepest level of the clause, where the clause is unit and <b>forces</b> the flipped UIP: an implication, not a decision.</p>
+      </div>
+      <div class="box def"><span class="label">how learned nogoods are used</span>
+        <p class="small"><b>This deck's store</b> is checked when a value is tried: a hit closes that value. <b>CDCL's clauses</b> join unit propagation, so they fix values before anything is tried, and serve as reasons in later conflict analysis.</p>
+      </div>
+      <p class="small">Around that, CDCL adds propagation at every node, VSIDS, frequent restarts that keep what was learned, and LBD deletion (unit 20). Unit 21 brings the whole engine back to CP.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the store is weaker than it looks.</b> In this deck a stored nogood
+    $\{a = 1, c = 2\}$ does nothing until the search sits at $a = 1$ and tries $c = 2$; then it
+    closes that value. A CDCL solver holding the clause $\lnot[a = 1] \lor \lnot[c = 2]$ would, as
+    soon as $a = 1$ is set, remove $c = 2$ by unit propagation, before $c$ is even chosen, and with a
+    reason, so that the removal can take part in the next conflict analysis. That is the step from
+    "checking nogoods" to "propagating nogoods", and in practice it accounts for much of the difference.</p>
+    <p><b>When and where.</b> CBJ's unit of work is the frame: a value list with a cursor, and a
+    jump only once every value of a frame is closed. CDCL has no value lists. Every conflict, that
+    is every clause falsified by propagation, is analysed on the spot; the learned clause says
+    exactly which assignment to undo, and the backjump lands at the level where that clause
+    becomes unit, so the flipped literal is implied there rather than chosen. The box "unit 20's
+    empty clause" in section 2 compares the two jump targets on unit 20's example.</p>
+    <p><b>What is learned.</b> CBJ's conflict set is the union of reasons, one variable per
+    rejection: the reasons are single constraints. With propagation the reason for a removed value
+    is itself a set of assignments, and following reasons back until one literal of the current
+    level is left is first-UIP resolution. So CBJ with forward checking's reasons (the fine print in
+    section 2) already moves towards CDCL, and unit 21's explanations complete the step for general
+    propagators.</p>
+    <p><b>The rest of the engine</b> is heuristics, not correctness: the proofs of this deck
+    cover any order and, with unbounded cutoffs, restarts; deletion by LBD is safe for soundness
+    (section 2) and for termination only under the conditions on the previous slides.</p>
+  </aside>
+</section>
+
+<section>
   <p class="eyebrow">19b · checkpoint</p>
   <h2>Done when</h2>
   <div class="box good"><span class="label">checkpoint</span>
