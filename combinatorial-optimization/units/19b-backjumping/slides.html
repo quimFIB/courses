@@ -96,7 +96,7 @@
     <div class="box def"><span class="label">3 · termination</span>
       <p class="small">A number that drops on every step, even when a jump sends the digits below it up.</p></div>
     <div class="box def"><span class="label">4 · choosing the variable at each level</span>
-      <p class="small">The heuristic's contract, and why both proofs survive it; orders against CBJ, measured; a jump-target bug that tests in the input order cannot show; restarts; where the argument stops.</p></div>
+      <p class="small">The heuristic's contract, and why both proofs survive it; orders against CBJ, measured; a jump-target bug that tests in the input order cannot show; restarts; where the argument stops; optimization.</p></div>
   </div>
   <div class="box good"><span class="label">getting around</span>
     <p class="small">Words with a <span class="term" data-term="conflict set">dotted underline</span> are glossary terms: click one for its definition. <span class="ref" data-ref="tri">Solid-underlined names</span> are pieces of the running example, or of the other small instances: hover to see them. <kbd>G</kbd> lists every term in the unit, <kbd>N</kbd> shows the notes. Optional extra: <a href="explore.html" target="_blank" rel="noopener">interactive figures</a>, linked from the slides they support by a small ▸ chip; skip them freely.</p></div>
@@ -1007,6 +1007,112 @@
 </section>
 
 <section>
+  <p class="eyebrow">19b · optimization</p>
+  <h2>Optimization: the bound is one more constraint</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">branch and bound, as one search</span>
+        <p class="small">To minimise $f$, keep the best solution found so far, the <b>incumbent</b>, and its cost $U$. Treat $f &lt; U$ as a constraint that <b>tightens</b> each time a solution is found.</p>
+        <ul class="small">
+          <li><b>All variables assigned:</b> record the incumbent, set $U$ to its cost, and close the last value, since it now breaks $f &lt; U$.</li>
+          <li><b>A value breaks $f &lt; U$:</b> close it with reason the other variables $f$ depends on, as for any constraint.</li>
+          <li><b>$E = \emptyset$ at an exhausted frame:</b> no solution has $f &lt; U$, so the incumbent is <b>optimal</b>; with no incumbent, unsatisfiable.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">why the proofs carry over</span>
+        <p class="small">A reason found under $f &lt; U$ says: no solution agrees with $A$ on $R$, has $x = v$ <b>and costs less than $U$</b>. $U$ only goes down, so that stays true under every later bound. The invariant holds, and the combining lemma with it.</p>
+        <p class="small">Recording a solution closes a value like any rejection, so the measure of section 3 still drops on every step.</p>
+      </div>
+      <div class="box warn"><span class="label">what changes</span>
+        <p class="small">Reasons from the bound, and nogoods learned from them, are true <b>relative to the bound</b>, not of the problem. They are safe to keep while $U$ only decreases; not if the objective or the question changes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The same loop.</b> Unit 07's branch and bound, written in this deck's terms, is CBJ on
+    the problem "the constraints, plus $f &lt; U$", where $U$ starts at $+\infty$ and drops each time
+    a solution is found. The search does not restart after a solution: it closes the value that
+    completed it and carries on from the leaf. Everything else is the loop of section 1.</p>
+    <p><b>The reason for closing after a solution.</b> The new solution $A$ has $f(A) = U$, so it
+    breaks $f &lt; U$. The reason for closing the last frame's value $x = v$ is the set of
+    variables of $f$ other than $x$: any assignment that agrees with $A$ on them and has
+    $x = v$ has the same cost $U$. All of them are above the last frame, so the reason points
+    upwards. If $f$ depends on every variable, this reason names everything, and the search
+    backs up one frame at a time just after a solution. The more $f$ ignores, the further the
+    jump.</p>
+    <p><b>Bounds before the leaf.</b> A solver usually does not wait until $f$ is fully
+    assigned: it computes a lower bound $L$ on $f$ from the assigned variables and closes a value
+    when $L \ge U$. The reason is then the assigned variables that $L$ actually used. A bound that
+    reads every assigned variable gives chronological backtracking, which is why explaining
+    bounds well matters in practice (lazy clause generation does this for linear objectives:
+    unit 21).</p>
+    <p><b>Proof that bound reasons stay valid.</b> Say $R$ was a valid reason for closing
+    $x = v$ when the bound was $U$: no solution agrees with $A$ on $R$, has $x = v$ and has
+    $f &lt; U$. Later the bound is $U' &lt; U$. A solution with $f &lt; U'$ also has $f &lt; U$,
+    so the same statement with $U'$ holds. The invariant of section 2 is therefore preserved
+    when $U$ tightens, and every other step is the satisfaction case, with $f &lt; U$ as one of
+    the constraints. At the stop, $E = \emptyset$ says no solution has $f &lt; U$; the incumbent
+    has $f = U$, so it is optimal.</p>
+    <p><b>When the relative nogoods bite.</b> To find <em>all</em> optimal solutions, the
+    constraint has to be $f \le U$, and a nogood learned under $f &lt; U$ would wrongly remove
+    solutions that tie. The same goes for reusing a store on a changed objective, or for moving
+    to the next objective in a lexicographic search: bound-derived nogoods must be dropped or
+    kept apart from the absolute ones.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19b · optimization</p>
+  <h2>Optimization on three variables</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">the instance</span>
+        <p class="small">$a, b, c \in \{1, 2\}$, constraint $a \ne c$, minimise $f = a + 2c$. As in the running example, $b$ is in nothing. Static order $a, b, c$.</p>
+        <p class="small">Optimum: $a = 2$, $c = 1$, cost $4$ (the only other option, $a = 1$, $c = 2$, costs $5$).</p>
+      </div>
+      <p class="small">CBJ stops after <b>11 steps</b>, chronological branch and bound after <b>21</b>: it tries $b = 2$ under both values of $a$, and fails on $c$ in the same way each time.</p>
+      <p class="small">Step 5: the closing of $a = 1$ carries reason $\emptyset$ under $U = 5$. It is still true at $U = 4$: there is no solution with $a = 1$ and cost below 4 either.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th class="num">step</th><th>what happens</th><th>reason, or $E$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1–2</td><td>descend $a = 1$, $b = 1$</td><td></td></tr>
+          <tr><td class="num">3</td><td>reject $c = 1$ by $a \ne c$</td><td>$\{a\}$</td></tr>
+          <tr><td class="num">4</td><td>solution $c = 2$, cost 5: <b>$U = 5$</b>, close $c = 2$</td><td>$\{a\}$</td></tr>
+          <tr><td class="num"><b>5</b></td><td>$c$ exhausted: jump to $a$, <b>skipping $b$</b></td><td>$E = \{a\}$</td></tr>
+          <tr><td class="num">6–7</td><td>descend $a = 2$, $b = 1$</td><td></td></tr>
+          <tr><td class="num">8</td><td>solution $c = 1$, cost 4: <b>$U = 4$</b>, close $c = 1$</td><td>$\{a\}$</td></tr>
+          <tr><td class="num">9</td><td>reject $c = 2$ by $a \ne c$</td><td>$\{a\}$</td></tr>
+          <tr><td class="num">10</td><td>$c$ exhausted: jump to $a$</td><td>$E = \{a\}$</td></tr>
+          <tr><td class="num"><b>11</b></td><td>$a$ exhausted: <b>optimal</b>, cost 4</td><td>$E = \emptyset$</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Following the bound.</b> At step 4 the stack is $a = 1$, $b = 1$, $c = 2$, which
+    satisfies $a \ne c$, and there is no bound yet, so this is the first incumbent, with
+    $U = 5$. The full assignment now breaks $f &lt; 5$; $f$ depends on $a$ and $c$, so the reason
+    for closing $c = 2$ is $\{a\}$. Both values of $c$ are closed with reason $\{a\}$, so
+    $E = \{a\}$ and the jump goes straight to $a$: the claim is "no solution with $a = 1$ costs
+    less than 5", whatever $b$ is.</p>
+    <p>Under $a = 2$, $c = 1$ passes and costs $2 + 2 = 4 &lt; 5$: a better incumbent, $U = 4$.
+    Its closing again has reason $\{a\}$; $c = 2$ breaks $a \ne c$, reason $\{a\}$. The jump to
+    $a$ closes $a = 2$ with reason $\emptyset$, both values of $a$ are closed with empty reasons,
+    and the search stops: no solution costs less than 4, so the incumbent is optimal.</p>
+    <p><b>The chronological run.</b> After step 4 it backs up to $b$, tries $b = 2$, and rejects
+    $c = 1$ (by $a \ne c$) and $c = 2$ (now by the bound) again; the same happens under $a = 2$,
+    with the two causes swapped. It finds the same optimum in 21 steps. Both counts use the
+    deck's convention: every descend, rejection, recorded solution, jump or backtrack, and the
+    final stop is one step. This instance is not in the reference implementation; the trace was
+    checked with a separate short script.</p>
+  </aside>
+</section>
+
+<section>
   <p class="eyebrow">19b · checkpoint</p>
   <h2>Done when</h2>
   <div class="box good"><span class="label">checkpoint</span>
@@ -1016,6 +1122,7 @@
       <li>You can show <span class="ref" data-ref="mu">$\mu$</span> decreasing on a jump, although the digits below it go up.</li>
       <li>You can state the heuristic's contract, why neither proof looks at the choice, and why Luby restarts still end.</li>
       <li>You can say why a jump target by index fails under any order but the input order, and how to test for it.</li>
+      <li>You can say why a reason found under the bound $f &lt; U$ stays valid when $U$ drops, and what $E = \emptyset$ means when minimising.</li>
     </ul>
   </div>
   <div class="cols">
