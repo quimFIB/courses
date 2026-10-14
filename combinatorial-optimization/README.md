@@ -114,7 +114,7 @@ tests, and a `then.py` whose numbers the slides and lab sheet quote.
 | 18 Global constraints and their filtering algorithms | 17 | 234 |
 | 19 Search, restarts, and large neighbourhood search | 17 | 28 |
 | 19b Backjumping, and why search is complete (addendum, theory only) | 20 | — |
-| 20 SAT and the CDCL engine | 17 | 271 |
+| 20 SAT and the CDCL engine | 20 | 271 |
 | 21 Lazy clause generation, or what CP-SAT actually is | 16 | 106 |
 | 22 Hardness, and the shape of what is possible | 20 | 233 |
 | 23 Combinatorial approximation algorithms | 18 | 237 |

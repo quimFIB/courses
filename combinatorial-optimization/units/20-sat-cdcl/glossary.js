@@ -259,6 +259,15 @@ window.GLOSSARY = [
 ]
 },
 {
+"term_html": "termination measure",
+"html": "\\(\\mu = \\sum_{\\ell=0}^{n} f_\\ell \\,(n+1)^{n-\\ell}\\), where \\(f_\\ell\\) counts the variables not assigned at any level \\(\\le \\ell\\): the free counts read as one number in base \\(n+1\\), level 0 leading. Every propagation, decision and backjump lowers it, whichever variable is chosen, so a run without restarts stops.",
+"section": "Learning",
+"slide": "Why CDCL stops, whatever it branches on",
+"keys": [
+"termination measure"
+]
+},
+{
 "term_html": "DRAT proof",
 "html": "A list of every learned and deleted clause in order, ending with the empty clause, that an independent checker replays.",
 "section": "Proofs and limits",

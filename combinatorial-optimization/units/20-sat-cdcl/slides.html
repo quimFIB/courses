@@ -38,7 +38,8 @@
     <h4>How to read this deck</h4>
     <p>Four clauses on five variables run through the engine half: their watched-literal
     propagation, the conflict, the learned clause by resolution, and the RUP check that a proof
-    checker would do. The encodings half writes out a two-gate Tseitin transformation and
+    checker would do. Two slides then follow the same run with a termination measure, and a
+    variant of it whose learned clause sends the solver back to level 0. The encodings half writes out a two-gate Tseitin transformation and
     at-most-one of four literals two ways. Every trace was produced by the lab's reference
     solver. Haken's lower bound is given as an idea; the argument is sketched in the notes.</p>
   </aside>
@@ -51,7 +52,7 @@
     <div class="box def"><span class="label">1 · from DPLL to CDCL</span>
       <p class="small">CNF, resolution, unit propagation, watched literals.</p></div>
     <div class="box def"><span class="label">2 · learning</span>
-      <p class="small">Implication graphs, first UIP, backjumping, VSIDS, restarts, LBD.</p></div>
+      <p class="small">Implication graphs, first UIP, backjumping, VSIDS, restarts, LBD; why it stops.</p></div>
   </div>
   <div class="cols">
     <div class="box def"><span class="label">3 · proofs and limits</span>
@@ -278,6 +279,268 @@
   </aside>
 </section>
 
+<section>
+  <p class="eyebrow">20 · learning · termination</p>
+  <h2>Why CDCL stops, whatever it branches on</h2>
+  <div class="cols">
+    <div>
+      <p class="small">It is not obvious. <span class="term">VSIDS</span> may branch on any variable, and a <span class="term" data-term="non-chronological backjumping">backjump</span> can throw away every level, so the number of free variables goes back up. Counted level by level, it does go down.</p>
+      <div class="box def"><span class="label">the <span class="term">termination measure</span></span>
+        <p class="small">For each <span class="term">decision level</span> $\ell = 0, \dots, n$, let $f_\ell$ be the number of variables <b>not</b> assigned at any level $\le \ell$ on the <span class="term">trail</span>. Read them as one number in base $n+1$, level 0 leading:</p>
+        $$\mu = \sum_{\ell=0}^{n} f_\ell \,(n+1)^{\,n-\ell}$$
+        <p class="small muted">A level not yet open adds nothing, so its digit repeats the one before.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">every step lowers <span style="text-transform:none">$\mu$</span></span>
+        <ul class="small">
+          <li><b>Propagate</b> at level $d$: $f_d - 1$.</li>
+          <li><b>Decide</b>: $f_{d+1} - 1$.</li>
+          <li><b>Conflict at $d &gt; 0$</b>: the <span class="term">asserting clause</span> adds a literal at some level $j &lt; d$, so $f_j - 1$. The digits after $j$ go back up, but together they are worth less than one unit of digit $j$.</li>
+          <li><b>Conflict at level 0</b>, or nothing left to decide: stop.</li>
+        </ul>
+        <p class="small">Each step lowers the first digit it changes. $\mu \ge 0$ and starts below $(n+1)^{n+1}$, so the run ends.</p>
+        <p class="proof-pointer">full proof in the notes (N)</p>
+      </div>
+      <div class="box good"><span class="label">where the choice of variable went</span>
+        <p class="small">$\mu$ counts free variables <b>per level</b>, never which ones. VSIDS and <span class="term">phase saving</span> pick which literal joins a level, not how many do. The heuristic owes one thing: an <b>unassigned</b> variable.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Unit 19b's measure, in CDCL's terms.</b> Same shape: one digit per level, the shallowest
+    leading, and every step lowers the first digit it changes while possibly raising the ones after
+    it. In 19b a digit counts the values a depth still has to try. CDCL has no such list: a backjump
+    does not flip the decision at level $j$ to its next value, it adds a literal the learned clause
+    forces there. So here a digit counts the variables still free after that level. 19b gives a
+    depth with no frame the top digit $\top$; here a level not yet open needs no special case,
+    since "free after level $\ell$" already repeats the current count.</p>
+    <h4>Full proof</h4>
+    <p>Write $a_\ell$ for the number of literals at level $\ell$, so
+    $f_\ell = n - (a_0 + \dots + a_\ell)$.</p>
+    <p>First, the digits are digits. Every level above 0 starts with a decision on an unassigned
+    variable, so there are at most $n$ decisions and the levels run from 0 to at most $n$: $\mu$
+    has $n + 1$ digits. Each $f_\ell$ lies in $\{0, \dots, n\}$, a valid digit in base $n+1$, so
+    $0 \le \mu \le (n+1)^{n+1} - 1$. With nothing assigned every digit is $n$ and $\mu$ is exactly
+    $(n+1)^{n+1} - 1$; unit clauses in the input start it lower.</p>
+    <p>Second, comparing: if two values agree on digits $0, \dots, j-1$ and the first has a smaller
+    digit $j$, the first is smaller, because the second's digit $j$ is worth at least
+    $(n+1)^{n-j}$ more, while the first's digits after $j$ are worth at most
+    $\sum_{\ell&gt;j} n\,(n+1)^{n-\ell} = (n+1)^{n-j} - 1$, a geometric sum.</p>
+    <p>Third, each step, with $d$ the current level:</p>
+    <ul>
+      <li><b>Propagate</b> enqueues one literal at level $d$: $f_\ell$ drops by 1 for every $\ell \ge d$ and is unchanged before $d$. The first changed digit, $f_d$, drops.</li>
+      <li><b>Decide</b> opens level $d+1$ with its decision literal: $f_\ell$ drops by 1 for every $\ell \ge d+1$, digits up to $d$ unchanged.</li>
+      <li><b>Conflict at $d &gt; 0$.</b> First-UIP analysis returns a clause with exactly one literal at level $d$, the UIP's negation, and all others false at levels below $d$. Let $j$ be the highest of those levels, or 0 if there are none. Cancelling levels above $j$ leaves digits $0, \dots, j$ unchanged, and the digits after $j$ rise to $f_j$: the undone variables are free again. The UIP's variable was assigned at level $d &gt; j$, so it is now unassigned, while every other literal of the clause is still false: the clause is unit and its literal is enqueued at level $j$. Net effect: digits before $j$ unchanged, $f_j$ one lower, and by the comparison above $\mu$ falls, whatever the digits after $j$ did.</li>
+      <li><b>Conflict at level 0</b> means the empty clause is derivable: unsatisfiable, stop. <b>No conflict and no unassigned variable</b>: satisfiable, stop.</li>
+    </ul>
+    <p>So every step but the last lowers $\mu$ by at least 1, from at most $(n+1)^{n+1} - 1$,
+    without going below 0: at most $(n+1)^{n+1} - 1$ steps before the stop. For the example,
+    $\mu$ starts at $6^6 - 1 = 46\,655$ and the run takes 8 steps, ending at $41\,472$. The bound is
+    far from tight. Its only job is to show that the run ends.</p>
+    <p>None of this names the variable that was decided on, or its value, so it holds for VSIDS,
+    phase saving, random choice, anything that returns an unassigned variable. Clause deletion
+    removes clauses and never touches the trail, so it leaves $\mu$ alone; the solver never deletes
+    a clause that is a current reason, which keeps the trail's justifications intact. Restarts are
+    the one move that raises $\mu$: see "Back to level 0, and restarts".</p>
+    <p><b>Checked.</b> The reference solver was instrumented to compute $\mu$ after every
+    assignment and assert that it fell: 3 000 random formulas (seed 20, 3 to 12 variables, clauses
+    of 1 to 3 literals) with a uniformly random variable and value at every decision, no restarts
+    and clause deletion every 3 learned clauses; 2 503 were unsatisfiable, and every answer matched
+    brute force. On 1 000 random 3-SAT formulas at ratio 4.3 (seed 21, 6 to 14 variables), $\mu$
+    fell across all 3 245 backjumps, 997 of them to level 0.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · learning · termination · example</p>
+  <h2>The measure, on the running example</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label"><span style="text-transform:none">$n = 5$</span>, so base 6</span>
+        <table class="dense" style="margin:0">
+          <thead><tr><th>step</th><th>free after levels 0–5</th><th class="num">$\mu$</th></tr></thead>
+          <tbody>
+            <tr><td>start</td><td class="mono">5 5 5 5 5 5</td><td class="num">46 655</td></tr>
+            <tr><td>decide $x_1$</td><td class="mono">5 4 4 4 4 4</td><td class="num">45 100</td></tr>
+            <tr><td>propagate $x_3$</td><td class="mono">5 3 3 3 3 3</td><td class="num">43 545</td></tr>
+            <tr><td>decide $x_2$</td><td class="mono">5 3 2 2 2 2</td><td class="num">43 286</td></tr>
+            <tr><td>propagate $x_4$, $x_5$</td><td class="mono">5 3 0 0 0 0</td><td class="num">42 768</td></tr>
+            <tr><td>conflict, jump to 1, $\lnot x_2$</td><td class="mono">5 <b>2</b> 2 2 2 2</td><td class="num">41 990</td></tr>
+            <tr><td>decide $x_4$</td><td class="mono">5 2 1 1 1 1</td><td class="num">41 731</td></tr>
+            <tr><td>propagate $\lnot x_5$: all set</td><td class="mono">5 2 0 0 0 0</td><td class="num">41 472</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small">Down on every row, including the jump: digits 2 to 5 go back up from 0 to 2, but digit 1 falls from 3 to 2.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 510 180" width="600" role="img" aria-label="the trail by level, before the conflict and after the jump to level 1">
+      <defs><marker id="ar-j1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fill-accent"/></marker></defs>
+      <g font-size="11" class="soft" text-anchor="middle"><text x="102" y="14">level 0</text><text x="204" y="14">level 1</text><text x="350" y="14">level 2</text></g>
+      <g font-size="12" class="soft"><text x="0" y="45">before</text><text x="0" y="139">after</text></g>
+      <g font-size="13" text-anchor="middle" class="mono">
+      <rect x="82" y="26" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="140" y="26" width="40" height="28" rx="4" class="fill-ground" style="stroke:var(--accent);stroke-width:2.5"/>
+      <text x="160" y="45">x₁</text>
+      <rect x="184" y="26" width="40" height="28" rx="4" class="fill-ground ink" stroke-width="1.2"/>
+      <text x="204" y="45">x₃</text>
+      <rect x="286" y="26" width="40" height="28" rx="4" class="fill-ground" style="stroke:var(--accent);stroke-width:2.5"/>
+      <text x="306" y="45">x₂</text>
+      <rect x="330" y="26" width="40" height="28" rx="4" class="fill-ground ink" stroke-width="1.2"/>
+      <text x="350" y="45">x₄</text>
+      <rect x="374" y="26" width="40" height="28" rx="4" class="fill-ground ink" stroke-width="1.2"/>
+      <text x="394" y="45">x₅</text>
+      <rect x="424" y="26" width="30" height="28" rx="4" class="fill-soft ink" stroke-width="1.2"/><text x="439" y="45">⊥</text>
+      <rect x="82" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="140" y="120" width="40" height="28" rx="4" class="fill-ground" style="stroke:var(--accent);stroke-width:2.5"/>
+      <text x="160" y="139">x₁</text>
+      <rect x="184" y="120" width="40" height="28" rx="4" class="fill-ground ink" stroke-width="1.2"/>
+      <text x="204" y="139">x₃</text>
+      <rect x="228" y="120" width="40" height="28" rx="4" class="fill-soft ink" stroke-width="1.2"/>
+      <text x="248" y="139">¬x₂</text>
+      <rect x="286" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="306" y="139" class="soft">x₂</text>
+      <rect x="330" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="350" y="139" class="soft">x₄</text>
+      <rect x="374" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="394" y="139" class="soft">x₅</text>
+      </g>
+      <g font-size="10" class="soft"><text x="0" y="73">free after</text><text x="0" y="167">free after</text></g>
+      <g font-size="14" text-anchor="middle" class="mono">
+      <text x="102" y="74">5</text>
+      <text x="204" y="74">3</text>
+      <text x="350" y="74">0</text>
+      </g>
+      <text x="508" y="74" font-size="11" class="soft" text-anchor="end">μ = 42 768</text>
+      <g font-size="14" text-anchor="middle" class="mono">
+      <text x="102" y="168">5</text>
+      <text x="204" y="168" class="fill-accent" font-weight="600">2</text>
+      <text x="350" y="168" class="soft">2</text>
+      </g>
+      <text x="508" y="168" font-size="11" class="soft" text-anchor="end">μ = 41 990</text>
+      <path d="M300,58 C 290,86 262,92 251,114" class="accent" stroke-width="1.6" fill="none" marker-end="url(#ar-j1)"/>
+      <g font-size="11" class="soft"><text x="318" y="92">learn (¬x₂ ∨ ¬x₃),</text><text x="318" y="106">jump to level 1</text></g>
+      </svg>
+      <p class="cap">The jump of the <span class="ref" data-ref="ig">implication graph</span> slide. Under each level, the variables still free after it. Digit 1 falls from 3 to 2 and outweighs digit 2's rise: one unit of digit 1 is worth $6^4 = 1\,296$, more than all later digits can hold ($1\,295$). Decisions outlined; the shaded literal is the one the learned clause asserts; dashed cells are unassigned again.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the table.</b> With $n = 5$ the six digits are worth $7\,776$, $1\,296$, $216$,
+    $36$, $6$ and $1$. So 5 3 0 0 0 0 is $5 \cdot 7\,776 + 3 \cdot 1\,296 = 42\,768$, and
+    5 2 2 2 2 2 after the jump is $38\,880 + 2\,592 + 2 \cdot 259 = 41\,990$. The run is the
+    reference solver's on the four clauses, with the first two decisions forced to $x_1$ and $x_2$
+    as on the earlier slides. After the jump the trail at level 1 is $x_1, x_3, \lnot x_2$; the
+    solver then decides $x_4$, $c_4$ forces $\lnot x_5$, every variable is assigned, and the answer
+    is satisfiable.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">20 · learning · termination</p>
+  <h2>Back to level 0, and restarts</h2>
+  <div class="cols">
+    <div class="fig">
+      <svg viewBox="0 0 510 180" width="600" role="img" aria-label="the trail by level, before the conflict and after the jump to level 0">
+      <defs><marker id="ar-j0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fill-accent"/></marker></defs>
+      <g font-size="11" class="soft" text-anchor="middle"><text x="102" y="14">level 0</text><text x="204" y="14">level 1</text><text x="350" y="14">level 2</text></g>
+      <g font-size="12" class="soft"><text x="0" y="45">before</text><text x="0" y="139">after</text></g>
+      <g font-size="13" text-anchor="middle" class="mono">
+      <rect x="82" y="26" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="140" y="26" width="40" height="28" rx="4" class="fill-ground" style="stroke:var(--accent);stroke-width:2.5"/>
+      <text x="160" y="45">x₁</text>
+      <rect x="184" y="26" width="40" height="28" rx="4" class="fill-ground ink" stroke-width="1.2"/>
+      <text x="204" y="45">x₃</text>
+      <rect x="286" y="26" width="40" height="28" rx="4" class="fill-ground" style="stroke:var(--accent);stroke-width:2.5"/>
+      <text x="306" y="45">x₂</text>
+      <rect x="330" y="26" width="40" height="28" rx="4" class="fill-ground ink" stroke-width="1.2"/>
+      <text x="350" y="45">x₄</text>
+      <rect x="374" y="26" width="40" height="28" rx="4" class="fill-ground ink" stroke-width="1.2"/>
+      <text x="394" y="45">x₅</text>
+      <rect x="424" y="26" width="30" height="28" rx="4" class="fill-soft ink" stroke-width="1.2"/><text x="439" y="45">⊥</text>
+      <rect x="82" y="120" width="40" height="28" rx="4" class="fill-soft ink" stroke-width="1.2"/>
+      <text x="102" y="139">¬x₂</text>
+      <rect x="140" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="160" y="139" class="soft">x₁</text>
+      <rect x="184" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="204" y="139" class="soft">x₃</text>
+      <rect x="286" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="306" y="139" class="soft">x₂</text>
+      <rect x="330" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="350" y="139" class="soft">x₄</text>
+      <rect x="374" y="120" width="40" height="28" rx="4" class="rule" fill="none" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="394" y="139" class="soft">x₅</text>
+      </g>
+      <g font-size="10" class="soft"><text x="0" y="73">free after</text><text x="0" y="167">free after</text></g>
+      <g font-size="14" text-anchor="middle" class="mono">
+      <text x="102" y="74">5</text>
+      <text x="204" y="74">3</text>
+      <text x="350" y="74">0</text>
+      </g>
+      <text x="508" y="74" font-size="11" class="soft" text-anchor="end">μ = 42 768</text>
+      <g font-size="14" text-anchor="middle" class="mono">
+      <text x="102" y="168" class="fill-accent" font-weight="600">4</text>
+      <text x="204" y="168" class="soft">4</text>
+      <text x="350" y="168" class="soft">4</text>
+      </g>
+      <text x="508" y="168" font-size="11" class="soft" text-anchor="end">μ = 37 324</text>
+      <path d="M300,58 C 280,100 150,84 108,114" class="accent" stroke-width="1.6" fill="none" marker-end="url(#ar-j0)"/>
+      <g font-size="11" class="soft"><text x="318" y="92">learn (¬x₂),</text><text x="318" y="106">jump to level 0</text></g>
+      </svg>
+      <p class="cap">The example with <span class="ref" data-ref="c2">$c_2$</span> shortened to $(\lnot x_2 \lor x_4)$. Same decisions, same conflict, but analysis ends at the <span class="term" data-term="unit clause">unit</span> <span class="term">learned clause</span> $(\lnot x_2)$: no level-1 literal is involved, so the jump goes to level 0 and undoes $x_1$ and $x_3$ too. Shading as on the previous slide.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">what went down</span>
+        <p class="small">Five literals undone, and digits 1 to 5 jump back up to 4. But the leading digit, the variables not fixed at level 0, falls from 5 to 4: $42\,768 \to 37\,324$.</p>
+        <p class="small"><b>Level 0 is never undone</b>, so that digit never rises, and at most $n$ jumps land there. Between two of them, the digit for level 1 only falls, and so on down.</p>
+      </div>
+      <div class="box warn"><span class="label"><span class="term" data-term="restart (CDCL)">restarts</span> raise <span style="text-transform:none">$\mu$</span></span>
+        <p class="small">A restart cancels every level above 0, sending those digits back up. But a run without restarts ends within $(n+1)^{n+1}$ steps, and Luby cutoffs grow without bound: some run is given that many conflicts, and ends.</p>
+        <p class="small"><b>Or</b> keep every learned clause: each one is new, and there are only $3^n$ clauses. The lab's solver deletes clauses, so it relies on Luby.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The variant, step by step.</b> Clauses $c_1 = (\lnot x_1 \lor x_3)$,
+    $c_2' = (\lnot x_2 \lor x_4)$, $c_3$, $c_4$ as before. Decide $x_1$: $c_1$ gives $x_3$. Decide
+    $x_2$: $c_2'$ gives $x_4$, $c_3$ gives $x_5$, $c_4$ is false. Resolve $c_4$ with $c_3$ on $x_5$:
+    $(\lnot x_2 \lor \lnot x_4)$. Resolve with $c_2'$ on $x_4$: $(\lnot x_2)$, one literal, so the
+    jump level is 0. The reference solver's trace: digits 5 3 0 0 0 0 ($\mu = 42\,768$), then
+    4 4 4 4 4 4 ($\mu = 4 \cdot 9\,331 = 37\,324$); it then decides $x_1$ again, propagates $x_3$,
+    decides $x_4$, propagates $\lnot x_5$, and stops satisfiable at 4 2 0 0 0 0
+    ($\mu = 33\,696$).</p>
+    <p><b>The leading digit alone.</b> $f_0$ is the number of variables not fixed at level 0. It
+    never rises, not even across restarts, and every jump to level 0 lowers it: that alone bounds
+    the jumps to level 0 by $n$. Between two of them levels 0 and 1 are never cancelled, so $f_1$
+    only falls, bounding the jumps to level 1; and so on. $\mu$ is that argument, level by level,
+    written as one number.</p>
+    <p><b>The other way out: keep every learned clause.</b> A learned clause is always new
+    when nothing is deleted. Suppose the learned
+    clause $C$ were already in the database at the conflict. Its literals other than the UIP's are
+    false at levels $\le j$, and propagation runs to a fixpoint before every decision. So at the
+    end of level $j$'s propagation, $C$ was unit and would already have forced the asserted
+    literal, at level $j$ or below. But the UIP's variable was assigned at level $d &gt; j$, a
+    contradiction. Restarts do not affect this, so with no deletion every conflict adds a clause
+    never seen before. There are $3^n$ clauses on $n$ variables (each variable positive, negative
+    or absent), so a run has at most $3^n$ conflicts, and between two conflicts at most $n$
+    decisions and $n$ propagations. Checked on 1 500 random 3-CNF formulas (3 to 12 variables,
+    $n$ to $6n$ clauses), restarting on the Luby schedule with a unit of one conflict, so very
+    often, and deleting nothing: none of the 2 396 learned clauses was already in the
+    database.</p>
+    <p><b>Unbounded cutoffs.</b> This is unit 19b's argument, unchanged, and the one the
+    lab's solver relies on, since it deletes clauses. Restart $i$ comes after
+    $100 \cdot \mathrm{luby}(i)$ conflicts in the lab's solver. The Luby sequence takes the value
+    $2^k$ for every $k$, so some run is allowed at least $(n+1)^{n+1}$ conflicts; by the measure
+    slide, that run cannot reach its cutoff, because a run without restarts has fewer steps than
+    that. It ends with an answer, and both answers are sound. A schedule with bounded cutoffs,
+    such as "restart every 100 conflicts" combined with aggressive deletion, has neither argument,
+    and termination is then not guaranteed.</p>
+    <p>Level 0 is never undone, even by a restart: the solver's restart is a cancel to level 0,
+    and level-0 literals have no decision to undo. So the leading digit only ever falls, across
+    the whole run, restarts included.</p>
+  </aside>
+</section>
+
 <section class="divider">
   <p class="eyebrow">section 3</p>
   <h2>Proofs and limits</h2>
@@ -467,6 +730,7 @@ uv run co then 20     # MiniSat, CaDiCaL, Kissat · pigeonhole · encodings · D
       <li>All five lab steps are ✓.</li>
       <li>Your solver emits a DRAT proof that an external checker accepts, and you can explain pigeonhole's hardness in terms of resolution lower bounds rather than "it just takes a long time".</li>
       <li>You can compute the first UIP of a small implication graph by hand.</li>
+      <li>You can say what falls on every step of a CDCL run, even a jump to level 0, and why restarts need an argument of their own.</li>
     </ul>
   </div>
   <div class="cols">
