@@ -91,6 +91,21 @@ resume that.
   naming the units that lean on the skill, with where to fill each gap. Written
   and independently verified; linked from `CURRICULUM.html` and the README.
 
+- 2026-10-15: **diagram rollout**, committed as `bd2de16` (shared) and `dd68c47`
+  (decks). The learner asked for more slides with more diagrams over fewer dense
+  ones; every unit was audited and revised by one agent each: figures 127 → 748,
+  sections 1554 → 2008, slides split rather than figures shrunk, symbols defined
+  before use. Plots are computed from each deck's own numbers, which caught real
+  errors on slides in 05, 21 and 30 (and notes in 18); the commit message lists
+  them. Every deck passes `./mr glossary`, deck-overflow and a KaTeX scan of
+  slides and glossary entries. The deck now reserves the button bar's height, so
+  no slide's last line sits under it. Left open on purpose: a Melnikov figure
+  for 17's "What the tangle forces" and a knife-edge figure for 12's
+  "Lagrange–d'Alembert" slide; a few sparse slides in 38 and 39; 30's notes claim
+  a scalar coupled only to EM keeps free fall universal, which Schiff's argument
+  in the same notes disputes; in reveal's overview grid the progress line sits
+  just above the button bar.
+
 `./mr todo` is the live version of which units are written and verified; trust it over this file.
 
 ## Next, in order
