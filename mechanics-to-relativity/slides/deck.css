@@ -19,6 +19,10 @@
   --c-root: #151a1d; --c-a: #1f4a54; --c-b: #8c5e12; --c-c: #1f6b3f;
   --c-d: #2a4a80; --c-e: #63397a; --c-f: #8a3a3a;
   --unit: var(--c-root);
+  /* a second figure colour that never matches the trunk's: orange on the cool
+     trunks, blue on the warm ones (b, f), where orange would sit beside --unit */
+  --c-alt-warm: #b35a22; --c-alt-cool: #2563a8;
+  --alt: var(--c-alt-warm);
 
   --f-display: "Zilla Slab", "Bitter", Georgia, serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -52,6 +56,7 @@
     --warn: #dd9090; --warn-soft: #2e1c1c; --good: #5cbb82; --good-soft: #17281e;
     --c-root: #e4e9eb; --c-a: #7fbdc9; --c-b: #d6a241; --c-c: #5cbb82;
     --c-d: #8fb0e8; --c-e: #b98fd0; --c-f: #dd9090;
+    --c-alt-warm: #f0a35e; --c-alt-cool: #8cc2f5;
     --hl-keyword: #ff7b72; --hl-title: #d2a8ff; --hl-number: #79c0ff; --hl-string: #a5d6ff;
     --hl-builtin: #ffa657; --hl-comment: #8b949e; --hl-name: #7ee787; --hl-bullet: #f2cc60;
   }
@@ -63,6 +68,7 @@
   --warn: #dd9090; --warn-soft: #2e1c1c; --good: #5cbb82; --good-soft: #17281e;
   --c-root: #e4e9eb; --c-a: #7fbdc9; --c-b: #d6a241; --c-c: #5cbb82;
   --c-d: #8fb0e8; --c-e: #b98fd0; --c-f: #dd9090;
+  --c-alt-warm: #f0a35e; --c-alt-cool: #8cc2f5;
   --hl-keyword: #ff7b72; --hl-title: #d2a8ff; --hl-number: #79c0ff; --hl-string: #a5d6ff;
   --hl-builtin: #ffa657; --hl-comment: #8b949e; --hl-name: #7ee787; --hl-bullet: #f2cc60;
 }
@@ -75,6 +81,8 @@ body[data-trunk="c"] { --unit: var(--c-c); }
 body[data-trunk="d"] { --unit: var(--c-d); }
 body[data-trunk="e"] { --unit: var(--c-e); }
 body[data-trunk="f"] { --unit: var(--c-f); }
+body { --alt: var(--c-alt-warm); }
+body[data-trunk="b"], body[data-trunk="f"] { --alt: var(--c-alt-cool); }
 html, body, .reveal-viewport { background: var(--ground); }
 
 /* ------------------------------------------------------------ base type -- */
@@ -198,10 +206,13 @@ section.divider h2 { border: 0; font-size: 2em; margin-bottom: .2em; }
 /* figures */
 .fig { display: flex; flex-direction: column; align-items: center; }
 .fig svg { max-width: 100%; height: auto; }
+/* …but not the SVGs KaTeX draws inside a caption (the radical sign): those size themselves */
+.fig .katex svg { max-width: none; height: inherit; }
 .reveal .fig .cap { font-size: .5em; color: var(--ink-soft); margin-top: .4em; text-align: center; max-width: 30em; }
+.reveal .fig .cap.wide { max-width: none; }   /* under a full-width figure: run the width of the figure */
 svg text { font-family: var(--f-body); fill: var(--ink); }
 svg .mono { font-family: var(--f-mono); }
-svg .soft { fill: var(--ink-soft); }
+svg text.soft, svg tspan.soft { fill: var(--ink-soft); }  /* text only: on a line or curve it filled the shape */
 svg .ink { stroke: var(--ink); }
 svg .rule { stroke: var(--rule); }
 svg .accent { stroke: var(--accent); }
@@ -215,6 +226,13 @@ svg .warn { stroke: var(--warn); }
 svg .fill-warn { fill: var(--warn); }
 svg .good { stroke: var(--good); }
 svg .fill-good { fill: var(--good); }
+svg .alt { stroke: var(--alt); }
+svg .fill-alt { fill: var(--alt); }
+svg text.alt { fill: var(--alt); stroke: none; }
+/* A label laid over busy lines: a ground-coloured outline painted under the glyphs. After
+   text.alt, which clears stroke, at the same specificity, so an alt label keeps its halo. */
+svg text.halo, svg tspan.halo { paint-order: stroke; stroke: var(--ground); stroke-width: 5px; stroke-linejoin: round; }
+svg text.halo-thin { stroke-width: 4px; }
 
 /* fragments that highlight instead of appearing */
 .reveal .fragment.hl { opacity: 1; visibility: inherit; }
@@ -319,6 +337,16 @@ body.reading { overflow: auto !important; height: auto !important; }
 .reveal .slide-number { background: transparent; color: var(--ink-faint); font-family: var(--f-mono); font-size: 12px; }
 .reveal .progress { color: var(--unit); height: 3px; }
 .reveal .controls { color: var(--unit); }
+/* reveal fits the slide to .reveal, so on a window wider than the deck the slide's bottom
+   edge reached the window's and its last line went under the bar. deck.js writes the bar's
+   height into --bar-h; shortening .reveal by it fits the slide above the bar instead. reveal's
+   own chrome lives inside .reveal, so it is pinned to the window to stay at the bottom edge. */
+@media screen {
+  body:not(.reading) .reveal { height: calc(100% - var(--bar-h, 0px)); }
+  body:not(.reading) .reveal .progress,
+  body:not(.reading) .reveal .controls,
+  body:not(.reading) .reveal .slide-number { position: fixed; }
+}
 .reveal .speaker-notes { padding-bottom: 56px; }   /* last lines clear of the button bar */
 
 @media print {

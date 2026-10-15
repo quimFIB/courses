@@ -332,7 +332,17 @@
   if (document.fullscreenEnabled)
     items.push(["F", "fullscreen", () => document.fullscreenElement
       ? document.exitFullscreen() : document.documentElement.requestFullscreen()]);
-  const notesButton = bar(items).querySelector('[data-key="N"]');
+  const deckBar = bar(items);
+  const notesButton = deckBar.querySelector('[data-key="N"]');
+  // The room the bar takes at the bottom of the window, which deck.css takes off .reveal.
+  // Measured, not fixed: the bar wraps on a narrow window and grows on a touch screen.
+  const reserveBar = () => {
+    const h = deckBar.offsetHeight + parseFloat(getComputedStyle(deckBar).bottom) + 4;
+    document.documentElement.style.setProperty("--bar-h", `${h}px`);
+    if (typeof Reveal.isReady === "function" && Reveal.isReady()) Reveal.layout();
+  };
+  reserveBar();
+  new ResizeObserver(reserveBar).observe(deckBar);
 
   Reveal.initialize({
     hash: true,

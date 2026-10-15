@@ -118,7 +118,22 @@ Rules of the deck:
 - **Slides must not overflow.** `slides/tools/deck-check.sh NN` reports slides
   taller than the frame in headless Chromium, and checks that every marked term
   resolves.
-- 25–45 slides is the usual size of a unit.
+- **Draw it when it can be drawn.** A force diagram, a frame, an orbit, a
+  potential well, a phase portrait, a field, a surface: if a slide describes in
+  words something with a shape, it gets an inline SVG figure. The learner asked
+  for this outright — more slides with more diagrams beats fewer slides dense
+  with text — so when a figure will not fit beside the prose, split the slide
+  in two rather than drop the figure or shrink it. The first decks averaged about
+  three figures in forty slides; that is the failure this rule exists to correct.
+- **Figure styling goes through `deck.css` classes, not inline `style`.** A
+  label over busy lines takes `class="halo"` (a ground-coloured outline under
+  the glyphs; add `halo-thin` for the narrower one); a caption under a
+  full-width figure takes `class="cap wide"`. Colour comes from the trunk
+  classes (`unit`, `accent`, `alt`, `warn`, `good` and their `fill-` forms), so
+  both themes follow. Draw computed curves lean: one point per pixel or so, not
+  tens of thousands.
+- 25–45 slides is the usual size of a unit; a unit that runs longer because its
+  figures needed room is fine.
 - `glossary.js` needs no script tag: `deck.js` loads it from the unit's own folder.
 - **Never cross-reference a slide by number.** reveal counts divider sections
   too, so "slide 7" in the prose and slide 7 in the reader's counter are
