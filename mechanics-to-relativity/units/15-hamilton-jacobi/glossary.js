@@ -10,21 +10,21 @@ window.GLOSSARY = [
 ]
 },
 {
-"term_html": "Hamilton–Jacobi equation",
-"html": "The first-order, nonlinear PDE \\(\\partial_t S + H(q, \\partial_q S, t) = 0\\) for an unknown function \\(S(q,t)\\). Hamilton's principal function solves it; so does every member of a complete integral.",
-"section": "The action as a function of where you end",
-"slide": "The Hamilton–Jacobi equation",
-"keys": [
-"hamilton–jacobi equation"
-]
-},
-{
 "term_html": "spherical coordinates",
 "html": "\\((r,\\theta,\\phi)\\mapsto(r\\sin\\theta\\cos\\phi,\\ r\\sin\\theta\\sin\\phi,\\ r\\cos\\theta)\\), a chart on \\(\\mathbb R^3\\) minus the \\(z\\)-axis, in which \\(\\lVert\\dot{\\vec x}\\rVert^2 = \\dot r^2 + r^2\\dot\\theta^2 + r^2\\sin^2\\theta\\,\\dot\\phi^2\\). Used here only as generalised coordinates.",
 "section": "The action as a function of where you end",
 "slide": "Kepler's Hamiltonian in spherical coordinates",
 "keys": [
 "spherical coordinates"
+]
+},
+{
+"term_html": "Hamilton–Jacobi equation",
+"html": "The first-order, nonlinear PDE \\(\\partial_t S + H(q, \\partial_q S, t) = 0\\) for an unknown function \\(S(q,t)\\). Hamilton's principal function solves it; so does every member of a complete integral.",
+"section": "The action as a function of where you end",
+"slide": "The Hamilton–Jacobi equation",
+"keys": [
+"hamilton–jacobi equation"
 ]
 },
 {
@@ -164,7 +164,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "frequency without motion",
-"html": "For \\(V = \\tfrac12m\\omega_0^2q^2 + \\lambda U\\), \\(E(I) = \\omega_0I + \\lambda\\langle U\\rangle_I + O(\\lambda^2)\\), so \\(\\omega = \\omega_0 + \\lambda\\,\\mathrm d\\langle U\\rangle_I/\\mathrm dI\\): the frequency from an average over the unperturbed motion, with no equation of motion solved.",
+"html": "For \\(V = \\tfrac12m\\omega_0^2q^2 + \\lambda U\\), \\(E(I) = \\omega_0I + \\lambda\\langle U\\rangle_I + O(\\lambda^2)\\), with \\(\\langle U\\rangle_I\\) the time average of \\(U\\) over the unperturbed orbit of action \\(I\\), so \\(\\omega = \\omega_0 + \\lambda\\,\\mathrm d\\langle U\\rangle_I/\\mathrm dI\\): the frequency from an average over the unperturbed motion, with no equation of motion solved.",
 "section": "Action–angle variables: frequencies without motion",
 "slide": "How the action responds to a parameter",
 "keys": [
@@ -227,7 +227,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "eikonal limit",
-"html": "Substituting \\(\\psi = Ae^{ik_0S}\\) into Helmholtz's equation, the \\(O(k_0^2)\\) term vanishes iff \\(\\lVert\\nabla S\\rVert^2 = n^2\\): short waves obey the eikonal equation and travel along rays.",
+"html": "Substituting a wave of large wavenumber \\(k_0\\), \\(\\psi = Ae^{ik_0S}\\) with real amplitude \\(A\\) and phase \\(S\\), into Helmholtz's equation \\(\\Delta\\psi + k_0^2n^2\\psi = 0\\), the \\(O(k_0^2)\\) term vanishes iff \\(\\lVert\\nabla S\\rVert^2 = n^2\\): short waves obey the eikonal equation and travel along rays.",
 "section": "Mechanics was optics all along",
 "slide": "The eikonal limit",
 "keys": [
@@ -236,7 +236,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Riemannian metric",
-"html": "On an open \\(U\\subset\\mathbb R^n\\), a symmetric positive-definite bilinear form \\(g_x\\) at each point, smooth in \\(x\\). Its components change by \\(G\\mapsto A^{\\mathsf T}GA\\) under a change of basis — a theorem, not the definition.",
+"html": "On an open \\(U\\subset\\mathbb R^n\\), a symmetric positive-definite bilinear form \\(g_x\\) at each point, smooth in \\(x\\). The matrix \\(G = (g_{ij})\\) of its components changes by \\(G\\mapsto A^{\\mathsf T}GA\\) under a change of basis with matrix \\(A\\) — a theorem, not the definition.",
 "section": "Mechanics was optics all along",
 "slide": "A metric, defined properly",
 "keys": [
@@ -263,7 +263,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Jacobi metric",
-"html": "\\(g_J = 2(E - V)\\,g_{\\mathrm{kin}}\\) on the region \\(V \\lt E\\). Its geodesics are the trajectories of energy \\(E\\); its length is the abbreviated action.",
+"html": "\\(g_J = 2(E - V)\\,g_{\\mathrm{kin}}\\) on the region \\(V \\lt E\\), where \\(g_{\\mathrm{kin}}\\) is the kinetic-energy metric, \\(T = \\tfrac12 g_{\\mathrm{kin}}(\\dot x, \\dot x)\\). Its geodesics are the trajectories of energy \\(E\\); its length is the abbreviated action.",
 "section": "Mechanics was optics all along",
 "slide": "The Jacobi metric",
 "keys": [

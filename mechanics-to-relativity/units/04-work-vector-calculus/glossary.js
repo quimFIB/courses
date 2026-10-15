@@ -105,7 +105,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "gradient",
-"html": "\\(\\nabla f(a)\\), the preimage of \\(Df(a)\\) under the Riesz isomorphism: the unique vector with \\(\\langle\\nabla f(a),\\vec h\\rangle = Df(a)\\vec h\\). Its components are the partial derivatives <strong>only in an orthonormal basis</strong> — in polar coordinates \\(\\nabla f = \\partial_r f\\,\\hat r + \\tfrac1r\\partial_\\theta f\\,\\hat\\theta\\). Converting a covector into a vector this way is what unit 26 calls raising an index.",
+"html": "\\(\\nabla f(a)\\), the preimage of \\(Df(a)\\) under the Riesz isomorphism: the unique vector with \\(\\langle\\nabla f(a),\\vec h\\rangle = Df(a)\\vec h\\). Its components are the partial derivatives <strong>only in an orthonormal basis</strong> — in polar coordinates \\(\\nabla f = \\partial_r f\\,\\hat r + \\tfrac1r\\partial_\\theta f\\,\\hat\\theta\\), with \\(\\hat r\\), \\(\\hat\\theta\\) the unit vectors along and across the ray from the origin. Converting a covector into a vector this way is what unit 26 calls raising an index.",
 "section": "Work: the integral along a path",
 "slide": "The derivative is a covector; the gradient is what the inner product makes of it",
 "keys": [
@@ -168,7 +168,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "dissipative",
-"html": "A force whose circulation round every closed path is strictly negative. Sliding friction, \\(-\\mu N\\hat v\\), is the standard example, and makes \\(T+V\\) non-increasing along every motion.",
+"html": "A force whose circulation round every closed path is strictly negative. Sliding friction, \\(-\\mu N\\hat v\\) — with \\(N\\) the size of the normal force pressing the surfaces together, \\(\\mu\\) the coefficient of friction and \\(\\hat v\\) the unit vector along the velocity — is the standard example, and makes \\(T+V\\) non-increasing along every motion.",
 "section": "Conservative fields, and the first integral they give",
 "slide": "Two forces outside the frame, for opposite reasons",
 "keys": [
@@ -195,7 +195,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "irrotational",
-"html": "The same condition, in the language of section 3: \\(\\mathrm{curl}\\,\\vec F = \\vec 0\\).",
+"html": "Another name for closed, \\(\\partial_j F_i = \\partial_i F_j\\). The name anticipates the slide <em>What the curl is</em>, where in \\(\\mathbb R^3\\) the condition turns out to say that the curl — the field's local rate of rotation — is \\(\\vec 0\\).",
 "section": "The curl, and how much a local test can promise",
 "slide": "A necessary condition, free from Clairaut",
 "keys": [
@@ -305,7 +305,7 @@ window.GLOSSARY = [
 "term_html": "de Rham cohomology",
 "html": "The space of closed fields modulo the conservative ones. Its dimension counts the domain's holes; for \\(\\mathbb R^2\\setminus\\{0\\}\\) it is one-dimensional, spanned by the vortex. Named here, built in unit 34.",
 "section": "The curl, and how much a local test can promise",
-"slide": "What the vortex measures is the domain",
+"slide": "Closed, conservative, and the holes between them",
 "keys": [
 "de rham cohomology"
 ]
@@ -390,7 +390,7 @@ window.GLOSSARY = [
 "term_html": "Earnshaw's theorem",
 "html": "No arrangement of fixed inverse-square sources has a stable equilibrium point in empty space. The half proved here: the Hessian of the potential has zero trace everywhere, so it is never positive definite and no critical point is a nondegenerate minimum; the maximum principle of unit 05 rules out degenerate minima too.",
 "section": "Potential landscapes",
-"slide": "Worked: two masses, and why the middle is a saddle",
+"slide": "The saddle between two masses, in numbers",
 "keys": [
 "earnshaw's theorem"
 ]
@@ -424,9 +424,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "regular value",
-"html": "A value whose level set contains no critical point. Its level set is then a \\(C^1\\) submanifold, which is where unit 31's manifolds come from.",
+"html": "A value whose level set contains no critical point — no point where the gradient vanishes. Its level set is then a \\(C^1\\) submanifold, which is where unit 31's manifolds come from.",
 "section": "Constraints, and where the multiplier comes from",
-"slide": "The implicit function theorem",
+"slide": "The implicit function theorem on a sphere",
 "keys": [
 "regular value"
 ]
@@ -435,7 +435,7 @@ window.GLOSSARY = [
 "term_html": "constraint surface",
 "html": "A level set \\(\\{g = 0\\}\\) a particle is confined to. Near a point where \\(\\nabla g \\ne \\vec 0\\) it is a graph, so it has honest coordinates and a well-defined tangent space \\(\\ker Dg\\).",
 "section": "Constraints, and where the multiplier comes from",
-"slide": "The implicit function theorem",
+"slide": "The implicit function theorem on a sphere",
 "keys": [
 "constraint surface"
 ]
@@ -451,9 +451,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "constraint force",
-"html": "The force a smooth constraint exerts, necessarily normal to the surface, \\(\\vec N = \\mu\\nabla g\\). Equilibrium on the surface is exactly Lagrange's condition with \\(f = V\\) and \\(\\lambda = -\\mu\\), so the multiplier is the constraint force and \\(\\lVert\\vec N\\rVert = |\\lambda|\\lVert\\nabla g\\rVert\\).",
+"html": "The force a smooth constraint \\(\\{g = 0\\}\\) exerts, necessarily normal to the surface, so \\(\\vec N = \\nu\\nabla g\\) for some number \\(\\nu\\). Equilibrium on the surface is exactly Lagrange's condition with \\(f = V\\) and \\(\\lambda = -\\nu\\), so the multiplier is the constraint force and \\(\\lVert\\vec N\\rVert = |\\lambda|\\lVert\\nabla g\\rVert\\).",
 "section": "Constraints, and where the multiplier comes from",
-"slide": "Lagrange multipliers, derived",
+"slide": "What the multiplier is: the force of the constraint",
 "keys": [
 "constraint force"
 ]

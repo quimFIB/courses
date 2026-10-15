@@ -121,7 +121,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "field momentum density",
-"html": "\\(\\vec g = \\varepsilon_0\\vec E\\times\\vec B = \\vec S/c^2\\). With the stress tensor it satisfies \\(\\partial_t\\vec g - \\operatorname{div}T = -(\\rho\\vec E + \\vec J\\times\\vec B)\\).",
+"html": "\\(\\vec g = \\varepsilon_0\\vec E\\times\\vec B = \\mu_0\\varepsilon_0\\vec S\\), the momentum of the field per unit volume; section 4 writes \\(\\mu_0\\varepsilon_0 = 1/c^2\\), so \\(\\vec g = \\vec S/c^2\\). With the stress tensor it satisfies \\(\\partial_t\\vec g - \\operatorname{div}T = -(\\rho\\vec E + \\vec J\\times\\vec B)\\).",
 "section": "The complete system: energy and momentum",
 "slide": "Momentum, and the Maxwell stress tensor",
 "keys": [
@@ -267,7 +267,7 @@ window.GLOSSARY = [
 "term_html": "retarded potentials",
 "html": "\\(\\varphi = \\frac{1}{4\\pi\\varepsilon_0}\\int\\rho(\\vec y,t_\\mathrm r)/|\\vec x - \\vec y|\\) and \\(\\vec A = \\frac{\\mu_0}{4\\pi}\\int\\vec J(\\vec y,t_\\mathrm r)/|\\vec x - \\vec y|\\). They satisfy the Lorenz condition because charge is conserved, and so solve Maxwell's equations.",
 "section": "The retarded Green's function",
-"slide": "Retarded potentials",
+"slide": "The retarded potentials, and a switch-on",
 "keys": [
 "retarded potentials"
 ]
@@ -294,7 +294,7 @@ window.GLOSSARY = [
 "term_html": "strong Huygens principle",
 "html": "In three dimensions the solution at \\((\\vec x,t)\\) depends on the data only on the sphere \\(|\\vec y - \\vec x| = ct\\), so a localised disturbance passes with a sharp front and a sharp back.",
 "section": "The retarded Green's function",
-"slide": "Kirchhoff's formula, and sharp wavefronts",
+"slide": "A flash is seen as a flash",
 "keys": [
 "strong huygens principle"
 ]
@@ -321,7 +321,7 @@ window.GLOSSARY = [
 "term_html": "radiation field",
 "html": "The part of the field falling off as \\(1/r\\): \\(\\vec B = \\mu_0\\ddot{\\vec p}\\times\\hat r/4\\pi cr\\), \\(\\vec E = c\\vec B\\times\\hat r\\). It alone carries energy to infinity.",
 "section": "Radiation",
-"slide": "Far from a small source",
+"slide": "The radiation field",
 "keys": [
 "radiation field"
 ]

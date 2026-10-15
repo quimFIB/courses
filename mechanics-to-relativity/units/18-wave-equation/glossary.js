@@ -20,7 +20,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "dispersion relation",
-"html": "The function \\(\\omega(q)\\) giving a medium's frequency at each wavenumber. Unit 07's chain has the exact relation \\(\\omega(q) = (2c/a)\\sin(qa/2)\\); the string has \\(\\omega = cq\\).",
+"html": "The function \\(\\omega(q)\\) giving a medium's frequency at each wavenumber. Unit 07's chain of beads at spacing \\(a\\) has the exact relation \\(\\omega(q) = (2c/a)\\sin(qa/2)\\), with \\(c = \\sqrt{T/\\mu}\\); the string has \\(\\omega = cq\\).",
 "section": "From N masses to a field",
 "slide": "Unit 07's chain, one more time",
 "keys": [
@@ -56,7 +56,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "dispersive",
-"html": "Of a medium in which \\(\\omega/q\\) depends on \\(q\\), so a pulse spreads. The bead chain is dispersive, with \\(\\omega/cq = 1 - (qa)^2/24 + \\cdots\\). Nothing to do with damping: a dispersive medium may be perfectly conservative.",
+"html": "Of a medium in which \\(\\omega/q\\) depends on \\(q\\), so a pulse spreads. The bead chain (spacing \\(a\\)) is dispersive, with \\(\\omega/cq = 1 - (qa)^2/24 + \\cdots\\). Nothing to do with damping: a dispersive medium may be perfectly conservative.",
 "section": "From N masses to a field",
 "slide": "What the limit threw away",
 "keys": [
@@ -92,7 +92,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "discriminant",
-"html": "For \\(a\\,u_{xx} + 2b\\,u_{xy} + c\\,u_{yy}\\), the number \\(D = b^2 - ac = -\\det A\\). Its <em>sign</em> is invariant under change of coordinates, because \\(\\det \\tilde A = (\\det J)^2\\det A\\), and that sign is the type.",
+"html": "For \\(a\\,u_{xx} + 2b\\,u_{xy} + c\\,u_{yy}\\) (here \\(a, b, c\\) are coefficients, not the bead spacing or the wave speed), the number \\(D = b^2 - ac = -\\det A\\), where \\(A\\) is the symbol matrix \\(\\begin{pmatrix} a &amp; b\\\\ b &amp; c\\end{pmatrix}\\). Its <em>sign</em> is invariant under change of coordinates, because \\(\\det \\tilde A = (\\det J)^2\\det A\\), and that sign is the type.",
 "section": "What kind of equation is this?",
 "slide": "Three types, in two variables",
 "keys": [
@@ -128,7 +128,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "characteristic curve",
-"html": "A curve \\(\\psi = \\mathrm{const}\\) whose conormal \\(\\mathrm d\\psi\\) is characteristic. Its slope obeys the <em>ordinary</em> equation \\(a\\,m^2 - 2b\\,m + c = 0\\), \\(m = \\mathrm dy/\\mathrm dx\\). For the wave operator, the lines \\(x \\mp ct = \\mathrm{const}\\).",
+"html": "A curve \\(\\psi = \\mathrm{const}\\) whose conormal \\(\\mathrm d\\psi = (\\psi_x, \\psi_y)\\) — the covector perpendicular to the curve — is characteristic. Its slope obeys the <em>ordinary</em> equation \\(a\\,m^2 - 2b\\,m + c = 0\\), \\(m = \\mathrm dy/\\mathrm dx\\). For the wave operator, the lines \\(x \\mp ct = \\mathrm{const}\\).",
 "section": "What kind of equation is this?",
 "slide": "Reduction to canonical form",
 "keys": [
@@ -137,7 +137,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "canonical form",
-"html": "What an equation becomes in coordinates adapted to its characteristics, up to lower-order terms: \\(u_{\\xi\\eta} = \\Phi\\) (hyperbolic), \\(u_{\\eta\\eta} = \\Phi\\) (parabolic), \\(u_{\\alpha\\alpha} + u_{\\beta\\beta} = \\Phi\\) (elliptic). Three equations, and no fourth.",
+"html": "What an equation becomes in coordinates adapted to its characteristics, with \\(\\Phi\\) standing for the lower-order terms: \\(u_{\\xi\\eta} = \\Phi\\) (hyperbolic), \\(u_{\\eta\\eta} = \\Phi\\) (parabolic), \\(u_{\\alpha\\alpha} + u_{\\beta\\beta} = \\Phi\\) (elliptic). Three equations, and no fourth.",
 "section": "What kind of equation is this?",
 "slide": "Reduction to canonical form",
 "keys": [

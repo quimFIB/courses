@@ -47,7 +47,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "FLRW metric",
-"html": "\\(\\mathrm ds^2 = -c^2\\mathrm dt^2 + a(t)^2[\\mathrm dr^2/(1-kr^2) + r^2\\mathrm d\\Omega^2]\\), the only metric compatible with the cosmological principle. Named for Friedmann, Lemaître, Robertson and Walker.",
+"html": "\\(\\mathrm ds^2 = -c^2\\mathrm dt^2 + a(t)^2[\\mathrm dr^2/(1-kr^2) + r^2\\mathrm d\\Omega^2]\\), the only metric compatible with the cosmological principle; \\(a\\) is the scale factor, \\(k\\) the curvature constant and \\(\\mathrm d\\Omega^2 = \\mathrm d\\theta^2 + \\sin^2\\theta\\,\\mathrm d\\phi^2\\). Named for Friedmann, Lemaître, Robertson and Walker.",
 "section": "The assumption, and the geometry it forces",
 "slide": "The FLRW metric, and why there is no other",
 "keys": [
@@ -110,7 +110,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Hubble's law",
-"html": "\\(\\dot d = Hd\\) for proper distance, exact in FLRW because \\(\\chi\\) is constant. At small redshift it becomes the observed \\(cz \\approx H_0d\\).",
+"html": "\\(\\dot d = Hd\\) for proper distance, exact in FLRW because \\(\\chi\\) is constant. At small redshift \\(z\\) (defined by \\(1 + z = 1/a\\) at emission; section 5) it becomes the observed \\(cz \\approx H_0d\\).",
 "section": "The assumption, and the geometry it forces",
 "slide": "Proper distance, Hubble's law, conformal time",
 "keys": [
@@ -121,7 +121,7 @@ window.GLOSSARY = [
 "term_html": "conformal time",
 "html": "\\(\\eta\\) with \\(\\mathrm d\\eta = \\mathrm dt/a\\). In it the FLRW metric is \\(a^2\\) times a static metric, radial light rays are \\(45°\\) lines, and the particle horizon is \\(c\\eta\\).",
 "section": "The assumption, and the geometry it forces",
-"slide": "Proper distance, Hubble's law, conformal time",
+"slide": "Conformal time straightens light rays",
 "keys": [
 "conformal time"
 ]
@@ -157,7 +157,7 @@ window.GLOSSARY = [
 "term_html": "Einstein static universe",
 "html": "Einstein's 1917 model: dust with \\(\\dot a = \\ddot a = 0\\), requiring \\(\\Lambda = 4\\pi G\\rho/c^2\\) and closed space with \\(k/a^2 = \\Lambda\\). It sits at the maximum of the effective potential and is unstable.",
 "section": "Friedmann as an energy equation",
-"slide": "What the potential says",
+"slide": "The Einstein static universe",
 "keys": [
 "einstein static universe"
 ]
@@ -184,7 +184,7 @@ window.GLOSSARY = [
 "term_html": "deceleration parameter",
 "html": "\\(q = -\\ddot aa/\\dot a^2\\). Today \\(q_0 = \\tfrac12\\Omega_{\\mathrm m} + \\Omega_{\\mathrm r} - \\Omega_\\Lambda\\), which is \\(-0.53\\) for the running example: the expansion accelerates.",
 "section": "Friedmann as an energy equation",
-"slide": "Critical density and the density parameters",
+"slide": "Matter against Λ: the plane of models",
 "keys": [
 "deceleration parameter"
 ]
@@ -272,7 +272,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Hubble tension",
-"html": "The disagreement between \\(H_0 = 67.4 \\pm 0.5\\) inferred from the CMB through the flat \\(\\Lambda\\)CDM model and \\(73.0 \\pm 1.0\\) from the distance ladder, about \\(4.9\\sigma\\). Open.",
+"html": "The disagreement between \\(H_0 = 67.4 \\pm 0.5\\) inferred from the CMB through the flat \\(\\Lambda\\) + cold dark matter model and \\(73.0 \\pm 1.0\\) from the distance ladder, about \\(4.9\\sigma\\). Open.",
 "section": "What light tells us",
 "slide": "The Hubble tension",
 "keys": [

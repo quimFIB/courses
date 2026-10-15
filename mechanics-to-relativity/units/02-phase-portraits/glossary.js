@@ -76,7 +76,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "one-parameter group property",
-"html": "\\(\\varphi_{t+s} = \\varphi_t \\circ \\varphi_s\\) and \\(\\varphi_0 = \\mathrm{id}\\), proved from uniqueness alone. When every solution is global this makes \\(t \\mapsto \\varphi_t\\) a homomorphism \\((\\mathbb{R},+) \\to \\mathrm{Homeo}(U)\\).",
+"html": "\\(\\varphi_{t+s} = \\varphi_t \\circ \\varphi_s\\) and \\(\\varphi_0 = \\mathrm{id}\\), proved from uniqueness alone. When every solution is global this makes \\(t \\mapsto \\varphi_t\\) a homomorphism \\((\\mathbb{R},+) \\to \\mathrm{Homeo}(U)\\), the group under composition of homeomorphisms of \\(U\\) (continuous bijections with continuous inverse).",
 "section": "Vector fields, orbits and flows",
 "slide": "The flow is a one-parameter group",
 "keys": [
@@ -139,7 +139,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "hyperbolic",
-"html": "Of an equilibrium: no eigenvalue of \\(Df(\\mathbf x^*)\\) has zero real part. Exactly the hypothesis of Hartman–Grobman, and exactly what fails on the two lines \\(\\Delta = 0\\) and \\(\\tau = 0\\).",
+"html": "Of an equilibrium: no eigenvalue of \\(Df(\\mathbf x^*)\\) has zero real part. Exactly the hypothesis of Hartman–Grobman. In the plane, with \\(\\tau\\) and \\(\\Delta\\) the trace and determinant of \\(Df(\\mathbf x^*)\\), it fails exactly on the two lines \\(\\Delta = 0\\) and \\(\\tau = 0\\).",
 "section": "Equilibria and linearisation",
 "slide": "Hartman–Grobman, and the hole in it",
 "keys": [
@@ -157,7 +157,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "saddle",
-"html": "\\(\\Delta &lt; 0\\): real eigenvalues of opposite sign, one direction in and one out. Index \\(-1\\).",
+"html": "For a planar linear system with determinant \\(\\Delta\\) and trace \\(\\tau\\): \\(\\Delta &lt; 0\\), real eigenvalues of opposite sign, one direction in and one out. Index \\(-1\\).",
 "section": "Equilibria and linearisation",
 "slide": "Planar linear systems: two numbers decide",
 "keys": [
@@ -166,7 +166,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "node",
-"html": "\\(\\Delta &gt; 0\\), \\(\\tau^2 &gt; 4\\Delta\\): real eigenvalues of the same sign, orbits entering or leaving along eigendirections.",
+"html": "Determinant \\(\\Delta &gt; 0\\) and trace with \\(\\tau^2 &gt; 4\\Delta\\): real eigenvalues of the same sign, orbits entering or leaving along eigendirections.",
 "section": "Equilibria and linearisation",
 "slide": "Planar linear systems: two numbers decide",
 "keys": [
@@ -175,7 +175,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "spiral",
-"html": "\\(\\tau^2 &lt; 4\\Delta\\): complex eigenvalues \\(\\alpha \\pm i\\beta\\), the radius going as \\(e^{\\alpha t}\\) and the angle at rate \\(\\beta\\).",
+"html": "Trace and determinant with \\(\\tau^2 &lt; 4\\Delta\\): complex eigenvalues \\(\\alpha \\pm i\\beta\\), the radius going as \\(e^{\\alpha t}\\) and the angle at rate \\(\\beta\\).",
 "section": "Equilibria and linearisation",
 "slide": "Planar linear systems: two numbers decide",
 "keys": [
@@ -184,7 +184,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "centre",
-"html": "\\(\\tau = 0 &lt; \\Delta\\): purely imaginary eigenvalues, closed orbits in the linear system — and no information whatever about the nonlinear one.",
+"html": "Trace \\(\\tau = 0\\), determinant \\(\\Delta &gt; 0\\): purely imaginary eigenvalues, closed orbits in the linear system — and no information whatever about the nonlinear one.",
 "section": "Equilibria and linearisation",
 "slide": "Planar linear systems: two numbers decide",
 "keys": [
@@ -346,7 +346,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "index",
-"html": "Of a closed curve on which \\(f \\ne 0\\): the net number of turns the field makes along it, \\((\\vartheta(1)-\\vartheta(0))/2\\pi \\in \\mathbb{Z}\\). Invariant under any homotopy that avoids the zeros of \\(f\\).",
+"html": "Of a closed curve on which \\(f \\ne 0\\): the net number of turns the field makes along it, \\((\\vartheta(1)-\\vartheta(0))/2\\pi \\in \\mathbb{Z}\\). Unchanged when the curve is deformed continuously (a homotopy) without ever passing through a zero of \\(f\\).",
 "section": "The index of a vector field",
 "slide": "The index of a closed curve",
 "keys": [
@@ -373,7 +373,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "bifurcation",
-"html": "A parameter value at which the phase portrait stops being topologically equivalent to its neighbours. By Hartman–Grobman these can only occur where hyperbolicity fails.",
+"html": "A parameter value at which the phase portrait stops being topologically equivalent to its neighbours — no homeomorphism carries its orbits onto theirs while keeping the direction of time. By Hartman–Grobman these can only occur where hyperbolicity fails.",
 "section": "Bifurcations",
 "slide": "Families, and where the portrait breaks",
 "keys": [

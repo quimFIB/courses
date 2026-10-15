@@ -29,7 +29,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "proper time",
-"html": "The Lorentzian arc length of a worldline, \\(\\tau = \\frac1c\\int\\sqrt{-\\eta(\\gamma',\\gamma')}\\,\\mathrm{d}\\lambda\\): what a clock carried along it reads. Independent of the parametrisation; \\(\\mathrm{d}\\tau = \\mathrm{d}t/\\gamma\\) in a frame.",
+"html": "The Lorentzian arc length of a worldline, \\(\\tau = \\frac1c\\int\\sqrt{-\\eta(\\gamma',\\gamma')}\\,\\mathrm{d}\\lambda\\): what a clock carried along it reads. Here \\(\\gamma\\) is the worldline. Independent of the parametrisation; in a frame where the particle has speed \\(v\\), \\(\\mathrm{d}\\tau = \\sqrt{1 - v^2/c^2}\\,\\mathrm{d}t\\).",
 "section": "Four-vectors",
 "slide": "Proper time is arc length",
 "keys": [
@@ -47,7 +47,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "four-velocity",
-"html": "\\(u = \\mathrm{d}\\gamma/\\mathrm{d}\\tau\\), the tangent of a worldline parametrised by proper time. Always \\(\\eta(u,u) = -c^2\\); in a frame \\(u = \\gamma(c,\\vec v)\\).",
+"html": "\\(u = \\mathrm{d}\\gamma/\\mathrm{d}\\tau\\), the tangent of a worldline \\(\\gamma\\) parametrised by proper time \\(\\tau\\). Always \\(\\eta(u,u) = -c^2\\); in a frame where the particle has velocity \\(\\vec v\\), \\(u = (c,\\vec v)/\\sqrt{1 - v^2/c^2}\\).",
 "section": "Four-vectors",
 "slide": "Four-velocity, and the constraint it obeys",
 "keys": [
@@ -191,7 +191,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Mandelstam invariants",
-"html": "For \\(a + b\\to c + d\\): \\(s = -c^2\\eta(p_a+p_b,p_a+p_b)\\), \\(t = -c^2\\eta(p_a-p_c,p_a-p_c)\\), \\(u = -c^2\\eta(p_a-p_d,p_a-p_d)\\), with \\(s + t + u = \\sum m_i^2c^4\\). \\(\\sqrt s\\) is the energy in the centre-of-momentum frame.",
+"html": "For \\(a + b\\to c + d\\), with \\(p_a, \\dots, p_d\\) the four-momenta: \\(s = -c^2\\eta(p_a+p_b,p_a+p_b)\\), \\(t = -c^2\\eta(p_a-p_c,p_a-p_c)\\), \\(u = -c^2\\eta(p_a-p_d,p_a-p_d)\\), with \\(s + t + u = \\sum m_i^2c^4\\). \\(\\sqrt s\\) is the energy in the centre-of-momentum frame.",
 "section": "Systems, collisions, thresholds",
 "slide": "Squaring, and the Mandelstam invariants",
 "keys": [
@@ -200,7 +200,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "threshold",
-"html": "The least initial \\(s\\) for which a reaction is kinematically possible: \\((\\sum m_f)^2c^4\\), reached when the products are at rest together in the centre-of-momentum frame.",
+"html": "The least value of the invariant \\(s\\) — the squared total energy in the centre-of-momentum frame — for which a reaction is kinematically possible: \\((\\sum m_f)^2c^4\\), reached when the products are at rest together in the centre-of-momentum frame.",
 "section": "Systems, collisions, thresholds",
 "slide": "Thresholds",
 "keys": [
@@ -211,14 +211,14 @@ window.GLOSSARY = [
 "term_html": "two-body decay",
 "html": "\\(M \\to m_1 + m_2\\). At rest, the products have a single, fixed momentum — a line, not a spectrum.",
 "section": "Systems, collisions, thresholds",
-"slide": "A decay: \\pi^+\\to\\mu^+\\nu_\\mu",
+"slide": "Two bodies, one momentum",
 "keys": [
 "two-body decay"
 ]
 },
 {
 "term_html": "relativistic rocket",
-"html": "A rocket with exhaust speed \\(w\\) in its own rest frame gains rapidity \\(\\theta = (w/c)\\ln(M_i/M_f)\\). Tsiolkovsky's equation with rapidity in place of speed.",
+"html": "A rocket with exhaust speed \\(w\\) in its own rest frame gains rapidity \\(\\theta = (w/c)\\ln(M_i/M_f)\\), where rapidity is defined by speed \\(v = c\\tanh\\theta\\) and \\(M_i, M_f\\) are the initial and final rest masses. Tsiolkovsky's equation with rapidity in place of speed.",
 "section": "Systems, collisions, thresholds",
 "slide": "The relativistic rocket: fuel buys rapidity",
 "keys": [
@@ -265,7 +265,7 @@ window.GLOSSARY = [
 "term_html": "Herglotz–Noether theorem",
 "html": "A Born-rigid motion has three degrees of freedom, not six; in particular a body at rest cannot be set rotating Born-rigidly. Cited (Herglotz; F. Noether, 1910).",
 "section": "Acceleration, and why nothing is rigid",
-"slide": "The Ehrenfest disc, and unit 16's missing successor",
+"slide": "Rigid motion has three degrees of freedom, not six",
 "keys": [
 "herglotz–noether theorem"
 ]

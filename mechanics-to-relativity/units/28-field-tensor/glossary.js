@@ -29,7 +29,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "tensor field on Minkowski space",
-"html": "A tensor of fixed type attached to every event, varying smoothly. Unit 22's three-dimensional version, with \\(\\mathbb R^3\\) replaced by \\(V\\) and \\(\\delta\\) by \\(\\eta\\).",
+"html": "A tensor of fixed type attached to every event, varying smoothly. The tensor is unit 16's, with \\(\\mathbb R^3\\) replaced by \\(V\\) and \\(\\delta\\) by \\(\\eta\\); letting it vary from point to point is what unit 22 did for stress.",
 "section": "One field, not two",
 "slide": "The field tensor, defined",
 "keys": [
@@ -272,9 +272,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "synchrotron loss",
-"html": "For circular motion, \\(a\\cdot a = \\gamma^4|\\vec a|^2\\) and the energy lost per turn is \\(\\Delta E = q^2\\gamma^4/3\\varepsilon_0\\rho\\): 3.41 GeV per turn for LEP electrons at 104.5 GeV, 5.94 keV for LHC protons at 6.8 TeV.",
+"html": "For circular motion, \\(a\\cdot a = \\gamma^4|\\vec a|^2\\) and the energy lost per turn is \\(\\Delta E = q^2\\gamma^4/3\\varepsilon_0R\\), with \\(R\\) the ring's bending radius: 3.41 GeV per turn for LEP electrons at 104.5 GeV, 5.93 keV for LHC protons at 6.8 TeV.",
 "section": "Radiation, honestly",
-"slide": "Larmor, made covariant",
+"slide": "Synchrotron loss: the \\gamma^4 that ended LEP",
 "keys": [
 "synchrotron loss"
 ]

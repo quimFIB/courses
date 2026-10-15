@@ -47,7 +47,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Schwarzschild metric",
-"html": "\\(\\mathrm ds^2 = -(1 - r_s/r)c^2\\mathrm dt^2 + (1 - r_s/r)^{-1}\\mathrm dr^2 + r^2\\mathrm d\\Omega^2\\): the unique round vacuum solution of the Einstein equations, derived from the ansatz with \\(R_{\\mu\\nu} = 0\\) and the Newtonian limit.",
+"html": "\\(\\mathrm ds^2 = -(1 - r_s/r)c^2\\mathrm dt^2 + (1 - r_s/r)^{-1}\\mathrm dr^2 + r^2\\mathrm d\\Omega^2\\), where \\(r_s = 2GM/c^2\\) is set by the mass \\(M\\) and \\(\\mathrm d\\Omega^2 = \\mathrm d\\theta^2 + \\sin^2\\theta\\,\\mathrm d\\varphi^2\\) is the metric of the unit sphere: the unique round vacuum solution of the Einstein equations, derived from the ansatz with \\(R_{\\mu\\nu} = 0\\) and the Newtonian limit.",
 "section": "Solving the vacuum equations",
 "slide": "The constant, from the Newtonian limit",
 "keys": [
@@ -85,7 +85,7 @@ window.GLOSSARY = [
 "term_html": "relativistic shell theorem",
 "html": "The interior of an empty round cavity is flat spacetime, with clocks slowed relative to infinity by a constant factor. Newton's shell theorem with a redshift added.",
 "section": "Birkhoff's theorem",
-"slide": "Two consequences: silence, and a flat cavity",
+"slide": "Inside a hollow shell: flat, but slow",
 "keys": [
 "relativistic shell theorem"
 ]
@@ -101,7 +101,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "specific energy",
-"html": "\\(E = -g(\\partial_t,\\dot x) = (1 - r_s/r)c^2\\dot t\\), the conserved quantity of the time-translation Killing field, per unit rest mass. Far away \\(E\\approx c^2 + \\tfrac12v^2 - GM/r\\).",
+"html": "\\(E = -g(\\partial_t,\\dot x) = (1 - r_s/r)c^2\\dot t\\), with \\(\\dot x\\) the four-velocity: the conserved quantity of the time-translation Killing field, per unit rest mass. Far away \\(E\\approx c^2 + \\tfrac12v^2 - GM/r\\).",
 "section": "Killing fields and constants of motion",
 "slide": "Worked example 3 — E, L, and the radial equation",
 "keys": [
@@ -121,7 +121,7 @@ window.GLOSSARY = [
 "term_html": "coordinate singularity",
 "html": "A place where a chart's components misbehave but the geometry extends smoothly; some other chart covers it. Dismissed by exhibiting that chart.",
 "section": "Two singularities",
-"slide": "Where the components misbehave",
+"slide": "Two kinds of singularity, and how each is proved",
 "keys": [
 "coordinate singularity"
 ]
@@ -130,7 +130,7 @@ window.GLOSSARY = [
 "term_html": "curvature singularity",
 "html": "An end of spacetime, reached by a geodesic in finite affine parameter, along which a curvature scalar is unbounded. Convicted by exhibiting the scalar; no chart can remove it.",
 "section": "Two singularities",
-"slide": "Where the components misbehave",
+"slide": "Two kinds of singularity, and how each is proved",
 "keys": [
 "curvature singularity"
 ]
@@ -155,7 +155,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "ingoing Eddington–Finkelstein coordinates",
-"html": "\\((v, r, \\theta, \\varphi)\\) with \\(v = ct + r_*\\). The metric becomes \\(-(1 - r_s/r)\\mathrm dv^2 + 2\\,\\mathrm dv\\,\\mathrm dr + r^2\\mathrm d\\Omega^2\\), smooth with nonzero determinant at \\(r = r_s\\): the proof that the horizon is a coordinate singularity.",
+"html": "\\((v, r, \\theta, \\varphi)\\) with \\(v = ct + r_*\\), \\(r_*\\) the tortoise coordinate. The metric becomes \\(-(1 - r_s/r)\\mathrm dv^2 + 2\\,\\mathrm dv\\,\\mathrm dr + r^2\\mathrm d\\Omega^2\\), smooth with nonzero determinant at \\(r = r_s\\): the proof that the horizon is a coordinate singularity.",
 "section": "Two singularities",
 "slide": "Worked example 4 — ingoing Eddington–Finkelstein coordinates",
 "keys": [
@@ -173,7 +173,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "event horizon",
-"html": "The boundary of the region from which a future causal curve can escape to infinity — precisely, the boundary of the causal past of \\(\\mathscr I^+\\). For Schwarzschild, \\(r = r_s\\). A global object, invisible to local measurement.",
+"html": "The boundary of the region from which a future causal curve can escape to infinity — precisely, the boundary of the causal past of future null infinity \\(\\mathscr I^+\\), where outgoing light rays end. For Schwarzschild, \\(r = r_s\\). A global object, invisible to local measurement.",
 "section": "Two singularities",
 "slide": "Nothing happens at the horizon, locally",
 "keys": [
@@ -245,7 +245,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Kruskal–Szekeres coordinates",
-"html": "\\(U = -e^{-u/2r_s}\\), \\(V = e^{v/2r_s}\\), with \\(u, v = ct \\mp r_*\\). The metric becomes \\(-(4r_s^3/r)e^{-r/r_s}\\mathrm dU\\,\\mathrm dV + r^2\\mathrm d\\Omega^2\\) with \\(UV = (1 - r/r_s)e^{r/r_s}\\), smooth on all of \\(UV \\lt 1\\).",
+"html": "\\(U = -e^{-u/2r_s}\\), \\(V = e^{v/2r_s}\\), with \\(u, v = ct \\mp r_*\\) the outgoing and ingoing null coordinates built from the tortoise coordinate \\(r_*\\). The metric becomes \\(-(4r_s^3/r)e^{-r/r_s}\\mathrm dU\\,\\mathrm dV + r^2\\mathrm d\\Omega^2\\) with \\(UV = (1 - r/r_s)e^{r/r_s}\\), smooth on all of \\(UV \\lt 1\\).",
 "section": "The whole spacetime",
 "slide": "Worked example 5 — Kruskal–Szekeres, step by step",
 "keys": [
@@ -263,7 +263,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "black hole region",
-"html": "Region II, \\(U, V \\gt 0\\): every future causal curve in it reaches \\(r = 0\\) within proper time \\(\\pi r_s/2c\\).",
+"html": "Region II of the Kruskal diagram, Kruskal coordinates \\(U, V \\gt 0\\): every future causal curve in it reaches \\(r = 0\\) within proper time \\(\\pi r_s/2c\\).",
 "section": "The whole spacetime",
 "slide": "Four regions, and which of them are real",
 "keys": [
@@ -281,7 +281,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Einstein–Rosen bridge",
-"html": "The throat of radius \\(r_s\\) joining the two exteriors I and III on the slice \\(T = 0\\). It pinches off too fast for any causal curve to cross it.",
+"html": "The throat of radius \\(r_s\\) joining the two exteriors I and III on the slice \\(T = (U + V)/2 = 0\\) of the Kruskal diagram. It pinches off too fast for any causal curve to cross it.",
 "section": "The whole spacetime",
 "slide": "Four regions, and which of them are real",
 "keys": [

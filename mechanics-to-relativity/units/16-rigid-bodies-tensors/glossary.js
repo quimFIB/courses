@@ -13,7 +13,7 @@ window.GLOSSARY = [
 "term_html": "configuration space",
 "html": "For a rigid body, \\(SO(3)\\times\\mathbb R^3\\): a rotation and a centre of mass, six dimensions. Not a vector space — rotations cannot be added — which is what forces section 6's coordinate trouble.",
 "section": "A body that cannot deform",
-"slide": "What a rigid body is, and where it lives",
+"slide": "A configuration is a rotation and a shift",
 "keys": [
 "configuration space"
 ]
@@ -69,7 +69,7 @@ window.GLOSSARY = [
 "term_html": "Rodrigues' formula",
 "html": "\\(\\exp(\\theta K) = \\mathbb 1 + \\sin\\theta\\,K + (1-\\cos\\theta)K^2\\) for \\(K\\vec u = \\hat n\\times\\vec u\\) with \\(\\hat n\\) a unit vector; the rotation by \\(\\theta\\) about \\(\\hat n\\). Proved from \\(K^3=-K\\).",
 "section": "A body that cannot deform",
-"slide": "so(3), and the exponential that gets you back",
+"slide": "Rodrigues' formula, drawn",
 "keys": [
 "rodrigues' formula"
 ]
@@ -125,7 +125,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "tensor",
-"html": "A multilinear map \\((V^*)^p\\times V^q\\to\\mathbb R\\). Not an array, and not a transformation law: both of those follow once a basis is chosen.",
+"html": "A multilinear map \\((V^*)^p\\times V^q\\to\\mathbb R\\), where \\(V^*\\), the dual space, is the space of linear maps \\(V\\to\\mathbb R\\). Not an array, and not a transformation law: both of those follow once a basis is chosen.",
 "section": "What a tensor actually is",
 "slide": "The definition",
 "keys": [
@@ -309,7 +309,7 @@ window.GLOSSARY = [
 "term_html": "gimbal lock",
 "html": "The rank drop at \\(\\theta = 0,\\pi\\), where only \\(\\dot\\phi+\\dot\\psi\\) is determined. Unavoidable: \\(SO(3)\\) is compact, so no homeomorphism onto an open subset of \\(\\mathbb R^3\\) exists, and every three-parameter description is singular somewhere.",
 "section": "Euler angles, and the tops",
-"slide": "Three angles, and where they fail",
+"slide": "Gimbal lock: no single chart covers the rotations",
 "keys": [
 "gimbal lock"
 ]
@@ -318,7 +318,7 @@ window.GLOSSARY = [
 "term_html": "steady precession",
 "html": "Motion of a heavy symmetric top at constant tilt \\(\\theta_0\\), requiring \\(I_1\\cos\\theta_0\\,\\dot\\phi^2 - L_3\\dot\\phi + Mgl = 0\\): a quadratic with a slow and a fast root, real only when \\(L_3^2\\ge4I_1Mgl\\cos\\theta_0\\). The elementary \\(\\dot\\phi\\simeq Mgl/L_3\\) is the slow root with the transverse angular momentum \\(I_1\\dot\\phi\\sin\\theta\\) dropped.",
 "section": "Euler angles, and the tops",
-"slide": "The heavy top, from a Lagrangian",
+"slide": "Steady precession, and the well it sits in",
 "keys": [
 "steady precession"
 ]
@@ -327,7 +327,7 @@ window.GLOSSARY = [
 "term_html": "nutation",
 "html": "Small oscillation of \\(\\theta\\) about \\(\\theta_0\\), at \\(\\omega_{\\mathrm{nut}} = \\sqrt{V_{\\mathrm{eff}}''(\\theta_0)/I_1}\\simeq L_3/I_1\\) for a fast top — much faster than the precession it rides on.",
 "section": "Euler angles, and the tops",
-"slide": "The heavy top, from a Lagrangian",
+"slide": "Steady precession, and the well it sits in",
 "keys": [
 "nutation"
 ]

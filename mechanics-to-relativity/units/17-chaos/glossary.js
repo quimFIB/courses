@@ -121,7 +121,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Lyapunov exponent",
-"html": "\\(\\lambda(z_0,\\delta_0) = \\limsup_{t\\to\\infty}\\frac1t \\ln\\lVert D\\varphi_t(z_0)\\delta_0\\rVert\\). Independent of the norm, constant along an orbit, and taking at most \\(2n\\) values. For a Hamiltonian system the spectrum is symmetric about zero and sums to zero, so a two-degree-of-freedom system has the single spectrum \\(\\{\\lambda_1, 0, 0, -\\lambda_1\\}\\).",
+"html": "The long-run exponential rate at which a small displacement grows along an orbit. For the orbit through \\(z_0\\), carry a starting displacement \\(\\delta_0\\) forward with \\(D\\varphi_t(z_0)\\), the derivative of the time-\\(t\\) flow map with respect to the starting point; then \\(\\lambda(z_0,\\delta_0) = \\limsup_{t\\to\\infty}\\frac1t \\ln\\lVert D\\varphi_t(z_0)\\delta_0\\rVert\\), and \\(\\lambda_1\\) is its largest value over \\(\\delta_0\\). Independent of the norm, constant along an orbit, and taking at most \\(2n\\) values. For a Hamiltonian system the spectrum is symmetric about zero and sums to zero, so a two-degree-of-freedom system has the single spectrum \\(\\{\\lambda_1, 0, 0, -\\lambda_1\\}\\).",
 "section": "Measuring sensitivity",
 "slide": "The Lyapunov exponent",
 "keys": [
@@ -193,7 +193,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Poincaré–Birkhoff theorem",
-"html": "An area-preserving twist map of an annulus that rotates the two boundary circles in opposite senses has at least two fixed points. Applied to \\(P^q\\), it says a resonant invariant circle is replaced by an even number of periodic points, alternately elliptic and hyperbolic — an island chain. Poincaré 1912, Birkhoff 1913; <em>cited</em>.",
+"html": "An area-preserving twist map of an annulus — one whose rotation number, the average fraction of a turn a point advances per iteration, varies monotonically across it — that rotates the two boundary circles in opposite senses has at least two fixed points. Applied to \\(P^q\\), it says an invariant circle of rotation number \\(p/q\\) is replaced by \\(2mq\\) points of period \\(q\\) for some integer \\(m\\ge1\\) (typically \\(m = 1\\)), alternately elliptic and hyperbolic — an island chain. Poincaré 1912, Birkhoff 1913; <em>cited</em>.",
 "section": "Perturbing an integrable system",
 "slide": "What becomes of the resonant tori",
 "keys": [

@@ -56,7 +56,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "stress tensor",
-"html": "The bilinear form \\(\\sigma(\\vec m, \\vec n) = \\vec m\\cdot\\vec t(\\vec n) = m_i\\sigma_{ij}n_j\\): a (0,2)-tensor at each point, and a tensor field as the point varies. Its components transform as \\(\\sigma' = R^{\\top}\\sigma R\\) under a rotation of basis — a theorem, from bilinearity. Physically, the flux of momentum.",
+"html": "The bilinear form \\(\\sigma(\\vec m, \\vec n) = \\vec m\\cdot\\vec t(\\vec n) = m_i\\sigma_{ij}n_j\\), where \\(\\vec t(\\vec n)\\) is the traction — the force per unit area — across a surface with unit normal \\(\\vec n\\): the component along \\(\\vec m\\) of that force. A (0,2)-tensor at each point, and a tensor field as the point varies. Under a rotation of basis by the orthogonal matrix \\(R\\) its components transform as \\(\\sigma' = R^{\\top}\\sigma R\\) — a theorem, from bilinearity. Physically, the flux of momentum.",
 "section": "Stress: the force on a surface",
 "slide": "Stress is a bilinear form",
 "keys": [
@@ -67,7 +67,7 @@ window.GLOSSARY = [
 "term_html": "normal stress",
 "html": "\\(\\sigma(\\vec n, \\vec n)\\), the component of the traction along the normal: positive for a pull (tension), negative for a push (compression).",
 "section": "Stress: the force on a surface",
-"slide": "Stress is a bilinear form",
+"slide": "Nine numbers on a cube",
 "keys": [
 "normal stress"
 ]
@@ -76,7 +76,7 @@ window.GLOSSARY = [
 "term_html": "shear stress",
 "html": "The part of the traction tangent to the surface, \\(\\vec t - \\sigma(\\vec n,\\vec n)\\,\\vec n\\).",
 "section": "Stress: the force on a surface",
-"slide": "Stress is a bilinear form",
+"slide": "Nine numbers on a cube",
 "keys": [
 "shear stress"
 ]
@@ -85,14 +85,14 @@ window.GLOSSARY = [
 "term_html": "principal stresses",
 "html": "The eigenvalues of the symmetric stress tensor. On the planes normal to its eigenvectors the traction is purely normal.",
 "section": "Stress: the force on a surface",
-"slide": "Stress is a bilinear form",
+"slide": "Nine numbers on a cube",
 "keys": [
 "principal stresses"
 ]
 },
 {
 "term_html": "fluid",
-"html": "A material that at rest sustains no shear stress on any plane; for small motions, an elastic material with shear modulus \\(\\mu = 0\\).",
+"html": "A material that at rest sustains no shear stress on any plane. In section 3's language, an elastic material whose shear modulus \\(\\mu\\) — its stiffness against a change of shape at fixed volume — is zero.",
 "section": "Stress: the force on a surface",
 "slide": "Pressure is the isotropic part",
 "keys": [
@@ -157,7 +157,7 @@ window.GLOSSARY = [
 "term_html": "localisation lemma",
 "html": "If \\(f\\) is continuous and its integral over every ball is zero, then \\(f \\equiv 0\\). The step that turns an integral budget into a PDE.",
 "section": "Conservation laws in local form",
-"slide": "Mass: from a budget to a field equation",
+"slide": "Localise: the continuity equation",
 "keys": [
 "localisation lemma"
 ]
@@ -166,7 +166,7 @@ window.GLOSSARY = [
 "term_html": "continuity equation",
 "html": "\\(\\partial_t\\rho + \\nabla\\cdot(\\rho\\vec v) = 0\\): local conservation of mass.",
 "section": "Conservation laws in local form",
-"slide": "Mass: from a budget to a field equation",
+"slide": "Localise: the continuity equation",
 "keys": [
 "continuity equation"
 ]
@@ -238,7 +238,7 @@ window.GLOSSARY = [
 "term_html": "Euler's expansion formula",
 "html": "\\(\\partial_tJ = (\\nabla\\cdot\\vec v)J\\) for the Jacobian determinant \\(J = \\det D\\varphi_t\\) of the flow map: divergence is the rate of volume growth.",
 "section": "Conservation laws in local form",
-"slide": "The Reynolds transport theorem",
+"slide": "The transport theorem, proved by pulling back",
 "keys": [
 "euler's expansion formula"
 ]
@@ -247,7 +247,7 @@ window.GLOSSARY = [
 "term_html": "Jacobi's formula",
 "html": "\\(\\frac{\\mathrm d}{\\mathrm dt}\\det F = \\det F\\, \\operatorname{tr}(F^{-1}\\dot F)\\), from \\(\\det(I + hB) = 1 + h\\operatorname{tr}B + O(h^2)\\).",
 "section": "Conservation laws in local form",
-"slide": "The Reynolds transport theorem",
+"slide": "The transport theorem, proved by pulling back",
 "keys": [
 "jacobi's formula"
 ]
@@ -283,7 +283,7 @@ window.GLOSSARY = [
 "term_html": "Archimedes' principle",
 "html": "A fluid at rest pushes on an immersed body with an upward force equal to the weight of the displaced fluid, whatever the body's shape — the tensor divergence theorem applied to \\(-pI\\).",
 "section": "Conservation laws in local form",
-"slide": "Archimedes, from the divergence theorem",
+"slide": "Archimedes: deeper water pushes harder",
 "keys": [
 "archimedes' principle"
 ]
@@ -605,7 +605,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "stress–energy tensor",
-"html": "\\(T^{\\mu\\nu}\\), the symmetric \\(4\\times4\\) object of units 29 and 35 assembling energy density, energy flux and momentum flux; \\(\\partial_\\mu T^{\\mu\\nu} = 0\\) is local conservation of energy and momentum. Flagged here, not used.",
+"html": "\\(T^{\\mu\\nu}\\), the symmetric \\(4\\times4\\) object of units 29 and 35 assembling energy density, energy flux and momentum flux; its indices \\(\\mu, \\nu\\) run over \\(0\\) (time) and \\(1, 2, 3\\) (space) — this \\(\\mu\\) is an index, not the shear modulus — and \\(\\partial_\\mu T^{\\mu\\nu} = 0\\), summed over \\(\\mu\\), is local conservation of energy and momentum. Flagged here, not used.",
 "section": "Sound",
 "slide": "Energy in a sound wave, and a preview of the stress–energy tensor",
 "keys": [

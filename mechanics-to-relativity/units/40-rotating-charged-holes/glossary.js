@@ -2,7 +2,7 @@
 window.GLOSSARY = [
 {
 "term_html": "ergosphere",
-"html": "The region \\(r_+ \\lt r \\lt r_{\\mathrm E}(\\theta)\\) where \\(g_{tt} \\gt 0\\), so \\(\\partial_t\\) is spacelike and no observer can hold \\(r, \\theta, \\varphi\\) fixed. Not a sphere: it is pinched to zero thickness at the poles and thickest at the equator. Escape from it is still possible; only standing still is not.",
+"html": "The region outside a rotating hole's horizon where nothing can stand still: \\(r_+ \\lt r \\lt r_{\\mathrm E}(\\theta)\\), between the outer horizon \\(r_+ = r_g + \\sqrt{r_g^2 - a^2}\\) and the ergosurface \\(r_{\\mathrm E}(\\theta) = r_g + \\sqrt{r_g^2 - a^2\\cos^2\\theta}\\). There \\(g_{tt} \\gt 0\\), so \\(\\partial_t\\) is spacelike and no observer can hold \\(r, \\theta, \\varphi\\) fixed. Not a sphere: it is pinched to zero thickness at the poles and thickest at the equator. Escape from it is still possible; only standing still is not.",
 "section": "Rotation: the Kerr metric",
 "slide": "Worked example 1 — the ergosphere, and the end of standing still",
 "keys": [
@@ -11,7 +11,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "surface gravity",
-"html": "The constant \\(\\kappa\\) defined on a Killing horizon by \\(\\nabla^\\mu(\\xi_\\nu\\xi^\\nu) = -(2\\kappa/c)\\,\\xi^\\mu\\); equivalently the non-affinity of the horizon generators, \\(\\xi^\\nu\\nabla_\\nu\\xi^\\mu = (\\kappa/c)\\,\\xi^\\mu\\), with \\(\\xi\\) normalised to \\(\\xi\\cdot\\xi\\to-c^2\\) at infinity. Physically the redshifted proper acceleration of a stationary observer at the horizon: the force per unit mass applied at infinity, an acceleration in \\(\\mathrm{m\\,s^{-2}}\\).",
+"html": "The one number a stationary horizon carries, an acceleration: the force per unit mass that must be applied at infinity, through an ideal rope, to hold a body just above the horizon. Formally, on a Killing horizon — a null surface along which a symmetry vector field \\(\\xi\\) is null, here \\(\\xi = \\partial_t + \\Omega_{\\mathrm H}\\partial_\\varphi\\) — \\(\\kappa\\) is defined by \\(\\nabla^\\mu(\\xi_\\nu\\xi^\\nu) = -(2\\kappa/c)\\,\\xi^\\mu\\), equivalently \\(\\xi^\\nu\\nabla_\\nu\\xi^\\mu = (\\kappa/c)\\,\\xi^\\mu\\), with \\(\\xi\\) normalised to \\(\\xi\\cdot\\xi\\to-c^2\\) at infinity. In \\(\\mathrm{m\\,s^{-2}}\\); \\(c^4/4GM\\) for Schwarzschild.",
 "section": "Rotation: the Kerr metric",
 "slide": "Surface gravity",
 "keys": [
@@ -457,6 +457,24 @@ window.GLOSSARY = [
 "slide": "Trapped surfaces, and Penrose's theorem",
 "keys": [
 "trapped surface"
+]
+},
+{
+"term_html": "Cauchy surface",
+"html": "A spacelike hypersurface that every inextendible causal curve — one running as far as the spacetime allows, in both directions — crosses exactly once. Data on it determine the whole spacetime.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Trapped surfaces, and Penrose's theorem",
+"keys": [
+"cauchy surface"
+]
+},
+{
+"term_html": "globally hyperbolic",
+"html": "Possessing a Cauchy surface. Unit 35 met it as the property of the largest spacetime that initial data determine; Penrose's singularity theorem and Hawking's area theorem both assume it.",
+"section": "Collapse, trapped surfaces, singularities",
+"slide": "Trapped surfaces, and Penrose's theorem",
+"keys": [
+"globally hyperbolic"
 ]
 },
 {

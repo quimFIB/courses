@@ -49,7 +49,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "lift to velocities",
-"html": "The map a transformation of positions induces on velocities, by the chain rule: \\(\\dot q\\mapsto D_q\\Phi_s\\,\\dot q + \\partial_t\\Phi_s\\).",
+"html": "The map a transformation of positions induces on velocities, by the chain rule: \\(\\dot q\\mapsto D_q\\Phi_s\\,\\dot q + \\partial_t\\Phi_s\\), where \\(D_q\\Phi_s\\) is the Jacobian matrix of \\(\\Phi_s\\) in the \\(q\\) variables.",
 "section": "Symmetry, made precise",
 "slide": "Moving curves, and what the Lagrangian does",
 "keys": [
@@ -67,7 +67,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "induced variation of \\(L\\)",
-"html": "\\(\\delta L = \\frac{\\partial L}{\\partial q}\\cdot\\xi + \\frac{\\partial L}{\\partial\\dot q}\\cdot\\dot\\xi\\), the first-order change of the Lagrangian along a moved curve. Its integral is the variation of the action.",
+"html": "\\(\\delta L = \\frac{\\partial L}{\\partial q}\\cdot\\xi + \\frac{\\partial L}{\\partial\\dot q}\\cdot\\dot\\xi\\), the first-order change of the Lagrangian along a moved curve, with \\(\\dot\\xi\\) the time derivative of \\(\\xi\\) along the curve. Its integral is the variation of the action.",
 "section": "Symmetry, made precise",
 "slide": "Moving curves, and what the Lagrangian does",
 "keys": [
@@ -85,7 +85,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "quasi-symmetry",
-"html": "A family that changes \\(L\\) only by a total time derivative, \\(L(q_s,\\dot q_s,t) = L + \\frac{\\mathrm d}{\\mathrm dt}\\Lambda_s(q,t)\\); infinitesimally \\(\\delta L = \\dot F\\). It still maps solutions to solutions. The Galilean boost is one. Also called a divergence symmetry.",
+"html": "A family that changes \\(L\\) only by a total time derivative, \\(L(q_s,\\dot q_s,t) = L + \\frac{\\mathrm d}{\\mathrm dt}\\Lambda_s(q,t)\\); infinitesimally \\(\\delta L = \\dot F\\) with \\(F = \\partial_s\\Lambda_s|_{s=0}\\). It still maps solutions to solutions. The Galilean boost is one. Also called a divergence symmetry.",
 "section": "Symmetry, made precise",
 "slide": "Symmetry, and symmetry up to a total derivative",
 "keys": [
@@ -94,7 +94,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "off-shell",
-"html": "Holding for every curve, not only for solutions of the equations of motion (on-shell). A symmetry must hold off-shell: on-shell every \\(\\xi\\) satisfies \\(\\delta L = \\frac{\\mathrm d}{\\mathrm dt}(p\\cdot\\xi)\\) and the charge would be zero.",
+"html": "Holding for every curve, not only for solutions of the equations of motion (on-shell). A symmetry must hold off-shell: on-shell every \\(\\xi\\) satisfies \\(\\delta L = \\frac{\\mathrm d}{\\mathrm dt}(p\\cdot\\xi)\\), with \\(p = \\partial L/\\partial\\dot q\\), and the charge would be zero.",
 "section": "Symmetry, made precise",
 "slide": "Symmetry, and symmetry up to a total derivative",
 "keys": [
@@ -103,7 +103,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Noether's theorem",
-"html": "If \\(\\delta L = \\dot F\\) for every curve, with \\(\\xi\\) and \\(F\\) functions of \\((q,\\dot q,t)\\), then \\(Q = p\\cdot\\xi - F\\) is constant on every solution. Proof: \\(\\dot Q = \\dot p\\cdot\\xi + p\\cdot\\dot\\xi - \\dot F = \\delta L - \\dot F = 0\\).",
+"html": "If \\(\\delta L = \\dot F\\) for every curve, with \\(\\xi\\) and \\(F\\) functions of \\((q,\\dot q,t)\\), then \\(Q = p\\cdot\\xi - F\\), with \\(p = \\partial L/\\partial\\dot q\\), is constant on every solution. Proof: \\(\\dot Q = \\dot p\\cdot\\xi + p\\cdot\\dot\\xi - \\dot F = \\delta L - \\dot F = 0\\).",
 "section": "The theorem",
 "slide": "Noether's theorem",
 "keys": [
@@ -132,14 +132,14 @@ window.GLOSSARY = [
 "term_html": "energy function",
 "html": "\\(h = \\sum_i\\dot q_i\\,\\partial L/\\partial\\dot q_i - L\\), the Noether charge of time translation, with \\(\\dot h = -\\partial L/\\partial t\\) on-shell. Unit 11's Beltrami quantity, with the sign reversed.",
 "section": "Energy is time translation",
-"slide": "Time translation as a variation",
+"slide": "The energy function, and when it is conserved",
 "keys": [
 "energy function"
 ]
 },
 {
 "term_html": "Euler's theorem on homogeneous functions",
-"html": "If \\(f(\\lambda v) = \\lambda^kf(v)\\) for \\(\\lambda &gt; 0\\), then \\(v\\cdot\\nabla f = kf\\). It gives \\(h = L_2 - L_0\\), hence \\(h = T_2 - T_0 + V\\), which equals \\(T + V\\) only when the coordinates do not move.",
+"html": "If \\(f(\\lambda v) = \\lambda^kf(v)\\) for \\(\\lambda &gt; 0\\), then \\(v\\cdot\\nabla f = kf\\). Splitting \\(L\\) and \\(T\\) into parts \\(L_k\\), \\(T_k\\) homogeneous of degree \\(k\\) in the velocities, it gives \\(h = L_2 - L_0\\), hence \\(h = T_2 - T_0 + V\\), which equals \\(T + V\\) only when the coordinates do not move.",
 "section": "Energy is time translation",
 "slide": "When is h the energy?",
 "keys": [
@@ -148,7 +148,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Jacobi's integral",
-"html": "\\(h = E - \\Omega L_z\\), the energy function in coordinates rotating uniformly at \\(\\Omega\\); conserved when the rotating-frame Lagrangian has no explicit time. The bead on the rotating hoop has it, and so does the restricted three-body problem.",
+"html": "\\(h = E - \\Omega L_z\\), the energy function in coordinates rotating uniformly at angular speed \\(\\Omega\\), with \\(L_z\\) the angular momentum about the rotation axis; conserved when the rotating-frame Lagrangian has no explicit time. The bead on the rotating hoop has it, and so does the restricted three-body problem.",
 "section": "Energy is time translation",
 "slide": "Where the motor's work goes",
 "keys": [
@@ -157,7 +157,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "boost charge",
-"html": "\\(\\vec G = \\vec P t - M\\vec R\\), the charge of the Galilean boost \\(\\vec r_a\\mapsto\\vec r_a + st\\hat n\\), which changes \\(L\\) by \\(\\frac{\\mathrm d}{\\mathrm dt}(sM\\hat n\\cdot\\vec R + \\frac12Ms^2t)\\). Its conservation says the centre of mass moves uniformly.",
+"html": "\\(\\vec G = \\vec P t - M\\vec R\\), with \\(\\vec P\\) the total momentum, \\(M\\) the total mass and \\(\\vec R\\) the centre of mass: the charge of the Galilean boost \\(\\vec r_a\\mapsto\\vec r_a + st\\hat n\\), which changes \\(L\\) by \\(\\frac{\\mathrm d}{\\mathrm dt}(sM\\hat n\\cdot\\vec R + \\frac12Ms^2t)\\). Its conservation says the centre of mass moves uniformly.",
 "section": "Space: momentum, angular momentum, and the boost",
 "slide": "The boost, where L is not invariant",
 "keys": [
@@ -175,7 +175,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Galilean group",
-"html": "The ten-parameter group of maps \\((t,\\vec r)\\mapsto(t + t_0,\\ R\\vec r + \\vec vt + \\vec d)\\): time shift, space shifts, rotations, boosts. Its ten charges are \\(E\\), \\(\\vec P\\), \\(\\vec L\\), \\(\\vec G\\).",
+"html": "The ten-parameter group of maps \\((t,\\vec r)\\mapsto(t + t_0,\\ R\\vec r + \\vec vt + \\vec d)\\), with \\(R\\) a rotation, \\(\\vec v\\) a velocity and \\(\\vec d\\) a displacement: time shift, space shifts, rotations, boosts. Its ten charges are \\(E\\), \\(\\vec P\\), \\(\\vec L\\), \\(\\vec G\\).",
 "section": "Space: momentum, angular momentum, and the boost",
 "slide": "Ten symmetries, ten charges",
 "keys": [
@@ -184,7 +184,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Runge–Lenz vector",
-"html": "\\(\\vec A = \\vec p\\times\\vec L - \\mu k\\hat r\\) for the inverse-square law, pointing at perihelion with \\(|\\vec A| = \\mu ke\\). Unit 08 proved it conserved; it is the charge of no transformation of configuration space, but of a velocity-dependent symmetry.",
+"html": "\\(\\vec A = \\vec p\\times\\vec L - \\mu k\\hat r\\) for the inverse-square law \\(V = -k/r\\), with \\(\\mu\\) the reduced mass, \\(\\vec L\\) the angular momentum and \\(\\hat r\\) the unit vector from the Sun. It points at perihelion with \\(|\\vec A| = \\mu ke\\), \\(e\\) the eccentricity. Unit 08 proved it conserved; it is the charge of no transformation of configuration space, but of a velocity-dependent symmetry.",
 "section": "The hidden symmetry",
 "slide": "A conserved vector with no symmetry of space behind it",
 "keys": [

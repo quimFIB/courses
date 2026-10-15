@@ -301,7 +301,7 @@ window.GLOSSARY = [
 "term_html": "indentation lemma",
 "html": "A small arc of angle \\(\\alpha\\) round a simple pole on the contour contributes \\(i\\alpha\\) times the residue in the limit — half a residue for a semicircle.",
 "section": "Singularities and residues",
-"slide": "Worked: the Dirichlet integral, with an indentation",
+"slide": "Half a residue: the indentation lemma",
 "keys": [
 "indentation lemma"
 ]
@@ -373,7 +373,7 @@ window.GLOSSARY = [
 "term_html": "sum rule",
 "html": "An integral identity over the whole absorption spectrum forced by the dispersion relations and a known limit; here \\(\\int_0^\\infty\\omega \\chi''\\,\\mathrm d\\omega = \\pi/2\\), from the free-mass behaviour at high frequency.",
 "section": "Causality",
-"slide": "Worked: Kramers–Kronig on the galvanometer",
+"slide": "Kramers–Kronig on the galvanometer: the sum rule",
 "keys": [
 "sum rule"
 ]
@@ -398,7 +398,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Bromwich integral",
-"html": "\\(f(t) = \\frac1{2\\pi i}\\int_{c-i\\infty}^{c+i\\infty} F(s)e^{st}\\mathrm ds\\), along a vertical line to the right of every singularity. Closing left collects the poles for \\(t &gt; 0\\).",
+"html": "\\(f(t) = \\frac1{2\\pi i}\\int_{c-i\\infty}^{c+i\\infty} F(s)e^{st}\\mathrm ds\\), along a vertical line \\(\\mathrm{Re}\\,s = c\\) (\\(c\\) a real number, not the speed of light) to the right of every singularity. Closing left collects the poles for \\(t &gt; 0\\).",
 "section": "Causality",
 "slide": "The Laplace transform and the Bromwich contour",
 "keys": [
@@ -436,7 +436,7 @@ window.GLOSSARY = [
 "term_html": "Stirling's formula",
 "html": "\\(n!\\sim\\sqrt{2\\pi n}(n/e)^n\\), Laplace's method on \\(\\int t^ne^{-t}\\mathrm dt\\); low by \\(0.83\\%\\) at \\(n = 10\\).",
 "section": "Asymptotics of integrals",
-"slide": "Laplace's method",
+"slide": "Stirling's formula, by Laplace's method",
 "keys": [
 "stirling's formula"
 ]

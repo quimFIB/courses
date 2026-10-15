@@ -58,7 +58,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "apsidal frequency",
-"html": "The frequency \\(\\nu\\), in \\(\\varphi\\), of the radial oscillation of a nearly circular orbit: \\(\\nu = \\sqrt{1 - 6r_g/r_c}\\). The perihelion advances by \\(2\\pi(1/\\nu - 1)\\) per orbit, and \\(\\nu \\to 0\\) at the ISCO.",
+"html": "The frequency \\(\\nu\\), in \\(\\varphi\\), of the radial oscillation of a nearly circular orbit of radius \\(r_c\\): \\(\\nu = \\sqrt{1 - 6r_g/r_c}\\). The perihelion advances by \\(2\\pi(1/\\nu - 1)\\) per orbit, and \\(\\nu \\to 0\\) at the ISCO.",
 "section": "What the new term does close in",
 "slide": "Nearly circular orbits precess, exactly",
 "keys": [
@@ -85,9 +85,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "shadow",
-"html": "The dark disc of angular diameter \\(2\\cdot3\\sqrt3\\,r_g/D\\) that the captured rays leave in the image of a black hole at distance \\(D\\): \\(39.7\\ \\mu\\)as for M87* with \\(M = 6.5\\times10^9M_\\odot\\), \\(D = 16.8\\) Mpc.",
+"html": "The dark disc of angular diameter \\(2\\cdot3\\sqrt3\\,r_g/D\\) that the captured rays leave in the image of a black hole at distance \\(D\\): every direction within it traces back to the horizon. Its radius is the critical impact parameter \\(3\\sqrt3\\,r_g\\), not the horizon's \\(2r_g\\), because the hole bends rays in. \\(39.7\\ \\mu\\)as for M87* with \\(M = 6.5\\times10^9M_\\odot\\), \\(D = 16.8\\) Mpc.",
 "section": "What the new term does close in",
-"slide": "Light has a potential too: the photon sphere",
+"slide": "The shadow, and the ring the EHT saw",
 "keys": [
 "shadow"
 ]
@@ -112,7 +112,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "perihelion advance",
-"html": "\\(\\Delta\\varpi = 6\\pi GM/c^2a(1 - e^2)\\) per orbit, from the orbit equation by Poincaré–Lindstedt: the radial frequency is \\(\\nu = 1 - 3r_g/p\\).",
+"html": "The angle \\(\\Delta\\varpi\\) by which the closest point of an orbit of semi-major axis \\(a\\) and eccentricity \\(e\\) turns each revolution: \\(\\Delta\\varpi = 6\\pi GM/c^2a(1 - e^2)\\) per orbit, from the orbit equation by Poincaré–Lindstedt. The radial frequency is \\(\\nu = 1 - 3r_g/p\\), with \\(p = a(1 - e^2)\\) the semi-latus rectum.",
 "section": "Mercury: the 43",
 "slide": "Solving the orbit equation: Poincaré–Lindstedt",
 "keys": [
@@ -121,7 +121,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "secular term",
-"html": "In the naive expansion, the term \\(\\varepsilon e\\varphi\\sin\\varphi\\), which grows without bound. It is the first Taylor term of \\(\\cos((1 - \\varepsilon)\\varphi)\\), so it is the precession written badly, and deleting it would predict no precession at all.",
+"html": "In the naive expansion of the orbit \\(w = p/r\\) in the small parameter \\(\\varepsilon = 3r_g/p\\), the term \\(\\varepsilon e\\varphi\\sin\\varphi\\) (\\(e\\) the eccentricity), which grows without bound. It is the first Taylor term of \\(\\cos((1 - \\varepsilon)\\varphi)\\), so it is the precession written badly, and deleting it would predict no precession at all.",
 "section": "Mercury: the 43",
 "slide": "Why the secular term must not be removed",
 "keys": [
@@ -132,7 +132,7 @@ window.GLOSSARY = [
 "term_html": "light deflection",
 "html": "The total angle \\(4GM/c^2b\\) by which a ray of impact parameter \\(b\\) is bent: \\(1.7512''\\) at the Sun's limb.",
 "section": "Light: the factor of two",
-"slide": "Bending by general relativity",
+"slide": "Reading the angle off the asymptotes",
 "keys": [
 "light deflection"
 ]
@@ -150,7 +150,7 @@ window.GLOSSARY = [
 "term_html": "PPN parameter γ",
 "html": "The coefficient in \\(g_{rr} = 1 + 2\\gamma r_g/r\\): how much spatial curvature a unit of mass produces. \\(\\gamma = 1\\) in general relativity, \\(0\\) for Newtonian light; deflection and delay are proportional to \\((1 + \\gamma)/2\\).",
 "section": "Light: the factor of two",
-"slide": "Which metric component supplies the other half",
+"slide": "One incoming line, two rays",
 "keys": [
 "ppn parameter γ"
 ]
@@ -159,7 +159,7 @@ window.GLOSSARY = [
 "term_html": "Shapiro delay",
 "html": "The extra round-trip time \\((1 + \\gamma)(2GM/c^3)\\ln(4r_1r_2/b^2)\\) of a signal passing a mass at impact parameter \\(b\\). About \\(233\\ \\mu\\)s for a radar echo from Venus grazing the Sun.",
 "section": "Clocks: the delay and the redshift",
-"slide": "The Shapiro delay",
+"slide": "The delay, and how it falls off with b",
 "keys": [
 "shapiro delay"
 ]

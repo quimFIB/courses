@@ -2,7 +2,7 @@
 window.GLOSSARY = [
 {
 "term_html": "reduced mass",
-"html": "\\(\\mu = m_1m_2/(m_1+m_2)\\), equivalently \\(1/\\mu = 1/m_1 + 1/m_2\\). The mass that appears in the relative equation of motion \\(\\mu\\ddot{\\vec r} = f(r)\\hat r\\); always less than either mass, and tends to the lighter one as the heavier grows without bound; equal masses give \\(\\mu = m/2\\). For gravity \\(k/\\mu = G(m_1+m_2)\\), which is why Kepler's third law carries the total mass. Met on the overview, defined on",
+"html": "\\(\\mu = m_1m_2/(m_1+m_2)\\), equivalently \\(1/\\mu = 1/m_1 + 1/m_2\\). The mass that appears in the relative equation of motion \\(\\mu\\ddot{\\vec r} = f(r)\\hat r\\); always less than either mass, and tends to the lighter one as the heavier grows without bound; equal masses give \\(\\mu = m/2\\). For gravity, where the force between the two is \\(Gm_1m_2/r^2\\), the equation involves the masses only through \\(Gm_1m_2/\\mu = G(m_1+m_2)\\), which is why Kepler's third law carries the total mass. Met on the overview, defined on",
 "section": "Overview",
 "slide": "Reduced mass, and how much it actually matters",
 "keys": [
@@ -31,7 +31,7 @@ window.GLOSSARY = [
 "term_html": "Lagrange's identity",
 "html": "\\((\\vec a\\times\\vec b)\\cdot(\\vec c\\times\\vec d) = (\\vec a\\cdot\\vec c)(\\vec b\\cdot\\vec d) - (\\vec a\\cdot\\vec d)(\\vec b\\cdot\\vec c)\\). With \\(\\vec c = \\vec a\\), \\(\\vec d = \\vec b\\) it gives \\(\\lVert\\vec a\\times\\vec b\\rVert = \\lVert\\vec a\\rVert\\lVert\\vec b\\rVert\\sin\\varphi\\), the area of the parallelogram — which is why Kepler's second law is about area.",
 "section": "Angular momentum, and why the orbit is flat",
-"slide": "The identities unit 03 owed you",
+"slide": "The cross product measures area",
 "keys": [
 "lagrange's identity"
 ]
@@ -130,7 +130,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "eccentricity",
-"html": "The ratio \\(e\\) in \\(\\lVert X-F\\rVert = e\\,\\mathrm{dist}(X,D)\\): \\(0\\) for a circle, below \\(1\\) for an ellipse, \\(1\\) for a parabola, above \\(1\\) for a hyperbola. For a Kepler orbit \\(e = \\sqrt{1 + 2EL^2/\\mu k^2}\\).",
+"html": "The ratio \\(e\\) in \\(\\lVert X-F\\rVert = e\\,\\mathrm{dist}(X,D)\\): \\(0\\) for a circle, below \\(1\\) for an ellipse, \\(1\\) for a parabola, above \\(1\\) for a hyperbola. For a Kepler orbit, in the potential \\(V = -k/r\\) with energy \\(E\\), angular momentum \\(L\\) and reduced mass \\(\\mu\\), \\(e = \\sqrt{1 + 2EL^2/\\mu k^2}\\).",
 "section": "The Binet equation",
 "slide": "Conics, defined before they are met",
 "keys": [
@@ -148,7 +148,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "semi-latus rectum",
-"html": "\\(p = ed\\), the distance from the focus to the conic measured perpendicular to the axis: \\(r(\\pm\\pi/2) = p\\). For a Kepler orbit \\(p = L^2/\\mu k\\), set by the angular momentum alone.",
+"html": "\\(p = ed\\), the distance from the focus to the conic measured perpendicular to the axis: \\(r(\\pm\\pi/2) = p\\). For a Kepler orbit \\(p = L^2/\\mu k\\) (for \\(V = -k/r\\)), set by the angular momentum alone.",
 "section": "The Binet equation",
 "slide": "Conics, defined before they are met",
 "keys": [
@@ -157,9 +157,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "deflection angle",
-"html": "For an unbound orbit, the angle \\(\\Theta\\) between the incoming and outgoing directions of travel. For the inverse square, \\(\\sin(\\Theta/2) = 1/e\\) and \\(\\tan(\\Theta/2) = k/\\mu v_\\infty^2b\\): Rutherford's formula.",
+"html": "For an unbound orbit, the angle \\(\\Theta\\) between the incoming and outgoing directions of travel. For the inverse square \\(V = \\mp k/r\\), with \\(v_\\infty\\) the speed far away and \\(b\\) the impact parameter, \\(\\sin(\\Theta/2) = 1/e\\) and \\(\\tan(\\Theta/2) = k/\\mu v_\\infty^2b\\): Rutherford's formula.",
 "section": "The Binet equation",
-"slide": "One family, four members",
+"slide": "The unbound case: scattering",
 "keys": [
 "deflection angle"
 ]
@@ -168,7 +168,7 @@ window.GLOSSARY = [
 "term_html": "impact parameter",
 "html": "\\(b\\), the distance by which the incoming straight-line path would miss the centre if there were no force. Then \\(L = \\mu v_\\infty b\\).",
 "section": "The Binet equation",
-"slide": "One family, four members",
+"slide": "The unbound case: scattering",
 "keys": [
 "impact parameter"
 ]

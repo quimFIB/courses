@@ -128,7 +128,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "characteristic polynomial",
-"html": "\\(p(\\lambda) = \\lambda^2 + \\gamma\\lambda + \\omega_0^2\\), defined by \\(Le^{\\lambda t} = p(\\lambda)e^{\\lambda t}\\). Its roots \\(\\lambda_\\pm = -\\gamma/2 \\pm \\sqrt{\\gamma^2/4-\\omega_0^2}\\) decide everything, and both have \\(\\operatorname{Re}\\lambda \\le 0\\).",
+"html": "\\(p(\\lambda) = \\lambda^2 + \\gamma\\lambda + \\omega_0^2\\), the polynomial that appears when an exponential is substituted into the free equation: for \\(Lx = \\ddot x + \\gamma\\dot x + \\omega_0^2x\\), \\(Le^{\\lambda t} = p(\\lambda)e^{\\lambda t}\\), so \\(e^{\\lambda t}\\) solves \\(Lx = 0\\) exactly when \\(p(\\lambda) = 0\\). Its roots \\(\\lambda_\\pm = -\\gamma/2 \\pm \\sqrt{\\gamma^2/4-\\omega_0^2}\\) decide everything, and both have \\(\\operatorname{Re}\\lambda \\le 0\\).",
 "section": "The free equation, and its two-dimensional solution space",
 "slide": "The characteristic polynomial",
 "keys": [
@@ -155,9 +155,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Abel's identity",
-"html": "\\(\\dot W = -\\gamma W\\), so \\(W(t) = W(t_0)e^{-\\gamma(t-t_0)}\\): the Wronskian is never zero or identically zero. Read physically, the flow contracts phase-space area at the rate \\(\\gamma = -\\operatorname{tr}A\\), which is unit 14's Liouville theorem in miniature.",
+"html": "\\(\\dot W = -\\gamma W\\), so \\(W(t) = W(t_0)e^{-\\gamma(t-t_0)}\\): the Wronskian is never zero or identically zero. Read physically, the flow contracts phase-space area at the rate \\(\\gamma = -\\operatorname{tr}A\\), with \\(A\\) the matrix of the equivalent first-order system \\(\\dot y = Ay\\), \\(y = (x,\\dot x)\\) — unit 14's Liouville theorem in miniature.",
 "section": "The free equation, and its two-dimensional solution space",
-"slide": "The Wronskian, and Abel's identity",
+"slide": "Abel's identity, drawn: phase-space area shrinks",
 "keys": [
 "abel's identity"
 ]
@@ -166,7 +166,7 @@ window.GLOSSARY = [
 "term_html": "fundamental system",
 "html": "A basis \\(\\{x_1,x_2\\}\\) of \\(\\ker L\\). Equivalent to \\(W \\ne 0\\) at one instant, and to \\(W \\ne 0\\) at every instant — so independence may be checked at whichever \\(t\\) is convenient.",
 "section": "The free equation, and its two-dimensional solution space",
-"slide": "The Wronskian, and Abel's identity",
+"slide": "Abel's identity, drawn: phase-space area shrinks",
 "keys": [
 "fundamental system"
 ]
@@ -272,7 +272,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "phase lag",
-"html": "\\(\\varphi = \\arg(\\omega_0^2-\\omega^2+i\\gamma\\omega) \\in (0,\\pi)\\), by which the response follows the drive. It is exactly \\(\\pi/2\\) at \\(\\omega_0\\) whatever the damping, and sweeps from \\(0\\) (the drive fights the spring) to \\(\\pi\\) (it fights the inertia). Its slope there is \\(2Q/\\omega_0\\), which is why phase detection locates a resonance better than amplitude does.",
+"html": "The angle by which the steady response trails the drive: the drive \\(F_0\\cos\\omega t\\) produces \\(F_0|\\chi|\\cos(\\omega t-\\varphi)\\), with \\(\\varphi = \\arg(\\omega_0^2-\\omega^2+i\\gamma\\omega) \\in (0,\\pi)\\), the angle of that complex number measured from the positive real axis. It is exactly \\(\\pi/2\\) at \\(\\omega_0\\) whatever the damping, and sweeps from \\(0\\) (the drive fights the spring) to \\(\\pi\\) (it fights the inertia). Its slope there is \\(2Q/\\omega_0\\), which is why phase detection locates a resonance better than amplitude does.",
 "section": "Driving, and resonance",
 "slide": "The phase lag, and what it is good for",
 "keys": [
@@ -308,7 +308,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "impulse response",
-"html": "The function \\(G\\) with \\(G(t) = 0\\) for \\(t \\le 0\\), continuous, solving \\(LG = 0\\) on \\((0,\\infty)\\) with \\(G(0^+) = 0\\) and \\(\\dot G(0^+) = 1\\). Unique, because \\(\\mathrm{ev}\\) is a bijection, and equal to \\((e^{\\lambda_+t}-e^{\\lambda_-t})/(\\lambda_+-\\lambda_-)\\); underdamped this is \\(e^{-\\gamma t/2}\\sin(\\omega_\\mathrm{d}t)/\\omega_\\mathrm{d}\\), critically damped \\(te^{-\\omega_0t}\\). Also called the Green's function of \\(L\\); the defining jump is in the <em>derivative</em> because \\(L\\) is second order.",
+"html": "The oscillator's motion after a unit kick at \\(t = 0\\), starting from rest. Precisely, the function \\(G\\) with \\(G(t) = 0\\) for \\(t \\le 0\\), continuous, solving the free equation \\(\\ddot G + \\gamma\\dot G + \\omega_0^2G = 0\\) for \\(t &gt; 0\\), with \\(G(0^+) = 0\\) and \\(\\dot G(0^+) = 1\\). Unique, because a free solution is fixed by its position and velocity at one instant (unit 01's uniqueness theorem), and equal to \\((e^{\\lambda_+t}-e^{\\lambda_-t})/(\\lambda_+-\\lambda_-)\\), where \\(\\lambda_\\pm = -\\gamma/2 \\pm \\sqrt{\\gamma^2/4-\\omega_0^2}\\) are the roots of \\(\\lambda^2+\\gamma\\lambda+\\omega_0^2\\). Underdamped this is \\(e^{-\\gamma t/2}\\sin(\\omega_\\mathrm{d}t)/\\omega_\\mathrm{d}\\) with \\(\\omega_\\mathrm{d} = \\sqrt{\\omega_0^2-\\gamma^2/4}\\); critically damped, \\(te^{-\\omega_0t}\\). Also called the Green's function of \\(L\\); the defining jump is in the <em>derivative</em> because \\(L\\) is second order.",
 "section": "The impulse response",
 "slide": "The Green's function, defined and computed",
 "keys": [
@@ -317,7 +317,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "convolution",
-"html": "\\((G*f)(t) = \\int_{-\\infty}^{\\infty}G(t-s)f(s)\\,\\mathrm{d}s\\), commutative by the substitution \\(s \\mapsto t-s\\). For a causal \\(G\\) the upper limit collapses to \\(t\\).",
+"html": "For two functions \\(g, f\\) on \\(\\mathbb{R}\\), \\((g*f)(t) = \\int_{-\\infty}^{\\infty}g(t-s)f(s)\\,\\mathrm{d}s\\): a weighted sum of \\(f\\)'s past and future values, with weight \\(g\\) depending only on the time elapsed. Commutative by the substitution \\(s \\mapsto t-s\\). Here \\(g\\) is the impulse response \\(G\\), which vanishes for negative arguments, so the upper limit collapses to \\(t\\).",
 "section": "The impulse response",
 "slide": "Duhamel: convolution solves everything",
 "keys": [
@@ -344,7 +344,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "causality",
-"html": "\\(G(t) = 0\\) for \\(t &lt; 0\\) — no response before the kick. Its consequence for the frequency response: the transform \\(\\hat G(\\omega) = \\int_0^\\infty G(\\tau)e^{-i\\omega\\tau}\\,\\mathrm{d}\\tau\\) converges, underdamped, for every complex \\(\\omega\\) with \\(\\operatorname{Im}\\omega &lt; \\gamma/2\\) (in every regime, on the closed lower half-plane), so \\(\\chi\\) has no singularity in the closed lower half-plane and its poles \\(\\pm\\omega_\\mathrm{d} + i\\gamma/2\\) sit above the real axis. That analyticity forces a relation between \\(\\operatorname{Re}\\chi\\) and \\(\\operatorname{Im}\\chi\\) — the Kramers–Kronig relations — is <em>stated and not proved here</em>; it needs unit 20.",
+"html": "\\(G(t) = 0\\) for \\(t &lt; 0\\) — no response before the kick. Its consequence for the frequency response: the transform \\(\\hat G(\\omega) = \\int_0^\\infty G(\\tau)e^{-i\\omega\\tau}\\,\\mathrm{d}\\tau\\) converges, underdamped, for every complex \\(\\omega\\) with \\(\\operatorname{Im}\\omega &lt; \\gamma/2\\) (in every regime, on the closed lower half-plane), so \\(\\chi\\) has no singularity in the closed lower half-plane and its poles \\(\\pm\\omega_\\mathrm{d} + i\\gamma/2\\) (\\(\\omega_\\mathrm{d} = \\sqrt{\\omega_0^2-\\gamma^2/4}\\)) sit above the real axis. That analyticity forces a relation between \\(\\operatorname{Re}\\chi\\) and \\(\\operatorname{Im}\\chi\\) — the Kramers–Kronig relations — is <em>stated and not proved here</em>; it needs unit 20.",
 "section": "The impulse response",
 "slide": "Causality, and the promissory note to unit 20",
 "keys": [

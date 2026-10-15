@@ -69,9 +69,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "convex envelope",
-"html": "The largest convex function lying below \\(f\\); it is \\(f^{**}\\). The Legendre transform cannot see the non-convex parts of \\(f\\).",
+"html": "The largest convex function lying below \\(f\\); it is \\(f^{**}\\). The Legendre transform cannot see the non-convex parts of \\(f\\): a stretch of the graph that no supporting line touches is replaced by a line.",
 "section": "The Legendre transform, as convex duality",
-"slide": "Involutivity: transforming twice gives \\(f\\) back",
+"slide": "What the transform cannot see",
 "keys": [
 "convex envelope"
 ]

@@ -58,7 +58,7 @@ window.GLOSSARY = [
 "term_html": "configuration space",
 "html": "The set of allowed configurations, as a space in its own right: a circle for the bead on a hoop, a torus for the double pendulum. A manifold, defined properly in unit 31.",
 "section": "The principle",
-"slide": "Generalised coordinates and constraints",
+"slide": "On the hoop: two constraints, one coordinate",
 "keys": [
 "configuration space"
 ]
@@ -173,7 +173,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "generalised momentum (canonical momentum)",
-"html": "\\(p_a = \\partial L/\\partial\\dot q_a\\). An angular momentum when \\(q_a\\) is an angle; \\(m\\dot{\\vec x} + q\\vec A\\) for a charge in a magnetic field; not in general \\(m\\dot q_a\\).",
+"html": "\\(p_a = \\partial L/\\partial\\dot q_a\\). An angular momentum when \\(q_a\\) is an angle; \\(m\\dot{\\vec x} + q\\vec A\\) for a particle of charge \\(q\\) (a constant, not a coordinate) in a magnetic field with vector potential \\(\\vec A\\); not in general \\(m\\dot q_a\\).",
 "section": "Reading the equations",
 "slide": "Generalised momenta and cyclic coordinates",
 "keys": [
@@ -278,7 +278,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "generalised potential (velocity-dependent potential)",
-"html": "A function \\(U(q, \\dot q, t)\\) with \\(Q_a = \\frac{\\mathrm d}{\\mathrm dt}\\,\\partial U/\\partial\\dot q_a - \\partial U/\\partial q_a\\), so that \\(L = T - U\\). For a charge, \\(U = q\\phi - q\\dot{\\vec x}\\cdot\\vec A\\).",
+"html": "A function \\(U(q, \\dot q, t)\\) with \\(Q_a = \\frac{\\mathrm d}{\\mathrm dt}\\,\\partial U/\\partial\\dot q_a - \\partial U/\\partial q_a\\), so that \\(L = T - U\\). For a particle of charge \\(q\\) in potentials \\(\\phi\\), \\(\\vec A\\), \\(U = q\\phi - q\\dot{\\vec x}\\cdot\\vec A\\).",
 "section": "What L is allowed to be",
 "slide": "Velocity-dependent potentials",
 "keys": [
@@ -289,7 +289,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "kinetic momentum",
-"html": "\\(m\\dot{\\vec x}\\), as opposed to the canonical momentum \\(m\\dot{\\vec x} + q\\vec A\\). The gauge-invariant one.",
+"html": "\\(m\\dot{\\vec x}\\), as opposed to the canonical momentum \\(m\\dot{\\vec x} + q\\vec A\\) of a charge \\(q\\) in a vector potential \\(\\vec A\\). The gauge-invariant one.",
 "section": "What L is allowed to be",
 "slide": "Velocity-dependent potentials",
 "keys": [

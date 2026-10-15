@@ -20,7 +20,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Eötvös parameter",
-"html": "\\(\\eta_{AB} = 2(a_A - a_B)/(a_A + a_B)\\), the fractional difference in \\(m_{\\mathrm g}/m_{\\mathrm i}\\) between two bodies in the same field. Dimensionless, antisymmetric, and independent of the source, so bounds from unlike experiments are comparable. Known to be below \\(1.5\\times10^{-15}\\).",
+"html": "\\(\\eta_{AB} = 2(a_A - a_B)/(a_A + a_B)\\), with \\(a_A\\), \\(a_B\\) the free-fall accelerations of bodies \\(A\\) and \\(B\\) in the same field: the fractional difference in their \\(m_{\\mathrm g}/m_{\\mathrm i}\\). A number, unrelated to the Minkowski form \\(\\eta_{\\mu\\nu}\\) despite the letter. Dimensionless, antisymmetric, and independent of the source, so bounds from unlike experiments are comparable. Known to be below \\(1.5\\times10^{-15}\\).",
 "section": "Two masses, and three principles",
 "slide": "Two masses Newton did not have to make equal",
 "keys": [
@@ -38,7 +38,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "weak equivalence principle (WEP)",
-"html": "The worldline of a freely falling test body, given its initial position and velocity, is independent of its mass and composition. Equivalently \\(\\eta = 0\\) for every pair.",
+"html": "The worldline of a freely falling test body, given its initial position and velocity, is independent of its mass and composition. Equivalently \\(\\eta = 0\\) for every pair, \\(\\eta\\) being the Eötvös parameter (a number, not the Minkowski metric).",
 "section": "Two masses, and three principles",
 "slide": "Three principles, three different claims",
 "keys": [

@@ -130,7 +130,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "tangent vector",
-"html": "An element of \\(T_pM\\), defined equivalently as an equivalence class of curves through \\(p\\) (A), a derivation of germs at \\(p\\) (B), or a chart-indexed family of \\(n\\)-tuples obeying the Jacobian transformation law (C). The three are canonically isomorphic.",
+"html": "A direction of motion at a point \\(p\\) of a manifold, built without any surrounding space to point into. The tangent vectors at \\(p\\) form an \\(n\\)-dimensional vector space \\(T_pM\\), defined equivalently as velocities of curves through \\(p\\) (A), as operations \"differentiate functions in this direction\" — derivations of germs (B) — or as an \\(n\\)-tuple of components in each chart, related between charts by the Jacobian of the transition (C). The three are canonically isomorphic.",
 "section": "Tangent vectors",
 "slide": "The three definitions describe one space",
 "keys": [
@@ -231,7 +231,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "tensor field",
-"html": "An assignment \\(m\\mapsto T_m\\) of a \\((p,q)\\)-tensor on \\(T_mM\\) — a multilinear map, exactly unit 16's definition — with components smooth in every chart. Equivalently a smooth section of \\(T^p_qM\\).",
+"html": "A tensor at every point, varying smoothly: at each point \\(m\\) a multilinear map \\(T_m\\) taking \\(q\\) tangent vectors at \\(m\\) and \\(p\\) covectors (linear functions on those vectors) to a number — exactly unit 16's definition of a \\((p,q)\\)-tensor, applied to the tangent space \\(T_mM\\) — with components smooth in every chart. Equivalently a smooth section of \\(T^p_qM\\).",
 "section": "Covectors and tensor fields",
 "slide": "Tensor fields: unit 16, one point at a time",
 "keys": [
@@ -269,7 +269,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Lorentzian metric",
-"html": "The same with signature \\((-,+,+,+)\\) at every point. Unlike Riemannian metrics these need not exist: \\(S^2\\) admits none, because a line field on a compact surface forces \\(\\chi = 0\\) and \\(\\chi(S^2) = 2\\).",
+"html": "The same with signature \\((-,+,+,+)\\) at every point. Unlike Riemannian metrics these need not exist: \\(S^2\\) admits none, because a line field on a compact surface forces its Euler characteristic \\(\\chi\\) (vertices − edges + faces of a triangulation) to be 0, and \\(\\chi(S^2) = 4 - 6 + 4 = 2\\).",
 "section": "Covectors and tensor fields",
 "slide": "A metric is a bilinear form on each tangent space",
 "keys": [
@@ -370,7 +370,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Lie derivative",
-"html": "\\(\\mathcal L_XT = \\frac{\\mathrm d}{\\mathrm dt}\\big|_0 (\\varphi^X_t)^*T\\). Needs no connection and no metric — only a flow. Its value at \\(m\\) depends on \\(X\\) near \\(m\\), so there is no \\(\\mathcal L_vT\\) for a single vector, which is the gap unit 32's connection fills.",
+"html": "The rate of change of a tensor field \\(T\\) as it is dragged along a vector field \\(X\\). Move every point along the integral curves of \\(X\\) for time \\(t\\) (the <em>flow</em> \\(\\varphi^X_t\\)), carry the tensor found there back to the starting point (the <em>pullback</em> \\((\\varphi^X_t)^*T\\)), compare with the tensor already there, divide by \\(t\\): \\(\\mathcal L_XT = \\frac{\\mathrm d}{\\mathrm dt}\\big|_0(\\varphi^X_t)^*T\\). Needs no connection and no metric — only a flow. Its value at \\(m\\) depends on \\(X\\) near \\(m\\), so there is no \\(\\mathcal L_vT\\) for a single vector, which is the gap unit 32's connection fills.",
 "section": "The Lie derivative and Killing fields",
 "slide": "Differentiating a tensor field along a flow",
 "keys": [
@@ -424,9 +424,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "conformal Killing",
-"html": "\\(\\mathcal L_Xg = \\lambda g\\) for some function \\(\\lambda\\): the flow preserves angles but not lengths. The dilation \\(D = u\\partial_u + v\\partial_v\\) on the round sphere has \\(\\lambda = 2(1-r^2)/(1+r^2)\\), which is \\(-\\tfrac43\\) at \\(P\\) and zero only on the equator.",
+"html": "\\(\\mathcal L_Xg = \\lambda g\\) for some function \\(\\lambda\\): the flow preserves angles but not lengths. The dilation \\(D = u\\partial_u + v\\partial_v\\) on the round sphere has \\(\\lambda = 2(1-r^2)/(1+r^2) = -2z\\), twice the height with a minus sign: \\(-\\tfrac43\\) at \\(P\\), zero only on the equator.",
 "section": "The Lie derivative and Killing fields",
-"slide": "The rotation field is Killing; the dilation is not",
+"slide": "The dilation stretches the south and shrinks the north",
 "keys": [
 "conformal killing"
 ]
@@ -451,9 +451,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "embedding",
-"html": "An immersion that is also a homeomorphism onto its image with the subspace topology. The figure-eight \\(t\\mapsto(\\sin2t,\\sin t)\\) is an injective immersion and not an embedding.",
+"html": "An immersion that is also a homeomorphism onto its image with the subspace topology. The figure-eight \\(t\\mapsto(\\sin2t,\\sin t)\\) is an injective immersion and not an embedding: as \\(t\\to\\pm\\pi\\) it returns towards the image of \\(t = 0\\).",
 "section": "Submanifolds, and what covariance does not say",
-"slide": "Submanifolds, immersions, embeddings",
+"slide": "Injective and immersed, yet not embedded",
 "keys": [
 "embedding"
 ]
@@ -462,7 +462,7 @@ window.GLOSSARY = [
 "term_html": "embedded submanifold",
 "html": "The image of an embedding, itself a manifold whose inclusion is smooth. \\(S^2\\) and \\(SO(3)\\) are both, by the regular value theorem.",
 "section": "Submanifolds, and what covariance does not say",
-"slide": "Submanifolds, immersions, embeddings",
+"slide": "Injective and immersed, yet not embedded",
 "keys": [
 "embedded submanifold"
 ]
@@ -471,7 +471,7 @@ window.GLOSSARY = [
 "term_html": "regular value",
 "html": "A \\(c\\) with \\(\\mathrm{d}F\\) surjective at every point of \\(F^{-1}(c)\\); then \\(F^{-1}(c)\\) is an embedded submanifold of dimension \\(\\dim N - k\\). Proved from unit 04's implicit function theorem. <em>Cited.</em>",
 "section": "Submanifolds, and what covariance does not say",
-"slide": "Submanifolds, immersions, embeddings",
+"slide": "Injective and immersed, yet not embedded",
 "keys": [
 "regular value"
 ]
@@ -532,7 +532,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "hairy ball theorem",
-"html": "Every smooth vector field on \\(S^{2k}\\), \\(k\\ge1\\), vanishes somewhere. <em>Cited</em>: the Poincaré–Hopf theorem, with indices summing to \\(\\chi(M)\\) and \\(\\chi(S^2) = 2\\). \\(R_z\\)'s two zeros, one at each pole, each of index \\(+1\\), realise the minimum.",
+"html": "Every smooth vector field on \\(S^{2k}\\), \\(k\\ge1\\), vanishes somewhere. <em>Cited</em>: the Poincaré–Hopf theorem, with the indices of the zeros summing to the Euler characteristic \\(\\chi(M)\\) — vertices − edges + faces of any triangulation, \\(4 - 6 + 4 = 2\\) for the sphere. \\(R_z\\)'s two zeros, one at each pole, each of index \\(+1\\), realise the minimum.",
 "section": "Submanifolds, and what covariance does not say",
 "slide": "Three results used, not proved",
 "keys": [

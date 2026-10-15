@@ -96,9 +96,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Hölder continuous, Hölder continuity",
-"html": "\\(|g(a)-g(b)| \\le C|a-b|^\\alpha\\) for some \\(\\alpha \\in (0,1]\\). The square root is Hölder with \\(\\alpha = 1/2\\) and Lipschitz with none: \\(\\alpha = 1\\) is the Lipschitz case, and everything below it is on the wrong side of Osgood's line.",
+"html": "\\(|g(a)-g(b)| \\le C|a-b|^\\alpha\\) for some constant \\(C\\) and some \\(\\alpha \\in (0,1]\\). The square root is Hölder with \\(\\alpha = 1/2\\) and Lipschitz with no constant at all: \\(\\alpha = 1\\) is the Lipschitz case, and every \\(\\alpha &lt; 1\\) is on the wrong side of the line that Osgood's criterion draws in section 3.",
 "section": "Existence, and exactly one of them",
-"slide": "The Lipschitz condition",
+"slide": "Lipschitz constants, checked by hand",
 "keys": [
 "hölder continuous, hölder continuity",
 "hölder continuous",
@@ -125,7 +125,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "sup norm (uniform norm)",
-"html": "\\(\\|y\\|_\\infty = \\sup_{t \\in J}\\|y(t)\\|\\) on \\(C(J,\\mathbb{R}^N)\\), which is complete in it — the reason the problem was moved to continuous functions.",
+"html": "The size of a curve measured by its largest value: \\(\\|y\\|_\\infty = \\sup_{t \\in J}\\|y(t)\\|\\) for continuous \\(y\\) on a compact interval \\(J\\) of times. The space \\(C(J,\\mathbb{R}^N)\\) of such curves is complete in it — the reason the problem was moved to continuous functions.",
 "section": "Existence, and exactly one of them",
 "slide": "The space the contraction acts on",
 "keys": [
@@ -136,7 +136,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "weighted sup norm (Bielecki norm)",
-"html": "\\(\\|y\\|_\\lambda = \\sup_{t \\in J} e^{-\\lambda|t-t_0|}\\|y(t)\\|\\). Equivalent to the sup norm on a compact \\(J\\), so completeness transfers, and it makes the Picard operator a contraction with factor \\(L/\\lambda\\) for any \\(L\\) — which is what keeps the existence interval from shrinking as the force stiffens.",
+"html": "The sup norm with later times discounted: \\(\\|y\\|_\\lambda = \\sup_{t \\in J} e^{-\\lambda|t-t_0|}\\|y(t)\\|\\) for a chosen rate \\(\\lambda &gt; 0\\), on a compact interval \\(J\\) around the initial time \\(t_0\\). Equivalent to the sup norm, so completeness transfers, and it makes the Picard operator a contraction with factor \\(L/\\lambda\\) whatever the Lipschitz constant \\(L\\) of \\(f\\) — which is what keeps the existence interval from shrinking as the force stiffens.",
 "section": "Existence, and exactly one of them",
 "slide": "The space the contraction acts on",
 "keys": [
@@ -147,7 +147,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "compact cylinder",
-"html": "\\(\\mathcal{C} = \\{(y,t) : \\|y-y_0\\| \\le b,\\ |t-t_0| \\le c\\} \\subseteq \\Omega\\), on which \\(f\\) is bounded by \\(M\\) and Lipschitz with constant \\(L\\). Its shape alone fixes the guaranteed interval, \\(a = \\min(c, b/M)\\).",
+"html": "The closed box of states within \\(b\\) of the initial state \\(y_0\\) and times within \\(c\\) of \\(t_0\\), \\(\\mathcal{C} = \\{(y,t) : \\|y-y_0\\| \\le b,\\ |t-t_0| \\le c\\}\\), chosen inside the domain \\(\\Omega\\) of \\(f\\); there \\(\\|f\\| \\le M\\) and \\(f\\) is Lipschitz in \\(y\\) with constant \\(L\\). Its shape alone fixes the guaranteed interval, \\(a = \\min(c, b/M)\\).",
 "section": "Existence, and exactly one of them",
 "slide": "Picard–Lindelöf",
 "keys": [
@@ -156,7 +156,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Picard–Lindelöf (the Cauchy–Lipschitz theorem)",
-"html": "If \\(f\\) is continuous and locally Lipschitz in \\(y\\) on an open \\(\\Omega\\), every initial value problem in \\(\\Omega\\) has exactly one solution on \\([t_0-a, t_0+a]\\) with \\(a = \\min(c, b/M)\\). The course's licence to write <em>the</em> solution.",
+"html": "If \\(f\\) is continuous and locally Lipschitz in \\(y\\) on an open set \\(\\Omega\\) of (state, time) pairs, every initial value problem \\(\\dot y = f(y,t)\\), \\(y(t_0) = y_0\\) in \\(\\Omega\\) has exactly one solution on \\([t_0-a, t_0+a]\\). Here \\(a = \\min(c, b/M)\\): take any box of states within \\(b\\) of \\(y_0\\) and times within \\(c\\) of \\(t_0\\) inside \\(\\Omega\\), and let \\(M\\) be the largest value of \\(\\|f\\|\\) on it. The course's licence to write <em>the</em> solution.",
 "section": "Existence, and exactly one of them",
 "slide": "Picard–Lindelöf",
 "keys": [
@@ -194,7 +194,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Osgood's criterion",
-"html": "Uniqueness already follows from \\(\\|f(y,t)-f(z,t)\\| \\le \\omega(\\|y-z\\|)\\) with \\(\\int_{0^+}\\mathrm{d}u/\\omega(u) = \\infty\\). Lipschitz is \\(\\omega(u) = Lu\\); the dome has \\(\\omega(u) \\sim k\\sqrt u\\), whose integral converges. The sharp line the dome is on the far side of.",
+"html": "Uniqueness already follows from \\(\\|f(y,t)-f(z,t)\\| \\le \\omega(\\|y-z\\|)\\), where \\(\\omega\\) is a continuous increasing function with \\(\\omega(0) = 0\\) (a modulus, not a frequency), provided \\(\\int_{0^+}\\mathrm{d}u/\\omega(u) = \\infty\\). Lipschitz is \\(\\omega(u) = Lu\\); the dome has \\(\\omega(u) \\sim k\\sqrt u\\), whose integral converges. The sharp line the dome is on the far side of.",
 "section": "Where the hypothesis fails",
 "slide": "Continuity alone: Peano, and the sharp line",
 "keys": [
@@ -223,7 +223,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "maximal interval of existence",
-"html": "The open interval \\((T_-,T_+)\\) on which the unique solution through a point lives and which extends every other solution. Open, because a solution reaching an interior point of \\(\\Omega\\) could be continued.",
+"html": "The open interval \\((T_-,T_+)\\) on which the unique solution through a point lives and which extends every other solution. Open, because a solution that reached time \\(T_+\\) at a point still inside the domain \\(\\Omega\\) of \\(f\\) could be continued past it.",
 "section": "How far the guarantee reaches",
 "slide": "The maximal interval of existence",
 "keys": [
@@ -232,7 +232,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "leaves every compact subset, escape lemma",
-"html": "If \\(T_+ &lt; \\infty\\) the solution leaves every compact \\(K \\subseteq \\Omega\\) before \\(T_+\\). So a solution can end only by going to infinity or by reaching the boundary of \\(\\Omega\\); it cannot merely stop.",
+"html": "If a maximal solution ends at a finite time \\(T_+\\), it leaves every compact subset \\(K\\) of the domain \\(\\Omega\\) of \\(f\\) before \\(T_+\\). So a solution can end only by going to infinity or by reaching the boundary of \\(\\Omega\\); it cannot merely stop.",
 "section": "How far the guarantee reaches",
 "slide": "The maximal interval of existence",
 "keys": [

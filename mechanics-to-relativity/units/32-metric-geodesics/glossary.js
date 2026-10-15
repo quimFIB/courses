@@ -76,7 +76,7 @@ window.GLOSSARY = [
 "term_html": "Christoffel symbols",
 "html": "The components \\(\\Gamma^k{}_{ij}\\) defined by \\(\\nabla_{\\partial_i}\\partial_j = \\Gamma^k{}_{ij}\\partial_k\\) in a chart. Not a tensor: their transformation law has an inhomogeneous term built from second derivatives of the chart change.",
 "section": "A derivative that is a tensor",
-"slide": "What a connection is",
+"slide": "Christoffel symbols: the connection in a chart",
 "keys": [
 "christoffel symbols"
 ]
@@ -85,7 +85,7 @@ window.GLOSSARY = [
 "term_html": "covariant derivative",
 "html": "\\(\\nabla_iV^j = \\partial_iV^j + \\Gamma^j{}_{ik}V^k\\), and on a general tensor one \\(+\\Gamma\\) per upper index and one \\(-\\Gamma\\) per lower index. The inhomogeneous part of \\(\\Gamma\\) cancels that of \\(\\partial\\).",
 "section": "A derivative that is a tensor",
-"slide": "What a connection is",
+"slide": "Christoffel symbols: the connection in a chart",
 "keys": [
 "covariant derivative"
 ]
@@ -110,7 +110,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Levi-Civita connection",
-"html": "The unique torsion-free metric-compatible connection of a pseudo-Riemannian manifold. Its components are \\(\\Gamma^k{}_{ij} = \\tfrac12g^{kl}(\\partial_ig_{jl}+\\partial_jg_{il}-\\partial_lg_{ij})\\).",
+"html": "The one way of differentiating vector fields that a metric \\(g\\) singles out: the unique connection that is torsion-free (its coefficients \\(\\Gamma^k{}_{ij}\\) are symmetric in \\(i,j\\)) and metric-compatible (carrying vectors along a curve preserves their lengths and angles). In a chart its coefficients are \\(\\Gamma^k{}_{ij} = \\tfrac12g^{kl}(\\partial_ig_{jl}+\\partial_jg_{il}-\\partial_lg_{ij})\\), with \\(g^{kl}\\) the inverse matrix of \\(g_{kl}\\) and \\(\\partial_i\\) the partial derivative along the \\(i\\)-th coordinate.",
 "section": "A derivative that is a tensor",
 "slide": "The fundamental theorem, in six lines",
 "keys": [
@@ -166,7 +166,7 @@ window.GLOSSARY = [
 "term_html": "holonomy",
 "html": "The transport map \\(P_\\gamma\\in GL(T_pM)\\) round a loop based at \\(p\\), in general not the identity. Round the latitude \\(\\theta_0 = \\pi/3\\) of the sphere it is a rotation by \\(\\pi\\).",
 "section": "Parallel transport, and what a gyroscope does",
-"slide": "What a gyroscope does, and why the path matters",
+"slide": "Holonomy: transport round a closed loop",
 "keys": [
 "holonomy"
 ]
@@ -238,7 +238,7 @@ window.GLOSSARY = [
 "term_html": "normal coordinates",
 "html": "The chart \\(\\exp_p(y^ie_i)\\mapsto(y^i)\\) for an orthonormal basis \\(e_i\\) of \\(T_pM\\). Geodesics through \\(p\\) are straight lines through the origin.",
 "section": "Normal coordinates, and the equivalence principle stated exactly",
-"slide": "The exponential map",
+"slide": "Normal coordinates: name a point by the geodesic that reaches it",
 "keys": [
 "normal coordinates"
 ]

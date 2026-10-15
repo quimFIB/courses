@@ -123,7 +123,7 @@ window.GLOSSARY = [
 "term_html": "flux",
 "html": "\\(\\int_\\Sigma\\vec F\\cdot\\mathrm d\\vec A\\), how much of a field crosses a surface. Independent of the parametrisation up to the sign of \\(\\det Dh\\) of the reparametrisation — proved by the chain rule plus the change of variables theorem. The object really being integrated is a 2-form; the cross product is the three-dimensional accident that lets it be written as a vector, and unit 34 removes it.",
 "section": "Flux",
-"slide": "Surfaces, and the vector area element",
+"slide": "Flux, and why the parametrisation does not matter",
 "keys": [
 "flux"
 ]

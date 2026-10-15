@@ -11,7 +11,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Coulomb's law",
-"html": "The measured statement that two point charges repel with force \\(q_1q_2/4\\pi\\varepsilon_0s^2\\) along the line joining them. It is Newton's gravitation with \\(-Gm_1m_2\\) replaced by \\(q_1q_2/4\\pi\\varepsilon_0\\), so every theorem unit 05 proved from the integrals transfers.",
+"html": "The measured statement that two point charges repel with force \\(q_1q_2/4\\pi\\varepsilon_0s^2\\) along the line joining them, \\(s\\) being their distance apart. It is Newton's gravitation with \\(-Gm_1m_2\\) replaced by \\(q_1q_2/4\\pi\\varepsilon_0\\), so every theorem unit 05 proved from the integrals transfers.",
 "section": "Electrostatics is gravity with two signs",
 "slide": "Coulomb's law, and everything unit 05 already proved",
 "keys": [
@@ -92,7 +92,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Green's representation formula",
-"html": "For \\(u\\in C^2(\\bar D)\\), \\(u(\\vec x) = \\int_D\\Gamma(\\vec x-\\vec y)(-\\nabla^2u)\\,\\mathrm dV + \\oint_{\\partial D}(\\Gamma\\,\\partial_nu - u\\,\\partial_n\\Gamma)\\,\\mathrm dA\\). Identity (II) with a small ball cut out round \\(\\vec x\\). It is the precise content of the shorthand \\(-\\nabla^2\\Gamma = \\delta\\), which unit 20 makes legitimate.",
+"html": "For \\(u\\in C^2(\\bar D)\\), \\(D\\) a bounded region and \\(\\Gamma = 1/4\\pi r\\) the fundamental solution, \\(u(\\vec x) = \\int_D\\Gamma(\\vec x-\\vec y)(-\\nabla^2u)\\,\\mathrm dV + \\oint_{\\partial D}(\\Gamma\\,\\partial_nu - u\\,\\partial_n\\Gamma)\\,\\mathrm dA\\). Identity (II) with a small ball cut out round \\(\\vec x\\). It is the precise content of the shorthand \\(-\\nabla^2\\Gamma = \\delta\\), which unit 20 makes legitimate.",
 "section": "Laplace and Poisson: uniqueness, and the Green's function",
 "slide": "The representation formula, and the Green's function of a region",
 "keys": [
@@ -101,7 +101,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Green's function",
-"html": "Of a region \\(D\\): \\(G(\\vec x,\\vec y) = \\Gamma(\\vec x-\\vec y) - h_{\\vec x}(\\vec y)\\), with \\(h_{\\vec x}\\) harmonic in \\(D\\) and equal to \\(\\Gamma\\) on \\(\\partial D\\), so that \\(G = 0\\) on the boundary. Physically, \\(\\varepsilon_0^{-1}G\\) is the potential of a unit charge beside a grounded boundary; it solves every Dirichlet problem on \\(D\\) by one integral.",
+"html": "Of a region \\(D\\): \\(G(\\vec x,\\vec y) = \\Gamma(\\vec x-\\vec y) - h_{\\vec x}(\\vec y)\\), where \\(\\Gamma = 1/4\\pi r\\) is the fundamental solution and \\(h_{\\vec x}\\) is harmonic in \\(D\\) and equal to \\(\\Gamma\\) on \\(\\partial D\\), so that \\(G = 0\\) on the boundary. Physically, \\(\\varepsilon_0^{-1}G\\) is the potential of a unit charge beside a grounded boundary; it solves every Dirichlet problem on \\(D\\) by one integral.",
 "section": "Laplace and Poisson: uniqueness, and the Green's function",
 "slide": "The representation formula, and the Green's function of a region",
 "keys": [
@@ -119,7 +119,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "axisymmetric harmonic expansion",
-"html": "A harmonic function independent of \\(\\phi\\) on a shell is \\(\\sum_\\ell(A_\\ell r^\\ell + B_\\ell r^{-\\ell-1})P_\\ell(\\cos\\theta)\\), converging in mean square on each sphere. The coefficient functions obey Euler's equation; completeness of the \\(P_\\ell\\) (unit 19) makes the sum the whole function.",
+"html": "A harmonic function independent of \\(\\phi\\) on a shell is \\(\\sum_\\ell(A_\\ell r^\\ell + B_\\ell r^{-\\ell-1})P_\\ell(\\cos\\theta)\\), with \\(P_\\ell\\) the Legendre polynomials and constants \\(A_\\ell, B_\\ell\\), converging in mean square on each sphere. The coefficient functions obey Euler's equation; completeness of the \\(P_\\ell\\) (unit 19) makes the sum the whole function.",
 "section": "The grounded sphere, twice",
 "slide": "Separation in spherical coordinates",
 "keys": [
@@ -128,7 +128,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "induced dipole",
-"html": "The dipole moment of the charge a field induces on a body. For a conducting sphere, \\(p = 4\\pi\\varepsilon_0a^3E_0\\); the ratio \\(p/E_0\\) is its polarisability.",
+"html": "The dipole moment of the charge a field induces on a body. For a conducting sphere of radius \\(a\\) in a uniform field \\(E_0\\), \\(p = 4\\pi\\varepsilon_0a^3E_0\\); the ratio \\(p/E_0\\) is its polarisability.",
 "section": "The grounded sphere, twice",
 "slide": "Reading the answer: charge, dipole, and a factor of three",
 "keys": [
@@ -148,14 +148,14 @@ window.GLOSSARY = [
 "term_html": "Kelvin image",
 "html": "The image of a charge \\(q\\) at distance \\(R\\) from the centre of a grounded sphere of radius \\(a\\): charge \\(-qa/R\\) at distance \\(a^2/R\\) on the same ray. The sphere is then an Apollonius sphere of the pair, with distance ratio \\(a/R\\).",
 "section": "The grounded sphere, twice",
-"slide": "The method of images, and why it is allowed",
+"slide": "The Kelvin image in a sphere",
 "keys": [
 "kelvin image"
 ]
 },
 {
 "term_html": "multipole moments",
-"html": "For an axisymmetric charge distribution, \\(q_\\ell = \\int\\rho\\,r'^\\ell P_\\ell(\\cos\\theta')\\,\\mathrm dV'\\); outside all the charge, \\(\\varphi = \\frac{1}{4\\pi\\varepsilon_0}\\sum q_\\ell P_\\ell(\\cos\\theta)/r^{\\ell+1}\\). They are the \\(B_\\ell\\) of the exterior expansion, found from the values on the axis. A neutral body's dipole is the same about every origin.",
+"html": "For an axisymmetric charge distribution, \\(q_\\ell = \\int\\rho\\,r'^\\ell P_\\ell(\\cos\\theta')\\,\\mathrm dV'\\), with \\((r', \\theta')\\) the source point in spherical coordinates; outside all the charge, \\(\\varphi = \\frac{1}{4\\pi\\varepsilon_0}\\sum q_\\ell P_\\ell(\\cos\\theta)/r^{\\ell+1}\\). They are the \\(B_\\ell\\) of the exterior expansion, found from the values on the axis. A neutral body's dipole is the same about every origin.",
 "section": "The grounded sphere, twice",
 "slide": "Multipoles, as a boundary-value tool",
 "keys": [
@@ -272,7 +272,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Neumann data",
-"html": "Prescribed values of the normal derivative on the boundary. A perfect diamagnet imposes \\(\\partial_n\\psi = 0\\); the solution is then unique up to a constant.",
+"html": "Prescribed values of the normal derivative on the boundary. A perfect diamagnet imposes \\(\\partial_n\\psi = 0\\) on the magnetic scalar potential \\(\\psi\\); the solution is then unique up to a constant.",
 "section": "Magnetostatics: the field with no sources",
 "slide": "The sphere in a magnetic field",
 "keys": [

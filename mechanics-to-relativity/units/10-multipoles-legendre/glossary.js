@@ -92,7 +92,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "quadrupole",
-"html": "The \\(n = 2\\) term, \\(-G\\,Q(\\hat{\\mathbf r},\\hat{\\mathbf r})/2r^3\\): the first term that sees the body's shape and cannot be removed by moving the origin.",
+"html": "The \\(n = 2\\) term of the multipole expansion, \\(-\\frac{G}{2r^3}\\int_B\\rho\\,[3(\\hat{\\mathbf r}\\cdot\\vec r\\,{}')^2 - r'^2]\\), where \\(\\rho\\) is the body's density and \\(\\vec r\\,{}'\\) runs over the body; written \\(-G\\,Q(\\hat{\\mathbf r},\\hat{\\mathbf r})/2r^3\\) with \\(Q\\) the quadrupole moment. The first term that sees the body's shape, and the one that cannot be removed by moving the origin.",
 "section": "The multipole expansion",
 "slide": "The expansion, and the first three terms",
 "keys": [
@@ -137,7 +137,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Clairaut's flattening formula",
-"html": "\\(f = \\tfrac32J_2 + \\tfrac12q\\) with \\(q = \\omega^2R^3/GM\\), to first order, for a rotating body whose surface is a fluid level surface. For the Earth it predicts \\(1/298.09\\) against the measured \\(1/298.257\\). Not the same as unit 11's Clairaut relation for geodesics.",
+"html": "\\(f = \\tfrac32J_2 + \\tfrac12q\\) with \\(q = \\omega_{\\mathrm s}^2R^3/GM\\) and \\(\\omega_{\\mathrm s}\\) the spin rate, to first order, for a rotating body whose surface is a fluid level surface. For the Earth it predicts \\(1/298.09\\) against the measured \\(1/298.257\\). Not the same as unit 11's Clairaut relation for geodesics.",
 "section": "The multipole expansion",
 "slide": "A check that has no free parameters",
 "keys": [
@@ -146,7 +146,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "orbital elements",
-"html": "\\((a,e,i,\\Omega,\\omega,M)\\): semi-major axis, eccentricity, inclination, longitude of the ascending node, argument of perigee, mean anomaly. Coordinates on phase space in which the Kepler flow is five constants and one uniformly advancing angle.",
+"html": "\\((a,e,i,\\Omega,\\omega,\\mathcal M)\\): semi-major axis, eccentricity, inclination, longitude of the ascending node, argument of perigee, mean anomaly (\\(\\mathcal M\\), since \\(M\\) is the planet's mass). Coordinates on phase space in which the Kepler flow is five constants and one uniformly advancing angle.",
 "section": "Orbital elements, and how to perturb them",
 "slide": "Six numbers, as a change of coordinates",
 "keys": [
@@ -173,7 +173,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "secular",
-"html": "Of a perturbation: the part that accumulates, growing like \\(\\varepsilon t\\). It comes from the orbit average \\(\\bar F\\) of the right-hand side.",
+"html": "Of a perturbation of size \\(\\varepsilon\\): the part that accumulates, growing like \\(\\varepsilon t\\). It comes from the orbit average \\(\\bar F\\) of the right-hand side \\(\\varepsilon F\\) of the equation for an orbital element.",
 "section": "Orbital elements, and how to perturb them",
 "slide": "Secular versus periodic, and averaging",
 "keys": [
@@ -191,18 +191,18 @@ window.GLOSSARY = [
 },
 {
 "term_html": "method of averaging",
-"html": "Replace \\(\\dot c = \\varepsilon F(c,u)\\) by \\(\\dot{\\bar c} = \\varepsilon\\bar F(\\bar c)\\); the error is \\(O(\\varepsilon)\\) for times up to \\(O(1/\\varepsilon)\\). Cited; the average must be taken in time, with the weight \\(\\mathrm dt = (r^2/L)\\,\\mathrm du\\).",
+"html": "For slowly varying quantities \\(c\\) obeying \\(\\dot c = \\varepsilon F(c,u)\\), with \\(\\varepsilon\\) small and \\(F\\) periodic in a fast angle \\(u\\): replace \\(F\\) by its average \\(\\bar F\\) over \\(u\\) and solve \\(\\dot{\\bar c} = \\varepsilon\\bar F(\\bar c)\\) instead; the error is \\(O(\\varepsilon)\\) for times up to \\(O(1/\\varepsilon)\\). Cited; for an orbit the average must be taken in time, with the weight \\(\\mathrm dt = (r^2/L)\\,\\mathrm du\\).",
 "section": "Orbital elements, and how to perturb them",
-"slide": "Secular versus periodic, and averaging",
+"slide": "Secular and periodic, plotted",
 "keys": [
 "method of averaging"
 ]
 },
 {
 "term_html": "argument of latitude",
-"html": "\\(u\\), the angle in the orbit plane from the ascending node to the body: \\(\\vec r = r(\\cos u\\,\\hat{\\mathbf n} + \\sin u\\,\\hat{\\mathbf m})\\), \\(z = r\\sin i\\sin u\\).",
+"html": "\\(u\\), the angle in the orbit plane from the ascending node to the body: \\(\\vec r = r(\\cos u\\,\\hat{\\mathbf n} + \\sin u\\,\\hat{\\mathbf m})\\), \\(z = r\\sin i\\sin u\\), where \\(\\hat{\\mathbf n}\\) points to the ascending node, \\(\\hat{\\mathbf m}\\) is a quarter-turn ahead in the orbit plane and \\(i\\) is the inclination.",
 "section": "What J_2 does to an orbit",
-"slide": "The torque, and what it moves",
+"slide": "The orbit frame, and the argument of latitude",
 "keys": [
 "argument of latitude"
 ]
@@ -245,7 +245,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "tidal tensor",
-"html": "The Hessian \\(\\partial_i\\partial_j\\Phi\\) of an external potential across a body; for a point mass at distance \\(d\\) along \\(\\hat{\\mathbf n}\\) it is \\((GM/d^3)(\\delta_{ij} - 3n_in_j)\\), trace-free, eigenvalues \\((-2,1,1)GM/d^3\\). It is the Hessian of the \\(\\ell = 2\\) term.",
+"html": "The Hessian \\(\\partial_i\\partial_j\\Phi\\) of an external potential across a body; for a point mass \\(M\\) at distance \\(d\\) in the direction of the unit vector \\(\\hat{\\mathbf s}\\) it is \\((GM/d^3)(\\delta_{ij} - 3s_is_j)\\), trace-free, eigenvalues \\((-2,1,1)GM/d^3\\). It is the Hessian of the \\(\\ell = 2\\) term.",
 "section": "Tides, as the l = 2 term",
 "slide": "Two bulges, because P_2 is even",
 "keys": [
@@ -254,7 +254,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "tidal locking",
-"html": "The state in which a body's rotation period equals its orbital period, so it keeps one face to its partner. The long axis then sits at \\(\\gamma = 0\\), the minimum of the orientation energy \\(-\\tfrac{3GM}{2d^3}(B-A)\\cos^2\\gamma\\), and dissipation is what brings it there.",
+"html": "The state in which a body's rotation period equals its orbital period, so it keeps one face to its partner. The long axis then sits at \\(\\gamma = 0\\), \\(\\gamma\\) being the angle between the long axis and the line to the partner (mass \\(M\\), distance \\(d\\)); that is the minimum of the orientation energy \\(-\\tfrac{3GM}{2d^3}(B-A)\\cos^2\\gamma\\), \\(A &lt; B\\) the principal moments about the long and the intermediate axis, and dissipation is what brings it there.",
 "section": "Tides, as the l = 2 term",
 "slide": "Why the Moon keeps one face towards us",
 "keys": [

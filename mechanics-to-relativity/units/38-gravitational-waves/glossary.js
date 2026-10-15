@@ -94,7 +94,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "TT projector",
-"html": "\\(\\Lambda(S) = PSP - \\tfrac12P\\,\\mathrm{tr}(PS)\\) with \\(P = 1 - nn^{\\mathsf T}\\), a self-adjoint projector on symmetric \\(3\\times3\\) matrices whose image, of dimension 2, is the transverse traceless ones. Extracts \\(h^{\\rm TT}\\) from any Lorenz-gauge \\(\\bar h_{ij}\\).",
+"html": "For a wave travelling along the unit vector \\(n\\), \\(\\Lambda(S) = PSP - \\tfrac12P\\,\\mathrm{tr}(PS)\\) with \\(P = 1 - nn^{\\mathsf T}\\), a self-adjoint projector on symmetric \\(3\\times3\\) matrices whose image, of dimension 2, is the transverse traceless ones. Extracts \\(h^{\\rm TT}\\) from any Lorenz-gauge \\(\\bar h_{ij}\\).",
 "section": "Two polarisations",
 "slide": "The transverse-traceless projector",
 "keys": [
@@ -123,7 +123,7 @@ window.GLOSSARY = [
 "term_html": "retarded Green's function",
 "html": "\\(G_{\\rm ret} = \\delta(t - r/c)/4\\pi r\\), the fundamental solution of unit 24's wave operator that vanishes before the source acts; found there by unit 20's contour integration with the poles below the axis.",
 "section": "The quadrupole formula",
-"slide": "The retarded solution",
+"slide": "The kernel, causality, and two checks",
 "keys": [
 "retarded green's function"
 ]
@@ -132,7 +132,7 @@ window.GLOSSARY = [
 "term_html": "retarded time",
 "html": "\\(t - |\\vec x - \\vec y|/c\\): the field at \\(\\vec x\\) now reports the source at \\(\\vec y\\) as it was when a signal at speed \\(c\\) left it.",
 "section": "The quadrupole formula",
-"slide": "The retarded solution",
+"slide": "The kernel, causality, and two checks",
 "keys": [
 "retarded time"
 ]
@@ -166,7 +166,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "quadrupole formula",
-"html": "\\(h^{\\rm TT}_{ij} = (2G/c^4r)\\,\\Lambda_{ij,kl}(n)\\,\\ddot Q_{kl}(t - r/c)\\), with \\(Q_{ij} = \\int\\rho(y^iy^j - \\tfrac13\\delta_{ij}|y|^2)\\), one third of unit 10's quadrupole moment. Einstein 1918.",
+"html": "The wave at distance \\(r\\) in direction \\(n\\) from a slow source, \\(h^{\\rm TT}_{ij} = (2G/c^4r)\\,\\Lambda_{ij,kl}(n)\\,\\ddot Q_{kl}(t - r/c)\\), with \\(\\Lambda\\) the TT projector and \\(Q_{ij} = \\int\\rho(y^iy^j - \\tfrac13\\delta_{ij}|y|^2)\\), one third of unit 10's quadrupole moment. Einstein 1918.",
 "section": "The quadrupole formula",
 "slide": "The quadrupole formula",
 "keys": [
@@ -202,7 +202,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "quadrupole luminosity",
-"html": "\\(P = (G/5c^5)\\langle\\overset{...}{Q}_{ij}\\overset{...}{Q}_{ij}\\rangle\\), the power radiated by a slow source. The gravitational Larmor formula.",
+"html": "\\(P = (G/5c^5)\\langle\\overset{...}{Q}_{ij}\\overset{...}{Q}_{ij}\\rangle\\), the power radiated by a slow source, with \\(Q_{ij}\\) its trace-free second mass moment and \\(\\langle\\cdot\\rangle\\) a time average. The gravitational Larmor formula.",
 "section": "Energy",
 "slide": "The quadrupole luminosity",
 "keys": [
@@ -220,7 +220,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "solvability condition",
-"html": "Unit 21's requirement that the next-order equation have no secular term. Here it is the energy balance \\(\\mathrm dE/\\mathrm dt = -\\langle P\\rangle\\).",
+"html": "Unit 21's requirement that the next-order equation have no secular term. Here it is the energy balance \\(\\mathrm dE/\\mathrm dt = -\\langle P\\rangle\\): the orbital energy \\(E\\) falls at the rate the waves carry power \\(P\\) away.",
 "section": "The chirp",
 "slide": "A slow drift on a fast orbit: two times",
 "keys": [
@@ -238,7 +238,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "chirp",
-"html": "The rising frequency and amplitude of an inspiral, \\(f\\propto(t_c - t)^{-3/8}\\), \\(h\\propto(t_c - t)^{-1/4}\\).",
+"html": "The rising frequency and amplitude of an inspiral, \\(f\\propto(t_c - t)^{-3/8}\\), \\(h\\propto(t_c - t)^{-1/4}\\), with \\(t_c\\) the time at which the formula's frequency diverges (coalescence).",
 "section": "The chirp",
 "slide": "What the chirp looks like",
 "keys": [

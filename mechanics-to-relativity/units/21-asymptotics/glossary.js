@@ -11,7 +11,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "nondimensionalisation",
-"html": "Rewriting an equation in variables scaled by characteristic values built from the parameters, chosen so that the scaled variables and their derivatives are of size one. What remains are the dimensionless groups of the Buckingham theorem (unit 00); for the cubic spring, \\(\\varepsilon = \\beta a^2/k\\).",
+"html": "Rewriting an equation in variables scaled by characteristic values built from the parameters, chosen so that the scaled variables and their derivatives are of size one. What remains are the dimensionless groups of the Buckingham theorem (unit 00); for the cubic spring \\(m\\ddot X + kX + \\beta X^3 = 0\\) released from rest at \\(X = a\\), \\(\\varepsilon = \\beta a^2/k\\).",
 "section": "Small parameters, and where they come from",
 "slide": "Nondimensionalise first",
 "keys": [
@@ -40,7 +40,7 @@ window.GLOSSARY = [
 "term_html": "dominant balance",
 "html": "Finding the scaling \\(x = \\varepsilon^{-\\alpha}X\\) under which two terms are of the same size and all others smaller. Each consistent balance gives one family of solutions or one region of a boundary-layer problem.",
 "section": "Small parameters, and where they come from",
-"slide": "Regular or singular: the test",
+"slide": "Where the lost root went: dominant balance",
 "keys": [
 "dominant balance"
 ]
@@ -139,7 +139,7 @@ window.GLOSSARY = [
 "term_html": "uniformly valid",
 "html": "An approximation whose error is bounded by one function of \\(\\varepsilon\\), tending to zero, for all values of the other variable at once. The naive Duffing expansion is \\(O(\\varepsilon^2)\\) at each fixed \\(t\\) but not uniformly on \\([0, \\infty)\\).",
 "section": "Secular terms",
-"slide": "Why the naive answer dies at t ~ 1/ε",
+"slide": "What the secular term really is",
 "keys": [
 "uniformly valid"
 ]
@@ -173,7 +173,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "amplitude equations",
-"html": "The equations for the slowly varying amplitude and phase that the solvability condition imposes in a multiple-scales calculation; for Duffing, \\(a' = 0\\), \\(\\phi' = \\tfrac38a^2\\).",
+"html": "The equations for the slowly varying amplitude \\(a\\) and phase \\(\\phi\\) of a leading-order solution \\(x \\approx a\\cos(t + \\phi)\\), imposed by the solvability condition in a multiple-scales calculation; \\(' = \\mathrm{d}/\\mathrm{d}T\\) with \\(T = \\varepsilon t\\) the slow time. For Duffing, \\(a' = 0\\), \\(\\phi' = \\tfrac38a^2\\).",
 "section": "Removing secular terms",
 "slide": "Multiple scales",
 "keys": [
@@ -263,7 +263,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "eikonal equation",
-"html": "The leading-order WKB equation \\(S_0'^2 = -q\\), which fixes the phase. For a reader who has done unit 15, it is the one-dimensional Hamilton–Jacobi equation; nothing here depends on that.",
+"html": "The leading-order WKB equation \\(S_0'^2 = -q\\), which fixes the phase: writing \\(y = e^{S/\\varepsilon}\\) with \\(S = S_0 + \\varepsilon S_1 + \\cdots\\), \\(S_0\\) is the phase at leading order. For a reader who has done unit 15, it is the one-dimensional Hamilton–Jacobi equation; nothing here depends on that.",
 "section": "WKB",
 "slide": "The WKB approximation",
 "keys": [
@@ -272,7 +272,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "transport equation",
-"html": "The next-order WKB equation \\(2S_0'S_1' + S_0'' = 0\\), which fixes the amplitude as \\(q^{-1/4}\\).",
+"html": "The next-order WKB equation \\(2S_0'S_1' + S_0'' = 0\\) for the correction \\(S_1\\) in \\(y = e^{(S_0 + \\varepsilon S_1)/\\varepsilon}\\), which fixes the amplitude as \\(q^{-1/4}\\).",
 "section": "WKB",
 "slide": "The WKB approximation",
 "keys": [
@@ -299,7 +299,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "connection formulae",
-"html": "The rule, cited from the Airy function's asymptotics, that the WKB solution decaying beyond a simple turning point continues on the oscillatory side as \\(2q^{-1/4}\\cos(\\varepsilon^{-1}\\int_x^a\\sqrt q - \\pi/4)\\).",
+"html": "The rule, cited from the Airy function's asymptotics, that the WKB solution decaying beyond a simple turning point \\(x = a\\) (where \\(q\\) changes sign, \\(q \\gt 0\\) for \\(x \\lt a\\)) continues on the oscillatory side as \\(2q^{-1/4}\\cos(\\varepsilon^{-1}\\int_x^a\\sqrt q - \\pi/4)\\).",
 "section": "WKB",
 "slide": "Turning points and the connection formulae",
 "keys": [

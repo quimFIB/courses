@@ -2,7 +2,7 @@
 window.GLOSSARY = [
 {
 "term_html": "normal mode",
-"html": "A motion in which every coordinate oscillates at one common frequency with a fixed shape, \\(u(t) = v\\,(\\alpha\\cos\\omega t + \\beta\\sin\\omega t)\\). Equivalently a solution of \\(Kv = \\omega^2Mv\\). A system with \\(n\\) coordinates has exactly \\(n\\) of them, counted with multiplicity.",
+"html": "A motion in which every coordinate oscillates at one common frequency with a fixed shape, \\(u(t) = v\\,(\\alpha\\cos\\omega t + \\beta\\sin\\omega t)\\), where \\(u\\) lists the displacements from equilibrium and the constant vector \\(v\\) is the shape. Substituting into Newton's law \\(M\\ddot u = -Ku\\) — \\(M\\) the matrix of the kinetic energy \\(\\tfrac12\\dot u^{\\!\\top}M\\dot u\\), \\(K\\) the matrix of second derivatives of the potential energy — shows it is the same as a solution of \\(Kv = \\omega^2Mv\\). A system with \\(n\\) coordinates has exactly \\(n\\) of them, counted with multiplicity.",
 "section": "Setting up: two quadratic forms",
 "slide": "The generalised eigenvalue problem",
 "keys": [
@@ -11,7 +11,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "stiffness matrix",
-"html": "\\(K = \\mathrm{Hess}\\,V(u^*)\\), the Hessian of the potential at the equilibrium. Symmetric by Clairaut (unit 03) and positive semidefinite at a minimum; positive definite exactly when the equilibrium is strict to second order.",
+"html": "\\(K = \\mathrm{Hess}\\,V(u^*)\\), the Hessian (matrix of second partial derivatives) of the potential \\(V\\) at the equilibrium \\(u^*\\). Symmetric by Clairaut (unit 03) and positive semidefinite at a minimum; positive definite exactly when the equilibrium is strict to second order.",
 "section": "Setting up: two quadratic forms",
 "slide": "Two quadratic forms fall out of the physics",
 "keys": [
@@ -29,7 +29,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "symmetric positive definite",
-"html": "\\(M = M^{\\!\\top}\\) with \\(u^{\\!\\top}Mu &gt; 0\\) for every \\(u \\ne 0\\). The single hypothesis every theorem in this unit carries: it is what makes \\(\\langle u,v\\rangle_M\\) an inner product, what makes \\(M^{1/2}\\) exist and be unique, and what makes the normal frequencies real.",
+"html": "\\(M = M^{\\!\\top}\\) with \\(u^{\\!\\top}Mu &gt; 0\\) for every \\(u \\ne 0\\). The single hypothesis every theorem in this unit carries: it is what makes \\(\\langle u,v\\rangle_M = u^{\\!\\top}Mv\\) an inner product, what makes a square root \\(M^{1/2}\\) exist and be unique (both in section 2), and what makes the normal frequencies real.",
 "section": "Setting up: two quadratic forms",
 "slide": "Two quadratic forms fall out of the physics",
 "keys": [
@@ -56,7 +56,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "linear system with constant coefficients",
-"html": "\\(\\dot y = Ay\\) on \\(\\mathbb R^N\\). Globally Lipschitz with constant \\(\\lVert A\\rVert\\), so Picard–Lindelöf (unit 01) gives a unique solution for all time, and the solution space is a vector space of dimension exactly \\(N\\).",
+"html": "\\(\\dot y = Ay\\) on \\(\\mathbb R^d\\), \\(A\\) a constant matrix. Globally Lipschitz with constant \\(\\lVert A\\rVert\\) (the operator norm), so Picard–Lindelöf (unit 01) gives a unique solution for all time, and the solution space is a vector space of dimension exactly \\(d\\); for \\(n\\) masses, \\(d = 2n\\).",
 "section": "Linear systems and the matrix exponential",
 "slide": "First order, in 2n dimensions",
 "keys": [
@@ -83,7 +83,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Jordan form",
-"html": "The block-diagonal normal form \\(\\lambda I + N\\) with \\(N\\) nilpotent, to which every complex matrix is similar. <em>Cited</em> — proved in any linear algebra text; this unit verifies only the \\(2\\times2\\) case it uses. Its consequence here: a <strong>defective</strong> repeated eigenvalue produces \\(t e^{\\lambda t}\\), which is unit 06's critical damping and this unit's zero modes, and nothing else.",
+"html": "The block-diagonal normal form, blocks \\(\\lambda I + N\\) with \\(N\\) nilpotent (\\(N^p = 0\\) for some \\(p\\); a matrix, not the chain's number of masses), to which every complex matrix is similar. <em>Cited</em> — proved in any linear algebra text; this unit verifies only the \\(2\\times2\\) case it uses. Its consequence here: a <strong>defective</strong> repeated eigenvalue produces \\(t e^{\\lambda t}\\), which is unit 06's critical damping and this unit's zero modes, and nothing else.",
 "section": "Linear systems and the matrix exponential",
 "slide": "The degenerate case: Jordan, and t e^{\\lambda t}",
 "keys": [
@@ -119,7 +119,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "normal frequency",
-"html": "\\(\\omega = \\sqrt\\lambda\\) for an eigenvalue \\(\\lambda\\) of the pencil. Real whenever \\(K\\) is positive semidefinite; \\(\\lambda &lt; 0\\) gives \\(e^{\\pm|\\omega|t}\\) at an unstable equilibrium, and \\(\\lambda = 0\\) gives a drift \\(a+bt\\). An \\(\\omega\\) with nonzero real <strong>and</strong> imaginary parts cannot occur.",
+"html": "\\(\\omega = \\sqrt\\lambda\\) for an eigenvalue \\(\\lambda\\) of the pencil. Real whenever \\(K\\) is positive semidefinite; \\(\\lambda &lt; 0\\) gives \\(e^{\\pm|\\omega|t}\\) at an unstable equilibrium, and \\(\\lambda = 0\\) gives a drift \\(\\alpha+\\beta t\\). An \\(\\omega\\) with nonzero real <strong>and</strong> imaginary parts cannot occur.",
 "section": "The generalised eigenvalue problem",
 "slide": "The generalised eigenvalue problem",
 "keys": [
@@ -218,7 +218,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "zero mode",
-"html": "A nonzero \\(v\\) with \\(Kv = 0\\): a displacement costing no potential energy to second order. Its normal coordinate obeys \\(\\ddot q = 0\\), so it drifts, \\(q = a + bt\\), and in the first-order system it is the one place a Jordan block can appear in an undamped problem. A symmetry — a curve through the equilibrium along which \\(V\\) is constant — always produces one; the converse fails, since a zero mode can also be an accident of the quadratic approximation (\\(V = u_1^4 + u_2^2\\)).",
+"html": "A nonzero \\(v\\) with \\(Kv = 0\\): a displacement costing no potential energy to second order. Its normal coordinate obeys \\(\\ddot q = 0\\), so it drifts, \\(q = \\alpha + \\beta t\\), and in the first-order system it is the one place a Jordan block can appear in an undamped problem. A symmetry — a curve through the equilibrium along which \\(V\\) is constant — always produces one; the converse fails, since a zero mode can also be an accident of the quadratic approximation (\\(V = u_1^4 + u_2^2\\)).",
 "section": "Zero modes and Rayleigh",
 "slide": "Cut the chain loose",
 "keys": [

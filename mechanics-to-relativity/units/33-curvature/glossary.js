@@ -74,7 +74,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "angle excess",
-"html": "For a geodesic triangle, the sum of its angles minus \\(\\pi\\). Equal to \\(\\int K\\,\\mathrm{d}A\\), and so equal to the holonomy angle. The octant triangle has excess \\(\\pi/2\\); Gauss's survey triangle of area \\(2929\\ \\mathrm{km^2}\\) has \\(14.9''\\).",
+"html": "For a geodesic triangle, the sum of its angles minus \\(\\pi\\). Equal to \\(\\int K\\,\\mathrm{d}A\\), with \\(K\\) the Gaussian curvature (\\(1/a^2\\) on the sphere), and so equal to the holonomy angle. The octant triangle has excess \\(\\pi/2\\); Gauss's survey triangle of area \\(2929\\ \\mathrm{km^2}\\) has \\(14.9''\\).",
 "section": "The thing no chart removes",
 "slide": "Worked example 2 — round the octant, by hand",
 "keys": [
@@ -83,7 +83,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Gauss–Bonnet theorem",
-"html": "\\(\\int_M K\\,\\mathrm{d}A = 2\\pi\\chi(M)\\) for a closed oriented surface, with a boundary version adding the geodesic curvature. <em>Cited</em>: do Carmo, <em>Curves and Surfaces</em>, §4-5. The holonomy theorem proved in the deck is its local half.",
+"html": "\\(\\int_M K\\,\\mathrm{d}A = 2\\pi\\chi(M)\\) for a closed oriented surface, \\(K\\) its Gaussian curvature and \\(\\chi(M)\\) its Euler characteristic (\\(2\\) for a sphere, \\(0\\) for a torus), with a boundary version adding the geodesic curvature. <em>Cited</em>: do Carmo, <em>Curves and Surfaces</em>, §4-5. The holonomy theorem proved in the deck is its local half.",
 "section": "The thing no chart removes",
 "slide": "Worked example 2 — round the octant, by hand",
 "keys": [
@@ -157,7 +157,7 @@ window.GLOSSARY = [
 "term_html": "constant curvature",
 "html": "\\(K(\\Pi)\\) the same for every plane at every point, so \\(R_{\\rho\\sigma\\mu\\nu} = K(g_{\\rho\\mu}g_{\\sigma\\nu}-g_{\\rho\\nu}g_{\\sigma\\mu})\\) — the only tensor with S1–S4 built from \\(g\\) alone. Sphere, hyperbolic space, flat space; needed again for unit 39's cosmology.",
 "section": "Curvature belongs to the space",
-"slide": "Sectional curvature: one number per plane",
+"slide": "Constant curvature: the three model spaces",
 "keys": [
 "constant curvature"
 ]

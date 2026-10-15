@@ -29,7 +29,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Hodge star",
-"html": "The linear map \\(\\star:\\Lambda^k\\to\\Lambda^{n-k}\\) fixed by a metric and an orientation through \\(\\alpha\\wedge\\star\\beta = \\langle\\alpha,\\beta\\rangle\\,\\mathrm{vol}_g\\). The only place a metric enters Maxwell's equations.",
+"html": "The map that sends a \\(k\\)-form to the \\((n-k)\\)-form of the complementary directions, using a metric and an orientation: on \\(\\mathbb{R}^3\\) it sends \\(\\mathrm{d}x\\) to \\(\\mathrm{d}y\\wedge\\mathrm{d}z\\), and cyclically. Precisely, \\(\\star\\beta\\) is fixed by \\(\\alpha\\wedge\\star\\beta = \\langle\\alpha,\\beta\\rangle\\,\\mathrm{vol}_g\\) for every \\(k\\)-form \\(\\alpha\\), with \\(\\langle\\,,\\rangle\\) the metric's inner product on forms and \\(\\mathrm{vol}_g\\) the volume form. The only place a metric enters Maxwell's equations.",
 "section": "The exterior algebra",
 "slide": "The Hodge star",
 "keys": [
@@ -38,7 +38,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "structure equations",
-"html": "Cartan's two equations: \\(\\mathrm{d}e^a = -\\omega^a{}_b\\wedge e^b\\) fixes the connection one-forms from a coframe, and \\(\\Omega^a{}_b = \\mathrm{d}\\omega^a{}_b + \\omega^a{}_c\\wedge\\omega^c{}_b\\) gives the curvature.",
+"html": "Cartan's way of computing curvature from an orthonormal coframe \\(e^a\\) (one-forms with \\(g = \\eta_{ab}\\,e^a\\otimes e^b\\)) instead of from Christoffel symbols. The first, \\(\\mathrm{d}e^a = -\\omega^a{}_b\\wedge e^b\\), fixes the connection one-forms \\(\\omega^a{}_b\\) (the connection written in the frame); the second, \\(\\Omega^a{}_b = \\mathrm{d}\\omega^a{}_b + \\omega^a{}_c\\wedge\\omega^c{}_b\\), gives the curvature two-forms \\(\\Omega^a{}_b\\), which carry the Riemann tensor.",
 "section": "The exterior algebra",
 "slide": "Coframes and the first structure equation",
 "keys": [
@@ -148,7 +148,7 @@ window.GLOSSARY = [
 "term_html": "induced orientation",
 "html": "\"Outward normal first\": a frame of \\(\\partial M\\) is positive when the outward normal followed by it is positive in \\(M\\). The one sign convention behind every classical integral theorem.",
 "section": "One theorem",
-"slide": "The generalised Stokes theorem",
+"slide": "Outward normal first, drawn",
 "keys": [
 "induced orientation"
 ]
@@ -209,7 +209,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "current one-form",
-"html": "\\(J = -c^2\\rho\\,\\mathrm{d}t + J_i\\,\\mathrm{d}x^i\\), unit 24's charge and current densities with the index lowered by \\(\\eta\\). Its dual \\(\\star J\\) is closed exactly when charge is conserved.",
+"html": "\\(J = -c^2\\rho\\,\\mathrm{d}t + J_i\\,\\mathrm{d}x^i\\), unit 24's charge and current densities with the index lowered by the Minkowski metric \\(\\eta\\). Its Hodge dual \\(\\star J\\) is closed exactly when charge is conserved.",
 "section": "The metric enters, once",
 "slide": "\\(\\star F\\), computed",
 "keys": [
@@ -245,7 +245,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "geodesic curvature",
-"html": "For a unit-speed curve on a surface, \\(\\kappa_g = \\langle\\nabla_TT, N\\rangle\\): how fast it turns away from being a geodesic, measured inside the surface. In a frame, \\(\\kappa_g = \\psi' - \\omega^1{}_2(T)\\).",
+"html": "How fast a unit-speed curve on a surface turns away from being a geodesic, measured inside the surface: \\(\\kappa_g = \\langle\\nabla_TT, N\\rangle\\), with \\(T\\) the unit tangent and \\(N\\) the unit normal to \\(T\\) within the surface. In an orthonormal frame \\(e_1, e_2\\), \\(\\kappa_g = \\psi' - \\omega^1{}_2(T)\\), where \\(\\psi\\) is the angle of \\(T\\) from \\(e_1\\) and \\(\\omega^1{}_2\\) the connection one-form.",
 "section": "Cartan's moving frames",
 "slide": "Gauss–Bonnet, from Stokes and one connection form",
 "keys": [
@@ -263,7 +263,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Cartan's magic formula",
-"html": "\\(\\mathcal{L}_X = \\mathrm{d}\\,i_X + i_X\\,\\mathrm{d}\\) on forms. With it, Liouville's theorem is \\(\\mathcal{L}_{X_H}\\omega = -\\mathrm{d}\\mathrm{d}H = 0\\).",
+"html": "\\(\\mathcal{L}_X = \\mathrm{d}\\,i_X + i_X\\,\\mathrm{d}\\) on forms: unit 31's Lie derivative along a vector field \\(X\\), in terms of \\(\\mathrm{d}\\) and the interior product \\(i_X\\). With it, Liouville's theorem is one line: for the symplectic form \\(\\omega\\) and the Hamiltonian flow \\(X_H\\), \\(\\mathcal{L}_{X_H}\\omega = -\\mathrm{d}\\mathrm{d}H = 0\\).",
 "section": "Cartan's moving frames",
 "slide": "Liouville's theorem, in one line",
 "keys": [

@@ -157,7 +157,7 @@ window.GLOSSARY = [
 "term_html": "cycloid",
 "html": "The curve \\(x = a(\\theta-\\sin\\theta)\\), \\(y = a(1-\\cos\\theta)\\) traced by a point on the rim of a circle of radius \\(a\\) rolling along a line. It solves the brachistochrone, leaving the start vertically.",
 "section": "Solving it: the cycloid",
-"slide": "Worked: integrating the first integral",
+"slide": "Why the answer is called a cycloid",
 "keys": [
 "cycloid"
 ]
@@ -182,7 +182,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "isoperimetric problem",
-"html": "Extremising \\(J\\) subject to an integral constraint \\(K[y] = \\ell\\). An extremal that is not an extremal of \\(K\\) satisfies the Euler–Lagrange equation of \\(F - \\lambda G\\) for a constant multiplier \\(\\lambda\\), which equals \\(\\mathrm dJ^*/\\mathrm d\\ell\\).",
+"html": "Extremising \\(J\\) subject to an integral constraint \\(K[y] = \\ell\\). An extremal that is not an extremal of \\(K\\) satisfies the Euler–Lagrange equation of \\(F - \\lambda G\\) for a constant multiplier \\(\\lambda\\), which equals \\(\\mathrm dJ^*/\\mathrm d\\ell\\), the rate at which the constrained minimum \\(J^*\\) changes with \\(\\ell\\).",
 "section": "Constraints and free ends",
 "slide": "An integral constraint: a multiplier in function space",
 "keys": [
@@ -236,7 +236,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "accessory equation (Jacobi equation)",
-"html": "\\((Ph')' = Qh\\), the Euler–Lagrange equation of the second variation. Linear in \\(h\\).",
+"html": "\\((Ph')' = Qh\\), with \\(P = F_{y'y'}\\) and \\(Q = F_{yy} - (F_{yy'})'\\) along the extremal: the Euler–Lagrange equation of the second variation \\(\\int(Ph'^2 + Qh^2)\\). Linear in \\(h\\).",
 "section": "Stationary is not minimal",
 "slide": "The accessory equation and conjugate points",
 "keys": [
@@ -267,7 +267,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Picone identity",
-"html": "\\(P\\eta'^2 + Q\\eta^2 = P(\\eta' - \\eta u'/u)^2 + (P\\eta^2u'/u)'\\) for a solution \\(u\\) of the accessory equation; with \\(u &gt; 0\\) on the whole interval it proves the second variation positive.",
+"html": "\\(P\\eta'^2 + Q\\eta^2 = P(\\eta' - \\eta u'/u)^2 + (P\\eta^2u'/u)'\\) for a solution \\(u\\) of the accessory equation, \\(P\\) and \\(Q\\) being the coefficients of the second variation; with \\(u &gt; 0\\) on the whole interval it proves the second variation positive.",
 "section": "Stationary is not minimal",
 "slide": "Jacobi's theorem",
 "keys": [
@@ -276,9 +276,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "field of extremals",
-"html": "A family of extremals covering a region exactly once. The cycloids through \\(A\\) form one; Weierstrass showed a field makes an extremal a strong minimum (cited).",
+"html": "A family of extremals covering a region exactly once: through each point passes one member. The first arches of the cycloids through \\(A\\) form one over the whole quadrant. Weierstrass showed that an extremal in a field, with \\(F\\) convex in \\(y'\\), beats every competitor lying in the region (cited).",
 "section": "Stationary is not minimal",
-"slide": "Worked: the cycloid has no conjugate point",
+"slide": "The cycloids through \\(A\\) form a field",
 "keys": [
 "field of extremals"
 ]
@@ -323,7 +323,7 @@ window.GLOSSARY = [
 "term_html": "Dirichlet's principle",
 "html": "The assumption, used by Riemann, that the energy \\(\\int\\lvert\\nabla u\\rvert^2\\) attains its minimum among functions with given boundary values. Weierstrass's example \\(\\int x^2y'^2\\) of 1870 showed such assumptions can fail; Hilbert repaired it in 1900.",
 "section": "Does a minimum exist at all?",
-"slide": "Weierstrass against Dirichlet",
+"slide": "What failed: a functional blind to steepness",
 "keys": [
 "dirichlet's principle"
 ]

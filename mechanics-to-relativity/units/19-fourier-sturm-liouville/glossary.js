@@ -101,7 +101,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "completeness",
-"html": "An orthogonal system is complete in \\(V\\) if \\(\\lVert f - S_Nf\\rVert \\to 0\\) for every \\(f \\in V\\). It implies that the only \\(f\\) orthogonal to every \\(e_n\\) is zero; the converse holds in a metrically complete space such as \\(L^2_w\\), not in general in \\(PC\\). A property of the system, not of \\(f\\).",
+"html": "An orthogonal system is complete in \\(V\\) if \\(\\lVert f - S_Nf\\rVert \\to 0\\) for every \\(f \\in V\\), where \\(S_Nf = \\sum_{n\\le N}\\hat f_ne_n\\) is the partial sum: every \\(f\\) is reached by its own expansion. It implies that the only \\(f\\) orthogonal to every \\(e_n\\) is zero; the converse holds in a metrically complete space such as \\(L^2_w\\), not in general in \\(PC\\). A property of the system, not of \\(f\\).",
 "section": "Orthogonality and the best approximation",
 "slide": "Completeness, and Parseval",
 "keys": [
@@ -119,7 +119,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Fejér's theorem",
-"html": "The averaged partial sums \\(\\sigma_N = \\frac1{N+1}\\sum_{k \\le N}S_k\\) converge uniformly to \\(f\\) for continuous periodic \\(f\\), because the Fejér kernel is nonnegative and concentrates. It is the route to completeness of the trigonometric system, and the repair for Gibbs.",
+"html": "The averages of the partial sums \\(\\sigma_N = \\frac1{N+1}\\sum_{k \\le N}S_k\\) converge uniformly to \\(f\\) for continuous periodic \\(f\\), because the Fejér kernel is nonnegative and concentrates. It is the route to completeness of the trigonometric system, and the repair for Gibbs.",
 "section": "Orthogonality and the best approximation",
 "slide": "Completeness, and Parseval",
 "keys": [
@@ -137,7 +137,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Dirichlet's theorem",
-"html": "For \\(2\\pi\\)-periodic piecewise \\(C^1\\) \\(f\\), \\(S_Nf(x) \\to \\frac12(f(x+) + f(x-))\\) at every \\(x\\): the value where \\(f\\) is continuous, the midpoint of the jump elsewhere.",
+"html": "For \\(2\\pi\\)-periodic piecewise \\(C^1\\) \\(f\\), the partial sums \\(S_Nf\\) of its Fourier series satisfy \\(S_Nf(x) \\to \\frac12(f(x+) + f(x-))\\) at every \\(x\\): the value where \\(f\\) is continuous, the midpoint of the jump elsewhere.",
 "section": "Convergence",
 "slide": "Dirichlet: what the series converges to at a jump",
 "keys": [
@@ -155,7 +155,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Gibbs phenomenon",
-"html": "Near a jump of size \\(J\\) the partial sums overshoot by \\((\\frac2\\pi\\mathrm{Si}(\\pi) - 1)\\frac J2 = 0.08948987\\,J\\) — 8.9490 per cent of the jump — on each side. The overshoot does not shrink with \\(N\\); it only moves closer to the jump, at distance \\(\\pi/2M\\).",
+"html": "Near a jump of size \\(J\\) the partial sums overshoot by \\((\\frac2\\pi\\mathrm{Si}(\\pi) - 1)\\frac J2 = 0.08948987\\,J\\) — 8.9490 per cent of the jump — on each side. The overshoot does not shrink with \\(N\\); it only moves closer to the jump — for the square wave's partial sum \\(S_{2M-1}\\), the peak is at distance \\(\\pi/2M\\).",
 "section": "Convergence",
 "slide": "Worked: Gibbs, and the number 8.9490 %",
 "keys": [

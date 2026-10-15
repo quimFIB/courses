@@ -83,7 +83,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "dimension",
-"html": "The vector \\(D_{\\cdot q} \\in \\mathbb{Q}^d\\) of exponents recording how a quantity's numerical value responds to a change of base units: if the change multiplies every measurement in base dimension \\(i\\) by \\(\\lambda_i\\), it sends \\(q \\mapsto (\\prod_i \\lambda_i^{D_{iq}})q\\). That is a group action of \\((\\mathbb{R}_{&gt;0})^d\\).",
+"html": "Which powers of the base dimensions a quantity carries: \\([g] = \\mathsf L\\,\\mathsf T^{-2}\\), so the dimension of \\(g\\) is the exponent vector \\((0, 1, -2)\\) in the order \\((\\mathsf M, \\mathsf L, \\mathsf T)\\). Written \\(D_{\\cdot q} \\in \\mathbb{Q}^d\\), with \\(D_{iq}\\) the exponent of base dimension \\(i\\) in \\(q\\). It says how the number responds to a change of units: if every measurement in base dimension \\(i\\) is multiplied by \\(\\lambda_i\\), then \\(q \\mapsto (\\prod_i \\lambda_i^{D_{iq}})q\\) — a group action of \\((\\mathbb{R}_{&gt;0})^d\\).",
 "section": "Dimensions, before any calculus",
 "slide": "Units as a group action",
 "keys": [
@@ -101,7 +101,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "dimensional homogeneity",
-"html": "The hypothesis — not a theorem — that a physical law holds in one consistent system of units if and only if it holds in all of them: \\(f(q) = 0 \\Rightarrow f(\\lambda^D q) = 0\\). Every dimensional argument rests on it, and every failed dimensional argument is a missing variable.",
+"html": "The hypothesis — not a theorem — that a physical law holds in one consistent system of units if and only if it holds in all of them: \\(f(q) = 0 \\Rightarrow f(\\lambda^D q) = 0\\), where \\(\\lambda^D q\\) is every quantity rescaled by the change of units \\(\\lambda\\). Every dimensional argument rests on it, and every failed dimensional argument is a missing variable.",
 "section": "Dimensions, before any calculus",
 "slide": "Units as a group action",
 "keys": [
@@ -119,7 +119,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "dimensionless group",
-"html": "A dimensionless monomial in the quantities; equivalently an element of \\(\\ker D\\). A basis of \\(\\ker D\\) gives \\(n - r\\) independent groups, with \\(r = \\operatorname{rank} D\\). The basis is not canonical, the subspace is.",
+"html": "A product of powers of the quantities in which every unit cancels, such as \\(T^2g/l\\) for the pendulum: its value is the same in every system of units. With \\(D\\) the dimension matrix (one column of exponents per quantity), \\(\\prod_j q_j^{a_j}\\) is such a product exactly when \\(Da = 0\\), so they correspond to \\(\\ker D\\); a basis gives \\(n - r\\) independent groups, \\(r = \\operatorname{rank} D\\). The basis is not canonical, the subspace is.",
 "section": "Dimensions, before any calculus",
 "slide": "The dimension matrix and its kernel",
 "keys": [

@@ -2,7 +2,7 @@
 window.GLOSSARY = [
 {
 "term_html": "event",
-"html": "A point of spacetime: a place at an instant. Differences of events are vectors of \\(V\\).",
+"html": "A point of spacetime: a place at an instant. The difference of two events is a vector, an arrow from one to the other; section 2 names the space of those vectors \\(V\\).",
 "section": "The group, from structure alone",
 "slide": "Events, frames, and the question",
 "keys": [
@@ -20,7 +20,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "worldline",
-"html": "The set of events a particle occupies; for a massive particle, a future-directed timelike curve.",
+"html": "The set of events a particle occupies: its path through spacetime. For a massive particle its speed stays below \\(c\\) all along — in section 2's words, a future-directed timelike curve.",
 "section": "The group, from structure alone",
 "slide": "Events, frames, and the question",
 "keys": [
@@ -47,7 +47,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "isotropy",
-"html": "No spatial direction is special. It decouples the transverse coordinates from a boost and, with the group axioms, proves reciprocity: \\(L(v)^{-1} = L(-v)\\).",
+"html": "No spatial direction is special. It decouples the transverse coordinates from a boost and, with the group axioms, proves reciprocity: if frame \\(S'\\) moves at \\(v\\) relative to \\(S\\), then \\(S\\) moves at \\(-v\\) relative to \\(S'\\) — in symbols \\(L(v)^{-1} = L(-v)\\), where \\(L(v)\\) is the boost's \\(2\\times2\\) matrix on \\((t, x)\\).",
 "section": "The group, from structure alone",
 "slide": "Events, frames, and the question",
 "keys": [
@@ -195,7 +195,7 @@ window.GLOSSARY = [
 "term_html": "velocity addition",
 "html": "\\(\\beta_w = (\\beta_u + \\beta_v)/(1 + \\beta_u\\beta_v)\\) for collinear velocities: the addition formula for \\(\\tanh\\).",
 "section": "The form, and the group of the form",
-"slide": "Boosts are hyperbolic rotations",
+"slide": "Velocity addition is tanh addition",
 "keys": [
 "velocity addition"
 ]
@@ -222,7 +222,7 @@ window.GLOSSARY = [
 "term_html": "Einstein synchronisation",
 "html": "Radar time: an event reached by light sent at \\(t_1\\) and returned at \\(t_2\\) is assigned \\(t_E = \\tfrac12(t_1 + t_2)\\). Radar-simultaneous events are those \\(\\eta\\)-orthogonal to the observer's worldline.",
 "section": "Simultaneity, and what follows from it",
-"slide": "The relativity of simultaneity",
+"slide": "Einstein synchronisation: simultaneity by radar",
 "keys": [
 "einstein synchronisation"
 ]
@@ -285,7 +285,7 @@ window.GLOSSARY = [
 "term_html": "headlight effect",
 "html": "Light emitted isotropically by a fast source is concentrated forward: half of it falls within \\(\\sin\\theta &lt; 1/\\gamma\\) of the direction of motion.",
 "section": "Simultaneity, and what follows from it",
-"slide": "Aberration and the headlight effect",
+"slide": "The headlight cone, drawn",
 "keys": [
 "headlight effect"
 ]
@@ -319,7 +319,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "proper time",
-"html": "For a future-directed timelike curve, \\(\\tau = \\frac1c\\int\\sqrt{-\\eta_{\\mu\\nu}\\dot X^\\mu\\dot X^\\nu}\\,\\mathrm d\\lambda = \\int\\sqrt{1 - |\\dot{\\vec x}|^2/c^2}\\,\\mathrm dt\\). Invariant under reparametrisation and under Lorentz transformations.",
+"html": "The time an ideal clock reads as it is carried along a path through spacetime. If in some inertial frame the clock is at \\(\\vec x(t)\\), then \\(\\tau = \\int\\sqrt{1 - |\\dot{\\vec x}|^2/c^2}\\,\\mathrm dt\\): less than the frame's own elapsed time whenever the clock moves. Section 5 writes it with the Minkowski form \\(\\eta\\) of section 2 as \\(\\frac1c\\int\\sqrt{-\\eta_{\\mu\\nu}\\dot X^\\mu\\dot X^\\nu}\\,\\mathrm d\\lambda\\), the Lorentzian length of the curve, the same in every frame.",
 "section": "Proper time, and the twin paradox as a theorem",
 "slide": "Proper time: the length of a worldline",
 "keys": [

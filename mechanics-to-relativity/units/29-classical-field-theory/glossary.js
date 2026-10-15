@@ -13,7 +13,7 @@ window.GLOSSARY = [
 "term_html": "Lagrangian density",
 "html": "\\(\\mathcal L(\\varphi_a, \\partial_\\mu\\varphi_a, x)\\), a number attached to each event, built from the fields and their <em>first</em> derivatives there and nothing else. Locality is its whole content. In SI units an energy density, \\(\\mathrm{J\\,m^{-3}}\\). Unit 18 met it in one space dimension.",
 "section": "Fields: mechanics with a continuous index",
-"slide": "A field is a mechanical system whose index is a point",
+"slide": "The Lagrangian density, and the action over a region",
 "keys": [
 "lagrangian density"
 ]
@@ -22,7 +22,7 @@ window.GLOSSARY = [
 "term_html": "action over a spacetime region",
 "html": "\\(S[\\varphi] = \\frac1c\\int_\\Omega\\mathcal L\\,\\mathrm d^4x\\) with \\(\\mathrm d^4x = c\\,\\mathrm dt\\,\\mathrm d^3x\\) and \\(\\Omega\\) a bounded region with piecewise smooth boundary. The factor \\(1/c\\) makes it \\(\\mathrm{J\\,s}\\) and changes no field equation.",
 "section": "Fields: mechanics with a continuous index",
-"slide": "A field is a mechanical system whose index is a point",
+"slide": "The Lagrangian density, and the action over a region",
 "keys": [
 "action over a spacetime region"
 ]
@@ -65,7 +65,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "boundary term",
-"html": "\\(\\frac1c\\oint_{\\partial\\Omega}\\pi^\\mu{}_a\\eta_a\\,\\mathrm d\\Sigma_\\mu\\), what is left of the first variation after integrating by parts. Killed by fixing the field on \\(\\partial\\Omega\\), by a natural condition \\(\\pi^\\mu{}_an_\\mu = 0\\), or by decay. For the Einstein–Hilbert action it is killed by none of these, and unit 35 adds the Gibbons–Hawking–York integral to cancel it.",
+"html": "What is left of the first variation after integrating by parts: \\(\\frac1c\\oint_{\\partial\\Omega}\\pi^\\mu{}_a\\eta_a\\,\\mathrm d\\Sigma_\\mu\\), with \\(\\pi^\\mu{}_a = \\partial\\mathcal L/\\partial(\\partial_\\mu\\varphi_a)\\) the field's conjugate momentum and \\(\\mathrm d\\Sigma_\\mu\\) the outward surface element of the region's boundary. Killed by fixing the field on \\(\\partial\\Omega\\), by a natural condition \\(\\pi^\\mu{}_an_\\mu = 0\\) with \\(n_\\mu\\) the outward normal, or by decay. For the Einstein–Hilbert action it is killed by none of these, and unit 35 adds the Gibbons–Hawking–York integral to cancel it.",
 "section": "Fields: mechanics with a continuous index",
 "slide": "What the boundary term is for",
 "keys": [
@@ -85,7 +85,7 @@ window.GLOSSARY = [
 "term_html": "reduced Compton wavelength",
 "html": "\\(\\kappa^{-1} = \\hbar/mc\\), the length the mass term puts into the field equation, and the range of the static solution \\(e^{-\\kappa r}/r\\). For the charged pion, \\(\\hbar c/mc^2 = 197.327\\ \\mathrm{MeV\\,fm}/139.570\\ \\mathrm{MeV} = 1.4138\\) fm, which is Yukawa's range for the nuclear force. The Compton wavelength proper is \\(h/mc\\), larger by \\(2\\pi\\); it is \\(\\hbar/mc\\) that appears in the field equation, so that is the one named here.",
 "section": "Fields: mechanics with a continuous index",
-"slide": "Worked: the Klein–Gordon field, and what mass does to a wave",
+"slide": "The range of a force is the mass of its field",
 "keys": [
 "reduced compton wavelength"
 ]
@@ -130,7 +130,7 @@ window.GLOSSARY = [
 "term_html": "conserved charge",
 "html": "\\(Q = \\frac1c\\int j^0\\,\\mathrm d^3x\\) over a constant-time slice, with \\(\\mathrm dQ/\\mathrm dt = -\\oint\\vec\\jmath\\cdot \\mathrm d\\vec A\\). Constant when the flux at infinity vanishes; the local law \\(\\partial_\\mu j^\\mu = 0\\) is strictly stronger than the global one.",
 "section": "Noether, for fields",
-"slide": "Noether's theorem for fields",
+"slide": "From a local law to a conserved charge",
 "keys": [
 "conserved charge"
 ]
@@ -146,7 +146,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "improvement term",
-"html": "\\(\\partial_\\lambda B^{\\lambda\\mu\\nu}\\) with \\(B^{\\lambda\\mu\\nu} = -B^{\\mu\\lambda\\nu}\\). Identically conserved, and it changes no total charge, so conservation alone cannot determine \\(T^{\\mu\\nu}\\). \\(B\\) itself is called a superpotential.",
+"html": "\\(\\partial_\\lambda B^{\\lambda\\mu\\nu}\\), added to an energy–momentum tensor \\(T^{\\mu\\nu}\\), with \\(B^{\\lambda\\mu\\nu} = -B^{\\mu\\lambda\\nu}\\) any field antisymmetric in its first two indices (not the magnetic field). Identically conserved, and it changes no total charge, so conservation alone cannot determine \\(T^{\\mu\\nu}\\). \\(B\\) itself is called a superpotential.",
 "section": "Noether, for fields",
 "slide": "What you are allowed to add: improvement",
 "keys": [
@@ -166,7 +166,7 @@ window.GLOSSARY = [
 "term_html": "spin current",
 "html": "\\(S^{\\lambda\\mu\\nu}\\), the part of the Noether current of Lorentz invariance coming from the rotation of the field's own indices rather than from its position. It is why the canonical tensor of a field carrying spacetime indices is asymmetric, and it is measurable: circularly polarised light carries angular momentum with no orbital motion, as Beth measured in 1936.",
 "section": "Noether, for fields",
-"slide": "Belinfante and Rosenfeld: the repair, for Maxwell",
+"slide": "Spin: what the asymmetry was carrying",
 "keys": [
 "spin current"
 ]
@@ -175,7 +175,7 @@ window.GLOSSARY = [
 "term_html": "invariant volume element",
 "html": "\\(\\sqrt{-g}\\,\\mathrm d^4x\\), unchanged by any change of coordinates, because \\(\\det g' = (\\det\\Lambda)^2\\det g\\) cancels the Jacobian of unit 05's change-of-variables theorem. In inertial coordinates \\(\\det\\Lambda = \\pm1\\) and the distinction is invisible, which is why it appears only now.",
 "section": "The definition general relativity uses",
-"slide": "The move: let the metric be general, in flat space",
+"slide": "The volume element coordinates cannot change",
 "keys": [
 "invariant volume element"
 ]
@@ -184,7 +184,7 @@ window.GLOSSARY = [
 "term_html": "tensor density",
 "html": "A quantity whose components transform as a tensor's do, times \\((\\det\\Lambda)^w\\) for some weight \\(w\\). \\(\\sqrt{-g}\\) has weight 1; the Levi-Civita symbol of unit 28, with entries \\(\\pm1\\) in every coordinate system, has weight \\(-1\\), which is why \\(\\sqrt{-g}\\,\\epsilon^{\\mu\\nu\\rho \\sigma}\\) is the honest tensor.",
 "section": "The definition general relativity uses",
-"slide": "The move: let the metric be general, in flat space",
+"slide": "The volume element coordinates cannot change",
 "keys": [
 "tensor density"
 ]

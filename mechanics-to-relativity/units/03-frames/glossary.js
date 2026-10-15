@@ -11,9 +11,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "directional derivative",
-"html": "The same limit with an arbitrary unit vector \\(u\\) in place of \\(e_i\\). Existence for every \\(u\\), plus continuity, still does not give differentiability: \\(x^3/(x^2+y^2)\\) has \\(D_ug(0) = u_1^3\\), which is not linear in \\(u\\).",
+"html": "\\(D_uf(a)\\), the same limit with an arbitrary unit vector \\(u\\) in place of \\(e_i\\). Existence for every \\(u\\), plus continuity, still does not give differentiability: \\(g = x^3/(x^2+y^2)\\) has \\(D_ug(0) = u_1^3\\), which is not linear in \\(u\\).",
 "section": "Differentiating in several variables",
-"slide": "Partials are not enough",
+"slide": "Even every direction is not enough",
 "keys": [
 "directional derivative"
 ]
@@ -143,7 +143,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "binormal",
-"html": "\\(\\hat B = \\hat T\\times\\hat N\\), completing the frame.",
+"html": "\\(\\hat B = \\hat T\\times\\hat N\\): the unit vector perpendicular to both \\(\\hat T\\) and \\(\\hat N\\) that makes the triple right-handed, completing the frame. (The cross product itself is defined in section 3.)",
 "section": "Curves",
 "slide": "Curvature, and the frame a curve carries",
 "keys": [
@@ -206,7 +206,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Reynolds number",
-"html": "\\(\\mathcal R = \\rho_{\\text{air}}vd/\\mu\\), dimensionless, and it decides which drag law applies: \\(\\mathcal R \\lesssim 1\\) linear (and the three components separate), \\(\\mathcal R \\gtrsim 10^3\\) quadratic (and they do not). A football at \\(20\\) m/s has \\(\\mathcal R \\approx 3\\times10^5\\).",
+"html": "\\(\\mathcal R = \\rho_{\\text{air}}vd/\\mu\\), with \\(d\\) the body's diameter, \\(\\rho_{\\text{air}}\\) the air's density and \\(\\mu\\) its viscosity. Dimensionless, and it decides which drag law applies: \\(\\mathcal R \\lesssim 1\\) linear (and the three components separate), \\(\\mathcal R \\gtrsim 10^3\\) quadratic (and they do not). A football at \\(20\\) m/s has \\(\\mathcal R \\approx 3\\times10^5\\).",
 "section": "Curves",
 "slide": "Three dimensions are not three one-dimensional problems",
 "keys": [
@@ -266,7 +266,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "angular velocity vector",
-"html": "\\(\\vec\\omega\\), the unique vector with \\(\\hat\\omega = R^{\\!\\top}\\dot R\\). Its direction is the instantaneous axis, its magnitude the rate of turn, and its components here are in the <strong>rotating</strong> frame.",
+"html": "\\(\\vec\\omega\\), the unique vector whose antisymmetric matrix \\(\\hat\\omega\\) (see hat map) is \\(R^{\\!\\top}\\dot R\\). Its direction is the instantaneous axis, its magnitude the rate of turn, and its components here are in the <strong>rotating</strong> frame.",
 "section": "Frames that turn",
 "slide": "\\(\\Omega = R^{\\!\\top}\\dot R\\) is antisymmetric",
 "keys": [
@@ -349,7 +349,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "inertial circle",
-"html": "The circular path a body follows when Coriolis is the only horizontal force, of radius \\(v/(2\\omega\\sin\\lambda)\\) — \\(291\\) km for a \\(30\\) m/s wind at \\(45^\\circ\\) N — and of period half the frame's rotation period.",
+"html": "The circular path a body follows when Coriolis is the only horizontal force, of radius \\(v/(2\\omega\\sin\\lambda)\\) — \\(291\\) km for a \\(30\\) m/s wind at \\(45^\\circ\\) N — and of period \\(\\pi/(\\omega\\sin\\lambda)\\), half the Foucault period at that latitude.",
 "section": "The frame that lies to you",
 "slide": "Coriolis: the force that turns cyclones",
 "keys": [
@@ -358,7 +358,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Rossby number",
-"html": "\\(\\mathcal Ro = v/(2\\omega\\sin\\lambda\\,L)\\), comparing inertia with Coriolis. About \\(0.29\\) for a \\(1000\\) km storm, about \\(10^4\\) for a bath: weather is Coriolis, plugholes are not.",
+"html": "\\(\\mathcal Ro = v/(2\\omega\\sin\\lambda\\,\\ell)\\), with \\(\\ell\\) the size of the flow, comparing inertia with Coriolis. About \\(0.29\\) for a \\(1000\\) km storm, about \\(10^4\\) for a bath: weather is Coriolis, plugholes are not.",
 "section": "The frame that lies to you",
 "slide": "Coriolis: the force that turns cyclones",
 "keys": [
@@ -385,7 +385,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Foucault period",
-"html": "\\(T = 2\\pi/(\\omega\\sin\\lambda) =\\) one sidereal day divided by \\(\\sin\\lambda\\). At the Panthéon, \\(23.9345\\,\\mathrm h/0.752946 = 31.79\\) h; \\(23.93\\) h at the pole, infinite at the equator.",
+"html": "\\(T_{\\mathrm F} = 2\\pi/(\\omega\\sin\\lambda) =\\) one sidereal day divided by \\(\\sin\\lambda\\). At the Panthéon, \\(23.9345\\,\\mathrm h/0.752946 = 31.79\\) h; \\(23.93\\) h at the pole, infinite at the equator.",
 "section": "The Foucault pendulum",
 "slide": "Worked: 31.8 hours at the Panthéon",
 "keys": [

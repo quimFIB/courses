@@ -129,7 +129,7 @@ window.GLOSSARY = [
 "term_html": "Fresnel drag coefficient",
 "html": "The fraction \\(f\\) in the lab speed \\(c/n + fw\\) of light in a medium moving at \\(w\\). Fresnel's value \\(f = 1 - 1/n^2\\) (0.437 for water) was confirmed by Fizeau (1851) and by Michelson and Morley (1886, \\(0.434 \\pm 0.02\\)); relativity derives it from the composition law.",
 "section": "Three ways out, and the experiments that closed them",
-"slide": "Aberration and Fizeau: the ether must stand still, and not quite",
+"slide": "Fizeau: moving water drags light, partly",
 "keys": [
 "fresnel drag coefficient"
 ]
@@ -147,7 +147,7 @@ window.GLOSSARY = [
 "term_html": "null result",
 "html": "Michelson and Morley's 1887 finding: a fringe shift below 0.01, \"probably less than the fortieth part\" of the 0.40 expected; later repetitions at other seasons agreed.",
 "section": "Three ways out, and the experiments that closed them",
-"slide": "Worked: Michelson–Morley, the expected shift",
+"slide": "Michelson–Morley, drawn: two round trips",
 "keys": [
 "null result"
 ]
@@ -174,7 +174,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "de Sitter's argument",
-"html": "1913: under an emission theory, light from a binary star emitted while approaching arrives earlier than light emitted while receding, by \\(\\approx 2Du/c^2\\) — 244 days for \\(u = 100\\) km s\\(^{-1}\\) at 1000 light-years — scrambling the orbit's appearance. Binary orbits look clean; X-ray binaries (Brecher 1977) bound any source dependence below \\(2\\times10^{-9}\\).",
+"html": "1913: under an emission theory, light from a binary star at distance \\(D\\), moving in its orbit at speed \\(u\\), arrives earlier when emitted while approaching than while receding, by \\(\\approx 2Du/c^2\\) — 244 days for \\(u = 100\\) km s\\(^{-1}\\) at 1000 light-years — scrambling the orbit's appearance. Binary orbits look clean; X-ray binaries (Brecher 1977) bound any source dependence below \\(2\\times10^{-9}\\).",
 "section": "Three ways out, and the experiments that closed them",
 "slide": "Emission theories, and de Sitter's double stars",
 "keys": [
@@ -192,7 +192,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "transverse scale factor",
-"html": "The factor \\(s\\) in \\(y' = sy,\\ z' = sz\\) for a boost along \\(x\\). Form-invariance of the 3+1 wave operator forces \\(A^2(1 - \\beta^2) = s^2\\), which gives \\(|v| &lt; c\\) and leaves \\(s(v)\\) free.",
+"html": "The factor \\(s\\) in \\(y' = sy,\\ z' = sz\\) for a boost along \\(x\\). With \\(A(v)\\) the common factor of the \\((x, t)\\) part of the map and \\(\\beta = v/c\\), form-invariance of the 3+1 wave operator forces \\(A^2(1 - \\beta^2) = s^2\\), which gives \\(|v| &lt; c\\) and leaves \\(s(v)\\) free.",
 "section": "Which substitution kills the cross terms",
 "slide": "Three dimensions: transverse lengths, and |v| < c",
 "keys": [
@@ -210,7 +210,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Voigt's transformation",
-"html": "Voigt 1887: \\(x' = x - vt,\\ t' = t - vx/c^2,\\ y' = y/\\gamma,\\ z' = z/\\gamma\\). It preserves the wave operator up to the factor \\(1/\\gamma^2\\) — the family's member with \\(s = 1/\\gamma\\) — but is not reciprocal, and predicts twice the Ives–Stilwell shift.",
+"html": "Voigt 1887: \\(x' = x - vt,\\ t' = t - vx/c^2,\\ y' = y/\\gamma,\\ z' = z/\\gamma\\), with \\(\\gamma = 1/\\sqrt{1 - v^2/c^2}\\). It preserves the wave operator up to the factor \\(1/\\gamma^2\\) — the family's member with \\(s = 1/\\gamma\\) — but is not reciprocal, and predicts twice the Ives–Stilwell shift.",
 "section": "Which substitution kills the cross terms",
 "slide": "Fixing s: reciprocity and isotropy",
 "keys": [
@@ -266,7 +266,7 @@ window.GLOSSARY = [
 "term_html": "conformal group",
 "html": "The group of all maps whose transport of solutions preserves the wave equation, allowing a point-dependent factor. In 1+1 it is infinite-dimensional (any reparametrisation of each null coordinate); in 3+1 it is fifteen-dimensional (cited: Bateman and Cunningham, 1909–10). Only the ten Poincaré maps among them are changes of inertial frame.",
 "section": "The patches form a group",
-"slide": "The full symmetry group of the wave operator",
+"slide": "The conformal group: relabelling each family of light lines",
 "keys": [
 "conformal group"
 ]
@@ -282,7 +282,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Kennedy–Thorndike experiment",
-"html": "1932: an interferometer with unequal arms, watched for months as the Earth's velocity changed. Its null result forces \\(\\tau\\,\\ell_\\perp = 1/\\gamma\\), killing the contraction hypothesis without time dilation.",
+"html": "1932: an interferometer with unequal arms, watched for months as the Earth's velocity changed. With \\(\\tau\\) the clock-rate factor and \\(\\ell_\\perp\\) the transverse length factor of the test theory, its null result forces \\(\\tau\\,\\ell_\\perp = 1/\\gamma\\), killing the contraction hypothesis without time dilation.",
 "section": "The patches form a group",
 "slide": "Which experiment pins which",
 "keys": [
@@ -291,7 +291,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Ives–Stilwell experiment",
-"html": "1938: the mean wavelength of light from fast hydrogen atoms seen forwards and backwards is shifted by \\(\\lambda_0(\\gamma - 1) \\approx \\tfrac12\\beta^2\\lambda_0\\), forcing \\(\\tau = 1/\\gamma\\) — the one experiment in the triple with a material clock, and the one that measures the transverse scale factor.",
+"html": "1938: the mean wavelength of light from fast hydrogen atoms (speed \\(\\beta c\\), rest wavelength \\(\\lambda_0\\)) seen forwards and backwards is shifted by \\(\\lambda_0(\\gamma - 1) \\approx \\tfrac12\\beta^2\\lambda_0\\), forcing \\(\\tau = 1/\\gamma\\) — the one experiment in the triple with a material clock, and the one that measures the transverse scale factor.",
 "section": "The patches form a group",
 "slide": "Which experiment pins which",
 "keys": [
@@ -300,9 +300,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "time dilation",
-"html": "A clock moving at \\(v\\) runs slow by the factor \\(1/\\gamma\\) as timed in the frame it moves through. In the family allowed by the wave operator the rate is \\(s/\\gamma\\); Ives–Stilwell measures it.",
+"html": "A clock moving at \\(v\\) runs slow by the factor \\(1/\\gamma\\) as timed in the frame it moves through. In the family allowed by the wave operator, with transverse scale factor \\(s\\), the rate is \\(s/\\gamma\\); Ives–Stilwell measures it.",
 "section": "The patches form a group",
-"slide": "Which experiment pins which",
+"slide": "Ives–Stilwell: the clock that sees s",
 "keys": [
 "time dilation"
 ]

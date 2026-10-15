@@ -110,7 +110,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Einstein-Hilbert action",
-"html": "\\(S = \\frac1c\\int[\\frac{c^4}{16\\pi G}(R - 2\\Lambda) + \\mathcal L_{\\mathrm m}]\\sqrt{-g}\\,\\mathrm d^4x\\). The scalar curvature is the only scalar available with at most two derivatives of the metric, which is why the action is forced for the same reason Lovelock's theorem is.",
+"html": "\\(S = \\frac1c\\int[\\frac{c^4}{16\\pi G}(R - 2\\Lambda) + \\mathcal L_{\\mathrm m}]\\sqrt{-g}\\,\\mathrm d^4x\\), with \\(R\\) the scalar curvature, \\(\\Lambda\\) the cosmological constant (a free constant the theory allows but does not fix) and \\(\\mathcal L_{\\mathrm m}\\) the Lagrangian density of the matter (unit 29). The scalar curvature is the only scalar available with at most two derivatives of the metric, which is why the action is forced for the same reason Lovelock's theorem is.",
 "section": "Route one: vary an action",
 "slide": "Which scalar? The Einstein-Hilbert action",
 "keys": [
@@ -137,9 +137,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Gibbons-Hawking-York term",
-"html": "The boundary integral \\(\\frac1c\\frac{c^4}{8\\pi G}\\oint_{\\partial\\mathcal M}\\varepsilon K\\sqrt{|h|}\\,\\mathrm d^3x\\) added to the Einstein-Hilbert action so that the variational problem is well posed with only the induced metric fixed on the boundary. Needed because the Palatini divergence contains normal derivatives of \\(\\delta g\\), which fixing \\(g\\) on the boundary does not kill. Cited: York 1972, Gibbons and Hawking 1977.",
+"html": "The boundary integral \\(\\frac1c\\frac{c^4}{8\\pi G}\\oint_{\\partial\\mathcal M}\\varepsilon K\\sqrt{|\\gamma|}\\,\\mathrm d^3x\\) added to the Einstein-Hilbert action so that the variational problem is well posed with only the induced metric fixed on the boundary. Here \\(\\gamma\\) is the metric the boundary inherits, \\(\\varepsilon = n\\cdot n = \\pm1\\) for its unit normal \\(n\\), and \\(K\\) the trace of its extrinsic curvature, which measures how the boundary bends inside spacetime. Needed because the Palatini divergence contains normal derivatives of \\(\\delta g\\), which fixing \\(g\\) on the boundary does not kill. Cited: York 1972, Gibbons and Hawking 1977.",
 "section": "Route one: vary an action",
-"slide": "The boundary term nobody can ignore",
+"slide": "The Gibbons-Hawking-York term",
 "keys": [
 "gibbons-hawking-york term"
 ]
@@ -155,9 +155,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "Weyl tensor",
-"html": "Unit 33's totally trace-free part of the Riemann tensor, with \\(20 - 10 = 10\\) independent components in four dimensions and none at all in three. It is the curvature that survives in vacuum: tidal distortion at constant volume, and hence gravitational waves.",
+"html": "Unit 33's totally trace-free part of the Riemann tensor, with \\(20 - 10 = 10\\) independent components in four dimensions and none at all in three. It is the curvature that survives in vacuum: tidal distortion at constant volume, and hence gravitational waves. In Newtonian terms it is the trace-free part of the tidal matrix \\(\\partial_i\\partial_j\\Phi\\), whose trace \\(\\nabla^2\\Phi\\) is the Ricci part.",
 "section": "What the equations say",
-"slide": "Vacuum is not empty of geometry",
+"slide": "Weyl squeezes, Ricci shrinks",
 "keys": [
 "weyl tensor"
 ]
@@ -229,7 +229,7 @@ window.GLOSSARY = [
 "term_html": "plus and cross polarisations",
 "html": "The two independent components \\(h_+\\) and \\(h_\\times\\) of a plane gravitational wave in transverse-traceless gauge, differing by a rotation of \\(45^\\circ\\) about the propagation direction.",
 "section": "What the equations say",
-"slide": "Linearise: a wave with two polarisations",
+"slide": "Plus and cross, drawn",
 "keys": [
 "plus and cross polarisations"
 ]
@@ -254,7 +254,7 @@ window.GLOSSARY = [
 },
 {
 "term_html": "harmonic coordinates",
-"html": "Coordinates satisfying \\(\\Box x^\\mu = 0\\), equivalently \\(g^{\\alpha\\beta}\\Gamma^\\mu_{\\alpha\\beta} = 0\\) — four conditions, using up exactly the gauge freedom. In them \\(R_{\\mu\\nu}\\) is a quasilinear wave operator acting on \\(g_{\\mu\\nu}\\), which is what makes the Cauchy problem tractable.",
+"html": "Coordinates satisfying \\(\\Box x^\\mu = 0\\), with \\(\\Box = g^{\\alpha\\beta}\\nabla_\\alpha\\nabla_\\beta\\) the curved wave operator; equivalently \\(g^{\\alpha\\beta}\\Gamma^\\mu_{\\alpha\\beta} = 0\\) — four conditions, using up exactly the gauge freedom. In them \\(R_{\\mu\\nu}\\) is a quasilinear wave operator acting on \\(g_{\\mu\\nu}\\), which is what makes the Cauchy problem tractable.",
 "section": "What the equations say",
 "slide": "Is it even well posed?",
 "keys": [
@@ -263,9 +263,9 @@ window.GLOSSARY = [
 },
 {
 "term_html": "initial-value formulation",
-"html": "The statement that data on a spacelike slice, satisfying the four constraints, determines the spacetime uniquely up to diffeomorphism. Cited: Choquet-Bruhat 1952 for the local result, Choquet-Bruhat and Geroch 1969 for the maximal globally hyperbolic development.",
+"html": "The statement that data on a spacelike slice — its inherited metric \\(\\gamma_{ij}\\) and its extrinsic curvature \\(K_{ij}\\), which plays the part of \\(\\partial_t\\gamma_{ij}\\) — satisfying the four constraints, determines the spacetime uniquely up to diffeomorphism. Cited: Choquet-Bruhat 1952 for the local result, Choquet-Bruhat and Geroch 1969 for the largest such spacetime, which is globally hyperbolic: every causal curve that cannot be extended crosses the slice exactly once.",
 "section": "What the equations say",
-"slide": "Is it even well posed?",
+"slide": "Data on a slice, and what it determines",
 "keys": [
 "initial-value formulation"
 ]
