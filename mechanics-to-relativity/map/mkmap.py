@@ -61,6 +61,9 @@ NODES = {
     "23": (300, 1004, "23  Static fields", "c", 0),
     "24": (300, 1074, "24  Maxwell", "c", 0),
     "25": (300, 1144, "25  The crisis", "c", 0),
+    # the quantum coda, lettered in after the units it continues from (2026-10-27)
+    "21b": (990, 934, "21b  Schrödinger", "c", 1),
+    "24b": (590, 1144, "24b  Hydrogen", "c", 1),
 
     # Part D — Minkowski
     "26": (700, 1236, "26  Minkowski space", "d", 0),
@@ -97,6 +100,7 @@ NEEDS = {
     "18": ["07", "12"], "19": ["18", "09", "10", "11"], "20": ["06"],
     "21": ["06", "02", "08"], "22": ["16", "05", "18"], "23": ["05", "10", "19"],
     "24": ["23", "20", "18"], "25": ["24", "03"],
+    "21b": ["21", "15", "19", "20"], "24b": ["21b", "24", "08", "10", "13", "16"],
     "26": ["03", "14"], "27": ["26", "14", "16"], "28": ["27", "25"],
     "29": ["28", "13", "11"], "30": ["27", "05", "16"],
     "31": ["16", "30"], "32": ["31", "11"], "33": ["32", "05"],
@@ -187,7 +191,7 @@ def length(a, b):
 
 def build():
     out = [f'<svg class="map" viewBox="0 0 {VIEW[0]} {VIEW[1]}" role="img" '
-           'aria-label="Dependency map of the 41 units, in six parts, from Newton\'s '
+           f'aria-label="Dependency map of the {len(NODES)} units, in six parts, from Newton\'s '
            'second law to the Einstein field equations.">',
            """  <defs>
     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6"

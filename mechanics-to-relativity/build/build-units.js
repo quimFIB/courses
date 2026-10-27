@@ -14,12 +14,15 @@ export const meta = {
 // where import statements and import.meta are both illegal.
 // The absolute paths that used to be here published a username, and broke outright the
 // moment the two courses moved into published-courses/.
-const ROOT = process.cwd()
+// Since 2026-10-27 the runner has no `process` global, so the launcher passes the course
+// root as args.root (BUILD.md shows how); process.cwd() remains for runners that have it.
+const ROOT = args.root || (typeof process !== 'undefined' ? process.cwd() : null)
+if (!ROOT) throw new Error('pass the course root: Workflow({scriptPath, args: {units, mode, root}})')
 const S = `${ROOT}/build`
 const SIS = ROOT.replace(/\/[^/]+$/, '/combinatorial-optimization')
 
 const COMMON = `
-THE COURSE. "Mechanics to Relativity": a self-study curriculum of 41 units taking one learner from Newton's second law to the Einstein field equations. The learner is mathematically mature — proofs, abstraction, linear algebra, single-variable real analysis, metric-space topology, elementary group theory — and knows NO physics and NO vector calculus, ODE methods, Fourier analysis, complex analysis, PDEs, asymptotics, calculus of variations, tensors or differential geometry. All of that is taught here, physics-first and just-in-time. There is no lab and no code: a unit is a slide deck with worked examples, a problem sheet whose every problem has a full worked solution and a hint ladder, and one falsifiable checkpoint.
+THE COURSE. "Mechanics to Relativity": a self-study curriculum of 43 units (00–40, plus the quantum coda 21b and 24b, lettered in after the units they continue from) taking one learner from Newton's second law to the Einstein field equations. The learner is mathematically mature — proofs, abstraction, linear algebra, single-variable real analysis, metric-space topology, elementary group theory — and knows NO physics and NO vector calculus, ODE methods, Fourier analysis, complex analysis, PDEs, asymptotics, calculus of variations, tensors or differential geometry. All of that is taught here, physics-first and just-in-time. There is no lab and no code: a unit is a slide deck with worked examples, a problem sheet whose every problem has a full worked solution and a hint ladder, and one falsifiable checkpoint.
 
 READ FIRST, all of them:
 - ${ROOT}/AUTHORING.md — the contract every unit keeps and the exact file formats. It is binding.
