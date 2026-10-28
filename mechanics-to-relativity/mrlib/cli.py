@@ -32,16 +32,24 @@ ROOT = Path(__file__).resolve().parent.parent
 UNITS = ROOT / "units"
 PROGRESS = ROOT / "progress.json"
 BUILD = ROOT / "BUILD-STATE.json"
-PARTS = 41          # units in the curriculum, 00..40
+# Every unit in the curriculum, in order. A unit fitted in after the numbering was
+# fixed takes a letter — 21b follows 21 — so numbers are strings, never range(n).
+ALL = sorted(json.loads((ROOT / "build" / "slugs.json").read_text()))
+PARTS = len(ALL)
 
 
 def units() -> list[Path]:
-    return sorted(p for p in UNITS.iterdir() if p.is_dir() and re.match(r"\d\d-", p.name))
+    return sorted(p for p in UNITS.iterdir() if p.is_dir() and re.match(r"\d\d[a-z]?-", p.name))
+
+
+def number(unit: Path) -> str:
+    """'21b' for units/21b-schrodinger — the part of the name before the first hyphen."""
+    return unit.name.split("-", 1)[0]
 
 
 def find_unit(key: str) -> Path:
     key = key.zfill(2)
-    hits = [p for p in units() if p.name.startswith(key)]
+    hits = [p for p in units() if number(p) == key]
     if not hits:
         have = ", ".join(p.name for p in units()) or "none"
         sys.exit(f"no unit {key!r}; built so far: {have}")
@@ -94,7 +102,7 @@ def status():
     done = _progress()
     rows = []
     for unit in units():
-        no = unit.name[:2]
+        no = number(unit)
         has = lambda *p: (unit.joinpath(*p)).exists()
         built = "deck" if has("slides.html") else "    "
         probs = "problems" if has("problems.html") else "        "
@@ -122,10 +130,10 @@ def todo():
     quota reset, a closed session, anything — so this reads the truth off disk rather
     than trusting a plan."""
     state = build_state()
-    have = {u.name[:2]: u for u in units()}
+    have = {number(u): u for u in units()}
     done_w = [n for n in sorted(have) if written(have[n])]
     part_w = [n for n in sorted(have) if not written(have[n])]
-    todo_w = sorted([f"{i:02d}" for i in range(PARTS) if f"{i:02d}" not in have] + part_w)
+    todo_w = sorted([n for n in ALL if n not in have] + part_w)
     todo_v = [n for n in done_w if n not in state["verified"]]
     print(f"{len(done_w)}/{PARTS} units written, {len(state['verified'])}/{PARTS} verified\n")
     if part_w:
@@ -212,7 +220,7 @@ def main(argv=None):
             subprocess.call([sys.executable, "-m", "http.server", str(args.port), "--directory", str(out)])
     elif args.cmd == "done":
         unit = find_unit(args.unit)
-        no = unit.name[:2]
+        no = number(unit)
         done = _progress()
         if args.undo:
             done.pop(no, None)
@@ -229,9 +237,9 @@ def main(argv=None):
         mark_verified([u.zfill(2) for u in args.units])
     elif args.cmd == "batch":
         from mrlib import batch
-        have = {u.name[:2]: u for u in units()}
+        have = {number(u): u for u in units()}
         written_ = [n for n in sorted(have) if written(have[n])]
-        unwritten = sorted([f"{i:02d}" for i in range(PARTS) if f"{i:02d}" not in have]
+        unwritten = sorted([n for n in ALL if n not in have]
                            + [n for n in have if not written(have[n])])
         batch.main(args, BUILD, written_, unwritten)
 

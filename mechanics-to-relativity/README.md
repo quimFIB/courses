@@ -43,7 +43,7 @@ everything back and `D` switches dark and light, as in the decks.
 ## Layout
 
 ```
-CURRICULUM.html         the proposal: what the course is, all 41 units, the dependency map
+CURRICULUM.html         the proposal: what the course is, all 43 units, the dependency map
 AUTHORING.md            the contract a unit keeps, and the file formats — read before writing one
 BUILD.md, build/        how the units are being built, and how any session resumes that
 CITATIONS.md            the citations no online source could settle, and what was already tried

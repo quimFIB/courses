@@ -1,6 +1,6 @@
 # Building the units — how to resume
 
-The 41 units are written in batches by agents, and a batch can be cut short at any
+The 43 units are written in batches by agents, and a batch can be cut short at any
 moment: a quota reset, a closed session, a machine reboot. So no plan is kept in
 anyone's head. The truth is on disk, and
 
@@ -56,7 +56,8 @@ directory says so to every session that opens here.
    - **0, launch.** It printed `{"units": […], "mode": …}`; if it also printed
      `"stale"`, the previous batch died with its session and those units are
      simply being redone. Launch
-     `Workflow({scriptPath: "<this dir>/build/build-units.js", args: {units, mode}})`
+     `Workflow({scriptPath: "<this dir>/build/build-units.js", args: {units, mode, root: "<this dir>"}})`
+     — `root` is required since the runner lost its `process` global (2026-10-27) —
      and record it: `./mr batch start 12 13 14 15 --mode both --run <run id>`.
 2. **When a batch's completion notification arrives**, read its journal (the
    notification names it) and close the batch:

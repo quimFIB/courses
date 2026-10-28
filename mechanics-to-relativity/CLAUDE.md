@@ -1,6 +1,6 @@
 # mechanics-to-relativity
 
-A 41-unit self-study course, theoretical, from Newton's second law to Einstein's
+A 43-unit self-study course, theoretical, from Newton's second law to Einstein's
 field equations. `WHAT.md` is the state and the ordered next steps; read it
 first. `AUTHORING.md` is the contract every unit keeps.
 
