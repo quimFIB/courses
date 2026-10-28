@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 · Problems — Power electronics and HVDC: switching, and when the grid goes DC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="e">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part E · unit 14 · problems</p>
+<h1>Power electronics and HVDC: switching, and when the grid goes DC</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u14">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> You prove the buck converter's averaged output \(V_o = DV_{\text{in}}\) from its switched
+equations. You compute the length at which a given AC cable's charging current reaches its thermal rating — 99 km for the 400 kV
+cable of capacitance 0.208 μF/km rated 1500 A — and the share of that rating INELFE's 64.5 km would spend on charging current as AC:
+65%.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about four hours. P2, P3 and P8 are the checkpoint's. Conventions as in the deck: ideal switches (on: \(v = 0\);
+off: \(i = 0\)) and unit 03's ideal diodes; passive sign convention; a switching period \(T = 1/f\) with the switch on for \(DT\);
+inductor current \(i_L\), output voltage \(v_o\), load current \(I_o\); RMS phasors with \(e^{+i\omega t}\); three-phase quantities per phase,
+with 400 kV line-to-line meaning \(400/\sqrt3 = 230.9\) kV to earth (unit 11).</p>
+<p>The running numbers, all assumed: the car charger as a buck converter, \(V_{\text{in}} = 12\) V, \(V_o = 5\) V, \(I_o = 2\) A,
+\(L = 10\ \mu\)H, \(C = 22\ \mu\)F, \(f = 500\) kHz. The 400 kV XLPE cable: \(a = 30\) mm, \(b = 57\) mm, \(\varepsilon_r = 2.4\), rated 1500 A.
+INELFE (Red Eléctrica de España, <i>The Spain–France underground electrical interconnection</i>, 2015; Prysmian Group, inauguration press release, 2015): 64.5 km, two 1000 MW links, each a pair of cables at \(\pm320\) kV.
+Constants: \(\varepsilon_0 = 8.854\times10^{-12}\) F/m; copper \(\rho = 1.68\times10^{-8}\ \Omega\,\)m at 20 °C (CRC <i>Handbook</i>). Every other device
+value is stated in its problem and is an assumption for the problem.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="The ideal switch and switching loss">P1</a></li>
+<li><a class="medium" href="#p2" title="Proof: the buck converter's averaged output">P2</a></li>
+<li><a class="routine" href="#p3" title="Duty cycle and ripple">P3</a></li>
+<li><a class="medium" href="#p4" title="Boost and buck–boost">P4</a></li>
+<li><a class="medium" href="#p5" title="Harmonics of a PWM waveform">P5</a></li>
+<li><a class="routine" href="#p6" title="Proof: triplen harmonics cancel line to line">P6</a></li>
+<li><a class="routine" href="#p7" title="Power factor of a distorted current">P7</a></li>
+<li><a class="routine" href="#p8" title="The critical length of an AC cable">P8</a></li>
+<li><a class="routine" href="#p9" title="Overhead against cable">P9</a></li>
+<li><a class="medium" href="#p10" title="DC against AC on INELFE's route">P10</a></li>
+<li><a class="routine" href="#p11" title="The break-even">P11</a></li>
+<li><a class="medium" href="#p12" title="Inertia and inverters">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Switching, and the buck converter</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> The ideal switch and switching loss <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: \(p = vi\) for an ideal switch, the linear model of a transition, loss proportional to frequency</p>
+<div class="statement">
+<ol>
+<li>Show that an ideal switch and an ideal diode absorb no power at any instant.</li>
+<li>A switch turns on an inductive load current \(I\) clamped by a diode at voltage \(V\): the current rises linearly from 0 to \(I\) in \(t_r\) at
+full voltage, then the voltage falls linearly from \(V\) to 0 in \(t_f\) at full current. Find the energy lost, and show that it depends only on
+\(t_c = t_r + t_f\). Hence find the switching loss at frequency \(f\), with one turn-on and one turn-off per period.</li>
+<li>Evaluate it for the charger: 12 V, 2 A, \(t_c = 20\) ns, 500 kHz. What efficiency does switching loss alone allow for 10 W out?</li>
+<li>The switch also has an on-resistance of 50 mΩ (assumed), carrying 2 A while on. Find its conduction loss, and the switching frequency at
+which switching loss would equal it.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1–3 are each one product or one integral. Part 4 compares a loss that does not depend on \(f\) with one proportional to \(f\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>During the rise \(v = V\), \(i = It/t_r\); during the fall \(i = I\), \(v = V(1 - t/t_f)\). The conduction loss is \(I^2R_{\text{on}}\) for a fraction \(D\) of
+the time, with \(D = 5/12\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(E_r = \int_0^{t_r}V\cdot It/t_r\,\mathrm dt = \tfrac12VIt_r\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Loss needs voltage and current at once. An ideal switch never has both; a real one has both only while changing state,
+so its loss is a fixed energy per transition, times the number of transitions per second.</p>
+<p><strong>1.</strong> On, \(v = 0\); off, \(i = 0\): in both, \(p = vi = 0\). The ideal diode's law is \(vi = 0\) with \(v \le 0\), \(i \ge 0\) (unit 03), so likewise.</p>
+<p><strong>2.</strong> Rise: \(\tfrac12VIt_r\). Fall: \(\int_0^{t_f}V(1 - t/t_f)I\,\mathrm dt = \tfrac12VIt_f\). Total \(\tfrac12VI(t_r + t_f) = \tfrac12VIt_c\), whatever the split. A turn-off
+reverses the sequence and costs the same, so two transitions per period give \(P_{\text{sw}} = VIt_cf\).</p>
+<p><strong>3.</strong> \(P_{\text{sw}} = 12\times2\times2\times10^{-8}\times5\times10^5 = 0.24\) W. Efficiency \(10/10.24 = 97.7\%\).</p>
+<p><strong>4.</strong> Conduction: \(D\,I^2R_{\text{on}} = (5/12)\times4\times0.05 = 0.0833\) W. Equal to \(VIt_cf\) at \(f = 0.0833/(12\times2\times2\times10^{-8}) = 174\) kHz.
+At 500 kHz switching loss is the larger; together they allow \(10/(10 + 0.24 + 0.083) = 96.9\%\).</p>
+<p><strong>Check.</strong> Units: \(\mathrm{V\,A\,s\,s^{-1}} = \mathrm W\) ✓. Limit \(t_c\to0\): no loss, the ideal switch ✓. Both losses scale as \(I\) or \(I^2\), so they
+fall at light load.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Proof: the buck converter's averaged output <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the switched equations, periodic steady state, volt-second and charge balance, the energy check — the checkpoint's proof</p>
+<div class="statement">
+<p>A buck converter: a switch from \(V_{\text{in}}\) to a node \(s\), on for \(DT\) of each period; a diode from ground to \(s\); an inductor \(L\) from \(s\)
+to the output; a capacitor \(C\) and a load \(R\) across the output.</p>
+<ol>
+<li>Write the inductor's equation in each switched state, assuming continuous conduction.</li>
+<li>Prove that in periodic steady state \(\langle v_o\rangle = DV_{\text{in}}\) exactly — without the small-ripple approximation.</li>
+<li>Prove that \(\langle i_L\rangle = I_o\), and that the source's mean current is \(DI_o\) (you may now use the small-ripple approximation). Check that
+power in equals power out.</li>
+<li>Check \(D = 0\) and \(D = 1\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 2 is a statement about averages over one period. Which quantity has an average you know to be zero?</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The inductor's current is periodic. Integrate \(v_L = L\,\mathrm di_L/\mathrm dt\) over a period.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>The voltage law round the loop through \(L\) and \(C\) holds in both states: \(v_s = v_L + v_o\). Average it.</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line: \(\int_0^Tv_L\,\mathrm dt = L\,[i_L(T) - i_L(0)] = 0\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> In periodic steady state nothing accumulates in the energy stores over a period. For an inductor that means zero
+mean voltage; for a capacitor, zero mean current. The switch and diode fix the switch node's waveform, and the inductor's zero mean voltage
+hands its average to the output.</p>
+<p><strong>1.</strong> On: the switch connects \(s\) to \(V_{\text{in}}\) and the diode is reverse-biased by \(V_{\text{in}}\), so \(L\,\mathrm di_L/\mathrm dt = V_{\text{in}} - v_o\). Off: the
+inductor's current, positive by continuous conduction, can flow only through the diode, which therefore conducts with zero voltage, so
+\(v_s = 0\) and \(L\,\mathrm di_L/\mathrm dt = -v_o\). Both are \(v_L = v_s - v_o\).</p>
+<p><strong>2.</strong> Periodic steady state: \(i_L(T) = i_L(0)\). So \(\int_0^Tv_L\,\mathrm dt = L[i_L(T) - i_L(0)] = 0\), i.e. \(\langle v_L\rangle = 0\). Averaging
+\(v_s = v_L + v_o\): \(\langle v_o\rangle = \langle v_s\rangle = \frac1T\big(V_{\text{in}}DT + 0\big) = DV_{\text{in}}\). No approximation was made: only the
+inductor's law, periodicity, and the two states. \(\square\)</p>
+<p><strong>3.</strong> Likewise \(\int_0^Ti_C\,\mathrm dt = C[v_o(T) - v_o(0)] = 0\). The output node's current law, \(i_L = i_C + v_o/R\), averaged: \(\langle i_L\rangle =
+\langle v_o\rangle/R = I_o\). The source supplies \(i_L\) while the switch is on and nothing otherwise. With small ripple \(i_L\) rises linearly through its
+mean during the on-interval, so its mean there is \(I_o\), and \(\langle i_{\text{in}}\rangle = DI_o\). Power in: \(V_{\text{in}}DI_o = (DV_{\text{in}})I_o = V_oI_o\), power
+out ✓. The converter is a lossless "DC transformer" of ratio \(D\): voltages scale by \(D\), mean currents by \(1/D\).</p>
+<p><strong>4.</strong> \(D = 0\): the switch never closes, \(V_o = 0\) ✓. \(D = 1\): the switch never opens, \(V_o = V_{\text{in}}\) through an inductor, which is a
+short at DC ✓.</p>
+<p><strong>Check.</strong> Units: \(D\) is a number, so \(DV_{\text{in}}\) is a voltage ✓. For the charger, \(D = 5/12\), \(\langle i_{\text{in}}\rangle = 0.833\) A, and
+\(12\times0.833 = 10.0\) W \(= 5\times2\) ✓.</p>
+<h4>Where it would fail</h4>
+<p>If \(i_L\) reaches zero during the off-interval, the diode stops conducting and \(v_s\) is no longer 0 for the rest of the period: \(\langle v_s\rangle\)
+then depends on the load, and so does \(V_o\). That is discontinuous conduction (P3, part 4).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Duty cycle and ripple <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: \(D\), \(\Delta I\), \(\Delta V = \Delta I/8fC\), the filter's resonance, the continuous-conduction boundary — the curriculum's problem</p>
+<div class="statement">
+<ol>
+<li>For the charger, find \(D\), the inductor ripple \(\Delta I\) (peak to peak), the output ripple \(\Delta V\), and the filter's resonant frequency
+\(f_0\). By what factor does the filter divide the switching frequency's component, approximately?</li>
+<li>Derive \(\Delta V = \Delta I/(8fC)\) from the capacitor's charge.</li>
+<li>What inductance halves \(\Delta I\)? What happens to \(\Delta V\)?</li>
+<li>Below what load current does continuous conduction end?</li>
+<li>In a running car the 12 V supply may sit at 14 V (assumed). Find \(D\), \(\Delta I\) and \(\Delta V\) there.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer is a number from the small-ripple picture: \(i_L\) a triangle, \(i_C = i_L - I_o\) a triangle about zero.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\Delta I\) is the on-interval's slope times its length. The capacitor's voltage rises while \(i_C &gt; 0\): find that interval and the charge it
+delivers. Continuous conduction needs the triangle's minimum, \(I_o - \Delta I/2\), to stay positive.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\Delta I = (V_{\text{in}} - V_o)DT/L = 7\times(5/12)\times2\times10^{-6}/10^{-5}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The inductor's slopes are fixed by the two state voltages; the capacitor takes the ripple current and turns its charge
+into ripple voltage.</p>
+<p><strong>1.</strong> \(D = 5/12 = 0.4167\). \(\Delta I = 7\times0.8333\times10^{-6}/10^{-5} = 0.583\) A. \(\Delta V = 0.583/(8\times5\times10^5\times2.2\times10^{-5}) = 0.583/88 = 6.6\) mV.
+\(f_0 = 1/(2\pi\sqrt{2.2\times10^{-10}}) = 10.7\) kHz. The filter is second-order, so far above \(f_0\) it divides by about \((f/f_0)^2 = 46.6^2 = 2170\).</p>
+<p><strong>2.</strong> \(i_C\) is a triangle of peaks \(\pm\Delta I/2\); it is positive from halfway up one rise to halfway down the next fall, an interval of
+\(DT/2 + (1 - D)T/2 = T/2\). In it the charge delivered is the triangle's area, \(\tfrac12\cdot\tfrac T2\cdot\tfrac{\Delta I}2 = T\Delta I/8\). The voltage rises over exactly that
+interval from minimum to maximum: \(\Delta V = T\Delta I/(8C) = \Delta I/(8fC)\).</p>
+<p><strong>3.</strong> \(\Delta I\propto1/L\): \(L = 20\ \mu\)H gives 0.292 A. \(\Delta V\propto\Delta I\), so it halves too, to 3.3 mV.</p>
+<p><strong>4.</strong> \(I_o &gt; \Delta I/2 = 0.29\) A.</p>
+<p><strong>5.</strong> \(D = 5/14 = 0.357\); \(\Delta I = 9\times0.357\times2\times10^{-6}/10^{-5} = 0.643\) A; \(\Delta V = 0.643/88 = 7.3\) mV. A higher input steepens the on-slope
+more than it shortens the on-time: \(\Delta I = V_oT(1 - V_o/V_{\text{in}})/L\) grows with \(V_{\text{in}}\).</p>
+<p><strong>Check.</strong> The fall, \(V_o(1 - D)T/L = 5\times(7/12)\times2\times10^{-6}/10^{-5} = 0.583\) A, equals the rise ✓ (volt-second balance). \(\Delta V/V_o = 0.13\%\):
+the small-ripple approximation is consistent ✓. Units of \(\Delta I/8fC\): \(\mathrm{A\,s/F} = \mathrm V\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Boost and buck–boost <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: volt-second balance on other circuits, charge balance, the energy check</p>
+<div class="statement">
+<p><b>Boost.</b> An inductor \(L\) from \(V_{\text{in}}\) to a node \(s\); a switch from \(s\) to ground, on for \(DT\); a diode from \(s\) to the output, pointing
+towards it; \(C\) and the load across the output. <b>Buck–boost.</b> A switch from \(V_{\text{in}}\) to a node \(s\), on for \(DT\); an inductor from \(s\) to
+ground; a diode from the output to \(s\), pointing towards \(s\); \(C\) and the load across the output, whose voltage \(v_o\) is measured from
+ground.</p>
+<ol>
+<li>For each, write \(v_L\) in the two states (continuous conduction, small ripple) and use volt-second balance to show
+\(V_o = V_{\text{in}}/(1 - D)\) for the boost and \(V_o = -DV_{\text{in}}/(1 - D)\) for the buck–boost.</li>
+<li>For the boost, find the mean input current in terms of \(I_o\) and check power balance.</li>
+<li>Find \(D\) for a boost from 5 V to 12 V, and for a buck–boost from 12 V to \(-5\) V.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Same method as P2: two states, one balance. Only the loop that gives \(v_L\) changes.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Boost: switch on, \(L\) sits across \(V_{\text{in}}\); switch off, the diode conducts and \(L\) sits between \(V_{\text{in}}\) and \(v_o\). Buck–boost: switch on,
+\(L\) across \(V_{\text{in}}\); off, the diode connects \(L\) across the output.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line for the boost: \(D\,V_{\text{in}} + (1 - D)(V_{\text{in}} - V_o) = 0\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> In every converter in periodic steady state each inductor has zero mean voltage and each capacitor zero mean current.</p>
+<p><strong>1. Boost.</strong> On: \(v_L = V_{\text{in}}\) (the switch grounds \(s\)). Off: the inductor's current continues through the diode into the output,
+so \(v_s = V_o\) and \(v_L = V_{\text{in}} - V_o\). Balance: \(DV_{\text{in}} + (1 - D)(V_{\text{in}} - V_o) = 0\), so \(V_{\text{in}} = (1 - D)V_o\), \(V_o = V_{\text{in}}/(1 - D)\).
+<strong>Buck–boost.</strong> On: \(v_L = V_{\text{in}}\). Off: the inductor's current, flowing down through \(L\) to ground, must return through the diode from
+the output into \(s\), so \(v_s = v_o\) and \(v_L = V_o\). Balance: \(DV_{\text{in}} + (1 - D)V_o = 0\), \(V_o = -DV_{\text{in}}/(1 - D)\): negative, of magnitude
+less or more than \(V_{\text{in}}\) as \(D\) is below or above \(\tfrac12\).</p>
+<p><strong>2.</strong> In the boost the inductor is in series with the source at all times, so \(\langle i_{\text{in}}\rangle = \langle i_L\rangle\). The output receives
+\(i_L\) only while the switch is off; charge balance on \(C\) gives \((1 - D)\langle i_L\rangle = I_o\). So \(\langle i_{\text{in}}\rangle = I_o/(1 - D)\), and
+\(V_{\text{in}}I_o/(1 - D) = V_oI_o\) ✓.</p>
+<p><strong>3.</strong> Boost: \(1 - D = 5/12\), \(D = 0.583\). At 2 A out the input draws \(2/0.4167 = 4.8\) A: \(5\times4.8 = 24 = 12\times2\) W ✓. Buck–boost:
+\(D/(1 - D) = 5/12\), \(D = 5/17 = 0.294\).</p>
+<p><strong>Check.</strong> Limits: \(D = 0\) gives the boost \(V_o = V_{\text{in}}\) (a straight path through \(L\) and the diode) and the buck–boost 0 ✓. As \(D\to1\)
+both ratios diverge: in the ideal model the inductor is charged ever longer and discharged ever more briefly; real losses stop this. Erickson and Maksimović, ch. 6, "Converter Circuits", treats both
+converters.</p>
+</div></details>
+</section>
+
+<h2 class="group">Making AC, and distorted currents</h2>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Harmonics of a PWM waveform <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Fourier coefficients with symmetry (MR 19), placing a notch, Parseval, total harmonic distortion — the curriculum's problem</p>
+<div class="statement">
+<ol>
+<li>Derive the Fourier series of the quasi-square wave: \(+V\) on \((\alpha, \pi - \alpha)\), \(-V\) on \((\pi + \alpha, 2\pi - \alpha)\), zero elsewhere.</li>
+<li>Find the notch \(\alpha\) that removes the 5th harmonic, and give \(b_1\), \(b_3\) and \(b_7\) there.</li>
+<li>The <i>total harmonic distortion</i> of a waveform is the RMS of everything but the fundamental, divided by the fundamental's RMS. Find it
+for the square wave (\(\alpha = 0\)) in closed form, using Parseval rather than summing the series term by term.</li>
+<li>Use the same calculation to evaluate \(\sum_{n\ \text{odd}}1/n^2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The wave is odd and satisfies \(f(x + \pi) = -f(x)\): only odd sine terms survive. For part 3, Parseval gives the total mean square without any series.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(b_n \propto \cos n\alpha\); a zero needs \(n\alpha = 90°\). The square wave's mean square is \(V^2\); its fundamental's is \(b_1^2/2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(b_n = \frac2\pi\int_\alpha^{\pi-\alpha}V\sin nx\,\mathrm dx\) for odd \(n\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Symmetry kills most coefficients; the rest are one integral. Parseval converts "the RMS of all the harmonics" into "the RMS of
+the waveform minus the fundamental's".</p>
+<p><strong>1.</strong> Odd, so \(a_n = 0\). Half-wave antisymmetric, so \(b_n = 0\) for even \(n\) and \(b_n = \frac2\pi\int_0^\pi f\sin nx\,\mathrm dx\) for odd \(n\).
+\(\frac{2V}\pi\int_\alpha^{\pi-\alpha}\sin nx\,\mathrm dx = \frac{2V}{n\pi}[\cos n\alpha - \cos n(\pi - \alpha)] = \frac{4V}{n\pi}\cos n\alpha\), since \(\cos n(\pi - \alpha) = -\cos n\alpha\) for odd \(n\).</p>
+<p><strong>2.</strong> \(5\alpha = 90°\): \(\alpha = 18°\). Then \(b_1 = (4/\pi)\cos18°\,V = 1.211V\), \(b_3 = (4/3\pi)\cos54°\,V = 0.249V\), \(b_7 = (4/7\pi)\cos126°\,V = -0.107V\).</p>
+<p><strong>3.</strong> Mean square of the square wave: \(V^2\). Fundamental amplitude \(4V/\pi\), mean square \(8V^2/\pi^2\). Parseval: the harmonics' mean square is
+\(V^2(1 - 8/\pi^2)\). THD \(= \sqrt{(1 - 8/\pi^2)/(8/\pi^2)} = \sqrt{\pi^2/8 - 1} = 0.483\), i.e. <b>48.3%</b>.</p>
+<p><strong>4.</strong> Parseval in full: \(V^2 = \tfrac12\sum_{n\ \text{odd}}(4V/n\pi)^2 = (8V^2/\pi^2)\sum_{n\ \text{odd}}1/n^2\), so \(\sum_{n\ \text{odd}}1/n^2 = \pi^2/8 = 1.2337\).</p>
+<p><strong>Check.</strong> At \(\alpha = 0\) part 1 gives \(4V/n\pi\) ✓; at \(\alpha = 90°\), zero ✓. The first terms \(1 + 1/9 + 1/25 + 1/49 = 1.172\), approaching 1.234 ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Proof: triplen harmonics cancel line to line <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: delays as phase factors, \(\alpha = e^{i2\pi/3}\) (unit 11), zero sequence, the carrier ratio</p>
+<div class="statement">
+<p>Three inverter legs produce \(v_k(t) = g(t - kT/3)\), \(k = 0, 1, 2\), for one \(T\)-periodic waveform \(g\).</p>
+<ol>
+<li>Prove that no line-to-line voltage \(v_j - v_k\) contains a harmonic of order \(3, 6, 9, \ldots\), and that every other harmonic appears line to line
+with \(\sqrt3\) times its amplitude in one leg.</li>
+<li>Show that with a common triangular carrier at \(m_f\) times the output frequency, the hypothesis holds when \(m_f\) is a multiple of 3. Which of
+the 19th, 21st and 23rd harmonics then survive line to line, at \(m_f = 21\)?</li>
+<li>Into a balanced star load with an isolated star point, what voltage do the triplen components produce across each load impedance?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A delay by \(T/3\) multiplies the \(n\)th complex Fourier coefficient by a phase.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The phase is \(e^{-i2\pi n/3}\). For part 2, ask when the carrier delayed by \(T/3\) is the same function. For part 3, unit 11's zero sequence.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(v_k(t) = \sum_nc_ne^{in\omega(t - kT/3)} = \sum_nc_ne^{-i2\pi nk/3}e^{in\omega t}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A third-period delay is a rotation by \(2\pi n/3\) of the \(n\)th harmonic, which is no rotation at all when \(3 \mid n\).</p>
+<p><strong>1.</strong> From the first line, the \(n\)th coefficient of \(v_k\) is \(c_n\alpha^{-nk}\) with \(\alpha = e^{i2\pi/3}\). For \(n = 3j\), \(\alpha^{-3jk} = 1\): the same in every leg,
+so \(v_j - v_k\) has coefficient zero. For other \(n\), the coefficient of \(v_0 - v_1\) is \(c_n(1 - \alpha^{-n})\), and \(|1 - \alpha^{\mp1}| = |1 - e^{\mp i2\pi/3}| = \sqrt{(3/2)^2 + 3/4} = \sqrt3\);
+likewise for every pair. \(\square\)</p>
+<p><strong>2.</strong> The references are delays of one another by \(T/3\). The carrier has period \(T/m_f\); it equals its own delay by \(T/3\) iff \(T/3\) is a whole number
+of carrier periods, \(m_f/3\in\mathbb Z\). Then each leg's switched output is exactly \(g(t - kT/3)\). At \(m_f = 21\): the 21st is triplen and cancels;
+the 19th and 23rd are not multiples of 3 and survive, at \(\sqrt3\times0.220 = 0.381\) of \(V_{\text{dc}}/2\) (the deck's computed leg values).</p>
+<p><strong>3.</strong> The triplen components are equal in all three legs: a zero-sequence set (unit 11). A balanced star load with an isolated star point
+cannot carry zero-sequence current (the three currents must sum to zero, and equal currents summing to zero are zero), so the star point
+rises and falls with them and each load impedance sees none of them.</p>
+<p><strong>Check.</strong> The fundamental line to line is \(\sqrt3\times0.8 = 1.386\) of \(V_{\text{dc}}/2\) — unit 11's \(\sqrt3\) between line and phase voltages ✓; the deck's
+computation gives 1.3856.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Power factor of a distorted current <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: orthogonality and Parseval (MR 19), distortion and displacement factors — unit 06's warning</p>
+<div class="statement">
+<ol>
+<li>For a sinusoidal voltage of RMS \(V\) and a periodic current, prove \(P = VI_1\cos\varphi_1\) and \(P/(VI) = (I_1/I)\cos\varphi_1\).</li>
+<li>Find the power factor of a square-wave current in phase with the voltage.</li>
+<li>Find it for a quasi-square current with \(\alpha = 30°\), in phase.</li>
+<li>A current has distortion factor 0.9 and its fundamental lags by 20°. Find the power factor. Can a capacitor across the load raise it to 1?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The power is a mean of a product; the RMS is a mean of a square. Both are integrals of Fourier series over a period.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For the quasi-square wave, its RMS is \(V\sqrt{(\pi - 2\alpha)/\pi}\) (it is \(\pm V\) for that fraction of the time), and its fundamental's amplitude is P5's \(b_1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(I_1/I = (4\hat I/\pi)/\sqrt2\ \big/\ \hat I\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Only the current's component at the voltage's frequency can carry mean power; all of the current heats the wires.</p>
+<p><strong>1.</strong> \(P = \frac1T\int_0^T\sqrt2V\cos\omega t\,\big(I_0 + \sum_n\sqrt2I_n\cos(n\omega t - \varphi_n)\big)\mathrm dt\). Every term with \(n \ne 1\) (and the mean) integrates to zero
+by orthogonality; \(n = 1\) gives \(VI_1\cos\varphi_1\). Parseval: \(I^2 = I_0^2 + \sum I_n^2\). Divide. \(\square\)</p>
+<p><strong>2.</strong> \(I_1/I = 2\sqrt2/\pi = 0.900\); \(\cos\varphi_1 = 1\). Power factor 0.900.</p>
+<p><strong>3.</strong> RMS \(\hat I\sqrt{1 - 2\alpha/\pi} = \hat I\sqrt{2/3} = 0.816\hat I\). Fundamental RMS \(1.103\hat I/\sqrt2 = 0.780\hat I\). Ratio \(0.955\): better than the square wave,
+because the notch removed the third harmonic.</p>
+<p><strong>4.</strong> \(0.9\cos20° = 0.846\). A capacitor can cancel the fundamental's lagging part (unit 06), raising the displacement factor to 1, but it
+cannot touch the harmonics: the best it can do is 0.9. (In practice a capacitor also changes the harmonic currents, and can resonate with
+the supply's inductance; not treated.)</p>
+<p><strong>Check.</strong> For a sinusoid \(I_1 = I\) and the formula is unit 06's \(\cos\varphi\) ✓. For the square wave, \(\sqrt{1 - (I_1/I)^2}/(I_1/I)\) with \(I_1/I = 2\sqrt2/\pi\) is \(0.483\), P5's THD ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Why the grid goes DC</h2>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> The critical length of an AC cable <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the coaxial \(C'\), the charging current \(\omega C'V\) per km, the critical length, quadrature — the checkpoint's numbers</p>
+<div class="statement">
+<ol>
+<li>Find \(C'\) for the 400 kV cable (\(a = 30\) mm, \(b = 57\) mm, \(\varepsilon_r = 2.4\)), and its charging current per kilometre at 50 Hz.</li>
+<li>Fed from one end and open at the other, at what length does the charging current alone reach the 1500 A rating?</li>
+<li>For INELFE's 64.5 km as such a cable: the charging current at the fed end, its share of the rating, the current left for power, and the
+reactive power three such cables make.</li>
+<li>With equal shunt reactors at both ends, what is the critical length, and what share of the rating does INELFE's length then spend at each end?</li>
+<li>Is the lumped estimate good at these lengths?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The charging current is a current per unit length times a length, a quarter-cycle ahead of the voltage. The voltage is the phase voltage to the earthed sheath.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(C' = 2\pi\varepsilon_0\varepsilon_r/\ln(b/a)\); \(V = 400/\sqrt3\) kV. The power current is in phase with \(V\), so the two add in quadrature. Reactors at both ends make the
+current zero in the middle. For part 5, compare \(\beta l\) with 1.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\ln(57/30) = 0.6419\), so \(C' = 2\pi\times8.854\times10^{-12}\times2.4/0.6419 = 2.080\times10^{-10}\) F/m.</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A cable is a coaxial capacitor along its whole length; on AC every kilometre draws its own charging current, and all of it passes
+through the copper at the fed end.</p>
+<p><strong>1.</strong> \(C' = 0.208\ \mu\)F/km. \(\omega C'V = 314.16\times2.080\times10^{-7}\times230\,940 = 15.09\) A/km.</p>
+<p><strong>2.</strong> \(I(x) = i\omega C'V(l - x)\), largest at \(x = 0\). \(l_c = 1500/15.09 = 99.4\) km.</p>
+<p><strong>3.</strong> \(15.09\times64.5 = 973\) A, \(973/1500 = 65\%\). Left for power: \(\sqrt{1500^2 - 973^2} = 1141\) A. Reactive power:
+\(3\times230.9\ \mathrm{kV}\times973\ \mathrm A = 674\) Mvar.</p>
+<p><strong>4.</strong> Each end supplies half: \(l = 2l_c = 199\) km. INELFE: 487 A at each end, 32%.</p>
+<p><strong>5.</strong> Wave speed \(c/\sqrt{2.4} = 1.94\times10^8\) m/s, \(\lambda = 3870\) km at 50 Hz. At 99.4 km \(\beta l = 0.161\) rad; unit 08's exact open-line current is larger by
+\(\tan\beta l/\beta l = 1.009\). Good to 1%.</p>
+<p><strong>Check.</strong> Units: \(\mathrm{s^{-1}\,F\,km^{-1}\,V} = \mathrm{A/km}\) ✓. Using the line voltage, 400 kV, by mistake gives 26.1 A/km, 57 km, and an impossible 112% for
+INELFE — the inconsistency is the warning. Limit: \(l\to0\), no charging ✓; DC, \(\omega = 0\), none at any length ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Overhead against cable <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the two-dimensional potential (MR 23), capacitance to the neutral, why the critical length matters for cables first</p>
+<div class="statement">
+<ol>
+<li>Two long wires of radius \(r\), \(D \gg r\) apart, carry \(\pm\lambda\). Show that the capacitance per metre of one wire to the midplane is twice the
+capacitance per metre between the wires.</li>
+<li>For three wires at the corners of an equilateral triangle of side \(D\), with charges summing to zero, show that each wire's capacitance to the neutral
+is \(2\pi\varepsilon_0/\ln(D/r)\).</li>
+<li>For unit 07's 400 kV line (\(r = 0.2097\) m, \(D = 10\) m), find \(C'\), the charging current per kilometre, and the length at which it would reach
+1500 A. Why is that length not meaningful?</li>
+<li>Compare with the cable of P8, and say which limit a long overhead line meets first.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is symmetry; part 2 is superposition of three line-charge potentials.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A line charge's potential is \(-(\lambda/2\pi\varepsilon_0)\ln\rho\) plus a constant. At wire \(a\)'s surface, the other two are at distance \(D\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\varphi_a = \frac1{2\pi\varepsilon_0}\big[\lambda_a\ln\tfrac1r + (\lambda_b + \lambda_c)\ln\tfrac1D\big] + \text{const}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The neutral is where a balanced set of charges puts zero potential; capacitance to it is what one phase's voltage charges.</p>
+<p><strong>1.</strong> By antisymmetry the midplane is at the mean of the wires' potentials, so with \(V\) between the wires each is \(V/2\) from the plane.
+\(C'_{\text{plane}} = \lambda/(V/2) = 2\lambda/V = 2C'_{\text{loop}}\). With unit 08's \(C'_{\text{loop}} = \pi\varepsilon_0/\ln(D/r)\), \(C'_{\text{plane}} = 2\pi\varepsilon_0/\ln(D/r)\).</p>
+<p><strong>2.</strong> With \(\lambda_b + \lambda_c = -\lambda_a\), \(\varphi_a = (\lambda_a/2\pi\varepsilon_0)\ln(D/r)\); the constant vanishes because the total charge is zero (far away the
+potential tends to zero). So \(C' = \lambda_a/\varphi_a = 2\pi\varepsilon_0/\ln(D/r)\). The earth is neglected.</p>
+<p><strong>3.</strong> \(\ln(10/0.2097) = 3.865\), \(C' = 14.4\) nF/km. \(\omega C'V = 314.16\times1.4395\times10^{-8}\times230\,940 = 1.04\) A/km. \(1500/1.044 = 1436\) km — close to a
+quarter wavelength in air, \(c/4f = 1499\) km, where unit 08 showed the lumped picture fails completely (the open-line current \(\propto\tan\beta l\) diverges).</p>
+<p><strong>4.</strong> The cable's \(C'\) is \(0.208/0.0144 = 14.4\) times larger, because its conductors are millimetres apart through a dielectric, not metres through air.
+Its critical length, 99 km, is short; the line's is meaningless. A long overhead line meets unit 13's reactance limit first: 1647 MW over 400 km at 400 kV.</p>
+<p><strong>Check.</strong> Over 400 km the line's lumped charging current is \(1.044\times400 = 418\) A, of the order of unit 08's single-phase 362 A lumped (385 A exact);
+the factor between them, \(2\times230.9/400 = 1.155\), is part 1's 2 times the phase-to-line voltage ratio ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> DC against AC on INELFE's route <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: \(P = VI\) on a bipole, \(R = \rho l/A\), \(I^2R\) loss, three-phase apparent power, charging current's share — the curriculum's problem</p>
+<div class="statement">
+<p>One INELFE link carries 1000 MW on a pair of cables at \(\pm320\) kV. Assume 2500 mm² copper conductors at 20 °C.</p>
+<ol>
+<li>Find the current in each cable, the resistance of each, and the loss in the pair as a fraction of 1000 MW.</li>
+<li>The same 1562.5 A flows in each of three AC cables at 400 kV line-to-line. What apparent power do they carry, and per cable? Explain the ratio
+of DC to AC power per cable.</li>
+<li>Suppose those AC cables are rated 1562.5 A and have the capacitance of P8's cable. Over 64.5 km, how much real power can the three carry, and
+what is their loss as a fraction of it (same resistance, no skin effect)?</li>
+<li>One link's 1000 MW sent as three-phase AC at 400 kV through P8's cable: what current would the fed end carry? Against the 1500 A rating?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is one or two lines of arithmetic. The voltage between the DC cables is 640 kV; each AC cable is at 230.9 kV RMS to earth.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 3: the 1562.5 A rating is shared in quadrature with P8's 973 A of charging current. Part 4: the power current is \(10^9/(\sqrt3\times4\times10^5)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(I = 10^9/6.4\times10^5 = 1562.5\) A; \(R = 1.68\times10^{-8}\times64\,500/2.5\times10^{-3}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> At the same current the copper loses the same; what differs is how much power each ampere carries, and how many amperes the
+cable spends on itself.</p>
+<p><strong>1.</strong> \(I = 1562.5\) A. \(R = 0.433\ \Omega\) (6.72 mΩ/km). Loss \(2\times1562.5^2\times0.433 = 2.12\) MW: 0.21%.</p>
+<p><strong>2.</strong> \(\sqrt3\times400\ \mathrm{kV}\times1562.5\ \mathrm A = 1083\) MVA, 361 MVA per cable, against 500 MW per DC cable. Ratio \(500/361 = 1.386 = 320/230.9\): DC
+power per cable is its voltage to earth times the current, AC's at most its RMS voltage to earth times the current. The AC cable's peak to earth,
+\(\sqrt2\times230.9 = 326.6\) kV, is nearly the DC cable's 320 kV.</p>
+<p><strong>3.</strong> Power current \(\sqrt{1562.5^2 - 973^2} = 1222\) A; real power \(3\times230.9\ \mathrm{kV}\times1222\ \mathrm A = 847\) MW. The full 1562.5 A flows
+only at the fed end: along the cable the power current is constant and the charging current falls linearly to zero at the far end, so
+\(|I(x)|^2 = I_P^2 + I_{\text{ch}}^2(1 - x/l)^2\), whose mean over the length is \(I_P^2 + I_{\text{ch}}^2/3 = 1222^2 + 973^2/3 = 1.810\times10^6\ \mathrm A^2\).
+Loss \(3\times1.810\times10^6\times0.433 = 2.35\) MW, 0.28% of 847 MW — against DC's 0.21% of 1000 MW. (Taking 1562.5 A all along would give an upper
+bound, 3.17 MW.) Skin effect would add to AC's.</p>
+<p><strong>4.</strong> \(10^9/(\sqrt3\times4\times10^5) = 1443\) A of power current; with 973 A of charging in quadrature, \(\sqrt{1443^2 + 973^2} = 1741\) A, above 1500 A. Fed equally
+from both ends, \(\sqrt{1443^2 + 487^2} = 1523\) A, still just above. With this assumed cable, one link would have needed more or larger cables as AC.
+That is a statement about the assumed cable, not the operator's reason; REE's own is that direct current "allows underground connections that run
+over long distances, such as this one of 64.5 kilometres".</p>
+<p><strong>Check.</strong> Energy: the DC link's receiving end gets \((640\,000 - 2\times1562.5\times0.433)\times1562.5 = 997.9\) MW; \(1000 - 997.9 = 2.1\) MW ✓. Units:
+\(\Omega\,\mathrm m\cdot\mathrm m/\mathrm m^2 = \Omega\) ✓. None of these numbers includes the converter stations, whose losses are not estimated.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> The break-even <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: a linear cost model, its crossover, and the critical length as a hard cap</p>
+<div class="statement">
+<p>Model AC transmission as costing \(a_{\text{AC}}\) per km, and DC as \(F + a_{\text{DC}}l\) with \(a_{\text{DC}} &lt; a_{\text{AC}}\). All numbers below are assumed and
+illustrative.</p>
+<ol>
+<li>Find the break-even length \(l^*\), and the condition for DC to be cheaper.</li>
+<li>If conductors were the whole per-km cost, \(a_{\text{AC}} = \tfrac32a_{\text{DC}}\). With \(F = 100\) units and \(a_{\text{DC}} = 1\) unit/km, find \(l^*\).</li>
+<li>For a cable route, suppose compensation and the third cable make \(a_{\text{AC}} = 2.5a_{\text{DC}}\). Find \(l^*\). What else limits AC on a cable route, independently
+of cost?</li>
+<li>Explain, using P9, why the break-even is far longer for overhead lines.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 2 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two straight lines in the \((l, \text{cost})\) plane; one starts higher and rises more slowly.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>First line: \(a_{\text{AC}}l^* = F + a_{\text{DC}}l^*\).</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A fixed cost is repaid by a per-kilometre saving; the critical length is a wall the cost model does not see.</p>
+<p><strong>1.</strong> \(l^* = F/(a_{\text{AC}} - a_{\text{DC}})\); DC is cheaper for \(l &gt; l^*\).</p>
+<p><strong>2.</strong> \(l^* = 100/0.5 = 200\) km, i.e. \(2F/a_{\text{DC}}\): the length at which the DC line itself costs twice the converters.</p>
+<p><strong>3.</strong> \(l^* = 100/1.5 = 66.7\) km. Independently, an uncompensated AC cable cannot exceed its critical length — 99 km for P8's — and with reactors at both
+ends 199 km; beyond that it needs intermediate compensation or cannot carry power at all, whatever it costs.</p>
+<p><strong>4.</strong> An overhead line's \(C'\) is fourteen times smaller, so charging costs little and imposes no cap at practical lengths; \(a_{\text{AC}} - a_{\text{DC}}\) is
+small and \(l^*\) long.</p>
+<p><strong>Check.</strong> Units: cost/(cost per km) = km ✓. Limit \(F\to0\): DC wins at any length ✓; \(a_{\text{AC}}\to a_{\text{DC}}\): \(l^*\to\infty\) ✓. Real break-even distances depend
+on project costs and are quoted in the HVDC literature; none is quoted here because none was checked.</p>
+</div></details>
+</section>
+
+<h2 class="group">Generators without inertia</h2>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Inertia and inverters <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: unit 13's aggregate swing equation, synthetic inertia, energy behind it, the ramp model's dip</p>
+<div class="statement">
+<p>Use unit 13's model of Continental Europe: \(S = 300\) GW, \(H = 5\) s, \(f_0 = 50\) Hz, the 3000 MW reference incident, reserves ramping linearly to
+3000 MW over 30 s, no load damping.</p>
+<ol>
+<li>Show that an inverter injecting \(-K\,\mathrm df/\mathrm dt\) with \(K = 2HS/f_0\) adds to the aggregate swing equation exactly what a machine of inertia
+\(H\) on rating \(S\) would. Evaluate \(K\) for \(H = 5\) s, \(S = 1\) GW.</li>
+<li>How much energy would that 1 GW machine release in a dip of 0.75 Hz? Where must the inverter find it?</li>
+<li>Half of \(S\) is replaced by grid-following inverters without synthetic inertia. Find the initial rate of change of frequency and the ramp model's dip.</li>
+<li>In this model, what fraction of \(S\) could be inertia-free before the dip exceeds 800 mHz? Comment.</li>
+<li>Say, without equations, what a grid-forming inverter supplies that a grid-following one does not.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything follows from \((2HS/f_0)\,\mathrm d\Delta f/\mathrm dt = \Delta P_m - \Delta P_e\) and unit 13's closed forms, which scale as \(1/H\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Kinetic energy is \(HS\) at \(f_0\) and scales as \(f^2\). With a fraction \(x\) inertia-free, \(H_{\text{eff}} = 5(1 - x)\) s on the same \(S\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: initial rate \(f_0\Delta P/(2H_{\text{eff}}S) = 50\times3\times10^9/(2\times2.5\times3\times10^{11})\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Inertia is stored kinetic energy released in proportion to the rate of change of frequency; an inverter can be told to do the same if
+it has energy to spend.</p>
+<p><strong>1.</strong> The machine's rotor contributes \((2HS/f_0)\,\mathrm d\Delta f/\mathrm dt\) to the left side, i.e. it delivers \(-(2HS/f_0)\,\mathrm df/\mathrm dt\) of extra
+electrical power. An inverter injecting \(-K\,\mathrm df/\mathrm dt\) with the same \(K\) adds the same term. \(K = 2\times5\times10^9/50 = 200\) MW per Hz/s.</p>
+<p><strong>2.</strong> Kinetic energy \(E = HS(f/f_0)^2\): \(5\times10^9\times[1 - (49.25/50)^2] = 149\) MJ, or about \(2HS\Delta f/f_0 = 150\) MJ to first order. From its DC side: an HVDC
+link from the other grid; a solar farm only if it was running below the available power, or has storage.</p>
+<p><strong>3.</strong> \(H_{\text{eff}} = 2.5\) s. Rate \(0.10\) Hz/s; dip \(f_0\Delta PT/(4H_{\text{eff}}S) = 50\times3\times10^9\times30/(4\times2.5\times3\times10^{11}) = 1.5\) Hz.</p>
+<p><strong>4.</strong> \(0.75/(1 - x) = 0.8\) gives \(x = 6.25\%\). This says the model is crude, not that a real grid behaves so: with unit 13's load damping the dip
+is about half, and real reserves are not a linear ramp — the regulation's minimum delivery would allow a deeper dip, 0.94 Hz at \(H = 5\) s
+in unit 13's model. The 0.75 Hz is a consistency check, not a bound. The model's lesson is the scaling, \(1/(1 - x)\).</p>
+<p><strong>5.</strong> A grid-forming inverter is a voltage behind a reactance with its own angle, so its power responds to the grid's angle at once, through the
+reactance, before any measurement — and its angle then moves by a programmed swing equation with chosen inertia and damping. A grid-following one
+injects a set current and responds only through measurements, if at all.</p>
+<p><strong>Check.</strong> Units: \(\mathrm{s\cdot W/Hz} = \mathrm W/(\mathrm{Hz/s})\) ✓. At \(x = 0\) part 3 returns unit 13's 0.050 Hz/s and 0.75 Hz ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./cap done 14</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

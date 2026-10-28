@@ -1,0 +1,1875 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 · Resistive networks: the graph Laplacian, Thomson's principle, Thévenin, and maximum power</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="b">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="car"><span class="ref-name">the running example: the car</span>A 12 V lead–acid battery, $\mathcal E = 12.6$ V behind $r_i = 10\ \mathrm{m\Omega}$. Starter branch: cables $R_c = 5\ \mathrm{m\Omega}$ and the stalled starter motor $R_s = 45\ \mathrm{m\Omega}$. Lamp branch: wiring $R_w = 30\ \mathrm{m\Omega}$ and two 55 W headlamps in parallel, $R_L = 12^2/110 = 1.309\ \Omega$. The chassis is the return. <span class="ref-note">Representative values, assumed for the course; $r_i$ is the bound a 540 A cold-cranking rating gives at −18 °C in a linear model</span></template>
+  <template data-ref="lamps"><span class="ref-name">lamps on, engine off</span>$I = 12.6/(0.010 + 0.030 + 1.309) = 9.34$ A. Battery terminals 12.51 V, lamps 12.23 V and 114.2 W. <span class="ref-note">The battery delivers 117.7 W: 0.87 W heats $r_i$, 2.62 W the wiring</span></template>
+  <template data-ref="crank"><span class="ref-name">cranking, lamps off</span>$I = 12.6/(0.010 + 0.005 + 0.045) = 210$ A; terminal voltage 10.5 V. Battery 2646 W = 441 W in $r_i$ + 220.5 W in the cables + 1984.5 W in the starter: 75% reaches the starter. <span class="ref-note">The stalled starter is a resistance only at the instant it engages; turning, it makes a back-EMF (unit 12)</span></template>
+  <template data-ref="view"><span class="ref-name">the lamps' view of the cranking battery</span>Thévenin equivalent: $V_{\mathrm{th}} = 10.5$ V behind $R_{\mathrm{th}} = 38.33\ \mathrm{m\Omega}$. Lamps 10.20 V, 7.79 A, 79.5 W — 70% of their 114.2 W. <span class="ref-note">Full nodal solution: battery 216.5 A, starter 208.7 A; 2727.8 W delivered = 468.7 + 217.8 + 1960.0 + 1.8 + 79.5 W</span></template>
+  <template data-ref="matched"><span class="ref-name">the matched starter</span>A starter of $R_s = r_i + R_c = 15\ \mathrm{m\Omega}$ would take the most power: 420 A, 2646 W, at 50% efficiency — 5292 W from the battery, half of it heating the battery and cables. <span class="ref-note">The real one takes 1984.5 W at 75%</span></template>
+  <template data-ref="bridge"><span class="ref-name">unit 03's bridge</span>Arms $R_1 = 100$ (A→B), $R_2 = 200$ (B→C), $R_3 = 300$ (A→D), $R_4 = 400\ \Omega$ (D→C); detector $R_g = 50\ \Omega$ (B→D); an ideal 10 V source holds $\varphi_A = 10$ V, $\varphi_C = 0$. <span class="ref-note">$\varphi_B = 780/121$ V, $\varphi_D = 760/121$ V, detector current $2/605$ A ≈ 3.306 mA</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part B · networks, as linear algebra on a graph · spine</p>
+  <div class="unit-no">04</div>
+  <h1>Resistive networks: the graph Laplacian, Thomson's principle, Thévenin, and maximum power</h1>
+  <p class="lede">Put Ohm's law on every edge of unit 03's graph and the current law becomes $L\varphi = s$ with a symmetric, positive semi-definite $L$ — discrete electrostatics, with a uniqueness theorem, a maximum principle and a minimum-energy principle, from which Thévenin's theorem and the 50% price of maximum power follow.</p>
+  <p class="meta"><span>needs 03, MR 04, MR 05, MR 11, MR 23</span><span>~2½ h slides + 4½ h problems</span><span>problems: <code>./cap problems 04</code></span></p>
+  <aside class="notes">
+    <p>Unit 03 used no element law at all: Kirchhoff's two laws as a pair of orthogonal subspaces, Tellegen's theorem as
+    their orthogonality. This unit adds the simplest element law, Ohm's law, on every edge, and finds that a network of
+    resistors is a discrete copy of MR 23's electrostatics. The node potentials solve a linear system whose matrix — the
+    weighted graph Laplacian — is symmetric and positive semi-definite; they exist and are unique; they obey a maximum
+    principle; and the currents they produce minimise the dissipated power (Thomson's principle). The engineer's tools
+    come out as theorems: series and parallel, Thévenin's equivalent, star–delta, and the maximum-power theorem with its
+    exact 50% efficiency.</p>
+    <h4>How to read this deck</h4>
+    <p>One system runs through it: a car battery cranking a starter motor while the headlights are on, and the question
+    of why the headlights dim. Each section returns to it. Proofs are on the slides when they are one line and in these
+    notes under <b>Full proof</b> when they are not; anything imported is labelled <i>cited</i>, with the source named.
+    Every number was computed, and every boxed formula has its units checked beside it.</p>
+    <p><b>The tools used.</b> From Mechanics to Relativity: the mean value property and the maximum principle for harmonic
+    functions (MR 05); Lagrange multipliers in $\mathbb R^n$ (MR 04), with problem P4 needing them for linear constraints
+    only; Dirichlet's principle, which MR 11 names and whose history it tells; Green's identities and the uniqueness
+    theorem for Laplace's equation (MR 23). From the assumed linear algebra: symmetric matrices and the spectral theorem,
+    positive semi-definite forms, orthogonal complements, orthogonal projections, rank–nullity. From this course: $\vec J
+    = \sigma\vec E$ and $R = \rho L/A$ (unit 00); the battery as an EMF behind an internal resistance (units 01 and 02);
+    the passive sign convention and ideal sources (unit 02); the incidence matrix $A$, $\operatorname{rank}A = n - c$, the
+    current law $Ai = s$, the voltage law $v = A^{\mathsf T}\varphi$, Tellegen's theorem $v^{\mathsf T}i = \varphi^{\mathsf T}s$,
+    nodal analysis and the Wheatstone bridge (unit 03).</p>
+    <p><b>Sources.</b> P. G. Doyle and J. L. Snell, <i>Random Walks and Electric Networks</i>, Carus Mathematical
+    Monographs 22 (MAA, 1984), free from the authors as arXiv:math/0001057 — §1.3.4 (the cube), §1.3.5 (Thomson's
+    principle), §1.4 (Rayleigh's monotonicity law), §2.2 (shorting and cutting). B. Bollobás, <i>Modern Graph Theory</i>,
+    Springer GTM 184 (1998), ch. II (electrical networks) and ch. IX (random walks on graphs).
+    R. Lyons and Y. Peres, <i>Probability on Trees and Networks</i> (Cambridge University Press, 2016; free from the
+    authors), ch. 2 and ch. 9. D. H. Johnson, "Origins of the equivalent circuit concept: the voltage-source equivalent",
+    <i>Proc. IEEE</i> 91(4), 636–640 (2003), for Thévenin's history. SAE J537 (rev. 2023), §3.9.1, for the cold-cranking
+    test; UN ECE Regulation No. 37, Annex 1, sheet H7/3, for the headlamp's rating.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · overview</p>
+  <h2>Why the headlights dim when the engine cranks</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="car">the car</span></span>
+        <p class="small">A 12 V battery feeds two branches from its + terminal T, with the chassis as the common return: the <span class="term">starter motor</span> through heavy cables, and two headlamps through their wiring. All values are representative, <b>assumed</b> for the course; $r_i$ comes from a cold-cranking rating.</p>
+        <p class="small"><b>The puzzle.</b> Lamps on, engine off: <span class="ref" data-ref="lamps">114.2 W</span>. Turn the key, and they visibly dim. By how much — and is the starter getting as much power as the battery could give it?</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> the Laplacian · <b>2</b> Thomson's principle and effective resistance · <b>3</b> Thévenin and Kron · <b>4</b> a metric, and Foster's theorem · <b>5</b> maximum power, and its price.</p>
+      <p class="small muted">A <span class="term">conductance</span> with a dotted underline is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="car">the car</span> is the running example (hover); <kbd>N</kbd> shows the notes.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 300" width="460" role="img" aria-label="the car's circuit: a battery, drawn as an ideal source with an internal resistance inside a dashed box, feeds terminal T; from T a cable resistance leads to the starter motor S and a wiring resistance leads to the lamps L; starter and lamps return through the chassis to the battery's minus terminal">
+        <defs><marker id="m04-ov-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <rect x="22" y="84" width="80" height="152" rx="8" fill="none" class="ink" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="24" y="78" font-size="12" class="soft">battery</text>
+        <path d="M60,180 V144 M60,100 V50 H210 M266,50 H330 V125 M330,185 V260 H60 V220 M150,50 V110 H170 M214,110 H240 V160 M240,210 V260" fill="none" class="ink" stroke-width="2.3"/>
+        <circle cx="60" cy="200" r="20" class="fill-ground ink" stroke-width="2"/>
+        <text x="60" y="196" font-size="12" text-anchor="middle">+</text><text x="60" y="213" font-size="13" text-anchor="middle">−</text>
+        <text x="88" y="205" font-size="14">ℰ</text>
+        <rect x="52" y="100" width="16" height="44" class="fill-ground ink" stroke-width="2"/>
+        <text x="46" y="127" font-size="13" text-anchor="end">r<tspan dy="3" font-size="75%">i</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="76" y="141" font-size="12">+</text><text x="76" y="110" font-size="13">−</text>
+        <rect x="210" y="43" width="56" height="14" class="fill-ground ink" stroke-width="2"/>
+        <text x="238" y="78" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">c</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="204" y="38" font-size="12">+</text><text x="266" y="38" font-size="13">−</text>
+        <rect x="322" y="125" width="16" height="60" class="fill-ground ink" stroke-width="2"/>
+        <text x="348" y="152" font-size="13">R<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan></text><text x="348" y="168" font-size="12" class="soft">starter</text>
+        <text x="312" y="134" font-size="12" text-anchor="end">+</text><text x="312" y="184" font-size="13" text-anchor="end">−</text>
+        <rect x="170" y="103" width="44" height="14" class="fill-ground ink" stroke-width="2"/>
+        <text x="192" y="136" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">w</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="166" y="98" font-size="12">+</text><text x="210" y="98" font-size="13">−</text>
+        <rect x="232" y="160" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <text x="258" y="182" font-size="13">R<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan></text><text x="258" y="198" font-size="12" class="soft">lamps</text>
+        <text x="226" y="170" font-size="12" text-anchor="end">+</text><text x="226" y="208" font-size="13" text-anchor="end">−</text>
+        <circle cx="150" cy="50" r="4.5" class="fill-ink"/><circle cx="330" cy="50" r="4.5" class="fill-ink"/><circle cx="240" cy="110" r="4.5" class="fill-ink"/><circle cx="240" cy="260" r="4.5" class="fill-ink"/>
+        <text x="150" y="38" font-size="14" text-anchor="middle">T</text><text x="344" y="44" font-size="14">S</text><text x="250" y="104" font-size="14">L</text>
+        <line x1="88" y1="34" x2="128" y2="34" class="unit" stroke-width="2.3" marker-end="url(#m04-ov-u)"/>
+        <text x="104" y="26" font-size="13" class="fill-unit">I<tspan dy="3" font-size="75%">b</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <line x1="350" y1="70" x2="350" y2="110" class="unit" stroke-width="2.3" marker-end="url(#m04-ov-u)"/>
+        <text x="358" y="96" font-size="13" class="fill-unit">I<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <line x1="272" y1="122" x2="272" y2="152" class="unit" stroke-width="2.3" marker-end="url(#m04-ov-u)"/>
+        <text x="280" y="142" font-size="13" class="fill-unit">I<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <path d="M195,260 V270 M183,270 H207 M187,276 H203 M192,282 H198" fill="none" class="ink" stroke-width="2"/>
+        <text x="215" y="290" font-size="12" class="soft">chassis</text>
+      </svg>
+      <p class="cap">Every element marked + and − by the passive convention; arrows show the actual currents. Battery: $\mathcal E = 12.6$ V, $r_i = 10\ \mathrm{m\Omega}$. Starter: $R_c = 5\ \mathrm{m\Omega}$, $R_s = 45\ \mathrm{m\Omega}$. Lamps: $R_w = 30\ \mathrm{m\Omega}$, $R_L = 1.309\ \Omega$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The system, from nothing.</b> A car's 12 V battery is a lead–acid battery: six electrochemical cells in series,
+    each a pair of lead-based plates in sulphuric acid. Its EMF, the open-circuit voltage of a fully charged battery, is
+    taken here as $\mathcal E = 12.6$ V, 2.1 V per cell — a representative value, <b>assumed</b>. Like unit 01's battery
+    it has an internal resistance $r_i$ (the plates, the electrolyte, the connections between cells). The negative
+    terminal is bolted to the car's steel body, which serves as the return conductor for every circuit: "ground" here is
+    literally the chassis.</p>
+    <p>The <b>starter motor</b> is an electric motor that turns the engine over until it fires. At the instant it
+    engages it is not yet turning, and a motor that is not turning opposes current only by the resistance of its windings,
+    so it is modelled as a resistance $R_s = 45\ \mathrm{m\Omega}$ (assumed). Once it turns it also generates a voltage
+    opposing the current — its back-EMF — which is unit 12's subject; the model here holds only at the instant of
+    engagement. The cables and connections, $R_c = 5\ \mathrm{m\Omega}$, are assumed; for scale, 1 m of $25\ \mathrm{mm^2}$
+    copper is $1.68\times10^{-8}/(25\times10^{-6}) = 0.672\ \mathrm{m\Omega}$ (unit 00's $\rho$), so unless the cables
+    are several metres long, most of an $R_c$ this size would have to be in the clamps and joints.</p>
+    <p><b>The internal resistance from a rating.</b> SAE J537 (revised 2023, §3.9.1) defines the cold-cranking test:
+    a fully charged battery, stabilised at −18 °C, is discharged at its rated current for 30 s, and passes if its
+    terminal voltage at 30 s is at least 7.2 V — 1.2 V per cell. (Other standards define their own cold-cranking tests;
+    this deck uses only J537's.) In a linear model $v = \mathcal E - r_iI$, a battery rated 540 A therefore has
+    $r_i \le (12.6 - 7.2)/540 = 10\ \mathrm{m\Omega}$ at −18 °C. The deck uses $r_i = 10\ \mathrm{m\Omega}$: a crude,
+    cold-weather figure for a battery whose chemistry is not linear. The rating of 540 A is itself an assumption for the
+    example, not any product's specification.</p>
+    <p><b>The headlamps.</b> UN ECE Regulation No. 37, which governs approval of vehicle filament lamps, rates the H7
+    halogen headlamp at 12 V and 55 W (Annex 1, sheet H7/3, in the consolidated Revision 4 of 2005; its tests are made at 13.2 V). Two such lamps in parallel,
+    treated as a fixed resistance at their rated point, are $R_L = 12^2/110 = 1.309\ \Omega$. Their wiring, fuse and
+    switch, $R_w = 30\ \mathrm{m\Omega}$, are assumed. A filament is not ohmic; the deck says what that costs when it
+    matters (<i>Why the headlights dim</i>).</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The Laplacian</h2>
+  <p>Ohm's law on every edge turns the current law into one symmetric linear system. Its matrix is positive semi-definite, its solutions exist and are unique, and they obey a maximum principle — MR 23's electrostatics on a graph.</p>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>Ohm's law on every edge</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 03's graph: $n$ nodes, $m$ edges, incidence matrix $A$ ($n\times m$). Edge $e$ runs from its tail to its head; under the passive convention $v_e = \varphi_{\text{tail}} - \varphi_{\text{head}}$ and $i_e$ flows tail to head.</p>
+      <div class="box def"><span class="label">three laws, three matrices</span>
+        <p class="small">Voltage law: $v = A^{\mathsf T}\varphi$. &nbsp; Current law, with currents $s$ injected at the nodes: $Ai = s$. &nbsp; Ohm's law, edge by edge, with <span class="term">conductance</span> $G_e = 1/R_e > 0$:</p>
+        $$i = Gv,\qquad G = \operatorname{diag}(G_1,\dots,G_m).$$
+        <p class="small">Substitute the first into the third, and the third into the second:</p>
+        $$\boxed{\,L\varphi = s,\qquad L = AGA^{\mathsf T}\,}$$
+      </div>
+      <p class="small muted">Units: $G$ in siemens, $\mathrm S = \Omega^{-1} = \mathrm{A\,V^{-1}}$; $L\varphi$ is $\mathrm{S\cdot V} = \mathrm A$, the units of $s$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 270" width="420" role="img" aria-label="one edge e of a network between its tail node at potential phi tail and its head node at potential phi head, drawn as a resistor with conductance G e; plus at the tail, minus at the head, the current i e arrow from tail to head; and an injected current s k arrow entering a node from outside">
+        <defs><marker id="m04-ohm-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m04-ohm-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <path d="M80,130 H160 M240,130 H320" class="ink" stroke-width="2.4"/>
+        <path d="M80,130 L40,70 M80,130 L36,190 M320,130 L362,72 M320,130 L366,186" class="ink" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <rect x="160" y="121" width="80" height="18" class="fill-ground ink" stroke-width="2.2"/>
+        <circle cx="80" cy="130" r="6" class="fill-ink"/><circle cx="320" cy="130" r="6" class="fill-ink"/>
+        <text x="80" y="160" font-size="14" text-anchor="middle">φ<tspan dy="3" font-size="75%">tail</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="320" y="160" font-size="14" text-anchor="middle">φ<tspan dy="3" font-size="75%">head</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="200" y="112" font-size="14" text-anchor="middle">G<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan> = 1/R<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="150" y="160" font-size="16">+</text><text x="244" y="160" font-size="17">−</text>
+        <text x="200" y="166" font-size="14" text-anchor="middle" class="fill-unit">v<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <line x1="104" y1="104" x2="146" y2="104" class="unit" stroke-width="2.4" marker-end="url(#m04-ohm-u)"/>
+        <text x="112" y="96" font-size="14" class="fill-unit">i<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <line x1="80" y1="44" x2="80" y2="116" class="alt" stroke-width="2.4" marker-end="url(#m04-ohm-a)"/>
+        <text x="90" y="56" font-size="14" class="alt">s<tspan dy="3" font-size="75%">k</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="200" y="214" font-size="13" text-anchor="middle">i<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan> = G<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan> (φ<tspan dy="3" font-size="75%">tail</tspan><tspan dy="-3">&#8202;</tspan> − φ<tspan dy="3" font-size="75%">head</tspan><tspan dy="-3">&#8202;</tspan>)</text>
+        <text x="200" y="238" font-size="12" text-anchor="middle" class="soft">dashed: the rest of the network</text>
+      </svg>
+      <p class="cap">One edge. The node on the left also receives a current $s_k$ from outside the network — a source's terminal, say. The current law at node $k$: the currents leaving through its edges sum to $s_k$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The substitution, written out.</b> $i = Gv = GA^{\mathsf T}\varphi$, so $s = Ai = AGA^{\mathsf T}\varphi$. Three linear
+    laws compose into one. The unknowns are the $n$ potentials; once they are known, $v = A^{\mathsf T}\varphi$ and $i = Gv$
+    give every edge.</p>
+    <p><b>Signs.</b> $(Ai)_k = \sum_eA_{ke}i_e$ is the current leaving node $k$ through its edges (an edge leaving $k$ has
+    $A_{ke} = +1$ and carries $i_e$ away; an edge entering has $-1$). In a steady state the charge at the node does not
+    change (unit 02's (H2)), so that outflow equals what is fed in from outside, $s_k$. This is unit 03's convention:
+    $s = 0$ for an isolated network, and a current source's terminals appear as nonzero entries of $s$.</p>
+    <p><b>What "conductance" is.</b> The reciprocal of resistance: how many amperes per volt the element passes. Ohm's
+    law $i = Gv$ is the form that makes a parallel combination a sum. Unit 05 replaces each $G_e$ by a complex
+    admittance; nothing on this slide uses that $G_e$ is real except the boxed formula's interpretation as dissipation on
+    the next slides.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>The weighted graph Laplacian</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">weighted graph Laplacian</span></span>
+        <p class="small">$L = AGA^{\mathsf T}$, $n\times n$. Its entries, from $L_{kj} = \sum_eA_{ke}G_eA_{je}$:</p>
+        <ul class="small">
+          <li>$L_{kk}$ = the sum of the conductances of the edges at node $k$;</li>
+          <li>$L_{kj} = -G_e$ for an edge $e$ joining $k$ and $j$, $0$ if none;</li>
+          <li>every row sums to zero.</li>
+        </ul>
+      </div>
+      <p class="small">It is unit 03's nodal matrix. For <span class="ref" data-ref="bridge">the bridge</span>'s five resistors, in mS, rows A, B, C, D:</p>
+      $$L = \begin{pmatrix} 13.33 &amp; -10 &amp; 0 &amp; -3.33\\ -10 &amp; 35 &amp; -5 &amp; -20\\ 0 &amp; -5 &amp; 7.5 &amp; -2.5\\ -3.33 &amp; -20 &amp; -2.5 &amp; 25.83 \end{pmatrix}\mathrm{mS}$$
+      <p class="small muted">Unit 13 reuses this matrix with complex weights, as a power grid's bus admittance matrix.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="-30 0 400 300" width="400" role="img" aria-label="the Wheatstone bridge drawn as in unit 03, every resistor marked plus at its tail: node A at the top, B at the left, D at the right, C at the bottom; resistors R1 from A to B, R2 from B to C, R3 from A to D, R4 from D to C, the detector Rg across from B to D, and an ideal 10 volt source on a wire round the left side joining A and C">
+        <path d="M190,40 L60,150 L190,260 L320,150 Z M60,150 H320 M190,40 H0 V260 H190" fill="none" class="ink" stroke-width="2.2"/>
+        <rect x="-25" y="-8" width="50" height="16" transform="translate(125,95) rotate(-40.2)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="-25" y="-8" width="50" height="16" transform="translate(125,205) rotate(40.2)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="-25" y="-8" width="50" height="16" transform="translate(255,95) rotate(40.2)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="-25" y="-8" width="50" height="16" transform="translate(255,205) rotate(-40.2)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="165" y="142" width="50" height="16" class="fill-ground ink" stroke-width="2"/>
+        <text x="161" y="89" font-size="12" text-anchor="middle">+</text><text x="109" y="133" font-size="13" text-anchor="middle">−</text><text x="109" y="175" font-size="12" text-anchor="middle">+</text><text x="161" y="219" font-size="13" text-anchor="middle">−</text><text x="219" y="89" font-size="12" text-anchor="middle">+</text><text x="271" y="133" font-size="13" text-anchor="middle">−</text><text x="271" y="175" font-size="12" text-anchor="middle">+</text><text x="219" y="219" font-size="13" text-anchor="middle">−</text><text x="160" y="176" font-size="12" text-anchor="middle">+</text><text x="220" y="176" font-size="13" text-anchor="middle">−</text>
+        <circle cx="0" cy="150" r="18" class="fill-ground ink" stroke-width="2"/>
+        <text x="0" y="146" font-size="13" text-anchor="middle">+</text><text x="0" y="164" font-size="14" text-anchor="middle">−</text>
+        <text x="-24" y="120" font-size="12" class="soft">10 V</text>
+        <circle cx="190" cy="40" r="5" class="fill-ink"/><circle cx="60" cy="150" r="5" class="fill-ink"/><circle cx="320" cy="150" r="5" class="fill-ink"/><circle cx="190" cy="260" r="5" class="fill-ink"/>
+        <text x="190" y="28" font-size="15" text-anchor="middle">A</text><text x="66" y="176" font-size="15">B</text>
+        <text x="336" y="155" font-size="15">D</text><text x="190" y="284" font-size="15" text-anchor="middle">C</text>
+        <text x="112" y="74" font-size="13" text-anchor="end">R<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan> 100 Ω</text><text x="112" y="236" font-size="13" text-anchor="end">R<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan> 200 Ω</text>
+        <text x="268" y="74" font-size="13">R<tspan dy="3" font-size="75%">3</tspan><tspan dy="-3">&#8202;</tspan> 300 Ω</text><text x="268" y="236" font-size="13">R<tspan dy="3" font-size="75%">4</tspan><tspan dy="-3">&#8202;</tspan> 400 Ω</text>
+        <text x="190" y="134" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">g</tspan><tspan dy="-3">&#8202;</tspan> 50 Ω</text>
+        <text x="170" y="296" font-size="12" text-anchor="end" class="soft">φ<tspan dy="3" font-size="75%">A</tspan><tspan dy="-3">&#8202;</tspan> = 10, φ<tspan dy="3" font-size="75%">C</tspan><tspan dy="-3">&#8202;</tspan> = 0</text>
+      </svg>
+      <p class="cap">Unit 03's bridge, each resistor marked + at its tail as unit 03 orients it (A→B, B→C, A→D, D→C, B→D). The resistors give $L$; the source is not a resistor, and enters by fixing $\varphi_A$ and $\varphi_C$ (next slides).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The entries, derived.</b> $L_{kj} = \sum_eA_{ke}G_eA_{je}$. For $k = j$ each edge at $k$ contributes $(\pm1)^2G_e = G_e$.
+    For $k\ne j$, an edge contributes only if it joins $k$ and $j$, and then one of $A_{ke}, A_{je}$ is $+1$ and the
+    other $-1$: $-G_e$. Row sums: $L\mathbf 1 = AG(A^{\mathsf T}\mathbf 1) = 0$ since every column of $A$ has one $+1$ and one
+    $-1$. The orientation of the edges has dropped out entirely: $L$ depends only on which nodes are joined and how well.</p>
+    <p><b>The bridge's numbers.</b> $G_1 = 1/100\ \Omega = 10$ mS, $G_2 = 5$, $G_3 = 3.333$, $G_4 = 2.5$, $G_g = 20$ mS.
+    Row A: $10 + 3.333 = 13.333$ on the diagonal, $-10$ to B, $-3.333$ to D. Row B: $10 + 5 + 20 = 35$. Row C: $5 + 2.5 = 7.5$.
+    Row D: $3.333 + 2.5 + 20 = 25.833$. Each row sums to zero.</p>
+    <p><b>Unit 03's promise.</b> Unit 03 set up nodal analysis for the bridge and solved it, and said the matrix it
+    produced had special properties studied here. This is that matrix, for every network of resistors at once. Why
+    "Laplacian": $(L\varphi)_k = \sum_jG_{kj}(\varphi_k - \varphi_j)$, a weighted sum of differences from the neighbours —
+    the discrete analogue of $-\nabla^2\varphi$, which on a grid of spacing $h$ is $\sum(\varphi_k - \varphi_j)/h^2$ over the
+    $2d$ neighbours. The sign is chosen so that $L$ is positive semi-definite.</p>
+    <p><b>Forward.</b> Unit 05 gives capacitors and inductors complex admittances $i\omega C$ and $1/(i\omega L)$; with
+    those as weights, $AYA^{\mathsf T}$ is the network's admittance matrix, and unit 13 calls it the bus admittance matrix of
+    a power grid. Symmetry survives; positive semi-definiteness becomes a statement about real parts.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>Symmetric, positive semi-definite, and its kernel</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$L = AGA^{\mathsf T}$ is symmetric, and for every $\varphi\in\mathbb R^n$</p>
+        $$\varphi^{\mathsf T}L\varphi = \sum_eG_e\big(\varphi_{\text{tail}(e)} - \varphi_{\text{head}(e)}\big)^2 \ \ge 0 .$$
+        <p class="small">Its kernel is exactly the vectors constant on each connected component: $\dim\ker L = c$, $\operatorname{rank}L = n - c$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$L^{\mathsf T} = AG^{\mathsf T}A^{\mathsf T} = L$. $\varphi^{\mathsf T}L\varphi = (A^{\mathsf T}\varphi)^{\mathsf T}G(A^{\mathsf T}\varphi) = \sum_eG_ev_e^2$. Since every $G_e > 0$, it vanishes iff $v_e = 0$ on every edge, iff $\varphi$ is equal across every edge — constant on each component. For symmetric positive semi-definite $L$, $L\varphi = 0 \iff \varphi^{\mathsf T}L\varphi = 0$. $\square$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">physics and algebra, the same line</span>
+        <p class="small">$G_ev_e^2 = v_ei_e$ is the power edge $e$ dissipates. So $\varphi^{\mathsf T}L\varphi$ <b>is the total power dissipated</b> in the network when its nodes sit at $\varphi$; positive semi-definiteness is the statement that resistors do not generate.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 380 150" width="380" role="img" aria-label="a network with two connected components: a triangle whose three nodes all carry potential 4, and a path of two nodes both carrying potential minus 1; such a vector is in the kernel of L">
+          <path d="M40,110 L100,30 L160,110 Z M240,70 L340,70" fill="none" class="ink" stroke-width="2"/>
+          <circle cx="40" cy="110" r="14" class="fill-soft unit" stroke-width="2"/><circle cx="100" cy="30" r="14" class="fill-soft unit" stroke-width="2"/><circle cx="160" cy="110" r="14" class="fill-soft unit" stroke-width="2"/>
+          <circle cx="240" cy="70" r="14" class="fill-ground alt" stroke-width="2"/><circle cx="340" cy="70" r="14" class="fill-ground alt" stroke-width="2"/>
+          <text x="40" y="115" font-size="13" text-anchor="middle">4</text><text x="100" y="35" font-size="13" text-anchor="middle">4</text><text x="160" y="115" font-size="13" text-anchor="middle">4</text>
+          <text x="240" y="75" font-size="13" text-anchor="middle">−1</text><text x="340" y="75" font-size="13" text-anchor="middle">−1</text>
+          <text x="190" y="142" font-size="12" text-anchor="middle" class="soft">c = 2: constant on each component, so Lφ = 0</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The step "$L\varphi = 0 \iff \varphi^{\mathsf T}L\varphi = 0$".</b> One way is trivial. For the other, by the spectral
+    theorem write $\varphi = \sum c_ku_k$ in an orthonormal eigenbasis, $Lu_k = \lambda_ku_k$ with every $\lambda_k\ge0$.
+    Then $\varphi^{\mathsf T}L\varphi = \sum\lambda_kc_k^2 = 0$ forces $c_k = 0$ whenever $\lambda_k > 0$, so $L\varphi =
+    \sum\lambda_kc_ku_k = 0$.</p>
+    <p><b>Constant on components.</b> If $\varphi$ is equal across every edge, then along any path its value does not
+    change, so it is constant on each connected component; conversely such a vector makes every $v_e$ zero. The space of
+    such vectors has a basis of the $c$ indicator vectors of the components, so $\dim\ker L = c$ and, by rank–nullity,
+    $\operatorname{rank}L = n - c$. This agrees with unit 03: $\ker L = \ker A^{\mathsf T}$ (shown in the proof), and unit 03
+    proved $\operatorname{rank}A = \operatorname{rank}A^{\mathsf T} = n - c$.</p>
+    <p><b>The continuous version</b> (MR 23). $\varphi^{\mathsf T}L\varphi = \sum G_e(\Delta\varphi)^2$ is the discrete
+    $\int\sigma|\nabla\varphi|^2\,\mathrm dV$ — the power dissipated in a conductor at potential $\varphi$ (unit 00: $\vec J\cdot
+    \vec E = \sigma|\vec E|^2$), or with $\varepsilon_0$ in place of $\sigma$, twice the electrostatic field energy. Green's
+    first identity in MR 23 is the continuous form of $\varphi^{\mathsf T}L\varphi = (A^{\mathsf T}\varphi)^{\mathsf T}G(A^{\mathsf T}\varphi)$:
+    summation by parts.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>When the potentials exist, and how unique they are</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">existence and uniqueness</span>
+        <p class="small">$L\varphi = s$ has a solution <b>iff</b> the injected currents sum to zero on each connected component. The solution is unique up to adding a constant on each component; fixing one node's potential per component — <span class="term">grounding</span> it — makes it unique.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">For a symmetric matrix, $\operatorname{im}L = (\ker L^{\mathsf T})^\perp = (\ker L)^\perp$. By the last slide $\ker L$ is spanned by the components' indicator vectors $\mathbf 1_C$, so $s\in\operatorname{im}L \iff \mathbf 1_C^{\mathsf T}s = 0$ for each component $C$. Two solutions differ by an element of $\ker L$. $\square$</p>
+      </div>
+      <p class="small">The condition is unit 02's (H2) once more: charge cannot pile up in a component, so what is fed in must be taken out.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 260" width="400" role="img" aria-label="a connected network drawn as a cloud of nodes and edges; arrows show currents 3 amps and 1 amp injected at two nodes and 4 amps extracted at a third, summing to zero; one node is grounded, marked with the ground symbol and potential zero">
+        <defs><marker id="m04-ex-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <path d="M90,90 L170,60 L260,90 L300,160 L220,190 L130,180 Z M170,60 L220,190 M90,90 L220,190 M260,90 L130,180" fill="none" class="ink" stroke-width="1.6"/>
+        <g class="fill-ground ink" stroke-width="2"><circle cx="90" cy="90" r="7"/><circle cx="170" cy="60" r="7"/><circle cx="260" cy="90" r="7"/><circle cx="300" cy="160" r="7"/><circle cx="220" cy="190" r="7"/><circle cx="130" cy="180" r="7"/></g>
+        <line x1="40" y1="60" x2="80" y2="84" class="alt" stroke-width="2.4" marker-end="url(#m04-ex-a)"/><text x="30" y="52" font-size="14" class="alt">3 A</text>
+        <line x1="170" y1="12" x2="170" y2="48" class="alt" stroke-width="2.4" marker-end="url(#m04-ex-a)"/><text x="180" y="26" font-size="14" class="alt">1 A</text>
+        <line x1="310" y1="170" x2="350" y2="200" class="alt" stroke-width="2.4" marker-end="url(#m04-ex-a)"/><text x="330" y="226" font-size="14" class="alt">4 A out</text>
+        <path d="M130,187 V210 M118,210 H142 M122,216 H138 M127,222 H133" fill="none" class="ink" stroke-width="2"/>
+        <text x="104" y="210" font-size="13" text-anchor="end">φ = 0</text>
+        <text x="190" y="252" font-size="12" text-anchor="middle" class="soft">s sums to 3 + 1 − 4 = 0: solvable; grounded: unique</text>
+      </svg>
+      <p class="cap">One connected network. The injections balance, so potentials exist; grounding one node removes the free constant.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The linear algebra used.</b> For any matrix, $\operatorname{im}M = (\ker M^{\mathsf T})^\perp$ — the fundamental theorem
+    of linear algebra, assumed (unit 03 used the same fact for $A$). With $M = L = L^{\mathsf T}$ it reads $\operatorname{im}L = (\ker
+    L)^\perp$.</p>
+    <p><b>Grounding.</b> Choose one node $g$ per component and require $\varphi_g = 0$. Among the solutions $\varphi + \sum_C
+    k_C\mathbf 1_C$ exactly one satisfies this. Equivalently: delete $g$'s row and column from $L$ (and $g$'s entry from
+    $s$); the reduced matrix is invertible — it is the case of the Dirichlet problem on the next slide with one boundary
+    node per component. The physical choice does not matter: only differences of potential are measurable.</p>
+    <p><b>This is MR 23's uniqueness theorem, case 2</b> ("conductor data"), on a graph: there the field was unique and
+    the potential unique up to a constant, and the proof was by energy — $\int|\nabla w|^2 = 0$ forced $\nabla w = 0$. Here
+    $w^{\mathsf T}Lw = 0$ forces $w$ constant on components. Same proof.</p>
+    <p><b>Unit 03's loose end.</b> Unit 03 noted that a circuit problem is well posed in its count of equations, and left
+    solvability for resistors to this unit; and that superposition for resistive networks needs the solution map to be
+    linear, which needs uniqueness. Both are now settled for networks of positive resistors driven by current
+    injections; the next slide adds voltage sources.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>The discrete Dirichlet problem</h2>
+  <div class="cols">
+    <div>
+      <p class="small">An ideal voltage source does not inject a known current; it fixes a potential. So split the nodes: <span class="term">boundary node</span>s $B$, whose potentials are given (source terminals, ground), and <span class="term">interior node</span>s $I$, where nothing is injected.</p>
+      <div class="box thm"><span class="label">the <span class="term">discrete Dirichlet problem</span></span>
+        <p class="small">Given $\varphi_B$, find $\varphi_I$ with $(L\varphi)_I = 0$, i.e. $L_{II}\varphi_I = -L_{IB}\varphi_B$. If every connected component of the interior is joined by an edge to the boundary, then $L_{II}$ is positive definite, and the solution exists and is unique.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Extend $x\in\mathbb R^I$ by zeros on $B$ to $\hat x$. Then $x^{\mathsf T}L_{II}x = \hat x^{\mathsf T}L\hat x\ge0$, and $= 0$ only if $\hat x$ is constant on each component of the graph — but every interior component touches a boundary node where $\hat x = 0$, so $x = 0$. Positive definite ⟹ invertible. $\square$</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 270" width="400" role="img" aria-label="a network whose boundary nodes are drawn as filled squares with given potentials 12.6 volts and 0, and whose interior nodes are open circles with unknown potentials; every interior node is connected to the boundary through edges">
+        <path d="M50,60 L140,60 L230,40 L320,90 L310,190 L210,220 L120,200 L50,210 M140,60 L120,200 M230,40 L210,220 M140,60 L210,140 L310,190 M210,140 L230,40" fill="none" class="ink" stroke-width="1.7"/>
+        <rect x="40" y="50" width="20" height="20" class="fill-unit"/><rect x="40" y="200" width="20" height="20" class="fill-unit"/><rect x="300" y="180" width="20" height="20" class="fill-unit"/>
+        <g class="fill-ground ink" stroke-width="2"><circle cx="140" cy="60" r="8"/><circle cx="230" cy="40" r="8"/><circle cx="320" cy="90" r="8"/><circle cx="210" cy="220" r="8"/><circle cx="120" cy="200" r="8"/><circle cx="210" cy="140" r="8"/></g>
+        <text x="34" y="44" font-size="13" class="fill-unit">12.6 V</text><text x="28" y="244" font-size="13" class="fill-unit">0</text><text x="330" y="214" font-size="13" class="fill-unit">0</text>
+        <text x="190" y="264" font-size="12" text-anchor="middle" class="soft">■ boundary: φ given · ○ interior: KCL, no injection</text>
+      </svg>
+      <p class="cap">The car's network is this kind of problem: the battery's EMF fixes one node at 12.6 V above the chassis, and the other three nodes are interior.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Order the nodes with $I$ first: $L = \begin{pmatrix}L_{II} &amp; L_{IB}\\ L_{BI} &amp; L_{BB}\end{pmatrix}$, symmetric, so
+    $L_{BI} = L_{IB}^{\mathsf T}$. For $x\in\mathbb R^I$ let $\hat x = (x, 0)$. Then $\hat x^{\mathsf T}L\hat x = x^{\mathsf T}L_{II}x$, which
+    is $\ge0$. If it is $0$, then $\hat x$ is constant on every component of the whole graph (the kernel theorem). Each
+    interior node $k$ lies in a component that contains a boundary node, since its interior component is joined by an
+    edge to $B$; on that component $\hat x$ equals its value at the boundary node, $0$. So $x_k = 0$ for every $k$. A
+    symmetric matrix with $x^{\mathsf T}Mx &gt; 0$ for $x\ne0$ has no zero eigenvalue, so it is invertible, and $\varphi_I =
+    -L_{II}^{-1}L_{IB}\varphi_B$ is the unique solution.</p>
+    <p><b>When it fails.</b> If an interior component touches no boundary node — a floating island of resistors — then
+    the constant vector on that island is in $\ker L_{II}$: its potential is undetermined, physically meaningful only
+    relative to itself. Problem P5 makes this precise.</p>
+    <p><b>The analogy, exactly.</b> MR 23's uniqueness theorem, case 1: Poisson's equation in $D$ with $\varphi$ given on
+    $\partial D$ has at most one solution. Here: "Laplace's equation" $(L\varphi)_I = 0$ at the interior nodes, $\varphi$ given
+    on the boundary nodes, exactly one solution. The hypothesis that every interior component touches the boundary is the
+    graph's version of $D$ being bounded by $\partial D$.</p>
+    <p><b>Sources in general.</b> A connected network of positive resistors, ideal voltage sources and ideal current
+    sources has exactly one solution (potentials up to one common constant) when the voltage sources form no loop and the
+    current sources form no cut. <b>Proof.</b> Delete each current source and record its current as equal and opposite
+    injections at its two ends. The voltage sources, forming no loop, form a forest: merge the nodes of each of its trees
+    into one supernode, inside which every potential is a known offset from a single unknown. Sum the current law over the
+    nodes of a supernode: the unknown source currents cancel, each entering one node of it and leaving another. With Ohm's
+    law on every resistor this is a Laplacian system $L'\psi = s'$ on the supernodes, with positive conductances and a known
+    right side whose entries sum to zero (the current sources contribute $+I$ and $-I$; the offsets enter through a
+    Laplacian, whose columns sum to zero). Since the current sources form no cut, resistors and voltage sources alone
+    connect every node, so the supernode graph is connected, and the existence and uniqueness theorem gives $\psi$ up to
+    one constant. Last, each voltage source's current follows from the current law, working inward from the leaves of its
+    tree, uniquely, since a tree has no loop for a current to circulate round. $\square$</p>
+    <p><b>Why the conditions matter.</b> Without them a solution can exist and still not be unique: two equal ideal voltage
+    sources in parallel share their current in any proportion, and the node between two equal ideal current sources in
+    series can sit at any potential. The course assumes the conditions throughout. With one voltage source to ground, as in
+    the car and the bridge, the reduction above is all that is needed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>The maximum principle</h2>
+  <div class="cols">
+    <div>
+      <p class="small">At an interior node, $(L\varphi)_k = \sum_jG_{kj}(\varphi_k - \varphi_j) = 0$ says</p>
+      $$\varphi_k = \frac{\sum_jG_{kj}\varphi_j}{\sum_jG_{kj}} :$$
+      <p class="small">a conductance-weighted <b>average</b> of its neighbours': $\varphi$ is <span class="term">harmonic</span> at $k$ — MR 05's mean value property on a graph.</p>
+      <div class="box thm"><span class="label">the discrete <span class="term">maximum principle</span></span>
+        <p class="small">If every interior component touches the boundary, $\min_B\varphi \le \varphi_k \le \max_B\varphi$ at every node.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Let $M = \max\varphi$, attained at interior $k$. An average of numbers $\le M$ equals $M$ only if each does: every neighbour of $k$ is at $M$. Walk on through the interior component to a boundary node. Minimum: use $-\varphi$. $\square$</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 260" width="380" role="img" aria-label="an interior node k joined to three neighbours at potentials 3, 6 and 12 volts through conductances 2, 1 and 1 siemens; its potential is the weighted average, 6 volts, between the smallest and largest neighbour">
+        <path d="M180,140 L70,60 M180,140 L300,70 M180,140 L190,240" class="ink" stroke-width="2"/>
+        <circle cx="180" cy="140" r="16" class="fill-soft unit" stroke-width="2.4"/>
+        <g class="fill-ground ink" stroke-width="2"><circle cx="70" cy="60" r="14"/><circle cx="300" cy="70" r="14"/><circle cx="190" cy="240" r="14"/></g>
+        <text x="70" y="65" font-size="13" text-anchor="middle">3</text><text x="300" y="75" font-size="13" text-anchor="middle">6</text><text x="190" y="245" font-size="12" text-anchor="middle">12</text>
+        <text x="180" y="145" font-size="13" text-anchor="middle">6</text>
+        <text x="112" y="88" font-size="13" text-anchor="end" class="halo">2 S</text><text x="248" y="96" font-size="13" class="halo">1 S</text><text x="196" y="196" font-size="13" class="halo">1 S</text>
+        <text x="180" y="22" font-size="13" text-anchor="middle">φ<tspan dy="3" font-size="75%">k</tspan><tspan dy="-3">&#8202;</tspan> = (2·3 + 1·6 + 1·12)/(2 + 1 + 1) = 6 V</text>
+      </svg>
+      <p class="cap">An interior node is a weighted average of its neighbours, so it cannot exceed them all — as no point of empty space is a strict minimum of a harmonic potential (MR 05, Earnshaw).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Let $M = \max_k\varphi_k$ over all $n$ nodes, attained at node $k$. If $k\in B$ we are done. If $k$ is interior,
+    $\sum_jG_{kj}(M - \varphi_j) = 0$ with every term $\ge 0$ (since $G_{kj} &gt; 0$ and $\varphi_j \le M$), so every
+    neighbour $j$ has $\varphi_j = M$. Each neighbour is either a boundary node — done — or interior, and then the same
+    argument applies to it. Since $k$'s interior component is connected and joined by an edge to $B$, this walk reaches a
+    boundary node at value $M$. Hence $\max_{\text{all}}\varphi = \max_B\varphi$. Applying the result to $-\varphi$, also a
+    solution with boundary data $-\varphi_B$, gives the minimum.</p>
+    <p><b>The strong form</b> — an interior maximum forces the whole interior component to the maximum — is the graph
+    version of MR 05's statement that a harmonic function with an interior maximum on a connected set is constant. The
+    proof there used the mean value property on small spheres; here the "sphere" round $k$ is its set of neighbours, and
+    the mean value property is the definition of the equation.</p>
+    <p><b>Uses below.</b> The sign of Kron reduction's off-diagonal entries (section 3), the triangle inequality for
+    effective resistance (section 4), and problem P6.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>Worked: the car's network, set up</h2>
+  <div class="box ex"><span class="label">worked example 1 — <span class="ref" data-ref="car">the car</span>, cranking with the lamps on: the graph and its $L$</span>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>1. The graph.</b> Nodes: chassis 0, the EMF's + terminal E (inside the battery), the battery terminal T, starter S, lamps L. Five resistive edges, conductances in siemens (figure).</p>
+      <p class="small"><b>2. Boundary and interior.</b> The source fixes $\varphi_E = 12.6$ V; $\varphi_0 = 0$. Interior $\{T, S, L\}$: three unknowns, each reaching the boundary, so section 1 guarantees one solution.</p>
+      <p class="small"><b>3. The equations</b> $L_{II}\varphi_I = -L_{IB}\varphi_B$, rows T, S, L (siemens, amperes):</p>
+      $$\begin{pmatrix} 333.3 &amp; -200 &amp; -33.3\\ -200 &amp; 222.2 &amp; 0\\ -33.3 &amp; 0 &amp; 34.10\end{pmatrix}\!\begin{pmatrix}\varphi_T\\ \varphi_S\\ \varphi_L\end{pmatrix} = \begin{pmatrix}1260\\ 0\\ 0\end{pmatrix}$$
+      <p class="small">The right side: $100\ \mathrm S\times12.6\ \mathrm V$, from the one edge joining the interior to E.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 280" width="370" role="img" aria-label="the car's network as a graph: boundary nodes E at 12.6 volts and chassis 0 drawn as squares; interior nodes T, S and L as circles; edges r i from E to T, R c from T to S, R w from T to L, R s from S to 0, R L from L to 0, each labelled with its conductance; a dashed source edge joins 0 to E">
+        <path d="M60,60 L180,60 L300,60 M180,60 L180,160 M300,60 L240,240 M180,160 L240,240" fill="none" class="ink" stroke-width="2"/>
+        <path d="M60,60 L60,240 L240,240" fill="none" class="ink" stroke-width="1.6" stroke-dasharray="6 4"/>
+        <rect x="50" y="50" width="20" height="20" class="fill-unit"/><rect x="230" y="230" width="20" height="20" class="fill-unit"/>
+        <g class="fill-ground ink" stroke-width="2"><circle cx="180" cy="60" r="9"/><circle cx="300" cy="60" r="9"/><circle cx="180" cy="160" r="9"/></g>
+        <text x="60" y="38" font-size="14" text-anchor="middle">E</text><text x="180" y="38" font-size="14" text-anchor="middle">T</text><text x="300" y="38" font-size="14" text-anchor="middle">S</text>
+        <text x="160" y="165" font-size="14" text-anchor="end">L</text><text x="262" y="262" font-size="14">0</text>
+        <text x="120" y="54" font-size="12" text-anchor="middle">r<tspan dy="3" font-size="75%">i</tspan><tspan dy="-3">&#8202;</tspan>: 100 S</text><text x="240" y="54" font-size="12" text-anchor="middle">R<tspan dy="3" font-size="75%">c</tspan><tspan dy="-3">&#8202;</tspan>: 200 S</text>
+        <text x="186" y="112" font-size="12">R<tspan dy="3" font-size="75%">w</tspan><tspan dy="-3">&#8202;</tspan>: 33.33 S</text>
+        <text x="282" y="160" font-size="12">R<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan>: 22.22 S</text>
+        <text x="168" y="214" font-size="12" text-anchor="end">R<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan>: 0.7639 S</text>
+        <text x="40" y="160" font-size="12" text-anchor="end" class="soft">source</text>
+        <text x="60" y="270" font-size="12" class="soft">■ boundary · ○ interior</text>
+      </svg>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The conductances.</b> $1/0.010 = 100$ S, $1/0.005 = 200$ S, $1/0.045 = 22.222$ S, $1/0.030 = 33.333$ S,
+    $1/1.30909 = 110/144 = 0.76389$ S.</p>
+    <p><b>The rows.</b> T: its edges are $r_i$, $R_c$, $R_w$, so $L_{TT} = 100 + 200 + 33.333 = 333.333$, with $-200$ to S and
+    $-33.333$ to L, and $-100$ to E — the last moves to the right side as $+100\varphi_E$. S: $200 + 22.222 = 222.222$, $-200$
+    to T, and $-22.222$ to the chassis, whose potential is $0$. L: $33.333 + 0.76389 = 34.0972$, $-33.333$ to T.</p>
+    <p><b>The full $5\times5$ Laplacian</b> (rows E, T, S, L, 0) would also have the rows of E and 0; they are not
+    equations to solve, because E and 0 are boundary nodes, but they give the currents the source must supply: row E's
+    $(L\varphi)_E$ is the current injected at E, the battery's current.</p>
+    <p><b>Unit 03's count.</b> Unit 03 would say: $n = 5$, $m = 6$ (five resistors and the source), one component, so
+    $n - 1 = 4$ node potentials relative to ground, of which the source fixes one. Three unknowns. Same answer.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · the Laplacian</p>
+  <h2>Worked: the car's network, solved</h2>
+  <div class="box ex"><span class="label">worked example 1, continued — every potential, current and power</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>4. Eliminate.</b> Row S: $\varphi_S = \frac{200}{222.22}\varphi_T = 0.9\,\varphi_T$. Row L: $\varphi_L = \frac{33.33}{34.097}\varphi_T = 0.97760\,\varphi_T$. Row T:</p>
+      $$(333.33 - 180 - 32.59)\,\varphi_T = 1260,$$
+      <p class="small">$120.75\,\varphi_T = 1260$: $\varphi_T = 10.435$ V, $\varphi_S = 9.392$ V, $\varphi_L = 10.201$ V.</p>
+      <p class="small"><b>5. Currents</b>, $i_e = G_ev_e$: battery $(12.6 - 10.435)/0.010 = 216.5$ A; cables and starter $208.7$ A; wiring and lamps $7.79$ A. KCL at T: $216.5 = 208.7 + 7.79$ ✓.</p>
+      <p class="small"><b>6. Powers</b>, $G_ev_e^2$: $r_i$ 468.7 W, $R_c$ 217.8 W, starter 1960.0 W, $R_w$ 1.8 W, lamps 79.5 W.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Energy.</b> The EMF delivers $\mathcal EI_b = 12.6\times216.49 = 2727.8$ W; the resistors take $468.7 + 217.8 + 1960.0 + 1.8 + 79.5 = 2727.8$ W ✓ (Tellegen, unit 03).</p>
+        <p class="small"><b>Maximum principle.</b> Every interior potential lies between the boundary values 0 and 12.6 V ✓.</p>
+        <p class="small"><b>Limit.</b> $R_w\to\infty$ (lamps off): $\varphi_T\to12.6\times50/60 = 10.5$ V, the <span class="ref" data-ref="crank">cranking</span> terminal voltage ✓.</p>
+      </div>
+      <p class="small">The lamps get <b>79.5 W</b>, against 114.2 W before the key was turned. Section 3 gets this in one line.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The arithmetic, to more figures.</b> $200/222.222 = 0.9$ exactly. $33.3333/34.0972 = 0.977597$.
+    $333.3333 - 180 - 33.3333\times0.977597 = 333.3333 - 180 - 32.5866 = 120.7467$. $\varphi_T = 1260/120.7467 = 10.43506$ V;
+    $\varphi_S = 9.39156$ V; $\varphi_L = 10.20128$ V. Battery current $(12.6 - 10.43506)/0.01 = 216.494$ A. Starter current
+    $9.39156/0.045 = 208.701$ A, equal to the cable current $(10.43506 - 9.39156)/0.005 = 208.70$ A. Lamp current
+    $10.20128/1.30909 = 7.7926$ A.</p>
+    <p><b>The powers.</b> $216.494^2\times0.01 = 468.70$; $208.701^2\times0.005 = 217.78$; $208.701^2\times0.045 = 1960.03$;
+    $7.7926^2\times0.03 = 1.82$; $7.7926^2\times1.30909 = 79.49$ W. Sum $2727.82$ W; $\mathcal EI_b = 12.6\times216.494 = 2727.82$ W.</p>
+    <p><b>What the elimination was.</b> Solving rows S and L for $\varphi_S$, $\varphi_L$ in terms of $\varphi_T$ and substituting is
+    block elimination — Kron reduction of section 3, done by hand. The number $120.75$ S is the conductance the rest of
+    the network presents at T once S and L are eliminated: $100$ S for $r_i$, plus $200$ S in series with $22.22$ S ($= 20$ S),
+    plus $33.33$ S in series with $0.7639$ S ($= 0.7468$ S). Conductances in series combine as $G_1G_2/(G_1 + G_2)$.</p>
+    <p><b>The battery's terminal voltage</b> while cranking with the lamps on is $\varphi_T = 10.44$ V, slightly below the
+    10.5 V of cranking alone: the lamps take a little extra current through $r_i$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Thomson's principle and effective resistance</h2>
+  <p>The actual currents are the cheapest way to move the given currents through the network. That one fact gives effective resistance a variational formula, and every bound in this unit.</p>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thomson</p>
+  <h2>Thomson's principle</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A <span class="term">flow</span> with injections $s$ is any $j\in\mathbb R^m$ with $Aj = s$ — currents that obey the current law, whether or not they obey Ohm's law.</p>
+      <div class="box thm"><span class="label"><span class="term">Thomson's principle</span></span>
+        <p class="small">Among all flows $j$ with $Aj = s$, the dissipated power $P(j) = \sum_eR_ej_e^2$ is least for the actual currents $i$, and only for them.</p>
+      </div>
+      <div class="box proof"><span class="label">proof · from Tellegen</span>
+        <p class="small">Write $j = i + c$; then $Ac = s - s = 0$, so $c$ is in unit 03's cycle space. Expand:
+        $$P(j) = P(i) + 2\sum_eR_ei_ec_e + \sum_eR_ec_e^2 .$$
+        The middle sum is $\sum_ev_ec_e = v^{\mathsf T}c = 0$ by Tellegen, since $v = A^{\mathsf T}\varphi$ and $Ac = 0$. So $P(j) = P(i) + \sum R_ec_e^2 \ge P(i)$, with equality iff $c = 0$. $\square$</p>
+      </div>
+      <p class="small muted">Units: $\Omega\cdot\mathrm A^2 = \mathrm W$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 300" width="410" role="img" aria-label="one ampere divided between a 1 ohm and a 2 ohm resistor in parallel, t through the first and 1 minus t through the second; the dissipated power plotted against t is a parabola, least at t equal to two thirds, which is the split Ohm's law gives, with power two thirds of a watt; the even split, t one half, costs three quarters of a watt">
+        <line x1="60" y1="240" x2="380" y2="240" class="ink" stroke-width="1.3"/><line x1="60" y1="240" x2="60" y2="30" class="ink" stroke-width="1.3"/>
+        <path d="M60.0,44.0 L75.0,70.9 L90.0,95.8 L105.0,118.6 L120.0,139.2 L135.0,157.8 L150.0,174.2 L165.0,188.5 L180.0,200.8 L195.0,210.9 L210.0,219.0 L225.0,224.9 L240.0,228.8 L255.0,230.6 L270.0,230.2 L285.0,227.8 L300.0,223.2 L315.0,216.6 L330.0,207.8 L345.0,196.9 L360.0,184.0" fill="none" class="unit" stroke-width="2.8"/>
+        <line x1="260" y1="240" x2="260" y2="230.7" class="rule" stroke-width="1"/>
+        <circle cx="260" cy="230.7" r="5" class="fill-unit"/>
+        <circle cx="210" cy="219" r="5" class="fill-alt"/>
+        <line x1="258" y1="160" x2="260" y2="224" class="rule" stroke-width="1"/>
+        <text x="200" y="152" font-size="12" class="fill-unit">actual: t = 2/3, P = 2/3 W</text>
+        <text x="84" y="232" font-size="12" class="alt">even split: 3/4 W</text>
+        <text x="60" y="258" font-size="12" text-anchor="middle" class="soft">0</text><text x="210" y="258" font-size="12" text-anchor="middle" class="soft">½</text><text x="360" y="258" font-size="12" text-anchor="middle" class="soft">1</text>
+        <text x="372" y="276" font-size="13" text-anchor="end">t (A through 1 Ω)</text>
+        <text x="54" y="48" font-size="12" text-anchor="end" class="soft">2</text><text x="54" y="188" font-size="12" text-anchor="end" class="soft">1</text><text x="54" y="244" font-size="12" text-anchor="end" class="soft">0.6</text>
+        <text x="70" y="24" font-size="13">P (W)</text>
+        <g transform="translate(230,30)">
+          <path d="M0,40 H20 M20,10 V70 M20,10 H50 M90,10 H120 M20,70 H50 M90,70 H120 M120,10 V70 M120,40 H140" fill="none" class="ink" stroke-width="1.8"/>
+          <rect x="50" y="3" width="40" height="14" class="fill-ground ink" stroke-width="1.6"/><rect x="50" y="63" width="40" height="14" class="fill-ground ink" stroke-width="1.6"/>
+          <text x="70" y="-3" font-size="11" text-anchor="middle">1 Ω: t</text><text x="70" y="94" font-size="11" text-anchor="middle">2 Ω: 1 − t</text>
+          <text x="-4" y="44" font-size="11" text-anchor="end">1 A</text>
+        </g>
+      </svg>
+      <p class="cap">$P(t) = t^2\cdot1 + (1 - t)^2\cdot2$ for the two ways of sharing 1 A. Ohm's law gives $t = 2/3$ (equal voltages, $2/3$ V); that is exactly the minimum.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The figure's numbers.</b> $P'(t) = 2t - 4(1 - t) = 0$ at $t = 2/3$; $P(2/3) = 4/9 + 2/9 = 2/3$ W. The voltage across
+    either resistor is $2/3$ V, so $R_{\text{eff}} = (2/3)/1 = 2/3\ \Omega = 1\parallel2$ ✓. The even split: $1/4 + 2/4 = 3/4$ W.</p>
+    <p><b>The cross term, carefully.</b> $\sum_eR_ei_ec_e = \sum_ev_ec_e$ because $R_ei_e = v_e$ on every edge (Ohm's law, used
+    for $i$ only). Then $v\in\operatorname{im}A^{\mathsf T}$ and $c\in\ker A$, so $v^{\mathsf T}c = \varphi^{\mathsf T}Ac = 0$: unit 03's
+    Tellegen, applied to the voltages of one "network" (the actual one) and the currents of another (the difference
+    flow $c$) on the same graph — exactly the cross-network form unit 03 proved.</p>
+    <h4>Full proof of the continuous versions</h4>
+    <p><b>In a conductor.</b> In a conductor $D$, among all current densities $\vec j$ with $\nabla\cdot\vec j = 0$ in $D$ and
+    the same normal component $\vec j\cdot\hat n$ as the actual current at every point of $\partial D$ (zero on the insulated
+    sides), $\int_D|\vec j|^2/\sigma\,\mathrm dV$ is least for the actual $\vec J = -\sigma\nabla\varphi$, and only for it. Proof,
+    the same as on the slide: write $\vec j = \vec J + \vec c$, so $\nabla\cdot\vec c = 0$ in $D$ and $\vec c\cdot\hat n = 0$ on
+    $\partial D$. Then $\int|\vec j|^2/\sigma = \int|\vec J|^2/\sigma + 2\int\vec J\cdot\vec c/\sigma + \int|\vec c|^2/\sigma$, and the
+    cross term is $-2\int\nabla\varphi\cdot\vec c = -2\oint\varphi\,\vec c\cdot\mathrm d\vec A + 2\int\varphi\,\nabla\cdot\vec c = 0$
+    by the divergence theorem (MR 05) applied to $\varphi\vec c$. The last term is $\ge 0$, and $= 0$ only if $\vec c = 0$.</p>
+    <p><b>In electrostatics</b> — the statement MR 23 uses but does not prove. Among all fields $\vec E'$ in a bounded region $D$
+    with $\nabla\cdot\vec E' = \rho/\varepsilon_0$ in $D$ and the same normal component as the electrostatic field
+    $\vec E = -\nabla\varphi$ on $\partial D$, the energy $\tfrac{\varepsilon_0}2\int_D|\vec E'|^2$ is least for $\vec E$, and only for it.
+    Proof: $\vec c = \vec E' - \vec E$ has $\nabla\cdot\vec c = 0$ and $\vec c\cdot\hat n = 0$ on $\partial D$, so the cross term
+    $\varepsilon_0\int\vec E\cdot\vec c = -\varepsilon_0\int\nabla\varphi\cdot\vec c$ vanishes by the same two lines. With $\sigma$
+    replaced by $\varepsilon_0$ and $\vec J$ by $\vec E$, it is the same theorem.</p>
+    <p><b>Its dual</b> is <i>Dirichlet's principle</i>, which MR 11 names: among functions $u$ with given values on $\partial D$,
+    the harmonic one, $\varphi$, minimises $\int_D|\nabla u|^2$. Proof: with $u = \varphi + w$, $w = 0$ on $\partial D$, the cross
+    term $2\int\nabla\varphi\cdot\nabla w = 2\oint w\,\partial_n\varphi - 2\int w\nabla^2\varphi = 0$ by Green's first identity
+    (MR 23). This shows that the harmonic function, given that it exists, is the minimiser. The converse route — getting
+    existence by minimising — is what MR 11's history of the principle shows cannot be taken for granted in the
+    continuum; on a finite graph there is no such difficulty. The discrete dual is problem P10.</p>
+    <p><b>History.</b> Doyle and Snell (§1.3.5, "Currents minimize energy dissipation") state the principle under this name
+    and attribute it to Thomson, citing Thomson and Tait's <i>Treatise on Natural Philosophy</i> (1879 edition). Their
+    proof is the one on the slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thomson</p>
+  <h2>Effective resistance</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">effective resistance</span></span>
+        <p class="small">In a connected network, inject 1 A at $a$ and extract it at $b$: $s = e_a - e_b$. Then</p>
+        $$R_{\text{eff}}(a, b) = \varphi_a - \varphi_b = s^{\mathsf T}L^+s = \sum_eR_ei_e^2 ,$$
+        <p class="small">the voltage it needs, and the power it dissipates.</p>
+      </div>
+      <p class="small">$L^+$ is the <span class="term">pseudo-inverse</span>: if $L = \sum_k\lambda_ku_ku_k^{\mathsf T}$, then $L^+ = \sum_{\lambda_k > 0}\lambda_k^{-1}u_ku_k^{\mathsf T}$; as $s\perp\ker L$, $L^+s$ solves $L\varphi = s$.</p>
+      <div class="box thm"><span class="label">by Thomson</span>
+        $$R_{\text{eff}}(a, b) = \min_{j\,:\,Aj = e_a - e_b}\ \sum_eR_ej_e^2 .$$
+        <p class="small"><b>Any</b> unit flow from $a$ to $b$ gives an upper bound.</p>
+      </div>
+      <p class="small muted">Units: $\mathrm V/\mathrm A = \Omega$, and $\mathrm W/\mathrm A^2 = \Omega$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 240" width="400" role="img" aria-label="a network drawn as a shaded region with many internal edges; one ampere enters at node a and leaves at node b; seen from a and b the network acts as a single resistor R eff">
+        <defs><marker id="m04-re-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <rect x="70" y="40" width="160" height="150" rx="40" class="fill-soft"/>
+        <path d="M90,115 L130,70 L180,80 L210,115 L180,160 L120,160 Z M130,70 L180,160 M120,160 L180,80 M90,115 L210,115" fill="none" class="ink" stroke-width="1.4"/>
+        <circle cx="90" cy="115" r="6" class="fill-ink"/><circle cx="210" cy="115" r="6" class="fill-ink"/>
+        <text x="96" y="104" font-size="14">a</text><text x="200" y="104" font-size="14" text-anchor="end">b</text>
+        <line x1="30" y1="115" x2="82" y2="115" class="alt" stroke-width="2.4" marker-end="url(#m04-re-a)"/><text x="30" y="106" font-size="13" class="alt">1 A</text>
+        <line x1="218" y1="115" x2="262" y2="115" class="alt" stroke-width="2.4" marker-end="url(#m04-re-a)"/><text x="238" y="106" font-size="13" class="alt">1 A</text>
+        <text x="150" y="212" font-size="13" text-anchor="middle">φ<tspan dy="3" font-size="75%">a</tspan><tspan dy="-3">&#8202;</tspan> − φ<tspan dy="3" font-size="75%">b</tspan><tspan dy="-3">&#8202;</tspan> = R<tspan dy="3" font-size="75%">eff</tspan><tspan dy="-3">&#8202;</tspan>(a, b)</text>
+        <text x="320" y="96" font-size="18" text-anchor="middle">≡</text>
+        <path d="M290,130 H300 M340,130 H350" class="ink" stroke-width="2"/>
+        <rect x="300" y="123" width="40" height="14" class="fill-ground ink" stroke-width="2"/>
+        <text x="320" y="160" font-size="12" text-anchor="middle">R<tspan dy="3" font-size="75%">eff</tspan><tspan dy="-3">&#8202;</tspan></text>
+      </svg>
+      <p class="cap">Seen from two of its nodes, any network of resistors acts as one resistor. Section 3 puts sources inside.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The pseudo-inverse.</b> $L$ is symmetric with eigenvalues $\lambda_k\ge0$ and orthonormal eigenvectors $u_k$. Define
+    $L^+$ as on the slide. Then $LL^+ = L^+L = \sum_{\lambda_k&gt;0}u_ku_k^{\mathsf T} = \Pi$, the orthogonal projection onto
+    $\operatorname{im}L = (\ker L)^\perp$, and $L^+LL^+ = L^+$. For a connected network $\ker L = \operatorname{span}\mathbf 1$, and
+    $s = e_a - e_b$ has $\mathbf 1^{\mathsf T}s = 0$, so $\Pi s = s$ and $L(L^+s) = s$: $\varphi = L^+s$ is a solution (the one with
+    $\mathbf 1^{\mathsf T}\varphi = 0$); all others add a constant, which cancels in $\varphi_a - \varphi_b$.</p>
+    <p><b>The three expressions agree.</b> $\varphi_a - \varphi_b = s^{\mathsf T}\varphi = s^{\mathsf T}L^+s$. And the dissipated power is
+    $\sum G_ev_e^2 = \varphi^{\mathsf T}L\varphi = s^{\mathsf T}L^+LL^+s = s^{\mathsf T}L^+s$. Physically: by Tellegen, the power absorbed
+    by the resistors equals the power delivered at the injection points, $\varphi^{\mathsf T}s = \varphi_a\cdot1 + \varphi_b\cdot(-1)$.</p>
+    <p><b>Positivity.</b> For $a\ne b$, $R_{\text{eff}} = \varphi^{\mathsf T}L\varphi &gt; 0$, because $\varphi$ is not constant ($\varphi^{\mathsf T}L\varphi = 0$
+    would force $L\varphi = 0 \ne s$).</p>
+    <p><b>Unit 00's resistance</b> was $R = \rho L/A$ from a boundary-value problem: the voltage needed per ampere through a
+    conductor. Effective resistance is the same definition for a graph. Doyle and Snell (§1.3.4) define it the same way
+    and compute the cube's adjacent-corner value, $7/12$, which section 4 meets.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thomson</p>
+  <h2>Rayleigh's monotonicity law</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Rayleigh's monotonicity law</span></span>
+        <p class="small">If no edge's resistance decreases, no effective resistance decreases: $R_e' \ge R_e$ for every $e$ implies $R'_{\text{eff}}(a, b) \ge R_{\text{eff}}(a, b)$ for every pair.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Let $i'$ be the unit current from $a$ to $b$ in the new network. It is also a unit flow in the old one (the graph is the same), so by Thomson there
+        $$R_{\text{eff}} \le \sum_eR_ei_e'^2 \le \sum_eR'_ei_e'^2 = R'_{\text{eff}}. \ \square$$</p>
+      </div>
+      <p class="small">Two limits make it a tool. <span class="term">Cutting</span> an edge ($R_e\to\infty$, remove it) can only <b>raise</b> $R_{\text{eff}}$. <span class="term">Shorting</span> ($R_e\to0$, merge its two nodes) can only <b>lower</b> it.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 10 380 230" width="420" role="img" aria-label="three copies of the same network from a to b: the original; one edge cut, drawn dashed with a cross, labelled R eff goes up or stays; two nodes shorted together, drawn merged, labelled R eff goes down or stays">
+        <g fill="none" class="ink" stroke-width="1.6">
+          <path d="M30,60 L80,30 L130,60 L80,90 Z M80,30 L80,90"/>
+          <path d="M155,60 L205,30 L255,60 L205,90 Z"/><path d="M205,30 L205,90" stroke-dasharray="4 4"/>
+        </g>
+        <path d="M197,52 L213,68 M213,52 L197,68" class="warn" stroke-width="2.4"/>
+        <path d="M280,60 Q302,34 325,60 M280,60 Q302,86 325,60 M325,60 Q347,34 370,60 M325,60 Q347,86 370,60" fill="none" class="ink" stroke-width="1.6"/>
+        <g class="fill-ink"><circle cx="30" cy="60" r="5"/><circle cx="130" cy="60" r="5"/><circle cx="80" cy="30" r="4"/><circle cx="80" cy="90" r="4"/>
+        <circle cx="155" cy="60" r="5"/><circle cx="255" cy="60" r="5"/><circle cx="205" cy="30" r="4"/><circle cx="205" cy="90" r="4"/>
+        <circle cx="280" cy="60" r="5"/><circle cx="370" cy="60" r="5"/></g>
+        <circle cx="325" cy="60" r="7" class="fill-soft accent" stroke-width="2"/>
+        <text x="80" y="122" font-size="13" text-anchor="middle">original</text>
+        <text x="205" y="122" font-size="13" text-anchor="middle" class="halo">cut: R<tspan dy="3" font-size="75%">eff</tspan><tspan dy="-3">&#8202;</tspan> ↑</text>
+        <text x="325" y="122" font-size="13" text-anchor="middle">short: R<tspan dy="3" font-size="75%">eff</tspan><tspan dy="-3">&#8202;</tspan> ↓</text>
+        <text x="190" y="160" font-size="12" text-anchor="middle" class="soft">each edge 1 Ω, from the left node to the right node:</text>
+        <text x="80" y="186" font-size="14" text-anchor="middle">1 Ω</text><text x="205" y="186" font-size="14" text-anchor="middle">1 Ω</text><text x="325" y="186" font-size="14" text-anchor="middle">1 Ω</text>
+        <text x="190" y="214" font-size="12" text-anchor="middle" class="soft">here the middle edge carries no current (balanced),</text>
+        <text x="190" y="232" font-size="12" text-anchor="middle" class="soft">so cutting or shorting it changes nothing — equality</text>
+      </svg>
+      <p class="cap">The law allows equality. In this balanced diamond the middle edge's ends are equipotential, so cutting it or shorting its ends costs nothing — the trick section 2's last slide uses on the cube.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of cutting and shorting</h4>
+    <p>Both follow from Thomson directly, with no limit taken. <b>Cutting</b> (the network stays connected): any unit flow
+    from $a$ to $b$ in the cut network is, with $0$ on the removed edge, a unit flow in the original at the same power; so
+    the original's minimum, $R_{\text{eff}}$, is no larger than the cut network's. <b>Shorting</b> nodes $u$ and $w$: take the
+    original's actual current and keep its values on every edge except those joining $u$ to $w$, which become loops and
+    are dropped. The current law at the merged node is the sum of the laws at $u$ and $w$, so this is a unit flow in the
+    shorted network, at no greater power; so the shorted network's $R_{\text{eff}}$ is no larger. Doyle and Snell (§2.2.2,
+    "The Shorting Law and the Cutting Law; Rayleigh's idea") state both and set them as an exercise equivalent to the
+    monotonicity law; their preface notes that Rayleigh introduced the techniques in connection with an investigation of
+    musical instruments.</p>
+    <p><b>Equality.</b> Shorting two nodes at the same potential changes nothing: the old solution still satisfies every
+    equation of the new network (no current would flow through the short). Cutting an edge carrying no current changes
+    nothing, for the same reason. In the figure's diamond, both side paths are 2 Ω, the top and bottom nodes are both
+    at half the voltage, and $R_{\text{eff}} = 2\parallel2 = 1\ \Omega$ in all three versions.</p>
+    <p><b>Why it is useful.</b> Most networks cannot be solved by hand. Rayleigh's law turns them into bounds: cut edges
+    until the network is series–parallel (upper bound), or short nodes until it is (lower bound). Problem P9 does this on
+    a $4\times4$ grid and brackets the exact $13/7\ \Omega$ between $11/6$ and $99/50$.</p>
+    <p><b>Why it is not obvious.</b> Raising one resistance can <i>raise</i> the current in some other edge — the redistributed
+    current goes somewhere. The law says the total effect on $R_{\text{eff}}$ is never a decrease; the proof goes through the
+    variational principle, not through tracking currents.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thomson</p>
+  <h2>Series and parallel, as theorems</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the two exact reductions</span>
+        <p class="small"><b><span class="term">Series</span>:</b> two edges meeting at a node of degree 2 with no injection act as one edge of resistance $R_1 + R_2$.</p>
+        <p class="small"><b><span class="term">Parallel</span>:</b> two edges joining the same two nodes act as one edge of conductance $G_1 + G_2$, i.e. $R_1\parallel R_2 = R_1R_2/(R_1 + R_2)$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Series: KCL at the middle node forces one current $i$ through both, and $v_1 + v_2 = (R_1 + R_2)i$. Parallel: one voltage $v$ across both, and $i_1 + i_2 = (G_1 + G_2)v$. In each case the rest of the network sees the same law between the outer nodes. $\square$</p>
+      </div>
+      <p class="small">Unit 00's kettle cable "properly needs two resistances in series": unit 02 used the first rule for it. The car is series–parallel too (notes).</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 280" width="400" role="img" aria-label="top: two resistors R1 and R2 in series between nodes a and b, equivalent to one resistor R1 plus R2; bottom: two resistors with conductances G1 and G2 in parallel between a and b, equivalent to one conductance G1 plus G2">
+        <path d="M20,60 H50 M100,60 H140 M190,60 H220 M260,60 H280 M330,60 H360" class="ink" stroke-width="2"/>
+        <rect x="50" y="52" width="50" height="16" class="fill-ground ink" stroke-width="2"/><rect x="140" y="52" width="50" height="16" class="fill-ground ink" stroke-width="2"/>
+        <rect x="280" y="52" width="50" height="16" class="fill-ground ink" stroke-width="2"/>
+        <circle cx="20" cy="60" r="4.5" class="fill-ink"/><circle cx="220" cy="60" r="4.5" class="fill-ink"/><circle cx="120" cy="60" r="3.5" class="fill-ink"/>
+        <circle cx="260" cy="60" r="4.5" class="fill-ink"/><circle cx="360" cy="60" r="4.5" class="fill-ink"/>
+        <text x="75" y="44" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan></text><text x="165" y="44" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="305" y="44" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan> + R<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="240" y="66" font-size="16" text-anchor="middle">≡</text>
+        <path d="M20,190 H50 V160 H90 M140,160 H180 V220 H140 M90,220 H50 V190 M180,190 H220 M260,190 H280 M330,190 H360" fill="none" class="ink" stroke-width="2"/>
+        <rect x="90" y="152" width="50" height="16" class="fill-ground ink" stroke-width="2"/><rect x="90" y="212" width="50" height="16" class="fill-ground ink" stroke-width="2"/>
+        <rect x="280" y="182" width="50" height="16" class="fill-ground ink" stroke-width="2"/>
+        <circle cx="20" cy="190" r="4.5" class="fill-ink"/><circle cx="220" cy="190" r="4.5" class="fill-ink"/><circle cx="260" cy="190" r="4.5" class="fill-ink"/><circle cx="360" cy="190" r="4.5" class="fill-ink"/>
+        <text x="115" y="146" font-size="13" text-anchor="middle">G<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan></text><text x="115" y="248" font-size="13" text-anchor="middle">G<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="305" y="174" font-size="13" text-anchor="middle">G<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan> + G<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="240" y="196" font-size="16" text-anchor="middle">≡</text>
+      </svg>
+      <p class="cap">Resistances add in series; conductances add in parallel. Both are exact, so Rayleigh's inequality holds with equality.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>"Act as one edge" made precise.</b> Two networks are equivalent at a set of nodes if, for every choice of the
+    potentials at those nodes, they draw the same currents into those nodes. For series, the middle node is eliminated and
+    the outer two kept; for parallel, nothing is eliminated and two edges merge. Section 3 calls the general operation
+    Kron reduction; series is the case of one interior node of degree 2, as star–delta is the case of degree 3.</p>
+    <p><b>The car, by series and parallel.</b> Seen from the EMF: $r_i$ in series with $\big((R_c + R_s)\parallel(R_w + R_L)\big)$
+    $= 0.010 + (0.050\parallel1.33909) = 0.010 + 0.048200 = 0.058200\ \Omega$, so $I_b = 12.6/0.058200 = 216.49$ A, as the
+    nodal solution found. The terminal voltage $12.6 - 2.1649 = 10.435$ V divides between the two branches in proportion
+    to their resistances.</p>
+    <p><b>Not every network is series–parallel.</b> The bridge is not: no node has degree 2, and no two edges are parallel.
+    That is why unit 03 needed nodal analysis for it, and why star–delta (section 3) exists.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thomson</p>
+  <h2>Worked: the cube, by symmetry</h2>
+  <div class="box ex"><span class="label">worked example 3 — twelve equal resistors $R$ on a cube's edges; corner $a$ to the opposite corner $b$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Symmetry.</b> Rotating the cube by $120°$ about the diagonal $ab$ permutes the three neighbours of $a$ (and the three of $b$) cyclically and fixes $a$, $b$. The solution is unique, so it is unchanged: the three nodes at distance 1 from $a$ share one potential, and so do the three at distance 2.</p>
+      <p class="small"><b>2. Short each layer.</b> Joining equipotential nodes changes nothing (Rayleigh, with equality). The cube becomes a chain of three bundles: 3 edges in parallel, then 6, then 3.</p>
+      <p class="small"><b>3. Series.</b></p>
+      $$R_{\text{eff}}(a, b) = \frac R3 + \frac R6 + \frac R3 = \frac{5R}6 .$$
+      <p class="small"><b>Check by Thomson.</b> The actual unit current: $\tfrac13$ A on each of the 3 edges at $a$, $\tfrac16$ on each of the 6 middle edges, $\tfrac13$ on the 3 at $b$. Power $3\cdot\tfrac19R + 6\cdot\tfrac1{36}R + 3\cdot\tfrac19R = \tfrac56R$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 300" width="390" role="img" aria-label="a cube drawn in perspective with corner a at front bottom left and corner b at back top right; the three neighbours of a are shaded in one colour, the three neighbours of b in another; beside it, the reduced chain: a, three edges in parallel, a merged node, six edges in parallel, a merged node, three edges in parallel, b">
+        <g fill="none" class="ink" stroke-width="2">
+          <path d="M60,250 H170 V140 H60 Z M110,210 H220 V100 H110 Z M60,250 L110,210 M170,250 L220,210 M170,140 L220,100 M60,140 L110,100"/>
+        </g>
+        <circle cx="60" cy="250" r="7" class="fill-unit"/><circle cx="220" cy="100" r="7" class="fill-unit"/>
+        <g class="fill-soft alt" stroke-width="2.2"><circle cx="170" cy="250" r="7"/><circle cx="60" cy="140" r="7"/><circle cx="110" cy="210" r="7"/></g>
+        <g class="fill-alt"><circle cx="170" cy="140" r="7"/><circle cx="220" cy="210" r="7"/><circle cx="110" cy="100" r="7"/></g>
+        <text x="48" y="270" font-size="15">a</text><text x="230" y="94" font-size="15">b</text>
+        <text x="140" y="290" font-size="12" text-anchor="middle" class="soft">○ distance 1 · ● distance 2</text>
+        <g transform="translate(270,30)">
+          <path d="M40,0 V20 M40,60 V80 M40,140 V160 M40,200 V220" class="ink" stroke-width="2"/>
+          <rect x="32" y="20" width="16" height="40" class="fill-ground ink" stroke-width="2"/><rect x="32" y="80" width="16" height="60" class="fill-ground ink" stroke-width="2"/><rect x="32" y="160" width="16" height="40" class="fill-ground ink" stroke-width="2"/>
+          <circle cx="40" cy="0" r="5" class="fill-unit"/><circle cx="40" cy="220" r="5" class="fill-unit"/>
+          <circle cx="40" cy="70" r="5" class="fill-soft alt" stroke-width="2"/><circle cx="40" cy="150" r="5" class="fill-alt"/>
+          <text x="56" y="44" font-size="13">R/3</text><text x="56" y="114" font-size="13">R/6</text><text x="56" y="184" font-size="13">R/3</text>
+          <text x="24" y="5" font-size="13" text-anchor="end">a</text><text x="24" y="225" font-size="13" text-anchor="end">b</text>
+          <text x="40" y="250" font-size="13" text-anchor="middle">5R/6</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The symmetry argument, made rigorous.</b> Let $\sigma$ be the rotation, acting on the nodes as a permutation that fixes
+    $a$ and $b$ and maps edges to edges. If $\varphi$ solves $L\varphi = e_a - e_b$, so does $\varphi\circ\sigma^{-1}$, because $L$
+    commutes with the permutation and the injections are fixed by it. Ground $b$: the solution is unique, so $\varphi\circ
+    \sigma^{-1} = \varphi$. The three neighbours of $a$ form one orbit of $\sigma$, so they share a potential; likewise the other
+    three.</p>
+    <p><b>The bundle counts.</b> $a$ has 3 edges, to the three distance-1 nodes. Each distance-1 node has 2 edges to
+    distance-2 nodes: 6 in all. Each distance-2 node has 1 edge to $b$: 3. Total $3 + 6 + 3 = 12$ ✓.</p>
+    <p><b>The potentials.</b> With $b$ grounded: the distance-2 layer is at $R/3$, the distance-1 layer at $R/3 + R/6 = R/2$,
+    and $a$ at $5R/6$ (volts per ampere). Every interior potential lies between $0$ and $5R/6$ ✓ (maximum principle).</p>
+    <p><b>With numbers.</b> Twelve 1 Ω resistors: $0.833\ \Omega$. A computer solving $L\varphi = s$ for the $8\times8$ Laplacian
+    gives $5/6$ exactly. Section 3 gets the same answer with no symmetry at all, by Kron reduction.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Thévenin and Kron</h2>
+  <p>Seen from two terminals, any network of resistors and sources is one source behind one resistor: an affine map. Seen from many terminals, it is a smaller Laplacian. Both are block elimination.</p>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thévenin</p>
+  <h2>Thévenin's theorem</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A <span class="term">one-port</span>: a network with two terminals brought out, $p$ and $q$. Mark the port by the passive convention: $v = \varphi_p - \varphi_q$, and $i$ enters at $p$.</p>
+      <div class="box thm"><span class="label"><span class="term">Thévenin's theorem</span></span>
+        <p class="small">Let a one-port contain linear resistors and ideal sources, and be uniquely solvable when driven by any current $i$ at its port. Then</p>
+        $$\boxed{\,v = V_{\text{th}} + R_{\text{th}}\,i\,}$$
+        <p class="small">where $V_{\text{th}}$ is the <span class="term">open-circuit voltage</span> ($i = 0$) and $R_{\text{th}} = R_{\text{eff}}(p, q) \ge 0$ is the effective resistance between $p$ and $q$ with every source set to zero. Nothing outside can tell the network from an EMF $V_{\text{th}}$ in series with $R_{\text{th}}$.</p>
+      </div>
+      <p class="small muted">Units: $\Omega\cdot\mathrm A = \mathrm V$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 280" width="420" role="img" aria-label="left: a box labelled network N with sources and resistors inside, terminals p marked plus and q marked minus, port current i entering at p and port voltage v; right: the equivalent, an ideal source V th in series with a resistor R th between the same two terminals">
+        <defs><marker id="m04-th-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <rect x="20" y="50" width="120" height="160" rx="12" class="fill-soft ink" stroke-width="1.6"/>
+        <path d="M45,90 L80,75 L115,95 L95,160 L50,170 Z M80,75 L95,160" fill="none" class="ink" stroke-width="1.2"/>
+        <circle cx="62" cy="128" r="10" class="fill-ground ink" stroke-width="1.4"/>
+        <text x="80" y="200" font-size="14" text-anchor="middle">N</text>
+        <path d="M140,80 H180 M140,180 H180" class="ink" stroke-width="2.2"/>
+        <circle cx="180" cy="80" r="5" class="fill-ground ink" stroke-width="2"/><circle cx="180" cy="180" r="5" class="fill-ground ink" stroke-width="2"/>
+        <text x="192" y="85" font-size="14">p</text><text x="192" y="185" font-size="14">q</text>
+        <text x="176" y="112" font-size="16">+</text><text x="176" y="160" font-size="17">−</text><text x="196" y="138" font-size="14" class="fill-unit">v</text>
+        <line x1="178" y1="62" x2="150" y2="62" class="unit" stroke-width="2.3" marker-end="url(#m04-th-u)"/><text x="160" y="54" font-size="14" class="fill-unit">i</text>
+        <text x="220" y="136" font-size="20" text-anchor="middle">≡</text>
+        <path d="M380,80 H320 M280,80 H260 V108 M260,152 V180 H380" fill="none" class="ink" stroke-width="2.2"/>
+        <rect x="280" y="72" width="40" height="16" class="fill-ground ink" stroke-width="2"/>
+        <circle cx="260" cy="130" r="22" class="fill-ground ink" stroke-width="2"/>
+        <text x="260" y="126" font-size="13" text-anchor="middle">+</text><text x="260" y="144" font-size="14" text-anchor="middle">−</text>
+        <text x="300" y="64" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text><text x="292" y="135" font-size="13">V<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <circle cx="380" cy="80" r="5" class="fill-ground ink" stroke-width="2"/><circle cx="380" cy="180" r="5" class="fill-ground ink" stroke-width="2"/>
+        <text x="380" y="66" font-size="14" text-anchor="middle">p</text><text x="380" y="202" font-size="14" text-anchor="middle">q</text>
+        <text x="200" y="250" font-size="12" text-anchor="middle" class="soft">same v for every i: indistinguishable from outside</text>
+      </svg>
+      <p class="cap">The port marked by the passive convention, as for any element. A network delivering power has $i &lt; 0$. Unit 02's real battery, $v = \mathcal E + r_i\,i$, is the simplest case.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Unit 02's promise.</b> Unit 02 drew a battery's characteristic $v = \mathcal E + r_ii$ and said this unit analyses
+    it. The theorem says much more: <i>every</i> linear network of resistors and sources, seen at two terminals, has a
+    characteristic of exactly this form. The battery is not special; it is what any linear source looks like.</p>
+    <p><b>The hypothesis.</b> "Uniquely solvable when driven by a current at the port" is what makes $v$ a function of $i$.
+    It holds whenever, with the driving current source added at the port, the voltage sources still form no loop and the
+    current sources no cut (proved in the notes of <i>The discrete Dirichlet problem</i>). An ideal voltage source straight
+    across the port is allowed: whatever $i$ is driven, it fixes $v$, and the theorem holds with $R_{\text{th}} = 0$. What is
+    excluded is a current source alone across the port: with the driving source it forms a cut, the network has a solution
+    for one value of $i$ only, and $v$ is <i>not</i> a function of $i$. Norton's form (next slide), with conductance
+    $1/R_{\text{th}} = 0$, describes it.</p>
+    <p><b>History, cited.</b> D. H. Johnson, "Origins of the equivalent circuit concept: the voltage-source equivalent",
+    <i>Proc. IEEE</i> 91(4), 636–640 (2003), traces the result to H. Helmholtz's 1853 paper on the distribution of currents
+    in conductors, with applications to experiments on animal electricity (<i>Annalen der Physik und Chemie</i> 89,
+    211–233), and to L. Thévenin's "Extension de la loi d'Ohm aux circuits électromoteurs complexes", <i>Annales
+    Télégraphiques</i> (3rd series) 10, 222–224 (1883), published apparently without knowledge of Helmholtz's. The name
+    that stuck in English is Thévenin's.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thévenin</p>
+  <h2>Proof: an affine map</h2>
+  <div class="cols">
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>1.</b> Drive the port with an ideal current source $i$. The network's equations — Kirchhoff's laws, $v_e = R_ei_e$, $v = \mathcal E_k$ on each voltage source, $i = I_k$ on each current source — are linear in the unknowns, with right-hand sides linear in $(i, \mathcal E_1, \dots, I_1, \dots)$.</p>
+        <p class="small"><b>2.</b> By hypothesis the solution is unique: the system's matrix is invertible, so the solution is a <b>linear</b> function of $(i, \mathcal E_1, \dots, I_1, \dots)$ jointly. In particular
+        $$v = R_{\text{th}}\,i + \textstyle\sum_k\alpha_k\mathcal E_k + \sum_k\beta_kI_k .$$</p>
+        <p class="small"><b>3.</b> Put $i = 0$: the sums are $V_{\text{th}}$. Put every source to zero: $v = R_{\text{th}}i$ for a network of resistors alone, so $R_{\text{th}} = R_{\text{eff}}(p, q)\ge0$. $\square$</p>
+      </div>
+      <p class="small">Linear in the sources jointly is <span class="term">superposition</span>; unit 03 needed uniqueness for it and deferred it here.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 290" width="400" role="img" aria-label="the port's characteristic in the v i plane: a straight line crossing the v axis at V th and the i axis at minus V th over R th; the half-plane i less than zero is shaded as where the one-port delivers power; slope one over R th">
+        <defs><marker id="m04-af-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-ink"/></marker></defs>
+        <rect x="120" y="150" width="240" height="120" class="fill-soft"/>
+        <line x1="20" y1="150" x2="370" y2="150" class="ink" stroke-width="1.4" marker-end="url(#m04-af-k)"/>
+        <line x1="120" y1="280" x2="120" y2="20" class="ink" stroke-width="1.4" marker-end="url(#m04-af-k)"/>
+        <text x="362" y="172" font-size="15">v</text><text x="110" y="30" font-size="15" text-anchor="end">i</text>
+        <line x1="150" y1="276" x2="330" y2="36" class="unit" stroke-width="3"/>
+        <circle cx="244.5" cy="150" r="5" class="fill-unit"/><circle cx="120" cy="244.5" r="5" class="fill-unit"/>
+        <text x="252" y="142" font-size="13" class="fill-unit">V<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="112" y="249" font-size="13" text-anchor="end" class="fill-unit">−V<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan>/R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="300" y="108" font-size="13">slope 1/R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="350" y="262" font-size="12" text-anchor="end" class="soft">i &lt; 0: delivering</text>
+        <text x="210" y="290" font-size="12" text-anchor="middle" class="soft">open circuit at i = 0 · short circuit at v = 0</text>
+      </svg>
+      <p class="cap">The port's characteristic. It crosses $i = 0$ at the open-circuit voltage and $v = 0$ at minus the short-circuit current; any load picks one point on it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Collect the unknowns — every edge's $v_e$ and $i_e$, and the port's $v$ — into a vector $x$. The equations are: KCL at
+    each node, with the port current $i$ entering at $p$ and leaving at $q$ as an injection; KVL in the form $v_e =
+    \varphi_{\text{tail}} - \varphi_{\text{head}}$ (or round a basis of cycles); and one element law per edge. Each is linear in $x$, and
+    its constant term is one of $i$, $\mathcal E_k$, $I_k$, or zero. So the system is $Mx = Ny$ with $y = (i, \mathcal E_1, \dots,
+    I_1, \dots)$ and fixed matrices $M$, $N$. Unique solvability for every $y$ means $M$ is invertible (square and injective),
+    and $x = M^{-1}Ny$ is linear in $y$. The port voltage is one coordinate of $x$.</p>
+    <p><b>Why "affine" and not "linear".</b> As a function of $i$ alone, with the sources held at their values, $v$ is
+    linear plus a constant: affine. The constant is everything the sources do when nothing is drawn.</p>
+    <p><b>Positivity.</b> $R_{\text{th}} = R_{\text{eff}}(p, q)$ of the dead network, which is $\ge0$ (section 2), and $&gt; 0$ unless
+    $p$ and $q$ are joined by a path of zero resistance. A network of positive resistors cannot present a negative
+    resistance; unit 05 extends this to $\operatorname{Re}Z \ge 0$.</p>
+    <p><b>What is not claimed.</b> That the network inside dissipates the same power as the equivalent. It does not: the
+    equivalent reproduces the port's behaviour, not the internal bookkeeping. The car's battery and starter, seen from
+    the lamps, are "10.5 V behind 38.3 mΩ", which dissipates nothing when the lamps are off; the real network
+    dissipates 2646 W then.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thévenin</p>
+  <h2>Setting a source to zero, and Norton's form</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">what "zero" means for each source</span>
+        <p class="small">A voltage source with $\mathcal E = 0$ obeys $v = 0$ for every current: it is a <b>short</b>, an ideal wire. A current source with $I = 0$ obeys $i = 0$ for every voltage: it is an <b>open</b>, a removed edge.</p>
+      </div>
+      <p class="small">So to find $R_{\text{th}}$: replace voltage sources by wires, delete current sources, and compute $R_{\text{eff}}(p, q)$.</p>
+      <div class="box thm"><span class="label"><span class="term">Norton's form</span></span>
+        <p class="small">If $R_{\text{th}} > 0$, the same line solved for $i$:
+        $$i = \frac{v}{R_{\text{th}}} - I_{\text{N}},\qquad I_{\text{N}} = \frac{V_{\text{th}}}{R_{\text{th}}},$$
+        a current source $I_{\text{N}}$ in parallel with $R_{\text{th}}$. $I_{\text{N}}$ is the <span class="term">short-circuit current</span>: with $p$ and $q$ joined, $v = 0$ and $I_{\text{N}}$ flows out of $p$ through the wire.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 290" width="400" role="img" aria-label="top row: a voltage source set to zero becomes a plain wire; a current source set to zero becomes a gap. bottom: the Norton equivalent, a current source I N in parallel with R th between terminals p and q">
+        <defs><marker id="m04-z-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-ink"/></marker></defs>
+        <path d="M20,50 H52 M88,50 H120" class="ink" stroke-width="2"/><circle cx="70" cy="50" r="18" class="fill-ground ink" stroke-width="2"/>
+        <text x="62" y="55" font-size="12" text-anchor="middle">+</text><text x="79" y="55" font-size="13" text-anchor="middle">−</text>
+        <text x="140" y="56" font-size="15">→</text><path d="M160,50 H260" class="ink" stroke-width="2"/>
+        <text x="300" y="55" font-size="12" class="soft">ℰ = 0: short</text>
+        <path d="M20,110 H52 M88,110 H120" class="ink" stroke-width="2"/><circle cx="70" cy="110" r="18" class="fill-ground ink" stroke-width="2"/>
+        <line x1="58" y1="110" x2="80" y2="110" class="ink" stroke-width="2" marker-end="url(#m04-z-k)"/>
+        <text x="140" y="116" font-size="15">→</text><path d="M160,110 H195 M225,110 H260" class="ink" stroke-width="2"/>
+        <text x="300" y="115" font-size="12" class="soft">I = 0: open</text>
+        <path d="M60,170 H300 M60,270 H300 M100,170 V198 M100,242 V270 M220,170 V195 M220,245 V270" fill="none" class="ink" stroke-width="2"/>
+        <circle cx="100" cy="220" r="22" class="fill-ground ink" stroke-width="2"/>
+        <line x1="100" y1="234" x2="100" y2="206" class="ink" stroke-width="2" marker-end="url(#m04-z-k)"/>
+        <rect x="212" y="195" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <text x="70" y="224" font-size="13" text-anchor="end">I<tspan dy="3" font-size="75%">N</tspan><tspan dy="-3">&#8202;</tspan></text><text x="238" y="224" font-size="13">R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <circle cx="300" cy="170" r="5" class="fill-ground ink" stroke-width="2"/><circle cx="300" cy="270" r="5" class="fill-ground ink" stroke-width="2"/>
+        <text x="314" y="175" font-size="14">p</text><text x="314" y="275" font-size="14">q</text>
+      </svg>
+      <p class="cap">Zeroing is what the element law says at zero, not a convention. The Norton equivalent (bottom) and the Thévenin equivalent have the same characteristic line.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why zeroing is forced.</b> Step 3 of the proof sets $\mathcal E_k = 0$ and $I_k = 0$ in the equations. The equation of a
+    voltage source then reads $v_e = 0$, which is the equation of an ideal wire; the equation of a current source reads $i_e
+    = 0$, which is the equation of no edge at all. Shorting a current source instead would add a wrong equation, and is the
+    commonest error with this theorem.</p>
+    <p><b>Norton, derived.</b> From $v = V_{\text{th}} + R_{\text{th}}i$, $i = (v - V_{\text{th}})/R_{\text{th}} = v/R_{\text{th}} - I_{\text{N}}$.
+    Read it as KCL at $p$: the current entering at $p$ splits into $v/R_{\text{th}}$ through the resistor and $-I_{\text{N}}$ into
+    the source. When $R_{\text{th}} = 0$ there is no Norton form (an ideal voltage source has no finite short-circuit
+    current); when the network is a current source alone, there is no Thévenin form.</p>
+    <p><b>The car's numbers, seen from T</b> (the battery's terminals, with nothing attached): $V_{\text{th}} = 12.6$ V,
+    $R_{\text{th}} = 10\ \mathrm{m\Omega}$, so $I_{\text{N}} = 1260$ A — the current a dead short across the terminals would draw
+    in this linear model, dissipating $1260^2\times0.01 = 15.9$ kW inside the battery. A real battery is not linear that far
+    beyond its rating, so only the order of magnitude is meant.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thévenin</p>
+  <h2>Worked: the lamps' view of the cranking battery</h2>
+  <div class="box ex"><span class="label">worked example 2a — <span class="ref" data-ref="view">the lamps' view</span>: cut at the lamps, and replace everything else</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The port.</b> Remove the lamps; the port is L (+) and the chassis (−). What is left: the battery, the starter branch, and $R_w$.</p>
+      <p class="small"><b>2. Open-circuit voltage.</b> No current in $R_w$, so $\varphi_L = \varphi_T$, and $\mathcal E$ drives $r_i$ in series with $R_c + R_s$:</p>
+      $$V_{\text{th}} = \mathcal E\,\frac{R_c + R_s}{r_i + R_c + R_s} = 12.6\cdot\tfrac{50}{60} = 10.5\ \mathrm V$$
+      <p class="small"><b>3. Dead network.</b> Short the EMF: $r_i\parallel(R_c + R_s) = 10\cdot50/60 = 8.33\ \mathrm{m\Omega}$, then $R_w$ in series:</p>
+      $$R_{\text{th}} = R_w + r_i\parallel(R_c + R_s) = 38.33\ \mathrm{m\Omega}$$
+      <p class="small"><b>4. Attach the lamps.</b> $I_L = \dfrac{10.5}{0.03833 + 1.30909} = 7.79$ A; lamps at $7.79\times1.309 = 10.20$ V and $7.79^2\times1.309 = 79.5$ W.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="-34 0 374 170" width="360" role="img" aria-label="the lamps' Thévenin equivalent: a 10.5 volt source in series with 38.33 milliohms, feeding the 1.309 ohm lamps; 7.79 amps flow">
+          <defs><marker id="m04-lv-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+          <path d="M60,40 H120 M170,40 H260 V60 M260,120 V140 H60 V112 M60,68 V40" fill="none" class="ink" stroke-width="2.2"/>
+          <circle cx="60" cy="90" r="22" class="fill-ground ink" stroke-width="2"/>
+          <text x="60" y="86" font-size="12" text-anchor="middle">+</text><text x="60" y="104" font-size="13" text-anchor="middle">−</text>
+          <rect x="120" y="32" width="50" height="16" class="fill-ground ink" stroke-width="2"/>
+          <rect x="252" y="60" width="16" height="60" class="fill-ground ink" stroke-width="2"/>
+          <text x="30" y="94" font-size="13" text-anchor="end">10.5 V</text><text x="145" y="24" font-size="13" text-anchor="middle">38.33 mΩ</text>
+          <text x="278" y="86" font-size="13">1.309 Ω</text><text x="278" y="104" font-size="12" class="soft">lamps</text>
+          <line x1="190" y1="58" x2="230" y2="58" class="unit" stroke-width="2.3" marker-end="url(#m04-lv-u)"/>
+          <text x="194" y="76" font-size="13" class="fill-unit">7.79 A</text>
+          <text x="244" y="70" font-size="13" text-anchor="end">+</text><text x="244" y="120" font-size="14" text-anchor="end">−</text>
+          <text x="170" y="164" font-size="12" text-anchor="middle" class="soft">lamps: 10.20 V, 79.5 W</text>
+        </svg>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Same as the full nodal solution of worked example 1: $\varphi_L = 10.201$ V, $7.793$ A ✓. Limit $R_s\to\infty$ (no cranking): $V_{\text{th}}\to12.6$ V, $R_{\text{th}}\to40\ \mathrm{m\Omega}$, lamps $12.23$ V and $114.2$ W ✓. Dimensions: a ratio of resistances times volts; $\mathrm{m\Omega}$ throughout ✓.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The arithmetic.</b> $r_i\parallel(R_c + R_s) = 10\times50/60 = 8.333\ \mathrm{m\Omega}$; $R_{\text{th}} = 38.333\ \mathrm{m\Omega}$.
+    $I_L = 10.5/(0.038333 + 1.309091) = 10.5/1.347424 = 7.7926$ A. $V_L = 7.7926\times1.309091 = 10.2013$ V. $P_L = 7.7926^2\times
+    1.309091 = 79.495$ W.</p>
+    <p><b>Before the key is turned.</b> With the starter branch open the lamps see $V_{\text{th}} = 12.6$ V behind $r_i + R_w =
+    40\ \mathrm{m\Omega}$: $I = 12.6/1.349091 = 9.3396$ A, lamps $12.2264$ V, $114.19$ W. The battery's terminals are then at $12.6 -
+    0.0934 = 12.507$ V.</p>
+    <p><b>Why this is the efficient route.</b> Worked example 1 solved three equations in three unknowns and got every
+    current. If only the lamps matter, Thévenin replaces the rest by two numbers, found from two easy sub-problems, and
+    one more line gives the answer. The same two numbers answer every "what if" about the lamps — a different bulb, a
+    second pair — with one line each.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thévenin</p>
+  <h2>Worked: unit 03's bridge, seen by its detector</h2>
+  <div class="box ex"><span class="label">worked example 2b — <span class="ref" data-ref="bridge">the bridge</span>: remove $R_g$, and replace the rest</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Open circuit.</b> Without the detector the bridge is two dividers across 10 V: $\varphi_B = 10\cdot\frac{200}{300} = \frac{20}3$ V, $\varphi_D = 10\cdot\frac{400}{700} = \frac{40}7$ V, so</p>
+      $$V_{\text{th}} = \tfrac{20}3 - \tfrac{40}7 = \tfrac{20}{21}\ \mathrm V .$$
+      <p class="small"><b>2. Dead network.</b> Short the source: A and C become one node. From B: $R_1\parallel R_2$; from D: $R_3\parallel R_4$; in series:</p>
+      $$R_{\text{th}} = \tfrac{200}3 + \tfrac{1200}7 = \tfrac{5000}{21}\ \Omega\approx238.1\ \Omega .$$
+      <p class="small"><b>3. Attach $R_g$.</b></p>
+      $$i_g = \frac{20/21}{5000/21 + 50} = \frac2{605}\ \mathrm A\approx3.306\ \mathrm{mA},$$
+      <p class="small">unit 03's answer, in one line.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="-40 0 370 180" width="350" role="img" aria-label="the bridge's Thevenin equivalent seen by the detector: 20 over 21 volts behind 5000 over 21 ohms, feeding the 50 ohm detector with 2 over 605 amps">
+          <defs><marker id="m04-bv-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+          <path d="M60,40 H120 M170,40 H260 V60 M260,120 V140 H60 V112 M60,68 V40" fill="none" class="ink" stroke-width="2.2"/>
+          <circle cx="60" cy="90" r="22" class="fill-ground ink" stroke-width="2"/>
+          <text x="60" y="86" font-size="12" text-anchor="middle">+</text><text x="60" y="104" font-size="13" text-anchor="middle">−</text>
+          <rect x="120" y="32" width="50" height="16" class="fill-ground ink" stroke-width="2"/><rect x="252" y="60" width="16" height="60" class="fill-ground ink" stroke-width="2"/>
+          <text x="30" y="94" font-size="13" text-anchor="end">20/21 V</text><text x="145" y="24" font-size="13" text-anchor="middle">5000/21 Ω</text>
+          <text x="278" y="86" font-size="13">R<tspan dy="3" font-size="75%">g</tspan><tspan dy="-3">&#8202;</tspan> 50 Ω</text>
+          <line x1="190" y1="58" x2="230" y2="58" class="unit" stroke-width="2.3" marker-end="url(#m04-bv-u)"/>
+          <text x="184" y="76" font-size="13" class="fill-unit">2/605 A</text>
+          <text x="260" y="34" font-size="13" text-anchor="middle">B</text><text x="260" y="160" font-size="13" text-anchor="middle">D</text>
+        </svg>
+      </div>
+      <div class="box good"><span class="label">unit 03's puzzle, answered</span>
+        <p class="small">$V_{\text{th}} = 10\big(\frac{R_2}{R_1 + R_2} - \frac{R_4}{R_3 + R_4}\big)$ vanishes exactly when $R_1R_4 = R_2R_3$ — a condition on the arms alone. At balance $i_g = 0$ <b>whatever</b> $R_g$ is, because $R_g$ only enters through $R_{\text{th}} + R_g$ in the denominator.</p>
+      </div>
+      <p class="small muted">Check: $i_g$ into a 0 Ω detector would be $I_{\text{N}} = (20/21)/(5000/21) = 4$ mA; any $R_g > 0$ gives less ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The arithmetic, exactly.</b> $\tfrac{20}3 - \tfrac{40}7 = \tfrac{140 - 120}{21} = \tfrac{20}{21} = 0.95238$ V.
+    $\tfrac{200}3 + \tfrac{1200}7 = \tfrac{1400 + 3600}{21} = \tfrac{5000}{21} = 238.095\ \Omega$. $\tfrac{5000}{21} + 50 = \tfrac{6050}{21}$,
+    so $i_g = \tfrac{20}{6050} = \tfrac2{605} = 3.3058$ mA, from B to D. Unit 03 found the same from $\varphi_B = 780/121$ V and
+    $\varphi_D = 760/121$ V: $(20/121)/50 = 2/605$ ✓.</p>
+    <p><b>The dead network, drawn.</b> With A and C merged, the four arms form two parallel pairs: $R_1$ and $R_2$ both join
+    B to the merged node, $R_3$ and $R_4$ both join D to it. Then B–(merged)–D is a series path of the two parallel
+    combinations. That is the step people get wrong when they forget to zero the source: without the short, the arms
+    form a loop, and $R_{\text{eff}}(B, D)$ of the arms alone is $(100 + 300)\parallel(200 + 400) = 240\ \Omega$ (paths
+    B–A–D and B–C–D) — a different network.</p>
+    <p><b>The sensitivity.</b> Near balance $V_{\text{th}}$ is small and $R_{\text{th}}$ is not, so a detector of resistance much
+    larger than $R_{\text{th}}$ reads nearly $V_{\text{th}}$ itself. That is why unit 03 could state its kitchen scale's output
+    as a voltage measured with nothing drawn from the bridge: it is that bridge's $V_{\text{th}}$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Thévenin</p>
+  <h2>Why the headlights dim</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Each source is a line in the lamps' $(v, I)$ plane; the lamps are a line through the origin; where they cross is what happens.</p>
+      <ul class="small">
+        <li><b>Engine off:</b> 12.6 V behind 40 mΩ — lamps at 12.23 V, <b>114.2 W</b>.</li>
+        <li><b>Cranking:</b> 10.5 V behind 38.33 mΩ — lamps at 10.20 V, <b>79.5 W</b>, 70% as much.</li>
+      </ul>
+      <p class="small">The source line hardly tilts: $R_{\text{th}}$ is tiny beside $R_L$. What moves is $V_{\text{th}}$, by the 2.1 V the 210 A starter current drops across $r_i$. The lamps dim because they share the battery's internal resistance with the starter.</p>
+      <div class="box warn"><span class="label">a filament is not a fixed resistance</span>
+        <p class="small">A filament's resistance falls as it cools, so at 10.2 V it draws more current than $V/R_L$, and the real dip in power is smaller than this model's 30%. How much light the lamps lose is a different question again, and no figure is claimed for it.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 300" width="440" role="img" aria-label="lamp current against lamp voltage from 9.5 to 13 volts: the lamps' line through the origin with slope one over 1.309 ohms; two steep source lines, one from 12.6 volts for the battery alone and one from 10.5 volts while cranking; their crossings with the lamp line are the operating points, 12.23 volts and 9.34 amps, and 10.20 volts and 7.79 amps">
+        <line x1="60" y1="250" x2="405" y2="250" class="ink" stroke-width="1.3"/><line x1="60" y1="250" x2="60" y2="25" class="ink" stroke-width="1.3"/>
+        <g class="rule" stroke-width="1"><line x1="108.6" y1="250" x2="108.6" y2="255"/><line x1="205.7" y1="250" x2="205.7" y2="255"/><line x1="302.9" y1="250" x2="302.9" y2="255"/><line x1="400" y1="250" x2="400" y2="255"/>
+        <line x1="55" y1="171.4" x2="60" y2="171.4"/><line x1="55" y1="92.9" x2="60" y2="92.9"/></g>
+        <text x="108.6" y="270" font-size="12" text-anchor="middle" class="soft">10</text><text x="205.7" y="270" font-size="12" text-anchor="middle" class="soft">11</text><text x="302.9" y="270" font-size="12" text-anchor="middle" class="soft">12</text><text x="400" y="270" font-size="12" text-anchor="middle" class="soft">13</text>
+        <text x="50" y="175" font-size="12" text-anchor="end" class="soft">5</text><text x="50" y="97" font-size="12" text-anchor="end" class="soft">10</text>
+        <text x="400" y="290" font-size="13" text-anchor="end">lamp voltage (V)</text><text x="66" y="20" font-size="13">lamp current (A)</text>
+        <line x1="60" y1="136" x2="400" y2="93.9" class="ink" stroke-width="2.4"/>
+        <text x="160" y="100" font-size="12">lamps: I = v/1.309 Ω</text>
+        <line x1="361.1" y1="250" x2="306.7" y2="30" class="alt" stroke-width="2.6"/>
+        <line x1="157.1" y1="250" x2="105" y2="30" class="unit" stroke-width="2.6"/>
+        <circle cx="324.9" cy="103.2" r="5.5" class="fill-alt"/><circle cx="128.1" cy="127.5" r="5.5" class="fill-unit"/>
+        <text x="326" y="150" font-size="12" class="alt" text-anchor="end">12.23 V, 9.34 A</text><text x="326" y="166" font-size="12" class="alt" text-anchor="end">114.2 W</text>
+        <text x="170" y="190" font-size="12" class="fill-unit">10.20 V, 7.79 A</text><text x="170" y="206" font-size="12" class="fill-unit">79.5 W</text>
+        <text x="318" y="46" font-size="12" class="alt">engine off</text>
+        <text x="126" y="46" font-size="12" class="fill-unit">cranking</text>
+      </svg>
+      <p class="cap">Two Thévenin lines, one lamp line. The operating point slides down the lamps' line from 114.2 W to 79.5 W.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the figure.</b> In the lamps' own passive convention their current is $I = v/R_L$. The source, seen from
+    the lamps, supplies $I = (V_{\text{th}} - v)/R_{\text{th}}$; these lines are steep, $1/R_{\text{th}} \approx 26$ A per volt. Both
+    laws must hold at once, so the operating point is the crossing. The figure's two crossings are the two computations:
+    $9.34$ A at $12.23$ V, and $7.79$ A at $10.20$ V.</p>
+    <p><b>The ratio.</b> $79.495/114.190 = 0.696$. For a fixed resistance the power goes as the voltage squared:
+    $(10.2013/12.2264)^2 = 0.696$ ✓.</p>
+    <p><b>Where the 2.1 V goes.</b> While cranking, $V_{\text{th}} = 12.6 - 210\times0.010 = 10.5$ V: the starter's 210 A through
+    $r_i$. The cables' 5 mΩ drop a further 1.05 V, but that drop is on the starter's side of T and the lamps never see
+    it. Problem P11 changes the cables and finds that thicker ones make the lamps dim <i>more</i>: the starter then draws
+    more current through $r_i$.</p>
+    <p><b>The filament, honestly.</b> A tungsten filament's resistance rises steeply with its temperature, so it is far
+    from ohmic: cold, it is much less resistive than hot. At reduced voltage it runs cooler and its resistance is
+    lower than $R_L$, so it draws more current than the fixed-resistance model says and loses less than 30% of its power.
+    How much less needs a measured characteristic of the lamp, which this course does not have; and light output depends
+    on filament temperature far more steeply than power does, so no figure for the dimming of the light is given.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Kron</p>
+  <h2>Kron reduction: eliminating interior nodes</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Keep a set $B$ of nodes, at which current may be injected; eliminate the interior $I$, where none is. Block-partition $L$:</p>
+      $$\begin{pmatrix}L_{BB} &amp; L_{BI}\\ L_{IB} &amp; L_{II}\end{pmatrix}\begin{pmatrix}\varphi_B\\ \varphi_I\end{pmatrix} = \begin{pmatrix}s_B\\ 0\end{pmatrix}.$$
+      <div class="box thm"><span class="label"><span class="term">Kron reduction</span></span>
+        <p class="small">If every interior component touches $B$, then $s_B = L_{\text{red}}\varphi_B$ with the <span class="term">Schur complement</span></p>
+        $$L_{\text{red}} = L_{BB} - L_{BI}L_{II}^{-1}L_{IB}.$$
+      </div>
+      <div class="box proof"><span class="label">proof · two lines</span>
+        <p class="small">The second row: $\varphi_I = -L_{II}^{-1}L_{IB}\varphi_B$ ($L_{II}$ is invertible, section 1). Into the first: $s_B = L_{BB}\varphi_B + L_{BI}\varphi_I = L_{\text{red}}\varphi_B$. $\square$</p>
+      </div>
+      <p class="small">It is Thévenin at many ports at once: the network as seen from $B$, whatever is attached there.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 260" width="420" role="img" aria-label="left: a network with three boundary nodes drawn as squares and four interior nodes as circles; right: after Kron reduction, the three boundary nodes joined pairwise by three new edges, a triangle, equivalent at those three nodes">
+        <path d="M40,60 L100,90 L150,60 L120,140 L170,200 L90,190 L40,200 M100,90 L120,140 L90,190 M150,60 L170,200" fill="none" class="ink" stroke-width="1.6"/>
+        <rect x="30" y="50" width="20" height="20" class="fill-unit"/><rect x="140" y="50" width="20" height="20" class="fill-unit"/><rect x="30" y="190" width="20" height="20" class="fill-unit"/>
+        <g class="fill-ground ink" stroke-width="2"><circle cx="100" cy="90" r="8"/><circle cx="120" cy="140" r="8"/><circle cx="170" cy="200" r="8"/><circle cx="90" cy="190" r="8"/></g>
+        <text x="40" y="40" font-size="13" text-anchor="middle">1</text><text x="150" y="40" font-size="13" text-anchor="middle">2</text><text x="40" y="232" font-size="13" text-anchor="middle">3</text>
+        <text x="210" y="136" font-size="22" text-anchor="middle">≡</text>
+        <path d="M260,60 L370,60 L260,200 Z" fill="none" class="unit" stroke-width="2.6"/>
+        <rect x="250" y="50" width="20" height="20" class="fill-unit"/><rect x="360" y="50" width="20" height="20" class="fill-unit"/><rect x="250" y="190" width="20" height="20" class="fill-unit"/>
+        <text x="260" y="40" font-size="13" text-anchor="middle">1</text><text x="370" y="40" font-size="13" text-anchor="middle">2</text><text x="260" y="232" font-size="13" text-anchor="middle">3</text>
+        <text x="316" y="50" font-size="12" text-anchor="middle">G′<tspan dy="3" font-size="75%">12</tspan><tspan dy="-3">&#8202;</tspan></text><text x="326" y="140" font-size="12">G′<tspan dy="3" font-size="75%">23</tspan><tspan dy="-3">&#8202;</tspan></text><text x="250" y="134" font-size="12" text-anchor="end">G′<tspan dy="3" font-size="75%">13</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="200" y="254" font-size="12" text-anchor="middle" class="soft">G′<tspan dy="3" font-size="75%">jk</tspan><tspan dy="-3">&#8202;</tspan> = −(L<tspan dy="3" font-size="75%">red</tspan><tspan dy="-3">&#8202;</tspan>)<tspan dy="3" font-size="75%">jk</tspan><tspan dy="-3">&#8202;</tspan> ≥ 0</text>
+      </svg>
+      <p class="cap">Equivalent at nodes 1, 2, 3: for any potentials there, both draw the same currents into those nodes. The next slide proves the right-hand side is a network of positive conductances.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The block identity, written out.</b> The second block row is $L_{IB}\varphi_B + L_{II}\varphi_I = 0$ (no injection at
+    interior nodes). $L_{II}$ is positive definite under the hypothesis (<i>The discrete Dirichlet problem</i>), hence
+    invertible, so $\varphi_I = -L_{II}^{-1}L_{IB}\varphi_B$: the Dirichlet problem's solution with boundary data $\varphi_B$. The
+    first block row gives the boundary injections in terms of $\varphi_B$ alone. That is all a Schur complement is: Gaussian
+    elimination of a block of unknowns.</p>
+    <p><b>Done by hand already.</b> In worked example 1, eliminating S and L from the T row was Kron reduction of $\{S, L\}$,
+    keeping $\{E, T, 0\}$.</p>
+    <p><b>History, cited.</b> The reduction is named after G. Kron, for his <i>Tensor Analysis of Networks</i> (Wiley, 1939):
+    F. Dörfler and F. Bullo, "Kron reduction of graphs with applications to electrical networks", <i>IEEE Trans. Circuits
+    Syst. I</i> 60(1), 150–163 (2013), §1, give this attribution. Dörfler and Bullo also give a full modern
+    account of the next slide's theorem, including the spectrum and effective resistances of the reduced network; nothing
+    here depends on it.</p>
+    <p><b>Forward.</b> Unit 13 reduces a power grid's buses this way: the buses with generators or loads are kept, the
+    passive junctions eliminated, and the reduced admittance matrix is what the power-flow equations use.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Kron</p>
+  <h2>The reduced matrix is again a Laplacian</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$L_{\text{red}}$ is symmetric, its rows sum to zero, and its off-diagonal entries are $\le 0$. So it is the Laplacian of a network on $B$ alone, with conductances $G'_{jk} = -(L_{\text{red}})_{jk}\ge0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof · symmetry and row sums</span>
+        <p class="small">$L_{BI}^{\mathsf T} = L_{IB}$ and $L_{II}^{-1}$ is symmetric, so $L_{\text{red}}^{\mathsf T} = L_{\text{red}}$. Rows: $L\mathbf 1 = 0$ gives $L_{IB}\mathbf 1_B + L_{II}\mathbf 1_I = 0$, so $\mathbf 1_I = -L_{II}^{-1}L_{IB}\mathbf 1_B$ — constant boundary data give constant interior potentials — and $L_{\text{red}}\mathbf 1_B = L_{BB}\mathbf 1_B + L_{BI}\mathbf 1_I = 0$. $\square$</p>
+      </div>
+      <div class="box proof"><span class="label">proof · signs, by the maximum principle</span>
+        <p class="small">$(L_{\text{red}})_{jk}$, $j\ne k$, is the current injected at $j$ when $\varphi_B = e_k$: node $k$ at 1 V, the rest of $B$ at 0. The interior then lies in $[0, 1]$, so $j$, at 0, sits at the minimum: $\sum_iG_{ji}(0 - \varphi_i)\le0$. $\square$</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 270" width="400" role="img" aria-label="boundary node k held at 1 volt, the other boundary nodes at 0; interior nodes take potentials between 0 and 1, here 0.47, 0.20, 0.13 and 0.20; current flows from the interior into boundary node j, so the current injected at j is negative or zero">
+        <defs><marker id="m04-sg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <path d="M50,60 L150,90 L250,70 L320,150 L230,210 L130,190 L60,220 M150,90 L130,190 M250,70 L230,210" fill="none" class="ink" stroke-width="1.6"/>
+        <rect x="40" y="50" width="20" height="20" class="fill-unit"/><rect x="310" y="140" width="20" height="20" class="fill-unit"/><rect x="50" y="210" width="20" height="20" class="fill-unit"/>
+        <g class="fill-ground ink" stroke-width="2"><circle cx="150" cy="90" r="13"/><circle cx="250" cy="70" r="13"/><circle cx="230" cy="210" r="13"/><circle cx="130" cy="190" r="13"/></g>
+        <text x="150" y="95" font-size="11" text-anchor="middle">.47</text><text x="250" y="75" font-size="11" text-anchor="middle">.20</text><text x="230" y="215" font-size="11" text-anchor="middle">.13</text><text x="130" y="195" font-size="11" text-anchor="middle">.20</text>
+        <text x="36" y="44" font-size="13" class="fill-unit">k: 1 V, +8/15 A</text><text x="334" y="155" font-size="13" class="fill-unit">j: 0</text><text x="334" y="171" font-size="13" class="fill-unit">−1/3 A</text><text x="76" y="232" font-size="13" class="fill-unit">0, −1/5 A</text>
+        <line x1="268" y1="98" x2="304" y2="138" class="alt" stroke-width="2.4" marker-end="url(#m04-sg-a)"/>
+        <line x1="266" y1="198" x2="304" y2="168" class="alt" stroke-width="2.4" marker-end="url(#m04-sg-a)"/>
+        <text x="190" y="262" font-size="12" text-anchor="middle" class="soft">every interior value in [0, 1]: current flows into j from inside</text>
+      </svg>
+      <p class="cap">One column of $L_{\text{red}}$, physically: hold one boundary node at 1 V and the others at 0, and read off the currents. Current can only flow <i>into</i> the grounded boundary nodes. Computed with every edge 1 S: the column is $(8/15, -1/3, -1/5)$, summing to zero.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the signs</h4>
+    <p>Fix $k\in B$ and set $\varphi_B = e_k$. The interior potentials $\varphi_I = -L_{II}^{-1}L_{IB}e_k$ solve the Dirichlet problem
+    with boundary values $1$ at $k$ and $0$ elsewhere on $B$. By the maximum principle (<i>The maximum principle</i>) every
+    interior value lies in $[0, 1]$. The $j$-th entry of $L_{\text{red}}e_k = s_B$ is the current injected at boundary node
+    $j$, which equals $(L\varphi)_j = \sum_iG_{ji}(\varphi_j - \varphi_i)$ summed over $j$'s neighbours (boundary or interior). With
+    $j\ne k$, $\varphi_j = 0$, and every neighbour has $\varphi_i\ge0$, so the sum is $\le0$. That sum is $(L_{\text{red}})_{jk}$.</p>
+    <p><b>When it is strictly negative.</b> $(L_{\text{red}})_{jk} &lt; 0$ iff some neighbour of $j$ has positive potential, which
+    happens iff $j$ and $k$ are joined by an edge, or by a path through the interior (the strong maximum principle puts
+    every interior node of a component touching $k$ strictly between 0 and 1). So the reduced network joins $j$ and $k$
+    exactly when the original connects them without passing through another boundary node.</p>
+    <p><b>Effective resistances are preserved</b> between nodes of $B$: they are defined by injecting at boundary nodes only,
+    and the reduced network draws the same currents for the same boundary potentials. That is what makes Kron reduction a
+    computational tool: the cube on the next slide but one keeps only $a$ and $b$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Kron</p>
+  <h2>Star–delta: one interior node of degree three</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Eliminate a node 0 joined to $a$, $b$, $c$ by $g = (G_a, G_b, G_c)^{\mathsf T}$ and to nothing else. Then $L_{II} = G_a + G_b + G_c =: \Sigma$, $L_{BI} = -g$, and</p>
+      $$L_{\text{red}} = \operatorname{diag}(g) - gg^{\mathsf T}/\Sigma .$$
+      <div class="box thm"><span class="label">the <span class="term">star–delta transformation</span></span>
+        $$G_{ab} = \frac{G_aG_b}{G_a + G_b + G_c},\quad\text{and cyclically.}$$
+        <p class="small">A star of three edges is equivalent, at its three tips, to a triangle (a "delta").</p>
+      </div>
+      <p class="small muted">Units: $\mathrm S\cdot\mathrm S/\mathrm S = \mathrm S$ ✓. Check: diagonal $G_a - G_a^2/\Sigma = G_a(G_b + G_c)/\Sigma = G_{ab} + G_{ac}$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 240" width="400" role="img" aria-label="left: a star, centre node 0 joined to a, b and c by conductances G a, G b, G c; right: a delta, a triangle on a, b, c with conductances G ab, G bc, G ca">
+        <path d="M100,130 L100,40 M100,130 L30,200 M100,130 L170,200" class="ink" stroke-width="2"/>
+        <rect x="-18" y="-7" width="36" height="14" transform="translate(100,85) rotate(90)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="-18" y="-7" width="36" height="14" transform="translate(65,165) rotate(-45)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="-18" y="-7" width="36" height="14" transform="translate(135,165) rotate(45)" class="fill-ground ink" stroke-width="2"/>
+        <circle cx="100" cy="130" r="6" class="fill-ground ink" stroke-width="2"/>
+        <rect x="92" y="32" width="16" height="16" class="fill-unit"/><rect x="22" y="192" width="16" height="16" class="fill-unit"/><rect x="162" y="192" width="16" height="16" class="fill-unit"/>
+        <text x="100" y="24" font-size="14" text-anchor="middle">a</text><text x="18" y="226" font-size="14">b</text><text x="174" y="226" font-size="14">c</text>
+        <text x="114" y="89" font-size="12">G<tspan dy="3" font-size="75%">a</tspan><tspan dy="-3">&#8202;</tspan></text><text x="40" y="150" font-size="12" text-anchor="end">G<tspan dy="3" font-size="75%">b</tspan><tspan dy="-3">&#8202;</tspan></text><text x="160" y="150" font-size="12">G<tspan dy="3" font-size="75%">c</tspan><tspan dy="-3">&#8202;</tspan></text><text x="112" y="136" font-size="12" class="soft">0</text>
+        <text x="200" y="130" font-size="22" text-anchor="middle">≡</text>
+        <path d="M300,40 L230,200 L370,200 Z" fill="none" class="ink" stroke-width="2"/>
+        <rect x="-18" y="-7" width="36" height="14" transform="translate(265,120) rotate(-66.4)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="-18" y="-7" width="36" height="14" transform="translate(335,120) rotate(66.4)" class="fill-ground ink" stroke-width="2"/>
+        <rect x="282" y="193" width="36" height="14" class="fill-ground ink" stroke-width="2"/>
+        <rect x="292" y="32" width="16" height="16" class="fill-unit"/><rect x="222" y="192" width="16" height="16" class="fill-unit"/><rect x="362" y="192" width="16" height="16" class="fill-unit"/>
+        <text x="300" y="24" font-size="14" text-anchor="middle">a</text><text x="218" y="226" font-size="14">b</text><text x="374" y="226" font-size="14">c</text>
+        <text x="250" y="110" font-size="12" text-anchor="end">G<tspan dy="3" font-size="75%">ab</tspan><tspan dy="-3">&#8202;</tspan></text><text x="350" y="110" font-size="12">G<tspan dy="3" font-size="75%">ca</tspan><tspan dy="-3">&#8202;</tspan></text><text x="300" y="226" font-size="12" text-anchor="middle">G<tspan dy="3" font-size="75%">bc</tspan><tspan dy="-3">&#8202;</tspan></text>
+      </svg>
+      <p class="cap">The star is Kron-reduced to the delta. The reverse direction — delta to star — is problem P3.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The computation.</b> With $B = \{a, b, c\}$ and $I = \{0\}$: $L_{BB} = \operatorname{diag}(G_a, G_b, G_c)$ (each tip's only edge
+    goes to 0), $L_{II} = \Sigma$, $L_{BI} = -g$ with $g = (G_a, G_b, G_c)^{\mathsf T}$, $L_{IB} = -g^{\mathsf T}$. So $L_{\text{red}} =
+    \operatorname{diag}(g) - gg^{\mathsf T}/\Sigma$. Its $(a, b)$ entry is $-G_aG_b/\Sigma$, so $G_{ab} = G_aG_b/\Sigma$.</p>
+    <p><b>In resistances</b>, with $R_a = 1/G_a$ and so on: $R_{ab} = 1/G_{ab} = (R_aR_b + R_bR_c + R_cR_a)/R_c$. Both forms are
+    common; the conductance form is the one that falls out of the Schur complement.</p>
+    <p><b>Why engineers want it.</b> It turns a network that is not series–parallel into one that may be. The bridge's
+    star at node B ($R_1$, $R_2$, $R_g$ to A, C, D) becomes a delta on A, C, D, after which everything is series and
+    parallel. Unit 11 uses the transformation with complex weights for star- and delta-connected three-phase loads.</p>
+    <p><b>Degree two</b> is the series rule: eliminating a node joined to $a$ and $b$ only gives $G_{ab} = G_aG_b/(G_a + G_b)$,
+    i.e. $R_{ab} = R_a + R_b$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Kron</p>
+  <h2>Worked: the cube, by Kron reduction</h2>
+  <div class="box ex"><span class="label">worked example 3, continued — the same $5R/6$, with no symmetry argument</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Partition.</b> $B = \{a, b\}$; interior: $x_1, x_2, x_3$ next to $a$, $y_1, y_2, y_3$ next to $b$. Each $x$ has two $y$ neighbours and vice versa (a hexagon).</p>
+      <p class="small"><b>2. One column.</b> Put $\varphi_a = 1$, $\varphi_b = 0$, $R = 1$. The equations $(L\varphi)_I = 0$: $3x_k - (\text{its two }y) = 1$ and $3y_k - (\text{its two }x) = 0$.</p>
+      <p class="small"><b>3. Sum them</b>, with $X = \sum x_k$, $Y = \sum y_k$:</p>
+      $$3X - 2Y = 3,\ \ 3Y - 2X = 0,$$
+      <p class="small">so $X = \tfrac95$, $Y = \tfrac65$.</p>
+      <p class="small"><b>4. Read off $L_{\text{red}}$.</b> Injected at $a$: $\sum(1 - x_k) = 3 - X = \tfrac65$. At $b$: $\sum(0 - y_k) = -\tfrac65$. So</p>
+      $$L_{\text{red}} = \frac6{5R}\begin{pmatrix}1 &amp; -1\\ -1 &amp; 1\end{pmatrix}:$$
+      <p class="small">one edge of conductance $6/5R$, so $R_{\text{eff}} = 5R/6$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 230" width="330" role="img" aria-label="the cube with a and b as boundary squares and the six other corners as interior circles; the six interior corners joined in a hexagon; arrow to the reduced network: a single edge of conductance 6 over 5 R between a and b">
+          <g fill="none" class="ink" stroke-width="1.8">
+            <path d="M40,190 H130 V100 H40 Z M80,160 H170 V70 H80 Z M40,190 L80,160 M130,190 L170,160 M130,100 L170,70 M40,100 L80,70"/>
+          </g>
+          <rect x="32" y="182" width="16" height="16" class="fill-unit"/><rect x="162" y="62" width="16" height="16" class="fill-unit"/>
+          <g class="fill-ground ink" stroke-width="2"><circle cx="130" cy="190" r="6"/><circle cx="40" cy="100" r="6"/><circle cx="80" cy="160" r="6"/><circle cx="130" cy="100" r="6"/><circle cx="170" cy="160" r="6"/><circle cx="80" cy="70" r="6"/></g>
+          <text x="28" y="214" font-size="14">a</text><text x="182" y="66" font-size="14">b</text>
+          <text x="200" y="134" font-size="20" text-anchor="middle">≡</text>
+          <path d="M240,180 V150 M240,100 V70" class="ink" stroke-width="2"/>
+          <rect x="232" y="100" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+          <rect x="232" y="180" width="16" height="16" class="fill-unit"/><rect x="232" y="56" width="16" height="16" class="fill-unit"/>
+          <text x="258" y="122" font-size="13">G′ = 6/(5R)</text><text x="258" y="140" font-size="13">R = 5R/6</text>
+          <text x="240" y="214" font-size="14" text-anchor="middle">a</text><text x="240" y="48" font-size="14" text-anchor="middle">b</text>
+        </svg>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Row sums zero, off-diagonal $\le0$ ✓. The values $x_k = \tfrac35$, $y_k = \tfrac25$ solve every equation and lie in $[0, 1]$ ✓. Same as by symmetry ✓.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why no symmetry was needed.</b> Step 4 needs only the sums $X$ and $Y$, and step 3 gets them from the sum of the
+    equations, using only that each interior node has one boundary neighbour and two interior ones of the other kind. The
+    individual $x_k$ were never needed. (They are all $3/5$, and the $y_k$ all $2/5$: substitute and every equation holds, and
+    the Dirichlet problem has one solution.)</p>
+    <p><b>The bookkeeping in step 3.</b> Summing $3x_k - (y\text{'s adjacent to }x_k) = 1$ over $k$: each $y_j$ is adjacent to
+    exactly two $x$'s, so the $y$'s contribute $-2Y$, and the right side sums to $3$. Likewise $3Y - 2X = 0$. From the second,
+    $Y = 2X/3$; then $3X - 4X/3 = 5X/3 = 3$, $X = 9/5$.</p>
+    <p><b>The full $L_{II}$</b>, with the order $x_1, x_2, x_3, y_1, y_2, y_3$, is $3I_6$ minus the adjacency matrix of the hexagon;
+    it is positive definite (both $a$ and $b$ touch the interior), with smallest eigenvalue $3 - 2 = 1$. A computer
+    algebra system computing $L_{BB} - L_{BI}L_{II}^{-1}L_{IB}$ directly gives the same $\tfrac65\begin{pmatrix}1 &amp; -1\\ -1 &amp; 1\end{pmatrix}$.</p>
+    <p><b>The checkpoint asks for both routes.</b> Symmetry is quicker here; Kron reduction is what works when there is no
+    symmetry, and it is what unit 13 does to a grid.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>A metric, and Foster's theorem</h2>
+  <p>Effective resistance measures distance on the graph, better than counting edges. And summed over the edges, weighted by conductance, it always gives $n - 1$ — the trace of a projection.</p>
+</section>
+
+<section>
+  <p class="eyebrow">04 · metric</p>
+  <h2>Effective resistance is a metric</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem · the <span class="term">resistance distance</span></span>
+        <p class="small">On a connected network, $R_{\text{eff}}$ is a metric on the nodes: $R(a, a) = 0$, $R(a, b) > 0$ for $a\ne b$, $R(a, b) = R(b, a)$, and</p>
+        $$R(a, c) \le R(a, b) + R(b, c).$$
+      </div>
+      <div class="box proof"><span class="label">proof of the triangle inequality</span>
+        <p class="small">Let $x = e_a - e_b$, $y = e_c - e_b$, so $e_a - e_c = x - y$ and</p>
+        $$R(a, c) = R(a, b) + R(c, b) - 2\,x^{\mathsf T}L^+y .$$
+        <p class="small">$\psi = L^+y$ is the potential of 1 A in at $c$, out at $b$, and $x^{\mathsf T}\psi = \psi_a - \psi_b$. Every node but $b$, $c$ is interior, so by the maximum principle $\psi$ lies between $\psi_b$ and $\psi_c$, and $\psi_c - \psi_b = R(c, b) > 0$: $b$ is the minimum. So $\psi_a - \psi_b\ge0$. $\square$</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 270" width="400" role="img" aria-label="a network with three marked nodes a, b and c; one ampere enters at c and leaves at b; the potential psi is highest at c, lowest at b, and a sits in between, so psi a minus psi b is at least zero">
+        <defs><marker id="m04-mt-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <rect x="60" y="40" width="260" height="170" rx="50" class="fill-soft"/>
+        <path d="M100,170 L170,80 L250,70 L290,160 L200,190 Z M170,80 L200,190 M250,70 L200,190" fill="none" class="ink" stroke-width="1.5"/>
+        <g class="fill-ink"><circle cx="100" cy="170" r="6"/><circle cx="250" cy="70" r="6"/><circle cx="290" cy="160" r="6"/><circle cx="170" cy="80" r="4"/><circle cx="200" cy="190" r="4"/></g>
+        <text x="88" y="190" font-size="15">a</text><text x="250" y="58" font-size="15" text-anchor="middle">c</text><text x="300" y="182" font-size="15">b</text>
+        <line x1="250" y1="16" x2="250" y2="60" class="alt" stroke-width="2.4" marker-end="url(#m04-mt-a)"/><text x="260" y="30" font-size="13" class="alt">1 A in</text>
+        <line x1="298" y1="168" x2="336" y2="206" class="alt" stroke-width="2.4" marker-end="url(#m04-mt-a)"/><text x="330" y="228" font-size="13" class="alt">out</text>
+        <text x="190" y="240" font-size="13" text-anchor="middle">ψ<tspan dy="3" font-size="75%">b</tspan><tspan dy="-3">&#8202;</tspan> ≤ ψ<tspan dy="3" font-size="75%">a</tspan><tspan dy="-3">&#8202;</tspan> ≤ ψ<tspan dy="3" font-size="75%">c</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="190" y="262" font-size="12" text-anchor="middle" class="soft">a is interior: its ψ is an average, between the extremes</text>
+      </svg>
+      <p class="cap">The cross term is the voltage that a current from $c$ to $b$ produces between $a$ and $b$. It cannot be negative, because $b$ is where that current leaves.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The expansion.</b> $R(a, c) = (e_a - e_c)^{\mathsf T}L^+(e_a - e_c) = (x - y)^{\mathsf T}L^+(x - y) = x^{\mathsf T}L^+x + y^{\mathsf T}L^+y -
+    2x^{\mathsf T}L^+y$, using the symmetry of $L^+$. The first two terms are $R(a, b)$ and $R(c, b)$, both differences of
+    unit vectors whose entries sum to zero.</p>
+    <p><b>The maximum principle, applied.</b> $\psi = L^+y$ satisfies $L\psi = y$: injections $+1$ at $c$, $-1$ at $b$, zero
+    elsewhere. Treat $\{b, c\}$ as the boundary; every other node is interior (no injection) and the graph is connected,
+    so every interior component touches the boundary. The maximum principle puts every $\psi_k$ in $[\min(\psi_b, \psi_c),
+    \max(\psi_b, \psi_c)]$, and $\psi_c - \psi_b = y^{\mathsf T}L^+y = R(c, b) &gt; 0$. So $\psi_b$ is the minimum, and $x^{\mathsf T}\psi =
+    \psi_a - \psi_b \ge 0$. (If $a$ is $b$ or $c$ the inequality is trivial.)</p>
+    <p><b>When equality holds.</b> Exactly when $\psi_a = \psi_b$, which by the strong maximum principle happens iff every path
+    from $a$ to $c$ passes through $b$ — $b$ is a cut vertex separating them, and the network is two pieces joined at $b$,
+    whose resistances then simply add. Problem P6 proves this.</p>
+    <p><b>Cited.</b> D. J. Klein and M. Randić, "Resistance distance", <i>J. Math. Chem.</i> 12, 81–95 (1993), introduced
+    effective resistance as a distance on molecular graphs, under this name. The proof here does not depend on theirs. It
+    is a better distance than counting edges for many purposes, because it counts how many routes there are: two nodes
+    joined by many parallel paths are "close".</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Foster</p>
+  <h2>Foster's theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Foster's theorem</span></span>
+        <p class="small">For a connected network with $n$ nodes, let $R_{\text{eff}}(e)$ be the effective resistance between the two ends of edge $e$. Then</p>
+        $$\sum_{e}\frac{R_{\text{eff}}(e)}{R_e} = n - 1 .$$
+        <p class="small">Each term lies in $(0, 1]$; the sum depends on the number of nodes only, not on the resistances or the shape.</p>
+      </div>
+      <div class="box good"><span class="label">what each term means</span>
+        <p class="small">Inject 1 A at one end of $e$ and extract it at the other. The voltage across $e$ is $R_{\text{eff}}(e)$, so the current through $e$ itself is $R_{\text{eff}}(e)/R_e$; the rest goes round. Foster: those fractions always total $n - 1$.</p>
+      </div>
+      <p class="small muted">Dimensions: each term is $\Omega/\Omega$, dimensionless ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 270" width="400" role="img" aria-label="an edge e between nodes u and w inside a network; one ampere enters at u and leaves at w; a fraction R eff of e over R e flows through e itself and the remainder flows round through the rest of the network">
+        <defs><marker id="m04-fo-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker>
+        <marker id="m04-fo-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <ellipse cx="190" cy="170" rx="150" ry="70" class="fill-soft"/>
+        <path d="M110,110 L80,180 L150,220 L230,215 L300,180 L270,110 M80,180 L230,215 M150,220 L300,180" fill="none" class="ink" stroke-width="1.3"/>
+        <path d="M110,110 H270" class="ink" stroke-width="2.2"/>
+        <rect x="165" y="102" width="50" height="16" class="fill-ground ink" stroke-width="2"/>
+        <circle cx="110" cy="110" r="6" class="fill-ink"/><circle cx="270" cy="110" r="6" class="fill-ink"/>
+        <text x="100" y="100" font-size="14" text-anchor="end">u</text><text x="280" y="100" font-size="14">w</text>
+        <text x="190" y="94" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <line x1="70" y1="60" x2="104" y2="104" class="alt" stroke-width="2.4" marker-end="url(#m04-fo-a)"/><text x="40" y="54" font-size="13" class="alt">1 A</text>
+        <line x1="276" y1="104" x2="310" y2="60" class="alt" stroke-width="2.4" marker-end="url(#m04-fo-a)"/><text x="316" y="54" font-size="13" class="alt">1 A</text>
+        <line x1="150" y1="134" x2="230" y2="134" class="unit" stroke-width="2.4" marker-end="url(#m04-fo-u)"/>
+        <text x="190" y="152" font-size="12" text-anchor="middle" class="fill-unit halo">R<tspan dy="3" font-size="75%">eff</tspan><tspan dy="-3">&#8202;</tspan>(e)/R<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan> through e</text>
+        <text x="190" y="256" font-size="12" text-anchor="middle" class="soft">the rest, 1 − R<tspan dy="3" font-size="75%">eff</tspan><tspan dy="-3">&#8202;</tspan>(e)/R<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan>, goes round</text>
+      </svg>
+      <p class="cap">The physical reading of one term. A cut edge — one whose removal disconnects the graph — carries all of the current, and contributes exactly 1.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why each term is in $(0, 1]$.</b> By Rayleigh, $R_{\text{eff}}(e)$ is at most what it would be with every other edge cut,
+    which is $R_e$; and it is positive. Equality $R_{\text{eff}}(e) = R_e$ holds iff no other path joins the ends of $e$.</p>
+    <p><b>A tree.</b> If the network is a tree, every edge is a cut edge, each term is 1, and there are $n - 1$ edges: the
+    theorem is a count. In general cycles share the load, and the sum stays at $n - 1$ however the edges are weighted.</p>
+    <p><b>Cited, for history and a second proof.</b> R. M. Foster, "The average impedance of an electrical network", in
+    <i>Reissner Anniversary Volume: Contributions to Applied Mechanics</i> (J. W. Edwards, Ann Arbor, 1949), pp. 333–340
+    (Lyons and Peres date the paper 1948; the volume appeared in 1949). R. Lyons and Y. Peres, <i>Probability on Trees and
+    Networks</i> (Cambridge, 2016), state it as Exercise 2.65 ("Foster's Theorem") and note in their hints that the proof
+    by a trace, the one on the next slide, is first due to Flanders (1974). Bollobás's
+    ch. IX treats effective resistance and random walks together; Doyle and Snell's random-walk reading of all of this
+    is on the reading list, and is not needed here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Foster</p>
+  <h2>Proof: the trace of an orthogonal projection</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Let $a_e$ be column $e$ of $A$: $+1$ at the tail, $-1$ at the head. Then $R_{\text{eff}}(e) = a_e^{\mathsf T}L^+a_e$, and</p>
+      $$\sum_eG_e\,a_e^{\mathsf T}L^+a_e = \operatorname{tr}P,$$
+      <p class="small">where $P = G^{1/2}A^{\mathsf T}L^+AG^{1/2}$ is $m\times m$.</p>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>1. $P$ is an orthogonal projection.</b> Symmetric, since $L^+$ is; and $P^2 = G^{1/2}A^{\mathsf T}L^+(AGA^{\mathsf T})L^+AG^{1/2} = P$, because $AGA^{\mathsf T} = L$ and $L^+LL^+ = L^+$.</p>
+        <p class="small"><b>2. Its image</b> is $W = \operatorname{im}(G^{1/2}A^{\mathsf T})$: $\operatorname{im}P\subseteq W$, and on $W$, $P(G^{1/2}A^{\mathsf T}\varphi) = G^{1/2}A^{\mathsf T}(L^+L\varphi) = G^{1/2}A^{\mathsf T}\varphi$, because $L^+L\varphi$ differs from $\varphi$ by an element of $\ker L = \ker A^{\mathsf T}$.</p>
+        <p class="small"><b>3. Trace = rank</b> for an orthogonal projection (eigenvalues 0 and 1). $\dim W = \operatorname{rank}A^{\mathsf T} = n - 1$. $\square$</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 270" width="370" role="img" aria-label="the edge space R m drawn as a plane with a line through the origin standing for the scaled cut space W; a vector is projected orthogonally onto W; the projection P has trace equal to the dimension of W, n minus 1">
+        <defs><marker id="m04-pr-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-ink"/></marker>
+        <marker id="m04-pr-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <path d="M30,230 L110,90 L340,90 L260,230 Z" class="fill-soft"/>
+        <line x1="60" y1="190" x2="320" y2="120" class="unit" stroke-width="2.6"/>
+        <text x="236" y="82" font-size="13" class="fill-unit">W: scaled cut space</text>
+        <line x1="120" y1="174" x2="210" y2="40" class="ink" stroke-width="2.2" marker-end="url(#m04-pr-k)"/>
+        <line x1="210" y1="40" x2="186" y2="147" class="ink" stroke-width="1.3" stroke-dasharray="5 4"/>
+        <line x1="120" y1="174" x2="182" y2="149" class="unit" stroke-width="2.6" marker-end="url(#m04-pr-u)"/>
+        <text x="216" y="40" font-size="13">z</text><text x="146" y="186" font-size="13" class="fill-unit">Pz</text>
+        <text x="40" y="250" font-size="12" class="soft">ℝ<tspan dy="-5" font-size="75%">m</tspan><tspan dy="5">&#8202;</tspan>: one coordinate per edge</text>
+        <text x="180" y="268" font-size="12" text-anchor="middle" class="soft">tr P = dim W = n − 1</text>
+      </svg>
+      <p class="cap">$P$ projects the edge space orthogonally onto the cut space, rescaled by $G^{1/2}$. Its diagonal entries are Foster's terms.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The diagonal of $P$.</b> $P_{ee} = G_e^{1/2}\,a_e^{\mathsf T}L^+a_e\,G_e^{1/2} = G_eR_{\text{eff}}(e) = R_{\text{eff}}(e)/R_e$, since
+    $a_e = e_{\text{tail}} - e_{\text{head}}$ is a unit injection across $e$ (section 2's formula). So $\operatorname{tr}P$ is Foster's
+    sum.</p>
+    <p><b>$L^+LL^+ = L^+$.</b> From the spectral form, $L^+LL^+ = \sum_{\lambda_k&gt;0}\lambda_k^{-1}\lambda_k\lambda_k^{-1}u_ku_k^{\mathsf T} = L^+$.</p>
+    <p><b>Step 2 in detail.</b> $L^+L = \Pi$, the orthogonal projection onto $(\ker L)^\perp$, so $L^+L\varphi = \varphi - k$ with $k\in\ker L$.
+    The kernel theorem gave $\ker L = \ker A^{\mathsf T}$, so $A^{\mathsf T}k = 0$ and $A^{\mathsf T}L^+L\varphi = A^{\mathsf T}\varphi$. Hence $P$ fixes every
+    vector of $W$; with $\operatorname{im}P\subseteq W$ (visible from the factor $G^{1/2}A^{\mathsf T}$ on the left), $\operatorname{im}P = W$.</p>
+    <p><b>Step 3.</b> A symmetric $P$ with $P^2 = P$ has eigenvalues satisfying $\lambda^2 = \lambda$, so $0$ or $1$; by the spectral
+    theorem the number of 1s is $\operatorname{rank}P$, and the trace is the sum of the eigenvalues. $\dim W = \operatorname{rank}(G^{1/2}A^{\mathsf T})
+    = \operatorname{rank}A^{\mathsf T}$ ($G^{1/2}$ is invertible) $= n - c = n - 1$ (unit 03).</p>
+    <p><b>The geometry.</b> Unit 03 split $\mathbb R^m$ into the cut space $\operatorname{im}A^{\mathsf T}$ and the cycle space $\ker A$,
+    orthogonal. Rescale each coordinate by $G_e^{1/2}$ and the same split happens in the conductance-weighted picture: $P$
+    projects onto the rescaled cut space, $I - P$ onto the rescaled cycle space, and $\operatorname{tr}(I - P) = m - n + 1$ is the
+    cyclomatic number. Foster's theorem is the statement that a projection's trace is its rank.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · Foster</p>
+  <h2>Worked: Foster on the cube</h2>
+  <div class="box ex"><span class="label">worked example 4 — the cube of equal resistors $R$: one theorem gives the adjacent-corner resistance</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Every edge looks the same.</b> The cube's symmetries carry any edge to any other, and the resistances are equal, so $R_{\text{eff}}(e)$ is one number $r$ for all twelve edges.</p>
+      <p class="small"><b>2. Foster</b>, with $n = 8$, $m = 12$:</p>
+      $$12\cdot\frac rR = 8 - 1 = 7\quad\Rightarrow\quad r = \frac{7R}{12}.$$
+      <p class="small"><b>3. Read it.</b> Of 1 A injected across one edge, $\tfrac7{12}$ A goes through that edge and $\tfrac5{12}$ A round the rest of the cube.</p>
+      <p class="small"><b>4. All three distances.</b> Adjacent $\tfrac7{12}R$, face diagonal $\tfrac34R$, opposite corners $\tfrac56R$: increasing with the number of edges between, but far slower than the edge count $1, 2, 3$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 230" width="300" role="img" aria-label="the cube with one edge highlighted; 1 ampere injected at one end and extracted at the other; 7 twelfths of an ampere passes through the highlighted edge and 5 twelfths round the rest">
+          <defs><marker id="m04-fc-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+          <g fill="none" class="ink" stroke-width="1.8">
+            <path d="M60,190 H160 V90 H60 Z M110,150 H210 V50 H110 Z M60,190 L110,150 M160,190 L210,150 M160,90 L210,50 M60,90 L110,50"/>
+          </g>
+          <line x1="60" y1="190" x2="160" y2="190" class="unit" stroke-width="4"/>
+          <g class="fill-ink"><circle cx="60" cy="190" r="5"/><circle cx="160" cy="190" r="5"/></g>
+          <line x1="20" y1="216" x2="54" y2="196" class="alt" stroke-width="2.2" marker-end="url(#m04-fc-a)"/><text x="10" y="212" font-size="12" class="alt" text-anchor="end">1 A</text>
+          <line x1="166" y1="196" x2="200" y2="216" class="alt" stroke-width="2.2" marker-end="url(#m04-fc-a)"/>
+          <text x="110" y="214" font-size="13" text-anchor="middle" class="fill-unit">7/12 A</text>
+          <text x="236" y="120" font-size="13" class="soft">5/12 A</text><text x="236" y="136" font-size="13" class="soft">round</text>
+        </svg>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">Doyle and Snell (§1.3.4) find $7/12$ for the unit cube by symmetry and series–parallel; problem P1 finds it by superposition ✓. Foster on the bridge's five resistors: problem P8, sum $3 = 4 - 1$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1, precisely.</b> The rotation group of the cube acts transitively on its 12 edges, and a symmetry of the
+    graph that preserves all resistances preserves all effective resistances (the solution for the rotated injection is
+    the rotated solution, by uniqueness). So all $R_{\text{eff}}(e)$ are equal.</p>
+    <p><b>The face diagonal and the opposite corners</b> are not given by Foster, which only sums over edges. Opposite
+    corners: worked example 3, twice. Face diagonal, $3R/4$: put $a = (0,0,0)$, $b = (1,1,0)$, and drive 1 A from $a$ to $b$,
+    with potentials chosen to sum to zero. The half-turn $(x, y, z)\mapsto(1 - x, 1 - y, z)$ swaps $a$ and $b$ and so reverses
+    the injections: by uniqueness it sends $\varphi$ to $-\varphi$. The reflection $x\leftrightarrow y$ fixes $a$, $b$ and the
+    injections, so it preserves $\varphi$. Both swap $c = (1,0,0)$ with $d = (0,1,0)$, so $\varphi_c = -\varphi_d = \varphi_d$: both
+    are $0$; likewise $(1,0,1)$ and $(0,1,1)$. Short these four zero-potential corners into one node $O$ (no change). From $a$:
+    two edges straight to $O$ ($R/2$), in parallel with $a\to(0,0,1)$ then two edges to $O$ ($R + R/2$): $\tfrac R2\parallel\tfrac{3R}2
+    = \tfrac{3R}8$. By the half-turn, $O$ to $b$ is the same, and in series $R_{\text{eff}}(a, b) = \tfrac{3R}4$.</p>
+    <p><b>The general lesson.</b> On an edge-transitive graph with $n$ nodes and $m$ equal edges, Foster gives the
+    adjacent-node resistance as $R(n - 1)/m$ with no computation. For the complete graph $K_4$ — unit 03's bridge graph
+    with a resistor in place of the source and all six resistors equal — that is $R\cdot3/6 = R/2$. Problem P2 uses the same idea on a torus.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Maximum power, and its price</h2>
+  <p>A source delivers the most power to a load equal to its own resistance — and then wastes exactly as much as it delivers. Where that trade is right, and where it is absurd.</p>
+</section>
+
+<section>
+  <p class="eyebrow">04 · maximum power</p>
+  <h2>The maximum-power theorem</h2>
+  <div class="cols">
+    <div>
+      <p class="small">By Thévenin, any linear resistive source is $V_{\text{th}}$ behind $R_{\text{th}} > 0$. A load $R$ draws $I = V_{\text{th}}/(R_{\text{th}} + R)$, and</p>
+      $$P(R) = I^2R = \frac{V_{\text{th}}^2\,R}{(R_{\text{th}} + R)^2}.$$
+      <div class="box thm"><span class="label">the <span class="term">maximum-power theorem</span></span>
+        <p class="small">$P(R)$ is largest at the <span class="term">matched load</span> $R = R_{\text{th}}$: $P_{\max} = V_{\text{th}}^2/4R_{\text{th}}$. There the <span class="term">efficiency</span> $\eta = I^2R/V_{\text{th}}I = R/(R_{\text{th}} + R)$, the share of the EMF's output that reaches the load, is exactly $\tfrac12$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$(R_{\text{th}} + R)^2 - 4R_{\text{th}}R = (R_{\text{th}} - R)^2\ge0$, so $P(R)\le V_{\text{th}}^2/4R_{\text{th}}$, with equality iff $R = R_{\text{th}}$. Then $\eta = R_{\text{th}}/2R_{\text{th}}$. $\square$</p>
+      </div>
+      <p class="small muted">Units: $\mathrm V^2/\Omega = \mathrm W$ ✓; $\eta$ dimensionless ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 230" width="370" role="img" aria-label="a Thevenin source, V th behind R th, feeding a load resistance R; current I flows round the loop; half the power is dissipated in R th when R equals R th">
+        <defs><marker id="m04-mp-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <rect x="20" y="30" width="190" height="160" rx="10" fill="none" class="ink" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="26" y="24" font-size="12" class="soft">the source, by Thévenin</text>
+        <path d="M70,50 H120 M170,50 H280 V90 M280,150 V170 H70 V132 M70,88 V50" fill="none" class="ink" stroke-width="2.2"/>
+        <circle cx="70" cy="110" r="22" class="fill-ground ink" stroke-width="2"/>
+        <text x="70" y="106" font-size="12" text-anchor="middle">+</text><text x="70" y="124" font-size="13" text-anchor="middle">−</text>
+        <rect x="120" y="42" width="50" height="16" class="fill-ground ink" stroke-width="2"/><rect x="272" y="90" width="16" height="60" class="fill-ground ink" stroke-width="2"/>
+        <text x="104" y="114" font-size="13">V<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text><text x="145" y="80" font-size="13" text-anchor="middle">R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="298" y="116" font-size="14">R</text><text x="298" y="134" font-size="12" class="soft">load</text>
+        <text x="266" y="100" font-size="12" text-anchor="end">+</text><text x="266" y="150" font-size="13" text-anchor="end">−</text>
+        <line x1="216" y1="36" x2="256" y2="36" class="unit" stroke-width="2.3" marker-end="url(#m04-mp-u)"/><text x="228" y="28" font-size="13" class="fill-unit">I</text>
+        <text x="180" y="218" font-size="12" text-anchor="middle" class="soft">matched, R = R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan>: I²R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan> lost = I²R delivered</text>
+      </svg>
+      <p class="cap">At the matched point the source's own resistance carries the same current as the load and dissipates the same power. Half of everything the EMF produces is lost before it leaves.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>By calculus, too.</b> $P'(R) = V_{\text{th}}^2\big[(R_{\text{th}} + R) - 2R\big]/(R_{\text{th}} + R)^3 = V_{\text{th}}^2(R_{\text{th}} - R)/(R_{\text{th}} + R)^3$:
+    positive below $R_{\text{th}}$, negative above. The algebraic proof on the slide needs no derivative and gives the bound
+    for every $R$ at once.</p>
+    <p><b>Limits.</b> $R\to0$: a short, $I = V_{\text{th}}/R_{\text{th}} = I_{\text{N}}$, no power to the load (no voltage across it), all
+    power in $R_{\text{th}}$, $\eta = 0$. $R\to\infty$: open, no current, no power, $\eta\to1$. Maximum power lies between,
+    and so does every efficiency.</p>
+    <p><b>Energy check.</b> The EMF delivers $V_{\text{th}}I$; $R_{\text{th}}$ takes $I^2R_{\text{th}}$; the load $I^2R$; and $V_{\text{th}}I =
+    I^2(R_{\text{th}} + R)$ by KVL ✓. Note that "efficiency" here is defined against the <i>equivalent's</i> EMF: when the source
+    is a real network, its internal losses are not those of the equivalent (<i>Proof: an affine map</i>, notes). For the
+    car the equivalent and the real network coincide — battery, cables, starter, one loop — so the efficiency is real.</p>
+    <p><b>Unit 01's question,</b> "what load takes the most power from such a source", answered: its own internal
+    resistance. For unit 01's battery the load would be $r_i$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · maximum power</p>
+  <h2>Worked: power and efficiency against the load</h2>
+  <div class="box ex"><span class="label">worked example 5 — the curve, and <span class="ref" data-ref="crank">the starter</span>'s two operating points</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Normalise.</b> With $x = R/R_{\text{th}}$:</p>
+      $$\frac P{P_{\max}} = \frac{4x}{(1 + x)^2},\qquad \eta = \frac x{1 + x}.$$
+      <p class="small">$P/P_{\max}$ is symmetric under $x\mapsto1/x$; $\eta$ rises monotonically to 1. Beyond the matched point, efficiency is bought with power.</p>
+      <p class="small"><b>2. The car.</b> The starter's source: $\mathcal E = 12.6$ V behind $r_i + R_c = 15\ \mathrm{m\Omega}$, so $P_{\max} = 12.6^2/0.060 = 2646$ W.</p>
+      <p class="small"><b>The real starter</b>, $R_s = 45\ \mathrm{m\Omega}$: $x = 3$, $P = \tfrac{12}{16}P_{\max} = 1984.5$ W at $\eta = \tfrac34$.</p>
+      <p class="small"><b><span class="ref" data-ref="matched">The matched starter</span></b>, $R_s = 15\ \mathrm{m\Omega}$: $x = 1$, $P = 2646$ W at $\eta = \tfrac12$.</p>
+      <p class="small">The match buys 33% more power at the starter for twice the current — 420 A against 210 A — and four times the loss in battery and cables.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 430 300" width="440" role="img" aria-label="power over maximum power and efficiency against R over R th on a logarithmic axis from 0.1 to 10; the power curve peaks at 1 when R equals R th, where efficiency is one half; efficiency rises from near 0.09 to near 0.91; the real starter at x equals 3 has power 0.75 and efficiency 0.75; the matched starter at x equals 1 has power 1 and efficiency 0.5">
+        <line x1="60" y1="250" x2="405" y2="250" class="ink" stroke-width="1.3"/><line x1="60" y1="250" x2="60" y2="40" class="ink" stroke-width="1.3"/>
+        <line x1="60" y1="50" x2="400" y2="50" class="rule" stroke-width="1" stroke-dasharray="3 4"/><line x1="60" y1="150" x2="400" y2="150" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <line x1="230" y1="250" x2="230" y2="45" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <path d="M60.0,183.9 L68.5,177.4 L77.0,170.5 L85.5,163.2 L94.0,155.5 L102.5,147.5 L111.0,139.1 L119.5,130.4 L128.0,121.6 L136.5,112.8 L145.0,104.0 L153.5,95.4 L162.0,87.1 L170.5,79.3 L179.0,72.1 L187.5,65.7 L196.0,60.2 L204.5,55.8 L213.0,52.6 L221.5,50.7 L230.0,50.0 L238.5,50.7 L247.0,52.6 L255.5,55.8 L264.0,60.2 L272.5,65.7 L281.0,72.1 L289.5,79.3 L298.0,87.1 L306.5,95.4 L315.0,104.0 L323.5,112.8 L332.0,121.6 L340.5,130.4 L349.0,139.1 L357.5,147.5 L366.0,155.5 L374.5,163.2 L383.0,170.5 L391.5,177.4 L400.0,183.9" fill="none" class="unit" stroke-width="2.8"/>
+        <path d="M60.0,231.8 L68.5,229.8 L77.0,227.6 L85.5,225.2 L94.0,222.6 L102.5,219.8 L111.0,216.7 L119.5,213.4 L128.0,209.8 L136.5,206.0 L145.0,201.9 L153.5,197.6 L162.0,193.1 L170.5,188.2 L179.0,183.2 L187.5,178.0 L196.0,172.6 L204.5,167.1 L213.0,161.5 L221.5,155.8 L230.0,150.0 L238.5,144.2 L247.0,138.5 L255.5,132.9 L264.0,127.4 L272.5,122.0 L281.0,116.8 L289.5,111.8 L298.0,106.9 L306.5,102.4 L315.0,98.1 L323.5,94.0 L332.0,90.2 L340.5,86.6 L349.0,83.3 L357.5,80.2 L366.0,77.4 L374.5,74.8 L383.0,72.4 L391.5,70.2 L400.0,68.2" fill="none" class="alt" stroke-width="2.6"/>
+        <circle cx="230" cy="50" r="5.5" class="fill-unit"/><circle cx="230" cy="150" r="5.5" class="fill-alt"/>
+        <circle cx="311.1" cy="100" r="5.5" class="fill-ground unit" stroke-width="2.4"/>
+        <text x="236" y="40" font-size="12" class="fill-unit">matched: P = P<tspan dy="3" font-size="75%">max</tspan><tspan dy="-3">&#8202;</tspan>, η = ½</text>
+        <text x="324" y="142" font-size="12">real starter, x = 3:</text><text x="324" y="158" font-size="12">P = η = 0.75</text>
+        <text x="70" y="200" font-size="13" class="fill-unit">P/P<tspan dy="3" font-size="75%">max</tspan><tspan dy="-3">&#8202;</tspan></text><text x="70" y="244" font-size="13" class="alt">η</text>
+        <g class="rule" stroke-width="1"><line x1="60" y1="250" x2="60" y2="255"/><line x1="141.1" y1="250" x2="141.1" y2="255"/><line x1="230" y1="250" x2="230" y2="255"/><line x1="311.1" y1="250" x2="311.1" y2="255"/><line x1="400" y1="250" x2="400" y2="255"/></g>
+        <text x="60" y="270" font-size="12" text-anchor="middle" class="soft">0.1</text><text x="141.1" y="270" font-size="12" text-anchor="middle" class="soft">0.3</text><text x="230" y="270" font-size="12" text-anchor="middle" class="soft">1</text><text x="311.1" y="270" font-size="12" text-anchor="middle" class="soft">3</text><text x="400" y="270" font-size="12" text-anchor="middle" class="soft">10</text>
+        <text x="400" y="292" font-size="13" text-anchor="end">x = R/R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan> (log scale)</text>
+        <text x="54" y="54" font-size="12" text-anchor="end" class="soft">1</text><text x="54" y="154" font-size="12" text-anchor="end" class="soft">½</text><text x="54" y="254" font-size="12" text-anchor="end" class="soft">0</text>
+      </svg>
+      <p class="cap">Computed from the two formulas. At $x = 3$ the two curves happen to cross: $4\cdot3/16 = 3/4$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $P_{\max} = V_{\text{th}}^2/4R_{\text{th}} = 158.76/0.060 = 2646$ W. Real starter: $I = 12.6/0.060 = 210$ A,
+    $P = 210^2\times0.045 = 1984.5$ W $= 0.75\times2646$ ✓; loss $210^2\times0.015 = 661.5$ W; $\eta = 1984.5/2646 = 0.75$ ✓.
+    Matched: $I = 12.6/0.030 = 420$ A, $P = 420^2\times0.015 = 2646$ W; loss in $r_i$ $1764$ W and in the cables $882$ W, $2646$ W in all;
+    the EMF delivers $12.6\times420 = 5292$ W. Losses: $2646/661.5 = 4$ times as large.</p>
+    <p><b>The symmetry $x\mapsto1/x$.</b> $4(1/x)/(1 + 1/x)^2 = 4x/(x + 1)^2$. A load three times too large and a load three times
+    too small get the same power — but the large one wastes a quarter of the energy and the small one three quarters.</p>
+    <p><b>The crossing.</b> $4x/(1 + x)^2 = x/(1 + x)$ iff $4 = 1 + x$, i.e. $x = 3$: a coincidence of the starter's assumed values, of no
+    significance.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · maximum power</p>
+  <h2>The matched starter, and why nobody builds it</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A starter of 15 mΩ would get 2646 W instead of 1984.5 W — and the battery would have to supply 5292 W, half of it heating its own plates and the cables, through which 420 A would flow instead of 210 A.</p>
+      <div class="box warn"><span class="label">what "maximum power" assumed</span>
+        <p class="small">That the load is <b>only</b> a resistance, and that the source is linear. A turning motor is not a resistance: it develops a back-EMF that reduces its current as it speeds up (unit 12). And the battery's linear model was fitted at one rating; nothing here says how it behaves far from it.</p>
+      </div>
+      <p class="small">The design question is not "most power into the starter" but "enough torque to turn the engine, without flattening or overheating the battery". That is a statement about efficiency and current, and it points away from the match.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 260" width="420" role="img" aria-label="two horizontal stacked bars of battery output: the real starter, 2646 watts split into 441 in r i, 220.5 in the cables and 1984.5 in the starter; the matched starter, 5292 watts split into 1764 in r i, 882 in the cables and 2646 in the starter">
+        <rect x="40" y="60" width="28.3" height="34" class="fill-alt"/><rect x="68.3" y="60" width="14.2" height="34" class="fill-soft"/><rect x="82.5" y="60" width="127.5" height="34" class="fill-unit"/>
+        <rect x="40" y="160" width="113.3" height="34" class="fill-alt"/><rect x="153.3" y="160" width="56.7" height="34" class="fill-soft"/><rect x="210" y="160" width="170" height="34" class="fill-unit"/>
+        <rect x="68.3" y="60" width="14.2" height="34" fill="none" class="alt" stroke-width="1"/><rect x="153.3" y="160" width="56.7" height="34" fill="none" class="alt" stroke-width="1"/>
+        <text x="40" y="48" font-size="13">real starter, 45 mΩ: 2646 W from the battery</text>
+        <text x="40" y="148" font-size="13">matched starter, 15 mΩ: 5292 W</text>
+        <text x="146" y="114" font-size="12" text-anchor="middle" class="fill-unit">1984.5 W, 75%</text>
+        <text x="295" y="214" font-size="12" text-anchor="middle" class="fill-unit">2646 W, 50%</text>
+        <text x="40" y="114" font-size="12" class="alt">441</text><text x="96" y="214" font-size="12" text-anchor="middle" class="alt">1764 in r<tspan dy="3" font-size="75%">i</tspan><tspan dy="-3">&#8202;</tspan></text><text x="182" y="230" font-size="12" text-anchor="middle" class="soft">882 cables</text>
+        <rect x="40" y="236" width="12" height="12" class="fill-alt"/><text x="58" y="246" font-size="11">r<tspan dy="3" font-size="75%">i</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <rect x="90" y="236" width="12" height="12" class="fill-soft"/><text x="108" y="246" font-size="11">cables</text>
+        <rect x="160" y="236" width="12" height="12" class="fill-unit"/><text x="178" y="246" font-size="11">starter</text>
+      </svg>
+      <p class="cap">Bar lengths to scale. Matching doubles the battery's output and quadruples its losses, for a third more power at the starter.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> Real: $I = 210$ A; $r_i$: $210^2\times0.010 = 441$ W; cables: $220.5$ W; starter: $1984.5$ W; total $2646$ W.
+    Matched: $I = 420$ A; $r_i$: $1764$ W; cables: $882$ W; starter: $2646$ W; total $5292$ W. Ratio of starter powers
+    $2646/1984.5 = 1.333$.</p>
+    <p><b>Why the model breaks down most for the match.</b> The internal resistance was inferred from a rating at 540 A.
+    Asking the battery for 420 A is within that, but its terminals would then sit at $12.6 - 4.2 = 8.4$ V, not far above the
+    7.2 V the J537 test accepts — the linear model is being used near the edge of the regime it was fitted to.
+    That is a reason to distrust the 2646 W, not a reason to prefer the match.</p>
+    <p><b>Heat.</b> 1764 W inside the battery is 1.76 kJ into the plates and electrolyte for every second the crank
+    lasts. Nothing here claims what that does to a real battery; the point is only the comparison, 1764 W against
+    441 W, for the same battery.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · maximum power</p>
+  <h2>Why a power station refuses the matched point</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A <b>power station</b> turns fuel into electrical energy in a generator (unit 12) and sends it through transformers and lines (unit 07) to loads far away. Seen from the loads, the whole chain is a source with some resistance in series — the generator's windings, the lines. It is built so that this resistance is <b>far below</b> the loads'.</p>
+      <p class="small">Take $R_{\text{th}}/R = 0.01$ (an assumption for the comparison). Then</p>
+      <ul class="small">
+        <li>$\eta = 1/1.01 = 99.0\%$, against 50% matched;</li>
+        <li>energy generated per kWh delivered: $1/\eta = 1.01$ kWh, against 2 kWh matched.</li>
+      </ul>
+      <p class="small">At a fixed fuel cost per kWh generated, the match would burn twice the fuel per kWh sold, and half of it would heat the generator and the lines. The power the source <i>could</i> deliver is not the scarce thing; the fuel is.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 250" width="400" role="img" aria-label="two bars of energy generated per kilowatt hour delivered: at R th over R equal to 0.01, 1.01 kilowatt hours, almost all delivered; at the matched point, 2 kilowatt hours, half delivered and half lost in the generator and lines">
+        <rect x="80" y="160" width="60" height="70" class="fill-unit"/><rect x="80" y="159.3" width="60" height="0.7" class="fill-alt"/>
+        <rect x="220" y="160" width="60" height="70" class="fill-unit"/><rect x="220" y="90" width="60" height="70" class="fill-alt"/>
+        <line x1="60" y1="230" x2="320" y2="230" class="ink" stroke-width="1.3"/>
+        <text x="110" y="150" font-size="13" text-anchor="middle">1.01 kWh</text><text x="250" y="80" font-size="13" text-anchor="middle">2 kWh</text>
+        <text x="110" y="248" font-size="12" text-anchor="middle">R<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan>/R = 0.01</text><text x="250" y="248" font-size="12" text-anchor="middle">matched</text>
+        <text x="290" y="130" font-size="12" class="alt">lost</text><text x="290" y="200" font-size="12" class="fill-unit">delivered</text>
+        <text x="190" y="30" font-size="13" text-anchor="middle">energy generated per kWh delivered</text>
+      </svg>
+      <p class="cap">At 99% efficiency the loss is the sliver on top of the left bar. The matched source loses as much as it sells.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $x = R/R_{\text{th}} = 100$: $\eta = 100/101 = 0.990099$; $P/(V_{\text{th}}^2/R_{\text{th}}) = x/(1 + x)^2 = 100/10201 =
+    0.0098$, against $0.25$ matched. So the efficient source delivers only $0.0098/0.25 = 3.9\%$ of the power it could deliver
+    into a matched load. Nobody wants that power: the station is sized for its loads, not for the match.</p>
+    <p><b>What is assumed.</b> The ratio 0.01 is chosen for the comparison, not a figure for any real grid; a real grid's
+    losses depend on its loading and its lines, and are not claimed here. The qualitative statement — power systems are
+    designed so that source and line resistances are small beside the loads they serve, and run far from the matched
+    point — follows from the economics above. Unit 07 adds the reason lines run at high voltage: the loss in a line of
+    fixed resistance at fixed delivered power falls as $1/V^2$.</p>
+    <p><b>Problem P12</b> works these figures and the fuel comparison. Unit 15 meets the distinction again in wireless
+    charging, where the maximum-efficiency load and the maximum-power load are different.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · maximum power</p>
+  <h2>Where matching is right: a radio receiver</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A <b>radio receiver</b> takes its signal from an antenna: a conductor in which a passing radio wave drives a tiny current. At its terminals the antenna acts as a source with an internal resistance (branch 16 shows why, and what the resistance is). The transmitter has already paid for the energy; whatever the antenna does not hand over is gone anyway.</p>
+      <div class="box good"><span class="label">the opposite economics</span>
+        <p class="small">Here the source's energy is free and the received power is scarce: it decides whether the signal stands out above the receiver's own noise. So the receiver's input is made to <b>match</b> the antenna, and the 50% is accepted.</p>
+      </div>
+      <p class="small">Unit 06 turns this into <b>conjugate matching</b> for alternating current, where the source has reactance too.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 240" width="400" role="img" aria-label="an antenna, drawn as a vertical line with a small triangle, modelled as a source V a behind a resistance R a; it feeds the receiver's input resistance R in, chosen equal to R a">
+        <path d="M60,30 V90 M44,30 L60,52 L76,30" fill="none" class="ink" stroke-width="2"/>
+        <text x="84" y="42" font-size="12" class="soft">antenna</text>
+        <text x="110" y="110" font-size="18" text-anchor="middle">≡</text>
+        <rect x="140" y="40" width="210" height="160" rx="10" fill="none" class="ink" stroke-width="1" stroke-dasharray="5 4"/>
+        <path d="M180,70 H220 M260,70 H310 V100 M310,150 V180 H180 V142 M180,108 V70" fill="none" class="ink" stroke-width="2"/>
+        <circle cx="180" cy="125" r="18" class="fill-ground ink" stroke-width="2"/>
+        <text x="180" y="121" font-size="11" text-anchor="middle">+</text><text x="180" y="137" font-size="12" text-anchor="middle">−</text>
+        <rect x="220" y="62" width="40" height="16" class="fill-ground ink" stroke-width="2"/><rect x="302" y="100" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <text x="150" y="129" font-size="12" text-anchor="end">V<tspan dy="3" font-size="75%">a</tspan><tspan dy="-3">&#8202;</tspan></text><text x="240" y="56" font-size="12" text-anchor="middle">R<tspan dy="3" font-size="75%">a</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="326" y="122" font-size="12">R<tspan dy="3" font-size="75%">in</tspan><tspan dy="-3">&#8202;</tspan></text><text x="326" y="138" font-size="11" class="soft">receiver</text>
+        <text x="245" y="225" font-size="12" text-anchor="middle" class="fill-unit">R<tspan dy="3" font-size="75%">in</tspan><tspan dy="-3">&#8202;</tspan> = R<tspan dy="3" font-size="75%">a</tspan><tspan dy="-3">&#8202;</tspan>: most signal power</text>
+      </svg>
+      <p class="cap">The same theorem, the opposite choice. What the "lost" half in $R_a$ is physically is branch 16's question.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the economics flip.</b> For the power station, the cost is fuel per delivered kWh, so efficiency rules. For the
+    receiver, the cost of the received energy is zero to the receiver, and the figure of merit is how much signal power
+    arrives compared with the noise generated inside the receiver; so power rules, and matching wins. Nothing numerical
+    is claimed about any receiver; the point is the direction of the design choice.</p>
+    <p><b>A correction.</b> An audio amplifier driving a loudspeaker is sometimes offered as an example of matching. It is
+    not one: such an amplifier is designed with an output resistance far below its loudspeaker's, so that the speaker's
+    voltage is set by the amplifier and not by the speaker's varying impedance. It sits on the efficient side of the
+    curve, with the power station.</p>
+    <p><b>The radio wave</b> is MR 24's radiation; how a conductor exposed to it acts as a source with a resistance, and
+    how much power it can collect, is branch 16. Unit 08 explains why the receiver's input and the antenna are joined by
+    a cable of matching characteristic impedance.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · close</p>
+  <h2>The headlights, explained</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="ref" data-ref="car">the car</span>, every number</span>
+        <p class="small">Lamps alone: 9.34 A, 12.23 V, <b>114.2 W</b>. Cranking alone: 210 A, terminals at 10.5 V, starter 1984.5 W at 75%. Both: the lamps see <b>10.5 V behind 38.33 mΩ</b> and get <b>79.5 W</b>, 70% of before.</p>
+      </div>
+      <p class="small"><b>Why they dim:</b> the starter's 210 A drops 2.1 V across the battery's internal resistance, which the lamps share. Their own wiring hardly matters; the battery's $r_i$ is everything.</p>
+      <p class="small"><b>Computed three ways:</b> the Laplacian (<i>Worked: the car's network, solved</i>), series and parallel (notes of <i>Series and parallel, as theorems</i>), Thévenin (<i>Worked: the lamps' view of the cranking battery</i>). Same numbers.</p>
+      <p class="small"><b>Next.</b> Unit 05 adds capacitors and inductors; the network acquires memory, and $G$ becomes a complex admittance.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 210" width="400" role="img" aria-label="a stacked bar of the 2727.8 watts the battery's EMF delivers while cranking with the lamps on: 468.7 watts in the internal resistance, 217.8 in the cables, 1960.0 in the starter, 1.8 in the wiring and 79.5 in the lamps">
+        <rect x="20" y="70" width="58.4" height="40" class="fill-alt"/><rect x="78.4" y="70" width="27.1" height="40" class="fill-soft"/><rect x="105.5" y="70" width="244.3" height="40" class="fill-unit"/><rect x="349.8" y="70" width="10.2" height="40" class="fill-ink"/>
+        <rect x="78.4" y="70" width="27.1" height="40" fill="none" class="alt" stroke-width="1"/>
+        <text x="20" y="50" font-size="13">2727.8 W from the EMF, cranking with the lamps on</text>
+        <text x="49" y="132" font-size="12" text-anchor="middle" class="alt">468.7</text><text x="49" y="148" font-size="11" text-anchor="middle" class="soft">r<tspan dy="3" font-size="75%">i</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="92" y="166" font-size="12" text-anchor="middle">217.8</text><text x="92" y="182" font-size="11" text-anchor="middle" class="soft">cables</text>
+        <text x="228" y="132" font-size="12" text-anchor="middle" class="fill-unit">1960.0 starter</text>
+        <text x="356" y="132" font-size="12" text-anchor="middle">79.5</text><text x="356" y="148" font-size="11" text-anchor="middle" class="soft">lamps</text>
+        <text x="300" y="182" font-size="11" class="soft">+ 1.8 wiring</text>
+        <text x="190" y="204" font-size="12" text-anchor="middle" class="soft">468.7 + 217.8 + 1960.0 + 1.8 + 79.5 = 2727.8 W ✓</text>
+      </svg>
+      <p class="cap">The energy balance, closed. The lamps are the thin dark sliver at the right.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Summary of the unit, in the car's terms.</b> Section 1 wrote its Laplacian and solved the Dirichlet problem; section 2
+    gave the variational principle behind every bound; section 3 replaced the battery-and-starter by two numbers as the
+    lamps see them; section 5 showed that the starter could get more power, and why it is not designed to.</p>
+    <p><b>What carries on.</b> The Laplacian is unit 13's bus admittance matrix with complex weights, and Kron reduction its
+    network equivalent. Thévenin's theorem holds verbatim for phasors (unit 05), and the maximum-power theorem becomes
+    conjugate matching (unit 06). Unit 15 meets a problem in which maximum efficiency and maximum power are different
+    loads again, with numbers.</p>
+    <p><b>Reading.</b> Doyle and Snell, §1.3 (from "Random walks on more general networks"; the electrical statements can be
+    read without the probability) and §1.4 (Rayleigh); skip their section 2 on infinite networks except §2.2, which
+    problem P2 points to. Bollobás, ch. II (electrical networks) for the linear algebra in another voice. Lyons and Peres,
+    ch. 2, for effective resistance, Thomson's principle and Foster's theorem in full generality — skip its random-walk
+    material, which this course does not use.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">04 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can prove the maximum-power theorem and that the efficiency at the matched load is exactly <b>50%</b>, prove Foster's theorem $\sum_eR_{\text{eff}}(e)/R_e = n - 1$, and compute the cube's corner-to-opposite-corner resistance, <b>$5R/6$</b>, two ways: by symmetry, and by Kron reduction.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A matched load "because it is the most efficient"; a Foster sum of $m$ or $n$; a trace argument that never shows $P^2 = P$, or never computes the rank; $R/3 + R/3 + R/3$ for the cube, or a Kron reduction with a positive off-diagonal entry.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./cap problems 04</code>. When the checkpoint is true: <code>./cap done 04</code>. Then unit 05, where capacitors and inductors give a network memory and the sinusoidal steady state turns it into complex arithmetic.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on variants before opening the sheet. Four equal resistors $R$ on the edges of a square, plus
+    one diagonal: $n = 4$, $m = 5$, and Foster says the five terms sum to 3. (The diagonal's ends are at $R/2$; the four side
+    edges are at $5R/8$ each, and $4\times5/8 + 1/2 = 3$ ✓.) For the cube, find the face-diagonal resistance $3R/4$ by Kron
+    reduction, keeping its two ends: the six other corners are interior.</p>
+    <p>For the maximum-power theorem, an answer that writes $P(R)$, bounds it by $(R_{\text{th}} - R)^2\ge0$ or by calculus, and
+    then computes $\eta = R/(R_{\text{th}} + R)$ at $R = R_{\text{th}}$ is enough. For Foster, the three facts to show are $P^2 = P$,
+    $P^{\mathsf T} = P$ and $\operatorname{rank}P = n - 1$.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

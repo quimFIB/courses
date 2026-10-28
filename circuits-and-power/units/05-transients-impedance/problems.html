@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 · Problems — Circuits that remember: transients, phasors, and impedance as a positive-real function</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="c">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part C · unit 05 · problems</p>
+<h1>Circuits that remember: transients, phasors, and impedance as a positive-real function</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u05">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove that charging a capacitor from a fixed
+voltage through a resistor wastes exactly half the energy drawn, whatever the resistance — and check it: 0.2 μF at 12 V draws
+28.8 μJ and loses 14.4 μJ; and you prove, from Tellegen's theorem with a complex conjugate, that the impedance of every RLC
+network is positive-real — and check it on the deck's worked example 5 network: \(Z = 2 + 0.5i\ \Omega\) at
+\(s = (1 + i)\ \mathrm s^{-1}\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Thirteen problems, about four and a half hours. P2 and P10 are the checkpoint's. Conventions as in the deck: the passive
+sign convention; element laws \(v = Ri\), \(i = C\,\mathrm dv/\mathrm dt\), \(v = L\,\mathrm di/\mathrm dt\); RMS phasors,
+\(v(t) = \operatorname{Re}(\sqrt2\,Ve^{i\omega t})\); impedances \(R\), \(i\omega L\), \(1/(i\omega C)\), or \(R\), \(sL\),
+\(1/(sC)\) at complex frequency \(s\); \(Z = R + iX\); the one-sided Laplace transform \(F(s) = \int_0^\infty f e^{-st}\,\mathrm dt\)
+with \(\mathcal L[\dot f] = sF - f(0)\); a series RLC has \(\gamma = R/L\), \(\omega_0 = 1/\sqrt{LC}\), \(Q = \omega_0/\gamma\).</p>
+<p>The ignition coil (all values assumed): a 12 V battery, the coil's primary \(L = 6\) mH in series with \(R = 3\ \Omega\), a
+contact, and \(C = 0.2\ \mu\mathrm F\) across the contact. Switched on, \(\tau = 2\) ms and the current rises to 4 A, storing
+48 mJ. A four-cylinder four-stroke engine fires twice per crankshaft turn; the contact is closed for 60% of each interval.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Time constants">P1</a></li>
+<li><a class="medium" href="#p2" title="Proof: half the energy, whatever R">P2</a></li>
+<li><a class="medium" href="#p3" title="The order of a network">P3</a></li>
+<li><a class="routine" href="#p4" title="The coil at speed">P4</a></li>
+<li><a class="medium" href="#p5" title="The snubber">P5</a></li>
+<li><a class="routine" href="#p6" title="Q and bandwidth against MR 06">P6</a></li>
+<li><a class="medium" href="#p7" title="Laplace with a charged capacitor">P7</a></li>
+<li><a class="medium" href="#p8" title="A negative resistance">P8</a></li>
+<li><a class="medium" href="#p9" title="Is it positive-real?">P9</a></li>
+<li><a class="hard" href="#p10" title="Proof: every RLC impedance is positive-real">P10</a></li>
+<li><a class="hard" href="#p11" title="Proof: Foster's reactance theorem">P11</a></li>
+<li><a class="medium" href="#p12" title="A Foster form, both ways">P12</a></li>
+<li><a class="routine" href="#p13" title="Phasors and the kettle">P13</a></li>
+</ul>
+</header>
+
+<h2 class="group">Memory and the first-order circuit</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Time constants <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the first-order solution, the 63% and 99.3% rules computed, dimensions of \(RC\) and \(L/R\)</p>
+<div class="statement">
+<ol>
+<li>Show that \(RC\) and \(L/R\) are times, from the units \(\Omega = \mathrm{V\,A^{-1}}\), \(\mathrm F = \mathrm{C\,V^{-1}}\),
+\(\mathrm H = \mathrm{V\,s\,A^{-1}}\).</li>
+<li>A quantity moves as \(x(t) = x(\infty) + (x(0) - x(\infty))e^{-t/\tau}\). What fraction of its change has it made after \(\tau\),
+and after \(5\tau\)? How long does it take to make 90% and 99% of the change, in units of \(\tau\)?</li>
+<li>A 4.7 μF capacitor, uncharged, is connected at \(t = 0\) through 10 kΩ to a 9 V source. Find \(\tau\), the time after which
+it is within 0.7% of 9 V, and its voltage at \(t = 100\) ms.</li>
+<li>A 0.5 H inductor in series with 100 Ω is switched onto a DC source. Find \(\tau\) and the time for the current to reach 90%
+of its final value.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer is a number of seconds, or a pure number times \(\tau\). Part 2 is the whole problem; parts 3 and 4 are part 2
+with numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The fraction of the change made by time \(t\) is \(1 - e^{-t/\tau}\). Setting it equal to \(f\) and solving gives
+\(t = -\tau\ln(1 - f)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\Omega\cdot\mathrm F = \mathrm{V\,A^{-1}}\cdot\mathrm{C\,V^{-1}} = \mathrm{C\,A^{-1}} = \mathrm s\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One store and constant sources give one exponential; everything is read off \(1 - e^{-t/\tau}\).</p>
+<p><strong>1.</strong> \(\Omega\cdot\mathrm F = \mathrm{V\,A^{-1}}\cdot\mathrm{C\,V^{-1}} = \mathrm{C\,A^{-1}} = \mathrm s\), since an ampere is a
+coulomb per second. \(\mathrm H/\Omega = \mathrm{V\,s\,A^{-1}}/\mathrm{V\,A^{-1}} = \mathrm s\).</p>
+<p><strong>2.</strong> After \(\tau\): \(1 - e^{-1} = 0.632\). After \(5\tau\): \(1 - e^{-5} = 0.993\). From \(t = -\tau\ln(1 - f)\): 90% at
+\(\tau\ln10 = 2.303\tau\), 99% at \(\tau\ln100 = 4.605\tau\).</p>
+<p><strong>3.</strong> \(\tau = 10^4\times4.7\times10^{-6} = 47\) ms. Within 0.7% of 9 V means 99.3% of the change: \(5\tau = 235\) ms.
+At 100 ms, \(v = 9(1 - e^{-100/47}) = 9\times0.8809 = 7.93\) V.</p>
+<p><strong>4.</strong> \(\tau = 0.5/100 = 5\) ms; 90% at \(2.303\times5 = 11.5\) ms.</p>
+<p><strong>Check.</strong> Limits: \(t = 0\) gives fraction 0, \(t\to\infty\) gives 1 ✓. The tangent at \(t = 0\) has slope \(1/\tau\) in
+fraction per second, so it would reach 1 at \(t = \tau\), above the curve's 0.632 ✓ (the exponential is concave). Units in part 3: \(t/\tau\)
+is ms/ms, a pure number ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Proof: half the energy, whatever R <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the checkpoint's first proof, twice; energy bookkeeping; why gradual charging loses less</p>
+<div class="statement">
+<p>An uncharged capacitor \(C\) is connected at \(t = 0\) through a resistance \(R\) to a fixed voltage \(V\).</p>
+<ol>
+<li>Prove that, by the time it is charged, the source has supplied \(CV^2\) and the resistor has dissipated \(\tfrac12CV^2\),
+first by integrating \(i^2R\) with the exponential current, then without solving any differential equation.</li>
+<li>Say what the second proof uses about the resistor. Does it still hold with an inductor in series with \(R\)? (Assume the
+current eventually dies away.)</li>
+<li>Now charge the capacitor in \(N\) equal steps: the source is set to \(V/N\), then, once the capacitor has charged, to \(2V/N\),
+and so on up to \(V\). Prove that the total energy lost is \(\tfrac12CV^2/N\).</li>
+<li>For the contact's capacitor, \(C = 0.2\ \mu\mathrm F\) at 12 V, compute the loss for \(N = 1\) and \(N = 10\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is an energy proportional to \(CV^2\), with no \(R\) in it. The second proof is a change of variable from \(t\) to
+\(v_C\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>KVL gives \(v_R = V - v_C\); the capacitor gives \(i\,\mathrm dt = C\,\mathrm dv_C\). For part 3, each step is the theorem
+again, with a source of \(kV/N\) and a capacitor starting at \((k - 1)V/N\): only the size of the jump matters.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the second proof: \(\int_0^\infty v_Ri\,\mathrm dt = \int_0^\infty(V - v_C)\,C\,\dot v_C\,\mathrm dt\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The source pushes all the charge \(CV\) through the full voltage \(V\); the capacitor stores it at the average
+voltage \(V/2\). The difference is lost, whatever the path between.</p>
+<p><strong>1, by the exponential.</strong> \(v_C = V(1 - e^{-t/RC})\), so \(i = C\dot v_C = (V/R)e^{-t/RC}\). The source supplies
+\(\int_0^\infty Vi\,\mathrm dt = V\cdot CV = CV^2\). The resistor dissipates \(\int_0^\infty R(V/R)^2e^{-2t/RC}\,\mathrm dt = (V^2/R)(RC/2) =
+\tfrac12CV^2\). The capacitor ends with \(\tfrac12CV^2\), and \(CV^2 = \tfrac12CV^2 + \tfrac12CV^2\) ✓.</p>
+<p><strong>1, without the exponential.</strong> \(\int_0^\infty v_Ri\,\mathrm dt = \int_0^\infty(V - v_C)C\dot v_C\,\mathrm dt =
+\big[C(Vv_C - \tfrac12v_C^2)\big]_0^\infty = C(V^2 - \tfrac12V^2) = \tfrac12CV^2\), using only that \(v_C\) goes from 0 to \(V\).</p>
+<p><strong>2.</strong> Nothing about the resistor beyond its being the only other element in the loop: not Ohm's law, not the value of
+\(R\). With an inductor in series, KVL becomes \(v_R = V - v_C - L\dot\imath\), and \(\int L\dot\imath\,i\,\mathrm dt = [\tfrac12Li^2]_0^\infty = 0\)
+because the current starts and ends at zero. So the resistive loss is still \(\tfrac12CV^2\), though \(v_C\) may overshoot on the way — the
+deck's <i>R → 0</i> slide.</p>
+<p><strong>3.</strong> Step \(k\): the source is at \(kV/N\), the capacitor goes from \((k - 1)V/N\) to \(kV/N\). The second proof with these end
+values gives a loss \(\int(kV/N - v_C)C\,\mathrm dv_C = \tfrac12C(V/N)^2\) — the square of the jump. \(N\) steps lose \(N\cdot\tfrac12CV^2/N^2 =
+\tfrac12CV^2/N\). The capacitor still ends with \(\tfrac12CV^2\); the source now supplies \(\tfrac12CV^2(1 + 1/N)\).</p>
+<p><strong>4.</strong> \(N = 1\): \(\tfrac12\times0.2\times10^{-6}\times144 = 14.4\ \mu\mathrm J\). \(N = 10\): \(1.44\ \mu\mathrm J\).</p>
+<p><strong>Check.</strong> Units: \(\mathrm F\cdot\mathrm V^2 = \mathrm J\) ✓. \(N = 1\) recovers the theorem ✓. \(N\to\infty\): no loss — a source that
+rises with the capacitor never has a voltage across the resistor. This is the idea behind "adiabatic" charging: make the step small and
+the loss goes with it.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> The order of a network <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: counting state variables, capacitor loops and inductor cuts, what is not a constraint, one state equation</p>
+<div class="statement">
+<p>Find the order of each network, naming every capacitor loop and inductor cut.</p>
+<ol>
+<li>A voltage source \(V_s\), a resistor \(R\), and two capacitors \(C_1\), \(C_2\) in parallel, all in one loop.</li>
+<li>A voltage source, \(R\), and two capacitors \(C_1\), \(C_2\) in series, all in one loop.</li>
+<li>Three capacitors forming a triangle on nodes a, b, c, with a resistor from each of a, b, c to a common node d, and a voltage source
+from d to a through a fourth resistor.</li>
+<li>A current source \(I_s\) in series with an inductor \(L_1\) feeding a node n; from n, a resistor \(R\) and an inductor \(L_2\) both go
+to the return.</li>
+<li>A voltage source \(V_s\) through \(R\) feeding two inductors \(L_1\), \(L_2\) in parallel. Then write its state equation \(\dot x = Ax + Bu\)
+with \(x = (i_1, i_2)\), and find the eigenvalues of \(A\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a whole number: stores minus independent constraints. A constraint is a loop of capacitors (and voltage sources) only,
+or a cut of inductors (and current sources) only — not the other way round.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Two capacitors in series share a node that touches only them: that is a cut of capacitors, which constrains nothing. Two inductors in
+parallel form a loop of inductors, which constrains only derivatives.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 5: the node voltage is \(v_a = V_s - R(i_1 + i_2)\), and \(L_1\dot\imath_1 = L_2\dot\imath_2 = v_a\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Count stores; subtract one for each independent KVL relation among capacitor voltages and sources alone, and one
+for each KCL relation among inductor currents and sources alone.</p>
+<p><strong>1.</strong> Two stores; \(C_1\) and \(C_2\) form a capacitor loop (\(v_1 = v_2\)). Order 1: one capacitor of \(C_1 + C_2\).</p>
+<p><strong>2.</strong> Two stores; no loop of capacitors alone (the loop contains \(R\)); the node between them is a cut of capacitors, which is
+not a constraint. Order 2. The charge on that middle node, \(C_2v_2 - C_1v_1\), is conserved, so one natural frequency is \(s = 0\).</p>
+<p><strong>3.</strong> Three stores; the triangle is one capacitor loop (\(v_{ab} + v_{bc} + v_{ca} = 0\)). Order 2.</p>
+<p><strong>4.</strong> Two stores; the node joining \(I_s\) and \(L_1\) is a cut made of a current source and an inductor: \(i_1 = I_s\). Order 1:
+the state is \(i_2\), and \(L_2\dot\imath_2 = R(I_s - i_2)\), with \(\tau = L_2/R\).</p>
+<p><strong>5.</strong> Two stores; the parallel pair is an inductor loop, not a constraint. Order 2. With \(v_a = V_s - R(i_1 + i_2)\):</p>
+\[\frac{\mathrm d}{\mathrm dt}\begin{pmatrix} i_1\\ i_2\end{pmatrix} = \begin{pmatrix} -R/L_1 &amp; -R/L_1\\ -R/L_2 &amp; -R/L_2\end{pmatrix}
+\begin{pmatrix} i_1\\ i_2\end{pmatrix} + \begin{pmatrix} 1/L_1\\ 1/L_2\end{pmatrix}V_s .\]
+<p>\(A\) has rank 1, so one eigenvalue is \(0\); the trace gives the other, \(-R(1/L_1 + 1/L_2) = -R/L_\parallel\) with
+\(L_\parallel = L_1L_2/(L_1 + L_2)\). Its eigenvector: \(A(1, -1)^{\mathsf T} = 0\), the motion \(i_1 = -i_2\) — a current circulating round the inductor loop, which no resistor sees and which persists for ever.</p>
+<p><strong>Check.</strong> Units: \(R/L\) in \(\mathrm s^{-1}\) ✓, \(V_s/L\) in \(\mathrm A\,\mathrm s^{-1}\) ✓. The nonzero eigenvalue is \(-1/\tau\) for the
+single inductor \(L_\parallel\) behind \(R\), the answer one would get by first combining the pair ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> The coil at speed <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the time constant against a deadline, energy as the square of current, a number that says "impossible"</p>
+<div class="statement">
+<ol>
+<li>For the coil at 1000, 3000, 4500 and 6000 rpm, find the spark interval, the dwell, the current at opening and the stored energy.</li>
+<li>What dwell would store 90% of the coil's 48 mJ? Compare it with the interval between sparks at 6000 rpm.</li>
+<li>Up to what engine speed can the 60% dwell store 90% of the energy?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a time, a current, an energy or a speed. The energy fraction is the square of the current fraction.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Interval \(= 60/(2N)\) s at \(N\) rpm. For 90% of the energy the current must reach \(\sqrt{0.9}\) of 4 A.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(1 - e^{-t/\tau} = \sqrt{0.9} = 0.9487\), so \(t = -\tau\ln(1 - 0.9487)\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The dwell shrinks with speed while \(\tau\) stays 2 ms; the stored energy goes as \((1 - e^{-t_d/\tau})^2\).</p>
+<p><strong>1.</strong></p>
+<table>
+<tr><th>rpm</th><th>interval</th><th>dwell</th><th>dwell/τ</th><th>current</th><th>energy</th></tr>
+<tr><td>1000</td><td>30 ms</td><td>18 ms</td><td>9</td><td>4.00 A</td><td>48.0 mJ</td></tr>
+<tr><td>3000</td><td>10 ms</td><td>6 ms</td><td>3</td><td>3.80 A</td><td>43.3 mJ</td></tr>
+<tr><td>4500</td><td>6.67 ms</td><td>4 ms</td><td>2</td><td>3.46 A</td><td>35.9 mJ</td></tr>
+<tr><td>6000</td><td>5 ms</td><td>3 ms</td><td>1.5</td><td>3.11 A</td><td>29.0 mJ</td></tr>
+</table>
+<p><strong>2.</strong> \(t = -\tau\ln(1 - \sqrt{0.9}) = 2.970\tau = 5.94\) ms. At 6000 rpm the whole interval is 5 ms: even a contact closed
+all the time could not store 90% with this coil.</p>
+<p><strong>3.</strong> Dwell \(= 0.6\times60/(2N) = 18/N\) s \(\ge5.94\times10^{-3}\) s gives \(N\le18/(5.940\times10^{-3}) = 3030\) rpm. (With 100% dwell, \(N\le30/(5.940\times10^{-3}) =
+5050\) rpm.)</p>
+<p><strong>Check.</strong> At 1000 rpm, \(e^{-9} = 1.2\times10^{-4}\): full to four figures ✓. Units: rpm/60 is revolutions per second, times 2 sparks per
+revolution ✓. The 90% dwell, \(2.97\tau\), is just under \(3\tau\), whose energy fraction is \(0.9029\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Ringing, Laplace and stability</h2>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> The snubber <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the characteristic resistance as a design rule, the ringing frequency, critical damping, and why it is the wrong goal</p>
+<div class="statement">
+<p>When the coil's contact opens at 4 A, the capacitor across it takes the current. Ignore the battery's 12 V throughout.</p>
+<ol>
+<li>Choose \(C\) so that, in the lossless estimate, the contact sees at most 400 V. What happens to the ringing frequency, and to the
+time at which the peak arrives?</li>
+<li>With this \(C\) and the coil's \(R = 3\ \Omega\), what is the actual peak?</li>
+<li>Return to \(C = 0.2\ \mu\mathrm F\). A resistor \(R_s\) is put in series with the capacitor, in its branch, to kill the ringing. What
+\(R_s\) makes the switch-off critically damped?</li>
+<li>With that \(R_s\), what voltage does the contact see at the instant it opens? Why does this defeat the purpose?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are a capacitance, a frequency, a time and a voltage; part 3 a resistance; part 4 a voltage. The lossless peak is
+\(I\sqrt{L/C}\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 3: the loop is \(L\), \(R\), \(R_s\), \(C\) in series, critically damped when the total resistance is \(2\sqrt{L/C}\). Part 4: the
+contact is across the series pair \(R_s\), \(C\), and at \(t = 0^+\) the capacitor still has no voltage but the current is still 4 A.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\tfrac12LI^2 = \tfrac12C(400\ \mathrm V)^2\), so \(C = L(I/400\ \mathrm V)^2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The capacitor limits the voltage by giving the current somewhere to go; anything in series with it that resists the
+current brings the voltage back.</p>
+<p><strong>1.</strong> \(C = 0.006\times(4/400)^2 = 6\times10^{-7}\) F \(= 0.6\ \mu\mathrm F\). The frequency \(1/(2\pi\sqrt{LC}) = 1/(2\pi\times6\times10^{-5}\
+\mathrm s) = 2.65\) kHz, down from 4.59 kHz by \(\sqrt3\); the peak arrives a quarter-period after opening, \(\tfrac\pi2\sqrt{LC} = 94.2\ \mu\mathrm s\),
+later than 54 μs — more time for the points to separate.</p>
+<p><strong>2.</strong> \(\gamma/2 = R/2L = 250\ \mathrm s^{-1}\), \(\omega_{\mathrm d} = 16\,665\ \mathrm s^{-1}\); \(v_C = \frac{I}{\omega_{\mathrm d}C}e^{-\gamma t/2}\sin\omega_{\mathrm d}t\)
+peaks where \(\tan\omega_{\mathrm d}t = 2\omega_{\mathrm d}/\gamma\), at \(93.4\ \mu\mathrm s\), at \(390.8\) V.</p>
+<p><strong>3.</strong> \(2\sqrt{L/C} = 2\times173.2 = 346.4\ \Omega\) in total, so \(R_s = 346.4 - 3 = 343.4\ \Omega\).</p>
+<p><strong>4.</strong> At \(t = 0^+\): \(v_C = 0\) (continuity) and \(i = 4\) A (continuity of the coil's current), so the contact sees \(R_si = 343.4\times4 =
+1374\) V at the instant it opens — nearly twice the 693 V peak without \(R_s\), and arriving at once instead of after 54 μs. The capacitor's whole value was
+that its voltage cannot jump; a series resistor gives the voltage a part that can.</p>
+<p><strong>Check.</strong> Energy in part 1: \(\tfrac12\times0.6\times10^{-6}\times400^2 = 48\) mJ ✓. Part 2 below part 1's 400 V ✓ (loss), and only by 2.3%, as
+\(Q = \sqrt{L/C}/R = 100/3 = 33\) suggests. Units: \(\Omega\cdot\mathrm A = \mathrm V\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Q and bandwidth against MR 06 <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: resonance, \(Q\), the half-power frequencies exactly, the dictionary between the circuit and MR 06's oscillator</p>
+<div class="statement">
+<p>A coil of \(L = 200\ \mu\mathrm H\) and resistance \(R = 10\ \Omega\) is in series with a capacitor, tuned to \(f_0 = 1\) MHz.</p>
+<ol>
+<li>Find \(C\), \(Q\) and the half-power bandwidth in hertz.</li>
+<li>Find the two half-power frequencies exactly, and check that their product is \(f_0^2\).</li>
+<li>Identify MR 06's \(\gamma\) and check that the half-power width is exactly \(\gamma\). How many cycles does the free ringing take to lose a factor \(e\)
+of its energy?</li>
+<li>Driven at resonance by 10 mV (RMS), what is the voltage across the capacitor?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A capacitance, a pure number, frequencies, a count of cycles and a voltage. The circuit's equation divided by \(L\) is MR 06's.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(x = \omega/\omega_0\), half power is \(Q(x - 1/x) = \pm1\). Energy decays as \(e^{-\gamma t}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(C = 1/((2\pi f_0)^2L)\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(L\ddot q + R\dot q + q/C = v\) is MR 06's oscillator with \(\gamma = R/L\); every result there transfers.</p>
+<p><strong>1.</strong> \(C = 1/((6.2832\times10^6)^2\times2\times10^{-4}) = 126.7\) pF. \(Q = \omega_0L/R = 1256.6/10 = 125.7\). Bandwidth
+\(\Delta\omega = R/L = 5\times10^4\ \mathrm s^{-1}\), \(\Delta f = 7.96\) kHz.</p>
+<p><strong>2.</strong> \(x_\pm = \pm\frac1{2Q} + \sqrt{1 + \frac1{4Q^2}}\): \(f_- = 996.03\) kHz, \(f_+ = 1003.99\) kHz. Product: \(x_+x_- = (1 + \frac1{4Q^2}) - \frac1{4Q^2} = 1\)
+exactly, so \(f_+f_- = f_0^2\); numerically \(996.029\times1003.987 = 1.000\times10^6\ \mathrm{kHz^2}\) ✓. Difference 7.96 kHz ✓.</p>
+<p><strong>3.</strong> \(\gamma = R/L = 5\times10^4\ \mathrm s^{-1}\), which is the half-power width \(\Delta\omega\) — MR 06's "a width that is exactly \(\gamma\)". The
+energy \(e\)-folds in \(1/\gamma = 20\ \mu\mathrm s\), which at 1 MHz is 20.0 cycles, \(= Q/2\pi\).</p>
+<p><strong>4.</strong> \(I = 10\ \mathrm{mV}/10\ \Omega = 1\) mA; \(|V_C| = I/(\omega_0C) = \omega_0LI = 1.257\) V, which is \(Q\) times the drive.</p>
+<p><strong>Check.</strong> Units: \(\mathrm{s^2/H} = \mathrm F\) ✓, \(\Omega/\mathrm H = \mathrm s^{-1}\) ✓. Two routes to the bandwidth, \(R/L\) and
+\(\omega_0/Q\), agree ✓. Limit \(R\to0\): \(Q\to\infty\), zero width, infinite \(V_C\) — the undamped resonance MR 06 found has no steady state.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Laplace with a charged capacitor <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: initial conditions as s-domain sources, inversion by residues, the energy balance as \(t\to\infty\)</p>
+<div class="statement">
+<p>A capacitor \(C = 1\ \mu\mathrm F\) charged to \(V_0 = 100\) V is switched at \(t = 0\) across a series \(R = 20\ \Omega\), \(L = 1\) mH, which
+carries no current before. Let \(i\) be the current leaving the capacitor's + plate.</p>
+<ol>
+<li>Draw the s-domain circuit and find \(I(s)\).</li>
+<li>Invert it by residues. Find the time and size of the first current peak.</li>
+<li>Prove that the energy dissipated in \(R\) over \(0\le t &lt; \infty\) is exactly \(\tfrac12CV_0^2\), and give it in millijoules.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>\(I(s)\) is a rational function with a quadratic denominator; \(i(t)\) a decaying sinusoid. Is it underdamped? Compare \(R\) with
+\(2\sqrt{L/C}\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The charged capacitor is an uncharged one in series with a source \(V_0/s\). The inductor, empty, is just \(sL\).
+\(\int_0^\infty e^{-2\alpha t}\sin^2\omega_{\mathrm d}t\,\mathrm dt = \frac{\omega_{\mathrm d}^2}{4\alpha(\alpha^2 + \omega_{\mathrm d}^2)}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\frac{V_0}s = \big(R + sL + \frac1{sC}\big)I\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The initial charge is a step source; the loop is a series RLC from rest.</p>
+<p><strong>1.</strong> KVL round the loop: \(V_0/s = (R + sL + 1/(sC))I\), so \(I = \dfrac{V_0C}{LCs^2 + RCs + 1} = \dfrac{V_0/L}{s^2 + (R/L)s + 1/(LC)}\).</p>
+<p><strong>2.</strong> \(R/2L = \alpha = 10^4\ \mathrm s^{-1}\), \(1/\sqrt{LC} = 31\,623\ \mathrm s^{-1}\), \(\omega_{\mathrm d} = \sqrt{10^9 - 10^8} = 3\times10^4\ \mathrm s^{-1}\)
+(\(R = 20 &lt; 2\sqrt{L/C} = 63.2\ \Omega\): underdamped). Poles \(p_\pm = -\alpha\pm i\omega_{\mathrm d}\), residues of \(Ie^{st}\):
+\(\pm\frac{V_0}{L}\frac{e^{p_\pm t}}{2i\omega_{\mathrm d}}\). Sum: \(i(t) = \dfrac{V_0}{\omega_{\mathrm d}L}e^{-\alpha t}\sin\omega_{\mathrm d}t = 3.333\,e^{-10^4t}\sin(3\times10^4t)\)
+A. Peak where \(\tan\omega_{\mathrm d}t = \omega_{\mathrm d}/\alpha = 3\): \(t = 41.6\ \mu\mathrm s\), \(i = 2.085\) A.</p>
+<p><strong>3.</strong> \(\int_0^\infty Ri^2\,\mathrm dt = R\frac{V_0^2}{\omega_{\mathrm d}^2L^2}\cdot\frac{\omega_{\mathrm d}^2}{4\alpha(\alpha^2 + \omega_{\mathrm d}^2)}\). With \(\alpha = R/2L\)
+and \(\alpha^2 + \omega_{\mathrm d}^2 = 1/(LC)\) this is \(\frac{RV_0^2}{L^2}\cdot\frac{2L\cdot LC}{4R} = \tfrac12CV_0^2 = 5\) mJ.</p>
+<p><strong>Check.</strong> Initial value: \(sI\to0\) as \(s\to\infty\), so \(i(0^+) = 0\), as the empty inductor demands ✓; and
+\(\mathrm di/\mathrm dt(0^+) = V_0/L = 10^5\) A/s, from \(s^2I\to V_0/L\) ✓. As \(t\to\infty\), \(i\to0\) and \(v_C\to0\): all the stored energy has gone to
+\(R\) ✓. Units: \(\mathrm V/(\mathrm s^{-1}\mathrm H) = \mathrm A\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> A negative resistance <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: stability as poles on the left, an energy argument for the same threshold, what positive-real excludes</p>
+<div class="statement">
+<p>Define a <i>negative resistance</i> as a two-terminal element with law \(v = -ri\), \(r &gt; 0\), under the passive convention. Put one
+in series with the tuned circuit of P6 (\(L = 200\ \mu\mathrm H\), \(C = 126.7\) pF, \(R = 10\ \Omega\)).</p>
+<ol>
+<li>Where are the natural frequencies, as functions of \(r\)? For which \(r\) is the circuit stable?</li>
+<li>Prove the same threshold from the stored energy \(W = \tfrac12Li^2 + \tfrac12Cv_C^2\).</li>
+<li>At the threshold, what does the circuit do? At \(r = 12\ \Omega\), how fast does a small oscillation grow?</li>
+<li>Why can no network of positive R, L and C behave like this element, and what must a real one contain?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The loop is a series RLC with resistance \(R - r\). The answers are a threshold resistance, a frequency and a growth rate.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\dot W = -(R - r)i^2\) along any free motion. The element absorbs \(vi = -ri^2\le0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(Ls^2 + (R - r)s + 1/C = 0\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A negative resistance subtracts damping; when it outweighs \(R\), the poles cross the imaginary axis.</p>
+<p><strong>1.</strong> \(s = -\frac{R - r}{2L}\pm\sqrt{\frac{(R - r)^2}{4L^2} - \frac1{LC}}\). Both have negative real part iff \(R - r &gt; 0\): stable for \(r &lt; 10\
+\Omega\).</p>
+<p><strong>2.</strong> \(\dot W = Li\dot\imath + Cv_C\dot v_C = i(L\dot\imath + v_C) = i\cdot(-(R - r)i) = -(R - r)i^2\) by KVL with no source. For \(r &lt; R\), \(W\)
+decreases whenever \(i\ne0\), and cannot stay constant on a nonzero free motion (if \(i\equiv0\) then \(v_C\equiv0\)); for \(r &gt; R\) it increases.
+Now compare with the modes. A free motion \(\operatorname{Re}(ce^{pt})\) with \(\operatorname{Re}p\ge0\) returns, one period later, with every
+state variable multiplied by \(e^{\operatorname{Re}p\,T}\ge1\), so \(W\) cannot have fallen over that period; for \(r &lt; R\) it must have, so
+every natural frequency has \(\operatorname{Re}p &lt; 0\). (A real \(p\ge0\), with no period, is excluded the same way: \(W\) would be
+non-decreasing.) For \(r &gt; R\) the same argument with the inequality reversed excludes \(\operatorname{Re}p\le0\). Threshold \(r = R\).</p>
+<p><strong>3.</strong> At \(r = R\): poles at \(\pm i\omega_0\), a sustained oscillation at 1 MHz whose energy is constant — an oscillator. At \(r = 12\
+\Omega\): \(\operatorname{Re}s = (r - R)/2L = 2/(4\times10^{-4}) = 5000\ \mathrm s^{-1}\), amplitude doubling every \(\ln2/5000 = 139\ \mu\mathrm s\).</p>
+<p><strong>4.</strong> Section 5: any network of positive R, L, C has a positive-real impedance, but \(Z = -r\) has \(\operatorname{Re}Z &lt; 0\). The element
+delivers power \(ri^2 &gt; 0\), so it must contain an energy source — in practice an amplifier with a power supply.</p>
+<p><strong>Check.</strong> Units: \(\Omega/\mathrm H = \mathrm s^{-1}\) ✓. Limit \(r\to0\): back to the passive circuit's \(-R/2L = -25\,000\ \mathrm s^{-1}\) ✓. The energy
+and pole arguments give the same threshold ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Positive-real and lossless networks</h2>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Is it positive-real? <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the definition, a witness for "no", a proof or a network for "yes", poles on the axis</p>
+<div class="statement">
+<p>Decide whether each is positive-real. For "no", give a witness \(s\) with \(\operatorname{Re}s &gt; 0\) and \(\operatorname{Re}Z(s) &lt; 0\); for
+"yes", give a proof or a network of positive R, L, C.</p>
+<p>\[\text{(a)}\ \frac{s + 2}{s + 1},\qquad\text{(b)}\ \frac{s - 1}{s + 1},\qquad\text{(c)}\ \frac s{s^2 + 1},\qquad\text{(d)}\ \frac{s^2 + s + 1}{s^2 + 1}.\]</p>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is yes or no with a reason. Long division or partial fractions turns each into a sum of things you recognise as elements.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\operatorname{Re}\frac1{s + a} &gt; 0\) for \(\operatorname{Re}s &gt; -a\). A zero in the right half-plane is a pole of \(1/Z\) there.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of (d): \(\frac{s^2 + s + 1}{s^2 + 1} = 1 + \frac s{s^2 + 1}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A "no" needs one point; a "yes" is quickest as a network, since every RLC network is positive-real.</p>
+<p><strong>(a) Yes.</strong> \(1 + \frac1{s + 1}\), and \(\operatorname{Re}\frac1{s + 1} = \frac{\operatorname{Re}s + 1}{|s + 1|^2} &gt; 0\): \(\operatorname{Re}Z &gt; 1\). Network:
+1 Ω in series with (1 Ω ∥ 1 F).</p>
+<p><strong>(b) No.</strong> At \(s = \tfrac12\): \(-\tfrac12/\tfrac32 = -\tfrac13\). Its zero at \(s = 1\) makes \(1/Z\) have a right-half-plane pole.</p>
+<p><strong>(c) Yes.</strong> \(1/Z = s + 1/s\): a 1 F capacitor in parallel with a 1 H inductor. Poles \(\pm i\), residues \(\tfrac12\), real and positive.</p>
+<p><strong>(d) Yes.</strong> \(1 + \frac s{s^2 + 1}\): 1 Ω in series with the tank of (c). Its poles are on the axis at \(\pm i\), with residue
+\(\frac{i^2 + i + 1}{2i} = \frac i{2i} = \tfrac12\) at \(i\): simple and positive, as required. On the axis \(\operatorname{Re}Z(i\omega) = 1\) except at \(\omega = \pm1\).</p>
+<p><strong>Check.</strong> (b) on the axis: \(Z(0) = -1\), already negative, consistent with the witness ✓. (a) at \(s\to\infty\): \(Z\to1\) ✓ (the
+capacitor shorts the parallel resistor); at \(s = 0\): 2 ✓ (both resistors).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Proof: every RLC impedance is positive-real <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: Tellegen's theorem with a complex conjugate — the checkpoint's second proof — and its check on the axis</p>
+<div class="statement">
+<ol>
+<li>Prove that the driving-point impedance of any network of positive resistors, inductors and capacitors is positive-real. Say exactly
+why the conjugated currents \(\bar I_e\) still obey Kirchhoff's current law, and where \(\operatorname{Re}s &gt; 0\) is used.</li>
+<li>Show that for \(\operatorname{Re}s &gt; 0\) the network's equations have a unique solution, so that \(Z(s)\) is defined there.</li>
+<li>Extend the proof to a network containing a pair of coupled inductors with inductance matrix \(\mathcal L\), \(M^2\le L_1L_2\).</li>
+<li>Check on the deck's worked example 5 network (\(R_1 = 1\ \Omega\), \(L = 1\) H, \(R_2 = 2\ \Omega\), \(C = 0.5\) F) at \(s = i\ \mathrm s^{-1}\):
+compute \(Z\) and verify \(\operatorname{Re}Z = \sum R|I_e|^2/|I|^2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 1 is an identity \(Z|I|^2 = \sum_e z_e|I_e|^2\) followed by a sign check term by term. Part 4 is a complex number
+and a sum of two real terms.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 03's proof of Tellegen, \(v^{\mathsf T}i = \varphi^{\mathsf T}Ai\), never used that the vectors were real. \(A\) is real, so
+\(A\bar{\mathbf I} = \overline{A\mathbf I}\). For part 2, apply the identity with the source set to zero.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: include the port as an edge carrying \(-I\); then \(\sum_{\text{all }e}V_e\bar I_e = \Phi^{\mathsf T}A\bar{\mathbf I} = 0\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Tellegen pairs the voltages with any currents that obey KCL; the conjugate currents do, and the pairing turns
+\(z_eI_e\bar I_e\) into \(z_e|I_e|^2\), whose real part has a sign.</p>
+<p><strong>1.</strong> Drive the port with a current source \(I\) at complex frequency \(s\) and solve the s-domain network with empty stores; every
+edge obeys \(V_e = z_eI_e\) with \(z_e\in\{R, sL, 1/(sC)\}\). The port is an edge from one terminal to the other with current \(-I\) and voltage
+\(V = ZI\). KVL: \(V = A^{\mathsf T}\Phi\). KCL: \(A\mathbf I = 0\). Because every entry of \(A\) is \(0\) or \(\pm1\), \(A\bar{\mathbf I} = \overline{A\mathbf I} = 0\):
+the conjugated currents obey KCL — this is the step a complex incidence matrix would break. Unit 03's proof is algebra over any field:
+\(\sum_eV_e\bar I_e = (A^{\mathsf T}\Phi)^{\mathsf T}\bar{\mathbf I} = \Phi^{\mathsf T}A\bar{\mathbf I} = 0\). The port term is \(ZI\cdot(-\bar I) = -Z|I|^2\), so</p>
+\[Z|I|^2 = \sum_RR|I_e|^2 + s\sum_LL|I_e|^2 + \frac1s\sum_C\frac{|I_e|^2}C .\]
+<p>For \(\operatorname{Re}s &gt; 0\): \(\operatorname{Re}(sL) = L\operatorname{Re}s &gt; 0\) and \(\operatorname{Re}\frac1{sC} = \frac{\operatorname{Re}s}{|s|^2C} &gt; 0\) — here
+the half-plane is used. So \(\operatorname{Re}Z\ge0\). \(Z\) is rational with real coefficients (Cramer's rule on the nodal equations). \(\square\)</p>
+<p><strong>2.</strong> Ground a node: unknowns are \(n - 1\) potentials and \(m\) currents; equations are \(n - 1\) KCL and \(m\) element laws — square.
+With \(I = 0\), the identity gives \(0 = \sum R|I_e|^2 + \operatorname{Re}s\sum L|I_e|^2 + \frac{\operatorname{Re}s}{|s|^2}\sum|I_e|^2/C\) in real part, so every
+\(I_e = 0\), every \(V_e = 0\), and then every \(\Phi = 0\) (on a connected network, with the ground fixed). The homogeneous system has only the
+trivial solution, so the square system is invertible.</p>
+<p><strong>3.</strong> The coupled pair contributes \(\bar{\mathbf I}_L^{\mathsf T}(s\mathcal L)\mathbf I_L = s\,\bar{\mathbf I}_L^{\mathsf T}\mathcal L\mathbf I_L\), and
+\(\bar{\mathbf x}^{\mathsf T}\mathcal L\mathbf x = (\operatorname{Re}\mathbf x)^{\mathsf T}\mathcal L(\operatorname{Re}\mathbf x) + (\operatorname{Im}\mathbf x)^{\mathsf T}\mathcal L(\operatorname{Im}\mathbf x)\ge0\)
+for a real symmetric positive semi-definite \(\mathcal L\) (unit 02). So the term is \(s\) times a non-negative number, real part \(\ge0\).</p>
+<p><strong>4.</strong> \(sL = i\), \(1/(sC) = -2i\), right branch \(2 - 2i\). Parallel: \(\frac{i(2 - 2i)}{2 - i} = \frac{2 + 2i}{2 - i} = 0.4 + 1.2i\); \(Z = 1.4 + 1.2i\ \Omega\).
+With \(I = 1\) A: \(I_2 = \frac{0.4 + 1.2i}{2 - 2i} = -0.2 + 0.4i\), \(|I_2|^2 = 0.2\); \(\sum R|I_e|^2 = 1\times1 + 2\times0.2 = 1.4 = \operatorname{Re}Z\) ✓.
+\(I_L = \frac{0.4 + 1.2i}{i} = 1.2 - 0.4i\), \(|I_L|^2 = 1.6\), and the imaginary part \(1\times1.6 - 0.2/0.5 = 1.2\) ✓.</p>
+<p><strong>Check.</strong> Units: \(\Omega\cdot\mathrm A^2\) in every term ✓. On the axis the identity says \(\operatorname{Re}Z(i\omega)|I|^2\) is the mean power in
+the resistors, which cannot be negative ✓. Without the conjugate the terms would be \(z_eI_e^2\), whose real parts have no sign: that is why the
+proof needs it.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Proof: Foster's reactance theorem <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: Tellegen without the conjugate, differentiating the element laws, the alternation of poles and zeros</p>
+<div class="statement">
+<p>Let a network of inductors and capacitors only be driven at its port by a real current \(I\) at real frequency \(\omega\), where its
+reactance \(X(\omega)\) is finite.</p>
+<ol>
+<li>Show that every branch current \(I_e\) is real.</li>
+<li>Prove \(\dfrac{\mathrm dX}{\mathrm d\omega} = \dfrac{\sum_LLI_e^2 + \sum_CI_e^2/(\omega^2C)}{I^2} &gt; 0\).</li>
+<li>Deduce that the poles and zeros of \(X\) on \(\omega &gt; 0\) are simple and alternate.</li>
+<li>Check part 2 directly on the lossless coil, \(L\) in parallel with \(C\): \(X = \omega L/(1 - \omega^2LC)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 2 is an identity from two applications of Tellegen's theorem, at the same frequency, with no conjugates: one with \(V'\) (the
+\(\omega\)-derivative), one with \(\mathbf I'\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Fix \(I\) independent of \(\omega\); then \(\mathbf I'\) obeys KCL with zero port current. Differentiate \(V_e = i\omega LI_e\) and
+\(V_e = I_e/(i\omega C)\); each derivative contains a term \(z_eI'_e\), and those terms sum to \(\sum V_eI'_e = 0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\sum_eV'_eI_e = 0\), whose port term is \((iXI)'\cdot(-I) = -iX'I^2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The derivative of the reactance is the stored energy, and energy is positive.</p>
+<p><strong>1.</strong> Nodal analysis: every admittance is \(-i/(\omega L)\) or \(i\omega C\), so the nodal matrix is \(i\mathcal B\) with \(\mathcal B\) real.
+With a real injection \(J\), and \(\mathcal B\) invertible (the network's equations solvable at this \(\omega\)), \(\Phi = -i\mathcal B^{-1}J\) is purely imaginary, and \(I_e = y_eV_e\) is imaginary times imaginary: real.</p>
+<p><strong>2.</strong> Tellegen with \(V'\) and \(\mathbf I\) (\(V'\in\operatorname{im}A^{\mathsf T}\), \(\mathbf I\in\ker A\)): \(iX'I^2 = \sum_{\text{elements}}V'_eI_e\). Tellegen with
+\(V\) and \(\mathbf I'\) (\(\mathbf I'\in\ker A\), port entry 0): \(\sum_{\text{elements}}V_eI'_e = 0\). Differentiate: inductor \(V'_e = iLI_e + i\omega LI'_e\);
+capacitor \(V'_e = iI_e/(\omega^2C) + I'_e/(i\omega C)\). So \(\sum V'_eI_e = i\big(\sum_LLI_e^2 + \sum_CI_e^2/(\omega^2C)\big) + \sum V_eI'_e\), and the last
+sum vanishes. Dividing by \(iI^2\) gives the formula. Each term is \(\ge0\) since the \(I_e\) are real, and not all vanish since the port current
+enters some element: \(X' &gt; 0\).</p>
+<p><strong>3.</strong> At a simple pole on the axis, positive residue \(k\) (section 5) gives \(X\approx-k/(\omega - \omega_i)\): \(+\infty\) below, \(-\infty\)
+above. Between consecutive poles \(X\) is continuous and increasing from \(-\infty\) to \(+\infty\): exactly one zero, simple because \(X' &gt; 0\).
+Two zeros with no pole between would need \(X\) to decrease somewhere. So they alternate.</p>
+<p><strong>4.</strong> \(X' = \frac{L(1 - \omega^2LC) + 2\omega^2L^2C}{(1 - \omega^2LC)^2} = \frac{L(1 + \omega^2LC)}{(1 - \omega^2LC)^2}\). From the formula with \(I = 1\):
+\(I_L = 1/(1 - \omega^2LC)\) and \(I_C = -\omega^2LC/(1 - \omega^2LC)\), both real; \(LI_L^2 + I_C^2/(\omega^2C) = \frac{L + \omega^2L^2C}{(1 - \omega^2LC)^2}\) ✓.</p>
+<p><strong>Check.</strong> Units: \(\mathrm H\cdot\mathrm A^2/\mathrm A^2 = \Omega\,\mathrm s\), as \(\mathrm dX/\mathrm d\omega\) is ✓. In energy terms the numerator is
+\(2(\bar W_L + \bar W_C)\) with RMS currents. The coil's \(X\) has a zero at 0, a pole at \(\omega_0\), a zero at \(\infty\): alternating ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> A Foster form, both ways <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: partial fractions of a reactance function, reading terms as elements, checking by recomputing</p>
+<div class="statement">
+<p>\(Z(s) = \dfrac{s^2 + 1}{s(s^2 + 4)}\) (values in ohms, henries, farads and \(\mathrm s^{-1}\), normalised).</p>
+<ol>
+<li>Check that its critical frequencies alternate on the \(\omega\) axis.</li>
+<li>Realise it as a series chain: a capacitor and parallel LC tanks (the first Foster form).</li>
+<li>Realise it as a parallel combination from the partial fractions of \(Y = 1/Z\) (the second Foster form).</li>
+<li>Check both by recomputing \(Z\) at \(s = 1\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each realisation has three elements. A term \(k_0/s\) is a capacitor \(1/k_0\) in an impedance and a term \(k_\infty s\) is a capacitor \(k_\infty\)
+in an admittance.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(k_0 = \lim_{s\to0}sZ\). A parallel tank has \(Z = \frac{s/C}{s^2 + 1/(LC)}\); a series LC branch has \(Y = \frac{s/L}{s^2 + 1/(LC)}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(Z - \frac1{4s} = \frac{3s}{4(s^2 + 4)}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Peel off the pole at 0 and pair the conjugate poles; each term is an element or a tank.</p>
+<p><strong>1.</strong> Pole at \(\omega = 0\), zero at 1, pole at 2, and \(Z\approx1/s\) at infinity, a zero there: pole, zero, pole, zero ✓.</p>
+<p><strong>2.</strong> \(k_0 = 1/4\); \(Z - \frac1{4s} = \frac{4s^2 + 4 - s^2 - 4}{4s(s^2 + 4)} = \frac{(3/4)s}{s^2 + 4}\). So a 4 F capacitor in series with a tank
+with \(1/C_1 = 3/4\), \(1/(L_1C_1) = 4\): \(C_1 = 4/3\) F, \(L_1 = 3/16\) H.</p>
+<p><strong>3.</strong> \(Y = \frac{s(s^2 + 4)}{s^2 + 1} = s + \frac{3s}{s^2 + 1}\). So a 1 F capacitor in parallel with a series LC branch with \(1/L = 3\), \(1/(LC) = 1\):
+\(L = 1/3\) H, \(C = 3\) F.</p>
+<p><strong>4.</strong> \(Z(1) = 2/5 = 0.4\). First form: \(\frac14 + \frac{3/4}{5} = 0.25 + 0.15 = 0.4\) ✓. Second: \(Y(1) = 1 + \frac32 = 2.5\), \(Z = 0.4\) ✓.</p>
+<p><strong>Check.</strong> All element values positive, as Foster's form guarantees ✓. The tank resonates at \(1/\sqrt{L_1C_1} = 2\): \(Z\) has its pole there ✓;
+the series branch resonates at \(1/\sqrt{LC} = 1\), shorting the port: \(Z\) has its zero there ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Phasors</h2>
+
+<section class="problem" id="p13">
+<h3><span class="pno">P13</span> Phasors and the kettle <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: RMS and peak, impedance with a small reactance, why unit 02 could treat the mains as steady</p>
+<div class="statement">
+<p>Unit 02's kettle: 230 V RMS at 50 Hz across two wires of \(67.2\ \mathrm{m\Omega}\) each and a 23 Ω element.</p>
+<ol>
+<li>Find the peak supply voltage, and the RMS and peak current.</li>
+<li>Add a lead inductance of \(1\ \mu\mathrm H\) in series. Find the phase between current and voltage, and the fractional change in \(|I|\).</li>
+<li>Unit 02 estimated a loop inductance of order \(\mu_0\ell\) with \(\ell = 10\) m. What phase does that give? Was unit 02 right to treat the
+kettle as resistive?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Voltages and currents, a small angle, a very small ratio. The phase is \(\arg Z\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(Z = R + i\omega L\), \(\varphi = \arctan(\omega L/R)\approx\omega L/R\), \(|Z| = R\sqrt{1 + (\omega L/R)^2}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(R = 23 + 2\times0.0672 = 23.134\ \Omega\), \(\omega L = 2\pi\times50\times10^{-6} = 3.14\times10^{-4}\ \Omega\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A reactance tiny against the resistance turns the current phasor by a tiny angle and changes its size only at second order.</p>
+<p><strong>1.</strong> Peak \(230\sqrt2 = 325.3\) V. \(I = 230/23.134 = 9.94\) A RMS, \(14.06\) A peak.</p>
+<p><strong>2.</strong> \(\omega L/R = 3.14\times10^{-4}/23.134 = 1.36\times10^{-5}\), so the current lags by \(1.4\times10^{-5}\) rad. \(|I|\) falls by the factor
+\(1/\sqrt{1 + (\omega L/R)^2}\approx1 - \tfrac12(\omega L/R)^2\): a fractional change of \(9.2\times10^{-11}\).</p>
+<p><strong>3.</strong> \(\mu_0\ell = 4\pi\times10^{-7}\times10 = 12.6\ \mu\mathrm H\); \(\omega L/R = 1.7\times10^{-4}\) rad — unit 02's ratio, now read as a phase angle.
+The current's size changes by \(1.5\times10^{-8}\). Yes: for RMS values the kettle is a resistor to better than one part in \(10^7\).</p>
+<p><strong>Check.</strong> Units: \(\mathrm{s^{-1}\cdot H} = \Omega\), the ratio dimensionless ✓. Limit \(L\to0\): phase 0, unit 02's DC treatment exactly ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./cap done 05</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

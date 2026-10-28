@@ -1,0 +1,1598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 · AC power: real, reactive, complex — and conjugate matching</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="c">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="workshop"><span class="ref-name">the running example: the workshop</span>20 kW at power factor 0.7 lagging, from 230 V, 50 Hz, single-phase. $|S| = 28.57$ kVA, $Q = 20.40$ kvar, $I = 124.2$ A, $\varphi = 45.57^\circ$. Supply cable: 50 m of two-core $35\ \mathrm{mm^2}$ copper, $R = 48.0\ \mathrm{m\Omega}$ for the 100 m of conductor. <span class="ref-note">All of it assumed for the example; the cable's reactance is neglected; unit 11 gives the workshop three phases</span></template>
+  <template data-ref="pt"><span class="ref-name">the workshop's p(t)</span>Swings at 100 Hz between $P - |S| = -8.57$ kW and $P + |S| = +48.57$ kW about its mean $P = 20$ kW; negative for $\varphi/\pi = 25.3\%$ of every cycle. <span class="ref-note">$\langle W_m\rangle - \langle W_e\rangle = Q/2\omega = 32.5$ J</span></template>
+  <template data-ref="cable"><span class="ref-name">the supply cable</span>$R = \rho\cdot100\ \mathrm m/35\ \mathrm{mm^2} = 48.0\ \mathrm{m\Omega}$. At 124.2 A it dissipates 741 W and drops 5.96 V. Its electrons drift with amplitude 0.370 mm/s and move through ±1.18 μm. <span class="ref-note">$\rho = 1.68\times10^{-8}\ \Omega\,$m, $n = 8.47\times10^{28}\ \mathrm m^{-3}$ (AUTHORING.md's sources)</span></template>
+  <template data-ref="loads"><span class="ref-name">the workshop's three loads</span>Motors 15 kW + 20.40 kvar (25.32 kVA, power factor 0.592); lighting 1 kW; heaters 4 kW, both taken as resistive. Sum: 20 kW + 20.40 kvar = 28.57 kVA, though the apparent powers add to 30.32 kVA. <span class="ref-note">The split is an assumption for the example</span></template>
+  <template data-ref="corrected"><span class="ref-name">the workshop, corrected</span>$C = 1.228$ mF across the intake supplies the 20.40 kvar. Cable current 124.2 → 86.96 A, cable loss 741 → 363 W (× 0.49 = 0.7²), drop 5.96 → 4.17 V. <span class="ref-note">To 0.95 instead: 0.832 mF, 91.5 A. With 2.456 mF: leading 0.7, 124.2 A and 741 W again</span></template>
+  <template data-ref="source"><span class="ref-name">the inductive source</span>$V_{\mathrm{th}} = 10$ V behind $Z_s = 4 + 3i\ \Omega$. Conjugate load $4 - 3i\ \Omega$: 6.25 W at 50%. Best resistor, $5\ \Omega = |Z_s|$: 5.56 W. A $4\ \Omega$ resistor: 5.48 W. <span class="ref-note">Values chosen for the arithmetic, not taken from any device</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part C · alternating current · spine</p>
+  <div class="unit-no">06</div>
+  <h1>AC power: real, reactive, complex — and conjugate matching</h1>
+  <p class="lede">At 50 Hz the power into a load pulses at 100 Hz: one part does work, the other sloshes back and forth and does none — yet its current heats every wire on the way. Complex power $S = VI^*$ keeps both books at once, and Tellegen's theorem says it balances across every network.</p>
+  <p class="meta"><span>needs 05, MR 06</span><span>~2 h slides + 4 h problems</span><span>problems: <code>./cap problems 06</code></span></p>
+  <aside class="notes">
+    <p>Unit 05 built the sinusoidal steady state: RMS phasors $V$, $I$ with $v(t) = \operatorname{Re}(\sqrt2Ve^{i\omega t})$, impedances
+    $Z = R + iX$, Thévenin's theorem for phasors, and the theorem that every network of positive R, L and C has $\operatorname{Re}Z\ge0$.
+    This unit asks what the <i>power</i> is. The answer has two parts, and the second is the new idea: the instantaneous power
+    $p(t) = v(t)i(t)$ splits into a part with a non-zero mean, which does work, and a part that averages to nothing but still
+    needs current. Complex power $S = VI^*$ packages both; it is conserved across any network, element by element; and two
+    engineering consequences follow — power-factor correction, and conjugate matching.</p>
+    <h4>How to read this deck</h4>
+    <p>One system runs through it: a workshop that draws 20 kW at power factor 0.7 from a 230 V supply, and the question of why
+    its electricity supplier cares about anything except the kilowatts. Each section returns to it. Proofs are on the slides
+    when they are one line and in these notes under <b>Full proof</b> when they are not; anything imported is labelled
+    <i>cited</i>, with the source named. Every number was computed, and every boxed formula has its units checked beside it.</p>
+    <p><b>The tools used.</b> From Mechanics to Relativity: the averaging rule $\langle\operatorname{Re}z\operatorname{Re}w\rangle =
+    \tfrac12\operatorname{Re}(A\bar B)$ for $z = Ae^{i\omega t}$, $w = Be^{i\omega t}$, from MR 06's slide <i>Velocity, power, and a width
+    that is exactly $\gamma$</i>; trigonometric identities; complex conjugation. From this course: the drift velocity
+    $v_{\mathrm d} = J/ne$ (unit 00); the Poynting flux through a cable's cross-section equals $vi$ (unit 01); the capacitor's
+    and inductor's stored energies $\tfrac12Cv^2$, $\tfrac12Li^2$ and the passive sign convention (unit 02); Tellegen's theorem
+    (unit 03); the maximum-power theorem (unit 04); RMS phasors, impedance, Thévenin for phasors, and the Tellegen sum with
+    conjugated currents (unit 05).</p>
+    <p><b>Sources.</b> CNMC Circular 3/2020 of 15 January (BOE-A-2020-1066, consolidated text as last updated 5 February 2025),
+    article 9.5, for the reactive-energy term in Spain's access tariffs; article 6.2 for which tariff a supply above 15 kW is on.
+    Resistivity and electron density of copper as in AUTHORING.md (CRC <i>Handbook</i>; Ashcroft &amp; Mermin, table 1.1). No
+    definition here is quoted from a standard: the sign of $Q$ and the names of the powers are the course's conventions, stated
+    where they are used.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · overview</p>
+  <h2>A workshop that pays for power it never uses</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="workshop">the workshop</span></span>
+        <p class="small">A workshop of motors, lights and heaters takes <b>20 kW</b> from a 230 V, 50 Hz supply at the end of a 50 m cable, at <span class="term">power factor</span> <b>0.7</b> — a number this unit defines. All values are <b>assumed</b> for the example, and the supply is taken as single-phase (unit 11 gives it three).</p>
+        <p class="small"><b>The puzzle.</b> A heater bank of 20 kW would draw 87.0 A. The workshop draws <b>124.2 A</b> for the same 20 kW. In Spain, a supply like this one is also billed for "reactive energy". Why does the utility care about anything but kilowatts?</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> instantaneous power · <b>2</b> real, reactive, complex · <b>3</b> conservation · <b>4</b> unit 01's two pictures, on AC · <b>5</b> correcting the power factor · <b>6</b> conjugate matching.</p>
+      <p class="small muted">A <span class="term">power factor</span> with a dotted underline is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="cable">the cable</span> is the running example (hover); <kbd>N</kbd> shows the notes.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 440 300" width="460" role="img" aria-label="the supply, a box on the left, feeds a 50 metre two-core cable; a meter sits at the workshop's intake; inside the dashed workshop outline, motors, lights and heaters hang between the live and neutral conductors; the current I is marked on the live conductor and the voltage V across the workshop">
+        <defs><marker id="m06-ov-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <rect x="10" y="80" width="64" height="190" rx="4" class="fill-soft ink" stroke-width="1.5"/>
+        <text x="42" y="170" font-size="12" text-anchor="middle">supply</text><text x="42" y="186" font-size="11" text-anchor="middle" class="soft">230 V</text><text x="42" y="200" font-size="11" text-anchor="middle" class="soft">50 Hz</text>
+        <path d="M74,110 H228 M268,110 H420 M74,250 H420" fill="none" class="ink" stroke-width="2.4"/>
+        <rect x="228" y="96" width="40" height="28" rx="3" class="fill-ground ink" stroke-width="1.8"/>
+        <text x="248" y="114" font-size="11" text-anchor="middle">kWh</text>
+        <text x="248" y="88" font-size="11" text-anchor="middle" class="soft">meter</text>
+        <text x="150" y="176" font-size="12" text-anchor="middle">50 m, two-core</text><text x="150" y="192" font-size="12" text-anchor="middle">35 mm² copper</text>
+        <line x1="96" y1="96" x2="146" y2="96" class="unit" stroke-width="2.3" marker-end="url(#m06-ov-u)"/>
+        <text x="100" y="88" font-size="13" class="fill-unit">I = 124.2 A</text>
+        <rect x="284" y="40" width="148" height="250" rx="8" fill="none" class="ink" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="358" y="34" font-size="12" text-anchor="middle" class="soft">workshop</text>
+        <path d="M320,110 V158 M320,202 V250 M370,110 V150 M370,200 V250 M410,110 V150 M410,200 V250" fill="none" class="ink" stroke-width="2.2"/>
+        <circle cx="320" cy="180" r="22" class="fill-ground ink" stroke-width="2"/><text x="320" y="186" font-size="16" text-anchor="middle">M</text>
+        <rect x="362" y="150" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <rect x="402" y="150" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <text x="320" y="226" font-size="11" text-anchor="middle" class="soft">motors</text>
+        <text x="370" y="142" font-size="11" text-anchor="middle" class="soft">lights</text>
+        <text x="410" y="218" font-size="11" text-anchor="middle" class="soft">heaters</text>
+        <circle cx="320" cy="110" r="4" class="fill-ink"/><circle cx="370" cy="110" r="4" class="fill-ink"/><circle cx="320" cy="250" r="4" class="fill-ink"/><circle cx="370" cy="250" r="4" class="fill-ink"/>
+        <text x="292" y="132" font-size="14">+</text><text x="292" y="242" font-size="15">−</text>
+        <text x="296" y="190" font-size="13" text-anchor="end">V</text>
+        <text x="220" y="280" font-size="12" text-anchor="middle" class="soft">neutral (return)</text>
+      </svg>
+      <p class="cap">The workshop as one load at the end of its cable. Passive convention at the workshop's terminals: $I$ enters at +. Section 3 opens the dashed box into its three loads.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The system, from nothing.</b> A building's electricity arrives from the distributor's network through a cable to its
+    <i>intake</i>, where the meter and the main fuses sit; from there it is distributed to the loads. "Single-phase 230 V, 50 Hz" means
+    two conductors, one (the <i>live</i>) alternating at 50 Hz with RMS value 230 V relative to the other (the <i>neutral</i>, near
+    earth potential). Unit 05 defined RMS and showed that 230 V RMS peaks at 325.3 V.</p>
+    <p><b>What is assumed.</b> Everything about this workshop: its 20 kW, its power factor 0.7, the split into motors, lights and
+    heaters (section 3), and its supply cable — 50 m of two-core copper of $35\ \mathrm{mm^2}$ per core, so 100 m of conductor out
+    and back, of resistance $R = 1.68\times10^{-8}\times100/(35\times10^{-6}) = 48.0\ \mathrm{m\Omega}$ (unit 00's $\rho$ for copper at
+    20 °C). The cable's own reactance is neglected; section 5 says what it would change. A real supply of 20 kW would normally be
+    three-phase; unit 11 rebuilds this workshop on three phases.</p>
+    <p><b>Why "motors" make the current lag.</b> A motor's windings are coils: to make its magnetic field at all, it draws a current
+    that stores energy in that field and gives it back each cycle (unit 07's magnetising current; unit 12 builds the machines).
+    So a motor load is inductive. No power factor for any real motor is claimed here; the 0.7 belongs to this example.</p>
+    <p><b>The 87.0 A.</b> A resistive load of 20 kW at 230 V draws $20000/230 = 86.96$ A, unit 02's $P = VI$. The 124.2 A is
+    $20000/(230\times0.7)$, and section 2 explains the 0.7.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Instantaneous power at 50 Hz</h2>
+  <p>Multiply $v(t)$ by $i(t)$ and the product pulses at 100 Hz. It splits, exactly, into a part that never changes sign and a part that averages to zero.</p>
+</section>
+
+<section>
+  <p class="eyebrow">06 · instantaneous power</p>
+  <h2>The mean of a product of two sinusoids</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 05's RMS phasors: $v(t) = \operatorname{Re}(\sqrt2\,Ve^{i\omega t})$, $i(t) = \operatorname{Re}(\sqrt2\,Ie^{i\omega t})$. Take $V$ real and write $\varphi = \arg V - \arg I$, so</p>
+      $$v = \sqrt2|V|\cos\omega t,\qquad i = \sqrt2|I|\cos(\omega t - \varphi).$$
+      <p class="small">$\varphi > 0$: the current <b>lags</b> the voltage by $\varphi/\omega$ in time. The <span class="term">instantaneous power</span> into the load is $p(t) = v(t)\,i(t)$, by unit 01's theorem.</p>
+      <div class="box thm"><span class="label">the mean, by MR 06's averaging rule</span>
+        <p class="small">For $z = Ae^{i\omega t}$, $w = Be^{i\omega t}$: $\langle\operatorname{Re}z\,\operatorname{Re}w\rangle = \tfrac12\operatorname{Re}(A\bar B)$ (<i>cited</i>, MR 06). With $A = \sqrt2V$, $B = \sqrt2I$:</p>
+        $$\langle p\rangle = \operatorname{Re}(VI^*) = |V||I|\cos\varphi .$$
+      </div>
+      <p class="small muted">No ½: it was absorbed into the RMS normalisation, which is why unit 05 chose it. Units: $\mathrm{V\cdot A} = \mathrm W$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 470 260" width="470" role="img" aria-label="two cycles of the workshop's voltage and current, normalised: the current wave is the same shape as the voltage wave but shifted right by 2.53 milliseconds, the lag phi over omega">
+        <line x1="50" y1="130" x2="460" y2="130" class="ink" stroke-width="1.2"/><line x1="50" y1="40" x2="50" y2="220" class="ink" stroke-width="1.2"/>
+        <path d="M50.0,50.0 L56.2,51.5 L62.5,56.1 L68.8,63.5 L75.0,73.4 L81.2,85.6 L87.5,99.4 L93.8,114.4 L100.0,130.0 L106.2,145.6 L112.5,160.6 L118.8,174.4 L125.0,186.6 L131.2,196.5 L137.5,203.9 L143.8,208.5 L150.0,210.0 L156.2,208.5 L162.5,203.9 L168.8,196.5 L175.0,186.6 L181.2,174.4 L187.5,160.6 L193.8,145.6 L200.0,130.0 L206.2,114.4 L212.5,99.4 L218.8,85.6 L225.0,73.4 L231.2,63.5 L237.5,56.1 L243.8,51.5 L250.0,50.0 L256.2,51.5 L262.5,56.1 L268.8,63.5 L275.0,73.4 L281.2,85.6 L287.5,99.4 L293.8,114.4 L300.0,130.0 L306.2,145.6 L312.5,160.6 L318.8,174.4 L325.0,186.6 L331.2,196.5 L337.5,203.9 L343.8,208.5 L350.0,210.0 L356.2,208.5 L362.5,203.9 L368.8,196.5 L375.0,186.6 L381.2,174.4 L387.5,160.6 L393.8,145.6 L400.0,130.0 L406.2,114.4 L412.5,99.4 L418.8,85.6 L425.0,73.4 L431.2,63.5 L437.5,56.1 L443.8,51.5 L450.0,50.0" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M50.0,85.2 L56.2,77.1 L62.5,71.1 L68.8,67.4 L75.0,66.0 L81.2,67.1 L87.5,70.6 L93.8,76.4 L100.0,84.3 L106.2,93.9 L112.5,104.9 L118.8,116.9 L125.0,129.4 L131.2,141.9 L137.5,153.9 L143.8,165.0 L150.0,174.8 L156.2,182.9 L162.5,188.9 L168.8,192.6 L175.0,194.0 L181.2,192.9 L187.5,189.4 L193.8,183.6 L200.0,175.7 L206.2,166.1 L212.5,155.1 L218.8,143.1 L225.0,130.6 L231.2,118.1 L237.5,106.1 L243.8,95.0 L250.0,85.2 L256.2,77.1 L262.5,71.1 L268.8,67.4 L275.0,66.0 L281.2,67.1 L287.5,70.6 L293.8,76.4 L300.0,84.3 L306.2,93.9 L312.5,104.9 L318.8,116.9 L325.0,129.4 L331.2,141.9 L337.5,153.9 L343.8,165.0 L350.0,174.8 L356.2,182.9 L362.5,188.9 L368.8,192.6 L375.0,194.0 L381.2,192.9 L387.5,189.4 L393.8,183.6 L400.0,175.7 L406.2,166.1 L412.5,155.1 L418.8,143.1 L425.0,130.6 L431.2,118.1 L437.5,106.1 L443.8,95.0 L450.0,85.2" fill="none" class="alt" stroke-width="2.6"/>
+        <line x1="250" y1="44" x2="250" y2="225" class="rule" stroke-width="1" stroke-dasharray="3 4"/><line x1="275.3" y1="60" x2="275.3" y2="225" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <path d="M250,234 H275.3" class="ink" stroke-width="1.4"/><path d="M250,229 V239 M275.3,229 V239" class="ink" stroke-width="1.4"/>
+        <text x="282" y="246" font-size="12">φ/ω = 2.53 ms</text>
+        <text x="136" y="226" font-size="13" class="fill-unit">v(t)</text><text x="168" y="208" font-size="13" class="alt">i(t)</text>
+        <text x="455" y="150" font-size="12" text-anchor="end" class="soft">t</text>
+        <text x="150" y="250" font-size="12" text-anchor="middle" class="soft">20 ms</text><path d="M50,250 H100 M200,250 H250" class="rule" stroke-width="1"/>
+      </svg>
+      <p class="cap">The workshop's voltage and current over two cycles, each scaled to its own peak (325.3 V and 175.7 A). The current's peaks come $\varphi/\omega = 2.53$ ms after the voltage's.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>MR 06's rule, recalled.</b> On the slide <i>Velocity, power, and a width that is exactly $\gamma$</i>, MR 06 proves: with
+    $A = |A|e^{ia}$, $B = |B|e^{ib}$, $\operatorname{Re}z\operatorname{Re}w = |A||B|\cos(\omega t + a)\cos(\omega t + b) = \tfrac12|A||B|[\cos(a - b) +
+    \cos(2\omega t + a + b)]$, and the second term averages to zero over a period, leaving $\tfrac12|A||B|\cos(a - b) = \tfrac12\operatorname{Re}(A\bar B)$.
+    There it gave the mean power a drive delivers to an oscillator, with peak amplitudes and a ½. Here $A = \sqrt2V$ and
+    $B = \sqrt2I$ are √2 times the RMS phasors, so the ½ cancels the 2: $\langle p\rangle = \operatorname{Re}(V\bar I)$. This course writes
+    the conjugate as $I^*$; MR 06 wrote $\bar B$. Same operation. Unit 05's slide <i>RMS, and the phasor</i> put the $\sqrt2$ into the
+    definition for exactly this moment, and ended "Unit 06 develops AC power": this is where the ½ it removed would have reappeared.</p>
+    <p><b>MR 06's angle is not this one.</b> MR 06's $\varphi$ was the lag of the oscillator's <i>displacement</i> behind the force,
+    so its mean power came out with $\sin\varphi$ (the velocity is a quarter cycle ahead of the displacement). Here $\varphi$ is the lag
+    of the current — the analogue of velocity — behind the voltage, the analogue of force, and the cosine appears. Unit 05's
+    dictionary (charge ↔ displacement, current ↔ velocity) makes the two agree.</p>
+    <p><b>Why $p = vi$ at all.</b> Unit 01 proved that, for quasi-static fields outside a two-terminal component, the Poynting flux
+    into any closed surface round it is $v(t)i(t)$ at every instant. Unit 02's lumped hypotheses are what make the fields quasi-static
+    here: at 50 Hz the wavelength is 6000 km.</p>
+    <p><b>The figure's numbers.</b> $\hat V = \sqrt2\times230 = 325.3$ V; $\hat I = \sqrt2\times124.2 = 175.7$ A; $\varphi = \arccos0.7 = 0.7954$ rad
+    $= 45.57^\circ$; $\varphi/\omega = 0.7954/(2\pi\cdot50) = 2.53$ ms.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · instantaneous power</p>
+  <h2>$p(t)$ splits in two</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the two parts of $p(t)$</span>
+        <p class="small">With $v$, $i$ as above, and $V$, $I$ now short for $|V|$, $|I|$:</p>
+        $$\begin{aligned}p(t) &= \underbrace{VI\cos\varphi\,(1 + \cos2\omega t)}_{\text{never negative}}\\ &\quad + \underbrace{VI\sin\varphi\,\sin2\omega t}_{\text{mean }0}.\end{aligned}$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$2\cos\omega t\cos(\omega t - \varphi) = \cos\varphi + \cos(2\omega t - \varphi)$, and $\cos(2\omega t - \varphi) = \cos2\omega t\cos\varphi + \sin2\omega t\sin\varphi$. Multiply by $VI$. $\square$</p>
+      </div>
+      <p class="small">The first part is the mean, the <span class="term">real power</span> $P = VI\cos\varphi$, delivered in pulses at 100 Hz. The second carries no net energy; its amplitude is the <span class="term">reactive power</span> $Q = VI\sin\varphi$. Together $p$ swings between $P - VI$ and $P + VI$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 460 310" width="500" role="img" aria-label="one 20 millisecond cycle of the workshop's power: the first part rises and falls between 0 and 40 kilowatts; the second swings between plus and minus 20.4 kilowatts; their sum swings between minus 8.57 and plus 48.57 kilowatts">
+        <line x1="60" y1="200" x2="445" y2="200" class="ink" stroke-width="1.2"/><line x1="60" y1="30" x2="60" y2="270" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="140" x2="440" y2="140" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <path d="M60.0,80.0 L65.9,81.2 L71.9,84.6 L77.8,90.1 L83.8,97.6 L89.7,106.7 L95.6,117.0 L101.6,128.3 L107.5,140.0 L113.4,151.7 L119.4,163.0 L125.3,173.3 L131.2,182.4 L137.2,189.9 L143.1,195.4 L149.1,198.8 L155.0,200.0 L160.9,198.8 L166.9,195.4 L172.8,189.9 L178.8,182.4 L184.7,173.3 L190.6,163.0 L196.6,151.7 L202.5,140.0 L208.4,128.3 L214.4,117.0 L220.3,106.7 L226.2,97.6 L232.2,90.1 L238.1,84.6 L244.1,81.2 L250.0,80.0 L255.9,81.2 L261.9,84.6 L267.8,90.1 L273.8,97.6 L279.7,106.7 L285.6,117.0 L291.6,128.3 L297.5,140.0 L303.4,151.7 L309.4,163.0 L315.3,173.3 L321.2,182.4 L327.2,189.9 L333.1,195.4 L339.1,198.8 L345.0,200.0 L350.9,198.8 L356.9,195.4 L362.8,189.9 L368.8,182.4 L374.7,173.3 L380.6,163.0 L386.6,151.7 L392.5,140.0 L398.4,128.3 L404.4,117.0 L410.3,106.7 L416.2,97.6 L422.2,90.1 L428.1,84.6 L434.1,81.2 L440.0,80.0" fill="none" class="accent" stroke-width="1.8" stroke-dasharray="6 4"/>
+        <path d="M60.0,200.0 L65.9,188.1 L71.9,176.6 L77.8,166.0 L83.8,156.7 L89.7,149.1 L95.6,143.4 L101.6,140.0 L107.5,138.8 L113.4,140.0 L119.4,143.4 L125.3,149.1 L131.2,156.7 L137.2,166.0 L143.1,176.6 L149.1,188.1 L155.0,200.0 L160.9,211.9 L166.9,223.4 L172.8,234.0 L178.8,243.3 L184.7,250.9 L190.6,256.6 L196.6,260.0 L202.5,261.2 L208.4,260.0 L214.4,256.6 L220.3,250.9 L226.2,243.3 L232.2,234.0 L238.1,223.4 L244.1,211.9 L250.0,200.0 L255.9,188.1 L261.9,176.6 L267.8,166.0 L273.8,156.7 L279.7,149.1 L285.6,143.4 L291.6,140.0 L297.5,138.8 L303.4,140.0 L309.4,143.4 L315.3,149.1 L321.2,156.7 L327.2,166.0 L333.1,176.6 L339.1,188.1 L345.0,200.0 L350.9,211.9 L356.9,223.4 L362.8,234.0 L368.8,243.3 L374.7,250.9 L380.6,256.6 L386.6,260.0 L392.5,261.2 L398.4,260.0 L404.4,256.6 L410.3,250.9 L416.2,243.3 L422.2,234.0 L428.1,223.4 L434.1,211.9 L440.0,200.0" fill="none" class="alt" stroke-width="1.8" stroke-dasharray="2 3"/>
+        <path d="M60.0,80.0 L65.9,69.2 L71.9,61.1 L77.8,56.1 L83.8,54.3 L89.7,55.8 L95.6,60.5 L101.6,68.3 L107.5,78.8 L113.4,91.7 L119.4,106.4 L125.3,122.4 L131.2,139.1 L137.2,155.9 L143.1,172.0 L149.1,186.9 L155.0,200.0 L160.9,210.8 L166.9,218.9 L172.8,223.9 L178.8,225.7 L184.7,224.2 L190.6,219.5 L196.6,211.7 L202.5,201.2 L208.4,188.3 L214.4,173.6 L220.3,157.6 L226.2,140.9 L232.2,124.1 L238.1,108.0 L244.1,93.1 L250.0,80.0 L255.9,69.2 L261.9,61.1 L267.8,56.1 L273.8,54.3 L279.7,55.8 L285.6,60.5 L291.6,68.3 L297.5,78.8 L303.4,91.7 L309.4,106.4 L315.3,122.4 L321.2,139.1 L327.2,155.9 L333.1,172.0 L339.1,186.9 L345.0,200.0 L350.9,210.8 L356.9,218.9 L362.8,223.9 L368.8,225.7 L374.7,224.2 L380.6,219.5 L386.6,211.7 L392.5,201.2 L398.4,188.3 L404.4,173.6 L410.3,157.6 L416.2,140.9 L422.2,124.1 L428.1,108.0 L434.1,93.1 L440.0,80.0" fill="none" class="unit" stroke-width="2.8"/>
+        <text x="54" y="204" font-size="11" text-anchor="end" class="soft">0</text><text x="54" y="144" font-size="11" text-anchor="end" class="soft">20</text><text x="54" y="84" font-size="11" text-anchor="end" class="soft">40</text>
+        <path d="M56,80 H60" class="ink"/><text x="64" y="22" font-size="12" class="soft">kW</text>
+        <text x="150" y="44" font-size="12" class="fill-unit halo">p(t): 48.57 kW peak</text>
+        <text x="190" y="246" font-size="12" class="fill-unit halo">−8.57 kW</text>
+        <text x="440" y="218" font-size="11" text-anchor="end" class="soft halo">t → 20 ms</text>
+        <g stroke-width="2"><line x1="20" y1="292" x2="44" y2="292" class="unit" stroke-width="2.8"/><line x1="140" y1="292" x2="164" y2="292" class="accent" stroke-dasharray="6 4"/><line x1="320" y1="292" x2="344" y2="292" class="alt" stroke-dasharray="2 3"/></g>
+        <text x="50" y="296" font-size="12">p(t)</text><text x="170" y="296" font-size="12">P(1 + cos 2ωt)</text><text x="350" y="296" font-size="12">Q sin 2ωt</text>
+        <text x="64" y="134" font-size="11" class="soft halo">mean P = 20 kW</text>
+      </svg>
+      <p class="cap"><span class="ref" data-ref="pt">The workshop's $p(t)$</span>, computed, over one 50 Hz cycle: two pulses. The dashed part never goes negative; the dotted part averages to zero. Their sum dips below zero twice a cycle.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The identity, in full.</b> $v(t)i(t) = 2VI\cos\omega t\cos(\omega t - \varphi)$, and the product-to-sum formula $2\cos a\cos b = \cos(a - b) +
+    \cos(a + b)$ with $a = \omega t$, $b = \omega t - \varphi$ gives $VI[\cos\varphi + \cos(2\omega t - \varphi)]$. That is the compact form, and the
+    one problem P11 uses. Expanding $\cos(2\omega t - \varphi)$ separates the parts that are in phase with $\cos2\omega t$ and with
+    $\sin2\omega t$: $VI\cos\varphi + VI\cos\varphi\cos2\omega t + VI\sin\varphi\sin2\omega t$.</p>
+    <p><b>The range.</b> From the compact form, $p$ runs between $VI(\cos\varphi - 1)$ and $VI(\cos\varphi + 1)$, i.e. $P - VI$ and $P + VI$. Section 2
+    names $VI$ the apparent power $|S|$.</p>
+    <p><b>Why "reactive" is the amplitude of the second part.</b> For a pure inductor, $\varphi = \pi/2$, the first part vanishes
+    and $p = VI\sin2\omega t$: all of the power is this second kind, and it is exactly the rate of change of the inductor's stored
+    energy (next slide). The second part is the share of $p$ that goes into the load's fields and comes back.</p>
+    <p><b>The workshop's numbers.</b> $VI = 230\times124.22 = 28.57$ kW; $P = 0.7\times28.57 = 20.00$ kW; $Q = 28.57\sin45.57^\circ = 20.40$ kW
+    in amplitude. So $p$ runs from $20 - 28.57 = -8.57$ kW to $48.57$ kW. The axis scale is 3 px per kW; the curves were computed,
+    not sketched.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · instantaneous power</p>
+  <h2>A resistor and an inductor</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Resistor</b>, $\varphi = 0$: $p = VI(1 + \cos2\omega t)\ge0$. Energy flows <b>in</b> at every instant, in pulses at 100 Hz, with mean $VI$. Unit 00's instruction to "treat the 10 A as steady" was exact for the mean: the kettle's 2.3 kW is the average of a flow pulsing between 0 and 4.6 kW (unit 01's P13).</p>
+      <p class="small"><b>Inductor</b>, $\varphi = \pi/2$: $p = VI\sin2\omega t$, mean zero. For a quarter cycle energy flows in and is stored as $\tfrac12Li^2$; for the next it flows back out. Check: $\frac{\mathrm d}{\mathrm dt}\tfrac12Li^2 = Li\,\frac{\mathrm di}{\mathrm dt} = vi$ ✓ (unit 02).</p>
+      <p class="small"><b>Capacitor</b>, $\varphi = -\pi/2$: the same with the sign reversed; unit 01's P13 found the swing, 166 W for $10\ \mu$F.</p>
+      <div class="box warn"><span class="label">one convention</span>
+        <p class="small">$P$ and $Q$ are defined for <b>sinusoidal</b> $v$ and $i$. Unit 14 meets currents that are not sinusoids, where "reactive power" needs a more careful definition.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 250 300" width="390" role="img" aria-label="two small panels; top, a resistor: voltage and current in phase, power always positive, pulsing at twice the frequency; bottom, an inductor: current a quarter cycle behind voltage, power positive and negative in equal parts">
+        <text x="40" y="20" font-size="13">resistor, φ = 0: p ≥ 0</text>
+        <g transform="translate(0,80)">
+          <line x1="40" y1="0" x2="215" y2="0" class="ink" stroke-width="1.1"/>
+          <path d="M40.0,-36.0 L45.0,-35.3 L50.0,-33.3 L55.0,-29.9 L60.0,-25.5 L65.0,-20.0 L70.0,-13.8 L75.0,-7.0 L80.0,-0.0 L85.0,7.0 L90.0,13.8 L95.0,20.0 L100.0,25.5 L105.0,29.9 L110.0,33.3 L115.0,35.3 L120.0,36.0 L125.0,35.3 L130.0,33.3 L135.0,29.9 L140.0,25.5 L145.0,20.0 L150.0,13.8 L155.0,7.0 L160.0,0.0 L165.0,-7.0 L170.0,-13.8 L175.0,-20.0 L180.0,-25.5 L185.0,-29.9 L190.0,-33.3 L195.0,-35.3 L200.0,-36.0" fill="none" class="unit" stroke-width="2.2"/>
+          <path d="M40.0,-25.2 L45.0,-24.7 L50.0,-23.3 L55.0,-21.0 L60.0,-17.8 L65.0,-14.0 L70.0,-9.6 L75.0,-4.9 L80.0,-0.0 L85.0,4.9 L90.0,9.6 L95.0,14.0 L100.0,17.8 L105.0,21.0 L110.0,23.3 L115.0,24.7 L120.0,25.2 L125.0,24.7 L130.0,23.3 L135.0,21.0 L140.0,17.8 L145.0,14.0 L150.0,9.6 L155.0,4.9 L160.0,0.0 L165.0,-4.9 L170.0,-9.6 L175.0,-14.0 L180.0,-17.8 L185.0,-21.0 L190.0,-23.3 L195.0,-24.7 L200.0,-25.2" fill="none" class="alt" stroke-width="2.2"/>
+          <path d="M40.0,-50.4 L45.0,-48.5 L50.0,-43.0 L55.0,-34.8 L60.0,-25.2 L65.0,-15.6 L70.0,-7.4 L75.0,-1.9 L80.0,-0.0 L85.0,-1.9 L90.0,-7.4 L95.0,-15.6 L100.0,-25.2 L105.0,-34.8 L110.0,-43.0 L115.0,-48.5 L120.0,-50.4 L125.0,-48.5 L130.0,-43.0 L135.0,-34.8 L140.0,-25.2 L145.0,-15.6 L150.0,-7.4 L155.0,-1.9 L160.0,-0.0 L165.0,-1.9 L170.0,-7.4 L175.0,-15.6 L180.0,-25.2 L185.0,-34.8 L190.0,-43.0 L195.0,-48.5 L200.0,-50.4" fill="none" class="ink" stroke-width="2.8"/>
+        </g>
+        <text x="40" y="170" font-size="13">inductor, φ = π/2: mean p = 0</text>
+        <g transform="translate(0,230)">
+          <line x1="40" y1="0" x2="215" y2="0" class="ink" stroke-width="1.1"/>
+          <path d="M40.0,-36.0 L45.0,-35.3 L50.0,-33.3 L55.0,-29.9 L60.0,-25.5 L65.0,-20.0 L70.0,-13.8 L75.0,-7.0 L80.0,-0.0 L85.0,7.0 L90.0,13.8 L95.0,20.0 L100.0,25.5 L105.0,29.9 L110.0,33.3 L115.0,35.3 L120.0,36.0 L125.0,35.3 L130.0,33.3 L135.0,29.9 L140.0,25.5 L145.0,20.0 L150.0,13.8 L155.0,7.0 L160.0,0.0 L165.0,-7.0 L170.0,-13.8 L175.0,-20.0 L180.0,-25.5 L185.0,-29.9 L190.0,-33.3 L195.0,-35.3 L200.0,-36.0" fill="none" class="unit" stroke-width="2.2"/>
+          <path d="M40.0,-0.0 L45.0,-4.9 L50.0,-9.6 L55.0,-14.0 L60.0,-17.8 L65.0,-21.0 L70.0,-23.3 L75.0,-24.7 L80.0,-25.2 L85.0,-24.7 L90.0,-23.3 L95.0,-21.0 L100.0,-17.8 L105.0,-14.0 L110.0,-9.6 L115.0,-4.9 L120.0,-0.0 L125.0,4.9 L130.0,9.6 L135.0,14.0 L140.0,17.8 L145.0,21.0 L150.0,23.3 L155.0,24.7 L160.0,25.2 L165.0,24.7 L170.0,23.3 L175.0,21.0 L180.0,17.8 L185.0,14.0 L190.0,9.6 L195.0,4.9 L200.0,0.0" fill="none" class="alt" stroke-width="2.2"/>
+          <path d="M40.0,-0.0 L45.0,-9.6 L50.0,-17.8 L55.0,-23.3 L60.0,-25.2 L65.0,-23.3 L70.0,-17.8 L75.0,-9.6 L80.0,-0.0 L85.0,9.6 L90.0,17.8 L95.0,23.3 L100.0,25.2 L105.0,23.3 L110.0,17.8 L115.0,9.6 L120.0,0.0 L125.0,-9.6 L130.0,-17.8 L135.0,-23.3 L140.0,-25.2 L145.0,-23.3 L150.0,-17.8 L155.0,-9.6 L160.0,-0.0 L165.0,9.6 L170.0,17.8 L175.0,23.3 L180.0,25.2 L185.0,23.3 L190.0,17.8 L195.0,9.6 L200.0,0.0" fill="none" class="ink" stroke-width="2.8"/>
+        </g>
+        <text x="40" y="296" font-size="11" class="fill-unit">v</text><text x="60" y="296" font-size="11" class="alt">i</text><text x="76" y="296" font-size="11">p (bold)</text>
+      </svg>
+      <p class="cap">One cycle each, $v$ and $i$ normalised. For the resistor $v$ and $i$ change sign together, so $p$ never does.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Unit 00's forward reference, landed.</b> Unit 00 told the reader to treat the kettle's 10 A as steady "until unit 06 develops
+    AC power". For a resistor $P = VI$ with RMS values, exactly unit 00's steady-current formula, so every mean power and every
+    mean heating rate unit 00 computed was right. What was hidden is the 100 Hz pulsation: the kettle's element is heated at a
+    rate that rises from 0 to 4.6 kW and back a hundred times a second. Its thermal mass smooths that completely.</p>
+    <p><b>Unit 01's P13, recalled.</b> A $10\ \mu$F capacitor on 230 V, 50 Hz: $p = -\tfrac12C\omega\hat V^2\sin2\omega t$, amplitude
+    $\tfrac12(10^{-5})(2\pi\cdot50)(325.3)^2 = 166$ W. In this unit's language that amplitude is $|Q| = \omega CV^2 = 166$ var with RMS
+    $V = 230$ V — the same number, since $\hat V^2/2 = V^2$. Unit 01 promised that "unit 06 calls the swinging part reactive power".</p>
+    <p><b>The inductor's energy check, as a mean.</b> $\tfrac12Li^2$ is periodic, so its derivative averages to zero; hence
+    $\langle p\rangle = 0$ for any pure inductor, whatever $L$. The same for a capacitor with $\tfrac12Cv^2$. Energy balance forces it.</p>
+    <p><b>Why the warning.</b> The decomposition on the previous slide used that $v$ and $i$ are sinusoids at one frequency. For
+    distorted waveforms — the currents drawn by rectifiers, unit 14 — the mean of $vi$ is still the real power, but the
+    remainder no longer has one amplitude, and several inequivalent "reactive powers" have been proposed. This course's $Q$ is
+    the sinusoidal one only.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Real, reactive, apparent, complex</h2>
+  <p>Three products of $V$ and $I$, three names for one unit, and one complex number that holds two of them — with a physical meaning for $Q$: stored energy, sloshing.</p>
+</section>
+
+<section>
+  <p class="eyebrow">06 · definitions</p>
+  <h2>Complex power</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">four powers</span>
+        <p class="small">For a two-terminal element with RMS phasors $V$, $I$ under the passive convention, $\varphi = \arg V - \arg I$:</p>
+        <ul class="small">
+          <li><span class="term">complex power</span> $S = VI^* = P + iQ$;</li>
+          <li>real power $P = \operatorname{Re}S = |V||I|\cos\varphi$, in <b>W</b>;</li>
+          <li>reactive power $Q = \operatorname{Im}S = |V||I|\sin\varphi$, in <b>var</b>;</li>
+          <li><span class="term">apparent power</span> $|S| = |V||I|$, in <b>VA</b>.</li>
+        </ul>
+      </div>
+      <p class="small">$VI^* = |V||I|e^{i(\arg V - \arg I)} = |V||I|e^{i\varphi}$, so $\arg S = \varphi$. $P$ is the mean of $p(t)$ (section 1).</p>
+      <div class="box warn"><span class="label">three names, one dimension</span>
+        <p class="small">W, var and VA are all $\mathrm{V\cdot A} = \mathrm{J\,s^{-1}}$. The names say <b>which product</b> is meant: a "20 kW" and a "20 kvar" load are different things. The <span class="term">var</span> is the "volt-ampere reactive".</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 280" width="400" role="img" aria-label="a phasor diagram: V along the horizontal axis; I drawn below it at angle phi, lagging; I is split into a component along V, I cos phi, and a component perpendicular to V, I sin phi">
+        <defs><marker id="m06-ph-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m06-ph-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <line x1="40" y1="90" x2="370" y2="90" class="rule" stroke-width="1"/><line x1="60" y1="20" x2="60" y2="270" class="rule" stroke-width="1"/>
+        <text x="365" y="80" font-size="11" text-anchor="end" class="soft">Re</text><text x="68" y="28" font-size="11" class="soft">Im</text>
+        <line x1="60" y1="90" x2="330" y2="90" class="unit" stroke-width="2.8" marker-end="url(#m06-ph-u)"/>
+        <text x="330" y="78" font-size="14" class="fill-unit">V</text>
+        <line x1="60" y1="90" x2="179" y2="211.4" class="alt" stroke-width="2.8" marker-end="url(#m06-ph-a)"/>
+        <text x="186" y="230" font-size="14" class="alt">I</text>
+        <path d="M60,96 H179" class="alt" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M179,90 V211.4" class="alt" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="150" y="114" font-size="12">|I| cos φ</text>
+        <text x="186" y="160" font-size="12">|I| sin φ</text>
+        <path d="M110,90 A50,50 0 0 1 95,125.7" fill="none" class="ink" stroke-width="1.5"/>
+        <text x="114" y="132" font-size="13">φ</text>
+        <text x="60" y="262" font-size="12" class="soft">φ &gt; 0: I lags V (inductive)</text>
+      </svg>
+      <p class="cap">The phasors at $t = 0$, $V$ taken real. The component of $I$ along $V$ carries $P$; the component at right angles carries $Q$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $VI^*$ and not $VI$.</b> $VI$ would have argument $\arg V + \arg I$, which depends on where $t = 0$ is put: shift time by
+    $t_0$ and both phasors rotate by $e^{i\omega t_0}$, so $VI$ rotates by $e^{2i\omega t_0}$. $VI^*$ is unchanged by that rotation —
+    $e^{i\omega t_0}e^{-i\omega t_0} = 1$ — so it is a property of the load, not of the clock. And its real part is the mean power,
+    by MR 06's rule.</p>
+    <p><b>The component picture.</b> Write $I = I_p + I_q$ with $I_p$ along $V$ and $I_q$ at right angles. Then $VI_p^*$ is real and
+    $VI_q^*$ is imaginary: $P = |V||I_p|$, $|Q| = |V||I_q|$. So $P$ is "voltage times the in-phase current" and $Q$ is "voltage times
+    the quadrature current". Section 4 shows both components heat the cable.</p>
+    <p><b>Conventions, stated as conventions.</b> AUTHORING.md fixes, for the whole course: $S = VI^*$ (some texts use $V^*I$, which flips
+    the sign of $Q$); $Q > 0$ for an inductive load, whose current lags; and $\varphi = \arg V - \arg I$. The names "real" (or
+    "active"), "reactive" and "apparent" power and the units W, var and VA are those used throughout power engineering; this deck
+    quotes no standard for them, because the one that defines them could not be checked from here.</p>
+    <p><b>Units.</b> $\mathrm V\cdot\mathrm A = (\mathrm{J\,C^{-1}})(\mathrm{C\,s^{-1}}) = \mathrm{J\,s^{-1}} = \mathrm W$ ✓, for all three.</p>
+    <p><b>One letter, two quantities.</b> Unit 05 used $Q$ for a resonator's quality factor, $\omega_0L/R$, a pure number. From here on
+    $Q$ is also reactive power, in var; the units say which is meant. They meet once: in a series RLC at resonance the inductor's
+    reactive power $\omega_0L|I|^2$ is exactly the quality factor times the real power $R|I|^2$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · definitions</p>
+  <h2>For an impedance: the resistance takes $P$, the reactance $Q$</h2>
+  <div class="cols">
+    <div>
+      <p class="small">For an impedance $Z = R + iX$ with $V = ZI$:</p>
+      $$\boxed{\,S = VI^* = Z|I|^2 = \frac{|V|^2}{Z^*}\,}$$
+      <p class="small">So $P = R|I|^2$ and $Q = X|I|^2$: <b>the resistance absorbs the real power, the reactance the reactive power</b>. And $\varphi = \arg Z$.</p>
+      <ul class="small">
+        <li>Resistor: $S = R|I|^2$, real.</li>
+        <li>Inductor, $Z = i\omega L$: $Q = \omega L|I|^2 > 0$. An <span class="term">inductive load</span> absorbs positive $Q$.</li>
+        <li>Capacitor, $Z = 1/i\omega C$: $S = |V|^2/(1/i\omega C)^* = -i\omega C|V|^2$, so $Q = -\omega C|V|^2\lt0$.</li>
+      </ul>
+      <p class="small">Unit 05's $\operatorname{Re}Z\ge0$ for every passive network is now $P\ge0$: <b>a passive load never returns net energy</b>.</p>
+      <p class="small muted">Units: $\Omega\cdot\mathrm A^2 = \mathrm{V\,A}$ ✓; $\mathrm V^2/\Omega = \mathrm{V\,A}$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 300" width="370" role="img" aria-label="the complex plane of S: a resistor's S lies on the positive real axis; an inductor's on the positive imaginary axis; a capacitor's on the negative imaginary axis; a general passive load lies in the right half-plane, above the axis if inductive and below if capacitive">
+        <defs><marker id="m06-zs-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <rect x="120" y="20" width="220" height="260" class="fill-soft"/>
+        <line x1="20" y1="150" x2="345" y2="150" class="ink" stroke-width="1.2"/><line x1="120" y1="15" x2="120" y2="285" class="ink" stroke-width="1.2"/>
+        <text x="340" y="168" font-size="12" text-anchor="end">P</text><text x="128" y="28" font-size="12">Q</text>
+        <line x1="120" y1="150" x2="260" y2="150" class="unit" stroke-width="2.6" marker-end="url(#m06-zs-u)"/><text x="262" y="142" font-size="12">resistor</text>
+        <line x1="120" y1="150" x2="120" y2="60" class="unit" stroke-width="2.6" marker-end="url(#m06-zs-u)"/><text x="128" y="66" font-size="12">inductor</text>
+        <line x1="120" y1="150" x2="120" y2="240" class="unit" stroke-width="2.6" marker-end="url(#m06-zs-u)"/><text x="128" y="244" font-size="12">capacitor</text>
+        <line x1="120" y1="150" x2="250" y2="70" class="alt" stroke-width="2.2" stroke-dasharray="6 4"/><circle cx="250" cy="70" r="4" class="fill-alt"/><text x="254" y="64" font-size="12" class="alt">inductive load</text>
+        <line x1="120" y1="150" x2="250" y2="220" class="alt" stroke-width="2.2" stroke-dasharray="6 4"/><circle cx="250" cy="220" r="4" class="fill-alt"/><text x="254" y="236" font-size="12" class="alt">capacitive</text>
+        <text x="230" y="276" font-size="12" text-anchor="middle" class="soft">passive: P ≥ 0, the shaded half-plane</text>
+      </svg>
+      <p class="cap">Where $S$ lies. Unit 05's positive-real theorem confines every passive load to the right half-plane; the sign of $Q$ says inductive or capacitive.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the box.</b> $S = VI^* = (ZI)I^* = Z|I|^2$. And $I = V/Z$, so $I^* = V^*/Z^*$ and $S = VV^*/Z^* = |V|^2/Z^*$. Real and
+    imaginary parts of $Z|I|^2$ give $P = R|I|^2$, $Q = X|I|^2$; and since $|I|^2 > 0$, $\arg S = \arg Z$, so $\varphi = \arg Z$.</p>
+    <p><b>Limits, as a check.</b> $X\to0$: $Q\to0$, $S = R|I|^2$, unit 02's Joule heating ✓. A short ($Z = 0$) absorbs nothing at
+    finite current; an open circuit ($|Z|\to\infty$) absorbs nothing at finite voltage, by $|V|^2/Z^*\to0$ ✓.</p>
+    <p><b>Unit 05's theorem, read as power.</b> Unit 05 proved that the impedance of any network of positive R, L, C has
+    $\operatorname{Re}Z(i\omega)\ge0$, from Tellegen's theorem: $\operatorname{Re}Z(i\omega) = \sum_R R|I_e|^2/|I|^2$. Multiplying by $|I|^2$ it says
+    $P = \sum_RR|I_e|^2$: the real power into the network is the heat in its resistors. Unit 05 left that mean power to be
+    named here; it is $P$.</p>
+    <p><b>Which loads are capacitive.</b> A capacitor bank (section 5); a long unloaded cable, whose capacitance between its
+    conductors dominates (unit 08 and unit 14). Loads that contain coils — motors, the
+    transformers of unit 07 — are inductive; the claim is about where reactance comes from, not a statistic about which loads
+    are common.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · definitions</p>
+  <h2>The power triangle, and the power factor</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$S = P + iQ$ drawn in the plane is the <span class="term">power triangle</span>: sides $P$ and $Q$, hypotenuse $|S|$, angle $\varphi$ at the origin.</p>
+      <div class="box def"><span class="label">power factor</span>
+        <p class="small">$$\mathrm{pf} = \cos\varphi = \frac{P}{|S|} = \frac{P}{|V||I|},$$ described as <span class="term">lagging</span> when $Q > 0$ (current lags voltage: inductive) and <span class="term">leading</span> when $Q\lt0$ (capacitive).</p>
+      </div>
+      <p class="small">The power factor says how much of the current you pay for in copper does work: at fixed $P$ and $|V|$,</p>
+      $$|I| = \frac{P}{|V|\cos\varphi}.$$
+      <p class="small">The cosine alone does not say the sign of $\varphi$; the word "lagging" or "leading" does.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 300" width="370" role="img" aria-label="the power triangle: P along the horizontal, Q vertical upward for a lagging load, S the hypotenuse at angle phi; mirrored below the axis, dashed, the triangle of a leading load with Q negative">
+        <line x1="40" y1="160" x2="340" y2="160" class="rule" stroke-width="1"/>
+        <path d="M60,160 L280,160 L280,40 Z" class="fill-soft" stroke="none"/>
+        <line x1="60" y1="160" x2="280" y2="160" class="unit" stroke-width="2.8"/>
+        <line x1="280" y1="160" x2="280" y2="40" class="alt" stroke-width="2.8"/>
+        <line x1="60" y1="160" x2="280" y2="40" class="ink" stroke-width="2.8"/>
+        <path d="M60,160 L280,160 L280,260 Z" fill="none" class="ink" stroke-width="1.4" stroke-dasharray="5 4"/>
+        <text x="170" y="182" font-size="14" text-anchor="middle" class="fill-unit">P</text>
+        <text x="290" y="104" font-size="14" class="alt">Q &gt; 0</text>
+        <text x="150" y="88" font-size="14" text-anchor="middle">|S|</text>
+        <path d="M110,160 A50,50 0 0 0 103.9,136" fill="none" class="ink" stroke-width="1.5"/><text x="116" y="150" font-size="13">φ</text>
+        <text x="290" y="222" font-size="13" class="soft">Q &lt; 0</text>
+        <text x="200" y="22" font-size="12" text-anchor="middle">lagging (inductive)</text>
+        <text x="200" y="292" font-size="12" text-anchor="middle" class="soft">leading (capacitive), dashed</text>
+      </svg>
+      <p class="cap">One triangle for each sign of $Q$. The power factor is the ratio of the bottom side to the hypotenuse.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Pythagoras.</b> $|S|^2 = P^2 + Q^2$, since $S = P + iQ$. So, given any two of $P$, $Q$, $|S|$, $\cos\varphi$ (with its sense), the
+    others follow. Also $Q = P\tan\varphi$, used for correction in section 5.</p>
+    <p><b>Range.</b> For a passive load $P\ge0$, so $|\varphi|\le\pi/2$ and $0\le\cos\varphi\le1$. Unity power factor means $Q = 0$: the
+    load looks resistive at this frequency, which a resistor does, and so does a tuned circuit at resonance (next slides).</p>
+    <p><b>Units of the boxed formula.</b> $\mathrm W/(\mathrm V\cdot1) = \mathrm A$ ✓. A limit: $\cos\varphi\to0$ at fixed $P$ sends $|I|\to\infty$ —
+    a nearly pure reactance can only absorb a given real power by drawing an enormous current, all but a sliver of it in
+    quadrature.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · definitions</p>
+  <h2>Worked: the workshop's triangle</h2>
+  <div class="box ex"><span class="label">worked example 1 — <span class="ref" data-ref="workshop">the workshop</span>: $P$, $Q$, $|S|$, $I$, $\varphi$, and the range of $p(t)$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Apparent power.</b> $|S| = P/\cos\varphi = 20/0.7 = 28.57$ kVA.</p>
+      <p class="small"><b>2. Angle.</b> $\varphi = \arccos0.7 = 45.57^\circ$ (lagging, so $\varphi > 0$); $\sin\varphi = \sqrt{1 - 0.49} = 0.7141$.</p>
+      <p class="small"><b>3. Reactive power.</b> $Q = |S|\sin\varphi = 20.40$ kvar. Check: $\sqrt{20^2 + 20.40^2} = 28.57$ ✓.</p>
+      <p class="small"><b>4. Current.</b> $|I| = |S|/|V| = 28571/230 = 124.2$ A, against 86.96 A at unity power factor.</p>
+      <p class="small"><b>5. Range of $p$.</b> From $P - |S|$ to $P + |S|$: <b>−8.57 kW to +48.57 kW</b>, at 100 Hz.</p>
+      <p class="small"><b>6. Complex power.</b> $S = 20.00 + 20.40i$ kVA; the workshop's equivalent impedance is $Z = |V|^2/S^* = 1.296 + 1.322i\ \Omega$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 290" width="420" role="img" aria-label="the workshop's power triangle to scale, 10 pixels per kilowatt: P 20 kilowatts along the bottom, Q 20.40 kilovar up the right side, S 28.57 kilovolt-amperes as the hypotenuse, angle 45.57 degrees">
+        <path d="M60,250 L260,250 L260,46 Z" class="fill-soft" stroke="none"/>
+        <line x1="60" y1="250" x2="260" y2="250" class="unit" stroke-width="3"/>
+        <line x1="260" y1="250" x2="260" y2="46" class="alt" stroke-width="3"/>
+        <line x1="60" y1="250" x2="260" y2="46" class="ink" stroke-width="3"/>
+        <text x="160" y="274" font-size="13" text-anchor="middle" class="fill-unit">P = 20 kW</text>
+        <text x="268" y="152" font-size="13" class="alt">Q = 20.40 kvar</text>
+        <text x="146" y="134" font-size="13" text-anchor="end">|S| = 28.57 kVA</text>
+        <path d="M110,250 A50,50 0 0 0 95,214.3" fill="none" class="ink" stroke-width="1.5"/>
+        <text x="116" y="240" font-size="12">45.57°</text>
+      </svg>
+      <p class="cap">To scale. The reactive side is slightly longer than the real one: $\tan\varphi = 1.020$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers, to more figures.</b> $|S| = 28571.4$ VA; $\varphi = 0.79540$ rad $= 45.5730^\circ$; $Q = 28571.4\times0.714143 = 20404.1$ var;
+    $|I| = 124.224$ A; $\tan\varphi = 1.02020$.</p>
+    <p><b>The equivalent impedance.</b> $Z = |V|^2/S^* = 52900/(20000 - 20404i) = 52900(20000 + 20404i)/28571.4^2 = 1.296 + 1.322i\ \Omega$; $|Z| =
+    230/124.22 = 1.8515\ \Omega$. As a series R–L at 50 Hz: $L = 1.322/314.16 = 4.21$ mH (problem P5). This is the impedance unit 07
+    reflects through a transformer. It is a model of the workshop's terminals at 50 Hz, not a claim about what is inside.</p>
+    <p><b>Energy check.</b> $P = R|I|^2 = 1.296\times124.22^2 = 20.0$ kW ✓ and $Q = X|I|^2 = 1.322\times124.22^2 = 20.40$ kvar ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · definitions</p>
+  <h2>What $Q$ is: stored energy, sloshing</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">reactive power from stored energy</span>
+        <p class="small">For a one-port network of positive R, L and C in the sinusoidal steady state,</p>
+        $$\boxed{\,Q = 2\omega\big(\langle W_m\rangle - \langle W_e\rangle\big)\,}$$
+        <p class="small">where $\langle W_m\rangle = \sum_L\tfrac12L|I_e|^2$ and $\langle W_e\rangle = \sum_C\tfrac12C|V_e|^2$ are the mean energies stored in its inductors and capacitors.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, from unit 05's sum</span>
+        <p class="small">Unit 05's Tellegen identity at $s = i\omega$: $VI^* = \sum_RR|I_e|^2 + \sum_Li\omega L|I_e|^2 + \sum_C|I_e|^2/(i\omega C)$. Take imaginary parts and use $|I_e| = \omega C|V_e|$ on each capacitor. $\square$</p>
+      </div>
+      <p class="small muted">Units: $\mathrm s^{-1}\cdot\mathrm J = \mathrm W$ ✓ — $Q$ is a rate of energy.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 440 290" width="430" role="img" aria-label="a tuned series circuit at resonance over one cycle: the inductor's stored energy rises and falls as cosine squared, the capacitor's as sine squared, and their sum is a flat line: energy passes between them and none to the source">
+        <line x1="60" y1="220" x2="430" y2="220" class="ink" stroke-width="1.2"/><line x1="60" y1="40" x2="60" y2="230" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="70" x2="420" y2="70" class="ink" stroke-width="2.2" stroke-dasharray="6 4"/>
+        <path d="M60.0,70.0 L67.5,72.6 L75.0,80.0 L82.5,92.0 L90.0,107.5 L97.5,125.6 L105.0,145.0 L112.5,164.4 L120.0,182.5 L127.5,198.0 L135.0,210.0 L142.5,217.4 L150.0,220.0 L157.5,217.4 L165.0,210.0 L172.5,198.0 L180.0,182.5 L187.5,164.4 L195.0,145.0 L202.5,125.6 L210.0,107.5 L217.5,92.0 L225.0,80.0 L232.5,72.6 L240.0,70.0 L247.5,72.6 L255.0,80.0 L262.5,92.0 L270.0,107.5 L277.5,125.6 L285.0,145.0 L292.5,164.4 L300.0,182.5 L307.5,198.0 L315.0,210.0 L322.5,217.4 L330.0,220.0 L337.5,217.4 L345.0,210.0 L352.5,198.0 L360.0,182.5 L367.5,164.4 L375.0,145.0 L382.5,125.6 L390.0,107.5 L397.5,92.0 L405.0,80.0 L412.5,72.6 L420.0,70.0" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M60.0,220.0 L67.5,217.4 L75.0,210.0 L82.5,198.0 L90.0,182.5 L97.5,164.4 L105.0,145.0 L112.5,125.6 L120.0,107.5 L127.5,92.0 L135.0,80.0 L142.5,72.6 L150.0,70.0 L157.5,72.6 L165.0,80.0 L172.5,92.0 L180.0,107.5 L187.5,125.6 L195.0,145.0 L202.5,164.4 L210.0,182.5 L217.5,198.0 L225.0,210.0 L232.5,217.4 L240.0,220.0 L247.5,217.4 L255.0,210.0 L262.5,198.0 L270.0,182.5 L277.5,164.4 L285.0,145.0 L292.5,125.6 L300.0,107.5 L307.5,92.0 L315.0,80.0 L322.5,72.6 L330.0,70.0 L337.5,72.6 L345.0,80.0 L352.5,92.0 L360.0,107.5 L367.5,125.6 L375.0,145.0 L382.5,164.4 L390.0,182.5 L397.5,198.0 L405.0,210.0 L412.5,217.4 L420.0,220.0" fill="none" class="alt" stroke-width="2.6"/>
+        <line x1="60" y1="145" x2="420" y2="145" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <text x="420" y="62" font-size="12" text-anchor="end">W<tspan dy="3" font-size="75%">m</tspan><tspan dy="-3">&#8202;</tspan> + W<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan>: constant</text>
+        <text x="92" y="98" font-size="13" class="fill-unit">W<tspan dy="3" font-size="75%">m</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="148" y="98" font-size="13" class="alt">W<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="425" y="160" font-size="11" text-anchor="end" class="soft halo">equal means: Q = 0</text>
+        <text x="240" y="250" font-size="12" text-anchor="middle" class="soft">one 50 Hz cycle</text>
+        <text x="240" y="276" font-size="12" text-anchor="middle">a tuned circuit at resonance draws no Q</text>
+      </svg>
+      <p class="cap">A series LC at resonance, $\omega^2LC = 1$: energy passes between the coil and the capacitor and none goes back to the source. Where the means differ, the source must carry the difference.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>Drive the one-port with a sinusoidal source; let $V_e$, $I_e$ be the branch phasors. Unit 05 showed that the phasors obey
+    Kirchhoff's laws (they are linear with real coefficients), and that the conjugated currents $I_e^*$ still obey the current
+    law because the incidence matrix $A$ is real: $AI^* = (AI)^* = 0$. Tellegen's theorem (unit 03), whose one-line proof
+    $V^{\mathsf T}J = \Phi^{\mathsf T}AJ = 0$ never used that the vectors are real, then gives $\sum_eV_eI_e^* = 0$ over every branch, the
+    driving source included. The source's branch contributes $-VI^*$ under the passive convention, so</p>
+    <p>$VI^* = \sum_RR|I_e|^2 + \sum_Li\omega L|I_e|^2 + \sum_C\dfrac{|I_e|^2}{i\omega C}.$</p>
+    <p>The imaginary part: $Q = \omega\sum_LL|I_e|^2 - \sum_C|I_e|^2/(\omega C)$. On a capacitor $I_e = i\omega CV_e$, so $|I_e|^2/(\omega C) = \omega C|V_e|^2$.
+    Hence $Q = 2\omega\big(\sum_L\tfrac12L|I_e|^2 - \sum_C\tfrac12C|V_e|^2\big)$. Finally, $\langle\tfrac12Li^2\rangle = \tfrac12L\langle i^2\rangle = \tfrac12L|I_e|^2$, because the
+    mean of $i^2$ is the square of the RMS value (unit 05's definition) — this is where RMS phasors make the formula clean. The same
+    for $\tfrac12Cv^2$. $\square$</p>
+    <p><b>Special cases.</b> An inductor alone: $Q = \omega L|I|^2 = 2\omega\langle W_m\rangle$. A capacitor alone: $Q = -\omega C|V|^2 = -2\omega\langle W_e\rangle$.
+    A tuned series LC at resonance: the same current through both, $\omega L|I|^2 = |I|^2/(\omega C)$, so $\langle W_m\rangle = \langle W_e\rangle$ and $Q = 0$.
+    Unit 05's resonance — $Z$ real at $\omega_0$ — is exactly this statement.</p>
+    <p><b>Why "twice $\omega$".</b> Stored energy oscillates at $2\omega$, since it goes as $\cos^2$. For an inductor alone,
+    $W_m(t) = \langle W_m\rangle(1 + \cos2\omega t')$ with $t'$ measured from a current peak: a swing of amplitude $\langle W_m\rangle$ at angular
+    frequency $2\omega$, whose rate of change has amplitude $2\omega\langle W_m\rangle = Q$. So $Q$ is the amplitude of the rate at which
+    stored energy is pushed into the load and taken back.</p>
+    <p><b>Coupled coils.</b> With mutual inductance (unit 02's inductance matrix $\mathbf L$, unit 07's transformers) the inductor terms
+    become $i\omega\,I^{\mathsf H}\mathbf LI$, still $2i\omega\langle W_m\rangle$ since $\mathbf L$ is real and symmetric; the theorem stands. Problem P2
+    proves the uncoupled case.</p>
+    <p><b>For the workshop.</b> $\langle W_m\rangle - \langle W_e\rangle = Q/2\omega = 20404/628.3 = 32.5$ J: about 32 J more is stored, on average, in
+    the workshop's magnetic fields than in its electric ones, and the supply pushes it in and takes it back a hundred times a
+    second.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · definitions</p>
+  <h2>Worked: $Q$ counted in joules</h2>
+  <div class="box ex"><span class="label">worked example 2 — a series RLC load on 230 V, 50 Hz: $Q = 2\omega(\langle W_m\rangle - \langle W_e\rangle)$ checked</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The load</b> (values assumed): $R = 6\ \Omega$, $\omega L = 12\ \Omega$ ($L = 38.20$ mH), $1/\omega C = 4\ \Omega$ ($C = 795.8\ \mu$F). $Z = 6 + 8i$, $|Z| = 10\ \Omega$.</p>
+      <p class="small"><b>2. Current.</b> $|I| = 230/10 = 23.0$ A; $\cos\varphi = 0.6$ lagging.</p>
+      <p class="small"><b>3. Powers.</b> $S = Z|I|^2 = (6 + 8i)\times529 = 3174 + 4232i$: $P = 3174$ W, $Q = 4232$ var.</p>
+      <p class="small"><b>4. Stored energies.</b> $\langle W_m\rangle = \tfrac12L|I|^2 = \tfrac12(0.03820)(529) = 10.10$ J. The capacitor's voltage is $|I|/\omega C = 92.0$ V, so $\langle W_e\rangle = \tfrac12(795.8\times10^{-6})(92.0)^2 = 3.37$ J.</p>
+      <p class="small"><b>5. Check.</b> $2\omega(10.10 - 3.37) = 628.3\times6.736 = 4232$ var ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 440 300" width="490" role="img" aria-label="above, the series circuit: a 230 volt source, a 6 ohm resistor, a 12 ohm reactance inductor and a 4 ohm reactance capacitor in one loop, current 23 amperes; below, over one cycle, the inductor's energy swinging between 0 and 20.2 joules and the capacitor's between 0 and 6.74 joules, out of step">
+        <defs><marker id="m06-x2-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <path d="M40,20 H110 M150,20 H200 M260,20 H330 V30 M330,46 V60 H40 V54 M40,26 V20" fill="none" class="ink" stroke-width="2"/>
+        <circle cx="40" cy="40" r="14" class="fill-ground ink" stroke-width="1.8"/><text x="40" y="37" font-size="10" text-anchor="middle">+</text><text x="40" y="50" font-size="11" text-anchor="middle">−</text>
+        <rect x="110" y="13" width="40" height="14" class="fill-ground ink" stroke-width="1.8"/>
+        <path d="M200,20 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0" fill="none" class="ink" stroke-width="1.8"/>
+        <path d="M318,30 H342 M318,46 H342" class="ink" stroke-width="2.2"/>
+        <text x="104" y="12" font-size="10">+</text><text x="152" y="12" font-size="11">−</text><text x="194" y="12" font-size="10">+</text><text x="258" y="12" font-size="11">−</text><text x="310" y="30" font-size="10" text-anchor="end">+</text><text x="310" y="54" font-size="11" text-anchor="end">−</text>
+        <text x="130" y="44" font-size="11" text-anchor="middle">6 Ω</text><text x="230" y="44" font-size="11" text-anchor="middle">12i Ω</text><text x="352" y="42" font-size="11">−4i Ω</text>
+        <line x1="70" y1="10" x2="100" y2="10" class="unit" stroke-width="2" marker-end="url(#m06-x2-u)"/><text x="62" y="12" font-size="11" text-anchor="end" class="fill-unit">23 A</text>
+        <line x1="60" y1="230" x2="430" y2="230" class="ink" stroke-width="1.2"/><line x1="60" y1="70" x2="60" y2="236" class="ink" stroke-width="1.2"/>
+        <path d="M60.0,68.3 L67.5,71.1 L75.0,79.2 L82.5,92.0 L90.0,108.8 L97.5,128.3 L105.0,149.2 L112.5,170.1 L120.0,189.6 L127.5,206.3 L135.0,219.2 L142.5,227.2 L150.0,230.0 L157.5,227.2 L165.0,219.2 L172.5,206.3 L180.0,189.6 L187.5,170.1 L195.0,149.2 L202.5,128.3 L210.0,108.8 L217.5,92.0 L225.0,79.2 L232.5,71.1 L240.0,68.3 L247.5,71.1 L255.0,79.2 L262.5,92.0 L270.0,108.8 L277.5,128.3 L285.0,149.2 L292.5,170.1 L300.0,189.6 L307.5,206.3 L315.0,219.2 L322.5,227.2 L330.0,230.0 L337.5,227.2 L345.0,219.2 L352.5,206.3 L360.0,189.6 L367.5,170.1 L375.0,149.2 L382.5,128.3 L390.0,108.8 L397.5,92.0 L405.0,79.2 L412.5,71.1 L420.0,68.3" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M60.0,230.0 L67.5,229.1 L75.0,226.4 L82.5,222.1 L90.0,216.5 L97.5,210.0 L105.0,203.1 L112.5,196.1 L120.0,189.6 L127.5,184.0 L135.0,179.7 L142.5,177.0 L150.0,176.1 L157.5,177.0 L165.0,179.7 L172.5,184.0 L180.0,189.6 L187.5,196.1 L195.0,203.1 L202.5,210.0 L210.0,216.5 L217.5,222.1 L225.0,226.4 L232.5,229.1 L240.0,230.0 L247.5,229.1 L255.0,226.4 L262.5,222.1 L270.0,216.5 L277.5,210.0 L285.0,203.1 L292.5,196.1 L300.0,189.6 L307.5,184.0 L315.0,179.7 L322.5,177.0 L330.0,176.1 L337.5,177.0 L345.0,179.7 L352.5,184.0 L360.0,189.6 L367.5,196.1 L375.0,203.1 L382.5,210.0 L390.0,216.5 L397.5,222.1 L405.0,226.4 L412.5,229.1 L420.0,230.0" fill="none" class="alt" stroke-width="2.6"/>
+        <line x1="60" y1="149.2" x2="420" y2="149.2" class="unit" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <line x1="60" y1="203.1" x2="420" y2="203.1" class="alt" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <text x="425" y="143" font-size="11" text-anchor="end" class="fill-unit halo">⟨W<tspan dy="3" font-size="75%">m</tspan><tspan dy="-3">&#8202;</tspan>⟩ = 10.10 J</text>
+        <text x="425" y="198" font-size="11" text-anchor="end" class="alt halo">⟨W<tspan dy="3" font-size="75%">e</tspan><tspan dy="-3">&#8202;</tspan>⟩ = 3.37 J</text>
+        <text x="54" y="234" font-size="11" text-anchor="end" class="soft">0</text><text x="54" y="73" font-size="11" text-anchor="end" class="soft">20 J</text><path d="M56,70 H60" class="ink"/>
+        <text x="240" y="256" font-size="12" text-anchor="middle" class="soft">one 50 Hz cycle</text>
+        <text x="240" y="284" font-size="12" text-anchor="middle">2ω(10.10 − 3.37) J = 4232 var</text>
+      </svg>
+      <p class="cap">Above, the load, marked by reactance. Below, its stored energies over one cycle, computed. The means differ by 6.74 J.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The element values.</b> $L = 12/(2\pi\cdot50) = 38.20$ mH; $C = 1/(4\cdot2\pi\cdot50) = 795.8\ \mu$F. Chosen so that $|Z| = 10\ \Omega$
+    exactly and the arithmetic is clean; no device is meant.</p>
+    <p><b>The voltages.</b> $|V_R| = 138$ V, $|V_L| = 276$ V, $|V_C| = 92$ V. They do not add to 230 V as magnitudes: as phasors,
+    $V = 23(6 + 12i - 4i) = 138 + 184i$, of magnitude 230 ✓. The inductor's voltage exceeds the supply's — unit 05's resonance
+    effect, not yet large here.</p>
+    <p><b>Energy over a cycle.</b> $W_m(t) = \tfrac12Li(t)^2 = L|I|^2\cos^2\omega t$ peaks at $2\langle W_m\rangle = 20.2$ J; the capacitor's voltage lags the
+    current by a quarter cycle, so $W_e(t) = C|V_C|^2\sin^2\omega t$ peaks at 6.74 J. Their sum is not constant: the excess
+    oscillation is what the source supplies and takes back.</p>
+    <p><b>Check by $P$.</b> $P = R|I|^2 = 3174$ W, and $|V||I|\cos\varphi = 230\times23\times0.6 = 3174$ W ✓.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Complex power is conserved</h2>
+  <p>Unit 03's Tellegen theorem, with voltages from a network and the conjugates of its currents: real and reactive power each balance, element by element. Apparent power does not.</p>
+</section>
+
+<section>
+  <p class="eyebrow">06 · conservation</p>
+  <h2>The conjugate currents obey the current law</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A network of any linear elements and sinusoidal sources at one frequency, on a graph with incidence matrix $A$. Its branch phasors obey Kirchhoff's laws (unit 05): $V = A^{\mathsf T}\Phi$ and $AI = 0$.</p>
+      <p class="small">$A$ is <b>real</b>, so conjugating the current law gives $AI^* = (AI)^* = 0$: the conjugates are also a current distribution on the same graph.</p>
+      <div class="box thm"><span class="label">the <span class="term">conservation of complex power</span></span>
+        <p class="small">$$\sum_{\text{all elements}}S_e = \sum_eV_eI_e^* = 0 .$$ Hence $\sum_eP_e = 0$ and $\sum_eQ_e = 0$ <b>separately</b>.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$V^{\mathsf T}I^* = (A^{\mathsf T}\Phi)^{\mathsf T}I^* = \Phi^{\mathsf T}(AI^*) = 0$: unit 03's proof of Tellegen's theorem, unchanged. $\square$</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 260" width="410" role="img" aria-label="left, three current phasors leaving a node, drawn head to tail, close into a triangle because they sum to zero; right, their complex conjugates, the mirror image of the triangle in the real axis, also close">
+        <defs><marker id="m06-kc-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m06-kc-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <line x1="20" y1="150" x2="190" y2="150" class="rule" stroke-width="1"/><line x1="220" y1="110" x2="390" y2="110" class="rule" stroke-width="1"/>
+        <g class="unit" stroke-width="2.4">
+          <line x1="40" y1="150" x2="140" y2="125" marker-end="url(#m06-kc-u)"/>
+          <line x1="140" y1="125" x2="115" y2="62.5" marker-end="url(#m06-kc-u)"/>
+          <line x1="115" y1="62.5" x2="40" y2="150" marker-end="url(#m06-kc-u)"/>
+        </g>
+        <g class="alt" stroke-width="2.4">
+          <line x1="240" y1="110" x2="340" y2="135" marker-end="url(#m06-kc-a)"/>
+          <line x1="340" y1="135" x2="315" y2="197.5" marker-end="url(#m06-kc-a)"/>
+          <line x1="315" y1="197.5" x2="240" y2="110" marker-end="url(#m06-kc-a)"/>
+        </g>
+        <text x="96" y="152" font-size="13" class="fill-unit">I<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="138" y="92" font-size="13" class="fill-unit">I<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="58" y="96" font-size="13" class="fill-unit">I<tspan dy="3" font-size="75%">3</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="292" y="114" font-size="13" class="alt">I<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan>*</text>
+        <text x="336" y="178" font-size="13" class="alt">I<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan>*</text>
+        <text x="250" y="168" font-size="13" class="alt">I<tspan dy="3" font-size="75%">3</tspan><tspan dy="-3">&#8202;</tspan>*</text>
+        <text x="100" y="196" font-size="12" text-anchor="middle">I<tspan dy="3" font-size="75%">1</tspan><tspan dy="-3">&#8202;</tspan> + I<tspan dy="3" font-size="75%">2</tspan><tspan dy="-3">&#8202;</tspan> + I<tspan dy="3" font-size="75%">3</tspan><tspan dy="-3">&#8202;</tspan> = 0</text>
+        <text x="300" y="232" font-size="12" text-anchor="middle">so the mirror image closes too</text>
+        <text x="200" y="22" font-size="12" text-anchor="middle" class="soft">the currents leaving one node, head to tail</text>
+      </svg>
+      <p class="cap">The current law at a node says its current phasors close into a polygon. Conjugation reflects the polygon in the real axis, and a reflected closed polygon is closed.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Unit 03's promise, landed.</b> Unit 03 said that "unit 06 uses the same pairing to prove that complex power is
+    conserved": $v$ from the network, $i$ from its complex conjugate. Unit 05 used exactly this pairing at complex frequency $s$ to
+    prove $\operatorname{Re}Z\ge0$; here it is used at $s = i\omega$ for every element at once.</p>
+    <p><b>Why the bilinear form, not the Hermitian one.</b> Tellegen's orthogonality is $\sum_ev_ej_e = 0$ for $v\in\operatorname{im}A^{\mathsf T}$ and
+    $j\in\ker A$. Over $\mathbb C$ the same one-line proof holds for the <i>bilinear</i> sum (no conjugation), because it only uses
+    associativity of matrix products. So we may pair $V$ with $J = I^*$, which lies in $\ker A$ because $A$ is real. Pairing $V$ with $I$
+    itself is also legitimate — $\sum V_eI_e = 0$ too — but that sum is not a power (it depends on the time origin, as the
+    definitions slide showed).</p>
+    <p><b>What is summed.</b> Every branch, under the passive convention: sources contribute $S_e$ with negative real part when
+    they deliver real power, and with negative imaginary part when they deliver reactive power (supplying an inductive load).
+    "What the sources deliver, the rest absorb" — now twice, once for $P$ and once for $Q$.</p>
+    <p><b>Instantaneous power, too.</b> Unit 03's theorem applied to the instantaneous $v_e(t)$, $i_e(t)$ already gave $\sum p_e(t) = 0$ at
+    every instant. Its mean is $\sum P_e = 0$. The statement $\sum Q_e = 0$ is new: it is not the mean of anything, and needs the
+    phasor version.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · conservation</p>
+  <h2>Reactive power adds; apparent power does not</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Split <span class="ref" data-ref="loads">the workshop's load</span> into three, all at 230 V (assumed): motors 15 kW + 20.40 kvar, lighting 1 kW, heaters 4 kW. By conservation, the workshop takes</p>
+      $$S = \textstyle\sum_kS_k = 20 + 20.40i\ \text{kVA}.$$
+      <p class="small">Complex powers add as vectors. Their lengths do not: $|S_m| + |S_l| + |S_h| = 25.32 + 1 + 4$, and</p>
+      $$\textstyle\sum_k|S_k| = 30.32\ \text{kVA} \ne |S| = 28.57\ \text{kVA}.$$
+      <div class="box warn"><span class="label">apparent power is not conserved</span>
+        <p class="small">$|S|$ obeys only the triangle inequality, $|\sum S_e|\le\sum|S_e|$, with equality only when all the $S_e$ point the same way — loads of equal power factor. Size a supply by adding apparent powers and it comes out too big.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 330 290" width="340" role="img" aria-label="the workshop's three complex powers drawn head to tail in the plane: a long arrow for the motors at a steep angle, then two short horizontal arrows for the lighting and the heaters; the single arrow from start to finish is the workshop's total, shorter than the sum of the three lengths">
+        <defs><marker id="m06-add-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m06-add-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker>
+        <marker id="m06-add-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-ink"/></marker></defs>
+        <line x1="30" y1="240" x2="320" y2="240" class="rule" stroke-width="1"/><line x1="40" y1="250" x2="40" y2="30" class="rule" stroke-width="1"/>
+        <line x1="40" y1="240" x2="175" y2="56.4" class="unit" stroke-width="2.6" marker-end="url(#m06-add-u)"/>
+        <line x1="175" y1="56.4" x2="184" y2="56.4" class="alt" stroke-width="2.6"/>
+        <line x1="184" y1="56.4" x2="220" y2="56.4" class="alt" stroke-width="2.6" marker-end="url(#m06-add-a)"/>
+        <line x1="40" y1="240" x2="220" y2="56.4" class="ink" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#m06-add-k)"/>
+        <text x="92" y="132" font-size="12" text-anchor="end" class="fill-unit">motors</text><text x="92" y="148" font-size="12" text-anchor="end" class="fill-unit">25.32 kVA</text>
+        <text x="200" y="44" font-size="12" text-anchor="middle" class="alt">lights 1, heaters 4</text>
+        <text x="150" y="176" font-size="12">total 28.57 kVA</text>
+        <text x="315" y="258" font-size="12" text-anchor="end" class="soft">P</text><text x="46" y="36" font-size="12" class="soft">Q</text>
+        <text x="180" y="284" font-size="12" text-anchor="middle">lengths: 25.32 + 1 + 4 = 30.32 &gt; 28.57</text>
+      </svg>
+      <p class="cap">To scale, 9 px per kVA. The total is the vector sum; the bend at the motors' tip is where 1.75 kVA of "apparent power" disappears.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The split, and what is assumed.</b> Heaters and filament-type lighting are resistive, $Q = 0$; all the workshop's reactive power is put in
+    the motors. That is a modelling choice for the example, made so that the totals are the running example's 20 kW and 20.40
+    kvar. The motors then have $|S_m| = \sqrt{15^2 + 20.40^2} = 25.32$ kVA and power factor $15/25.32 = 0.592$ lagging — a number for
+    this example, not a claim about motors.</p>
+    <p><b>Currents.</b> At 230 V: motors $25324/230 = 110.1$ A, lighting 4.35 A, heaters 17.39 A. The magnitudes add to 131.8 A, but the
+    cable carries 124.2 A — because currents, like complex powers, add as phasors (the current law), and the motor current is
+    not in phase with the other two. The two statements are one: $S_e = VI_e^*$ with the same $V$ for all three.</p>
+    <p><b>Where the triangle inequality is an equality.</b> $|\sum S_e| = \sum|S_e|$ iff every $S_e$ is a non-negative multiple of one
+    complex number, i.e. every load has the same $\arg S_e = \varphi$. Mixing power factors always loses "apparent power" in the
+    sum — which is a statement about bookkeeping, not about energy.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · conservation</p>
+  <h2>Worked: the three loads through a real line</h2>
+  <div class="box ex"><span class="label">worked example 3 — every $S_e$ of the workshop's network, part 1: the currents</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The network.</b> <span class="ref" data-ref="loads">The three loads</span> hold 230 V at the workshop. They are fed through a line of $R_\ell = 48\ \mathrm{m\Omega}$ and, <b>for this example only</b>, a reactance $X_\ell = 16\ \mathrm{m\Omega}$ (assumed). What must the source supply?</p>
+      <p class="small"><b>1. Load current.</b> $S_{\text{load}} = 20000 + 20404i$ VA at $V = 230$ V (reference phase), so $I = (S_{\text{load}}/V)^* = 86.96 - 88.71i$ A, $|I| = 124.2$ A.</p>
+      <p class="small"><b>2. The line.</b> $S_\ell = (R_\ell + iX_\ell)|I|^2 = (0.048 + 0.016i)(15431) = 740.7 + 246.9i$ VA.</p>
+      <p class="small"><b>3. The source voltage.</b> $V_s = V + (R_\ell + iX_\ell)I = 230 + (0.048 + 0.016i)(86.96 - 88.71i) = 235.59 - 2.87i$ V, $|V_s| = 235.61$ V.</p>
+      <p class="small"><b>4. The source's power</b>, passive convention: $S_s = -V_sI^* = -(20740.7 + 20651.0i)$ VA.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 440 290" width="440" role="img" aria-label="the network: a source V s on the left, a line resistance and reactance in the top wire, then three loads hanging from the workshop's bus to the return: motors, lighting, heaters; the current I flows along the top wire and divides into the three loads">
+        <defs><marker id="m06-x3-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <path d="M50,60 H100 M140,60 H170 M230,60 H400 V125 M400,175 V240 H50 V172 M50,128 V60 M280,60 V128 M280,172 V240 M340,60 V125 M340,175 V240" fill="none" class="ink" stroke-width="2.2"/>
+        <circle cx="50" cy="150" r="22" class="fill-ground ink" stroke-width="2"/>
+        <text x="50" y="146" font-size="12" text-anchor="middle">+</text><text x="50" y="164" font-size="13" text-anchor="middle">−</text>
+        <text x="20" y="154" font-size="13" text-anchor="end">V<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <rect x="100" y="52" width="40" height="16" class="fill-ground ink" stroke-width="2"/>
+        <path d="M170,60 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0" fill="none" class="ink" stroke-width="2"/>
+        <text x="120" y="90" font-size="12" text-anchor="middle">R<tspan dy="3" font-size="75%">ℓ</tspan><tspan dy="-3">&#8202;</tspan></text><text x="200" y="90" font-size="12" text-anchor="middle">X<tspan dy="3" font-size="75%">ℓ</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="96" y="48" font-size="11">+</text><text x="138" y="48" font-size="12">−</text><text x="166" y="48" font-size="11">+</text><text x="226" y="48" font-size="12">−</text>
+        <circle cx="280" cy="150" r="22" class="fill-ground ink" stroke-width="2"/><text x="280" y="155" font-size="14" text-anchor="middle">M</text>
+        <rect x="332" y="125" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <rect x="392" y="125" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <circle cx="280" cy="60" r="4" class="fill-ink"/><circle cx="340" cy="60" r="4" class="fill-ink"/><circle cx="280" cy="240" r="4" class="fill-ink"/><circle cx="340" cy="240" r="4" class="fill-ink"/>
+        <text x="266" y="122" font-size="11" text-anchor="end">+</text><text x="266" y="186" font-size="12" text-anchor="end">−</text>
+        <text x="328" y="122" font-size="11" text-anchor="end">+</text><text x="328" y="186" font-size="12" text-anchor="end">−</text>
+        <text x="388" y="122" font-size="11" text-anchor="end">+</text><text x="388" y="186" font-size="12" text-anchor="end">−</text>
+        <line x1="236" y1="44" x2="266" y2="44" class="unit" stroke-width="2.2" marker-end="url(#m06-x3-u)"/><text x="244" y="38" font-size="12" class="fill-unit">I</text>
+        <line x1="292" y1="80" x2="292" y2="110" class="unit" stroke-width="2" marker-end="url(#m06-x3-u)"/>
+        <line x1="352" y1="80" x2="352" y2="110" class="unit" stroke-width="2" marker-end="url(#m06-x3-u)"/>
+        <line x1="412" y1="80" x2="412" y2="110" class="unit" stroke-width="2" marker-end="url(#m06-x3-u)"/>
+        <text x="280" y="206" font-size="11" text-anchor="middle" class="soft">motors</text><text x="340" y="196" font-size="11" text-anchor="middle" class="soft">lights</text><text x="400" y="196" font-size="11" text-anchor="middle" class="soft">heaters</text>
+        <text x="300" y="276" font-size="12" text-anchor="middle">the workshop's bus: V = 230 V</text>
+      </svg>
+      <p class="cap">Every element marked + and − by the passive convention; arrows are the reference directions. The line is the cable of the running example with a reactance added, for this example only.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1 in detail.</b> $S = VI^*$ with $V = 230$ real gives $I^* = S/V = (20000 + 20404i)/230 = 86.96 + 88.71i$, so $I = 86.96 - 88.71i$ A: the
+    current lags, as an inductive load's should. $|I|^2 = 86.96^2 + 88.71^2 = 15431\ \mathrm{A^2}$.</p>
+    <p><b>Step 3.</b> $(0.048 + 0.016i)(86.96 - 88.71i) = 0.048\cdot86.96 + 0.016\cdot88.71 + i(0.016\cdot86.96 - 0.048\cdot88.71) = 5.593 - 2.867i$ V. So the
+    source must sit at 235.6 V, 0.70° behind the workshop's voltage, for the workshop to see 230 V.</p>
+    <p><b>The reactance is an assumption.</b> 16 mΩ for 100 m of conductor is chosen for the arithmetic; the rest of the deck
+    neglects the cable's reactance, as the running example says. Here it shows that a line absorbs reactive power too:
+    $X_\ell|I|^2 = 247$ var, which the source must supply on top of the workshop's 20 404 var.</p>
+    <p><b>Step 4.</b> $V_sI^* = (235.593 - 2.867i)(86.957 + 88.713i) = 20740.7 + 20651.0i$ VA. Under the passive convention the source's
+    current is $-I$ (it leaves the + terminal), so $S_s = V_s(-I)^* = -20740.7 - 20651.0i$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · conservation</p>
+  <h2>Worked: the balance closes</h2>
+  <div class="box ex"><span class="label">worked example 3, part 2 — $\sum_eS_e = 0$, and $|S|$ not conserved</span>
+  <div class="cols wide-left">
+    <div>
+      <table class="dense">
+        <tr><th>element</th><th class="num">$P$ (W)</th><th class="num">$Q$ (var)</th><th class="num">$|S|$ (VA)</th></tr>
+        <tr><td>motors</td><td class="num">15 000.0</td><td class="num">20 404.1</td><td class="num">25 324.4</td></tr>
+        <tr><td>lighting</td><td class="num">1 000.0</td><td class="num">0</td><td class="num">1 000.0</td></tr>
+        <tr><td>heaters</td><td class="num">4 000.0</td><td class="num">0</td><td class="num">4 000.0</td></tr>
+        <tr><td>line</td><td class="num">740.7</td><td class="num">246.9</td><td class="num">780.8</td></tr>
+        <tr><td>source</td><td class="num">−20 740.7</td><td class="num">−20 651.0</td><td class="num">29 268.4</td></tr>
+        <tr><th>sum</th><th class="num">0.0</th><th class="num">0.0</th><th class="num">—</th></tr>
+      </table>
+      <p class="small"><b>5. Balance.</b> Both columns sum to zero: the source's real power is the loads' plus the line's heat, and its reactive power is the motors' plus the line's.</p>
+      <p class="small"><b>6. Apparent power.</b> The four absorbers' $|S|$ add to 31 105 VA; the source supplies 29 268 VA. Nothing is lost: there was nothing conserved to lose.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 260 290" width="290" role="img" aria-label="the five complex powers drawn head to tail: motors, lighting, heaters, the tiny line arrow, and the source's arrow pointing back to the start: the polygon closes">
+        <defs><marker id="m06-bal-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m06-bal-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker>
+        <marker id="m06-bal-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-warn"/></marker></defs>
+        <line x1="20" y1="250" x2="250" y2="250" class="rule" stroke-width="1"/><line x1="40" y1="270" x2="40" y2="30" class="rule" stroke-width="1"/>
+        <line x1="40" y1="250" x2="160" y2="86.8" class="unit" stroke-width="2.6" marker-end="url(#m06-bal-u)"/>
+        <line x1="160" y1="86.8" x2="200" y2="86.8" class="alt" stroke-width="2.6" marker-end="url(#m06-bal-a)"/>
+        <line x1="200" y1="86.8" x2="205.9" y2="84.8" class="ink" stroke-width="3"/>
+        <line x1="205.9" y1="84.8" x2="40" y2="250" class="warn" stroke-width="2.6" marker-end="url(#m06-bal-w)"/>
+        <text x="84" y="150" font-size="12" text-anchor="end" class="fill-unit">motors</text>
+        <text x="180" y="76" font-size="11" text-anchor="middle" class="alt">lights + heaters</text>
+        <text x="212" y="96" font-size="11">line</text>
+        <text x="140" y="200" font-size="12" class="fill-warn">source</text>
+        <text x="130" y="282" font-size="12" text-anchor="middle">the polygon closes: Σ S = 0</text>
+      </svg>
+      <p class="cap">8 px per kVA. The line's arrow is the short dark stub at the top right.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every entry.</b> Motors $15000 + 20404.1i$, $|S| = 25324.4$; lighting and heaters as given; line $0.048\times15431.5 = 740.7$ W and
+    $0.016\times15431.5 = 246.9$ var, $|S| = 780.8$ VA; source $-(20740.7 + 20651.0i)$, $|S| = 29268.4$ VA. Real column: $15000 + 1000 + 4000 + 740.7 -
+    20740.7 = 0$ ✓. Imaginary column: $20404.1 + 246.9 - 20651.0 = 0$ ✓.</p>
+    <p><b>Energy check, independently.</b> The real-power column is unit 03's power balance, averaged over a cycle: the source's mean output
+    equals the heat in the line plus the work done in the loads. The reactive column has no "energy" reading in the same sense —
+    $Q$ is not the mean of anything — but by the stored-energy theorem it is the balance of $2\omega(\langle W_m\rangle - \langle W_e\rangle)$ over the
+    elements: the source sustains the net oscillation of stored energy in the motors' and line's fields.</p>
+    <p><b>The apparent-power sum.</b> $25324.4 + 1000 + 4000 + 780.8 = 31105.2$ VA, against $|S_s| = 29268.4$ VA. Problem P3 asks for a smaller
+    counterexample and a proof that equality needs equal power factors.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Unit 01's two pictures, on alternating current</h2>
+  <p>The conveyor belt at its weakest — the electrons go nowhere — and the field picture at its most vivid: the energy flux runs backwards for about a quarter of every cycle.</p>
+</section>
+
+<section>
+  <p class="eyebrow">06 · energy flow</p>
+  <h2>The belt goes nowhere</h2>
+  <div class="cols">
+    <div>
+      <p class="small">In <span class="ref" data-ref="cable">the workshop's cable</span>, $|I| = 124.2$ A RMS through $35\ \mathrm{mm^2}$ of copper. Unit 00's drift velocity, now oscillating: amplitude</p>
+      $$\hat v_{\mathrm d} = \frac{\sqrt2\,|I|}{neA} = 0.370\ \mathrm{mm/s},$$
+      <p class="small">with $\sqrt2|I| = 175.7$ A, $n = 8.47\times10^{28}\ \mathrm m^{-3}$, $A = 35\ \mathrm{mm^2}$.</p>
+      <p class="small">Displacement amplitude $\hat v_{\mathrm d}/\omega = 1.18\ \mu$m. Each conduction electron moves through $\pm1.18\ \mu$m, 50 times a second.</p>
+      <div class="box good"><span class="label">unit 01's verdict, on a working load</span>
+        <p class="small">No electron makes the 50 m trip from the supply to the workshop, or ever will — yet 20 kW arrive, steadily, for as long as the switch is closed. Unit 01 found ±1.3 μm for the kettle; the verdict is the same at 124 A.</p>
+      </div>
+      <p class="small muted">Units: $\mathrm A/(\mathrm m^{-3}\,\mathrm C\,\mathrm m^2) = \mathrm{m\,s^{-1}}$ ✓; $(\mathrm{m\,s^{-1}})/\mathrm s^{-1} = \mathrm m$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 440 290" width="440" role="img" aria-label="the 50 metre cable from the supply to the workshop, with broad arrows of energy flowing towards the workshop; a magnified circle on the cable shows one electron moving back and forth over plus and minus 1.18 micrometres">
+        <defs><marker id="m06-belt-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker>
+        <marker id="m06-belt-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <rect x="10" y="50" width="50" height="110" rx="4" class="fill-soft ink" stroke-width="1.5"/><text x="35" y="110" font-size="11" text-anchor="middle">supply</text>
+        <rect x="380" y="50" width="50" height="110" rx="4" class="fill-soft ink" stroke-width="1.5"/><text x="405" y="104" font-size="11" text-anchor="middle">work-</text><text x="405" y="118" font-size="11" text-anchor="middle">shop</text>
+        <path d="M60,80 H380 M60,130 H380" class="ink" stroke-width="2.6"/>
+        <g class="alt" stroke-width="3"><line x1="90" y1="105" x2="160" y2="105" marker-end="url(#m06-belt-a)"/><line x1="190" y1="105" x2="260" y2="105" marker-end="url(#m06-belt-a)"/><line x1="290" y1="105" x2="360" y2="105" marker-end="url(#m06-belt-a)"/></g>
+        <text x="220" y="40" font-size="13" text-anchor="middle" class="alt">20 kW net, in the space between the cores</text>
+        <path d="M60,170 H380" class="rule" stroke-width="1"/><path d="M60,165 V175 M380,165 V175" class="rule" stroke-width="1"/>
+        <text x="220" y="186" font-size="12" text-anchor="middle" class="soft">50 m</text>
+        <line x1="200" y1="80" x2="160" y2="210" class="rule" stroke-width="1"/>
+        <circle cx="200" cy="80" r="6" fill="none" class="ink" stroke-width="1.2"/>
+        <circle cx="150" cy="240" r="42" class="fill-ground ink" stroke-width="1.5"/>
+        <circle cx="150" cy="240" r="7" class="fill-unit"/>
+        <line x1="120" y1="260" x2="180" y2="260" class="unit" stroke-width="2" marker-start="url(#m06-belt-u)" marker-end="url(#m06-belt-u)"/>
+        <text x="206" y="236" font-size="12">one electron:</text><text x="206" y="252" font-size="12" class="fill-unit">±1.18 μm, 50 times a second</text>
+        <text x="206" y="270" font-size="12" class="soft">(magnified about 10<tspan dy="-5" font-size="75%">7</tspan><tspan dy="5"> times)</tspan></text>
+      </svg>
+      <p class="cap">Not to scale, and could not be: the cable is 21 million times longer than the electron's whole swing of 2.36 μm.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $\sqrt2\times124.22 = 175.68$ A peak; $neA = 8.47\times10^{28}\times1.602\times10^{-19}\times35\times10^{-6} = 4.749\times10^5\ \mathrm{C\,m^{-1}}$; so
+    $\hat v_{\mathrm d} = 3.70\times10^{-4}$ m/s. The drift is $v_{\mathrm d}(t) = \hat v_{\mathrm d}\cos(\omega t - \varphi)$; integrating, the displacement is
+    $(\hat v_{\mathrm d}/\omega)\sin(\omega t - \varphi)$, amplitude $3.70\times10^{-4}/314.16 = 1.18\times10^{-6}$ m. Peak to peak 2.36 μm; $50/2.36\times10^{-6} =
+    2.1\times10^7$.</p>
+    <p><b>The comparison with unit 01.</b> The kettle: 10 A in $2.5\ \mathrm{mm^2}$, current density $4\ \mathrm{A/mm^2}$. The workshop: 124.2 A in
+    $35\ \mathrm{mm^2}$, $3.55\ \mathrm{A/mm^2}$ — a similar density, so a similar swing. Displacement depends only on the current
+    density, the electron density and the frequency, not on how much power is delivered.</p>
+    <p><b>What the belt picture still gets right.</b> Unit 01: as bookkeeping for totals it is exact, because the Poynting flux
+    through any closed surface round a component equals $v(t)i(t)$. Averaged, that is $P$. What it cannot say is where the energy is
+    or which way it moves at a given instant — and on AC the second question has a surprising answer, on the next slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · energy flow</p>
+  <h2>The flux runs backwards</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">Between the cores, $\vec E$ follows $v(t)$ (unit 00's surface charge) and $\vec B$ follows $i(t)$. Unit 01's theorem for a two-conductor cable, quasi-statically: the Poynting flux through a cross-section is</p>
+      $$\int S_z\,\mathrm dA = v(t)\,i(t) = p(t)$$
+      <p class="small">at every instant.</p>
+      <p class="small">When $v$ and $i$ have the same sign, $\vec S$ points to the workshop. When they have <b>opposite</b> signs it points <b>back to the supply</b>. With the current lagging by $\varphi$, that happens twice a cycle: after each zero of $v$, until the next zero of $i$.</p>
+      <p class="small"><span class="ref" data-ref="pt">The workshop</span>: $p$ from −8.57 to +48.57 kW. The cable carries 8.57 kW <b>back</b> at the worst instant.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 470 300" width="510" role="img" aria-label="four lengthwise sections of the two-core cable at four instants a, b, c, d of one cycle; in each, the live core above and the neutral below, the sign of the charge on the live core, the electric field between the cores, the current arrows in the cores, the magnetic field between them into the page at a and b and out of it at c and d, and the Poynting arrows between them: towards the workshop at a and c, towards the supply at b and d">
+        <defs><marker id="m06-fl-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker>
+        <marker id="m06-fl-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m06-fl-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-warn"/></marker>
+        <marker id="m06-fl-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-ink"/></marker></defs>
+        <text x="235" y="16" font-size="12" text-anchor="middle" class="soft">supply ← · → workshop</text>
+        <!-- panel a -->
+        <g transform="translate(10,30)">
+          <text x="0" y="12" font-size="13">a  v &gt; 0, i &gt; 0</text>
+          <rect x="0" y="22" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/><rect x="0" y="92" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/>
+          <text x="6" y="44" font-size="11">+ + +</text><text x="6" y="88" font-size="11">− − −</text>
+          <line x1="30" y1="38" x2="30" y2="84" class="ink" stroke-width="1.4" marker-end="url(#m06-fl-k)"/><text x="36" y="66" font-size="11">E</text>
+          <line x1="140" y1="16" x2="190" y2="16" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/><line x1="190" y1="110" x2="140" y2="110" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/>
+          <line x1="100" y1="62" x2="180" y2="62" class="alt" stroke-width="3.2" marker-end="url(#m06-fl-a)"/><text x="186" y="66" font-size="12" class="alt">S</text>
+          <g class="ink" stroke-width="1.3"><circle cx="146" cy="80" r="6" fill="none"/><path d="M141.8,75.8 L150.2,84.2 M150.2,75.8 L141.8,84.2"/></g><text x="156" y="85" font-size="11">B</text>
+        </g>
+        <!-- panel b -->
+        <g transform="translate(245,30)">
+          <text x="0" y="12" font-size="13">b  v &lt; 0, i &gt; 0</text>
+          <rect x="0" y="22" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/><rect x="0" y="92" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/>
+          <text x="6" y="44" font-size="11">− − −</text><text x="6" y="88" font-size="11">+ + +</text>
+          <line x1="30" y1="84" x2="30" y2="38" class="ink" stroke-width="1.4" marker-end="url(#m06-fl-k)"/><text x="36" y="66" font-size="11">E</text>
+          <line x1="140" y1="16" x2="190" y2="16" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/><line x1="190" y1="110" x2="140" y2="110" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/>
+          <line x1="180" y1="62" x2="100" y2="62" class="warn" stroke-width="3.2" marker-end="url(#m06-fl-w)"/><text x="80" y="66" font-size="12" class="fill-warn" text-anchor="end">S</text>
+          <g class="ink" stroke-width="1.3"><circle cx="146" cy="80" r="6" fill="none"/><path d="M141.8,75.8 L150.2,84.2 M150.2,75.8 L141.8,84.2"/></g><text x="156" y="85" font-size="11">B</text>
+        </g>
+        <!-- panel c -->
+        <g transform="translate(10,170)">
+          <text x="0" y="12" font-size="13">c  v &lt; 0, i &lt; 0</text>
+          <rect x="0" y="22" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/><rect x="0" y="92" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/>
+          <text x="6" y="44" font-size="11">− − −</text><text x="6" y="88" font-size="11">+ + +</text>
+          <line x1="30" y1="84" x2="30" y2="38" class="ink" stroke-width="1.4" marker-end="url(#m06-fl-k)"/><text x="36" y="66" font-size="11">E</text>
+          <line x1="190" y1="16" x2="140" y2="16" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/><line x1="140" y1="110" x2="190" y2="110" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/>
+          <line x1="100" y1="62" x2="180" y2="62" class="alt" stroke-width="3.2" marker-end="url(#m06-fl-a)"/><text x="186" y="66" font-size="12" class="alt">S</text>
+          <circle cx="146" cy="80" r="6" fill="none" class="ink" stroke-width="1.3"/><circle cx="146" cy="80" r="2" class="fill-ink"/><text x="156" y="85" font-size="11">B</text>
+        </g>
+        <!-- panel d -->
+        <g transform="translate(245,170)">
+          <text x="0" y="12" font-size="13">d  v &gt; 0, i &lt; 0</text>
+          <rect x="0" y="22" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/><rect x="0" y="92" width="210" height="10" class="fill-soft ink" stroke-width="1.2"/>
+          <text x="6" y="44" font-size="11">+ + +</text><text x="6" y="88" font-size="11">− − −</text>
+          <line x1="30" y1="38" x2="30" y2="84" class="ink" stroke-width="1.4" marker-end="url(#m06-fl-k)"/><text x="36" y="66" font-size="11">E</text>
+          <line x1="190" y1="16" x2="140" y2="16" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/><line x1="140" y1="110" x2="190" y2="110" class="unit" stroke-width="2" marker-end="url(#m06-fl-u)"/>
+          <line x1="180" y1="62" x2="100" y2="62" class="warn" stroke-width="3.2" marker-end="url(#m06-fl-w)"/><text x="80" y="66" font-size="12" class="fill-warn" text-anchor="end">S</text>
+          <circle cx="146" cy="80" r="6" fill="none" class="ink" stroke-width="1.3"/><circle cx="146" cy="80" r="2" class="fill-ink"/><text x="156" y="85" font-size="11">B</text>
+        </g>
+      </svg>
+      <p class="cap">Lengthwise sections of the cable at four instants of one cycle, live core above, neutral below; the instants are marked on the next slide's curve. Charges on the cores, $\vec E$ between them, the currents beside them, $\vec B$ between them (⊗ into the page, ⊙ out of it); $\vec S$ towards the workshop in a and c, back towards the supply in b and d.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\vec S$ reverses.</b> Between the cores $\vec E$ points from the live core to the neutral when $v > 0$ (the live core carries
+    positive surface charge, unit 00) and the other way when $v\lt0$. $\vec B$ circles each core in the sense set by its current, so
+    between the cores it reverses with $i$. $\vec S = \vec E\times\vec B/\mu_0$ therefore keeps its direction when both reverse together and
+    flips when only one does. In panel a, with the live current flowing towards the workshop, the right-hand rule puts $\vec B$
+    between the cores into the page and $\vec S$ along the cable towards the workshop, as unit 01 found for DC. In b the current has not yet reversed, so $\vec B$ is still into the page while $\vec E$ points up: $\vec S$ points back. In c both have reversed; in d only $\vec E$ has turned back.</p>
+    <p><b>The theorem used.</b> Unit 01's slide <i>The same theorem for a whole cable</i>: for static fields round two long parallel
+    conductors at potentials differing by $V$ and carrying $\pm I$, the flux through a cross-section is $VI$, whatever the
+    conductors' shapes. At 50 Hz the cable is $10^{-5}$ of a wavelength long, so the fields at each instant are the static fields
+    of that instant's $v$ and $i$ (unit 02's (H3), small against a wavelength), and the flux is $v(t)i(t)$.</p>
+    <p><b>Along the cable.</b> Strictly, $v$ is the voltage between the cores at that cross-section, and it differs from end to end
+    by the cable's own drop. The flux at the supply end exceeds the flux at the workshop end by the power entering the copper
+    (unit 01's inward flux) — the 741 W of the next slides, on average.</p>
+    <p><b>Unit 01's promise.</b> Its closing slides named this unit for "which way": with a resistive load $\vec S$ points towards the
+    load at every instant; with a load that stores energy, it reverses for part of each cycle. Panels b and d are that reversal.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · energy flow</p>
+  <h2>Backwards for $\varphi/\pi$ of every cycle</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">how long the flux runs backwards</span>
+        <p class="small">For a load with $0\le\varphi\le\pi/2$, $p(t)\lt0$ for exactly the fraction $\varphi/\pi$ of each cycle.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$p\lt0$ iff $v$ and $i$ have opposite signs. In each half-cycle $v$ changes sign at some instant and $i$ does so a time $\varphi/\omega$ later; between the two they differ in sign, and nowhere else. So $p\lt0$ for $\varphi/\omega$ out of every half-period $\pi/\omega$. $\square$</p>
+      </div>
+      <p class="small"><b>The workshop:</b> $\varphi/\pi = 0.7954/\pi = $ <b>25.3%</b>. A resistor, $\varphi = 0$: never. A pure reactance, $\varphi = \pi/2$: half the time — and the mean is zero.</p>
+      <p class="small">$Q$ is the amplitude of the part of $p$ that reverses; $P$ is the net forward flow.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 450 260" width="460" role="img" aria-label="the workshop's p of t over one cycle with the two stretches where it is negative shaded; the mean 20 kilowatts is a dashed line; the instants a, b, c, d of the previous slide are marked, b and d at the bottoms of the negative stretches">
+        <path d="M145.0,190 L145.0,190.0 L148.0,195.0 L151.0,199.5 L154.0,203.3 L157.0,206.5 L160.0,209.0 L163.0,210.8 L166.0,211.9 L169.1,212.3 L172.1,211.9 L175.1,210.8 L178.1,209.0 L181.1,206.5 L184.1,203.3 L187.1,199.5 L190.1,195.0 L193.1,190.0 L193.1,190 Z" class="fill-warn" opacity="0.35"/>
+        <path d="M335.0,190 L335.0,190.0 L338.0,195.0 L341.0,199.5 L344.0,203.3 L347.0,206.5 L350.0,209.0 L353.0,210.8 L356.0,211.9 L359.1,212.3 L362.1,211.9 L365.1,210.8 L368.1,209.0 L371.1,206.5 L374.1,203.3 L377.1,199.5 L380.1,195.0 L383.1,190.0 L383.1,190 Z" class="fill-warn" opacity="0.35"/>
+        <line x1="50" y1="190" x2="440" y2="190" class="ink" stroke-width="1.2"/><line x1="50" y1="40" x2="50" y2="240" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="138.0" x2="430" y2="138.0" class="ink" stroke-width="1.2" stroke-dasharray="6 4"/>
+        <path d="M50.0,86.0 L54.8,78.3 L59.5,72.2 L64.2,67.6 L69.0,64.7 L73.8,63.7 L78.5,64.5 L83.2,67.1 L88.0,71.5 L92.8,77.5 L97.5,84.9 L102.2,93.7 L107.0,103.6 L111.8,114.3 L116.5,125.6 L121.2,137.3 L126.0,148.9 L130.8,160.2 L135.5,171.1 L140.2,181.1 L145.0,190.0 L149.8,197.7 L154.5,203.8 L159.2,208.4 L164.0,211.3 L168.8,212.3 L173.5,211.5 L178.2,208.9 L183.0,204.5 L187.8,198.5 L192.5,191.1 L197.2,182.3 L202.0,172.4 L206.8,161.7 L211.5,150.4 L216.2,138.7 L221.0,127.1 L225.8,115.8 L230.5,104.9 L235.2,94.9 L240.0,86.0 L244.8,78.3 L249.5,72.2 L254.2,67.6 L259.0,64.7 L263.8,63.7 L268.5,64.5 L273.2,67.1 L278.0,71.5 L282.8,77.5 L287.5,84.9 L292.2,93.7 L297.0,103.6 L301.8,114.3 L306.5,125.6 L311.2,137.3 L316.0,148.9 L320.8,160.2 L325.5,171.1 L330.2,181.1 L335.0,190.0 L339.8,197.7 L344.5,203.8 L349.2,208.4 L354.0,211.3 L358.8,212.3 L363.5,211.5 L368.2,208.9 L373.0,204.5 L377.8,198.5 L382.5,191.1 L387.2,182.3 L392.0,172.4 L396.8,161.7 L401.5,150.4 L406.2,138.7 L411.0,127.1 L415.8,115.8 L420.5,104.9 L425.2,94.9 L430.0,86.0" fill="none" class="unit" stroke-width="2.8"/>
+        <circle cx="50.0" cy="86.0" r="5" class="fill-alt"/><circle cx="169.1" cy="212.3" r="5" class="fill-warn"/>
+        <circle cx="240.0" cy="86.0" r="5" class="fill-alt"/><circle cx="359.1" cy="212.3" r="5" class="fill-warn"/>
+        <text x="62" y="80" font-size="13">a</text><text x="169" y="236" font-size="13" text-anchor="middle">b</text>
+        <text x="240" y="74" font-size="13" text-anchor="middle">c</text><text x="359" y="236" font-size="13" text-anchor="middle">d</text>
+        <text x="44" y="194" font-size="11" text-anchor="end" class="soft">0</text>
+        <text x="44" y="63.7" font-size="11" text-anchor="end" class="soft">48.6</text>
+        <text x="436" y="132" font-size="12" text-anchor="end">P = 20 kW</text>
+        <text x="300" y="250" font-size="12" text-anchor="middle" class="fill-warn">shaded: 25.3% of the cycle</text>
+        <text x="64" y="30" font-size="12" class="soft">p (kW)</text>
+        <text x="436" y="208" font-size="11" text-anchor="end" class="soft">t → 20 ms</text>
+      </svg>
+      <p class="cap">Computed. Each shaded stretch lasts $\varphi/\omega = 2.53$ ms, starting at a zero of $v$; at b and d the flux back to the supply peaks, at 8.57 kW.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof, with formulas.</b> $v\propto\cos\omega t$ vanishes at $\omega t = \pi/2 + k\pi$; $i\propto\cos(\omega t - \varphi)$ vanishes at $\omega t = \pi/2 + \varphi + k\pi$.
+    For $0\lt\varphi\lt\pi$, on each interval $(\pi/2 + k\pi,\ \pi/2 + \varphi + k\pi)$ exactly one of them has changed sign, so the product is negative; on the
+    rest of the half-period both have the same sign. Measure: $\varphi$ out of $\pi$ in $\omega t$. Problem P11 does it again from the
+    compact form $p = VI[\cos\varphi + \cos(2\omega t - \varphi)]$: negative iff $\cos(2\omega t - \varphi)\lt-\cos\varphi$, an arc of length $2\varphi$ out of $2\pi$.</p>
+    <p><b>The minimum.</b> The compact form is least when $\cos(2\omega t - \varphi) = -1$, at $\omega t = (\pi + \varphi)/2$: the middle of the negative stretch.
+    There $p = VI(\cos\varphi - 1) = P - |S| = -8.57$ kW. Those are instants b and d.</p>
+    <p><b>A leading load</b> ($\varphi\lt0$, current ahead of voltage) runs backwards for $|\varphi|/\pi$ of the cycle, by the same argument with the
+    zeros in the other order. Over-correcting the workshop to leading 0.7 (section 5) gives 25.3% again.</p>
+    <p><b>What "backwards" means physically.</b> During b and d the workshop's motors hand energy from their magnetic fields back
+    to the line, and the line hands it on to the supply. Nothing in the supply is "used" by this: it is returned a few
+    milliseconds later. The cost is in the next slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · energy flow</p>
+  <h2>The bill: the current that carries $Q$ heats the copper</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Split the cable's current into its part along $V$ and its part at right angles (the definitions slide):</p>
+      <p class="small">$|I_p| = P/|V| = 86.96$ A and $|I_q| = |Q|/|V| = 88.71$ A.</p>
+      <p class="small">The cable's loss is $R|I|^2 = R|I_p|^2 + R|I_q|^2$:</p>
+      $$741\ \mathrm W = 363\ \mathrm W + 378\ \mathrm W .$$
+      <p class="small">Unit 01: that heat enters the copper from outside, as an inward flux $I^2R'$ per metre — 7.41 W per metre of each core here — <b>whichever way</b> the axial flux is running. $Q$ delivers nothing to the workshop, but its current pays the copper's toll in full.</p>
+      <div class="box good"><span class="label">the whole case for correction</span>
+        <p class="small">Supply $Q$ locally, and $I_q$ need not travel the cable at all.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 290" width="400" role="img" aria-label="above, the cable current phasor of 124.2 amperes split into 86.96 amperes along the voltage and 88.71 amperes at right angles, lagging; below, a bar of the cable's 741 watt loss split into 363 watts from the in-phase current and 378 watts from the quadrature current">
+        <defs><marker id="m06-bill-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker>
+        <marker id="m06-bill-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <line x1="40" y1="40" x2="380" y2="40" class="rule" stroke-width="1"/>
+        <line x1="60" y1="40" x2="360" y2="40" class="unit" stroke-width="2.4" marker-end="url(#m06-bill-u)"/><text x="364" y="34" font-size="13" class="fill-unit">V</text>
+        <line x1="60" y1="40" x2="190.4" y2="173.1" class="alt" stroke-width="2.8" marker-end="url(#m06-bill-a)"/>
+        <path d="M60,46 H190.4 M190.4,40 V173.1" class="alt" stroke-width="1.6" stroke-dasharray="4 3"/>
+        <text x="124" y="64" font-size="12" text-anchor="middle">I<tspan dy="3" font-size="75%">p</tspan><tspan dy="-3">&#8202;</tspan> = 86.96 A</text>
+        <text x="198" y="112" font-size="12">I<tspan dy="3" font-size="75%">q</tspan><tspan dy="-3">&#8202;</tspan> = 88.71 A</text>
+        <text x="96" y="140" font-size="12" class="alt" text-anchor="end">I = 124.2 A</text>
+        <rect x="40" y="222" width="145.2" height="30" class="fill-unit"/><rect x="185.2" y="222" width="151.1" height="30" class="fill-alt"/>
+        <text x="112" y="270" font-size="12" text-anchor="middle" class="fill-unit">363 W from I<tspan dy="3" font-size="75%">p</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="260" y="270" font-size="12" text-anchor="middle" class="alt">378 W from I<tspan dy="3" font-size="75%">q</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="40" y="212" font-size="12">the cable's 741 W</text>
+      </svg>
+      <p class="cap">Above, the current phasor, 1.5 px per ampere. Below, the loss to scale. More than half the heat in the cable is paid for the reactive power.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the losses add.</b> $|I|^2 = |I_p + I_q|^2 = |I_p|^2 + |I_q|^2$ because $I_p\perp I_q$ as vectors in the plane (Pythagoras). So the
+    loss splits exactly. With $R = 48.0\ \mathrm{m\Omega}$: $86.96^2\times0.048 = 362.9$ W and $88.71^2\times0.048 = 377.8$ W, total 740.7 W ✓
+    ($124.22^2\times0.048 = 740.7$).</p>
+    <p><b>Per metre.</b> One core: $R' = \rho/A = 1.68\times10^{-8}/35\times10^{-6} = 0.480\ \mathrm{m\Omega/m}$; $124.22^2\times0.00048 = 7.41$ W/m;
+    over 100 m of conductor, 741 W ✓. Unit 01 showed, for the coaxial cable, that this power enters each conductor through its
+    surface; the same holds here at every instant, since $\vec E$ inside the copper is along the wire and $\vec B$ circles it.</p>
+    <p><b>The voltage drop.</b> The voltage across the cable is $|I|R = 5.96$ V (the reactance neglected), 4.17 V after
+    correction. That is not how far the supply's voltage exceeds the workshop's: the drop $RI$ is a phasor, and its quadrature part,
+    $R|I_q| = 4.26$ V, is at right angles to $V$, so it barely changes the magnitude. $|V_s| = |230 + 0.048(86.96 - 88.71i)| = 234.21$ V,
+    only 4.21 V above the workshop — against 4.17 V after correction. Through a resistance, quadrature current costs heat but
+    almost no voltage; through a reactance it is the other way round, since $iX$ turns the quadrature current's drop into line with
+    $V$. That is a second reason utilities care about $Q$ — named, not developed; unit 13 shows that on a network reactive power
+    and voltage magnitude go together.</p>
+    <p><b>The utility's side.</b> The same quadrature current flows on through the distributor's transformer and lines upstream,
+    heating them too, and occupying their current rating. That is the physics behind the tariff in the next section.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Correcting the power factor</h2>
+  <p>A capacitor across the load supplies its reactive power locally. The cable then carries only the in-phase current, and its loss falls by $\cos^2\varphi$.</p>
+</section>
+
+<section>
+  <p class="eyebrow">06 · correction</p>
+  <h2>A capacitor across the load</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><span class="term">Power-factor correction</span>: connect a capacitor $C$ across the load, at its terminals. Its complex power (the definitions):</p>
+      $$S_C = -i\omega C|V|^2,\qquad Q_C = -\omega C|V|^2 .$$
+      <p class="small">The load's $P$ and $Q$ are unchanged — it sees the same 230 V. By conservation the cable now delivers $P + i(Q + Q_C)$. To cancel $Q$ entirely:</p>
+      $$\boxed{\,C = \frac{Q}{\omega|V|^2}\,}$$
+      <p class="small muted">Units: $\mathrm{var}/(\mathrm s^{-1}\,\mathrm V^2) = \mathrm{A\,s\,V^{-1}} = \mathrm{C\,V^{-1}} = \mathrm F$ ✓.</p>
+      <p class="small">In stored-energy terms: the capacitor's mean electric energy is made equal to the load's excess of magnetic energy, $\tfrac12C|V|^2 = \langle W_m\rangle - \langle W_e\rangle$. The energy sloshes between the motors and the capacitor, both at the workshop end, instead of along 50 m of cable.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 440 280" width="440" role="img" aria-label="the supply, the cable resistance, then at the workshop's intake a capacitor C across the line, and beyond it the workshop's load Z; the supply current I s flows in the cable, I C into the capacitor and I L into the workshop">
+        <defs><marker id="m06-pfc-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <path d="M50,118 V50 H100 M160,50 H360 V115 M360,165 V230 H50 V162 M250,50 V132 M250,148 V230" fill="none" class="ink" stroke-width="2.2"/>
+        <circle cx="50" cy="140" r="22" class="fill-ground ink" stroke-width="2"/>
+        <text x="50" y="136" font-size="12" text-anchor="middle">+</text><text x="50" y="154" font-size="13" text-anchor="middle">−</text>
+        <rect x="100" y="42" width="60" height="16" class="fill-ground ink" stroke-width="2"/>
+        <text x="130" y="80" font-size="12" text-anchor="middle">cable R</text>
+        <text x="96" y="38" font-size="11">+</text><text x="158" y="38" font-size="12">−</text>
+        <path d="M232,132 H268 M232,148 H268" class="ink" stroke-width="2.6"/>
+        <text x="276" y="146" font-size="13">C</text>
+        <text x="226" y="126" font-size="11" text-anchor="end">+</text><text x="226" y="160" font-size="12" text-anchor="end">−</text>
+        <rect x="352" y="115" width="16" height="50" class="fill-ground ink" stroke-width="2"/>
+        <text x="378" y="138" font-size="13">Z</text><text x="378" y="154" font-size="11" class="soft">workshop</text>
+        <text x="346" y="122" font-size="11" text-anchor="end">+</text><text x="346" y="166" font-size="12" text-anchor="end">−</text>
+        <circle cx="250" cy="50" r="4" class="fill-ink"/><circle cx="250" cy="230" r="4" class="fill-ink"/>
+        <text x="250" y="254" font-size="12" text-anchor="middle" class="soft">intake</text>
+        <line x1="180" y1="36" x2="225" y2="36" class="unit" stroke-width="2.2" marker-end="url(#m06-pfc-u)"/><text x="186" y="28" font-size="12" class="fill-unit">I<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <line x1="262" y1="70" x2="262" y2="110" class="unit" stroke-width="2.2" marker-end="url(#m06-pfc-u)"/><text x="268" y="94" font-size="12" class="fill-unit">I<tspan dy="3" font-size="75%">C</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <line x1="290" y1="36" x2="335" y2="36" class="unit" stroke-width="2.2" marker-end="url(#m06-pfc-u)"/><text x="296" y="28" font-size="12" class="fill-unit">I<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="50" y="186" font-size="12" text-anchor="middle">supply</text>
+      </svg>
+      <p class="cap">The current law at the intake: $I_s = I_L + I_C$. The capacitor changes what the cable carries, not what the workshop takes.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>$S_C$ in one line.</b> $Z_C = 1/(i\omega C)$, so $S_C = |V|^2/Z_C^* = |V|^2/(1/(-i\omega C)) = -i\omega C|V|^2$. A capacitor "supplies" reactive
+    power in the sense of the convention: it absorbs negative $Q$. Equivalently, $Q_C = -2\omega\langle W_e\rangle$ by the stored-energy theorem.</p>
+    <p><b>Why the load is unchanged.</b> The capacitor is in parallel with the workshop, and the workshop's voltage is held at 230 V
+    in this model. So the workshop's current and complex power are what they were. (If instead the supply's voltage is held
+    fixed, the workshop's voltage changes slightly after correction; the notes of <i>The current falls by $\cos\varphi$, the loss by
+    $\cos^2\varphi$</i> say by how much.)</p>
+    <p><b>Limits.</b> $C\to0$: nothing changes. $\omega\to0$: $C = Q/\omega|V|^2\to\infty$ — but at DC there is no $Q$ to cancel; the
+    formula is for one frequency and the capacitor is right only at that frequency. A load whose $Q$ varies needs a $C$
+    that varies: the switched banks of <i>Capacitor banks in the switch room</i>.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · correction</p>
+  <h2>The current falls by $\cos\varphi$, the loss by $\cos^2\varphi$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">full correction</span>
+        <p class="small">With $C = Q/\omega|V|^2$, the supply current falls from $|S|/|V|$ to $P/|V|$, by the factor $\cos\varphi$; the loss in a resistive cable, $R|I_s|^2$, falls by $\cos^2\varphi$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The cable delivers $S_s = P + i(Q - \omega C|V|^2) = P$, so $|I_s| = P/|V| = (|S|/|V|)\cos\varphi$. Square, and multiply by $R$. $\square$</p>
+      </div>
+      <div class="box thm"><span class="label">partial correction</span>
+        <p class="small">To raise the power factor from $\cos\varphi_1$ to $\cos\varphi_2$ (both lagging) at fixed $P$:</p>
+        $$-Q_C = P(\tan\varphi_1 - \tan\varphi_2).$$
+      </div>
+      <p class="small muted">Since $Q = P\tan\varphi$ before and after. Units: W ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 280" width="400" role="img" aria-label="a phasor diagram at the intake: the workshop's current I L lags the voltage by phi; the capacitor's current I C leads it by ninety degrees and exactly cancels I L's quadrature part; their sum, the supply current I s, lies along the voltage">
+        <defs><marker id="m06-cph-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m06-cph-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker>
+        <marker id="m06-cph-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-ink"/></marker></defs>
+        <line x1="50" y1="80" x2="380" y2="80" class="rule" stroke-width="1.2"/><text x="380" y="72" font-size="13" text-anchor="end" class="soft">V (reference)</text>
+        <line x1="50" y1="80" x2="180.4" y2="213.1" class="alt" stroke-width="2.8" marker-end="url(#m06-cph-a)"/>
+        <line x1="180.4" y1="213.1" x2="180.4" y2="84" class="ink" stroke-width="2.4" marker-end="url(#m06-cph-k)"/>
+        <line x1="50" y1="80" x2="176" y2="80" class="unit" stroke-width="3.4" marker-end="url(#m06-cph-u)"/>
+        <text x="96" y="168" font-size="13" class="alt" text-anchor="end">I<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> = 124.2 A</text>
+        <text x="190" y="152" font-size="13">I<tspan dy="3" font-size="75%">C</tspan><tspan dy="-3">&#8202;</tspan> = 88.71 A</text>
+        <text x="112" y="66" font-size="13" text-anchor="middle" class="fill-unit">I<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan> = 86.96 A</text>
+        <path d="M95,80 A45,45 0 0 1 81.5,112.1" fill="none" class="ink" stroke-width="1.4"/><text x="100" y="108" font-size="12">φ</text>
+        <text x="200" y="250" font-size="12" text-anchor="middle" class="soft">I<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan> = I<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> + I<tspan dy="3" font-size="75%">C</tspan><tspan dy="-3">&#8202;</tspan>, head to tail; |I<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan>| = |I<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan>| cos φ</text>
+      </svg>
+      <p class="cap">The workshop corrected, 1.5 px per ampere. The capacitor's current, a quarter cycle ahead of $V$, cancels the workshop's quadrature current exactly.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof as currents.</b> $I_C = i\omega CV$ leads $V$ by $90^\circ$, with magnitude $\omega C|V| = Q/|V| = |I_q|$. So $I_C = -I_q$ exactly, and
+    $I_s = I_L + I_C = I_p$: the supply current is the in-phase part alone. The loss $R|I_s|^2 = R|I_p|^2$, which is the 363 W "from $I_p$"
+    of the bill slide; the 378 W "from $I_q$" is gone.</p>
+    <p><b>When "exactly" holds.</b> The factor $\cos^2\varphi$ is exact if the workshop's voltage is the same before and after, because the
+    cable's loss is $R|I_s|^2$ and $|I_s| = |S_s|/|V|$. The cable's own reactance, neglected here, does not change that loss: a
+    reactance dissipates nothing. What it would change: it absorbs $X|I_s|^2$ of reactive power that the supply must still provide,
+    and it adds to the voltage difference between the supply and the workshop. If the supply's voltage rather than the workshop's
+    is held fixed (at the 234.21 V that gave the workshop 230 V before correction), correction lifts the workshop's voltage by only
+    0.04 V — through a resistive cable the quadrature current's drop was at right angles to $V$ — and the factor becomes 0.4902
+    instead of 0.4900, with the workshop modelled as a fixed impedance.</p>
+    <p><b>Partial correction, the proof.</b> At fixed $P$, $Q_1 = P\tan\varphi_1$ before and $Q_2 = P\tan\varphi_2$ after, and the capacitor supplies
+    the difference: $Q_2 = Q_1 + Q_C$. Then $C = -Q_C/\omega|V|^2$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · correction</p>
+  <h2>Worked: the workshop's capacitor</h2>
+  <div class="box ex"><span class="label">worked example 4 — <span class="ref" data-ref="corrected">the workshop corrected</span> to unity: the checkpoint's numbers</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The capacitor.</b> $Q = 20404$ var, $\omega = 314.16\ \mathrm{s^{-1}}$, $|V| = 230$ V: $C = 20404/(314.16\times52900) = $ <b>1.228 mF</b>.</p>
+      <p class="small"><b>2. Its current.</b> $\omega C|V| = 314.16\times1.228\times10^{-3}\times230 = 88.71$ A, leading.</p>
+      <p class="small"><b>3. The cable current.</b> $P/|V| = 86.96$ A, against 124.2 A: down by $0.7$.</p>
+      <p class="small"><b>4. The cable loss.</b> $0.048\times86.96^2 = 363$ W, against 741 W: the factor is $363/741 = $ <b>0.490</b> $= 0.7^2$.</p>
+      <p class="small"><b>5. The drop.</b> $86.96\times0.048 = 4.17$ V, against 5.96 V.</p>
+      <p class="small"><b>Check.</b> Energy: the workshop still takes 20 kW, the cable now 363 W, so the supply provides 20 363 W instead of 20 741 W — 378 W less, exactly the $I_q$ share of the bill slide ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 260" width="400" role="img" aria-label="three pairs of bars, before and after correction: cable current 124.2 to 86.96 amperes; cable loss 741 to 363 watts; voltage drop 5.96 to 4.17 volts; the after-bars are 70, 49 and 70 percent of the before-bars">
+        <text x="20" y="30" font-size="13">cable current</text>
+        <rect x="120" y="16" width="220" height="16" class="fill-alt"/><rect x="120" y="36" width="154" height="16" class="fill-unit"/>
+        <text x="346" y="29" font-size="11">124.2 A</text><text x="280" y="49" font-size="11">86.96 A</text>
+        <text x="20" y="110" font-size="13">cable loss</text>
+        <rect x="120" y="96" width="220" height="16" class="fill-alt"/><rect x="120" y="116" width="107.8" height="16" class="fill-unit"/>
+        <text x="346" y="109" font-size="11">741 W</text><text x="234" y="129" font-size="11">363 W: × 0.49</text>
+        <text x="20" y="190" font-size="13">drop</text>
+        <rect x="120" y="176" width="220" height="16" class="fill-alt"/><rect x="120" y="196" width="154" height="16" class="fill-unit"/>
+        <text x="346" y="189" font-size="11">5.96 V</text><text x="280" y="209" font-size="11">4.17 V</text>
+        <rect x="120" y="236" width="12" height="12" class="fill-alt"/><text x="138" y="246" font-size="11">power factor 0.7</text>
+        <rect x="250" y="236" width="12" height="12" class="fill-unit"/><text x="268" y="246" font-size="11">corrected to 1</text>
+      </svg>
+      <p class="cap">Each pair scaled to its "before". The current and the drop fall by 0.7; the loss by $0.7^2$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>More figures.</b> $C = 20404.08/(314.159\times52900) = 1.22775\times10^{-3}$ F. Cable current $20000/230 = 86.957$ A. Loss $0.048\times86.957^2 =
+    362.95$ W; before, $0.048\times124.224^2 = 740.71$ W; ratio $0.49000$. Drop $4.174$ V against $5.963$ V.</p>
+    <p><b>What a 1.2 mF capacitor at 230 V is.</b> Its reactive rating, $\omega C|V|^2 = 20.4$ kvar, is how such capacitors are specified
+    in practice: by kvar at a rated voltage and frequency, not by farads. Nothing is claimed here about the size or price of a
+    real unit.</p>
+    <p><b>The checkpoint</b> is steps 1 and 4: about 1.2 mF, and the factor 0.49.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · correction</p>
+  <h2>How far to correct: 0.95, and a tariff's 33%</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>To 0.95 lagging:</b> $\tan\varphi_2 = 0.3287$, so $-Q_C = 20(1.0202 - 0.3287) = 13.83$ kvar: $C = $ <b>0.832 mF</b>, about two thirds of full correction. Current $20000/(230\times0.95) = 91.5$ A.</p>
+      <div class="box def"><span class="label">a real tariff: <span class="term">reactive-energy charge</span></span>
+        <p class="small">Spain's access tariffs (CNMC Circular 3/2020, art. 9.5) bill reactive energy, in €/kvarh, for every supply except low-voltage ones of contracted power up to 15 kW in every period — so including the workshop, assumed above 15 kW — in every tariff period but one, <b>whenever the reactive energy exceeds 33% of the active energy</b> over the billing period, and only on the excess.</p>
+      </div>
+      <p class="small">For a steady load the ratio of the energies is $Q/P = \tan\varphi$, so the threshold is $\tan\varphi = 0.33$: $\cos\varphi = 0.9496$. The workshop's ratio is <b>102%</b>. Corrected to 0.95 it is 32.9%: just under.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 290" width="380" role="img" aria-label="the workshop's power triangle with three heights on the reactive side: 20.40 kilovar at power factor 0.7; 6.57 kilovar at 0.95, almost exactly the tariff's 33 percent line at 6.6 kilovar; zero at unity; the capacitor's 13.83 kilovar is the drop from the first to the second">
+        <defs><marker id="m06-par-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-ink"/></marker></defs>
+        <path d="M60,260 L260,260 L260,56 Z" class="fill-soft" stroke="none"/>
+        <line x1="60" y1="260" x2="260" y2="260" class="unit" stroke-width="2.8"/>
+        <line x1="260" y1="260" x2="260" y2="56" class="alt" stroke-width="2.8"/>
+        <line x1="60" y1="260" x2="260" y2="56" class="ink" stroke-width="2.2"/>
+        <line x1="60" y1="260" x2="260" y2="194.3" class="ink" stroke-width="2.2"/>
+        <line x1="60" y1="260" x2="330" y2="171" class="warn" stroke-width="1.4" stroke-dasharray="5 4"/>
+        <line x1="276" y1="58" x2="276" y2="190" class="ink" stroke-width="1.6" marker-end="url(#m06-par-k)"/>
+        <text x="284" y="112" font-size="12">capacitor:</text><text x="284" y="128" font-size="12">13.83 kvar</text><text x="284" y="144" font-size="12">0.832 mF</text>
+        <text x="200" y="50" font-size="12" text-anchor="end">0.7: 20.40 kvar</text>
+        <text x="376" y="160" font-size="11" text-anchor="end" class="fill-warn halo">tariff: Q = 0.33 P</text>
+        <text x="150" y="250" font-size="12" class="halo">0.95: 6.57 kvar</text>
+        <text x="160" y="282" font-size="12" text-anchor="middle" class="fill-unit">P = 20 kW (unity: Q = 0)</text>
+      </svg>
+      <p class="cap">To scale, 10 px per kW. The 0.95 hypotenuse and the tariff's 33% line are almost the same line: 6.57 against 6.60 kvar.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The source, read from the text.</b> CNMC Circular 3/2020, of 15 January, establishing the methodology for the transport
+    and distribution access tariffs for electricity (BOE-A-2020-1066), consolidated text as last updated on 5 February 2025.
+    Article 9.5, "Término de facturación por energía reactiva": the term, in €/kVArh, applies to the subjects of article 2.1
+    except low-voltage supplies with contracted power at or below 15 kW in all tariff periods (and cross-border imports and
+    exports); it applies in all tariff periods except period 6, whenever reactive energy consumption exceeds 33% of active
+    consumption over the billing period, and only to the excess; those billed must have a permanently installed reactive-energy
+    meter. Article 6.2(b) puts low-voltage supplies with more than 15 kW contracted in some period on the 3.0TD tariff. The
+    prices per kvarh are not in article 9.5 and are not quoted here; the workshop's contracted power above 15 kW is part of the
+    example's assumptions.</p>
+    <p><b>The 0.9496.</b> $\cos(\arctan0.33) = 1/\sqrt{1 + 0.1089} = 0.94963$. The circular states its threshold as a ratio of energies, not
+    as a power factor; for a load whose $P$ and $Q$ vary, the ratio is of the integrals, $\int Q\,\mathrm dt/\int P\,\mathrm dt$, which is not
+    $\tan$ of any single angle.</p>
+    <p><b>The numbers.</b> $\tan(\arccos0.95) = 0.32868$; $Q_2 = 20\times0.32868 = 6.574$ kvar; $Q_C = -(20.404 - 6.574) = -13.830$ kvar;
+    $C = 13830/(314.16\times52900) = 0.8322$ mF. Current $91.53$ A; cable loss $0.048\times91.53^2 = 402$ W, against 363 W at unity.</p>
+    <p><b>Why stop short of 1.</b> The last third of the capacitor buys 39 W of cable loss and nothing on this tariff. And a load
+    that varies will swing past unity into leading if the capacitor is sized for its heaviest moment (next slide).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · correction</p>
+  <h2>Over-correction is also a loss</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Double the capacitor: <b>2.456 mF</b>. Then $Q_C = -40.81$ kvar and the cable delivers</p>
+      $$S_s = 20 + i(20.40 - 40.81)\ \text{kVA}:$$
+      <p class="small">that is, $20 - 20.40i$ kVA: power factor 0.7 <b>leading</b>. $|S_s| = 28.57$ kVA again, so the current is 124.2 A again and the loss 741 W again.</p>
+      <div class="box warn"><span class="label"><span class="term">over-correction</span></span>
+        <p class="small">The cable's loss depends on $|Q_s|$, not on its sign: $R|I_s|^2 = R(P^2 + Q_s^2)/|V|^2$. A capacitor too large makes the cable carry reactive current the other way, and it heats the copper just the same.</p>
+      </div>
+      <p class="small">The loss is a parabola in $C$, least where $Q_s = 0$, and symmetric about it.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 290" width="420" role="img" aria-label="the cable's loss against the correcting capacitance from 0 to 3 millifarads: a parabola, 741 watts at zero, falling to 363 watts at 1.228 millifarads, and rising back to 741 watts at 2.456 millifarads; left of the minimum the supply sees a lagging load, right of it a leading one">
+        <line x1="60" y1="240" x2="410" y2="240" class="ink" stroke-width="1.2"/><line x1="60" y1="240" x2="60" y2="30" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="167.4" x2="400" y2="167.4" class="rule" stroke-width="1" stroke-dasharray="3 4"/><line x1="60" y1="91.9" x2="400" y2="91.9" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <line x1="199.1" y1="240" x2="199.1" y2="40" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <path d="M60.0,91.9 L65.7,97.9 L71.3,103.7 L77.0,109.2 L82.7,114.5 L88.3,119.5 L94.0,124.3 L99.7,128.8 L105.3,133.1 L111.0,137.1 L116.7,140.9 L122.3,144.4 L128.0,147.7 L133.7,150.7 L139.3,153.5 L145.0,156.0 L150.7,158.2 L156.3,160.3 L162.0,162.0 L167.7,163.5 L173.3,164.8 L179.0,165.8 L184.7,166.6 L190.3,167.1 L196.0,167.4 L201.7,167.4 L207.3,167.1 L213.0,166.7 L218.7,165.9 L224.3,164.9 L230.0,163.7 L235.7,162.2 L241.3,160.5 L247.0,158.5 L252.7,156.2 L258.3,153.7 L264.0,151.0 L269.7,148.0 L275.3,144.8 L281.0,141.3 L286.7,137.5 L292.3,133.5 L298.0,129.3 L303.7,124.8 L309.3,120.0 L315.0,115.0 L320.7,109.8 L326.3,104.3 L332.0,98.5 L337.7,92.5 L343.3,86.3 L349.0,79.8 L354.7,73.0 L360.3,66.0 L366.0,58.8 L371.7,51.3 L377.3,43.5 L383.0,35.5 L388.7,27.2 L394.3,18.7 L400.0,10.0" fill="none" class="unit" stroke-width="2.8"/>
+        <circle cx="60.0" cy="91.9" r="5" class="fill-alt"/><circle cx="199.1" cy="167.4" r="5" class="fill-unit"/><circle cx="338.3" cy="91.9" r="5" class="fill-warn"/>
+        <text x="54" y="244" font-size="11" text-anchor="end" class="soft">0</text><text x="54" y="171" font-size="11" text-anchor="end" class="soft">363</text><text x="54" y="96" font-size="11" text-anchor="end" class="soft">741</text>
+        <text x="66" y="24" font-size="12" class="soft">cable loss (W)</text>
+        <g class="rule" stroke-width="1"><line x1="173.3" y1="240" x2="173.3" y2="245"/><line x1="286.7" y1="240" x2="286.7" y2="245"/><line x1="400" y1="240" x2="400" y2="245"/></g>
+        <text x="60" y="260" font-size="11" text-anchor="middle" class="soft">0</text><text x="173.3" y="260" font-size="11" text-anchor="middle" class="soft">1</text><text x="286.7" y="260" font-size="11" text-anchor="middle" class="soft">2</text><text x="400" y="260" font-size="11" text-anchor="middle" class="soft">3</text>
+        <text x="400" y="282" font-size="12" text-anchor="end">C (mF)</text>
+        <text x="206" y="188" font-size="12" class="fill-unit">1.228 mF: unity</text>
+        <text x="120" y="130" font-size="12" text-anchor="middle">lagging</text><text x="290" y="130" font-size="12" text-anchor="middle">leading</text>
+        <text x="320" y="80" font-size="12" text-anchor="end" class="fill-warn halo">2.456 mF</text>
+      </svg>
+      <p class="cap">Computed: $R(P^2 + (Q - \omega C|V|^2)^2)/|V|^2$ with the workshop's values.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $2C = 2.4555$ mF; $\omega(2C)|V|^2 = 2Q = 40.81$ kvar; $Q_s = 20.40 - 40.81 = -20.40$ kvar; $\cos\varphi_s = 20/28.57 = 0.7$, leading because
+    $Q_s\lt0$. $|I_s| = 124.2$ A and $0.048\times124.2^2 = 741$ W, as before correction.</p>
+    <p><b>The parabola.</b> $R|I_s|^2 = (R/|V|^2)[P^2 + (Q - \omega C|V|^2)^2]$ is quadratic in $C$ with its minimum $RP^2/|V|^2 = 363$ W at $C = Q/\omega|V|^2$, and
+    symmetric about it: $C$ and $2Q/\omega|V|^2 - C$ give the same loss. Problem P7.</p>
+    <p><b>Why it happens in practice.</b> A fixed capacitor sized for the workshop with all its motors running over-corrects when
+    the motors stop and only the heaters run: then the load's $Q$ is near zero and the capacitor's $-20.4$ kvar is all there is.
+    That is the reason for switching capacitors in steps, which the next slide describes. (The circular's article 9.5 bills the
+    inductive excess; its second transitional provision treats capacitive reactive energy separately, during the first regulatory period, for
+    supplies above 1 kV — which does not include this workshop. Not developed here.)</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · correction</p>
+  <h2>Capacitor banks in the switch room</h2>
+  <div class="cols">
+    <div>
+      <p class="small">An installation whose load varies — motors starting and stopping through the day — cannot be corrected by one fixed capacitor without over-correcting at light load. So the correction is done by a <span class="term">capacitor bank</span>:</p>
+      <ul class="small">
+        <li>several capacitors connected across the supply at the installation's intake, in the switch room beside the main switchgear;</li>
+        <li>a controller that measures the reactive power drawn;</li>
+        <li>contactors that switch capacitor steps in and out as that $Q$ changes, keeping the power factor near its target.</li>
+      </ul>
+      <p class="small">Placed at the intake, the bank relieves the supply cable and everything upstream of it — the utility's transformer and lines — but not the wiring inside the workshop, which still carries each motor's quadrature current (problem P8).</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 270" width="480" role="img" aria-label="a busbar at the intake with four capacitor steps hanging from it, each behind its own switch; two switches closed and two open; a controller box measures the reactive power on the incoming supply and drives the switches">
+        <path d="M30,60 H400 M30,210 H360" class="ink" stroke-width="3"/>
+        <text x="30" y="48" font-size="12" class="soft">intake: live busbar</text><text x="30" y="230" font-size="12" class="soft">neutral</text>
+        <g class="ink" stroke-width="2.2" fill="none">
+          <path d="M100,60 V88 M100,112 V140 M100,154 V210 M84,140 H116 M84,154 H116"/>
+          <path d="M170,60 V88 M170,112 V140 M170,154 V210 M154,140 H186 M154,154 H186"/>
+          <path d="M240,60 V88 M240,112 V140 M240,154 V210 M224,140 H256 M224,154 H256"/>
+          <path d="M310,60 V88 M310,112 V140 M310,154 V210 M294,140 H326 M294,154 H326"/>
+        </g>
+        <g class="unit" stroke-width="2.6"><line x1="100" y1="88" x2="100" y2="112"/><line x1="170" y1="88" x2="170" y2="112"/></g>
+        <g class="ink" stroke-width="2.6"><line x1="240" y1="112" x2="256" y2="90"/><line x1="310" y1="112" x2="326" y2="90"/></g>
+        <text x="106" y="100" font-size="11" class="fill-unit">in</text><text x="176" y="100" font-size="11" class="fill-unit">in</text>
+        <text x="258" y="114" font-size="11" class="soft">out</text><text x="328" y="114" font-size="11" class="soft">out</text>
+        <rect x="330" y="8" width="80" height="38" rx="4" class="fill-soft ink" stroke-width="1.5"/>
+        <text x="370" y="24" font-size="11" text-anchor="middle">controller</text><text x="370" y="39" font-size="11" text-anchor="middle" class="soft">measures Q</text>
+        <path d="M370,46 V60" class="ink" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <text x="210" y="260" font-size="12" text-anchor="middle">steps switched in as the motors' Q rises</text>
+      </svg>
+      <p class="cap">A schematic, not any product: four equal steps, two switched in. Each step is a capacitor across the supply, as on the slide <i>A capacitor across the load</i>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What is claimed, and on what basis.</b> The arrangement — capacitors across the supply at the installation's intake,
+    switched in steps by a controller that follows the reactive power — is described qualitatively, as the spec for this unit
+    allows; it follows from the physics of the last three slides (a fixed capacitor over-corrects at light load). No
+    manufacturer's figures are given, and no claim is made about step sizes, switching times, or how common such banks are.</p>
+    <p><b>Why steps, not a continuously variable capacitor.</b> A capacitor's value is fixed by its geometry and dielectric (unit 02),
+    so a variable $C$ at kvar ratings is made by switching fixed ones. The resolution of the correction is one step.</p>
+    <p><b>What the bank does not fix.</b> Everything downstream of it still carries reactive current: the cables from the switch room
+    to each motor. Correcting at each motor's terminals relieves those too, at the price of more, smaller capacitors —
+    problem P8 compares the two positions for the supply cable.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Conjugate matching</h2>
+  <p>Unit 04's maximum-power theorem with complex impedances: cancel the source's reactance, then match its resistance. Still exactly 50%.</p>
+</section>
+
+<section>
+  <p class="eyebrow">06 · matching</p>
+  <h2>A source with reactance</h2>
+  <div class="cols">
+    <div>
+      <p class="small">By unit 05's Thévenin theorem for phasors, a linear source at one frequency is $V_{\mathrm{th}}$ behind $Z_s = R_s + iX_s$, with $R_s > 0$. A load $Z_L = R_L + iX_L$, $R_L\ge0$, draws</p>
+      $$I = \frac{V_{\mathrm{th}}}{Z_s + Z_L},$$
+      <p class="small">and absorbs $P_L = R_L|I|^2$ (the definitions):</p>
+      $$P_L = \frac{|V_{\mathrm{th}}|^2R_L}{(R_s + R_L)^2 + (X_s + X_L)^2}.$$
+      <p class="small">Two knobs now. The reactances appear only in the second term of the denominator — and the load can choose $X_L$ of either sign: an inductor, or a capacitor.</p>
+      <p class="small muted">Units: $\mathrm V^2\,\Omega/\Omega^2 = \mathrm W$ ✓. Check: $X_s = X_L = 0$ gives unit 04's $V_{\mathrm{th}}^2R/(R_{\mathrm{th}} + R)^2$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 270" width="400" role="img" aria-label="a Thevenin source in a dashed box: an ideal source V th in series with R s and an inductive reactance X s; it feeds a load made of R L in series with a capacitive reactance X L; current I flows round the loop">
+        <defs><marker id="m06-cm-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker></defs>
+        <rect x="20" y="28" width="220" height="200" rx="10" fill="none" class="ink" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="26" y="22" font-size="12" class="soft">the source, by Thévenin</text>
+        <path d="M60,128 V60 H90 M130,60 H150 M210,60 H330 V80 M330,120 V150 M330,166 V210 H60 V172" fill="none" class="ink" stroke-width="2.2"/>
+        <circle cx="60" cy="150" r="22" class="fill-ground ink" stroke-width="2"/>
+        <text x="60" y="146" font-size="12" text-anchor="middle">+</text><text x="60" y="164" font-size="13" text-anchor="middle">−</text>
+        <text x="92" y="154" font-size="13">V<tspan dy="3" font-size="75%">th</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <rect x="90" y="52" width="40" height="16" class="fill-ground ink" stroke-width="2"/>
+        <path d="M150,60 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0 a7.5,7.5 0 0 1 15,0" fill="none" class="ink" stroke-width="2"/>
+        <text x="110" y="90" font-size="12" text-anchor="middle">R<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan></text><text x="180" y="90" font-size="12" text-anchor="middle">iX<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <rect x="322" y="80" width="16" height="40" class="fill-ground ink" stroke-width="2"/>
+        <path d="M314,150 H346 M314,166 H346" class="ink" stroke-width="2.6"/>
+        <text x="348" y="104" font-size="12">R<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan></text><text x="354" y="164" font-size="12">iX<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="316" y="88" font-size="11" text-anchor="end">+</text><text x="316" y="182" font-size="12" text-anchor="end">−</text>
+        <circle cx="270" cy="60" r="4" class="fill-ground ink" stroke-width="1.5"/><circle cx="270" cy="210" r="4" class="fill-ground ink" stroke-width="1.5"/>
+        <line x1="250" y1="44" x2="290" y2="44" class="unit" stroke-width="2.2" marker-end="url(#m06-cm-u)"/><text x="262" y="36" font-size="13" class="fill-unit">I</text>
+        <text x="348" y="232" font-size="12" text-anchor="middle" class="soft">load Z<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="200" y="256" font-size="12" text-anchor="middle" class="soft">drawn for X<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan> &gt; 0 and X<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> &lt; 0</text>
+      </svg>
+      <p class="cap">An inductive source and a capacitive load. The load's two elements are marked + and − together; open circles are the port.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The derivation.</b> One loop: $V_{\mathrm{th}} = (Z_s + Z_L)I$ by the voltage law with phasors. The load's complex power is $Z_L|I|^2$ (the
+    definitions), whose real part is $R_L|I|^2$; and $|Z_s + Z_L|^2 = (R_s + R_L)^2 + (X_s + X_L)^2$.</p>
+    <p><b>Where such sources occur.</b> A source whose internal impedance has a reactance: unit 04's antenna feeding a radio receiver
+    (branch 16 shows that a short antenna is mostly reactive); a winding with leakage inductance seen through a transformer
+    (unit 07); a coil in a wireless charger (unit 15). Not the workshop's supply: its cable is 48 mΩ against the workshop's
+    1.85 Ω, a power station's choice in unit 04's sense, far from any match.</p>
+    <p><b>Why $R_L\ge0$.</b> A passive load (unit 05). $X_L$ can be any real number at one frequency, since an inductor gives any
+    positive reactance and a capacitor any negative one.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · matching</p>
+  <h2>The conjugate-matching theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">conjugate matching</span>
+        <p class="small">Over all passive loads $Z_L$, $P_L$ is largest at the <span class="term">conjugate match</span> $Z_L = Z_s^* = R_s - iX_s$:</p>
+        $$P_{\max} = \frac{|V_{\mathrm{th}}|^2}{4R_s},$$
+        <p class="small">and the efficiency there, $R_L|I|^2/(R_s + R_L)|I|^2$, is exactly $\tfrac12$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">For fixed $R_L$ the denominator is least when $X_L = -X_s$. Then $P_L = |V_{\mathrm{th}}|^2R_L/(R_s + R_L)^2$, which unit 04's theorem maximises at $R_L = R_s$. So any $Z_L$ is beaten by $R_L - iX_s$, which is beaten by $Z_s^*$. $\square$</p>
+      </div>
+      <p class="small">Unit 04's theorem "becomes conjugate matching": cancel the reactance, then match the resistance.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 290" width="360" role="img" aria-label="the impedance plane: the source impedance Z s at 4 plus 3 i, and its mirror image in the real axis, the conjugate match at 4 minus 3 i; the loop's total impedance at the match is 8, purely real">
+        <defs><marker id="m06-zp-u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-unit"/></marker>
+        <marker id="m06-zp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-alt"/></marker></defs>
+        <rect x="60" y="20" width="290" height="240" class="fill-soft"/>
+        <line x1="30" y1="140" x2="350" y2="140" class="ink" stroke-width="1.2"/><line x1="60" y1="20" x2="60" y2="260" class="ink" stroke-width="1.2"/>
+        <text x="345" y="158" font-size="12" text-anchor="end">R</text><text x="66" y="32" font-size="12">X</text>
+        <line x1="60" y1="140" x2="156" y2="68" class="unit" stroke-width="2.6" marker-end="url(#m06-zp-u)"/>
+        <line x1="60" y1="140" x2="156" y2="212" class="alt" stroke-width="2.6" marker-end="url(#m06-zp-a)"/>
+        <line x1="156" y1="68" x2="156" y2="212" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <line x1="60" y1="134" x2="252" y2="134" class="ink" stroke-width="2.4"/>
+        <text x="164" y="66" font-size="13" class="fill-unit">Z<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan> = 4 + 3i</text>
+        <text x="164" y="226" font-size="13" class="alt">Z<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> = Z<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan>* = 4 − 3i</text>
+        <text x="256" y="128" font-size="12">Z<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan> + Z<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> = 8</text>
+        <text x="200" y="280" font-size="12" text-anchor="middle" class="soft">shaded: passive loads, R ≥ 0 (unit 05)</text>
+      </svg>
+      <p class="cap"><span class="ref" data-ref="source">The inductive source</span> and its conjugate match, 24 px per ohm. The loop's reactances cancel; what is left is unit 04's resistive problem.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the efficiency is defined this way.</b> $R_s|I|^2$ is the power dissipated inside the Thévenin equivalent and $R_L|I|^2$ in the load;
+    the reactances dissipate nothing. So "efficiency" is the load's share of the real power the equivalent's EMF delivers, as in
+    unit 04, with the same caveat: when the source is a real network, its internal losses are not those of its equivalent.</p>
+    <p><b>Energy check.</b> The EMF delivers $\operatorname{Re}(V_{\mathrm{th}}I^*) = \operatorname{Re}((Z_s + Z_L)|I|^2) = (R_s + R_L)|I|^2$ ✓, and $\operatorname{Im}$ of the same is
+    $(X_s + X_L)|I|^2$, the loop's net reactive power — zero at the match. Conservation of complex power, for one loop.</p>
+    <p><b>At the match the source sees a resistance.</b> The total loop impedance $Z_s + Z_s^* = 2R_s$ is real: the current is in phase with
+    $V_{\mathrm{th}}$, the loop draws no net reactive power, and the reactive energy of the source's inductance sloshes into the
+    load's capacitance and back — the tuned circuit of the stored-energy slide, built across a port.</p>
+    <p><b>Only at one frequency.</b> $X_L = -X_s$ is a statement at one $\omega$. Unit 05's Foster theorem says a lossless reactance rises
+    with frequency, so a capacitor cancelling an inductance does so at one frequency only; matching over a band is a harder
+    problem (unit 09 begins it, on a line).</p>
+    <p><b>Unit 15.</b> A wireless charger meets a problem in which the load of maximum efficiency is not the conjugate match: maximum
+    power and maximum efficiency are different design points, again, as unit 04 found for the starter motor.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · matching</p>
+  <h2>When only the resistance can change</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Often the load cannot carry a reactance — a heater, a resistive sensor. With $X_L = 0$:</p>
+      $$P_L(R_L) = \frac{|V_{\mathrm{th}}|^2R_L}{(R_s + R_L)^2 + X_s^2}.$$
+      <div class="box thm"><span class="label">the best resistive load</span>
+        <p class="small">$P_L$ is largest at $R_L = |Z_s| = \sqrt{R_s^2 + X_s^2}$, where $P_L = \dfrac{|V_{\mathrm{th}}|^2}{2(R_s + |Z_s|)}$ — less than $P_{\max}$ unless $X_s = 0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$P_L = |V_{\mathrm{th}}|^2/f(R_L)$ with $f(R) = R + 2R_s + |Z_s|^2/R$. By AM–GM, $R + |Z_s|^2/R\ge2|Z_s|$, with equality iff $R = |Z_s|$. So $f\ge2(R_s + |Z_s|)$. $\square$</p>
+      </div>
+      <p class="small">Matching the <b>magnitude</b> is the best a resistor can do; the reactance it cannot cancel costs power.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 290" width="420" role="img" aria-label="power into the load against R L from 0 to 16 ohms for the source 10 volts behind 4 plus 3 i ohms: with the reactance cancelled the curve peaks at 6.25 watts at 4 ohms; with a purely resistive load it peaks lower, at 5.56 watts at 5 ohms; the resistive load of 4 ohms gets 5.48 watts">
+        <line x1="60" y1="240" x2="410" y2="240" class="ink" stroke-width="1.2"/><line x1="60" y1="240" x2="60" y2="30" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="52.5" x2="400" y2="52.5" class="rule" stroke-width="1" stroke-dasharray="3 4"/>
+        <path d="M60.0,240.0 L65.3,198.5 L70.6,165.9 L75.9,140.3 L81.2,120.0 L86.6,103.9 L91.9,91.2 L97.2,81.2 L102.5,73.3 L107.8,67.2 L113.1,62.5 L118.4,58.9 L123.8,56.3 L129.1,54.5 L134.4,53.3 L139.7,52.7 L145.0,52.5 L150.3,52.7 L155.6,53.1 L160.9,53.9 L166.2,54.8 L171.6,55.9 L176.9,57.2 L182.2,58.5 L187.5,60.0 L192.8,61.5 L198.1,63.1 L203.4,64.8 L208.8,66.4 L214.1,68.1 L219.4,69.9 L224.7,71.6 L230.0,73.3 L235.3,75.1 L240.6,76.8 L245.9,78.5 L251.2,80.2 L256.6,81.9 L261.9,83.6 L267.2,85.3 L272.5,86.9 L277.8,88.6 L283.1,90.2 L288.4,91.8 L293.8,93.3 L299.1,94.9 L304.4,96.4 L309.7,97.9 L315.0,99.4 L320.3,100.8 L325.6,102.3 L330.9,103.7 L336.2,105.1 L341.6,106.4 L346.9,107.8 L352.2,109.1 L357.5,110.4 L362.8,111.6 L368.1,112.9 L373.4,114.1 L378.8,115.3 L384.1,116.5 L389.4,117.7 L394.7,118.9 L400.0,120.0" fill="none" class="unit" stroke-width="2.8"/>
+        <path d="M60.0,240.0 L65.3,212.3 L70.6,188.7 L75.9,168.7 L81.2,151.8 L86.6,137.4 L91.9,125.4 L97.2,115.2 L102.5,106.7 L107.8,99.6 L113.1,93.7 L118.4,88.8 L123.8,84.8 L129.1,81.6 L134.4,79.1 L139.7,77.1 L145.0,75.6 L150.3,74.5 L155.6,73.8 L160.9,73.5 L166.2,73.3 L171.6,73.4 L176.9,73.8 L182.2,74.2 L187.5,74.9 L192.8,75.6 L198.1,76.5 L203.4,77.4 L208.8,78.5 L214.1,79.6 L219.4,80.7 L224.7,81.9 L230.0,83.1 L235.3,84.4 L240.6,85.7 L245.9,87.0 L251.2,88.3 L256.6,89.6 L261.9,91.0 L267.2,92.3 L272.5,93.7 L277.8,95.0 L283.1,96.3 L288.4,97.7 L293.8,99.0 L299.1,100.3 L304.4,101.6 L309.7,102.9 L315.0,104.2 L320.3,105.4 L325.6,106.7 L330.9,107.9 L336.2,109.1 L341.6,110.3 L346.9,111.5 L352.2,112.7 L357.5,113.9 L362.8,115.0 L368.1,116.2 L373.4,117.3 L378.8,118.4 L384.1,119.5 L389.4,120.5 L394.7,121.6 L400.0,122.6" fill="none" class="alt" stroke-width="2.6"/>
+        <circle cx="145.0" cy="52.5" r="5" class="fill-unit"/><circle cx="166.2" cy="73.3" r="5" class="fill-alt"/><circle cx="145.0" cy="75.6" r="4.5" class="fill-ground alt" stroke-width="2"/>
+        <text x="150" y="42" font-size="12" class="fill-unit">X<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> = −3: 6.25 W at 4 Ω</text>
+        <text x="230" y="122" font-size="12" class="alt halo">X<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> = 0: 5.56 W at 5 Ω</text>
+        <text x="150" y="100" font-size="11" class="alt halo">open circle: 4 Ω, 5.48 W</text>
+        <g class="rule" stroke-width="1"><line x1="145" y1="240" x2="145" y2="245"/><line x1="230" y1="240" x2="230" y2="245"/><line x1="315" y1="240" x2="315" y2="245"/><line x1="400" y1="240" x2="400" y2="245"/></g>
+        <text x="60" y="260" font-size="11" text-anchor="middle" class="soft">0</text><text x="145" y="260" font-size="11" text-anchor="middle" class="soft">4</text><text x="230" y="260" font-size="11" text-anchor="middle" class="soft">8</text><text x="315" y="260" font-size="11" text-anchor="middle" class="soft">12</text><text x="400" y="260" font-size="11" text-anchor="middle" class="soft">16</text>
+        <text x="400" y="282" font-size="12" text-anchor="end">R<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> (Ω)</text>
+        <text x="54" y="244" font-size="11" text-anchor="end" class="soft">0</text><text x="54" y="184" font-size="11" text-anchor="end" class="soft">2</text><text x="54" y="124" font-size="11" text-anchor="end" class="soft">4</text><text x="54" y="64" font-size="11" text-anchor="end" class="soft">6</text>
+        <text x="66" y="24" font-size="12" class="soft">P<tspan dy="3" font-size="75%">L</tspan><tspan dy="-3">&#8202;</tspan> (W)</text>
+      </svg>
+      <p class="cap">Computed for <span class="ref" data-ref="source">the inductive source</span>. The two curves differ only by the uncancelled $X_s^2 = 9\ \Omega^2$ in the denominator.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof by calculus, too.</b> $\mathrm dP_L/\mathrm dR_L\propto(R_s + R_L)^2 + X_s^2 - 2R_L(R_s + R_L) = R_s^2 + X_s^2 - R_L^2$, positive below $|Z_s|$ and
+    negative above. The AM–GM proof needs no derivative and bounds every $R_L$ at once, like unit 04's.</p>
+    <p><b>The value at the optimum.</b> $f(|Z_s|) = |Z_s| + 2R_s + |Z_s| = 2(R_s + |Z_s|)$, so $P_L = |V_{\mathrm{th}}|^2/2(R_s + |Z_s|)$. Since $|Z_s|\ge R_s$ with
+    equality iff $X_s = 0$, this is at most $|V_{\mathrm{th}}|^2/4R_s$ ✓, and equals it only for a resistive source — unit 04's case.</p>
+    <p><b>Efficiency at the resistive optimum.</b> $R_L/(R_s + R_L) = |Z_s|/(R_s + |Z_s|) > \tfrac12$. Less power, but a larger share of it
+    delivered: the uncancelled reactance limits the current. For the inductive source, $5/9 = 55.6\%$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · matching</p>
+  <h2>Worked: matching an inductive source</h2>
+  <div class="box ex"><span class="label">worked example 5 — <span class="ref" data-ref="source">$V_{\mathrm{th}} = 10$ V behind $Z_s = 4 + 3i\ \Omega$</span>: three loads</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The conjugate match</b>, $Z_L = 4 - 3i\ \Omega$. The loop is $Z_s + Z_L = 8\ \Omega$, real: $|I| = 10/8 = 1.25$ A. $P_L = 4\times1.25^2 = $ <b>6.25 W</b> $= 10^2/(4\times4)$ ✓. The source's $R_s$ takes 6.25 W too: efficiency <b>50%</b>.</p>
+      <p class="small"><b>2. The best resistor</b>, $R_L = |Z_s| = 5\ \Omega$. Loop $9 + 3i$, $|I| = 10/\sqrt{90} = 1.054$ A. $P_L = 5\times100/90 = $ <b>5.56 W</b> $= 100/(2\times9)$ ✓. Efficiency $5/9 = 55.6\%$.</p>
+      <p class="small"><b>3. The resistor matched to $R_s$ only</b>, $R_L = 4\ \Omega$. Loop $8 + 3i$, $|Z|^2 = 73$. $P_L = 4\times100/73 = $ <b>5.48 W</b>: worse than step 2, because it ignores $X_s$.</p>
+      <p class="small"><b>Check.</b> In step 1, the source's reactance absorbs $Q = 3\times1.25^2 = +4.69$ var and the load's $-4.69$ var: the loop's $Q$ sums to zero, as conservation requires when the EMF's current is in phase with it.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 390 270" width="380" role="img" aria-label="three horizontal bars of power into the load: 6.25 watts for the conjugate match, 5.56 watts for the 5 ohm resistor, 5.48 watts for the 4 ohm resistor; beside each, the efficiency 50, 55.6 and 50 percent">
+        <rect x="120" y="40" width="200" height="30" class="fill-unit"/>
+        <rect x="120" y="110" width="177.8" height="30" class="fill-alt"/>
+        <rect x="120" y="180" width="175.3" height="30" fill="none" class="alt" stroke-width="2.2"/>
+        <text x="110" y="52" font-size="12" text-anchor="end">4 − 3i Ω</text><text x="110" y="68" font-size="11" text-anchor="end" class="soft">conjugate</text>
+        <text x="110" y="122" font-size="12" text-anchor="end">5 Ω</text><text x="110" y="138" font-size="11" text-anchor="end" class="soft">|Z<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan>|</text>
+        <text x="110" y="192" font-size="12" text-anchor="end">4 Ω</text><text x="110" y="208" font-size="11" text-anchor="end" class="soft">R<tspan dy="3" font-size="75%">s</tspan><tspan dy="-3">&#8202;</tspan> only</text>
+        <text x="220" y="60" font-size="12" text-anchor="middle" class="fill-ground">6.25 W</text>
+        <text x="208" y="130" font-size="12" text-anchor="middle" class="fill-ground">5.56 W</text>
+        <text x="208" y="200" font-size="12" text-anchor="middle">5.48 W</text>
+        <text x="330" y="60" font-size="11" class="soft">η 50%</text><text x="305" y="130" font-size="11" class="soft">η 55.6%</text><text x="303" y="200" font-size="11" class="soft">η 50%</text>
+        <text x="180" y="250" font-size="12" text-anchor="middle" class="soft">bar length: power into the load, to scale</text>
+      </svg>
+      <p class="cap">The conjugate match wins by 12.5% over the best resistor. Its efficiency is the lowest of the three, or tied for it.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 3's efficiency.</b> $R_L = R_s = 4$: the two resistances carry the same current, so $\eta = \tfrac12$ again — matched resistances, but
+    the uncancelled reactance cuts the current from 1.25 A to $10/\sqrt{73} = 1.170$ A, and $P_L = 4\times1.369 = 5.48$ W.</p>
+    <p><b>Ratios.</b> $6.25/5.556 = 1.125$; $5.556/5.479 = 1.014$. The theorem of the last slide says no resistor beats 5.56 W.</p>
+    <p><b>Where this is the right design.</b> Unit 04's radio receiver: an antenna whose terminal impedance has a reactance (branch 16)
+    is a source like this one, and the received power is what is scarce, so the receiver's input is made its conjugate. The
+    workshop is the opposite case: its supply is built far from any match, for unit 04's power-station reasons. Unit 15 meets a
+    case between the two, where the most efficient load is not the conjugate match.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · close</p>
+  <h2>The workshop, closed</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="ref" data-ref="workshop">the workshop</span>, every number</span>
+        <p class="small">20 kW at 0.7 lagging: <b>28.57 kVA, 20.40 kvar, 124.2 A</b>, $p(t)$ from −8.57 to +48.57 kW and backwards for 25.3% of every cycle. Cable: 741 W, of which 378 W is the price of $Q$.</p>
+      </div>
+      <p class="small"><b>Why the utility cares about more than kilowatts:</b> the 20.40 kvar delivers nothing, but its current flows through the cable and every transformer and line upstream, heating them and using up their ratings. A tariff that bills reactive energy above 33% of the active (Circular 3/2020) passes that cost to the customer who causes it.</p>
+      <p class="small"><b>The fix:</b> <span class="ref" data-ref="corrected">1.228 mF</span> at the intake. Current 124.2 → 86.96 A, cable loss 741 → 363 W (× 0.49), and the reactive energy ratio from 102% to 0 — under the tariff's threshold, so the reactive charge falls away. To 0.95 is already enough: 0.832 mF, 32.9%.</p>
+      <p class="small"><b>Next.</b> Unit 07: the transformer that feeds this workshop from 20 kV, and why lines run at 400 kV: at fixed power, a line's loss falls as $1/V^2$ — and rises as $1/\cos^2\varphi$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 260" width="380" role="img" aria-label="two stacked bars of the cable's loss: before correction, 741 watts, made of 363 from the in-phase current and 378 from the quadrature current; after correction, 363 watts, the quadrature part gone">
+        <text x="20" y="34" font-size="13">before: 741 W</text>
+        <rect x="20" y="44" width="145.2" height="34" class="fill-unit"/><rect x="165.2" y="44" width="151.1" height="34" class="fill-alt"/>
+        <text x="92" y="98" font-size="12" text-anchor="middle" class="fill-unit">363 W, I<tspan dy="3" font-size="75%">p</tspan><tspan dy="-3">&#8202;</tspan></text>
+        <text x="240" y="98" font-size="12" text-anchor="middle" class="alt">378 W, I<tspan dy="3" font-size="75%">q</tspan><tspan dy="-3">&#8202;</tspan>: the price of Q</text>
+        <text x="20" y="144" font-size="13">after 1.228 mF: 363 W</text>
+        <rect x="20" y="154" width="145.2" height="34" class="fill-unit"/><rect x="165.2" y="154" width="151.1" height="34" fill="none" class="alt" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="240" y="176" font-size="12" text-anchor="middle" class="alt">gone</text>
+        <text x="180" y="226" font-size="12" text-anchor="middle">reactive / active energy: 102% → 0</text>
+        <text x="180" y="246" font-size="12" text-anchor="middle" class="soft">(tariff threshold: 33%)</text>
+      </svg>
+      <p class="cap">The cable's loss to scale, before and after. The capacitor removes exactly the part paid for $Q$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Summary of the unit, in the workshop's terms.</b> Section 1 found its power pulsing at 100 Hz, below zero twice a cycle;
+    section 2 named the parts, drew its triangle, and read its 20.40 kvar as 32.5 J of excess magnetic energy pushed in and out
+    a hundred times a second; section 3 split it into three loads and balanced every element; section 4 showed its electrons going
+    nowhere and its energy flux running back towards the supply; section 5 corrected it; section 6 asked what load would take
+    the most power from a source with reactance.</p>
+    <p><b>What carries on.</b> $P$, $Q$ and $S$ are the working quantities of every later power unit. Unit 07 reflects the workshop's
+    impedance $1.296 + 1.322i\ \Omega$ through a transformer and corrects it seen from 20 kV. Unit 11 gives the workshop three phases,
+    and shows that a balanced three-phase load's total $p(t)$ does not pulse at all. Unit 13's power-flow equations are the
+    conservation of complex power at every bus of a grid. Unit 14 meets currents that are not sinusoids, where this unit's $Q$
+    stops being the whole story.</p>
+    <p><b>Reading.</b> For complex power and power-factor correction in an engineer's voice: Bergen &amp; Vittal, <i>Power Systems
+    Analysis</i> (2nd ed.), from the curriculum's reading list: ch. 2, the sections on phasor representation, complex power supplied
+    to a one-port, and conservation of complex power; stop where it turns to balanced three-phase, which is unit 11's. It writes $j$
+    for $i$, so check its sign convention for $Q$ against this course's before comparing formulas. For
+    Tellegen's theorem with phasors in full generality: Penfield, Spence &amp; Duinker, <i>Tellegen's Theorem and Electrical
+    Networks</i>.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">06 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>For the workshop — 20 kW at power factor 0.7 lagging from 230 V, 50 Hz — you compute the capacitor that brings the power factor to 1, <b>about 1.2 mF</b>, and the factor by which it cuts the supply cable's losses, <b>0.49</b>, and say why that factor is $\cos^2\varphi$.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A capacitor from $P$ instead of $Q$ (here 1.20 mF, near the truth only because $\tan\varphi = 1.02$ — at 0.8 it fails); peak voltage in $\omega CV^2$ (0.614 mF); a factor of 0.7, or of 0.51; or a reduction claimed in the workshop's 20 kW.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./cap problems 06</code>. When the checkpoint is true: <code>./cap done 06</code>. Then unit 07, where two coupled coils become a transformer and the workshop is seen from 20 kV.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on variants before opening the sheet. A 10 kW load at power factor 0.8 lagging on 230 V, 50 Hz:
+    $Q = 10\tan(\arccos0.8) = 7.5$ kvar, $C = 7500/(314.16\times52900) = 0.451$ mF, and the cable loss factor $0.64$. If you wrote
+    $C = P/\omega V^2$ you got 0.602 mF — wrong, and the workshop's own numbers would not have told you, since there $\tan\varphi =
+    1.02$ makes $P$ and $Q$ nearly equal.</p>
+    <p>The reason for $\cos^2\varphi$ in one line: the cable's loss is $R|I_s|^2$, and full correction cuts $|I_s|$ from $|S|/|V|$ to $P/|V|$.</p>
+    <p>Using the peak 325.3 V in $Q/\omega V^2$ gives $20404/(314.16\times105800) = 0.614$ mF, half the right value: RMS phasors carry no ½ and
+    no $\sqrt2$.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

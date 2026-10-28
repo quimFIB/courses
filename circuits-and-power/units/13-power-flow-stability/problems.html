@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13 · Problems — Power flow and stability: the grid as a pendulum</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="e">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part E · unit 13 · problems</p>
+<h1>Power flow and stability: the grid as a pendulum</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u13">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you derive the two-bus transfer formula \(P = V_1V_2\sin\delta/X\) from \(S = VI^*\), and its maximum
+\(V_1V_2/X\). You then use the equal-area criterion to find the critical clearing angle for a machine running at
+\(\delta_0 = 30°\) when a fault cuts the transfer to zero: about 79.6°.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about four and a half hours. P1 and P8 are the checkpoint's. Conventions as in the deck: RMS phasors with
+\(e^{+i\omega t}\); complex power \(S = VI^*\); in power-flow formulas \(V_k\) is a bus voltage's magnitude and \(\delta_k\) its angle,
+so the phasor is \(\bar V_k = V_ke^{i\delta_k}\); \(S_k\) is the power injected <em>into</em> the network at bus \(k\); lines are
+lossless reactances; 50 Hz throughout, \(\omega_s = 2\pi\times50 = 314.16\) rad/s, and \(\mu_0 = 4\pi\times10^{-7}\) H/m.</p>
+<p>Data, all assumed unless a source is named. The two-area model: Iberia, one machine of \(H = 4\) s on 50 GW, exporting 2000 MW
+over a tie of \(40\ \Omega\) per phase at 400 kV to Continental Europe, an infinite bus. Continental Europe for frequency: 300 GW
+online, \(H = 5\) s. The three-bus example, per unit on 100 MVA: \(X_{12} = 0.1\), \(X_{13} = 0.2\), \(X_{23} = 0.25\); bus 1 slack
+\(1\angle0\); bus 2 a generator with \(P = 1.0\), \(V = 1.0\); bus 3 a load of \(1.5 + 0.5i\). Unit 07's line geometry: bundles of
+equivalent radius \(r_{\text{eq}} = 0.2097\) m, phases 10 m apart. The street transformer: 400 kVA, 20 kV / 400 V, 4%
+(IEC 60076-5, Table 1). Regulation (EU) 2017/1485 for Continental Europe: reference incident 3000 MW (Art. 153); maximum
+instantaneous frequency deviation 800 mHz and maximum steady-state deviation 200 mHz (Annex III, Table 1); frequency containment
+reserve fully active within 30 s and at 200 mHz (Annex V).</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Proof: the two-bus transfer">P1</a></li>
+<li><a class="routine" href="#p2" title="Transfer limits">P2</a></li>
+<li><a class="routine" href="#p3" title="Per unit, and the 4%">P3</a></li>
+<li><a class="medium" href="#p4" title="Proof: the bus admittance matrix, and Kron">P4</a></li>
+<li><a class="routine" href="#p5" title="The DC power flow">P5</a></li>
+<li><a class="medium" href="#p6" title="Newton–Raphson by hand">P6</a></li>
+<li><a class="medium" href="#p7" title="Proof: the swing equation">P7</a></li>
+<li><a class="medium" href="#p8" title="The equal-area criterion">P8</a></li>
+<li><a class="routine" href="#p9" title="Critical clearing times">P9</a></li>
+<li><a class="routine" href="#p10" title="Losing 1 GW">P10</a></li>
+<li><a class="medium" href="#p11" title="The reference incident">P11</a></li>
+<li><a class="routine" href="#p12" title="Reactive power stays local">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Two buses and a reactance</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Proof: the two-bus transfer <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: complex power \(S = VI^*\) on a reactance; the maximum; the reactive-power energy check; the three-phase form (the checkpoint's first half)</p>
+<div class="statement">
+<p>Two buses with phasor voltages \(\bar V_1 = V_1e^{i\delta_1}\) and \(\bar V_2 = V_2e^{i\delta_2}\) are joined by a lossless series
+reactance \(X\), per phase. Let \(\delta = \delta_1 - \delta_2\).</p>
+<ol>
+<li>From \(S = VI^*\), derive the real power \(P\) sent from bus 1, the reactive power \(Q_1\) sent from bus 1 into the reactance,
+and the reactive power \(Q_2\) arriving at bus 2.</li>
+<li>Show that \(P\) is the same at both ends, and that \(Q_1 - Q_2 = |I|^2X\).</li>
+<li>Find the maximum of \(P\) over \(\delta\) and where it occurs.</li>
+<li>In a balanced three-phase system each phase carries this \(S\). Show that the total \(P\) is given by the same formula with
+line-to-line voltage magnitudes.</li>
+<li>Check your formulas on the tie of the two-area model: 400 kV at both ends, \(X = 40\ \Omega\), \(\delta = 30°\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three formulas, each a function of \(V_1, V_2, \delta, X\); then two identities; then an extremum; then a factor of 3 against a
+factor of \(\sqrt3\) squared; then numbers. Everything comes from one line: the current through the reactance.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The current from bus 1 to bus 2 is \(I = (\bar V_1 - \bar V_2)/(iX)\). Conjugate it — remember \((1/i)^* = -1/i = i\) — and multiply by
+\(\bar V_1\) for \(S_1\), by \(\bar V_2\) for \(S_2\). For part 2, the law of cosines turns \(V_1^2 + V_2^2 - 2V_1V_2\cos\delta\) into \(|\bar V_1 - \bar V_2|^2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(S_1 = \bar V_1I^* = \bar V_1\cdot\dfrac{i(\bar V_1^* - \bar V_2^*)}{X} = \dfrac iX\big(V_1^2 - V_1V_2e^{i\delta}\big)\). Now expand
+\(e^{i\delta}\) and separate real and imaginary parts.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One current, two products with it. Everything else is algebra on \(e^{i\delta}\).</p>
+<p><strong>1.</strong> \(I = (\bar V_1 - \bar V_2)/(iX)\), so \(I^* = (\bar V_1^* - \bar V_2^*)/(-iX) = i(\bar V_1^* - \bar V_2^*)/X\). Then</p>
+\[ S_1 = \bar V_1I^* = \frac iX\big(V_1^2 - V_1V_2e^{i\delta}\big) = \frac iX\big(V_1^2 - V_1V_2\cos\delta\big) + \frac{V_1V_2\sin\delta}{X}, \]
+<p>using \(\bar V_1\bar V_2^* = V_1V_2e^{i\delta}\). So</p>
+\[ P = \frac{V_1V_2\sin\delta}{X},\qquad Q_1 = \frac{V_1^2 - V_1V_2\cos\delta}{X}. \]
+<p>At bus 2 the power arriving from the line is \(S_2 = \bar V_2I^* = \frac iX\big(V_1V_2e^{-i\delta} - V_2^2\big) = \frac{V_1V_2\sin\delta}X + i\,\frac{V_1V_2\cos\delta - V_2^2}X\),
+so \(Q_2 = (V_1V_2\cos\delta - V_2^2)/X\).</p>
+<p><strong>2.</strong> The real parts of \(S_1\) and \(S_2\) are both \(V_1V_2\sin\delta/X\): a reactance absorbs no real power. And</p>
+\[ Q_1 - Q_2 = \frac{V_1^2 + V_2^2 - 2V_1V_2\cos\delta}{X} = \frac{|\bar V_1 - \bar V_2|^2}{X} = \frac{X^2|I|^2}{X} = |I|^2X, \]
+<p>by the law of cosines in the triangle \(0, \bar V_1, \bar V_2\), and \(|\bar V_1 - \bar V_2| = |iXI| = X|I|\). That is unit 06's \(Q\) of a reactance: the
+reactive power that goes in, less what comes out, is what the reactance holds.</p>
+<p><strong>3.</strong> \(\mathrm dP/\mathrm d\delta = V_1V_2\cos\delta/X\) vanishes at \(\delta = \pm90°\); the maximum is at \(\delta = 90°\):</p>
+\[ P_{\max} = \frac{V_1V_2}{X}. \]
+<p><strong>4.</strong> With phase magnitudes \(V_k\) and line magnitudes \(U_k = \sqrt3V_k\) (unit 11), the three phases together carry
+\(3V_1V_2\sin\delta/X = U_1U_2\sin\delta/X\). The angle is the same, since both buses' line voltages are their phase voltages turned by the same
+\(30°\).</p>
+<p><strong>5.</strong> \(V^2/X = (4\times10^5)^2/40 = 4\times10^9\) W. \(P = 4000\sin30° = 2000\) MW. \(Q_1 = 4000(1 - \cos30°) = 535.9\) Mvar; \(Q_2 = -535.9\) Mvar:
+bus 2 also <em>supplies</em> 535.9 Mvar. \(Q_1 - Q_2 = 1071.8\) Mvar. Directly: \(|\bar U_1 - \bar U_2| = 2\times400\sin15° = 207.06\) kV, and
+\(207.06^2/40 = 1071.8\) Mvar ✓.</p>
+<p><strong>Check.</strong> Units: \(\mathrm{V^2/\Omega} = \mathrm W\) ✓. Limits: \(\delta = 0\) and \(V_1 = V_2\) give \(I = 0\) and \(P = Q_1 = Q_2 = 0\) ✓; \(\delta = 90°\),
+\(V_1 = V_2 = V\): \(Q_1 = V^2/X\), \(Q_2 = -V^2/X\), and \(|I|^2X = 2V^2/X\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Transfer limits <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: \(P_{\max} = V^2/X\) at three voltages; the resistive cap \(V^2/4R\); a line's reactance from its geometry</p>
+<div class="statement">
+<ol>
+<li>Take unit 07's 10 Ω line as a lossless reactance, with equal voltages at both ends. Find \(P_{\max}\) at 20, 132 and 400 kV, and set
+each beside unit 04's resistive cap \(V^2/4R\) for a 10 Ω resistance at the same voltage. Can 100 MW be sent at 20 kV?</li>
+<li>Unit 07's 400 kV line: \(r_{\text{eq}} = 0.2097\) m, phases at the corners of an equilateral triangle of side 10 m. Compute the
+per-phase inductance per kilometre, the reactance of 400 km at 50 Hz, and \(P_{\max}\).</li>
+<li>At what angle does that line carry 1000 MW? How long may it be and still carry 2000 MW at all?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Six powers, then an inductance, a reactance and a power, then an angle and a length. Every formula is in the deck's section 1.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The reactive limit has no factor 4: it is \(V^2/X\), at \(\delta = 90°\). The per-phase inductance of three conductors with balanced
+currents is \((\mu_0/2\pi)\ln(D/r)\), with \(r_{\text{eq}}\) for \(r\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\ln(10/0.2097) = \ln47.69 = 3.865\), so \(L' = 2\times10^{-7}\times3.865\) H/m.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Both limits scale as \(V^2\); they differ in what limits — phase for the reactance, heat and drop for the
+resistance — and by a factor of four.</p>
+<p><strong>1.</strong></p>
+<table>
+<tr><th>\(V\)</th><th>\(V^2/X\), reactive</th><th>\(V^2/4R\), resistive</th></tr>
+<tr><td>20 kV</td><td>40 MW</td><td>10 MW</td></tr>
+<tr><td>132 kV</td><td>1742.4 MW</td><td>435.6 MW</td></tr>
+<tr><td>400 kV</td><td>16 000 MW</td><td>4000 MW</td></tr>
+</table>
+<p>For instance \((2\times10^4)^2/10 = 4\times10^7\) W. At 20 kV, 100 MW is beyond both limits: no.</p>
+<p><strong>2.</strong> \(L' = (\mu_0/2\pi)\ln(D/r_{\text{eq}}) = 2\times10^{-7}\times3.8647 = 7.729\times10^{-7}\) H/m \(= 0.773\) mH/km. \(X' = 2\pi\times50\times7.729\times10^{-4} = 0.2428\ \Omega\)/km;
+over 400 km, \(X = 97.1\ \Omega\). \(P_{\max} = (4\times10^5)^2/97.13 = 1647\) MW.</p>
+<p><strong>3.</strong> \(\sin\delta = 1000/1647.3 = 0.6071\), \(\delta = 37.4°\). For 2000 MW the line needs \(X \le 1.6\times10^{11}/2\times10^9 = 80\ \Omega\), i.e. a length of at
+most \(80/0.2428 = 329.5\) km.</p>
+<p><strong>Check.</strong> \(V^2\) scaling: \((400/132)^2 = 9.18 = 16\,000/1742.4\) ✓. Units of \(L'\): \(\mu_0\) is H/m, the logarithm is a pure number ✓.
+The three-phase \(L'\) is half the two-wire loop's \(1.55\) mH/km, as the deck proved ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Per unit, and the 4% <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: base impedance; the ideal transformer vanishing in per unit; changing base; the 4% as a fault current</p>
+<div class="statement">
+<ol>
+<li>Prove that with base voltages in the turns ratio, \(V_{b1} = nV_{b2}\), and one base power on both sides, an ideal transformer is a wire in
+per unit.</li>
+<li>The street transformer, in unit 07's single-phase model: compute the base impedances on its two sides for its own 400 kVA. Its 4% is
+a per-unit impedance: what is it in ohms on each side? What is the ratio, and why?</li>
+<li>Re-express the 0.04 pu on a 100 MVA base, voltages unchanged.</li>
+<li>Short the 400 V terminals with the 20 kV side held at 1 pu. Find the current in per unit on both bases and in amperes, and check
+that they agree.</li>
+<li>The 400 km line of P2 in per unit on 100 MVA and 400 kV: its reactance, and \(P_{\max}\) in per unit and in MW.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A proof of three equalities (\(v_1 = v_2\), \(i_1 = i_2\), \(z_1 = z_2\)), then numbers. In the single-phase model the base current is
+\(S_b/V_b\); in a three-phase system with line voltages, \(S_b/\sqrt3V_b\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write the ideal transformer's laws (unit 07) and the base quantities on each side; divide. To change base, convert to ohms with the
+old base and back with the new.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(Z_{b,20\,\mathrm{kV}} = (2\times10^4)^2/(4\times10^5) = 1000\ \Omega\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The bases obey the same scaling laws as the transformer, so dividing by them removes the transformer.</p>
+<p><strong>1.</strong> Unit 07: \(V_1 = nV_2\), \(I_1 = I_2/n\) (with \(I_2\) delivered on side 2), and an impedance \(Z_2\) on side 2 is seen from side 1 as
+\(n^2Z_2\). The bases: \(V_{b1} = nV_{b2}\), \(I_{b1} = S_b/V_{b1} = I_{b2}/n\), \(Z_{b1} = V_{b1}^2/S_b = n^2Z_{b2}\). Hence \(v_1 = nV_2/nV_{b2} = v_2\),
+\(i_1 = (I_2/n)/(I_{b2}/n) = i_2\), and \(n^2Z_2/n^2Z_{b2} = Z_2/Z_{b2}\). In per unit the transformer imposes \(v_1 = v_2\) and \(i_1 = i_2\): a wire. \(\square\)</p>
+<p><strong>2.</strong> \(Z_b = 1000\ \Omega\) at 20 kV and \(400^2/4\times10^5 = 0.4\ \Omega\) at 400 V. \(0.04\times1000 = 40\ \Omega\) and \(0.04\times0.4 = 16\ \mathrm{m\Omega}\).
+The ratio \(1000/0.4 = 2500 = 50^2\): impedances reflect by \(n^2\), and the bases were chosen to do the same. (Unit 07 measured
+\(|8.13 + 39.2i| = 40.0\ \Omega\) ✓.)</p>
+<p><strong>3.</strong> \(Z = 40\ \Omega\) at 20 kV; the new base is \((2\times10^4)^2/10^8 = 4\ \Omega\); so \(z = 10\) pu. Equivalently \(0.04\times(100/0.4) = 10\).</p>
+<p><strong>4.</strong> On 400 kVA: \(i = 1/0.04 = 25\) pu; the base current at 400 V is \(4\times10^5/400 = 1000\) A, so 25 kA. On 100 MVA:
+\(i = 1/10 = 0.1\) pu, with base current \(10^8/400 = 250\) kA, so 25 kA ✓. Same current, two bases.</p>
+<p><strong>5.</strong> \(Z_b = (4\times10^5)^2/10^8 = 1600\ \Omega\); \(x = 97.13/1600 = 0.0607\) pu; \(P_{\max} = 1\cdot1/0.0607 = 16.47\) pu \(= 1647\) MW ✓ (P2).</p>
+<p><strong>Check.</strong> A per-unit impedance is independent of the side it is computed on (part 2), and a fault current is independent of the
+base it is computed in (part 4) — both are what the proof in part 1 promises.</p>
+</div></details>
+</section>
+
+<h2 class="group">Many buses</h2>
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Proof: the bus admittance matrix, and Kron <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: \(Y_{\text{bus}} = A\operatorname{diag}(y)A^{\mathsf T}\) from Kirchhoff's laws; symmetry and zero row sums; shunts; Kron reduction with complex weights</p>
+<div class="statement">
+<ol>
+<li>A grid has incidence matrix \(A\) (unit 03's signs) and branch admittances \(y_e\). With \(I\) the currents injected into the buses from
+outside, prove \(I = Y_{\text{bus}}\bar V\) with \(Y_{\text{bus}} = A\operatorname{diag}(y_e)A^{\mathsf T}\).</li>
+<li>Prove that \(Y_{\text{bus}}\) is symmetric and that its rows sum to zero. For lossless branches show \(Y_{\text{bus}} = -iB\) with \(B\) a real
+weighted Laplacian.</li>
+<li>Add a capacitor bank of admittance \(0.2i\) pu from bus 3 of the three-bus example to the neutral. What changes in \(Y_{\text{bus}}\), and which
+row no longer sums to zero?</li>
+<li>Without the bank, suppose bus 2 injected nothing. Kron-reduce the three-bus network to buses 1 and 3 and find the equivalent
+reactance. Check it by series and parallel.</li>
+<li>Show that Kron-reducing \(Y_{\text{bus}} = -iB\) gives \(-i\) times the Kron reduction of \(B\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two proofs about a matrix product, a matrix entry, a \(2\times2\) Schur complement, and a scaling identity. Unit 04 did the real case of all
+of it.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Branch voltages are \(A^{\mathsf T}\bar V\), branch currents \(\operatorname{diag}(y_e)A^{\mathsf T}\bar V\), and the current law with injections is
+\(A\cdot(\text{branch currents}) = I\). A shunt is a branch to the neutral, which is grounded. For part 4, order the buses \((1, 3 \mid 2)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: \(B_{\text{red}} = \begin{pmatrix}15&amp;-5\\-5&amp;9\end{pmatrix} - \dfrac1{14}\begin{pmatrix}-10\\-4\end{pmatrix}\begin{pmatrix}-10&amp;-4\end{pmatrix}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Unit 04's \(L = AGA^{\mathsf T}\), with complex weights. Nothing in its algebra used that the weights were real, except
+positivity, which only the lossless case keeps.</p>
+<p><strong>1.</strong> The voltage law with phasors: branch voltages \(v = A^{\mathsf T}\bar V\) (unit 03). Each branch is linear: \(i_e = y_ev_e\), so
+\(i = \operatorname{diag}(y_e)A^{\mathsf T}\bar V\). The current law at each bus, with \(I_k\) entering from outside: the branch currents leaving bus \(k\) sum to \(I_k\),
+i.e. \(Ai = I\) (unit 03's sign convention: \(A_{ke} = +1\) when \(e\) leaves \(k\)). So \(I = A\operatorname{diag}(y_e)A^{\mathsf T}\bar V\). \(\square\)</p>
+<p><strong>2.</strong> \((ADA^{\mathsf T})^{\mathsf T} = AD^{\mathsf T}A^{\mathsf T} = ADA^{\mathsf T}\) for diagonal \(D\): symmetric (not Hermitian — no conjugate appears). Each column of \(A\)
+has one \(+1\) and one \(-1\), so \(A^{\mathsf T}\mathbf 1 = 0\) and \(Y_{\text{bus}}\mathbf 1 = 0\): rows sum to zero. For \(y_e = 1/(iX_e) = -i/X_e\),
+\(Y_{\text{bus}} = -iA\operatorname{diag}(1/X_e)A^{\mathsf T} = -iB\), and \(B\) is unit 04's Laplacian with positive weights \(1/X_e\). \(\square\)</p>
+<p><strong>3.</strong> The bank is a branch from bus 3 to the neutral. Including the neutral as a node and then grounding it (deleting its row and
+column) leaves one extra term: \(+0.2i\) on the diagonal entry \((3,3)\). So \(Y_{33} = -9i + 0.2i = -8.8i\), and row 3 sums to \(0.2i\), the bank's
+admittance; rows 1 and 2 still sum to zero.</p>
+<p><strong>4.</strong> \(B_{\text{red}} = \begin{pmatrix}15 - 100/14&amp;-5 - 40/14\\-5 - 40/14&amp;9 - 16/14\end{pmatrix} = \begin{pmatrix}7.857&amp;-7.857\\-7.857&amp;7.857\end{pmatrix}\).
+Rows sum to zero ✓. The equivalent line has weight \(1/X_{\text{eq}} = 7.857\), so \(X_{\text{eq}} = 0.1273\). Series and parallel: the path \(1\to2\to3\) is \(0.1 + 0.25 = 0.35\)
+in series, in parallel with the direct \(0.2\): \(0.2\times0.35/0.55 = 0.1273\) ✓.</p>
+<p><strong>5.</strong> \(Y_{KK} - Y_{KE}Y_{EE}^{-1}Y_{EK} = (-i)B_{KK} - (-i)B_{KE}\,(-i)^{-1}B_{EE}^{-1}\,(-i)B_{EK} = -i\big(B_{KK} - B_{KE}B_{EE}^{-1}B_{EK}\big)\). \(\square\)</p>
+<p><strong>Check.</strong> Part 4's answer is unit 04's theorem in action: the reduced matrix is again a Laplacian, and it agrees with the
+elementary reduction. Dimensions: per-unit admittances throughout ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> The DC power flow <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: \(P = B\delta\) as unit 04's Kirchhoff problem; line flows; the slack; the first Newton step</p>
+<div class="statement">
+<ol>
+<li>Solve the DC power flow for the three-bus example: \(\delta_2\), \(\delta_3\), the three line flows and the slack's injection.</li>
+<li>Generator 2 is raised to \(P_2 = 1.5\), the load unchanged. Repeat. What does the slack do now?</li>
+<li>Prove that for lossless lines the angles of the first Newton step from a flat start are the DC power flow's.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two \(2\times2\) linear systems and a short proof about a Jacobian at one point.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Strike the slack's row and column of \(B\) (diagonal 15, 14, 9; off-diagonal \(-10, -5, -4\)). Line flows are \((\delta_k - \delta_j)/X_{kj}\). For part 3,
+differentiate \(P_k = \sum_jb_{kj}V_kV_j\sin\delta_{kj}\) and evaluate at \(V = 1\), \(\delta = 0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\begin{pmatrix}14&amp;-4\\-4&amp;9\end{pmatrix}\begin{pmatrix}\delta_2\\\delta_3\end{pmatrix} = \begin{pmatrix}1.0\\-1.5\end{pmatrix}\), determinant 110.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Angles are potentials, the weights \(1/X\) conductances, powers currents: unit 04's grounded Laplacian, solved by Cramer.</p>
+<p><strong>1.</strong> \(\delta_2 = (9\times1 - 4\times1.5)/110 = 3/110\) rad \(= 1.5626°\); \(\delta_3 = (14\times(-1.5) + 4\times1)/110 = -17/110\) rad \(= -8.8548°\).
+Flows: \(1\to2\): \(10(0 - 0.02727) = -0.2727\); \(1\to3\): \(5\times0.15455 = 0.7727\); \(2\to3\): \(4\times0.18182 = 0.7273\). The slack injects
+\(-0.2727 + 0.7727 = 0.5\).</p>
+<p><strong>2.</strong> Right-hand side \((1.5, -1.5)\): \(\delta_2 = (13.5 - 6)/110 = 0.06818\) rad \(= 3.906°\); \(\delta_3 = (-21 + 6)/110 = -0.13636\) rad \(= -7.813°\). Flows:
+\(1\to2\): \(-0.6818\); \(1\to3\): \(0.6818\); \(2\to3\): \(4\times0.20455 = 0.8182\). The slack injects \(-0.6818 + 0.6818 = 0\): generator 2 now covers the whole
+load, and the slack merely passes 0.68 through from line 12 to line 13.</p>
+<p><strong>3.</strong> \(\partial P_k/\partial\delta_j = -b_{kj}V_kV_j\cos\delta_{kj} \to -b_{kj} = B_{kj}\) for \(j \ne k\), and \(\partial P_k/\partial\delta_k = \sum_jb_{kj}V_kV_j\cos\delta_{kj} \to B_{kk}\),
+at \(V = 1\), \(\delta = 0\). The derivatives \(\partial P_k/\partial V_j\) carry \(\sin\delta_{kj} = 0\), as do \(\partial Q_k/\partial\delta_j\): the Jacobian is block-diagonal and its
+\(P\)–\(\delta\) block is \(B\) without the slack. At the flat start every computed \(P_k\) is 0, so the mismatch is \(-P_{\text{spec}}\) and the Newton step
+solves \(B\,\Delta\delta = P_{\text{spec}}\): the DC power flow. \(\square\)</p>
+<p><strong>Check.</strong> Part 1: bus 3 receives \(0.7727 + 0.7273 = 1.5\) ✓; bus 2 sends \(0.2727 + 0.7273 = 1.0\) ✓. Part 2: bus 3 receives
+\(0.6818 + 0.8182 = 1.5\) ✓; bus 2 sends \(0.6818 + 0.8182 = 1.5\) ✓. Every angle difference is below 0.21 rad, so \(\sin x \approx x\) is within 1% ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Newton–Raphson by hand <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the power-flow equations of a three-bus grid; the Jacobian; one Newton iteration; the mismatch after it</p>
+<div class="statement">
+<p>For the three-bus example, with unknowns \(x = (\delta_2, \delta_3, V_3)\) and mismatch \(F(x)\) = computed minus specified \((P_2, P_3, Q_3)\):</p>
+<ol>
+<li>Write \(P_2\), \(P_3\) and \(Q_3\) as functions of \(x\).</li>
+<li>Compute \(F\) and the Jacobian at the flat start.</li>
+<li>Take one Newton step. Give \(\delta_2\), \(\delta_3\) in degrees and \(V_3\).</li>
+<li>Compute the mismatch at the new point. By how much has the largest entry fallen?</li>
+<li>(Optional, in any tool you like.) Take a second step, and compare the mismatch with the square of the last.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three trigonometric expressions, a vector and a \(3\times3\) matrix of numbers, a linear solve, three numbers, three more.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Each \(P_k\) and \(Q_k\) is a sum of section 1's two-bus terms, one per line at the bus: \(P_k = \sum_jb_{kj}V_kV_j\sin\delta_{kj}\),
+\(Q_k = \sum_jb_{kj}(V_k^2 - V_kV_j\cos\delta_{kj})\), with \(b = 10, 5, 4\) and \(V_1 = V_2 = 1\), \(\delta_1 = 0\). At the flat start the Jacobian is block-diagonal (P5).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(P_2 = 10\sin\delta_2 + 4V_3\sin(\delta_2 - \delta_3)\), \(P_3 = 5V_3\sin\delta_3 + 4V_3\sin(\delta_3 - \delta_2)\),
+\(Q_3 = 9V_3^2 - V_3\big(5\cos\delta_3 + 4\cos(\delta_3 - \delta_2)\big)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Linearise the mismatch, solve, re-evaluate. At the flat start the linearisation is the DC power flow plus one
+decoupled equation for \(V_3\).</p>
+<p><strong>1.</strong> As in rung 3. (Bus 3's \(Q\): \(5(V_3^2 - V_3\cos\delta_3) + 4(V_3^2 - V_3\cos(\delta_3 - \delta_2))\).)</p>
+<p><strong>2.</strong> At \(x_0 = (0, 0, 1)\): \(P_2 = P_3 = Q_3 = 0\), so \(F_0 = (0 - 1.0,\ 0 - (-1.5),\ 0 - (-0.5)) = (-1.0, 1.5, 0.5)\). The Jacobian:</p>
+\[ J_0 = \begin{pmatrix}14&amp;-4&amp;0\\-4&amp;9&amp;0\\0&amp;0&amp;9\end{pmatrix}, \]
+<p>from \(\partial P_2/\partial\delta_2 = 10 + 4 = 14\), \(\partial P_2/\partial\delta_3 = -4\), \(\partial P_3/\partial\delta_3 = 5 + 4 = 9\), \(\partial Q_3/\partial V_3 = 18V_3 - 9 = 9\), and every
+cross term carrying a \(\sin0 = 0\).</p>
+<p><strong>3.</strong> \(J_0\Delta x = -F_0 = (1, -1.5, -0.5)\): the angle block is P5's system, \(\Delta\delta_2 = 3/110\), \(\Delta\delta_3 = -17/110\); and \(\Delta V_3 = -0.5/9 = -0.0556\).
+New point: \(\delta_2 = 1.5626°\), \(\delta_3 = -8.8548°\), \(V_3 = 0.9444\).</p>
+<p><strong>4.</strong> With \(\delta_2 = 0.027273\), \(\delta_3 = -0.154545\), \(\delta_2 - \delta_3 = 0.181818\), \(V_3 = 0.944444\):</p>
+<ul>
+<li>\(P_2 = 10(0.027270) + 4(0.94444)(0.180818) = 0.27269 + 0.68309 = 0.95578\); \(F_1 = -0.04422\).</li>
+<li>\(P_3 = 5(0.94444)(-0.153931) + 4(0.94444)(-0.180818) = -0.72690 - 0.68309 = -1.40999\); \(F_2 = 0.09001\).</li>
+<li>\(Q_3 = 9(0.891975) - 0.94444\,(5\times0.988081 + 4\times0.983517) = 8.02778 - 8.38145 = -0.35367\); \(F_3 = 0.14633\).</li>
+</ul>
+<p>The largest mismatch fell from 1.5 to 0.146, a factor of ten.</p>
+<p><strong>5.</strong> The Jacobian at the new point (rows \(P_2, P_3, Q_3\); columns \(\delta_2, \delta_3, V_3\)) is</p>
+\[ J_1 = \begin{pmatrix}13.712&amp;-3.716&amp;0.723\\-3.716&amp;8.381&amp;-1.493\\0.683&amp;-1.410&amp;8.126\end{pmatrix}, \]
+<p>and \(J_1\Delta x = -F_1\) gives \(\Delta x = (0.00046, -0.01419, -0.02051)\): \(\delta_2 = 1.5891°\), \(\delta_3 = -9.6677°\), \(V_3 = 0.9239\). The largest mismatch
+is then \(4.2\times10^{-3}\), and after a third step \(4.0\times10^{-6}\). Ratios to the square of the previous: \(0.0042/0.146^2 = 0.20\), \(4.0\times10^{-6}/(4.2\times10^{-3})^2 = 0.23\):
+quadratic convergence. The solution is \(\delta_2 = 1.5894°\), \(\delta_3 = -9.6941°\), \(V_3 = 0.9233\).</p>
+<p><strong>Check.</strong> The first step's angles equal P5's, as P5 part 3 proved ✓. \(V_3\) falls below 1: bus 3 draws reactive power across
+reactances, which costs voltage ✓. Units: per unit throughout ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">The swing equation and equal areas</h2>
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Proof: the swing equation <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Newton for rotation in power form; the inertia constant; the first integral; MR 02's classification of equilibria</p>
+<div class="statement">
+<ol>
+<li>A rotor of moment of inertia \(J\) with \(n_p\) pole pairs obeys \(J\dot\omega_m = T_m - T_e\). With \(H = \tfrac12J\omega_{sm}^2/S\) and the electrical rotor angle
+\(\delta = n_p\theta_m - \omega_st\), derive \((2H/\omega_s)\ddot\delta = P_m - P_e\) in per unit, stating the approximation made.</li>
+<li>With \(P_e = P_{\max}\sin\delta\), prove that \(\mathcal H = (H/\omega_s)\dot\delta^2 - P_m\delta - P_{\max}\cos\delta\) is constant along solutions.</li>
+<li>For \(P_m &lt; P_{\max}\), find the equilibria in \((-\pi, \pi]\) and classify them, saying which tool from MR 02 settles each.</li>
+<li>A two-pole 500 MVA generator has \(H = 5\) s. Find \(J\). Find its natural frequency of small swings at \(\delta_0 = 30°\) with \(P_{\max} = 1\) pu on its rating.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A derivation with one approximation, a one-line proof, two equilibria with their types, and two numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Multiply Newton's law by \(\omega_m\), and replace \(\omega_m\) by \(\omega_{sm}\) where it multiplies. \(\dot\delta = n_p(\omega_m - \omega_{sm})\) and \(\omega_s = n_p\omega_{sm}\). For part 2,
+multiply the swing equation by \(\dot\delta\). For part 3, linearise and compute trace and determinant (MR 02, <i>Planar linear systems: two numbers decide</i>).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(J\omega_m\dot\omega_m = P_m - P_e\), and near synchronous speed \(J\omega_{sm}\dot\omega_m = \dfrac{2HS}{\omega_{sm}}\dot\omega_m\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Newton's law for one rotational degree of freedom, rewritten in the variables a grid cares about: power, and angle against a
+rotating reference.</p>
+<p><strong>1.</strong> \(J\omega_m\dot\omega_m = \omega_mT_m - \omega_mT_e = P_m - P_e\). Approximation: \(\omega_m \approx \omega_{sm}\) in the factor on the left, with relative error equal to the
+relative speed deviation (about a per cent or less here). By the definition of \(H\), \(J\omega_{sm} = 2HS/\omega_{sm}\). With \(\ddot\delta = n_p\dot\omega_m\) and \(\omega_s = n_p\omega_{sm}\):
+\(\frac{2HS}{\omega_{sm}}\frac{\ddot\delta}{n_p} = \frac{2HS}{\omega_s}\ddot\delta = P_m - P_e\). Divide by \(S\). \(\square\)</p>
+<p><strong>2.</strong> \(\dot{\mathcal H} = \frac{2H}{\omega_s}\dot\delta\ddot\delta - P_m\dot\delta + P_{\max}\sin\delta\,\dot\delta = \dot\delta\Big[\frac{2H}{\omega_s}\ddot\delta - P_m + P_{\max}\sin\delta\Big] = 0\). \(\square\)</p>
+<p><strong>3.</strong> Equilibria: \(\dot\delta = 0\), \(\sin\delta = P_m/P_{\max}\): \(\delta_0 = \arcsin(P_m/P_{\max})\) and \(\pi - \delta_0\). The linearisation has matrix
+\(\begin{pmatrix}0&amp;1\\-k\cos\delta^*&amp;0\end{pmatrix}\), \(k = \omega_sP_{\max}/2H\): trace 0, determinant \(k\cos\delta^*\). At \(\pi - \delta_0\) the determinant is negative: a hyperbolic
+saddle, and Hartman–Grobman (MR 02) makes it a saddle of the nonlinear system. At \(\delta_0\) it is positive: a linear centre, which
+linearisation cannot certify (MR 02, <i>When linearisation lies</i>). But \(\mathcal H\) has a strict minimum there (\(\partial_\delta^2\mathcal H = P_{\max}\cos\delta_0 &gt; 0\) and
+the \(\dot\delta^2\) term is positive), so its level sets near \(\delta_0\) are small closed curves and the equilibrium is a nonlinear centre — MR 02's argument
+for the undamped pendulum.</p>
+<p><strong>4.</strong> A two-pole rotor turns at \(\omega_{sm} = \omega_s = 314.16\) rad/s (3000 rpm). \(J = 2HS/\omega_{sm}^2 = 2\times5\times5\times10^8/314.16^2 = 5.07\times10^4\ \mathrm{kg\,m^2}\).
+Small swings: \(\omega_n = \sqrt{\omega_sP_{\max}\cos\delta_0/2H} = \sqrt{314.16\times0.866/10} = 5.216\) rad/s, \(f_n = 0.830\) Hz.</p>
+<p><strong>Check.</strong> Units: \(\tfrac12J\omega^2\) is J, over VA gives s ✓; \(2HS/\omega^2\) is \(\mathrm{s\cdot W\cdot s^2} = \mathrm{kg\,m^2}\) ✓. Limit: \(P_m \to 0\) gives
+\(\delta_0 \to 0\) and the saddle \(\to\pi\), the unforced pendulum ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> The equal-area criterion <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: accelerating and decelerating areas; the critical clearing angle (the checkpoint's second half); a partial fault; a fault that need never be cleared</p>
+<div class="statement">
+<p>A machine runs at \(\delta_0 = 30°\), so \(P_m = \tfrac12P_{\max}\). After the fault is cleared the network is as before.</p>
+<ol>
+<li>A fault cuts the transfer to zero. Find the critical clearing angle \(\delta_c\), and check it by computing both areas.</li>
+<li>A fault only halves the transfer: \(P_e = \tfrac12P_{\max}\sin\delta\) while it lasts. Find \(\delta_c\).</li>
+<li>A fault leaves \(P_e = 0.6P_{\max}\sin\delta\). Show that the machine stays in step even if the fault is never cleared, and find how far it swings.
+Does clearing it at any moment keep it in step?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three angles (or a proof that none is needed). The upper limit of the braking area is always the post-fault saddle, \(\pi - \delta_0 = 150°\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Accelerating area: \(\int_{\delta_0}^{\delta_c}(P_m - P_{e,\text{fault}})\,\mathrm d\delta\). Decelerating: \(\int_{\delta_c}^{\pi - \delta_0}(P_{\max}\sin\delta - P_m)\,\mathrm d\delta\). Set them equal. For part
+3, the faulted curve crosses \(P_m\) at \(\arcsin(5/6)\): the faulted system has its own centre and saddle.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(P_m(\delta_c - \delta_0) = P_{\max}(\cos\delta_c - \cos150°) - P_m(150° - \delta_c)\), angles in radians, which gives
+\(\cos\delta_c = \tfrac12(\pi - 2\delta_0) + \cos150°\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The criterion is the first integral: the energy gained while faulted must be absorbable before the post-fault saddle.
+Work in units of \(P_{\max}\), angles in radians: \(\delta_0 = 0.5236\), \(\pi - \delta_0 = 2.6180\).</p>
+<p><strong>1.</strong> \(\cos\delta_c = 0.5\times2.0944 - 0.8660 = 0.1812\), \(\delta_c = 79.56° = 1.3886\) rad. Areas: \(A_1 = 0.5(1.3886 - 0.5236) = 0.4325\);
+\(A_2 = (0.1812 + 0.8660) - 0.5(2.6180 - 1.3886) = 1.0472 - 0.6147 = 0.4325\) ✓.</p>
+<p><strong>2.</strong> \(A_1 = \int_{\delta_0}^{\delta_c}(0.5 - 0.5\sin\delta)\,\mathrm d\delta = 0.5(\delta_c - \delta_0) - 0.5(\cos\delta_0 - \cos\delta_c)\). Setting \(A_1 = A_2\), the \(\delta_c\) terms in \(P_m\)
+cancel again:</p>
+\[ (1 - 0.5)\cos\delta_c = 0.5(\pi - 2\delta_0) - 0.5\cos\delta_0 + \cos(\pi - \delta_0) = 1.0472 - 0.4330 - 0.8660 = -0.2518, \]
+<p>so \(\cos\delta_c = -0.5037\) and \(\delta_c = 120.24°\), below 150°, so it is a genuine clearing angle. The faulted curve \(\tfrac12\sin\delta\) never exceeds
+\(P_m = \tfrac12\) (it touches at 90°), so the rotor accelerates throughout the fault, but more slowly than in part 1.</p>
+<p><strong>3.</strong> While faulted, \(\mathcal H_f = \tfrac H{\omega_s}\dot\delta^2 - 0.5\delta - 0.6\cos\delta\) is conserved. The faulted system has a centre at \(\arcsin(0.5/0.6) = 56.44°\) and
+a saddle at \(123.56°\). Starting from rest at \(30°\), the energy to reach the faulted centre is the accelerating area
+\(\int_{30°}^{56.44°}(0.5 - 0.6\sin\delta)\,\mathrm d\delta = 0.5\times0.4615 - 0.6(0.8660 - 0.5528) = 0.0428\); the braking area available up to the faulted saddle is
+\(\int_{56.44°}^{123.56°}(0.6\sin\delta - 0.5)\,\mathrm d\delta = 0.6\times1.1055 - 0.5\times1.1715 = 0.0776\). Since \(0.0428 &lt; 0.0776\) the orbit is closed: the machine swings
+about \(56.44°\) for ever, in step. Its far turning point solves \(0.5(\delta - \delta_0) + 0.6(\cos\delta - \cos\delta_0) = 0\): \(\delta = 1.611\) rad \(= 92.3°\).</p>
+<p>Clearing at any moment: along the faulted orbit \(\mathcal H_f = -0.5\times0.5236 - 0.6\times0.8660 = -0.7814\) (units of \(P_{\max}\), with \(H/\omega_s\) absorbed in the
+scaling), and the post-fault \(\mathcal H = \mathcal H_f - 0.4\cos\delta\). For \(\delta\) between \(30°\) and \(92.3°\), \(-0.4\cos\delta \le 0.016\), so \(\mathcal H \le -0.765\), below the post-fault
+saddle's \(-0.5\times2.6180 - \cos150° = -0.443\), with \(\delta &lt; 150°\). So the state is inside the post-fault separatrix whenever the fault is cleared: yes.</p>
+<p><strong>Check.</strong> The more of the transfer the fault leaves, the later the critical angle: 79.56°, then 120.24°, then none ✓. Limit: a fault that leaves
+\(P_e\) unchanged gives \(A_1 = 0\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Critical clearing times <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: integrating the faulted swing equation; \(t_c\) for one machine and for the two-area model; how \(t_c\) scales with inertia</p>
+<div class="statement">
+<ol>
+<li>With the transfer cut to zero, derive \(t_c = \sqrt{4H(\delta_c - \delta_0)/\omega_sP_m}\).</li>
+<li>Evaluate it for one machine with \(H = 5\) s at \(P_m = 0.5\) pu, and for the two-area model (Iberia: \(H = 4\) s on 50 GW, exporting 2000 MW over a
+4000 MW tie). Use P8's \(\delta_c\).</li>
+<li>Explain the ratio of the two times in one sentence, and find the \(H\) the single machine would need to survive a fault of 0.5 s.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A constant acceleration, so a parabola; then two numbers; then a square root.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Faulted, \((2H/\omega_s)\ddot\delta = P_m\). For Iberia, put everything in per unit on its own 50 GW: \(P_m = 0.04\), \(P_{\max} = 0.08\), so \(\delta_0 = 30°\) again.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\delta(t) = \delta_0 + \dfrac{\omega_sP_m}{4H}t^2\), so \(\delta_c - \delta_0 = \dfrac{\omega_sP_m}{4H}t_c^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> During the fault the rotor is a body under constant torque; the clearing time is how long it takes to coast from \(\delta_0\) to \(\delta_c\).</p>
+<p><strong>1.</strong> \(\ddot\delta = \omega_sP_m/2H\), constant, from rest relative to synchronous speed: \(\delta - \delta_0 = \tfrac12\ddot\delta t^2 = \omega_sP_mt^2/4H\). Solve for \(t\) at \(\delta_c\). \(\square\)</p>
+<p><strong>2.</strong> \(\delta_c - \delta_0 = 1.3886 - 0.5236 = 0.8650\) rad. One machine: \(\ddot\delta = 314.16\times0.5/10 = 15.71\) rad/s², \(t_c = \sqrt{2\times0.8650/15.71} = 0.332\) s.
+Iberia: \(\ddot\delta = 314.16\times0.04/8 = 1.571\) rad/s², \(t_c = \sqrt{2\times0.8650/1.571} = 1.05\) s.</p>
+<p><strong>3.</strong> Iberia's export is 4% of its rotating rating against the single machine's 50%, so with \(H\) 4 s against 5 s its acceleration is ten times smaller
+and its time \(\sqrt{10} = 3.16\) times longer: \(1.0495/0.3319 = 3.16\) ✓. Since \(t_c \propto \sqrt H\), surviving 0.5 s needs \(H = 5\times(0.5/0.3319)^2 = 11.3\) s.</p>
+<p><strong>Check.</strong> Units: \(\mathrm s\cdot\mathrm{rad}/(\mathrm{rad\,s^{-1}})\) under the root, s² ✓. Limit: \(H\to\infty\) gives \(t_c\to\infty\) ✓; \(P_m\to0\) too, since an unloaded machine
+does not accelerate ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Frequency, and reactive power</h2>
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Losing 1 GW <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the aggregate swing equation; rate of change of frequency; the dip of a ramp model, in closed form</p>
+<div class="statement">
+<p>Continental Europe, 300 GW online with \(H = 5\) s, loses 1000 MW of generation.</p>
+<ol>
+<li>Find the initial rate of change of frequency.</li>
+<li>With no reserves at all, how long would the frequency take to fall 200 mHz, and 800 mHz?</li>
+<li>Now let the frequency containment reserve ramp linearly to 1000 MW over 30 s, and neglect load damping. Find the lowest frequency and when
+it occurs.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A rate in Hz/s, two times, and a minimum of a quadratic.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\((2HS/f_0)\,\mathrm d\Delta f/\mathrm dt = -\Delta P + R(t)\) with \(R = \Delta P\,t/T\) for \(t \le T\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\mathrm d\Delta f/\mathrm dt = -f_0\Delta P/2HS = -50\times1000/(2\times5\times300\,000)\) Hz/s.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The whole synchronous area is one rotor of stored energy \(HS = 1500\) GJ; a lost gigawatt is drawn from it until the reserves
+take over.</p>
+<p><strong>1.</strong> \(-50\times1000/3\times10^6 = -0.0167\) Hz/s.</p>
+<p><strong>2.</strong> At a constant rate: \(0.2/0.0167 = 12\) s and \(0.8/0.0167 = 48\) s.</p>
+<p><strong>3.</strong> \(\Delta f(t) = -\frac{f_0\Delta P}{2HS}\big(t - t^2/2T\big)\) for \(t \le T\); its derivative \(-\frac{f_0\Delta P}{2HS}(1 - t/T)\) vanishes at \(t = T = 30\) s, where
+\(\Delta f = -\frac{f_0\Delta P\,T}{4HS} = -0.0167\times15 = -0.25\) Hz. After that the reserve matches the loss and, in this model, the frequency stops falling.</p>
+<p><strong>Check.</strong> Units: \(\mathrm{Hz\cdot W/(s\cdot W)} = \mathrm{Hz/s}\) ✓. The dip is a third of the 3000 MW case's 0.75 Hz, as linearity requires ✓. Limit
+\(T\to0\): no dip ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> The reference incident <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the 3000 MW design case against the regulation's 800 mHz; droop and the 200 mHz steady state; how the dip scales with inertia</p>
+<div class="statement">
+<p>Continental Europe as in P10 loses the regulation's reference incident, 3000 MW.</p>
+<ol>
+<li>Find the initial rate of change of frequency and the dip with the reserve ramping to 3000 MW over 30 s (no load damping). Compare with 800 mHz.</li>
+<li>The reserve is delivered by droop, sized so that the full 3000 MW is out at 200 mHz. Find the droop gain and the steady-state frequency. Then
+add load damping of 1% of a 300 GW load per hertz and find it again.</li>
+<li>Below what inertia constant would the ramp model's dip exceed 800 mHz?</li>
+<li>(Optional, numerical.) Integrate the ramp model with the load damping of part 2. Find the minimum and when it occurs.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>P10 three times larger; then a steady state, where the left side of the aggregate swing equation is zero; then solve the dip formula for \(H\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Droop: \(R = K|\Delta f|\). Load damping \(D\) is in MW per Hz: 1% of 300 GW. In steady state \(\Delta P = R + D|\Delta f|\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(K = 3000\ \mathrm{MW}/0.2\ \mathrm{Hz}\); then \(0 = -\Delta P + K|\Delta f|\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two simple models for two questions: how deep, if the reserve arrives along an assumed ramp; and where it settles, once it is out.</p>
+<p><strong>1.</strong> \(-50\times3000/3\times10^6 = -0.050\) Hz/s; dip \(0.050\times30/2 = 0.75\) Hz at 30 s — inside 800 mHz, with 50 mHz to spare.</p>
+<p><strong>2.</strong> \(K = 15\) GW/Hz. Steady state: \(3000 = 15\,000|\Delta f|\), \(|\Delta f| = 0.2\) Hz, exactly the regulation's maximum steady-state deviation. With
+\(D = 0.01\times300\,000 = 3000\) MW/Hz: \(|\Delta f| = 3000/18\,000 = 0.167\) Hz.</p>
+<p><strong>3.</strong> \(f_0\Delta P\,T/4HS = 0.8\) gives \(H = 50\times3000\times30/(4\times300\,000\times0.8) = 4.69\) s.</p>
+<p><strong>4.</strong> \((2HS/f_0)\,\mathrm d\Delta f/\mathrm dt = -3000(1 - \min(t/30, 1)) - 3000\,\Delta f\), with \(2HS/f_0 = 60\,000\) MW·s/Hz. It is linear, so it can be solved by hand. With
+\(\tau = 60\,000/3000 = 20\) s and \(\Delta f\) in Hz, for \(t \le 30\) s it reads \(\tau\,\mathrm d\Delta f/\mathrm dt = -(1 - t/30) - \Delta f\). Try
+\(\Delta f = a + bt + Ce^{-t/\tau}\): matching terms gives \(b = 1/30\) Hz/s and \(a = -1 - \tau/30 = -5/3\) Hz, and \(\Delta f(0) = 0\) gives \(C = 5/3\) Hz. The
+minimum is where \(\mathrm d\Delta f/\mathrm dt = 0\), i.e. \(\tfrac1{30} = \tfrac{5/3}{20}e^{-t/20}\), \(e^{-t/20} = 0.4\), \(t = 20\ln2.5 = 18.3\) s; there the equation
+itself gives \(\Delta f = -(1 - t/30) = -0.389\) Hz. So the minimum is \(-0.39\) Hz at 18.3 s, earlier than 30 s because load damping already
+carries part of the deficit; after 30 s the reserve matches the loss and \(\tau\,\mathrm d\Delta f/\mathrm dt = -\Delta f\) returns the frequency to 50 Hz. Any
+numerical integration should reproduce these two numbers.</p>
+<p><strong>Check.</strong> Units: \(K\) in MW/Hz, \(\Delta P/K\) in Hz ✓. Load damping helps in both questions ✓. These are a simple model's numbers; the
+regulation's figures are what the system is operated to, and nothing here says how they were set.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Reactive power stays local <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: \(\Delta V \approx QX/V\); the price of sending \(Q\) against the price of sending \(P\); the tie's reactive bill</p>
+<div class="statement">
+<ol>
+<li>On the 400 km line of P2 (\(X = 97.1\ \Omega\)) at 400 kV, how large a voltage difference is needed to send 200 Mvar? As a fraction of 400 kV?</li>
+<li>How large an angle is needed to send 200 MW instead, with equal voltages?</li>
+<li>With \(\delta = 0\) and 200 Mvar sent, find the receiving voltage exactly, the reactive power that arrives, and what the line absorbs.</li>
+<li>Explain in two sentences why capacitor banks and generators supply reactive power near where it is used.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A voltage, an angle, three powers, and an argument from the decoupling.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(Q_1 \approx V_1(V_1 - V_2)/X\) and \(P \approx V_1V_2\delta/X\), three-phase with line voltages. At \(\delta = 0\) the \(Q_1\) formula is exact.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\Delta V = QX/V = 2\times10^8\times97.1/4\times10^5\) V.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Across a reactance, \(Q\) is paid for in voltage difference and \(P\) in angle — and only angle is free.</p>
+<p><strong>1.</strong> \(\Delta V = 2\times10^8\times97.13/4\times10^5 = 48.6\) kV, 12.1% of 400 kV.</p>
+<p><strong>2.</strong> \(\delta \approx PX/V^2 = 2\times10^8\times97.13/1.6\times10^{11} = 0.1214\) rad \(= 6.96°\), with no voltage difference.</p>
+<p><strong>3.</strong> \(V_2 = 400 - 48.6 = 351.4\) kV. \(Q_2 = (V_1V_2 - V_2^2)/X = V_2(V_1 - V_2)/X = 351.4\times10^3\times48.6\times10^3/97.13 = 175.7\) Mvar arrives; the line absorbs
+\(200 - 175.7 = 24.3\) Mvar. Check: the line current is \(|I| = Q_1/\sqrt3V_1\), so the three phases absorb \(3|I|^2X = (Q_1/V_1)^2X = 500^2\times97.13 = 24.3\) Mvar ✓.</p>
+<p><strong>4.</strong> Moving reactive power needs a voltage difference proportional to how much and how far, and voltages must stay within narrow
+limits everywhere; so \(Q\) cannot be sent far, while real power, which needs only an angle, can. Reactive power is therefore made close
+to where it is consumed — by capacitor banks (unit 06) and by generators' field control (branch 12).</p>
+<p><strong>Check.</strong> Units: \(\mathrm{var\cdot\Omega/V} = \mathrm V\) ✓. Scaling: halving the distance halves \(X\) and \(\Delta V\) ✓. The tie of the two-area model is the same
+story: at 2000 MW each end must make 535.9 Mvar for it (P1).</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./cap done 13</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

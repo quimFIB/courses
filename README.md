@@ -1,7 +1,7 @@
 # Courses
 
-Three independent self-study courses, sharing one repository and one GitHub Pages
-deployment and nothing else. Each course keeps its own CLI (`co`, `mr`, `qc`), its own
+Four independent self-study courses, sharing one repository and one GitHub Pages
+deployment and nothing else. Each course keeps its own CLI (`co`, `mr`, `qc`, `cap`), its own
 `slides/`, its own `CURRICULUM.html`, its own README and its own toolchain.
 Nothing about how any course is built or studied is shared.
 
@@ -9,6 +9,8 @@ Nothing about how any course is built or studied is shared.
 
 Published at <https://quimfib.github.io/courses/>, one subdirectory per course.
 
+- `circuits-and-power/` — Circuits and Power.
+  See `circuits-and-power/README.md`.
 - `combinatorial-optimization/` — Combinatorial & constrained optimization.
   See `combinatorial-optimization/README.md`.
 - `mechanics-to-relativity/` — Mechanics to Relativity.
@@ -21,16 +23,17 @@ Published at <https://quimfib.github.io/courses/>, one subdirectory per course.
 The optimization course is worked through by writing Python against a test
 suite: the library supplies everything that is not the lesson, and each
 implementation is then benchmarked against the industrial solver that does the
-same job. The mechanics and quantum computing courses are worked through on
-paper: every problem carries a hint ladder and a full worked solution, and there
-is no code to write (the quantum course's small simulator is optional, for
-checking a hand calculation).
+same job. The mechanics, quantum computing and circuits courses are worked
+through on paper: every problem carries a hint ladder and a full worked solution,
+and there is no code to write (the quantum course's small simulator is optional,
+for checking a hand calculation). Circuits and Power assumes Mechanics to
+Relativity through its unit 24 and links to its decks.
 
 The published site is therefore a different fraction of each. For the
 optimization course it is the theory half — the labs, their tests and their
 reference solutions live in this repository and never reach the site. For the
-mechanics and quantum computing courses it is the whole thing: decks, problems,
-hints and solutions (and, for mechanics, the readiness sheet).
+mechanics, quantum computing and circuits courses it is the whole thing: decks,
+problems, hints and solutions (and, for mechanics, the readiness sheet).
 
 ## A course in this repository is a published course
 
