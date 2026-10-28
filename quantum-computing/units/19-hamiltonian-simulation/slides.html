@@ -1,0 +1,1715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19 · Hamiltonian simulation: Feynman's reason, made into an algorithm</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="d">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="tfim"><span class="ref-name">the running example: the transverse-field Ising chain</span>$H = -J\sum_{i=0}^{n-2}Z_iZ_{i+1} - h\sum_{i=0}^{n-1}X_i$ on $n$ spins, with $J = h = 1$. $A$ is the $ZZ$ part, $B$ the $X$ part. <span class="ref-note">At $n = 8$, $t = 5$: 1000 first-order Trotter steps give error 0.0144 against the bound 0.238, with 15,000 rotations and 14,000 CNOTs. Ground energy $-9.838$</span></template>
+  <template data-ref="feyn"><span class="ref-name">section 1: Feynman's count</span>$n$ spins need $2^n$ complex amplitudes. At 16 bytes each, $n = 30$ fills 16 GiB and $n = 50$ needs $16\times2^{50} = 1.8\times10^{16}$ bytes, 18 PB. <span class="ref-note">Each extra spin doubles the memory; a quantum simulator needs one more qubit</span></template>
+  <template data-ref="comm"><span class="ref-name">section 2: the chain's commutator</span>$[A, B] = 2i\sum_i(Y_iZ_{i+1} + Z_iY_{i+1})$ at $J = h = 1$: $2(n - 1)$ terms of norm 2, so $\lVert[A, B]\rVert\le4(n - 1)$. <span class="ref-note">At $n = 8$: counting gives 28, the exact norm is 19.0, and the crude $2\lVert A\rVert\lVert B\rVert$ gives 112</span></template>
+  <template data-ref="table"><span class="ref-name">section 3: the errors, measured</span>$n = 8$, $t = 5$. 10 steps: error 1.99, bound 23.8. 100 steps: 0.147, bound 2.38. 1000 steps: 0.0144, bound 0.238. <span class="ref-note">Strang at 1000 steps: 0.00025. The bound uses the exact $\lVert[A, B]\rVert = 19.0$, and is 16.5 times the truth at 1000 steps</span></template>
+  <template data-ref="bill"><span class="ref-name">section 4: the bill</span>Per step: 7 $ZZ$ blocks (two CNOTs and one $R_z$ each) and 8 $R_x$ — 15 rotations, 14 CNOTs. 1000 steps: 15,000 rotations, 14,000 CNOTs. <span class="ref-note">At $10^{-6}$ per rotation, $3\log_2 10^6 = 59.8$ T gates each: about $9.0\times10^5$ in all, with total error at most $0.0144 + 0.015 = 0.029$</span></template>
+  <template data-ref="energy"><span class="ref-name">section 5: the ground energy</span>$E_0 = -9.838$. With $\lVert H\rVert\le15$ take $\tau = \pi/16$, so $\varphi = -E/32$ and $\varphi_0 = 0.3074$. <span class="ref-note">11 counting qubits read $y = 630$ with probability 0.622 given $E_0$: $\tilde E = -9.844$. The input $\ket{+}^{\otimes8}$ has weight 0.565 on the ground state, $\ket0^{\otimes8}$ only 0.116</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part D · algorithms · spine</p>
+  <div class="unit-no">19</div>
+  <h1>Hamiltonian simulation: Feynman's reason, made into an algorithm</h1>
+  <p class="lede">A classical computer simulating $n$ spins tracks $2^n$ numbers; a quantum one splits the evolution into short steps of each local piece, pays an error it can bound by a commutator, and reads energies off with phase estimation.</p>
+  <p class="meta"><span>needs 15, 11</span><span>~2½ h slides + 4½ h problems</span><span>problems: <code>./qc problems 19</code></span></p>
+  <aside class="notes">
+    <p>This unit returns to the reason the field exists. Feynman's argument of 1981 — published as "Simulating physics with
+    computers", <i>Int. J. Theor. Phys.</i> 21, 467 (1982) — was not about factoring or search. It was that nature is quantum,
+    that writing down a quantum state of $n$ spins takes $2^n$ numbers, and that a computer built out of spins might therefore
+    simulate spins without that cost. Lloyd made it an algorithm fourteen years later ("Universal quantum simulators",
+    <i>Science</i> 273, 1073, 1996): for a Hamiltonian made of local pieces, evolve under each piece for a short time in turn, and
+    pay an error that shrinks as the steps do. This unit proves that error bound, derives the better symmetric splitting, counts
+    the gates, and reads energies off with unit 15's phase estimation.</p>
+    <h4>How to read this deck</h4>
+    <p>One system runs through it: a chain of spins in a transverse field — the transverse-field Ising chain — and one question
+    about it: how many gates does it take to simulate it for time $t$ to accuracy $\varepsilon$? Section 1 says what the system is
+    and why it is hard classically; section 2 proves the first-order bound; section 3 measures it and goes to second order;
+    section 4 turns steps into gates; section 5 turns the simulation into an energy measurement. Proofs are on the slides when they
+    are one line and in these notes under <b>Full proof</b> when they are not; anything imported is labelled <i>cited</i>, with where
+    its proof is. Every number was computed.</p>
+    <p><b>What is used from earlier units.</b> Unit 00: Hermitian and unitary operators, the spectral theorem, the functional
+    calculus, the matrix exponential and the fact that $e^{A}e^{B} = e^{A+B}$ when $A$ and $B$ commute, and the commutator. Unit 01:
+    the Hamiltonian as the generator of $e^{-iHt}$, energies as its eigenvalues, the entrywise calculus of matrix-valued functions,
+    and $\tfrac{d}{dt}e^{-iHt} = -iHe^{-iHt}$. Unit 02: the Pauli matrices and their products, rotations $R_P(\theta) = e^{-i\theta P/2}$, a
+    spin in a magnetic field as $H\propto-\mathbf B\cdot\boldsymbol\sigma$. Unit 03: tensor products of operators. Unit 10: circuits, CNOT,
+    controlled gates. Unit 11: the operator norm and its properties, the hybrid argument (errors add), Clifford gates, and the
+    Ross–Selinger cost of about $3\log_2(1/\varepsilon)$ T gates per $z$-rotation. Unit 15: phase estimation, its $4/\pi^2$ bound, and
+    what it does to a superposition of eigenvectors. From the background: Cauchy–Schwarz, the triangle inequality, and one-variable
+    calculus.</p>
+    <p><b>What is not here.</b> This is not a survey of simulation algorithms. The modern optimal methods — qubitisation and quantum
+    signal processing — and the sharp commutator-scaling analysis of higher-order formulas are named and cited with their scaling,
+    not derived. Quantum chemistry is named as the application; no molecular Hamiltonian is written down.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · overview</p>
+  <h2>A chain of spins, and how many gates it costs</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="tfim">the transverse-field Ising chain</span></span>
+        $$H = -J\sum_{i=0}^{n-2}Z_iZ_{i+1}\;-\;h\sum_{i=0}^{n-1}X_i ,$$
+        <p class="small">with $J = h = 1$; $Z_i$ is $Z$ on qubit $i$ and $I$ elsewhere. <b>The question:</b> how many gates simulate $e^{-iHt}$ to accuracy $\varepsilon$?</p>
+        <p class="small"><b>1.</b> Classically: <span class="ref" data-ref="feyn">$2^n$ amplitudes</span>. <b>2.</b> Split $H = A + B$ and step; the error is set by <span class="ref" data-ref="comm">$[A, B]$</span>. <b>3.</b> At $n = 8$, $t = 5$: <span class="ref" data-ref="table">the errors, measured</span>. <b>4.</b> <span class="ref" data-ref="bill">The bill</span> in CNOTs, rotations and T gates. <b>5.</b> <span class="ref" data-ref="energy">The ground energy</span>, by phase estimation.</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> Feynman's reason · <b>2</b> Lie–Trotter, proved · <b>3</b> the numbers, and second order · <b>4</b> gates · <b>5</b> energies.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 560 210" width="560" role="img" aria-label="eight spins in a row, numbered 0 to 7, each drawn as an arrow; neighbouring spins are joined by bonds labelled minus J Z i Z i plus 1, which favour pointing the same way; a field along x, drawn as horizontal arrows above the chain, enters as minus h X i on every spin">
+<line x1="64" y1="120" x2="101" y2="120" class="alt" stroke-width="3"/>
+<line x1="129" y1="120" x2="166" y2="120" class="alt" stroke-width="3"/>
+<line x1="194" y1="120" x2="231" y2="120" class="alt" stroke-width="3"/>
+<line x1="259" y1="120" x2="296" y2="120" class="alt" stroke-width="3"/>
+<line x1="324" y1="120" x2="361" y2="120" class="alt" stroke-width="3"/>
+<line x1="389" y1="120" x2="426" y2="120" class="alt" stroke-width="3"/>
+<line x1="454" y1="120" x2="491" y2="120" class="alt" stroke-width="3"/>
+<circle cx="50" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="50" y1="146" x2="50" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="50,94 44,106 56,106" class="fill-unit"/>
+<text x="50.0" y="172.0" font-size="12" text-anchor="middle" class="soft">0</text>
+<circle cx="115" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="115" y1="146" x2="115" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="115,94 109,106 121,106" class="fill-unit"/>
+<text x="115.0" y="172.0" font-size="12" text-anchor="middle" class="soft">1</text>
+<circle cx="180" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="180" y1="146" x2="180" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="180,94 174,106 186,106" class="fill-unit"/>
+<text x="180.0" y="172.0" font-size="12" text-anchor="middle" class="soft">2</text>
+<circle cx="245" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="245" y1="94" x2="245" y2="138" class="unit" stroke-width="2.6"/>
+<polygon points="245,146 239,134 251,134" class="fill-unit"/>
+<text x="245.0" y="172.0" font-size="12" text-anchor="middle" class="soft">3</text>
+<circle cx="310" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="310" y1="146" x2="310" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="310,94 304,106 316,106" class="fill-unit"/>
+<text x="310.0" y="172.0" font-size="12" text-anchor="middle" class="soft">4</text>
+<circle cx="375" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="375" y1="146" x2="375" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="375,94 369,106 381,106" class="fill-unit"/>
+<text x="375.0" y="172.0" font-size="12" text-anchor="middle" class="soft">5</text>
+<circle cx="440" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="440" y1="94" x2="440" y2="138" class="unit" stroke-width="2.6"/>
+<polygon points="440,146 434,134 446,134" class="fill-unit"/>
+<text x="440.0" y="172.0" font-size="12" text-anchor="middle" class="soft">6</text>
+<circle cx="505" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="505" y1="94" x2="505" y2="138" class="unit" stroke-width="2.6"/>
+<polygon points="505,146 499,134 511,134" class="fill-unit"/>
+<text x="505.0" y="172.0" font-size="12" text-anchor="middle" class="soft">7</text>
+<text x="82.0" y="140.0" font-size="12" text-anchor="middle" class="alt halo">−J Z₀Z₁</text>
+<line x1="32" y1="40" x2="62" y2="40" class="accent" stroke-width="2"/><polygon points="68,40 58,35 58,45" class="fill-accent"/>
+<line x1="162" y1="40" x2="192" y2="40" class="accent" stroke-width="2"/><polygon points="198,40 188,35 188,45" class="fill-accent"/>
+<line x1="292" y1="40" x2="322" y2="40" class="accent" stroke-width="2"/><polygon points="328,40 318,35 318,45" class="fill-accent"/>
+<line x1="422" y1="40" x2="452" y2="40" class="accent" stroke-width="2"/><polygon points="458,40 448,35 448,45" class="fill-accent"/>
+<text x="290.0" y="24.0" font-size="12.5" text-anchor="middle" class="accent">a field along x: −h Xᵢ on every spin</text>
+<text x="290.0" y="196.0" font-size="12.5" text-anchor="middle" class="soft">arrow up = |0⟩ (Z = +1), down = |1⟩ (Z = −1): the basis state |00010011⟩</text>
+</svg>
+        <p class="cap">Eight spins, each a qubit. Neighbours are coupled through $Z_iZ_{i+1}$; a field along $x$ acts on each through $X_i$.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="transverse-field Ising chain">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="tfim">the chain</span> is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where each step is done.</b> Step 1 is <i>Feynman's count</i>. Step 2 is section 2, closing with <i>Worked: the chain's
+    commutator, by counting</i>. Step 3 is <i>The chain at n = 8, measured</i>. Step 4 is <i>The bill for n = 8, t = 5</i>. Step 5 is
+    <i>Reading the chain's ground energy</i> and <i>The catch: the input must overlap the ground state</i>. The close is <i>The chain,
+    closed</i>.</p>
+    <p><b>Why this chain.</b> It is the simplest Hamiltonian with two non-commuting parts, each of which is easy on its own: the $ZZ$
+    part is diagonal in the computational basis, the $X$ part is diagonal in the $\ket\pm$ basis, and neither basis diagonalises
+    both. That is exactly the situation a product formula is built for. It is also a real model of real magnets, and the
+    standard benchmark for quantum simulators, so its numbers mean something beyond this deck.</p>
+    <p><b>Notation.</b> $n$ is always the number of spins, $t$ the simulated time, $r$ the number of Trotter steps and $\delta = t/r$
+    the length of one. Many texts write $n$ for the steps; this deck does not, because the chain needs $n$.</p>
+    <p>The course's optional simulator, the referee, reproduces several of these numbers on the problem sheet; nothing in this
+    deck needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Feynman's reason</h2>
+  <p>What the chain is, from nothing; why a classical computer chokes on it; and what a quantum simulator would have to deliver.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Feynman's reason</p>
+  <h2>Spins in a row</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The physics, from nothing.</b> Unit 02's proton is a <b>spin</b>: a qubit whose $Z$ is its magnetic moment along $z$, $\pm1$ for "up" $\ket0$ and "down" $\ket1$. A crystal can hold such spins on a line of atoms. Neighbours interact — in a magnet they prefer to point the same way — and an applied field along $x$ acts on each, as unit 02's field did on the proton.</p>
+      <div class="box def"><span class="label">the <span class="term">transverse-field Ising chain</span></span>
+        $$H = -J\sum_{i=0}^{n-2}Z_iZ_{i+1}\;-\;h\sum_{i=0}^{n-1}X_i ,$$
+        <p class="small">with $J, h \gt 0$. "Ising" for the $ZZ$ coupling (Ising 1925); "transverse" because the field is perpendicular to the $z$ axis the coupling uses.</p>
+      </div>
+      <p class="small"><b>Hermitian, checked:</b> each term is a tensor product of Hermitian matrices, and $H$ is a real combination of them ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 560 210" width="560" role="img" aria-label="eight spins in a row, numbered 0 to 7, each drawn as an arrow; neighbouring spins are joined by bonds labelled minus J Z i Z i plus 1, which favour pointing the same way; a field along x, drawn as horizontal arrows above the chain, enters as minus h X i on every spin">
+<line x1="64" y1="120" x2="101" y2="120" class="alt" stroke-width="3"/>
+<line x1="129" y1="120" x2="166" y2="120" class="alt" stroke-width="3"/>
+<line x1="194" y1="120" x2="231" y2="120" class="alt" stroke-width="3"/>
+<line x1="259" y1="120" x2="296" y2="120" class="alt" stroke-width="3"/>
+<line x1="324" y1="120" x2="361" y2="120" class="alt" stroke-width="3"/>
+<line x1="389" y1="120" x2="426" y2="120" class="alt" stroke-width="3"/>
+<line x1="454" y1="120" x2="491" y2="120" class="alt" stroke-width="3"/>
+<circle cx="50" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="50" y1="146" x2="50" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="50,94 44,106 56,106" class="fill-unit"/>
+<text x="50.0" y="172.0" font-size="12" text-anchor="middle" class="soft">0</text>
+<circle cx="115" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="115" y1="146" x2="115" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="115,94 109,106 121,106" class="fill-unit"/>
+<text x="115.0" y="172.0" font-size="12" text-anchor="middle" class="soft">1</text>
+<circle cx="180" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="180" y1="146" x2="180" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="180,94 174,106 186,106" class="fill-unit"/>
+<text x="180.0" y="172.0" font-size="12" text-anchor="middle" class="soft">2</text>
+<circle cx="245" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="245" y1="94" x2="245" y2="138" class="unit" stroke-width="2.6"/>
+<polygon points="245,146 239,134 251,134" class="fill-unit"/>
+<text x="245.0" y="172.0" font-size="12" text-anchor="middle" class="soft">3</text>
+<circle cx="310" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="310" y1="146" x2="310" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="310,94 304,106 316,106" class="fill-unit"/>
+<text x="310.0" y="172.0" font-size="12" text-anchor="middle" class="soft">4</text>
+<circle cx="375" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="375" y1="146" x2="375" y2="102" class="unit" stroke-width="2.6"/>
+<polygon points="375,94 369,106 381,106" class="fill-unit"/>
+<text x="375.0" y="172.0" font-size="12" text-anchor="middle" class="soft">5</text>
+<circle cx="440" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="440" y1="94" x2="440" y2="138" class="unit" stroke-width="2.6"/>
+<polygon points="440,146 434,134 446,134" class="fill-unit"/>
+<text x="440.0" y="172.0" font-size="12" text-anchor="middle" class="soft">6</text>
+<circle cx="505" cy="120" r="14" class="fill-ground ink" stroke-width="1.4"/>
+<line x1="505" y1="94" x2="505" y2="138" class="unit" stroke-width="2.6"/>
+<polygon points="505,146 499,134 511,134" class="fill-unit"/>
+<text x="505.0" y="172.0" font-size="12" text-anchor="middle" class="soft">7</text>
+<text x="82.0" y="140.0" font-size="12" text-anchor="middle" class="alt halo">−J Z₀Z₁</text>
+<line x1="32" y1="40" x2="62" y2="40" class="accent" stroke-width="2"/><polygon points="68,40 58,35 58,45" class="fill-accent"/>
+<line x1="162" y1="40" x2="192" y2="40" class="accent" stroke-width="2"/><polygon points="198,40 188,35 188,45" class="fill-accent"/>
+<line x1="292" y1="40" x2="322" y2="40" class="accent" stroke-width="2"/><polygon points="328,40 318,35 318,45" class="fill-accent"/>
+<line x1="422" y1="40" x2="452" y2="40" class="accent" stroke-width="2"/><polygon points="458,40 448,35 448,45" class="fill-accent"/>
+<text x="290.0" y="24.0" font-size="12.5" text-anchor="middle" class="accent">a field along x: −h Xᵢ on every spin</text>
+<text x="290.0" y="196.0" font-size="12.5" text-anchor="middle" class="soft">arrow up = |0⟩ (Z = +1), down = |1⟩ (Z = −1): the basis state |00010011⟩</text>
+</svg>
+        <p class="cap">One basis state of eight spins. The coupling counts agreeing neighbours; the field does not see $z$ at all — it acts along $x$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the terms come from.</b> Unit 02 wrote the Hamiltonian of a spin in a field $\mathbf B$ as $-\tfrac{\gamma\hbar}{2}\mathbf B\cdot\boldsymbol\sigma$.
+    A field of strength $B$ along $x$ is therefore $-\tfrac{\gamma\hbar B}{2}X$; with $\hbar = 1$ and the constant collected into $h$, that is the
+    term $-hX_i$ on spin $i$. The coupling $-JZ_iZ_{i+1}$ is the simplest interaction between two neighbouring moments that depends only
+    on whether they agree along $z$. Real magnetic interactions are more symmetric (the Heisenberg coupling $\mathbf\sigma_i\cdot\mathbf\sigma_{i+1}$), but in
+    many crystals the atoms' surroundings pick out one axis strongly, and the $ZZ$ part dominates. Then $H$ is a good model, not
+    just a toy.</p>
+    <p><b>A real material.</b> Cobalt niobate, CoNb$_2$O$_6$, contains chains of cobalt ions that behave as this model; neutron
+    scattering in a transverse field traced its spectrum through the critical point (Coldea et al., <i>Science</i> 327, 177, 2010,
+    cited).</p>
+    <p><b>Qubit order.</b> As everywhere in the course, qubit 0 is the leftmost symbol of a ket: the state in the figure, spins
+    0–7 reading up, up, up, down, up, up, down, down, is $\ket{00010011}$.</p>
+    <p><b>History.</b> Lenz proposed the classical model ($h = 0$) to his student Ising, whose thesis (1924, published 1925) solved it on a line and
+    found no ordering at any positive temperature. The transverse field makes it quantum: de Gennes (1963) used it for
+    hydrogen-bonded ferroelectrics, and Pfeuty solved the chain exactly (<i>Ann. Phys.</i> 57, 79, 1970).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Feynman's reason</p>
+  <h2>What the two terms want</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The coupling alone</b> ($h = 0$) is diagonal: on $\ket x$, $Z_iZ_{i+1} = (-1)^{x_i\oplus x_{i+1}}$, so</p>
+      $$-J\sum_iZ_iZ_{i+1}\ket x = -J\big[(n - 1) - 2w(x)\big]\ket x ,$$
+      <p class="small">$w(x)$ the number of disagreeing neighbours. Lowest at $w = 0$: $\ket{0\cdots0}$ and $\ket{1\cdots1}$, energy $-J(n - 1)$.</p>
+      <p class="small"><b>The field alone</b> ($J = 0$) wants each spin in $\ket+$, the top eigenvector of $X$: lowest state $\ket{+}^{\otimes n}$, energy $-hn$ — and $\ket+$ is an equal superposition of up and down.</p>
+      <p class="small"><b>Together they compete.</b> No basis diagonalises both parts, because they do not commute (section 2 computes the commutator). For $h\ll J$ the lowest state is close to aligned; for $h\gg J$ close to $\ket{+}^{\otimes n}$. At $J = h$, in the infinite chain, the character of the lowest state changes abruptly: a <span class="term">quantum phase transition</span> (Pfeuty 1970, cited).</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 230" width="470" role="img" aria-label="left: energy levels of one bond minus J Z Z: the aligned pairs 00 and 11 at minus J, the anti-aligned pairs 01 and 10 at plus J. Right: one spin in a field along x, minus h X: its lowest state is plus, an equal superposition of up and down, at energy minus h">
+<line x1="30" y1="20" x2="30" y2="200" class="rule" stroke-width="1.2"/>
+<text x="24.0" y="26.0" font-size="13" text-anchor="end" class="soft">E</text>
+<text x="24.0" y="64.0" font-size="12" text-anchor="end" class="soft">+J</text>
+<text x="24.0" y="164.0" font-size="12" text-anchor="end" class="soft">−J</text>
+<line x1="50" y1="60" x2="200" y2="60" class="ink" stroke-width="2.4"/>
+<text x="125.0" y="50.0" font-size="12.5" text-anchor="middle">|01⟩, |10⟩  disagree</text>
+<line x1="50" y1="160" x2="200" y2="160" class="unit" stroke-width="3"/>
+<text x="125.0" y="150.0" font-size="12.5" text-anchor="middle" class="unit">|00⟩, |11⟩  agree</text>
+<text x="125.0" y="200.0" font-size="13" text-anchor="middle" class="soft">one bond: −J Z₀Z₁</text>
+<line x1="260" y1="20" x2="260" y2="200" class="rule" stroke-width="1.2"/>
+<text x="254.0" y="64.0" font-size="12" text-anchor="end" class="soft">+h</text>
+<text x="254.0" y="164.0" font-size="12" text-anchor="end" class="soft">−h</text>
+<line x1="280" y1="60" x2="440" y2="60" class="ink" stroke-width="2.4"/>
+<text x="360.0" y="50.0" font-size="12.5" text-anchor="middle">|−⟩ = (|0⟩ − |1⟩)/√2</text>
+<line x1="280" y1="160" x2="440" y2="160" class="accent" stroke-width="3"/>
+<text x="360.0" y="150.0" font-size="12.5" text-anchor="middle" class="accent">|+⟩ = (|0⟩ + |1⟩)/√2</text>
+<text x="360.0" y="200.0" font-size="13" text-anchor="middle" class="soft">one spin in the field: −h X</text>
+</svg>
+        <p class="cap">Left: one bond prefers agreement. Right: one spin in the field prefers $\ket+$, which has no definite value along $z$.</p>
+      </div>
+      <div class="box good"><span class="label">check, at $n = 8$, $J = h = 1$</span>
+        <p class="small">Aligned: $\braket{0^8|H|0^8} = -7$. All $\ket+$: $\braket{+^8|H|+^8} = -8$, since $\braket{+|Z|+} = 0$. The true lowest energy, computed, is $-9.838$: below both, as the variational principle of section 5 requires.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The diagonal formula.</b> $Z\ket b = (-1)^b\ket b$, so $Z_iZ_{i+1}\ket x = (-1)^{x_i}(-1)^{x_{i+1}}\ket x = (-1)^{x_i\oplus x_{i+1}}\ket x$. Of the $n - 1$
+    bonds, $n - 1 - w$ contribute $+1$ and $w$ contribute $-1$, total $n - 1 - 2w$. With the minus sign and $J \gt 0$ the energy is lowest
+    when $w = 0$. Two states achieve it: the coupling cannot tell "all up" from "all down".</p>
+    <p><b>The expectations in the check.</b> $\braket{0^8|X_i|0^8} = 0$ and each $Z_iZ_{i+1}$ gives $+1$, so $-7$. For $\ket{+}^{\otimes8}$: $\braket{+|Z|+} = 0$, so
+    $\braket{+^8|Z_iZ_{i+1}|+^8} = \braket{+|Z|+}^2 = 0$ (unit 03's rule for product states), and each $X_i$ gives $+1$: total $-8$.</p>
+    <p><b>The phase transition, stated.</b> In the limit $n\to\infty$ the model is exactly solvable (by mapping spins to free fermions —
+    not done here), and the ground state is "ordered" for $h \lt J$ — it has long-range correlations $\braket{Z_0Z_j}\not\to0$ — and
+    "disordered" for $h \gt J$; at $h = J$ the gap above the ground state closes. The ground energy per spin at $h = J$ is $-4J/\pi = -1.273J$
+    (cited, Pfeuty 1970). The open chains computed for this deck give $-1.230$ per spin at $n = 8$, $-1.238$ at $n = 10$ and $-1.244$ at
+    $n = 12$, creeping towards it as the ends matter less. Nothing in this unit uses the transition; it is why physicists care about
+    $J = h$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Feynman's reason</p>
+  <h2>Feynman's count</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A state of $n$ spins lives in $(\mathbb C^2)^{\otimes n}\cong\mathbb C^{2^n}$ (unit 03): <b>$2^n$ complex amplitudes</b>, and for an entangled state no shorter description is known in general.</p>
+      <div class="box ex"><span class="label"><span class="ref" data-ref="feyn">the count</span>, at $n = 50$</span>
+        <p class="small">$2^{50} = 1.13\times10^{15}$ amplitudes. A complex number in double precision is two 8-byte reals, 16 bytes:</p>
+        $$16\times2^{50} = 2^{54} = 1.80\times10^{16}\ \text{bytes},$$
+        <p class="small">18 petabytes.</p>
+        <p class="small">One step of evolution multiplies that vector by a $2^{50}\times2^{50}$ matrix.</p>
+      </div>
+      <p class="small"><b>Feynman's proposal (1981):</b> simulate spins with spins. A quantum computer holds the 50-spin state in <b>50 qubits</b>, and one more spin costs one more qubit, not twice the memory.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 280" width="460" role="img" aria-label="memory to store n qubits as complex doubles, 16 times 2 to the n bytes, on a logarithmic scale against n from 0 to 60: a straight line; it passes 16 GiB, a laptop, at n = 30; 0.56 PB, the largest simulation of 2017, at n = 45; and 18 PB at n = 50">
+<line x1="60" y1="230" x2="440" y2="230" class="rule" stroke-width="1.2"/><line x1="60" y1="20" x2="60" y2="230" class="rule" stroke-width="1.2"/>
+<line x1="60.0" y1="230" x2="60.0" y2="235" class="rule"/><text x="60.0" y="249" font-size="12" text-anchor="middle" class="soft">0</text>
+<line x1="123.3" y1="230" x2="123.3" y2="235" class="rule"/><text x="123.3" y="249" font-size="12" text-anchor="middle" class="soft">10</text>
+<line x1="186.7" y1="230" x2="186.7" y2="235" class="rule"/><text x="186.7" y="249" font-size="12" text-anchor="middle" class="soft">20</text>
+<line x1="250.0" y1="230" x2="250.0" y2="235" class="rule"/><text x="250.0" y="249" font-size="12" text-anchor="middle" class="soft">30</text>
+<line x1="313.3" y1="230" x2="313.3" y2="235" class="rule"/><text x="313.3" y="249" font-size="12" text-anchor="middle" class="soft">40</text>
+<line x1="376.7" y1="230" x2="376.7" y2="235" class="rule"/><text x="376.7" y="249" font-size="12" text-anchor="middle" class="soft">50</text>
+<line x1="440.0" y1="230" x2="440.0" y2="235" class="rule"/><text x="440.0" y="249" font-size="12" text-anchor="middle" class="soft">60</text>
+<line x1="55" y1="230.0" x2="60" y2="230.0" class="rule"/><text x="51" y="234.0" font-size="12" text-anchor="end" class="soft">kB</text>
+<line x1="60" y1="230.0" x2="440" y2="230.0" class="rule" stroke-width="0.5" stroke-dasharray="2 4"/>
+<line x1="55" y1="195.0" x2="60" y2="195.0" class="rule"/><text x="51" y="199.0" font-size="12" text-anchor="end" class="soft">MB</text>
+<line x1="60" y1="195.0" x2="440" y2="195.0" class="rule" stroke-width="0.5" stroke-dasharray="2 4"/>
+<line x1="55" y1="160.0" x2="60" y2="160.0" class="rule"/><text x="51" y="164.0" font-size="12" text-anchor="end" class="soft">GB</text>
+<line x1="60" y1="160.0" x2="440" y2="160.0" class="rule" stroke-width="0.5" stroke-dasharray="2 4"/>
+<line x1="55" y1="125.0" x2="60" y2="125.0" class="rule"/><text x="51" y="129.0" font-size="12" text-anchor="end" class="soft">TB</text>
+<line x1="60" y1="125.0" x2="440" y2="125.0" class="rule" stroke-width="0.5" stroke-dasharray="2 4"/>
+<line x1="55" y1="90.0" x2="60" y2="90.0" class="rule"/><text x="51" y="94.0" font-size="12" text-anchor="end" class="soft">PB</text>
+<line x1="60" y1="90.0" x2="440" y2="90.0" class="rule" stroke-width="0.5" stroke-dasharray="2 4"/>
+<line x1="55" y1="55.0" x2="60" y2="55.0" class="rule"/><text x="51" y="59.0" font-size="12" text-anchor="end" class="soft">EB</text>
+<line x1="60" y1="55.0" x2="440" y2="55.0" class="rule" stroke-width="0.5" stroke-dasharray="2 4"/>
+<line x1="55" y1="20.0" x2="60" y2="20.0" class="rule"/><text x="51" y="24.0" font-size="12" text-anchor="end" class="soft">ZB</text>
+<line x1="60" y1="20.0" x2="440" y2="20.0" class="rule" stroke-width="0.5" stroke-dasharray="2 4"/>
+<text x="250.0" y="268" font-size="12.5" text-anchor="middle" class="soft">spins n</text>
+<path d="M98.0,229.9 L440.0,40.2" fill="none" class="unit" stroke-width="2.4"/>
+<circle cx="250.0" cy="145.6" r="5" class="fill-accent"/><text x="260.0" y="161.6" font-size="12" text-anchor="start" class="halo">16 GiB: a laptop, n = 30</text>
+<circle cx="345.0" cy="92.9" r="5" class="fill-accent"/><text x="335.0" y="84.9" font-size="12" text-anchor="end" class="halo">0.56 PB: 45 qubits, 2017</text>
+<circle cx="376.7" cy="75.4" r="5" class="fill-accent"/><text x="366.7" y="67.4" font-size="12" text-anchor="end" class="halo">18 PB: n = 50</text>
+<text x="136.0" y="194.8" font-size="12.5" class="unit halo">16 · 2ⁿ bytes</text>
+</svg>
+        <p class="cap">Memory for a full state vector. Each spin doubles it: a laptop holds 30 spins; the record simulation of 2017 held 45.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $2^{50} = 1{,}125{,}899{,}906{,}842{,}624$. Times 16 bytes: $18{,}014{,}398{,}509{,}481{,}984 = 1.80\times10^{16}$ bytes, 18.0 petabytes
+    in decimal units (16 PiB in binary ones). At $n = 30$: $16\times2^{30} = 2^{34}$ bytes, exactly 16 GiB. At $n = 45$: $2^{49}$ bytes $= 0.5$ PiB $= 5.6\times10^{14}$
+    bytes — the size of the record simulation of Häner and Steiger ("0.5 petabyte simulation of a 45-qubit quantum circuit",
+    SC17, 2017, cited).</p>
+    <p><b>"No shorter description is known in general."</b> This is a claim about the general case, and it is honest only as that.
+    Many states of physical interest have short classical descriptions — product states, states of low entanglement written as
+    tensor networks, stabiliser states (unit 23). For one-dimensional chains with a gap, such methods are spectacularly good at
+    ground states. What none of them does in general is follow the dynamics $e^{-iHt}\ket\psi$ for long times, where entanglement grows.
+    That is where Feynman's argument bites.</p>
+    <p><b>Feynman, in his words.</b> The 1982 paper ends: "Nature isn't classical, dammit, and if you want to make a simulation of
+    nature, you'd better make it quantum mechanical, and by golly it's a wonderful problem, because it doesn't look so easy." He
+    did not give an algorithm, and he worried (rightly) about whether a universal quantum simulator could be built from local
+    interactions. Lloyd's answer, fourteen years later, is section 2.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Feynman's reason</p>
+  <h2>What a simulator must deliver</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Hamiltonian simulation</span></span>
+        <p class="small">Given $H$ on $n$ qubits, a time $t$ and an accuracy $\varepsilon$: a circuit $W$ with</p>
+        $$\lVert W - e^{-iHt}\rVert\le\varepsilon .$$
+      </div>
+      <p class="small"><b>Why this is enough.</b> By unit 11, every outcome probability of every measurement after $W$ is within $2\varepsilon$ of the true one, whatever the input.</p>
+      <p class="small"><b>What one then measures.</b> The <span class="term">magnetisation</span> $\braket{M} = \tfrac1n\sum_i\braket{Z_i}$; correlations $\braket{Z_0Z_j}$; or energies (section 5). Each expectation is an average of $\pm1$ outcomes, so $O(1/\eta^2)$ repetitions give it to $\pm\eta$ (Chernoff–Hoeffding).</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 210" width="470" role="img" aria-label="a pipeline of three boxes joined by arrows: prepare a state psi on n qubits; apply the circuit W, within epsilon of e to the minus i H t; measure Z on every qubit; an arrow loops back from the measurement to the preparation, labelled repeat N times and average">
+<rect x="20" y="50" width="130" height="64" rx="6" class="fill-ground ink" stroke-width="1.4"/>
+<text x="85.0" y="78.0" font-size="14" text-anchor="middle">prepare |ψ⟩</text>
+<text x="85.0" y="98.0" font-size="11.5" text-anchor="middle" class="soft">n qubits</text>
+<rect x="170" y="50" width="130" height="64" rx="6" class="fill-soft unit" stroke-width="2.2"/>
+<text x="235.0" y="78.0" font-size="14" text-anchor="middle">circuit W</text>
+<text x="235.0" y="98.0" font-size="11.5" text-anchor="middle" class="soft">≈ e^(−iHt), error ≤ ε</text>
+<rect x="320" y="50" width="130" height="64" rx="6" class="fill-ground ink" stroke-width="1.4"/>
+<text x="385.0" y="78.0" font-size="14" text-anchor="middle">measure Zᵢ</text>
+<text x="385.0" y="98.0" font-size="11.5" text-anchor="middle" class="soft">outcomes ±1</text>
+<line x1="150" y1="82" x2="165" y2="82" class="ink" stroke-width="1.6"/><polygon points="170,82 163,78 163,86" class="fill-ink"/>
+<line x1="300" y1="82" x2="315" y2="82" class="ink" stroke-width="1.6"/><polygon points="320,82 313,78 313,86" class="fill-ink"/>
+<path d="M385,114 L385,160 L85,160 L85,120" fill="none" class="accent" stroke-width="1.6" stroke-dasharray="5 3"/><polygon points="85,115 81,123 89,123" class="fill-accent"/>
+<text x="235.0" y="180.0" font-size="12.5" text-anchor="middle" class="accent">repeat N times, average: ⟨Zᵢ⟩ to ± O(1/√N)</text>
+<text x="235.0" y="30.0" font-size="12.5" text-anchor="middle" class="soft">what a quantum simulator does</text>
+</svg>
+        <p class="cap">Prepare, evolve, measure, repeat. The middle box is this unit.</p>
+      </div>
+      <p class="small"><b>It has been done.</b> Lanyon et al. (2011) ran stepped spin-model evolutions on a handful of trapped ions; Kim et al. (2023) ran stepped dynamics of this model, on a 127-qubit lattice of superconducting qubits (both cited).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The 2ε, recalled.</b> Unit 11 proved that if $\lVert U - V\rVert\le\varepsilon$ then for any state and any projective measurement the outcome
+    probabilities differ by at most $2\varepsilon$: $|\lVert PU\psi\rVert^2 - \lVert PV\psi\rVert^2|\le2\lVert(U - V)\psi\rVert$. So operator-norm accuracy is the right
+    currency — it is input-independent and composes by the hybrid argument.</p>
+    <p><b>The repetitions.</b> A single run measuring $Z_i$ gives $\pm1$ with mean $\braket{Z_i}$; $N$ independent runs averaged are within $\eta$
+    of the mean with probability at least $1 - 2e^{-N\eta^2/2}$ (Hoeffding, for variables in $[-1, 1]$). Errors $\varepsilon$ in the simulation shift
+    each mean by at most $2\varepsilon$, by the previous paragraph.</p>
+    <p><b>The experiments.</b> Lanyon et al., "Universal digital quantum simulation with trapped ions", <i>Science</i> 334, 57 (2011): the
+    first experiment to simulate spin Hamiltonians by exactly the stepped method of section 2, on a few ions. Kim et al., "Evidence for the utility of quantum computing before fault
+    tolerance", <i>Nature</i> 618, 500 (2023): stepped evolution of the transverse-field Ising model on the 127 qubits of a processor whose couplings form a
+    two-dimensional lattice rather than a chain, with error mitigation. Within weeks, classical tensor-network methods reproduced its numbers (Tindall et al., <i>PRX Quantum</i> 5,
+    010308, 2024, cited) — a reminder that Feynman's count is a statement about the general case, and that a particular instance
+    may have classical structure to exploit.</p>
+    <p><b>The experiment is the motivation; the definition is the mathematics.</b> What a laboratory asks of a simulator is "give me
+    the measurement statistics of the evolved state". The definition above asks for less and more: an operator-norm guarantee,
+    which delivers every statistic of every input at once.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Feynman's reason</p>
+  <h2>Local Hamiltonians</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">k-local Hamiltonian</span></span>
+        $$H = \sum_{j=1}^{L}H_j ,$$
+        <p class="small">each $H_j$ Hermitian and acting on at most $k$ qubits ($I$ on the rest), with $k = O(1)$ and $L$ polynomial in $n$.</p>
+      </div>
+      <p class="small"><b>Why this class.</b> Physical interactions are between few particles at a time, and usually nearby ones: two spins, two electrons, an electron and a nucleus. So the Hamiltonians nature hands us are local.</p>
+      <p class="small"><b>The chain</b> is 2-local with $L = (n - 1) + n = 2n - 1$ terms: $H_j = -JZ_iZ_{i+1}$ or $-hX_i$.</p>
+      <p class="small"><b>A norm bound for free:</b> $\lVert H\rVert\le\sum_j\lVert H_j\rVert$ (triangle inequality). For the chain, $\lVert H\rVert\le J(n - 1) + hn$: at $n = 8$, $J = h = 1$, $15$. The exact value is $9.838$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 170" width="470" role="img" aria-label="six qubits in a row; above them five brackets, one per neighbouring pair, are the ZZ terms; below them six dots, one per qubit, are the X terms; eleven terms in all, each touching at most two qubits">
+<circle cx="50" cy="85" r="12" class="fill-ground ink" stroke-width="1.4"/>
+<text x="50.0" y="90.0" font-size="12" text-anchor="middle">0</text>
+<circle cx="124" cy="85" r="12" class="fill-ground ink" stroke-width="1.4"/>
+<text x="124.0" y="90.0" font-size="12" text-anchor="middle">1</text>
+<circle cx="198" cy="85" r="12" class="fill-ground ink" stroke-width="1.4"/>
+<text x="198.0" y="90.0" font-size="12" text-anchor="middle">2</text>
+<circle cx="272" cy="85" r="12" class="fill-ground ink" stroke-width="1.4"/>
+<text x="272.0" y="90.0" font-size="12" text-anchor="middle">3</text>
+<circle cx="346" cy="85" r="12" class="fill-ground ink" stroke-width="1.4"/>
+<text x="346.0" y="90.0" font-size="12" text-anchor="middle">4</text>
+<circle cx="420" cy="85" r="12" class="fill-ground ink" stroke-width="1.4"/>
+<text x="420.0" y="90.0" font-size="12" text-anchor="middle">5</text>
+<path d="M50,69 L50,55 L124,55 L124,69" fill="none" class="alt" stroke-width="2"/>
+<path d="M124,69 L124,41 L198,41 L198,69" fill="none" class="alt" stroke-width="2"/>
+<path d="M198,69 L198,55 L272,55 L272,69" fill="none" class="alt" stroke-width="2"/>
+<path d="M272,69 L272,41 L346,41 L346,69" fill="none" class="alt" stroke-width="2"/>
+<path d="M346,69 L346,55 L420,55 L420,69" fill="none" class="alt" stroke-width="2"/>
+<text x="87.0" y="33.0" font-size="12" text-anchor="middle" class="alt">Z₀Z₁</text>
+<line x1="50" y1="99" x2="50" y2="119" class="accent" stroke-width="2"/><circle cx="50" cy="123" r="5" class="fill-accent"/>
+<line x1="124" y1="99" x2="124" y2="119" class="accent" stroke-width="2"/><circle cx="124" cy="123" r="5" class="fill-accent"/>
+<line x1="198" y1="99" x2="198" y2="119" class="accent" stroke-width="2"/><circle cx="198" cy="123" r="5" class="fill-accent"/>
+<line x1="272" y1="99" x2="272" y2="119" class="accent" stroke-width="2"/><circle cx="272" cy="123" r="5" class="fill-accent"/>
+<line x1="346" y1="99" x2="346" y2="119" class="accent" stroke-width="2"/><circle cx="346" cy="123" r="5" class="fill-accent"/>
+<line x1="420" y1="99" x2="420" y2="119" class="accent" stroke-width="2"/><circle cx="420" cy="123" r="5" class="fill-accent"/>
+<text x="50.0" y="147.0" font-size="12" text-anchor="middle" class="accent">X₀</text>
+<text x="235.0" y="162.0" font-size="12" text-anchor="middle" class="soft">n = 6: n − 1 = 5 bonds + n = 6 sites = 11 terms, each on ≤ 2 qubits</text>
+</svg>
+        <p class="cap">The chain's terms: one per bond, one per site. Each touches at most two qubits.</p>
+      </div>
+      <div class="box warn"><span class="label">what is easy, and what is not</span>
+        <p class="small">Writing $H$ down takes $O(L)$ numbers. Writing $e^{-iHt}$ down takes $4^n$. The question is whether a <b>circuit</b> for it can be as short as the first.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each term's norm.</b> $\lVert Z_iZ_{i+1}\rVert = 1$: it is a tensor product of unitaries, hence unitary (unit 03), and Hermitian, with
+    eigenvalues $\pm1$; by unit 11's property (c) its norm is 1. Likewise $\lVert X_i\rVert = 1$. So $\lVert H\rVert\le7 + 8 = 15$ at $n = 8$.</p>
+    <p><b>The exact norm.</b> $H$ is Hermitian, so $\lVert H\rVert$ is its largest $|$eigenvalue$|$ (unit 11). Computed by diagonalising the
+    $256\times256$ matrix: the spectrum runs from $-9.838$ to $+9.838$ — symmetric, because $\prod_i Z_i$ anticommutes with every $X_i$ and
+    commutes with every $Z_iZ_{i+1}$, so conjugating by it sends $H$ to $-J\sum ZZ + h\sum X$; conjugating that by $\prod_{i\ \mathrm{odd}}X_i$ flips the
+    sign of every $Z_iZ_{i+1}$ (exactly one of $i, i + 1$ is odd) and leaves the $X$'s alone. So $V = \prod_{i\ \mathrm{odd}}X_i\prod_iZ_i$ satisfies $VHV^\dagger = -H$, and
+    $-H$ has the same spectrum as $H$.</p>
+    <p><b>Locality in space, not just in number.</b> The definition asks only that each term touch few qubits. Physical
+    Hamiltonians usually also respect geometry — each qubit is in $O(1)$ terms — and section 4 uses that to bound the commutators.
+    A $k$-local $H$ on all $\binom nk$ subsets is still polynomial for fixed $k$, and everything in section 2 still holds; only the
+    counting gets worse.</p>
+    <p><b>Quantum chemistry</b> is the application most often named: the Hamiltonian of the electrons in a molecule, written in a
+    basis of orbitals and mapped to qubits, becomes a sum of $O(N^4)$ Pauli-product terms on $N$ qubits — each acting on many qubits
+    after the mapping, but still a polynomial sum of Pauli products, which is all section 4 needs. No molecular Hamiltonian is
+    written down in this course.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Lie–Trotter, proved</h2>
+  <p>Commuting pieces cost nothing. Non-commuting ones cost a commutator per step, squared step length, and steps add. Proved line by line.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter</p>
+  <h2>If the terms commuted, there would be nothing to do</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">unit 00</span>
+        <p class="small">If $[A, B] = 0$ then $e^{-i(A + B)t} = e^{-iAt}e^{-iBt}$, exactly.</p>
+      </div>
+      <p class="small"><b>The chain splits into two commuting families.</b> Write <span class="ref" data-ref="tfim">$H = A + B$</span> with</p>
+      $$A = -J\sum_iZ_iZ_{i+1},\qquad B = -h\sum_iX_i .$$
+      <p class="small"><b>Inside $A$</b> every term is diagonal, and diagonal matrices commute. <b>Inside $B$</b> the terms act on different qubits: $X_iX_j = X_jX_i$ by $(P\otimes I)(I\otimes Q) = P\otimes Q = (I\otimes Q)(P\otimes I)$. So, exactly,</p>
+      $$e^{-iA\delta} = \prod_ie^{iJ\delta Z_iZ_{i+1}},$$
+      $$e^{-iB\delta} = \prod_iR_x(-2h\delta)_i .$$
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 560 190" width="560" role="img" aria-label="the fifteen terms of the eight-spin chain: seven bond terms Z i Z i plus 1 in a top row and eight field terms X i in a bottom row; a line joins two terms when they fail to commute, which happens exactly when bond i meets site i or site i plus 1; the fourteen lines form a zigzag; terms in the same row all commute">
+<line x1="74.0" y1="54" x2="40" y2="136" class="warn" stroke-width="2"/>
+<line x1="74.0" y1="54" x2="108" y2="136" class="warn" stroke-width="2"/>
+<line x1="142.0" y1="54" x2="108" y2="136" class="warn" stroke-width="2"/>
+<line x1="142.0" y1="54" x2="176" y2="136" class="warn" stroke-width="2"/>
+<line x1="210.0" y1="54" x2="176" y2="136" class="warn" stroke-width="2"/>
+<line x1="210.0" y1="54" x2="244" y2="136" class="warn" stroke-width="2"/>
+<line x1="278.0" y1="54" x2="244" y2="136" class="warn" stroke-width="2"/>
+<line x1="278.0" y1="54" x2="312" y2="136" class="warn" stroke-width="2"/>
+<line x1="346.0" y1="54" x2="312" y2="136" class="warn" stroke-width="2"/>
+<line x1="346.0" y1="54" x2="380" y2="136" class="warn" stroke-width="2"/>
+<line x1="414.0" y1="54" x2="380" y2="136" class="warn" stroke-width="2"/>
+<line x1="414.0" y1="54" x2="448" y2="136" class="warn" stroke-width="2"/>
+<line x1="482.0" y1="54" x2="448" y2="136" class="warn" stroke-width="2"/>
+<line x1="482.0" y1="54" x2="516" y2="136" class="warn" stroke-width="2"/>
+<rect x="50.0" y="26" width="48" height="28" rx="5" class="fill-ground alt" stroke-width="1.6"/>
+<text x="74.0" y="45.0" font-size="12" text-anchor="middle">Z₀Z₁</text>
+<rect x="118.0" y="26" width="48" height="28" rx="5" class="fill-ground alt" stroke-width="1.6"/>
+<text x="142.0" y="45.0" font-size="12" text-anchor="middle">Z₁Z₂</text>
+<rect x="186.0" y="26" width="48" height="28" rx="5" class="fill-ground alt" stroke-width="1.6"/>
+<text x="210.0" y="45.0" font-size="12" text-anchor="middle">Z₂Z₃</text>
+<rect x="254.0" y="26" width="48" height="28" rx="5" class="fill-ground alt" stroke-width="1.6"/>
+<text x="278.0" y="45.0" font-size="12" text-anchor="middle">Z₃Z₄</text>
+<rect x="322.0" y="26" width="48" height="28" rx="5" class="fill-ground alt" stroke-width="1.6"/>
+<text x="346.0" y="45.0" font-size="12" text-anchor="middle">Z₄Z₅</text>
+<rect x="390.0" y="26" width="48" height="28" rx="5" class="fill-ground alt" stroke-width="1.6"/>
+<text x="414.0" y="45.0" font-size="12" text-anchor="middle">Z₅Z₆</text>
+<rect x="458.0" y="26" width="48" height="28" rx="5" class="fill-ground alt" stroke-width="1.6"/>
+<text x="482.0" y="45.0" font-size="12" text-anchor="middle">Z₆Z₇</text>
+<circle cx="40" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="40.0" y="155.0" font-size="12" text-anchor="middle">X₀</text>
+<circle cx="108" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="108.0" y="155.0" font-size="12" text-anchor="middle">X₁</text>
+<circle cx="176" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="176.0" y="155.0" font-size="12" text-anchor="middle">X₂</text>
+<circle cx="244" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="244.0" y="155.0" font-size="12" text-anchor="middle">X₃</text>
+<circle cx="312" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="312.0" y="155.0" font-size="12" text-anchor="middle">X₄</text>
+<circle cx="380" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="380.0" y="155.0" font-size="12" text-anchor="middle">X₅</text>
+<circle cx="448" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="448.0" y="155.0" font-size="12" text-anchor="middle">X₆</text>
+<circle cx="516" cy="150" r="15" class="fill-ground accent" stroke-width="1.6"/>
+<text x="516.0" y="155.0" font-size="12" text-anchor="middle">X₇</text>
+<text x="280.0" y="186.0" font-size="12" text-anchor="middle" class="soft">14 = 2(n − 1) non-commuting pairs; within a row, everything commutes</text>
+<text x="244.0" y="98.0" font-size="12" text-anchor="start" class="warn halo">‖[ZZ, X]‖ = 2</text>
+</svg>
+        <p class="cap">The chain's 15 terms at $n = 8$. A line joins two that do <b>not</b> commute: bond $i$ and the sites $i$, $i + 1$ it touches.</p>
+      </div>
+      <p class="small"><b>But $[A, B]\ne0$.</b> $Z_0Z_1$ and $X_0$ <b>anticommute</b>: $ZX = -XZ$ on qubit 0, while $Z_1$ and $I$ commute. So $e^{-iHt}\ne e^{-iAt}e^{-iBt}$, and the gap is the subject of this section.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The rotation.</b> $e^{ih\delta X} = \cos(h\delta)I + i\sin(h\delta)X$ (unit 00's worked example, $\theta = h\delta$). The course's rotation is
+    $R_x(\theta) = e^{-i\theta X/2} = \cos\tfrac\theta2I - i\sin\tfrac\theta2X$, so $e^{ih\delta X} = R_x(-2h\delta)$ ✓. Likewise $e^{iJ\delta Z_iZ_{i+1}} = e^{-i\theta Z\otimes Z}$ with $\theta = -J\delta$,
+    which section 4 builds from two CNOTs.</p>
+    <p><b>The anticommutation.</b> $Z_0Z_1X_0 = (ZX)\otimes Z\otimes I\cdots$ and $X_0Z_0Z_1 = (XZ)\otimes Z\otimes I\cdots$, and $ZX = -XZ$ (unit 02: $ZX = iY$,
+    $XZ = -iY$). So $Z_0Z_1X_0 = -X_0Z_0Z_1$. A bond and a site that do not share a qubit act on different tensor factors and commute.</p>
+    <p><b>Why the split matters.</b> Each family is a sum of commuting terms, so its exponential is a product of
+    exponentials of single terms — each a gate on one or two qubits. The whole difficulty of the chain is concentrated in the
+    fourteen lines of the figure.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter</p>
+  <h2>The error, to leading order</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>A <span class="term">Trotter step</span></b> replaces $U(\delta) = e^{-i(A + B)\delta}$ by $V(\delta) = e^{-iA\delta}e^{-iB\delta}$. Expand both with unit 00's series, writing $a = -iA$, $b = -iB$:</p>
+      $$V = I + (a + b)\delta + \tfrac12(a^2 + 2ab + b^2)\delta^2 + \cdots$$
+      $$U = I + (a + b)\delta + \tfrac12(a + b)^2\delta^2 + \cdots$$
+      <p class="small">They agree to first order, and differ at second by $\tfrac12(ab - ba)\delta^2 = -\tfrac12[A, B]\delta^2$:</p>
+      $$\lVert V(\delta) - U(\delta)\rVert = \tfrac12\lVert[A, B]\rVert\,\delta^2 + O(\delta^3).$$
+      <p class="small"><b>The guess.</b> $r$ steps of length $\delta = t/r$, errors adding: $r\cdot\tfrac12\lVert[A, B]\rVert(t/r)^2 = \lVert[A, B]\rVert t^2/2r$. The next slides prove exactly this, with no $O(\delta^3)$ left over.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 320" width="400" role="img" aria-label="the Bloch sphere with x, y and z axes; starting at the north pole, the exact evolution under X + Z for time 1 is a smooth arc around the axis halfway between x and z; three Trotter steps, each a turn about z followed by a turn about x, make a zigzag of arcs that ends close to, but not on, the end of the smooth arc">
+<circle cx="190" cy="165" r="125" fill="none" class="ink" stroke-width="1.3"/>
+<path d="M261.7,196.6 L267.0,195.4 L272.0,194.2 L276.8,192.8 L281.4,191.3 L285.8,189.8 L289.8,188.2 L293.6,186.6 L297.1,184.9 L300.4,183.1 L303.3,181.3 L305.9,179.5 L308.2,177.6 L310.2,175.6 L311.8,173.7 L313.1,171.7 L314.1,169.7 L314.7,167.7 L315.0,165.7 L314.9,163.7 L314.5,161.6 L313.8,159.6 L312.7,157.6 L311.3,155.7 L309.5,153.7 L307.5,151.8 L305.1,149.9 L302.3,148.1 L299.3,146.3 L296.0,144.5 L292.4,142.8 L288.5,141.2 L284.3,139.7 L279.9,138.2 L275.2,136.7 L270.3,135.4 L265.2,134.2 L259.9,133.0 L254.4,131.9 L248.7,130.9 L242.8,130.0 L236.8,129.2 L230.7,128.5 L224.5,127.9 L218.1,127.4 L211.7,127.0 L205.2,126.7 L198.7,126.5 L192.2,126.4 L185.6,126.4 L179.1,126.5 L172.6,126.7 L166.1,127.1 L159.8,127.5 L153.5,128.1 L147.2,128.7 L141.2,129.4 L135.2,130.3 L129.4,131.2 L123.8,132.2 L118.3,133.4 L113.0,134.6 L108.0,135.8 L103.2,137.2 L98.6,138.7 L94.2,140.2 L90.2,141.8 L86.4,143.4 L82.9,145.1 L79.6,146.9 L76.7,148.7 L74.1,150.5 L71.8,152.4 L69.8,154.4 L68.2,156.3 L66.9,158.3 L65.9,160.3 L65.3,162.3 L65.0,164.3 L65.1,166.3 L65.5,168.4 L66.2,170.4 L67.3,172.4 L68.7,174.3 L70.5,176.3 L72.5,178.2 L74.9,180.1 L77.7,181.9 L80.7,183.7 L84.0,185.5 L87.6,187.2 L91.5,188.8 L95.7,190.3 L100.1,191.8 L104.8,193.3 L109.7,194.6 L114.8,195.8 L120.1,197.0 L125.6,198.1 L131.3,199.1 L137.2,200.0 L143.2,200.8 L149.3,201.5 L155.5,202.1 L161.9,202.6 L168.3,203.0 L174.8,203.3 L181.3,203.5 L187.8,203.6 L194.4,203.6 L200.9,203.5 L207.4,203.3 L213.9,202.9 L220.2,202.5 L226.5,201.9 L232.8,201.3 L238.8,200.6 L244.8,199.7 L250.6,198.8 L256.2,197.8 L261.7,196.6" fill="none" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+<line x1="190" y1="165" x2="279.6" y2="204.6" class="rule" stroke-width="1.2"/>
+<text x="287.6" y="208.6" font-size="13" text-anchor="middle" class="soft">x</text>
+<line x1="190" y1="165" x2="318.0" y2="137.3" class="rule" stroke-width="1.2"/>
+<text x="326.0" y="141.3" font-size="13" text-anchor="middle" class="soft">y</text>
+<line x1="190" y1="165" x2="190.0" y2="16.4" class="rule" stroke-width="1.2"/>
+<text x="190.0" y="10.4" font-size="13" text-anchor="middle" class="soft">z</text>
+<line x1="190" y1="165" x2="255.9" y2="84.8" class="warn" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="251.9" y="78.8" font-size="12" text-anchor="end" class="warn halo">(x + z)/√2</text>
+<path d="M190.0,46.1 L187.4,46.7 L184.9,47.4 L182.4,48.2 L180.0,49.1 L177.7,50.1 L175.4,51.2 L173.2,52.4 L171.0,53.6 L168.9,55.0 L166.9,56.4 L165.0,57.9 L163.1,59.5 L161.3,61.2 L159.6,62.9 L158.0,64.7 L156.5,66.6 L155.0,68.6 L153.7,70.6 L152.4,72.7 L151.3,74.9 L150.2,77.1 L149.2,79.4 L148.4,81.7 L147.6,84.1 L146.9,86.5 L146.4,89.0 L145.9,91.5 L145.5,94.1 L145.3,96.7 L145.1,99.3 L145.1,101.9 L145.1,104.6 L145.3,107.3 L145.5,110.0 L145.9,112.8 L146.3,115.5 L146.9,118.2 L147.6,121.0 L148.3,123.7 L149.2,126.5 L150.1,129.2 L151.2,132.0 L152.4,134.7 L153.6,137.4 L154.9,140.1 L156.4,142.7 L157.9,145.4 L159.5,148.0 L161.2,150.5 L163.0,153.0 L164.8,155.5 L166.8,158.0 L168.8,160.4 L170.9,162.7 L173.0,165.0 L175.2,167.3 L177.5,169.4 L179.9,171.5 L182.3,173.6 L184.7,175.6 L187.3,177.5 L189.8,179.3 L192.4,181.1 L195.1,182.8 L197.8,184.4 L200.5,186.0 L203.3,187.4 L206.1,188.8 L208.9,190.1 L211.7,191.3 L214.6,192.4 L217.5,193.4 L220.3,194.3 L223.2,195.1 L226.1,195.8 L229.0,196.5 L231.9,197.0 L234.8,197.5 L237.6,197.8" fill="none" class="unit" stroke-width="2.6"/>
+<path d="M190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L190.0,46.1 L186.4,47.0 L182.8,48.0 L179.2,49.1 L175.7,50.4 L172.1,51.8 L168.6,53.4 L165.1,55.1 L161.6,56.9 L158.2,58.9 L154.8,61.0 L151.5,63.2 L148.1,65.6 L144.9,68.0 L141.7,70.6 L138.6,73.3 L135.5,76.2 L132.5,79.1 L129.5,82.1 L126.7,85.3 L128.3,86.0 L129.9,86.6 L131.7,87.3 L133.5,87.9 L135.4,88.5 L137.3,89.1 L139.4,89.6 L141.4,90.2 L143.6,90.7 L145.8,91.2 L148.0,91.6 L150.3,92.1 L152.7,92.5 L155.1,92.9 L157.5,93.2 L160.0,93.6 L162.5,93.9 L165.1,94.2 L167.7,94.4 L164.9,97.1 L162.1,99.9 L159.5,102.8 L156.9,105.8 L154.4,108.8 L151.9,112.0 L149.6,115.2 L147.3,118.5 L145.1,121.9 L143.0,125.3 L141.0,128.8 L139.1,132.4 L137.3,136.0 L135.6,139.7 L134.0,143.4 L132.5,147.2 L131.0,150.9 L129.7,154.8 L128.5,158.6 L132.1,159.3 L135.8,159.9 L139.5,160.5 L143.3,161.0 L147.2,161.5 L151.1,161.9 L155.0,162.3 L159.0,162.7 L163.1,163.0 L167.1,163.2 L171.2,163.5 L175.4,163.7 L179.5,163.8 L183.6,163.9 L187.8,163.9 L192.0,163.9 L196.1,163.9 L200.3,163.8 L204.4,163.7 L203.3,165.8 L202.2,167.9 L201.2,170.1 L200.3,172.3 L199.4,174.6 L198.6,176.8 L197.9,179.1 L197.2,181.4 L196.6,183.7 L196.0,186.0 L195.5,188.3 L195.1,190.6 L194.8,192.9 L194.5,195.3 L194.3,197.6 L194.1,199.9 L194.0,202.2 L194.0,204.5 L194.1,206.7" fill="none" class="alt" stroke-width="2.2"/>
+<circle cx="190.0" cy="46.1" r="4.5" class="fill-ink"/>
+<text x="198.0" y="40.1" font-size="13" text-anchor="start" class="halo">|0⟩</text>
+<circle cx="237.6" cy="197.8" r="5" class="fill-unit"/>
+<text x="245.6" y="211.8" font-size="12.5" text-anchor="start" class="unit halo">exact</text>
+<circle cx="194.1" cy="206.7" r="5" class="fill-alt"/>
+<text x="186.1" y="222.7" font-size="12.5" text-anchor="end" class="alt halo">3 Trotter steps</text>
+</svg>
+        <p class="cap">$H = X + Z$ on one qubit, $t = 1$, from $\ket0$. Exact: one turn about $(x + z)/\sqrt2$. Three Trotter steps: turns about $z$, then $x$, alternately.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The expansion.</b> $e^{a\delta}e^{b\delta} = (I + a\delta + \tfrac12a^2\delta^2 + \cdots)(I + b\delta + \tfrac12b^2\delta^2 + \cdots)$; the $\delta^2$ terms are $\tfrac12a^2 + ab + \tfrac12b^2$.
+    For $e^{(a+b)\delta}$ they are $\tfrac12(a + b)^2 = \tfrac12(a^2 + ab + ba + b^2)$, and $(a + b)^2\ne a^2 + 2ab + b^2$ unless $a$ and $b$ commute (unit 00's
+    <i>Exponentials do not add</i>). The difference is $\tfrac12(ab - ba) = \tfrac12(-i)^2[A, B] = -\tfrac12[A, B]$.</p>
+    <p><b>Why this is not yet a proof.</b> The $O(\delta^3)$ hides a constant that depends on $\lVert A\rVert$ and $\lVert B\rVert$ — for the chain, on
+    $n$ — and summing $r$ of them gives a term $O(t^3/r^2)$ whose size one would have to bound separately. The theorem <i>One step costs at most half a commutator</i>
+    has no such remainder: the bound $\tfrac12\lVert[A, B]\rVert\delta^2$ holds for every $\delta \gt 0$. The leading-order computation shows its
+    constant $\tfrac12$ cannot be improved in general.</p>
+    <p><b>The figure.</b> Computed from unit 02's dictionary: $e^{-iX\delta} = R_x(2\delta)$ turns the Bloch sphere by $2\delta$ about $x$, and
+    $e^{-i(X+Z)\delta} = R_{\mathbf n}(2\sqrt2\,\delta)$ with $\mathbf n = (1, 0, 1)/\sqrt2$, since $X + Z = \sqrt2\,\mathbf n\cdot\boldsymbol\sigma$. In each Trotter step the $z$-turn acts
+    first, because $V = e^{-iX\delta}e^{-iZ\delta}$ applies its right factor first. Three steps already land near the exact endpoint; the
+    zigzag is the commutator, made visible.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter</p>
+  <h2>Two tools for the proof</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma 1: the norm of an integral</span>
+        <p class="small">For a continuous $F:[a, b]\to\mathrm{End}(V)$, $\ \Big\lVert\int_a^bF(s)\,ds\Big\rVert\le\int_a^b\lVert F(s)\rVert\,ds$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Fix a unit $v$, let $w = \big(\int F\big)v = \int F(s)v\,ds$, and if $w\ne0$ let $u = w/\lVert w\rVert$. Then</p>
+        $$\lVert w\rVert = \braket{u|w} = \int\braket{u|F(s)v}\,ds ,$$
+        <p class="small">which is at most $\int\lVert F(s)\rVert\,ds$ by Cauchy–Schwarz. Maximise over $v$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">lemma 2: how fast conjugation moves $B$</span>
+        <p class="small">For Hermitian $A$, any $B$, and $G(s) = e^{iAs}Be^{-iAs}$:</p>
+        $$G'(s) = e^{iAs}\,i[A, B]\,e^{-iAs},$$
+        $$\lVert G(s) - B\rVert\le|s|\,\lVert[A, B]\rVert .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Product rule (unit 01), with $\tfrac{d}{ds}e^{\pm iAs} = \pm iAe^{\pm iAs}$ and $A$ commuting with $e^{\pm iAs}$: $G' = e^{iAs}(iAB - BiA)e^{-iAs}$. Then $G(s) - B = \int_0^sG'$; lemma 1, and unit 11's $\lVert UMV\rVert = \lVert M\rVert$ for unitary $U, V$. ∎</p>
+      </div>
+      <p class="small"><b>Check:</b> $[A, B] = 0$ gives $G\equiv B$ — $B$ commutes with $e^{\pm iAs}$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of lemma 1</h4>
+    <p>Integrals of matrix-valued functions are entrywise (unit 01), and so is the action on a fixed vector: $\big(\int F\big)v = \int F(s)v\,ds$,
+    because each entry of $Fv$ is a fixed linear combination of entries of $F$. Likewise $\braket{u|\int F(s)v\,ds} = \int\braket{u|F(s)v}\,ds$, the
+    inner product with a fixed $u$ being linear in its second slot. Since $\lVert w\rVert$ is real, $\lVert w\rVert = \mathrm{Re}\int\braket{u|F(s)v}\,ds = \int\mathrm{Re}\braket{u|F(s)v}\,ds\le\int|\braket{u|F(s)v}|\,ds$,
+    and $|\braket{u|F(s)v}|\le\lVert u\rVert\lVert F(s)v\rVert\le\lVert F(s)\rVert$ by Cauchy–Schwarz and the definition of the operator norm. The function
+    $s\mapsto\lVert F(s)\rVert$ is continuous (the norm is continuous, $|\lVert M\rVert - \lVert N\rVert|\le\lVert M - N\rVert$), so the right side exists. If $w = 0$ there
+    is nothing to prove. The bound holds for every unit $v$, so for the maximum, which is $\lVert\int F\rVert$.</p>
+    <h4>Full proof of lemma 2</h4>
+    <p>By unit 01, $\tfrac{d}{ds}e^{-iAs} = -iAe^{-iAs} = e^{-iAs}(-iA)$, both $A$ and $e^{-iAs}$ being functions of $A$; replacing $A$ by $-A$ gives the
+    other sign. The product rule for the three factors $e^{iAs}$, $B$ (constant), $e^{-iAs}$:</p>
+    <p>$$G'(s) = e^{iAs}(iA)Be^{-iAs} + e^{iAs}B(-iA)e^{-iAs} = e^{iAs}\,i(AB - BA)\,e^{-iAs}.$$</p>
+    <p>The fundamental theorem (unit 01) gives $G(s) - G(0) = \int_0^sG'(u)\,du$, and $G(0) = B$. For $s \gt 0$, lemma 1 and unitary invariance give
+    $\lVert G(s) - B\rVert\le\int_0^s\lVert[A, B]\rVert\,du = s\lVert[A, B]\rVert$; for $s \lt 0$ swap the limits. The same argument shows something stronger and
+    familiar: if $[A, B] = 0$ then $G' = 0$, so $G$ is constant (unit 01).</p>
+    <p><b>Where this comes from.</b> $G(s)$ is $B$ seen from a frame that moves with $A$'s evolution — unit 02's rotating frame is the
+    one-qubit case. Lemma 2 says the frame moves $B$ no faster than the commutator allows.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter</p>
+  <h2>One step costs at most half a commutator</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">one-step bound</span></span>
+        <p class="small">For Hermitian $A$, $B$ and $\delta \gt 0$,</p>
+        $$\big\lVert e^{-i(A + B)\delta} - e^{-iA\delta}e^{-iB\delta}\big\rVert\le\tfrac12\lVert[A, B]\rVert\,\delta^2 .$$
+      </div>
+      <p class="small"><b>The idea.</b> Look at the Trotter step from the exact evolution's point of view: $F(s) = U(s)^\dagger V(s)$ starts at $I$, and its velocity is a conjugated copy of $G(s) - B$ — which lemma 2 says grows at most linearly. Integrate a linear bound once: $\delta^2/2$.</p>
+      <p class="small"><b>Checks.</b> $[A, B] = 0$: zero, as unit 00 says. $B = 0$: zero, trivially. And the constant $\tfrac12$ matches the leading-order expansion, so it is the best possible.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">a known case: $A = X$, $B = Z$, $\delta = 1$</span>
+        <p class="small">$[X, Z] = XZ - ZX = -2iY$, so $\lVert[X, Z]\rVert = 2$ and the bound is $\tfrac12\cdot2\cdot1^2 = 1$.</p>
+        <p class="small">The actual one-step error, computed: $0.799$ ✓. The bound is not empty even at $\delta = 1$: any two unitaries are within distance 2.</p>
+      </div>
+      <p class="small"><b>Dimensions.</b> With $\hbar = 1$, $A$ and $B$ are angular frequencies, in $\mathrm{s^{-1}}$; $[A, B]$ is in $\mathrm{s^{-2}}$, and $\lVert[A, B]\rVert\delta^2$ is a pure number, as a distance between unitaries must be ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof is the next slide</b>, every line written out as a worked example, because it is the checkpoint's proof.</p>
+    <p><b>The known case, computed.</b> $e^{-i(X+Z)} = \cos\sqrt2\,I - i\sin\sqrt2\,(X + Z)/\sqrt2$, because $((X + Z)/\sqrt2)^2 = I$; and
+    $e^{-iX}e^{-iZ} = (\cos1 - i\sin1\,X)(\cos1 - i\sin1\,Z)$. <i>Worked: one qubit, H = X + Z</i> shows how to compute the distance between two
+    such products by hand; at $\delta = 1$ it is $0.7992$.</p>
+    <p><b>Other proofs.</b> The same bound follows from the variation-of-parameters (Duhamel) formula
+    $e^{-i(A+B)\delta} - e^{-iA\delta}e^{-iB\delta} = \int_0^\delta\frac{d}{ds}\big[e^{-i(A+B)(\delta - s)}e^{-iAs}e^{-iBs}\big]ds$, which is the same computation organised
+    from the other end. The version here, with $F = U^\dagger V$, keeps every factor unitary and every norm a one-liner.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter · example</p>
+  <h2>Worked: the one-step bound, every line</h2>
+  <div class="box ex"><span class="label">worked example 1 · the one-step bound</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. Compare from the exact frame.</b> $U(s) = e^{-i(A+B)s}$, $V(s) = e^{-iAs}e^{-iBs}$, and $F(s) = U(s)^\dagger V(s)$:</p>
+        $$F(s) = e^{i(A+B)s}e^{-iAs}e^{-iBs}.$$
+        <p class="small">$F(0) = I$, and $\lVert V(\delta) - U(\delta)\rVert = \lVert U(\delta)(F(\delta) - I)\rVert = \lVert F(\delta) - I\rVert$ by unitary invariance.</p>
+        <p class="small"><b>2. Differentiate</b> the three factors (product rule), with $P = e^{i(A+B)s}$, $Q = e^{-iBs}$:</p>
+        $$F' = iP\big[(A{+}B)e^{-iAs} - Ae^{-iAs} - e^{-iAs}B\big]Q$$
+        <p class="small">— the middle term because $A$ commutes with $e^{-iAs}$. The $A$ terms cancel:</p>
+        $$F' = iP\big[Be^{-iAs} - e^{-iAs}B\big]Q .$$
+      </div>
+      <div>
+        <p class="small"><b>3. Recognise lemma 2.</b> Pull $e^{-iAs}$ out to the left of the bracket:</p>
+        $$Be^{-iAs} - e^{-iAs}B = e^{-iAs}\big(G(s) - B\big),$$
+        <p class="small">$G(s) = e^{iAs}Be^{-iAs}$. So $F'(s) = i\,U(s)^\dagger e^{-iAs}\big(G(s) - B\big)e^{-iBs}$, a unitary sandwich, and</p>
+        $$\lVert F'(s)\rVert = \lVert G(s) - B\rVert\le s\,\lVert[A, B]\rVert .$$
+        <p class="small"><b>4. Integrate.</b> $F(\delta) - I = \int_0^\delta F'(s)\,ds$ (fundamental theorem), and lemma 1:</p>
+        $$\lVert F(\delta) - I\rVert\le\int_0^\delta s\,\lVert[A, B]\rVert\,ds ,$$
+        <p class="small">which is $\tfrac12\lVert[A, B]\rVert\,\delta^2$. ∎</p>
+        <p class="small"><b>5. Check:</b> $\delta\to0$ gives $0$; $[A, B] = 0$ gives $F' = 0$, $F\equiv I$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2 in full.</b> Unit 01 gives $\tfrac{d}{ds}e^{i(A+B)s} = e^{i(A+B)s}\,i(A + B)$, $\tfrac{d}{ds}e^{-iAs} = -iAe^{-iAs}$ and $\tfrac{d}{ds}e^{-iBs} = e^{-iBs}(-iB) = -iBe^{-iBs}$. The
+    product rule for three factors $PQR$ is $P'QR + PQ'R + PQR'$:</p>
+    <p>$$F' = e^{i(A+B)s}i(A + B)e^{-iAs}e^{-iBs} + e^{i(A+B)s}(-iA)e^{-iAs}e^{-iBs} + e^{i(A+B)s}e^{-iAs}(-iB)e^{-iBs}.$$</p>
+    <p>Factor $e^{i(A+B)s}$ on the left and $e^{-iBs}$ on the right; inside: $i(A + B)e^{-iAs} - iAe^{-iAs} - ie^{-iAs}B = iBe^{-iAs} - ie^{-iAs}B$.</p>
+    <p><b>Step 3 in full.</b> $e^{-iAs}(G(s) - B) = e^{-iAs}e^{iAs}Be^{-iAs} - e^{-iAs}B = Be^{-iAs} - e^{-iAs}B$ ✓. The operator norm of
+    $i\cdot U^\dagger\cdot e^{-iAs}\cdot(G - B)\cdot e^{-iBs}$ is $\lVert G - B\rVert$, by unit 11's property (b), the factor $i$ having modulus 1.</p>
+    <p><b>Where Hermiticity was used.</b> Only to make $e^{\pm iAs}$, $e^{-iBs}$ and $U(s)$ unitary, so that they drop out of norms. For general
+    matrices the same computation gives a bound with factors like $e^{2s\lVert A\rVert}$ in it.</p>
+    <p><b>Why $s \gt 0$.</b> Lemma 2 gives $|s|$; on $[0, \delta]$ that is $s$, and $\int_0^\delta s\,ds = \delta^2/2$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter</p>
+  <h2>r steps: the errors add</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">first-order Trotter bound</span></span>
+        <p class="small">For Hermitian $A$, $B$, $t \gt 0$ and $r$ steps,</p>
+        $$\big\lVert e^{-i(A + B)t} - (e^{-iAt/r}e^{-iBt/r})^r\big\rVert$$
+        $$\le\frac{\lVert[A, B]\rVert\,t^2}{2r}.$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">With $\delta = t/r$: $e^{-i(A+B)t} = U(\delta)^r$ (unit 00's group law). Unit 11's hybrid argument: $\lVert U^r - V^r\rVert\le r\lVert U - V\rVert$. The one-step bound: $\le r\cdot\tfrac12\lVert[A, B]\rVert(t/r)^2$. ∎</p>
+      </div>
+      <p class="small"><b>Checks.</b> $r\to\infty$: the product converges to $e^{-i(A + B)t}$ — the <span class="term">Lie product formula</span>. $[A, B] = 0$: exact for every $r$ ✓.</p>
+      <p class="small"><b>To reach accuracy $\varepsilon$,</b> take $\ r\ge\lVert[A, B]\rVert t^2/2\varepsilon$: steps grow like $t^2$ and $1/\varepsilon$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 230" width="470" role="img" aria-label="four rows of three boxes: the top row is three exact steps U, the bottom row three Trotter steps V; each row replaces one more U by V, from the right, the first step applied; neighbouring rows differ in one box, so their distance is at most the one-step error, and three such distances add">
+<rect x="60" y="30" width="56" height="34" class="fill-ground unit" stroke-width="1.5"/>
+<text x="88.0" y="52.0" font-size="13" text-anchor="middle">U(δ)</text>
+<rect x="140" y="30" width="56" height="34" class="fill-ground unit" stroke-width="1.5"/>
+<text x="168.0" y="52.0" font-size="13" text-anchor="middle">U(δ)</text>
+<rect x="220" y="30" width="56" height="34" class="fill-ground unit" stroke-width="1.5"/>
+<text x="248.0" y="52.0" font-size="13" text-anchor="middle">U(δ)</text>
+<rect x="60" y="85" width="56" height="34" class="fill-ground unit" stroke-width="1.5"/>
+<text x="88.0" y="107.0" font-size="13" text-anchor="middle">U(δ)</text>
+<rect x="140" y="85" width="56" height="34" class="fill-ground unit" stroke-width="1.5"/>
+<text x="168.0" y="107.0" font-size="13" text-anchor="middle">U(δ)</text>
+<rect x="220" y="85" width="56" height="34" class="fill-soft accent" stroke-width="2.2"/>
+<text x="248.0" y="107.0" font-size="13" text-anchor="middle">V(δ)</text>
+<text x="330.0" y="79.0" font-size="12.5" text-anchor="start">≤ ‖U(δ) − V(δ)‖</text>
+<rect x="60" y="140" width="56" height="34" class="fill-ground unit" stroke-width="1.5"/>
+<text x="88.0" y="162.0" font-size="13" text-anchor="middle">U(δ)</text>
+<rect x="140" y="140" width="56" height="34" class="fill-soft accent" stroke-width="2.2"/>
+<text x="168.0" y="162.0" font-size="13" text-anchor="middle">V(δ)</text>
+<rect x="220" y="140" width="56" height="34" class="fill-ground alt" stroke-width="1.5"/>
+<text x="248.0" y="162.0" font-size="13" text-anchor="middle">V(δ)</text>
+<text x="330.0" y="134.0" font-size="12.5" text-anchor="start">≤ ‖U(δ) − V(δ)‖</text>
+<rect x="60" y="195" width="56" height="34" class="fill-soft accent" stroke-width="2.2"/>
+<text x="88.0" y="217.0" font-size="13" text-anchor="middle">V(δ)</text>
+<rect x="140" y="195" width="56" height="34" class="fill-ground alt" stroke-width="1.5"/>
+<text x="168.0" y="217.0" font-size="13" text-anchor="middle">V(δ)</text>
+<rect x="220" y="195" width="56" height="34" class="fill-ground alt" stroke-width="1.5"/>
+<text x="248.0" y="217.0" font-size="13" text-anchor="middle">V(δ)</text>
+<text x="330.0" y="189.0" font-size="12.5" text-anchor="start">≤ ‖U(δ) − V(δ)‖</text>
+<text x="330.0" y="52.0" font-size="12.5" text-anchor="start" class="soft">= U(t)</text>
+<text x="330.0" y="235.0" font-size="12.5" text-anchor="start" class="soft">= V(δ)³</text>
+<text x="156.0" y="226.0" font-size="11.5" text-anchor="middle" class="soft">time runs right to left in the product: the rightmost step acts first</text>
+</svg>
+        <p class="cap">The hybrid argument, $r = 3$: replace one step at a time. Neighbouring rows differ in one step, so by at most the one-step error; three of them add.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the telescoping, recalled</h4>
+    <p>Unit 11: for unitaries, $\lVert U_r\cdots U_1 - V_r\cdots V_1\rVert\le\sum_k\lVert U_k - V_k\rVert$. With $W_k = U^{r-k}V^k$ (the first $k$ steps replaced),
+    $U^r - V^r = \sum_{k=1}^r(W_{k-1} - W_k)$ and $W_{k-1} - W_k = U^{r-k}(U - V)V^{k-1}$, each of norm exactly $\lVert U - V\rVert$. So $\lVert U^r - V^r\rVert\le r\lVert U - V\rVert$.</p>
+    <p><b>The Lie product formula.</b> For matrices, $\lim_{r\to\infty}(e^{X/r}e^{Y/r})^r = e^{X+Y}$ for any $X, Y$ is due to Lie (for matrix groups, 1870s);
+    Trotter extended it to operators on infinite-dimensional spaces ("On the product of semi-groups of operators", <i>Proc. AMS</i> 10,
+    545, 1959), which is why physicists say "Trotterise". The theorem here is the finite-dimensional unitary case with an explicit
+    rate.</p>
+    <p><b>Scaling, read off.</b> Doubling $t$ at fixed $r$ quadruples the bound; doubling $t$ at fixed accuracy quadruples $r$. Halving
+    $\varepsilon$ doubles $r$. For a simulation whose cost is proportional to $r$, the cost of first-order Trotter is
+    $O(\lVert[A, B]\rVert t^2/\varepsilon)$ steps. Section 3 does better in $t$ and $\varepsilon$; section 4 counts what $\lVert[A, B]\rVert$ costs in $n$.</p>
+    <p><b>The order of the factors does not matter for the bound.</b> $e^{-iBt/r}e^{-iAt/r}$ has the same guarantee, swapping the roles of $A$ and
+    $B$, since $\lVert[B, A]\rVert = \lVert[A, B]\rVert$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter · example</p>
+  <h2>Worked: one qubit, H = X + Z</h2>
+  <div class="box ex"><span class="label">worked example 2 · $t = 1$, $r = 10$, $\delta = 0.1$</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. The bound.</b> $\lVert[X, Z]\rVert = 2$, so $\ \lVert[X, Z]\rVert t^2/2r = 2/20 = 0.1$.</p>
+        <p class="small"><b>2. A distance lemma.</b> Every $M = c_0I - i\,\mathbf c\cdot\boldsymbol\sigma$ with $(c_0, \mathbf c)\in\mathbb R^4$ has $M^\dagger M = (c_0^2 + |\mathbf c|^2)I$, by $(\mathbf c\cdot\boldsymbol\sigma)^2 = |\mathbf c|^2I$ (unit 02). So $\lVert M\rVert = |(c_0, \mathbf c)|$, and the distance between two such unitaries is the Euclidean distance of their 4-vectors.</p>
+        <p class="small"><b>3. Exact.</b> $((X + Z)/\sqrt2)^2 = I$, so $U = \cos\sqrt2\,I - i\sin\sqrt2\,\tfrac{X + Z}{\sqrt2}$, with 4-vector $(0.15594, 0.69846, 0, 0.69846)$.</p>
+        <p class="small"><b>4. One step.</b> $(\cos\delta - i\sin\delta\,X)(\cos\delta - i\sin\delta\,Z)$, with $XZ = -iY$:</p>
+        $$V = c^2I - i\big[sc\,(X + Z) - s^2\,Y\big],$$
+        <p class="small">$c = \cos\delta$, $s = \sin\delta$.</p>
+      </div>
+      <div>
+        <p class="small"><b>Normalised:</b> $\cos^4\delta + 2\sin^2\delta\cos^2\delta + \sin^4\delta = (\cos^2\delta + \sin^2\delta)^2 = 1$ ✓. So $V$ is a rotation $\cos\tfrac\alpha2I - i\sin\tfrac\alpha2\,\mathbf m\cdot\boldsymbol\sigma$ with</p>
+        <p class="small">$\cos\tfrac\alpha2 = \cos^2 0.1 = 0.990033$, so $\tfrac\alpha2 = 0.141303$, and axis $\mathbf m = (0.70533, -0.07077, 0.70533)$.</p>
+        <p class="small"><b>5. Ten steps</b> turn by $10\alpha$ about the same axis: $\cos5\alpha = \cos1.41303 = 0.15711$, so $V^{10}$ has 4-vector $(0.15711, 0.69657, -0.06989, 0.69657)$.</p>
+        <p class="small"><b>6. The distance:</b> $\sqrt{0.00117^2 + 2\times0.00188^2 + 0.06989^2} = 0.0700$.</p>
+        <p class="small"><b>Check:</b> $0.0700\le0.1$ ✓. Almost all of it is the $Y$ component, the commutator's direction.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2 in full.</b> $M^\dagger = c_0I + i\,\mathbf c\cdot\boldsymbol\sigma$ (the Paulis are Hermitian, the $c$'s real), so
+    $M^\dagger M = c_0^2I + (\mathbf c\cdot\boldsymbol\sigma)^2 + ic_0\mathbf c\cdot\boldsymbol\sigma - ic_0\mathbf c\cdot\boldsymbol\sigma = (c_0^2 + |\mathbf c|^2)I$. Then $\lVert Mv\rVert^2 = \braket{v|M^\dagger M|v} = (c_0^2 + |\mathbf c|^2)\lVert v\rVert^2$. The
+    difference of two unitaries of this form is again of this form, with 4-vector the difference. (These are the unit quaternions:
+    $SU(2)$, the 3-sphere of unit 02.)</p>
+    <p><b>Step 4 in full.</b> $(\cos\delta - i\sin\delta X)(\cos\delta - i\sin\delta Z) = \cos^2\delta - i\sin\delta\cos\delta(X + Z) - \sin^2\delta\,XZ$, and
+    $-\sin^2\delta\,XZ = -\sin^2\delta(-iY) = i\sin^2\delta\,Y$. So the vector part is $(\sin\delta\cos\delta, -\sin^2\delta, \sin\delta\cos\delta) = (0.099335, -0.009967, 0.099335)$, of length
+    $\sin\tfrac\alpha2 = 0.140834$; dividing gives $\mathbf m$.</p>
+    <p><b>Step 5.</b> Powers of $\cos\tfrac\alpha2I - i\sin\tfrac\alpha2\,\mathbf m\cdot\boldsymbol\sigma = e^{-i\alpha\,\mathbf m\cdot\boldsymbol\sigma/2}$ add angles about a fixed axis. $10\times0.141303 = 1.413033$;
+    $\cos = 0.157110$, $\sin = 0.987581$, times $\mathbf m$. For $U$: $\cos\sqrt2 = 0.155944$, $\sin\sqrt2/\sqrt2 = 0.698456$.</p>
+    <p><b>Step 6.</b> Differences: $0.157110 - 0.155944 = 0.001166$; $0.696574 - 0.698456 = -0.001882$ twice; $-0.069891 - 0 = -0.069891$. Root sum of squares
+    $0.069951$. The computed value to more places is $0.06995$.</p>
+    <p><b>What the numbers say.</b> The exact and Trotterised rotations have almost the same angle ($\sqrt2 = 1.41421$ against $1.41303$) and
+    almost the same axis — except that the Trotter axis leans out of the $xz$-plane by its $Y$ component, $-\sin^2\delta/\sin\tfrac\alpha2\approx-\delta/\sqrt2$.
+    That lean, an effect of order $\delta$ per step on an axis turned through an angle of order 1, is the commutator's contribution.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter</p>
+  <h2>Many terms: count the pairs that clash</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: $L$ terms</span>
+        <p class="small">For Hermitian $H_1, \dots, H_L$ with sum $H$, and $\delta \gt 0$,</p>
+        $$\big\lVert e^{-iH\delta} - e^{-iH_1\delta}\cdots e^{-iH_L\delta}\big\rVert$$
+        $$\le\frac{\delta^2}2\sum_{j \lt k}\lVert[H_j, H_k]\rVert ,$$
+        <p class="small">so $r$ steps cost at most $\dfrac{t^2}{2r}\displaystyle\sum_{j \lt k}\lVert[H_j, H_k]\rVert$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, by induction on $L$</span>
+        <p class="small">Split $H = H_1 + R$, $R = H_2 + \cdots + H_L$. The one-step bound with $[H_1, R] = \sum_{k \gt 1}[H_1, H_k]$ gives $\tfrac{\delta^2}2\sum_{k \gt 1}\lVert[H_1, H_k]\rVert$; the induction hypothesis, inside $\lVert e^{-iH_1\delta}(\cdots)\rVert$, gives the rest. Triangle inequality. ∎</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>What the sum counts.</b> Commuting pairs contribute nothing. For a geometrically local $H$ each term clashes with $O(1)$ others, so the sum is $O(L)$ — not $O(L^2)$.</p>
+      <p class="small"><b>Check, $L = 2$:</b> the sum is the single term $\lVert[H_1, H_2]\rVert$: the one-step bound ✓.</p>
+      <p class="small"><b>Check, the chain:</b> taking all $2n - 1$ terms separately, the sum counts exactly the 14 lines of the clash figure at $n = 8$, since within each group everything commutes. Grouping into $A$ and $B$ gives $\lVert[A, B]\rVert$, which that same count bounds.</p>
+      <div class="box warn"><span class="label">the order of the terms</span>
+        <p class="small">Any fixed order works with the same bound. Different orders give different errors; the bound does not see it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>For $L = 1$ there is nothing to prove; for $L = 2$ it is the one-step bound. Suppose it holds for $L - 1$ terms. Let $R = H_2 + \cdots + H_L$
+    and $W = e^{-iH_2\delta}\cdots e^{-iH_L\delta}$. Then</p>
+    <p>$$\lVert e^{-iH\delta} - e^{-iH_1\delta}W\rVert\le\lVert e^{-iH\delta} - e^{-iH_1\delta}e^{-iR\delta}\rVert + \lVert e^{-iH_1\delta}(e^{-iR\delta} - W)\rVert .$$</p>
+    <p>The first term is at most $\tfrac{\delta^2}2\lVert[H_1, R]\rVert\le\tfrac{\delta^2}2\sum_{k\ge2}\lVert[H_1, H_k]\rVert$ by the one-step bound, $[H_1, \cdot\,]$ being linear, and the
+    triangle inequality. The second equals $\lVert e^{-iR\delta} - W\rVert$ by unitary invariance, which by the hypothesis is at most
+    $\tfrac{\delta^2}2\sum_{2\le j \lt k}\lVert[H_j, H_k]\rVert$. Adding gives every pair $j \lt k$ once. The $r$-step version follows from the hybrid argument as
+    before.</p>
+    <p><b>The chain, in both groupings.</b> As two terms $A, B$ the sum is $\lVert[A, B]\rVert$, bounded by counting on the next slide by
+    $\sum_{\text{clashing pairs}}\lVert[H_j, H_k]\rVert$. As $2n - 1$ terms in the order "all bonds, then all sites" the sum over pairs is exactly that same
+    count, since pairs inside a group commute. So the separate-terms bound equals the counted bound on the grouped one; the
+    grouped bound with the exact $\lVert[A, B]\rVert$ is sharper ($19.0$ against $28$ at $n = 8$).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · Lie–Trotter · example</p>
+  <h2>Worked: the chain's commutator, by counting</h2>
+  <div class="box ex"><span class="label">worked example 3 · $\lVert[A, B]\rVert$ for <span class="ref" data-ref="comm">the chain</span>, and a step count</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. Expand.</b> $[A, B] = Jh\sum_{i=0}^{n-2}\sum_{j=0}^{n-1}[Z_iZ_{i+1}, X_j]$ — bilinearity, the two minus signs cancelling.</p>
+        <p class="small"><b>2. Most terms vanish.</b> If $j\notin\{i, i + 1\}$ the two act on different qubits and commute.</p>
+        <p class="small"><b>3. The rest.</b> With $ZX = iY$ on the shared qubit:</p>
+        $$[Z_iZ_{i+1}, X_i] = 2Z_iX_iZ_{i+1} = 2i\,Y_iZ_{i+1},$$
+        <p class="small">and $[Z_iZ_{i+1}, X_{i+1}] = 2i\,Z_iY_{i+1}$. Each is $2i$ times a Pauli product, a unitary: norm $2$.</p>
+        <p class="small"><b>4. Count.</b> $n - 1$ bonds, two clashing sites each: $2(n - 1)$ terms. Triangle inequality:</p>
+        $$\lVert[A, B]\rVert\le4(n - 1)\,Jh .$$
+      </div>
+      <div>
+        <p class="small"><b>5. At $n = 8$, $J = h = 1$:</b> the count gives $28$. The exact norm, computed: $19.0$. The crude bound $\lVert[A, B]\rVert\le2\lVert A\rVert\lVert B\rVert = 2\cdot7\cdot8 = 112$ is four times worse — and grows like $n^2$.</p>
+        <p class="small"><b>6. Steps for accuracy $\varepsilon$.</b> $r\ge\lVert[A, B]\rVert t^2/2\varepsilon$, so with the count</p>
+        $$r\ge\frac{4(n - 1)t^2}{2\varepsilon} = \frac{2(n - 1)t^2}{\varepsilon}.$$
+        <p class="small">At $n = 8$, $t = 5$, $\varepsilon = 0.01$: $r\ge2\cdot7\cdot25/0.01 = 35{,}000$. With the exact $19.0$: $23{,}794$.</p>
+        <p class="small"><b>Check:</b> the actual smallest $r$ with error $\le0.01$, computed, is $1445$ — the bound is safe, and pessimistic.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1.</b> $[-JP, -hQ] = Jh[P, Q]$, and the commutator is linear in each slot, so $[\sum_iP_i, \sum_jQ_j] = \sum_{i,j}[P_i, Q_j]$.</p>
+    <p><b>Step 3 in full.</b> $Z_iZ_{i+1}X_i - X_iZ_iZ_{i+1} = (Z_iX_i - X_iZ_i)Z_{i+1}$, since $Z_{i+1}$ commutes with both. On qubit $i$, $ZX - XZ = iY - (-iY) = 2iY$. So
+    $[Z_iZ_{i+1}, X_i] = 2iY_iZ_{i+1}$. The same with the roles of $i$ and $i + 1$ exchanged gives $2iZ_iY_{i+1}$. Hence, for $J = h = 1$,
+    $[A, B] = 2i\sum_{i=0}^{n-2}(Y_iZ_{i+1} + Z_iY_{i+1})$.</p>
+    <p><b>The crude bound.</b> $\lVert AB - BA\rVert\le\lVert AB\rVert + \lVert BA\rVert\le2\lVert A\rVert\lVert B\rVert$, and $\lVert A\rVert = 7$ (its largest eigenvalue in modulus: all
+    neighbours agreeing), $\lVert B\rVert = 8$. This is the bound that ignores locality; it is what an analysis in terms of norms rather than
+    commutators gives, and it costs a factor $n/2$ here.</p>
+    <p><b>Why the exact norm is smaller than the count.</b> The triangle inequality adds the norms of $2(n - 1)$ Pauli products as if one
+    state could be a top eigenvector of all of them at once, aligned in phase. They do not all commute — $Y_iZ_{i+1}$ and $Z_{i}Y_{i+1}$
+    anticommute — so no state achieves it. The computed $19.035$ is $68\%$ of $28$.</p>
+    <p><b>The actual threshold.</b> Found by evaluating the exact error for each $r$ near the answer: $r = 1444$ gives $0.010000$ (just
+    above), $r = 1445$ gives $0.009993$. The true error behaves like $14.4/r$ here, against the bound's $238/r$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>The numbers, and second order</h2>
+  <p>The bound against the truth on eight spins; then a symmetric step that is second order for the same price.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · the numbers</p>
+  <h2>The chain at n = 8, measured</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><span class="ref" data-ref="table">$n = 8$, $J = h = 1$, $t = 5$</span>: $256\times256$ matrices, exact exponentials by the spectral theorem.</p>
+      <table class="dense">
+        <thead><tr><th>steps $r$</th><th>actual error</th><th>bound, $19.0$</th><th>bound, $28$</th></tr></thead>
+        <tbody>
+          <tr><td>10</td><td>1.99</td><td>23.8</td><td>35.0</td></tr>
+          <tr><td>100</td><td>0.147</td><td>2.38</td><td>3.50</td></tr>
+          <tr><td>1000</td><td>0.0144</td><td>0.238</td><td>0.350</td></tr>
+        </tbody>
+      </table>
+      <p class="small"><b>Ten steps are useless:</b> $1.99$ is nearly the largest distance two unitaries can have, $2$.</p>
+      <p class="small"><b>The $1/r$ law holds:</b> from 100 to 1000 steps the error falls by $10.2$.</p>
+      <p class="small"><b>The bound is safe and pessimistic:</b> $0.238/0.0144 = 16.5$ at 1000 steps, with the exact commutator norm.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 300" width="460" role="img" aria-label="log-log plot of error against Trotter steps from 10 to 3000 for the eight-spin chain at t = 5: the first-order error is stuck near 2 at 10 steps, then falls like 14.4 over the number of steps; the bound 238 over steps lies about sixteen times above it, and the counting bound 350 over steps above that; the Strang error falls like 252 over steps squared, reaching 0.00025 at 1000 steps">
+<line x1="64" y1="248" x2="430" y2="248" class="rule" stroke-width="1.2"/><line x1="64" y1="18" x2="64" y2="248" class="rule" stroke-width="1.2"/>
+<line x1="64.0" y1="248" x2="64.0" y2="253" class="rule"/><text x="64.0" y="267" font-size="12" text-anchor="middle" class="soft">10</text>
+<line x1="64.0" y1="18" x2="64.0" y2="248" class="rule" stroke-width="0.6" stroke-dasharray="2 4"/>
+<line x1="210.4" y1="248" x2="210.4" y2="253" class="rule"/><text x="210.4" y="267" font-size="12" text-anchor="middle" class="soft">100</text>
+<line x1="210.4" y1="18" x2="210.4" y2="248" class="rule" stroke-width="0.6" stroke-dasharray="2 4"/>
+<line x1="356.8" y1="248" x2="356.8" y2="253" class="rule"/><text x="356.8" y="267" font-size="12" text-anchor="middle" class="soft">1000</text>
+<line x1="356.8" y1="18" x2="356.8" y2="248" class="rule" stroke-width="0.6" stroke-dasharray="2 4"/>
+<line x1="59" y1="248.0" x2="64" y2="248.0" class="rule"/><text x="55" y="252.0" font-size="11.5" text-anchor="end" class="soft">10⁻⁵</text>
+<line x1="59" y1="215.1" x2="64" y2="215.1" class="rule"/><text x="55" y="219.1" font-size="11.5" text-anchor="end" class="soft">10⁻⁴</text>
+<line x1="59" y1="182.3" x2="64" y2="182.3" class="rule"/><text x="55" y="186.3" font-size="11.5" text-anchor="end" class="soft">10⁻³</text>
+<line x1="59" y1="149.4" x2="64" y2="149.4" class="rule"/><text x="55" y="153.4" font-size="11.5" text-anchor="end" class="soft">10⁻²</text>
+<line x1="59" y1="116.6" x2="64" y2="116.6" class="rule"/><text x="55" y="120.6" font-size="11.5" text-anchor="end" class="soft">10⁻¹</text>
+<line x1="59" y1="83.7" x2="64" y2="83.7" class="rule"/><text x="55" y="87.7" font-size="11.5" text-anchor="end" class="soft">1</text>
+<line x1="59" y1="50.9" x2="64" y2="50.9" class="rule"/><text x="55" y="54.9" font-size="11.5" text-anchor="end" class="soft">10</text>
+<line x1="59" y1="18.0" x2="64" y2="18.0" class="rule"/><text x="55" y="22.0" font-size="11.5" text-anchor="end" class="soft">100</text>
+<text x="247.0" y="286" font-size="12.5" text-anchor="middle" class="soft">Trotter steps</text>
+<path d="M64.0,33.0 L426.7,114.4" fill="none" class="warn" stroke-width="1.5" stroke-dasharray="2 4"/>
+<path d="M64.0,38.5 L426.7,119.9" fill="none" class="warn" stroke-width="1.8" stroke-dasharray="6 4"/>
+<path d="M64.0,73.9 L75.6,75.8 L80.7,77.1 L93.9,80.8 L101.4,83.0 L111.2,85.8 L119.7,88.3 L129.5,91.0 L138.0,93.3 L147.2,95.7 L156.7,98.2 L166.3,100.6 L175.8,102.9 L184.9,105.1 L193.8,107.2 L203.7,109.5 L212.9,111.7 L222.0,113.8 L231.3,115.9 L240.7,118.0 L249.9,120.1 L259.4,122.3 L268.7,124.4 L277.9,126.4 L287.1,128.5 L296.4,130.6 L305.7,132.7 L315.1,134.8 L324.3,136.9 L333.7,139.0 L342.9,141.1 L352.3,143.2 L361.6,145.3 L370.8,147.3 L380.2,149.4 L389.4,151.5 L398.8,153.6 L408.0,155.7 L417.4,157.8 L426.7,159.9" fill="none" class="unit" stroke-width="2.4"/>
+<path d="M64.0,74.0 L75.6,76.7 L80.7,78.5 L93.9,83.9 L101.4,87.1 L111.2,91.5 L119.7,95.3 L129.5,99.7 L138.0,103.6 L147.2,107.7 L156.7,112.1 L166.3,116.4 L175.8,120.6 L184.9,124.8 L193.8,128.7 L203.7,133.2 L212.9,137.3 L222.0,141.4 L231.3,145.6 L240.7,149.8 L249.9,153.9 L259.4,158.2 L268.7,162.4 L277.9,166.5 L287.1,170.6 L296.4,174.8 L305.7,179.0 L315.1,183.2 L324.3,187.4 L333.7,191.6 L342.9,195.7 L352.3,199.9 L361.6,204.1 L370.8,208.2 L380.2,212.4 L389.4,216.6 L398.8,220.8 L408.0,224.9 L417.4,229.1 L426.7,233.3" fill="none" class="alt" stroke-width="2.4"/>
+<circle cx="64.0" cy="73.9" r="4" class="fill-unit"/>
+<circle cx="64.0" cy="38.5" r="3.5" class="fill-warn"/>
+<circle cx="210.4" cy="111.1" r="4" class="fill-unit"/>
+<circle cx="210.4" cy="71.3" r="3.5" class="fill-warn"/>
+<circle cx="356.8" cy="144.2" r="4" class="fill-unit"/>
+<circle cx="356.8" cy="104.2" r="3.5" class="fill-warn"/>
+<circle cx="356.8" cy="201.9" r="4" class="fill-alt"/>
+<text x="382.6" y="98.0" font-size="12" class="warn halo" text-anchor="middle">bound 238/r</text>
+<text x="231.8" y="60.6" font-size="11.5" class="warn halo" text-anchor="start">counting 350/r</text>
+<text x="390.5" y="171.8" font-size="12" class="unit halo" text-anchor="middle">first order</text>
+<text x="364.8" y="217.9" font-size="12" class="alt halo">Strang 0.00025</text>
+<text x="72.0" y="89.9" font-size="12" class="unit halo">1.99</text>
+<text x="364.8" y="138.2" font-size="12" class="unit halo">0.0144</text>
+</svg>
+        <p class="cap">Error against steps, log–log. First order runs parallel to its bound, sixteen times below it. Strang's splitting, next, falls like $1/r^2$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>How the numbers were computed.</b> $A$ and $B$ built as $256\times256$ matrices from Kronecker products of Paulis (unit 03); $e^{-iHt}$,
+    $e^{-iA\delta}$, $e^{-iB\delta}$ each by diagonalising (unit 00's functional calculus); $V^r$ by repeated squaring; the operator norm of the
+    difference as its largest singular value (unit 11). The exact values: $1.9864$, $0.14680$, $0.014442$ at $r = 10, 100, 1000$; bounds $23.794$,
+    $2.3794$, $0.23794$ with $\lVert[A, B]\rVert = 19.035$.</p>
+    <p><b>Why first order runs parallel to its bound.</b> Both are $\propto1/r$ once $r$ is large; the ratio $16.5$ is the bound's slack, made of
+    two parts. The commutator's norm is a worst case over states, and the hybrid argument adds $r$ one-step errors as though each
+    pushed in the same direction. Here they do not: successive errors are rotated by the evolution between them, and partly
+    cancel.</p>
+    <p><b>Why it matters.</b> At $n = 8$ the truth can be computed, so the slack is visible and harmless. At $n = 50$ — section 1's
+    18 PB — nobody can compute the truth, and a simulation must be sized by a bound. A factor of 16 in the bound is a factor of 16
+    in the circuit. That is the case for sharper analyses (the slide <i>Higher orders, and sharper bounds</i>).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · second order</p>
+  <h2>Strang's symmetric splitting</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Strang splitting</span> (second-order product formula)</span>
+        $$S(\delta) = e^{-iA\delta/2}\,e^{-iB\delta}\,e^{-iA\delta/2}.$$
+      </div>
+      <div class="box thm"><span class="label">theorem: second order</span>
+        <p class="small">$\lVert S(\delta) - e^{-i(A+B)\delta}\rVert = O(\delta^3)$, so $r$ steps cost $O(t^3/r^2)$.</p>
+      </div>
+      <p class="small"><b>Why: the $\delta^2$ terms now agree.</b> With $a = -iA$, $b = -iB$, the $\delta^2$ coefficient of $S$ is</p>
+      $$\tfrac{a^2}8 + \tfrac{b^2}2 + \tfrac{a^2}8 + \tfrac{ab}2 + \tfrac{ba}2 + \tfrac{a^2}4 = \tfrac{(a + b)^2}2 ,$$
+      <p class="small">exactly that of $e^{(a+b)\delta}$. The remainder is bounded in the notes: per step at most $\tfrac13(\lVert A\rVert + \lVert B\rVert)^3\delta^3e^{(\lVert A\rVert + \lVert B\rVert)\delta}$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 640 190" width="640" role="img" aria-label="three timelines of three steps each. First order: A, B, A, B, A, B. Strang: A half, B, A half, then A half, B, A half, and again. Strang merged: neighbouring half steps of A combine into full steps, giving A half, B, A, B, A, B, A half: one more A layer than first order in all">
+<text x="10.0" y="37.0" font-size="12.5" text-anchor="start" class="soft">first order</text><rect x="150" y="15" width="56" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="178.0" y="36.0" font-size="13" text-anchor="middle">A</text><rect x="210" y="15" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="238.0" y="36.0" font-size="13" text-anchor="middle">B</text><rect x="270" y="15" width="56" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="298.0" y="36.0" font-size="13" text-anchor="middle">A</text><rect x="330" y="15" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="358.0" y="36.0" font-size="13" text-anchor="middle">B</text><rect x="390" y="15" width="56" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="418.0" y="36.0" font-size="13" text-anchor="middle">A</text><rect x="450" y="15" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="478.0" y="36.0" font-size="13" text-anchor="middle">B</text>
+<text x="10.0" y="97.0" font-size="12.5" text-anchor="start" class="soft">Strang</text><rect x="150" y="75" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="168.0" y="96.0" font-size="13" text-anchor="middle">A/2</text><rect x="190" y="75" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="218.0" y="96.0" font-size="13" text-anchor="middle">B</text><rect x="250" y="75" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="268.0" y="96.0" font-size="13" text-anchor="middle">A/2</text><rect x="290" y="75" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="308.0" y="96.0" font-size="13" text-anchor="middle">A/2</text><rect x="330" y="75" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="358.0" y="96.0" font-size="13" text-anchor="middle">B</text><rect x="390" y="75" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="408.0" y="96.0" font-size="13" text-anchor="middle">A/2</text><rect x="430" y="75" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="448.0" y="96.0" font-size="13" text-anchor="middle">A/2</text><rect x="470" y="75" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="498.0" y="96.0" font-size="13" text-anchor="middle">B</text><rect x="530" y="75" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="548.0" y="96.0" font-size="13" text-anchor="middle">A/2</text>
+<text x="10.0" y="157.0" font-size="12.5" text-anchor="start" class="soft">Strang, merged</text><rect x="150" y="135" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="168.0" y="156.0" font-size="13" text-anchor="middle">A/2</text><rect x="190" y="135" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="218.0" y="156.0" font-size="13" text-anchor="middle">B</text><rect x="250" y="135" width="56" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="278.0" y="156.0" font-size="13" text-anchor="middle">A</text><rect x="310" y="135" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="338.0" y="156.0" font-size="13" text-anchor="middle">B</text><rect x="370" y="135" width="56" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="398.0" y="156.0" font-size="13" text-anchor="middle">A</text><rect x="430" y="135" width="56" height="32" class="fill-ground accent" stroke-width="1.5"/><text x="458.0" y="156.0" font-size="13" text-anchor="middle">B</text><rect x="490" y="135" width="36" height="32" class="fill-ground alt" stroke-width="1.5"/><text x="508.0" y="156.0" font-size="13" text-anchor="middle">A/2</text>
+</svg>
+        <p class="cap">Three steps of each. Adjacent half-steps of $A$ merge, so $r$ Strang steps cost one $A$-layer more than $r$ first-order steps.</p>
+      </div>
+      <div class="box thm"><span class="label">the constant (cited)</span>
+        <p class="small">$\lVert S(\delta) - e^{-i(A+B)\delta}\rVert\le\dfrac{\delta^3}{12}\lVert[B, [B, A]]\rVert + \dfrac{\delta^3}{24}\lVert[A, [A, B]]\rVert$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of second order</h4>
+    <p><i>The coefficients.</i> $S(\delta) = (I + \tfrac a2\delta + \tfrac{a^2}8\delta^2 + \cdots)(I + b\delta + \tfrac{b^2}2\delta^2 + \cdots)(I + \tfrac a2\delta + \tfrac{a^2}8\delta^2 + \cdots)$. Order $\delta$:
+    $\tfrac a2 + b + \tfrac a2 = a + b$. Order $\delta^2$, taking one $\delta^2$ factor or two $\delta$ factors in order: $\tfrac{a^2}8$ (left), $\tfrac{b^2}2$ (middle),
+    $\tfrac{a^2}8$ (right), $\tfrac a2b$ (left, middle), $\tfrac a2\cdot\tfrac a2$ (left, right), $b\tfrac a2$ (middle, right). Total
+    $\tfrac{a^2}2 + \tfrac{b^2}2 + \tfrac12(ab + ba) = \tfrac12(a + b)^2$ ✓.</p>
+    <p><i>The remainder.</i> Let $\alpha = \lVert A\rVert + \lVert B\rVert$. Multiplying the three series out, $S(\delta) = \sum_{p,q,s\ge0}\frac{(a\delta/2)^p(b\delta)^q(a\delta/2)^s}{p!\,q!\,s!}$, and
+    the terms with $p + q + s\ge3$ have total norm at most $\sum_{p+q+s\ge3}\frac{(\lVert A\rVert\delta/2)^p(\lVert B\rVert\delta)^q(\lVert A\rVert\delta/2)^s}{p!\,q!\,s!} = \sum_{m\ge3}\frac{(\alpha\delta)^m}{m!}$ by
+    the multinomial theorem (the three numbers add to $\alpha\delta$). The same bound holds for the terms of degree $\ge3$ in $e^{(a+b)\delta}$, since
+    $\lVert A + B\rVert\le\alpha$. The terms of degree $\le2$ agree. So</p>
+    <p>$$\lVert S(\delta) - e^{-i(A+B)\delta}\rVert\le2\sum_{m\ge3}\frac{(\alpha\delta)^m}{m!}\le2\cdot\frac{(\alpha\delta)^3}{6}\sum_{k\ge0}\frac{(\alpha\delta)^k}{k!} = \frac{(\alpha\delta)^3e^{\alpha\delta}}3 ,$$</p>
+    <p>using $(k + 3)!\ge6\,k!$. With the hybrid argument, $r$ steps cost at most $\frac{\alpha^3t^3}{3r^2}e^{\alpha t/r}$: order $t^3/r^2$ ✓. All rearrangements are
+    of absolutely convergent series. The same argument applied to first order gives $O(t^2/r)$ again — but with $\alpha^2$ where the
+    theorem has the commutator.</p>
+    <p><b>Why the constant is cited, and what it says.</b> The remainder bound above depends on $\lVert A\rVert + \lVert B\rVert$, which for the chain is
+    $15$ at $n = 8$ and grows with $n$: true, and useless numerically. The nested-commutator bound is proved by the same method as the
+    one-step bound — differentiate, integrate twice — with more bookkeeping (Childs, Su, Tran, Wiebe and Zhu, <i>PRX</i> 11, 011020, 2021,
+    cited). For the chain the nested commutators are again sums of few local terms: counting as in worked example 3 gives
+    $\lVert[B, [B, A]]\rVert$ and $\lVert[A, [A, B]]\rVert\le16(n - 1)$ at $J = h = 1$, so the per-step error is at most $2(n - 1)\delta^3$.</p>
+    <p><b>History.</b> Strang, "On the construction and comparison of difference schemes", <i>SIAM J. Numer. Anal.</i> 5, 506 (1968), for
+    splitting partial differential equations. The same symmetric splitting is the leapfrog (Störmer–Verlet) integrator of classical
+    mechanics — see the close.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · second order · example</p>
+  <h2>Worked: Strang for X + Z</h2>
+  <div class="box ex"><span class="label">worked example 4 · $H = X + Z$, $t = 1$, $r = 10$, $A = X$, $B = Z$</span>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. Multiply</b> with unit 02's rule $(a_0 - i\mathbf a\cdot\boldsymbol\sigma)(b_0 - i\mathbf b\cdot\boldsymbol\sigma) = (a_0b_0 - \mathbf a\cdot\mathbf b) - i(a_0\mathbf b + b_0\mathbf a + \mathbf a\times\mathbf b)\cdot\boldsymbol\sigma$. Each factor: $e^{-iX\delta/2}\leftrightarrow(\cos\tfrac\delta2, \sin\tfrac\delta2\,\hat x)$, $e^{-iZ\delta}\leftrightarrow(\cos\delta, \sin\delta\,\hat z)$.</p>
+        <p class="small"><b>2. Result</b> (every product in the notes):</p>
+        $$S(\delta) = \cos^2\!\delta\,I - i\big[\sin\delta\cos\delta\,X + \sin\delta\,Z\big].$$
+        <p class="small"><b>Normalised:</b> $\cos^4\delta + \sin^2\delta\cos^2\delta + \sin^2\delta = \cos^2\delta + \sin^2\delta = 1$ ✓.</p>
+        <p class="small"><b>3. Compare with first order:</b> the same $\cos\tfrac\alpha2 = \cos^2\delta$ — the same angle — but <b>no $Y$ component</b>. The axis stays in the $xz$-plane, tilted from $(1, 0, 1)/\sqrt2$ by only $0.14^\circ$.</p>
+      </div>
+      <div>
+        <p class="small"><b>4. Ten steps</b> at $\delta = 0.1$: the axis is $(\cos\delta, 0, 1)/\sqrt{1 + \cos^2\delta} = (0.70533, 0, 0.70888)$, and the angle is worked example 2's, so</p>
+        $$S^{10}\leftrightarrow(0.15711,\ 0.69657,\ 0,\ 0.70007).$$
+        <p class="small"><b>5. Distance</b> to $U\leftrightarrow(0.15594, 0.69846, 0, 0.69846)$:</p>
+        $$\sqrt{0.00117^2 + 0.00188^2 + 0.00162^2} = 0.0027 .$$
+        <p class="small"><b>Check against first order:</b> $0.070$ at the same cost — about 25 times worse. <b>Against the cited constant:</b> $\lVert[Z, [Z, X]]\rVert = \lVert[X, [X, Z]]\rVert = 4$, so $10\times(\tfrac4{12} + \tfrac4{24})(0.1)^3 = 0.005\ge0.0027$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2, every product.</b> First $P = e^{-iZ\delta}e^{-iX\delta/2}$: $a_0 = \cos\delta$, $\mathbf a = \sin\delta\,\hat z$, $b_0 = \cos\tfrac\delta2$, $\mathbf b = \sin\tfrac\delta2\,\hat x$. Scalar:
+    $\cos\delta\cos\tfrac\delta2 - 0$. Vector: $\cos\delta\sin\tfrac\delta2\,\hat x + \cos\tfrac\delta2\sin\delta\,\hat z + \sin\delta\sin\tfrac\delta2\,(\hat z\times\hat x)$, and $\hat z\times\hat x = \hat y$. So
+    $\mathbf p = (\cos\delta\sin\tfrac\delta2,\ \sin\delta\sin\tfrac\delta2,\ \sin\delta\cos\tfrac\delta2)$.</p>
+    <p>Then $S = e^{-iX\delta/2}P$: $a_0 = \cos\tfrac\delta2$, $\mathbf a = \sin\tfrac\delta2\,\hat x$. Scalar: $\cos\tfrac\delta2\cos\delta\cos\tfrac\delta2 - \sin\tfrac\delta2\cos\delta\sin\tfrac\delta2 = \cos\delta(\cos^2\tfrac\delta2 - \sin^2\tfrac\delta2) = \cos^2\delta$.
+    Vector: $\cos\tfrac\delta2\,\mathbf p + \cos\delta\cos\tfrac\delta2\sin\tfrac\delta2\,\hat x + \sin\tfrac\delta2\,\hat x\times\mathbf p$, with $\hat x\times\mathbf p = (0, -p_z, p_y)$. Components:
+    $x$: $2\cos\delta\sin\tfrac\delta2\cos\tfrac\delta2 = \cos\delta\sin\delta$; $y$: $\cos\tfrac\delta2\sin\delta\sin\tfrac\delta2 - \sin\tfrac\delta2\sin\delta\cos\tfrac\delta2 = 0$; $z$:
+    $\sin\delta\cos^2\tfrac\delta2 + \sin\delta\sin^2\tfrac\delta2 = \sin\delta$ ✓.</p>
+    <p><b>Step 4.</b> The vector part has length $\sin\delta\sqrt{1 + \cos^2\delta} = 0.140834 = \sin\tfrac\alpha2$, as it must. Ten steps: $\cos5\alpha = 0.157110$,
+    $\sin5\alpha = 0.987581$, times the axis.</p>
+    <p><b>Step 5.</b> $0.001166$, $0.696574 - 0.698456 = -0.001882$, $0$, $0.700072 - 0.698456 = 0.001616$; root sum of squares $0.002741$. Computed
+    directly: $0.0027406$.</p>
+    <p><b>The tilt.</b> The Strang axis makes angle $\arctan(1/\cos\delta) = 45.143^\circ$ with the $x$-axis against the true $45^\circ$. Its angle error per
+    step: $\sqrt2\delta = 0.141421$ against $\tfrac\alpha2 = 0.141303$, a difference of $1.2\times10^{-4}$, of order $\delta^3$: $\cos(\sqrt2\delta) = 1 - \delta^2 + \tfrac{\delta^4}6 - \cdots$ while
+    $\cos^2\delta = 1 - \delta^2 + \tfrac{\delta^4}3 - \cdots$. First order shares that angle error; its extra error is the $Y$ lean, of order $\delta^2$ per step.</p>
+    <p><b>The nested commutators.</b> $[X, Z] = -2iY$; $[Z, -2iY] = -2i[Z, Y] = -2i(-2iX) = -4X$, norm 4; $[X, -2iY] = -2i(2iZ) = 4Z$, norm 4.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · second order</p>
+  <h2>Higher orders, and sharper bounds</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b><span class="term">Suzuki formulas</span>.</b> From Strang's $S_2 = S$, a recursion builds $S_{2k}$ with error $O(\delta^{2k+1})$ per step (Suzuki 1991, cited), using about $2\cdot5^{k-1}$ exponentials of $A$ and $B$ per step. Then $r = O(t^{1 + 1/2k}/\varepsilon^{1/2k})$.</p>
+      <p class="small"><b><span class="term">Commutator scaling</span>.</b> For a $p$-th order formula the error is at most a constant times $\tilde\alpha\,t^{p+1}/r^p$, where $\tilde\alpha$ sums the norms of the nested commutators of $p + 1$ terms (Childs, Su, Tran, Wiebe, Zhu 2021, cited). For $n$ spins with nearest-neighbour terms, $\tilde\alpha = O(n)$: total gates $O\big(n^{1+1/p}t^{1+1/p}/\varepsilon^{1/p}\big)$.</p>
+      <p class="small"><b>Beyond products.</b> <span class="term">Quantum signal processing</span> (Low and Chuang 2017) and <span class="term">qubitisation</span> (Low and Chuang 2019) reach $O\big(\lambda t + \log(1/\varepsilon)\big)$ uses of a circuit encoding $H$, $\lambda$ the sum of $|$coefficients$|$ in its Pauli expansion: optimal in both $t$ and $\varepsilon$ (cited).</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>method</th><th>steps or queries</th><th>here</th></tr></thead>
+        <tbody>
+          <tr><td>first order</td><td>$\lVert[A, B]\rVert t^2/2\varepsilon$</td><td>proved</td></tr>
+          <tr><td>Strang</td><td>$O(t^{3/2}/\varepsilon^{1/2})$</td><td>proved, constant cited</td></tr>
+          <tr><td>Suzuki, order $2k$</td><td>$O(t^{1+1/2k}/\varepsilon^{1/2k})$</td><td>named</td></tr>
+          <tr><td>qubitisation</td><td>$O(\lambda t + \log\tfrac1\varepsilon)$</td><td>named</td></tr>
+        </tbody>
+      </table>
+      <div class="box warn"><span class="label">two kinds of pessimism</span>
+        <p class="small">"Norm scaling" bounds $\lVert[A, B]\rVert$ by $2\lVert A\rVert\lVert B\rVert$: $112$ for <span class="ref" data-ref="comm">the chain</span>, growing like $n^2$. Counting commutators: $28$, like $n$. The truth: $19.0$ — and the actual error is still $16.5$ times below the bound.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Suzuki's recursion</b> (<i>J. Math. Phys.</i> 32, 400, 1991): $S_{2k}(\delta) = S_{2k-2}(u_k\delta)^2\,S_{2k-2}((1 - 4u_k)\delta)\,S_{2k-2}(u_k\delta)^2$ with
+    $u_k = 1/(4 - 4^{1/(2k-1)})$. The middle step runs backwards in time ($1 - 4u_k \lt 0$), which is why the order can rise. Each level multiplies the
+    number of stages by 5; the constants grow quickly, so in practice orders 2 and 4 are used most. Not proved here.</p>
+    <p><b>Where the step count comes from.</b> An error $C t^{p+1}/r^p\le\varepsilon$ needs $r\ge(Ct^{p+1}/\varepsilon)^{1/p} = C^{1/p}t^{1+1/p}/\varepsilon^{1/p}$. As $p$ grows the time
+    dependence approaches linear — which is optimal: one cannot simulate time $t$ with $o(t)$ effort in general (the "no fast-forwarding"
+    theorem of Berry, Ahokas, Cleve and Sanders, <i>Comm. Math. Phys.</i> 270, 359, 2007, cited).</p>
+    <p><b>Commutator scaling, precisely.</b> Childs et al. prove $\lVert S_p(t/r)^r - e^{-iHt}\rVert = O(\tilde\alpha_{\mathrm{comm}}t^{p+1}/r^p)$ with
+    $\tilde\alpha_{\mathrm{comm}} = \sum_{j_1, \dots, j_{p+1}}\lVert[H_{j_{p+1}}, \cdots[H_{j_2}, H_{j_1}]\cdots]\rVert$. For a lattice Hamiltonian each nested commutator is nonzero
+    only when the terms form a connected cluster, so the sum is $O(n)$, and the gate count $L\cdot r$ becomes $O(n\cdot n^{1/p}t^{1+1/p}/\varepsilon^{1/p})$. With
+    norms instead of commutators the same analysis gives $(nt)^{1+1/p}$ steps — $n$ times worse in the steps.</p>
+    <p><b>Qubitisation and QSP</b> work not with $e^{-iH_j\delta}$ but with a unitary that has $H/\lambda$ as a block (a "block encoding",
+    built from controlled Paulis when $H$ is a sum of Pauli products), and use a sequence of single-qubit rotations to transform its
+    eigenvalues by a polynomial approximating $e^{-i\lambda t x}$. Low and Chuang, <i>PRL</i> 118, 010501 (2017) and <i>Quantum</i> 3, 163 (2019).
+    The precise complexity is $O(\lambda t + \log(1/\varepsilon)/\log\log(1/\varepsilon))$. None of this is used later in the course.</p>
+    <p><b>Better bounds for product formulas still.</b> The error measured against a particular input state, or averaged over steps
+    that rotate each other's errors, can be far smaller than the operator-norm worst case; analyses that exploit this are an active
+    subject. For the chain at $n = 8$ they would have to account for most of the factor $16.5$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>From steps to gates</h2>
+  <p>Every Pauli-product exponential is one rotation between Cliffords. Count them, pay unit 11's price per rotation, and add the errors.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · gates · example</p>
+  <h2>Worked: the ZZ exponential from two CNOTs</h2>
+  <div class="box ex"><span class="label">worked example 5 · $e^{-i\theta Z\otimes Z} = \mathrm{CNOT}_{01}\cdot(I\otimes R_z(2\theta))\cdot\mathrm{CNOT}_{01}$</span>
+    <div class="fig">
+      <svg viewBox="0 0 520 150" width="520" role="img" aria-label="left: a two-qubit box labelled e to the minus i theta Z tensor Z on wires 0 and 1; equals; right: a CNOT with control on wire 0 and target on wire 1, then R z of 2 theta on wire 1, then the same CNOT again">
+<line x1="20" y1="45" x2="150" y2="45" class="ink" stroke-width="1.6"/>
+<line x1="20" y1="105" x2="150" y2="105" class="ink" stroke-width="1.6"/>
+<rect x="45" y="25" width="80" height="100" class="fill-ground unit" stroke-width="1.6"/>
+<text x="85.0" y="82.0" font-size="16" text-anchor="middle">e<tspan dy="-7" font-size="11">−iθ Z⊗Z</tspan></text>
+<text x="178.0" y="82.0" font-size="22" text-anchor="middle">=</text>
+<line x1="210" y1="45" x2="500" y2="45" class="ink" stroke-width="1.6"/>
+<line x1="210" y1="105" x2="500" y2="105" class="ink" stroke-width="1.6"/>
+<line x1="260" y1="45" x2="260" y2="116" class="ink" stroke-width="1.6"/><circle cx="260" cy="45" r="5" class="fill-ink"/><circle cx="260" cy="105" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="249" y1="105" x2="271" y2="105" class="ink" stroke-width="1.6"/><line x1="260" y1="94" x2="260" y2="116" class="ink" stroke-width="1.6"/>
+<rect x="318.0" y="89.0" width="74" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="355.0" y="110.0" font-size="14" text-anchor="middle">R<tspan dy="4" font-size="10">z</tspan><tspan dy="-4">(2θ)</tspan></text>
+<line x1="450" y1="45" x2="450" y2="116" class="ink" stroke-width="1.6"/><circle cx="450" cy="45" r="5" class="fill-ink"/><circle cx="450" cy="105" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="439" y1="105" x2="461" y2="105" class="ink" stroke-width="1.6"/><line x1="450" y1="94" x2="450" y2="116" class="ink" stroke-width="1.6"/>
+<text x="14.0" y="50.0" font-size="12" text-anchor="middle" class="soft">0</text>
+<text x="14.0" y="110.0" font-size="12" text-anchor="middle" class="soft">1</text>
+<text x="355.0" y="31.0" font-size="12" text-anchor="middle" class="soft">qubit 1 holds a ⊕ b here</text>
+<line x1="300" y1="53" x2="300" y2="127" class="rule" stroke-dasharray="3 3"/><line x1="410" y1="53" x2="410" y2="127" class="rule" stroke-dasharray="3 3"/>
+<text x="300.0" y="141.0" font-size="12" text-anchor="middle" class="soft">|a, a⊕b⟩</text>
+<text x="410.0" y="141.0" font-size="12" text-anchor="middle" class="soft">phase e<tspan dy="-5" font-size="9">−iθ(−1)^(a⊕b)</tspan></text>
+</svg>
+    </div>
+    <div class="cols">
+      <div>
+        <p class="small"><b>1. The left side on $\ket{ab}$.</b> $Z\otimes Z\ket{ab} = (-1)^{a\oplus b}\ket{ab}$, so by the functional calculus</p>
+        $$e^{-i\theta Z\otimes Z}\ket{ab} = e^{-i\theta(-1)^{a\oplus b}}\ket{ab}.$$
+        <p class="small"><b>2. The circuit on $\ket{ab}$,</b> gate by gate: CNOT gives $\ket{a, a\oplus b}$; $R_z(2\theta) = \mathrm{diag}(e^{-i\theta}, e^{i\theta}) = e^{-i\theta Z}$ on qubit 1 gives the phase $e^{-i\theta(-1)^{a\oplus b}}$; CNOT restores $\ket{ab}$.</p>
+      </div>
+      <div>
+        <p class="small"><b>3. As matrices,</b> in the basis $00, 01, 10, 11$: $I\otimes R_z(2\theta) = \mathrm{diag}(e^{-i\theta}, e^{i\theta}, e^{-i\theta}, e^{i\theta})$, and conjugating by CNOT swaps the last two entries:</p>
+        $$\mathrm{diag}(e^{-i\theta}, e^{i\theta}, e^{i\theta}, e^{-i\theta}) = e^{-i\theta Z\otimes Z}\ \checkmark$$
+        <p class="small"><b>Exactly</b> — not up to global phase. <b>Check, $\theta = \tfrac\pi2$:</b> both sides are $-i\,Z\otimes Z$. <b>For the chain:</b> $e^{iJ\delta Z_iZ_{i+1}}$ is $\theta = -J\delta$, so $R_z(-2J\delta)$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2, the CNOT.</b> $\mathrm{CNOT}_{01}\ket{ab} = \ket{a, a\oplus b}$ (unit 10), so as a matrix it fixes $\ket{00}, \ket{01}$ and swaps $\ket{10}\leftrightarrow\ket{11}$. A
+    diagonal matrix conjugated by a permutation matrix has its entries permuted the same way: $\mathrm{CNOT}\,D\,\mathrm{CNOT}$ is $D$ with entries 3
+    and 4 exchanged. Unitarity is automatic: a product of unitaries.</p>
+    <p><b>The check at $\theta = \pi/2$.</b> $e^{-i\frac\pi2Z\otimes Z} = \cos\tfrac\pi2I - i\sin\tfrac\pi2Z\otimes Z = -iZ\otimes Z$ (unit 00's formula, $(Z\otimes Z)^2 = I$). Circuit:
+    $R_z(\pi) = \mathrm{diag}(-i, i) = -iZ$, so the right side is $-i\,\mathrm{CNOT}(I\otimes Z)\mathrm{CNOT}$; the diagonal of $I\otimes Z$ is $(1, -1, 1, -1)$, swapped to
+    $(1, -1, -1, 1)$, which is $Z\otimes Z$ ✓.</p>
+    <p><b>Why "exactly" matters.</b> Unit 11 allowed global phases to be dropped gate by gate — but never inside a controlled gate, and
+    section 5 controls these blocks. This identity has no phase to drop.</p>
+    <p><b>A cheaper-looking alternative.</b> Some hardware has a native two-qubit $ZZ$ interaction, and then $e^{-i\theta Z\otimes Z}$ is a single
+    pulse. This deck counts in the standard gate set of units 10–11.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · gates</p>
+  <h2>Any Pauli product: change basis, compute the parity</h2>
+  <div class="fig">
+    <svg viewBox="0 0 640 200" width="640" role="img" aria-label="circuit for e to the minus i theta X tensor Y tensor Z on three wires: H on wire 0 and S dagger then H on wire 1 change basis; CNOTs from wire 0 to wire 2 and from wire 1 to wire 2 compute the parity onto wire 2; R z of 2 theta on wire 2; the two CNOTs again in reverse order; then H on wire 0 and H then S on wire 1 undo the basis change">
+<line x1="30" y1="40" x2="620" y2="40" class="ink" stroke-width="1.6"/>
+<line x1="30" y1="100" x2="620" y2="100" class="ink" stroke-width="1.6"/>
+<line x1="30" y1="160" x2="620" y2="160" class="ink" stroke-width="1.6"/>
+<text x="18.0" y="45.0" font-size="12" text-anchor="middle" class="soft">0</text>
+<text x="18.0" y="105.0" font-size="12" text-anchor="middle" class="soft">1</text>
+<text x="18.0" y="165.0" font-size="12" text-anchor="middle" class="soft">2</text>
+<rect x="53.0" y="24.0" width="34" height="32" class="fill-ground alt" stroke-width="1.6"/><text x="70.0" y="45.0" font-size="14" text-anchor="middle">H</text>
+<rect x="38.0" y="84.0" width="34" height="32" class="fill-ground alt" stroke-width="1.6"/><text x="55.0" y="105.0" font-size="14" text-anchor="middle">S†</text>
+<rect x="83.0" y="84.0" width="34" height="32" class="fill-ground alt" stroke-width="1.6"/><text x="100.0" y="105.0" font-size="14" text-anchor="middle">H</text>
+<line x1="160" y1="40" x2="160" y2="171" class="ink" stroke-width="1.6"/><circle cx="160" cy="40" r="5" class="fill-ink"/><circle cx="160" cy="160" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="149" y1="160" x2="171" y2="160" class="ink" stroke-width="1.6"/><line x1="160" y1="149" x2="160" y2="171" class="ink" stroke-width="1.6"/>
+<line x1="215" y1="100" x2="215" y2="171" class="ink" stroke-width="1.6"/><circle cx="215" cy="100" r="5" class="fill-ink"/><circle cx="215" cy="160" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="204" y1="160" x2="226" y2="160" class="ink" stroke-width="1.6"/><line x1="215" y1="149" x2="215" y2="171" class="ink" stroke-width="1.6"/>
+<rect x="283.0" y="144.0" width="74" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="320.0" y="165.0" font-size="14" text-anchor="middle">R<tspan dy="4" font-size="10">z</tspan><tspan dy="-4">(2θ)</tspan></text>
+<line x1="425" y1="100" x2="425" y2="171" class="ink" stroke-width="1.6"/><circle cx="425" cy="100" r="5" class="fill-ink"/><circle cx="425" cy="160" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="414" y1="160" x2="436" y2="160" class="ink" stroke-width="1.6"/><line x1="425" y1="149" x2="425" y2="171" class="ink" stroke-width="1.6"/>
+<line x1="480" y1="40" x2="480" y2="171" class="ink" stroke-width="1.6"/><circle cx="480" cy="40" r="5" class="fill-ink"/><circle cx="480" cy="160" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="469" y1="160" x2="491" y2="160" class="ink" stroke-width="1.6"/><line x1="480" y1="149" x2="480" y2="171" class="ink" stroke-width="1.6"/>
+<rect x="553.0" y="24.0" width="34" height="32" class="fill-ground alt" stroke-width="1.6"/><text x="570.0" y="45.0" font-size="14" text-anchor="middle">H</text>
+<rect x="523.0" y="84.0" width="34" height="32" class="fill-ground alt" stroke-width="1.6"/><text x="540.0" y="105.0" font-size="14" text-anchor="middle">H</text>
+<rect x="568.0" y="84.0" width="34" height="32" class="fill-ground alt" stroke-width="1.6"/><text x="585.0" y="105.0" font-size="14" text-anchor="middle">S</text>
+<text x="80.0" y="192.0" font-size="12" text-anchor="middle" class="soft">basis change</text>
+<text x="320.0" y="192.0" font-size="12" text-anchor="middle" class="soft">parity x₀⊕x₁⊕x₂ on wire 2</text>
+<text x="565.0" y="192.0" font-size="12" text-anchor="middle" class="soft">undo</text>
+</svg>
+    <p class="cap">$e^{-i\theta X\otimes Y\otimes Z}$: Cliffords turn each factor into $Z$, two CNOTs collect the parity onto one wire, one $z$-rotation, then everything undone.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">a <span class="term">Pauli-product rotation</span></span>
+        <p class="small">For $P = P_1\otimes\cdots\otimes P_k$, each $P_j\in\{X, Y, Z\}$: $e^{-i\theta P}$ costs <b>one</b> $R_z(2\theta)$, $2(k - 1)$ CNOTs, and at most $4k$ single-qubit Cliffords.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Proof.</b> The CNOT ladder maps $\ket x$ to $\ket{x_1, \dots, x_{k-1}, x_1\oplus\cdots\oplus x_k}$, so the circuit for $Z^{\otimes k}$ applies $e^{-i\theta(-1)^{\oplus x}}$, which is $e^{-i\theta Z^{\otimes k}}$. With $C$ the basis change ($H$ for $X$, $HS^\dagger$ for $Y$), $CPC^\dagger = Z^{\otimes k}$, and $e^{-i\theta C^\dagger MC} = C^\dagger e^{-i\theta M}C$. ∎</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The basis changes.</b> $HXH = Z$ (unit 02). For $Y$: $SXS^\dagger = Y$ (multiply out: $\mathrm{diag}(1, i)\,X\,\mathrm{diag}(1, -i)$ has entries $-i$ above and $i$ below the
+    diagonal), so $S^\dagger YS = X$ and $(HS^\dagger)Y(HS^\dagger)^\dagger = HS^\dagger YSH = HXH = Z$. In the circuit, time runs left to right, so $C = HS^\dagger$ appears as
+    $S^\dagger$ then $H$, and $C^\dagger = SH$ as $H$ then $S$.</p>
+    <p><b>The functional calculus under conjugation.</b> If $M = \sum\lambda P_\lambda$ then $C^\dagger MC = \sum\lambda\,C^\dagger P_\lambda C$, a spectral decomposition with the same
+    eigenvalues, so $f(C^\dagger MC) = C^\dagger f(M)C$. Here $P = C^\dagger Z^{\otimes k}C$, so $e^{-i\theta P} = C^\dagger e^{-i\theta Z^{\otimes k}}C$, and $C^\dagger$, applied last, is the right-hand block
+    of the figure.</p>
+    <p><b>The count.</b> $k - 1$ CNOTs compute the parity and $k - 1$ uncompute it. The basis changes cost up to two Cliffords per qubit on
+    each side, $4k$ in all. All of these are Clifford gates (unit 11); the single $R_z(2\theta)$ is the only gate that needs approximating,
+    and the only one that costs T gates.</p>
+    <p><b>Checked numerically</b> for $\theta = 0.37$: the circuit's matrix equals $e^{-i\theta X\otimes Y\otimes Z}$ to machine precision. Problem P9 asks for the
+    proof on paper.</p>
+    <p><b>Controlled versions are almost free.</b> To control $e^{-i\theta P}$ on another qubit — as section 5 must — control only the middle
+    rotation: if the control is off, the outer blocks are $C^\dagger\cdot\text{ladder}^\dagger\cdot\text{ladder}\cdot C = I$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · gates</p>
+  <h2>One Trotter step of the chain, as a circuit</h2>
+  <div class="fig">
+    <svg viewBox="0 0 700 250" width="700" role="img" aria-label="one first-order Trotter step of the four-spin chain, time running left to right: first every wire gets R x of minus 2 h delta; then the ZZ blocks, each a CNOT, an R z of minus 2 J delta and a CNOT, act on bonds 0-1 and 2-3 at the same time; then one block acts on bond 1-2">
+<line x1="30" y1="40" x2="690" y2="40" class="ink" stroke-width="1.6"/>
+<line x1="30" y1="95" x2="690" y2="95" class="ink" stroke-width="1.6"/>
+<line x1="30" y1="150" x2="690" y2="150" class="ink" stroke-width="1.6"/>
+<line x1="30" y1="205" x2="690" y2="205" class="ink" stroke-width="1.6"/>
+<text x="18.0" y="45.0" font-size="12" text-anchor="middle" class="soft">0</text>
+<text x="18.0" y="100.0" font-size="12" text-anchor="middle" class="soft">1</text>
+<text x="18.0" y="155.0" font-size="12" text-anchor="middle" class="soft">2</text>
+<text x="18.0" y="210.0" font-size="12" text-anchor="middle" class="soft">3</text>
+<rect x="43.0" y="24.0" width="84" height="32" class="fill-ground accent" stroke-width="1.6"/><text x="85.0" y="45.0" font-size="13" text-anchor="middle">R<tspan dy="4" font-size="9">x</tspan><tspan dy="-4" font-size="11">(−2hδ)</tspan></text>
+<rect x="43.0" y="79.0" width="84" height="32" class="fill-ground accent" stroke-width="1.6"/><text x="85.0" y="100.0" font-size="13" text-anchor="middle">R<tspan dy="4" font-size="9">x</tspan><tspan dy="-4" font-size="11">(−2hδ)</tspan></text>
+<rect x="43.0" y="134.0" width="84" height="32" class="fill-ground accent" stroke-width="1.6"/><text x="85.0" y="155.0" font-size="13" text-anchor="middle">R<tspan dy="4" font-size="9">x</tspan><tspan dy="-4" font-size="11">(−2hδ)</tspan></text>
+<rect x="43.0" y="189.0" width="84" height="32" class="fill-ground accent" stroke-width="1.6"/><text x="85.0" y="210.0" font-size="13" text-anchor="middle">R<tspan dy="4" font-size="9">x</tspan><tspan dy="-4" font-size="11">(−2hδ)</tspan></text>
+<line x1="170" y1="40" x2="170" y2="106" class="ink" stroke-width="1.6"/><circle cx="170" cy="40" r="5" class="fill-ink"/><circle cx="170" cy="95" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="159" y1="95" x2="181" y2="95" class="ink" stroke-width="1.6"/><line x1="170" y1="84" x2="170" y2="106" class="ink" stroke-width="1.6"/><rect x="198.0" y="79.0" width="80" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="238.0" y="100.0" font-size="13" text-anchor="middle">R<tspan dy="4" font-size="9">z</tspan><tspan dy="-4" font-size="11">(−2Jδ)</tspan></text><line x1="306" y1="40" x2="306" y2="106" class="ink" stroke-width="1.6"/><circle cx="306" cy="40" r="5" class="fill-ink"/><circle cx="306" cy="95" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="295" y1="95" x2="317" y2="95" class="ink" stroke-width="1.6"/><line x1="306" y1="84" x2="306" y2="106" class="ink" stroke-width="1.6"/>
+<line x1="170" y1="150" x2="170" y2="216" class="ink" stroke-width="1.6"/><circle cx="170" cy="150" r="5" class="fill-ink"/><circle cx="170" cy="205" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="159" y1="205" x2="181" y2="205" class="ink" stroke-width="1.6"/><line x1="170" y1="194" x2="170" y2="216" class="ink" stroke-width="1.6"/><rect x="198.0" y="189.0" width="80" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="238.0" y="210.0" font-size="13" text-anchor="middle">R<tspan dy="4" font-size="9">z</tspan><tspan dy="-4" font-size="11">(−2Jδ)</tspan></text><line x1="306" y1="150" x2="306" y2="216" class="ink" stroke-width="1.6"/><circle cx="306" cy="150" r="5" class="fill-ink"/><circle cx="306" cy="205" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="295" y1="205" x2="317" y2="205" class="ink" stroke-width="1.6"/><line x1="306" y1="194" x2="306" y2="216" class="ink" stroke-width="1.6"/>
+<line x1="370" y1="95" x2="370" y2="161" class="ink" stroke-width="1.6"/><circle cx="370" cy="95" r="5" class="fill-ink"/><circle cx="370" cy="150" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="359" y1="150" x2="381" y2="150" class="ink" stroke-width="1.6"/><line x1="370" y1="139" x2="370" y2="161" class="ink" stroke-width="1.6"/><rect x="398.0" y="134.0" width="80" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="438.0" y="155.0" font-size="13" text-anchor="middle">R<tspan dy="4" font-size="9">z</tspan><tspan dy="-4" font-size="11">(−2Jδ)</tspan></text><line x1="506" y1="95" x2="506" y2="161" class="ink" stroke-width="1.6"/><circle cx="506" cy="95" r="5" class="fill-ink"/><circle cx="506" cy="150" r="11" fill="none" class="ink" stroke-width="1.6"/><line x1="495" y1="150" x2="517" y2="150" class="ink" stroke-width="1.6"/><line x1="506" y1="139" x2="506" y2="161" class="ink" stroke-width="1.6"/>
+<line x1="140" y1="18" x2="140" y2="228" class="rule" stroke-dasharray="3 4"/>
+<line x1="338" y1="18" x2="338" y2="228" class="rule" stroke-dasharray="3 4"/>
+<line x1="538" y1="18" x2="538" y2="228" class="rule" stroke-dasharray="3 4"/>
+<text x="85.0" y="244.0" font-size="12" text-anchor="middle" class="soft">e^(−iBδ): e^(ihδ Xᵢ)</text>
+<text x="238.0" y="244.0" font-size="12" text-anchor="middle" class="soft">e^(iJδ Z₀Z₁), e^(iJδ Z₂Z₃)</text>
+<text x="438.0" y="244.0" font-size="12" text-anchor="middle" class="soft">e^(iJδ Z₁Z₂)</text>
+<text x="620.0" y="244.0" font-size="12" text-anchor="middle" class="soft">= e^(−iAδ) e^(−iBδ)</text>
+</svg>
+    <p class="cap">$n = 4$. The field layer, then the bonds in two layers: even bonds together, odd bonds together. Depth does not grow with $n$.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Per step, for $n$ spins:</b> $n - 1$ bond blocks (2 CNOTs, one $R_z$ each) and $n$ field rotations $R_x(-2h\delta) = HR_z(-2h\delta)H$:</p>
+      $$L = 2n - 1\ \text{rotations},\qquad 2(n - 1)\ \text{CNOTs}.$$
+    </div>
+    <div>
+      <p class="small"><b>For <span class="ref" data-ref="bill">the chain at $n = 8$</span>:</b> 15 rotations and 14 CNOTs per step. <b>Check, computed:</b> the product of these 13 gates' matrices at $n = 4$ equals $e^{-iA\delta}e^{-iB\delta}$ to machine precision.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Which product the circuit is.</b> Time runs left to right, so the first layer applied is the field: the circuit is
+    $e^{-iA\delta}e^{-iB\delta}$, with $e^{-iB\delta}$ acting first — exactly the Trotter step of section 2. The bond blocks commute with one another, so
+    their order inside the $A$-layer is free; grouping even and odd bonds lets non-overlapping blocks run at the same time.</p>
+    <p><b>Depth.</b> Three layers per step whatever $n$ is: field rotations, even bonds, odd bonds. Counting each bond block as depth 3
+    (CNOT, rotation, CNOT), one step has depth $1 + 3 + 3 = 7$ — independent of $n$. A simulation of $r$ steps has depth $7r$.</p>
+    <p><b>Locality pays twice.</b> Once in the commutator, which grows like $n$ rather than $n^2$; once in parallelism, since terms on
+    disjoint qubits run simultaneously.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · gates</p>
+  <h2>The bill for n = 8, t = 5</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Steps.</b> $r = 1000$: Trotter error $0.0144$, from the table.</p>
+      <p class="small"><b>Gates.</b> $1000\times15 = 15{,}000$ rotations and $1000\times14 = 14{,}000$ CNOTs.</p>
+      <p class="small"><b>Synthesis.</b> Unit 11: each rotation to accuracy $10^{-6}$ costs about $3\log_2(10^6) = 59.8$ T gates (Ross–Selinger, cited):</p>
+      $$15{,}000\times59.8 = 8.97\times10^5\approx9.0\times10^5 .$$
+      <p class="small"><b>Errors add</b> (unit 11): synthesis at most $15{,}000\times10^{-6} = 0.015$, so in all</p>
+      $$\lVert W - e^{-iHt}\rVert\le0.0144 + 0.015 = 0.029 .$$
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th></th><th>first order</th><th>Strang</th></tr></thead>
+        <tbody>
+          <tr><td>steps for error $\approx0.014$</td><td>1000</td><td>133</td></tr>
+          <tr><td>rotations</td><td>15,000</td><td>2,002</td></tr>
+          <tr><td>CNOTs</td><td>14,000</td><td>1,876</td></tr>
+          <tr><td>T gates at $10^{-6}$</td><td>$9.0\times10^5$</td><td>$1.2\times10^5$</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">the budget balanced</span>
+        <p class="small">$10^{-6}$ per rotation was chosen so the synthesis error, $0.015$, matches the Trotter error, $0.0144$: neither part is wasted.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the two errors add.</b> Let $V^r$ be the exact Trotter product and $W$ the circuit with every rotation replaced by its
+    Clifford+T approximation. Then $\lVert W - e^{-iHt}\rVert\le\lVert W - V^r\rVert + \lVert V^r - e^{-iHt}\rVert$. The second term is $0.0144$. The first is at most the sum
+    of the gate errors by the hybrid argument: $15{,}000\times10^{-6}$. CNOTs and Cliffords are exact. Global phases of the synthesised
+    rotations multiply to one global phase of the whole circuit, which is harmless here — but not in section 5.</p>
+    <p><b>The T count.</b> $\log_2(10^6) = 19.932$, times 3 is $59.79$; times $15{,}000$ is $896{,}921$. "About" because Ross–Selinger's count is
+    $3\log_2(1/\varepsilon) + O(\log\log(1/\varepsilon))$.</p>
+    <p><b>The Strang column.</b> The smallest $r$ with Strang error at most $0.0144$, computed: $133$ (error $0.01427$; at $r = 132$, $0.01449$). With
+    adjacent half-steps merged, 133 steps need 133 field layers and 134 bond layers: $133\times8 + 134\times7 = 2{,}002$ rotations and $134\times14 = 1{,}876$ CNOTs. At
+    $10^{-6}$ per rotation, $2{,}002\times59.8 = 1.20\times10^5$ T gates, with synthesis error $0.002$; one could relax the per-rotation accuracy to rebalance
+    the budget and save a little more.</p>
+    <p><b>Where the scale sits.</b> A million T gates on eight spins is small by fault-tolerant standards (unit 24 says what each costs),
+    and it is a simulation a laptop does in a second. The point is the scaling: the same circuit at $n = 50$ is about $6.6\times$ more gates
+    per step, against 18 PB of classical memory.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · gates</p>
+  <h2>Gate counts for a k-local Hamiltonian</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The recipe.</b> Write each term as a sum of Pauli products (always possible: they are a basis, unit 02 and 03) — say $L$ products in all, each on at most $k$ qubits. Per first-order step: $L$ rotations and at most $2(k - 1)L$ CNOTs.</p>
+      <p class="small"><b>The steps.</b> $r = \lceil\Lambda t^2/2\varepsilon\rceil$ with $\Lambda = \sum_{j \lt l}\lVert[H_j, H_l]\rVert$. If each term clashes with at most $c$ others and $\lVert H_j\rVert\le1$, then $\Lambda\le cL$.</p>
+      <div class="box thm"><span class="label">Lloyd (1996)</span>
+        <p class="small">A $k$-local Hamiltonian on $n$ qubits, with $L$ terms of norm $\le1$ each clashing with at most $c$ others, is simulated to accuracy $\varepsilon$ with</p>
+        $$O\!\Big(\frac{cL^2t^2}{\varepsilon}\Big)\ \text{rotations,}$$
+        <p class="small">and $O(k)$ times as many CNOTs — polynomial in $n$, $t$ and $1/\varepsilon$, since $c \lt L$. Feynman's simulator exists.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>For the chain</b>, $L = 2n - 1$ and $\Lambda\le4(n - 1)$: $O(n^2t^2/\varepsilon)$ rotations at first order.</p>
+      <div class="box ex"><span class="label">a 50-spin chain, $t = 10$, $\varepsilon = 10^{-3}$</span>
+        <p class="small">First order: $r\ge\dfrac{4\cdot49\cdot10^2}{2\cdot10^{-3}} = 9.8\times10^6$ steps; $99$ rotations each: $9.7\times10^8$ rotations.</p>
+        <p class="small">Strang, with the counted constant $2(n - 1)\delta^3$ per step: $\ 2\cdot49\cdot10^3/r^2\le10^{-3}$ gives $r\ge9{,}900$ — a thousand times fewer.</p>
+      </div>
+      <p class="small">Classically: 18 PB, and no way to check either number.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every operator is a sum of Pauli products.</b> The $4^k$ Pauli products on $k$ qubits are orthogonal in the Hilbert–Schmidt inner
+    product (unit 02 for $k = 1$; tensor products for more), so they are a basis of the operators on $k$ qubits, with real coefficients
+    for a Hermitian operator. A $k$-local term therefore becomes at most $4^k - 1$ Pauli products (dropping the identity, which only adds a
+    global phase), a constant for $k = O(1)$.</p>
+    <p><b>The bound $\Lambda\le cL$.</b> Each pair $j \lt l$ that clashes contributes $\lVert[H_j, H_l]\rVert\le2\lVert H_j\rVert\lVert H_l\rVert\le2$, and there are at most $cL/2$ such
+    pairs. Then $r\cdot L = O(cL^2t^2/\varepsilon)$: $O(L^2t^2/\varepsilon)$ for geometrically local terms, where $c = O(1)$, and never worse than $O(L^3t^2/\varepsilon)$, since $c \lt L$. The CNOT count is at most $2(k - 1)$ per rotation.</p>
+    <p><b>The 50-spin numbers.</b> $4\cdot49\cdot100 = 19{,}600$; divided by $2\times10^{-3}$: $9.8\times10^6$. Rotations per step: $2\cdot50 - 1 = 99$; total
+    $9.70\times10^8$. Strang: per-step bound $\delta^3\big(\tfrac{16(n-1)}{12} + \tfrac{16(n-1)}{24}\big) = 2(n - 1)\delta^3$ from the cited constant and the counted nested
+    commutators; over $r$ steps $2(n - 1)t^3/r^2$; solve $98\times1000/r^2\le10^{-3}$: $r\ge\sqrt{9.8\times10^7} = 9{,}899.5$, so $9{,}900$.</p>
+    <p><b>History.</b> Lloyd's 1996 paper gave the construction and the polynomial count, settling Feynman's question of whether
+    local quantum systems can be efficiently simulated by a universal quantum computer. The counts here are the textbook form of
+    his argument with commutators in place of norms (Nielsen and Chuang, §4.7).</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Energies, by phase estimation</h2>
+  <p>An energy is an eigenphase of the evolution. Unit 15 reads eigenphases. The catch is the input.</p>
+</section>
+
+<section>
+  <p class="eyebrow">19 · energies</p>
+  <h2>Energies are eigenphases of the evolution</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>From unit 01:</b> the eigenvalues of $H$ are its energies. If $H\ket E = E\ket E$, the functional calculus gives</p>
+      $$e^{-iH\tau}\ket E = e^{-iE\tau}\ket E = e^{2\pi i\varphi}\ket E ,$$
+      $$\varphi = -\frac{E\tau}{2\pi}\bmod1 .$$
+      <div class="box def"><span class="label"><span class="term">ground state</span>, <span class="term">ground energy</span></span>
+        <p class="small">An eigenvector of $H$ for its least eigenvalue $E_0$. <b>Variational principle:</b> $\braket{\psi|H|\psi} = \sum_s E_s|c_s|^2\ge E_0$ for every unit $\psi$.</p>
+      </div>
+      <p class="small"><b>Choosing $\tau$.</b> If every energy lies in $[-\lambda, \lambda]$ and $\tau \lt \pi/\lambda$, then $\varphi$ lies in $(-\tfrac12, \tfrac12)$, the map is one-to-one, and $E = -2\pi\varphi/\tau$.</p>
+      <p class="small"><b>The chain:</b> $\lambda = \sum_j\lVert H_j\rVert = 15$, so take $\tau = \pi/16$: $\ \varphi = -E/32$, and <span class="ref" data-ref="energy">$E_0 = -9.838$</span> sits at $\varphi_0 = 0.3074$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 300" width="420" role="img" aria-label="the unit circle of eigenphases; energies from minus 15 to 15 map to phases minus E over 32, an arc covering all but a small gap around one half; the ground energy minus 9.838 lands at phase 0.307, about 111 degrees round from 1; E = 0 lands at phase 0">
+<circle cx="180" cy="150" r="105" fill="none" class="rule" stroke-width="1.2"/>
+<path d="M77.0,170.5 L78.1,175.5 L79.5,180.5 L81.1,185.4 L83.0,190.2 L85.1,194.9 L87.4,199.5 L89.9,204.0 L92.7,208.3 L95.7,212.5 L98.8,216.6 L102.2,220.5 L105.8,224.2 L109.5,227.8 L113.4,231.2 L117.5,234.3 L121.7,237.3 L126.0,240.1 L130.5,242.6 L135.1,244.9 L139.8,247.0 L144.6,248.9 L149.5,250.5 L154.5,251.9 L159.5,253.0 L164.6,253.9 L169.7,254.5 L174.8,254.9 L180.0,255.0 L185.2,254.9 L190.3,254.5 L195.4,253.9 L200.5,253.0 L205.5,251.9 L210.5,250.5 L215.4,248.9 L220.2,247.0 L224.9,244.9 L229.5,242.6 L234.0,240.1 L238.3,237.3 L242.5,234.3 L246.6,231.2 L250.5,227.8 L254.2,224.2 L257.8,220.5 L261.2,216.6 L264.3,212.5 L267.3,208.3 L270.1,204.0 L272.6,199.5 L274.9,194.9 L277.0,190.2 L278.9,185.4 L280.5,180.5 L281.9,175.5 L283.0,170.5 L283.9,165.4 L284.5,160.3 L284.9,155.2 L285.0,150.0 L284.9,144.8 L284.5,139.7 L283.9,134.6 L283.0,129.5 L281.9,124.5 L280.5,119.5 L278.9,114.6 L277.0,109.8 L274.9,105.1 L272.6,100.5 L270.1,96.0 L267.3,91.7 L264.3,87.5 L261.2,83.4 L257.8,79.5 L254.2,75.8 L250.5,72.2 L246.6,68.8 L242.5,65.7 L238.3,62.7 L234.0,59.9 L229.5,57.4 L224.9,55.1 L220.2,53.0 L215.4,51.1 L210.5,49.5 L205.5,48.1 L200.5,47.0 L195.4,46.1 L190.3,45.5 L185.2,45.1 L180.0,45.0 L174.8,45.1 L169.7,45.5 L164.6,46.1 L159.5,47.0 L154.5,48.1 L149.5,49.5 L144.6,51.1 L139.8,53.0 L135.1,55.1 L130.5,57.4 L126.0,59.9 L121.7,62.7 L117.5,65.7 L113.4,68.8 L109.5,72.2 L105.8,75.8 L102.2,79.5 L98.8,83.4 L95.7,87.5 L92.7,91.7 L89.9,96.0 L87.4,100.5 L85.1,105.1 L83.0,109.8 L81.1,114.6 L79.5,119.5 L78.1,124.5 L77.0,129.5" fill="none" class="unit" stroke-width="5"/>
+<path d="M77.0,129.5 L76.6,131.5 L76.3,133.6 L76.0,135.6 L75.7,137.7 L75.5,139.7 L75.3,141.8 L75.2,143.8 L75.1,145.9 L75.0,147.9 L75.0,150.0 L75.0,152.1 L75.1,154.1 L75.2,156.2 L75.3,158.2 L75.5,160.3 L75.7,162.3 L76.0,164.4 L76.3,166.4 L76.6,168.5 L77.0,170.5" fill="none" class="warn" stroke-width="5"/>
+<circle cx="285.0" cy="150.0" r="5" class="fill-ink"/>
+<text x="295.0" y="155.0" font-size="12" text-anchor="start" class="halo">φ = 0: E = 0</text>
+<line x1="180" y1="150" x2="142.9" y2="51.8" class="accent" stroke-width="1.6"/><circle cx="142.9" cy="51.8" r="6" class="fill-accent"/>
+<text x="134.9" y="39.8" font-size="12.5" text-anchor="middle" class="accent halo">E₀ = −9.838 → φ = 0.307</text>
+<text x="57.3" y="122.4" font-size="12" text-anchor="end" class="soft">E = −15</text>
+<text x="57.3" y="185.6" font-size="12" text-anchor="end" class="soft">E = +15</text>
+<text x="57.0" y="155.0" font-size="12" text-anchor="end" class="warn">unused</text>
+<text x="315.0" y="88.0" font-size="12" text-anchor="start" class="soft">E &lt; 0</text>
+<text x="315.0" y="220.0" font-size="12" text-anchor="start" class="soft">E &gt; 0</text>
+<text x="210.0" y="292.0" font-size="12.5" text-anchor="middle" class="soft">φ = −Eτ/2π with τ = π/16: φ = −E/32</text>
+</svg>
+        <p class="cap">Energies wrapped onto the circle of eigenphases. With $\tau = \pi/16$ the whole range $[-15, 15]$ fits, leaving a gap around $\tfrac12$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The variational principle, proved.</b> Expand $\psi = \sum_sc_s\ket{E_s}$ in an orthonormal eigenbasis (spectral theorem, unit 00), $\sum|c_s|^2 = 1$.
+    Then $\braket{\psi|H|\psi} = \sum_sE_s|c_s|^2$, an average of the energies with weights summing to 1, hence at least the smallest. Equality iff $\psi$
+    lies in the $E_0$-eigenspace. This is what the check on <i>What the two terms want</i> used: $-9.838\le-8$ and $\le-7$.</p>
+    <p><b>Why $\tau \lt \pi/\lambda$.</b> Then $|E\tau|\le\lambda\tau \lt \pi$, so $-E\tau/2\pi\in(-\tfrac12, \tfrac12)$ and distinct energies give distinct phases. At
+    $\tau = \pi/\lambda$ exactly, $E = \lambda$ and $E = -\lambda$ would both land on $\tfrac12$. The bound $\lambda = \sum\lVert H_j\rVert$ is free — for a sum of
+    Pauli products it is the same $\lambda$ as qubitisation's, the sum of the coefficients' moduli — and a tighter one buys a
+    larger $\tau$ and so more resolution per counting qubit.</p>
+    <p><b>Sign.</b> With $\hbar = 1$ and evolution $e^{-iHt}$, negative energies have positive phase. Unit 15's table already listed this
+    case, with eigenphase $-E\tau/2\pi$.</p>
+    <p><b>The ground energy at $n = 8$</b> was computed by diagonalising the $256\times256$ matrix: $E_0 = -9.83795$, next $E_1 = -9.46888$, a gap of
+    $0.369$. At $n = 50$ nobody can do that, which is the point of this section.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · energies</p>
+  <h2>The circuit, and what it costs</h2>
+  <div class="fig">
+    <svg viewBox="0 0 640 250" width="640" role="img" aria-label="phase estimation for energies: three counting qubits start in 0 and get H; counting qubit 2 controls e to the minus i H tau, qubit 1 controls e to the minus i H 2 tau, qubit 0 controls e to the minus i H 4 tau, all acting on an n-qubit register prepared in psi; then the inverse QFT on the counting qubits and three meters">
+<line x1="60" y1="36" x2="520" y2="36" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="86" x2="520" y2="86" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="136" x2="520" y2="136" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="201" x2="600" y2="201" class="ink" stroke-width="1.6"/><line x1="60" y1="209" x2="600" y2="209" class="ink" stroke-width="1.6"/>
+<line x1="80" y1="217" x2="92" y2="193" class="ink" stroke-width="1.4"/>
+<text x="98.0" y="229.0" font-size="12" text-anchor="middle" class="soft">n</text>
+<text x="52.0" y="41.0" font-size="14" text-anchor="end">|0⟩</text>
+<text x="52.0" y="91.0" font-size="14" text-anchor="end">|0⟩</text>
+<text x="52.0" y="141.0" font-size="14" text-anchor="end">|0⟩</text>
+<text x="52.0" y="210.0" font-size="14" text-anchor="end">|ψ⟩</text>
+<rect x="103.0" y="20.0" width="34" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="120.0" y="41.0" font-size="14" text-anchor="middle">H</text>
+<rect x="103.0" y="70.0" width="34" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="120.0" y="91.0" font-size="14" text-anchor="middle">H</text>
+<rect x="103.0" y="120.0" width="34" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="120.0" y="141.0" font-size="14" text-anchor="middle">H</text>
+<line x1="190" y1="136" x2="190" y2="185" class="ink" stroke-width="1.6"/><circle cx="190" cy="136" r="5" class="fill-ink"/>
+<rect x="153.0" y="185.0" width="74" height="40" class="fill-ground unit" stroke-width="1.6"/><text x="190.0" y="210.0" font-size="15" text-anchor="middle">e<tspan dy="-6" font-size="10">−iHτ</tspan></text>
+<line x1="280" y1="86" x2="280" y2="185" class="ink" stroke-width="1.6"/><circle cx="280" cy="86" r="5" class="fill-ink"/>
+<rect x="243.0" y="185.0" width="74" height="40" class="fill-ground unit" stroke-width="1.6"/><text x="280.0" y="210.0" font-size="15" text-anchor="middle">e<tspan dy="-6" font-size="10">−iH2τ</tspan></text>
+<line x1="370" y1="36" x2="370" y2="185" class="ink" stroke-width="1.6"/><circle cx="370" cy="36" r="5" class="fill-ink"/>
+<rect x="333.0" y="185.0" width="74" height="40" class="fill-ground unit" stroke-width="1.6"/><text x="370.0" y="210.0" font-size="15" text-anchor="middle">e<tspan dy="-6" font-size="10">−iH4τ</tspan></text>
+<rect x="420" y="16" width="62" height="140" class="fill-ground accent" stroke-width="1.6"/>
+<text x="451.0" y="92.0" font-size="16" text-anchor="middle">F⁻¹</text>
+<rect x="513" y="20" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 519 46 A 11 11 0 0 1 541 46" fill="none" class="ink" stroke-width="1.3"/><line x1="530" y1="46" x2="539" y2="27" class="ink" stroke-width="1.3"/>
+<rect x="513" y="70" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 519 96 A 11 11 0 0 1 541 96" fill="none" class="ink" stroke-width="1.3"/><line x1="530" y1="96" x2="539" y2="77" class="ink" stroke-width="1.3"/>
+<rect x="513" y="120" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 519 146 A 11 11 0 0 1 541 146" fill="none" class="ink" stroke-width="1.3"/><line x1="530" y1="146" x2="539" y2="127" class="ink" stroke-width="1.3"/>
+<text x="560.0" y="91.0" font-size="14" text-anchor="start" class="soft">y</text>
+<text x="612.0" y="210.0" font-size="14" text-anchor="middle"></text>
+</svg>
+    <p class="cap">Unit 15's circuit with $U = e^{-iH\tau}$: counting qubit $l$ controls $U^{2^{m-1-l}} = e^{-iH\,2^{m-1-l}\tau}$, each built from Trotter steps with controlled rotations.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">a clash of letters</span>
+        <p class="small">Unit 15 wrote $t$ for the number of counting qubits. Here $t$ is time, so the counting register has $m$ qubits.</p>
+      </div>
+      <p class="small"><b>Precision.</b> The nearest $m$-bit fraction, with probability $\ge4/\pi^2$, is within $2^{-m-1}$ of $\varphi$: $|\tilde E - E|\le\dfrac{2\pi}\tau2^{-m-1}$. For the chain: $16/2^m$.</p>
+    </div>
+    <div>
+      <p class="small"><b>Cost.</b> The controlled powers simulate total time $(2^m - 1)\tau$; at $m = 11$, $2047\pi/16 = 402$ — eighty times the $t = 5$ of section 3.</p>
+      <p class="small"><b>Errors.</b> If the simulated powers are within $\eta$ in all, every outcome probability moves by at most $2\eta$ (unit 11).</p>
+      <p class="small"><b>Phases matter here:</b> a global phase on $U$ shifts every eigenphase — every energy — by the same amount.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The precision, from unit 15.</b> The $4/\pi^2$ theorem gives the integer $y^*$ nearest $2^m\varphi$ with probability at least $0.405$, and then
+    $|y^*/2^m - \varphi|\le2^{-m-1}$. Multiply by $2\pi/\tau$ to convert phase to energy. With $\tau = \pi/16$: $2\pi/\tau = 32$ and the energy error is at most
+    $32\cdot2^{-m-1} = 16/2^m$. Unit 15's second theorem gives confidence $1 - \varepsilon$ with $\lceil\log(2 + 1/2\varepsilon)\rceil$ extra counting qubits.</p>
+    <p><b>Controlling the Trotter circuit.</b> $e^{-iH2^j\tau}$ is approximated by Trotter steps; making it controlled needs each rotation
+    controlled, and nothing else, since the Clifford ladders cancel when the control is off (<i>Any Pauli product</i>, notes). A
+    controlled rotation costs two CNOTs and two rotations of half the angle in the standard construction (unit 10), so the controlled
+    simulation costs a small constant factor more.</p>
+    <p><b>Why a global phase is not harmless here.</b> $e^{-i(H + c)\tau} = e^{-ic\tau}e^{-iH\tau}$. Uncontrolled, the factor $e^{-ic\tau}$ is invisible; controlled, it is
+    a phase on the $\ket1$ branch of the counting qubit, i.e. a relative phase, which phase estimation reads as a shift of every
+    $\varphi$ by $-c\tau/2\pi$ — every energy by $c$. That is consistent: $H + c$ has energies $E + c$. Dropping an identity term in $H$, or a
+    synthesis phase, therefore shifts the reported energies, and the shift must be tracked.</p>
+    <p><b>The cost, honestly.</b> Phase estimation's precision $2^{-m}$ costs time $\propto2^m$ — unit 15's $O(1/\varepsilon)$ uses — and here each use is a
+    simulation whose cost grows with its time. Energies to many digits are expensive, and resource estimates for molecules of
+    practical interest run to very large T counts (cited, e.g. Reiher et al., <i>PNAS</i> 114, 7555, 2017).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · energies</p>
+  <h2>Reading the chain's ground energy</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Setup.</b> <span class="ref" data-ref="energy">$n = 8$</span>, $\tau = \pi/16$, $m = 11$ counting qubits. Suppose the input is the ground state itself.</p>
+      <p class="small"><b>The phase.</b> $\varphi_0 = 9.838/32 = 0.30744$, and $2^{11}\varphi_0 = 629.63$.</p>
+      <p class="small"><b>The outcome.</b> Nearest integer $y = 630$, offset $d = 0.371$, with probability (unit 15)</p>
+      $$p(630) = \frac{\sin^2(\pi d)}{4^{11}\sin^2(\pi d/2^{11})} = 0.622\ge0.405\ \checkmark$$
+      <p class="small">and its neighbours $629$, $631$ with $0.216$, $0.046$.</p>
+      <p class="small"><b>The estimate.</b> $\tilde E = -32\cdot630/2048 = -9.84375$: off by $0.0058$, inside the guaranteed $16/2^{11} = 0.0078$ ✓.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the next level is far away</span>
+        <p class="small">$E_1 = -9.469$ sits at $2^{11}\varphi_1 = 606.0$, twenty-four outcomes from 630. The energy resolution, $32/2^{11} = 0.016$, is over twenty times smaller than the gap $0.369$.</p>
+      </div>
+      <div class="box warn"><span class="label">but the input is not the ground state</span>
+        <p class="small">Preparing the ground state is the very problem being solved. What phase estimation actually receives is some state one <b>can</b> prepare — next slide.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The formula.</b> Unit 15: with $\Delta = \varphi - y/2^m$, $p(y) = \dfrac{\sin^2(\pi2^m\Delta)}{4^m\sin^2(\pi\Delta)}$. For $y = 630$, $2^m\Delta = 629.629 - 630 = -0.371$, and
+    $\sin^2(0.371\pi)/(4^{11}\sin^2(0.371\pi/2048))$ evaluates to $0.6215$. For $y = 629$, $2^m\Delta = 0.629$: $0.2164$. For $y = 631$, $2^m\Delta = -1.371$:
+    $0.0455$. The three sum to $0.883$.</p>
+    <p><b>The number itself.</b> $E_0 = -9.837951$, so $\varphi_0 = 0.3074360$ and $2048\varphi_0 = 629.6289$. $630\times32/2048 = 9.84375$; the error is
+    $0.00580$.</p>
+    <p><b>The Trotter error inside.</b> If $e^{-iH2^j\tau}$ is simulated with error $\eta_j$, the total $\eta = \sum_j\eta_j$ can shift every probability above by at
+    most $2\eta$. A total of $\eta = 0.01$ keeps $p(630)$ above $0.60$. Problem P11 sizes such a readout for one qubit.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · energies</p>
+  <h2>The catch: the input must overlap the ground state</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Unit 15:</b> on $\ket\psi = \sum_sc_s\ket{E_s}$, phase estimation behaves as if $E_s$ were drawn with probability $|c_s|^2$ and then estimated. So each run sees the ground energy with probability the <span class="term">ground-state overlap</span> $|\braket{E_0|\psi}|^2$.</p>
+      <table class="dense">
+        <thead><tr><th>input, $n = 8$</th><th>weight on $E_0$</th><th>largest weight</th></tr></thead>
+        <tbody>
+          <tr><td>$\ket{+}^{\otimes8}$</td><td>0.565</td><td>0.565 at $E_0$</td></tr>
+          <tr><td>$\ket0^{\otimes8}$</td><td>0.116</td><td>0.211 at $E_1$</td></tr>
+        </tbody>
+      </table>
+      <p class="small"><b>Normalised:</b> each input's weights, summed over all 256 eigenvectors, give $1.000$ ✓.</p>
+      <p class="small"><b>In general it can be hopeless.</b> If the true ground state were a product and a trial state matched each spin with overlap $0.9$, the overlap would be $0.9^n$: $5\times10^{-3}$ at $n = 50$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 250" width="460" role="img" aria-label="stem plot of the weights an input state puts on each energy of the eight-spin chain, energies from minus 10 to 0: the all-plus state puts 0.565 on the ground energy minus 9.838 and the rest spread thinly; the all-zero state puts only 0.116 on the ground energy and more, 0.211, on the first excited energy minus 9.469">
+<line x1="50" y1="200" x2="440" y2="200" class="rule" stroke-width="1.2"/><line x1="50" y1="20" x2="50" y2="200" class="rule" stroke-width="1.2"/>
+<line x1="68.6" y1="200" x2="68.6" y2="205" class="rule"/><text x="68.6" y="219" font-size="12" text-anchor="middle" class="soft">−10</text>
+<line x1="142.9" y1="200" x2="142.9" y2="205" class="rule"/><text x="142.9" y="219" font-size="12" text-anchor="middle" class="soft">−8</text>
+<line x1="217.1" y1="200" x2="217.1" y2="205" class="rule"/><text x="217.1" y="219" font-size="12" text-anchor="middle" class="soft">−6</text>
+<line x1="291.4" y1="200" x2="291.4" y2="205" class="rule"/><text x="291.4" y="219" font-size="12" text-anchor="middle" class="soft">−4</text>
+<line x1="365.7" y1="200" x2="365.7" y2="205" class="rule"/><text x="365.7" y="219" font-size="12" text-anchor="middle" class="soft">−2</text>
+<line x1="440.0" y1="200" x2="440.0" y2="205" class="rule"/><text x="440.0" y="219" font-size="12" text-anchor="middle" class="soft">0</text>
+<line x1="45" y1="200.0" x2="50" y2="200.0" class="rule"/><text x="41" y="204.0" font-size="12" text-anchor="end" class="soft">0</text>
+<line x1="45" y1="140.0" x2="50" y2="140.0" class="rule"/><text x="41" y="144.0" font-size="12" text-anchor="end" class="soft">0.2</text>
+<line x1="45" y1="80.0" x2="50" y2="80.0" class="rule"/><text x="41" y="84.0" font-size="12" text-anchor="end" class="soft">0.4</text>
+<line x1="45" y1="20.0" x2="50" y2="20.0" class="rule"/><text x="41" y="24.0" font-size="12" text-anchor="end" class="soft">0.6</text>
+<text x="245.0" y="238" font-size="12.5" text-anchor="middle" class="soft">energy E</text>
+<line x1="72.1" y1="200" x2="72.1" y2="30.4" class="unit" stroke-width="2.4"/><circle cx="72.1" cy="30.4" r="3.2" class="fill-unit"/>
+<line x1="126.5" y1="200" x2="126.5" y2="170.8" class="unit" stroke-width="2.4"/><circle cx="126.5" cy="170.8" r="3.2" class="fill-unit"/>
+<line x1="179.0" y1="200" x2="179.0" y2="169.1" class="unit" stroke-width="2.4"/><circle cx="179.0" cy="169.1" r="3.2" class="fill-unit"/>
+<line x1="222.6" y1="200" x2="222.6" y2="198.3" class="unit" stroke-width="2.4"/><circle cx="222.6" cy="198.3" r="3.2" class="fill-unit"/>
+<line x1="227.9" y1="200" x2="227.9" y2="179.6" class="unit" stroke-width="2.4"/><circle cx="227.9" cy="179.6" r="3.2" class="fill-unit"/>
+<line x1="271.4" y1="200" x2="271.4" y2="187.0" class="unit" stroke-width="2.4"/><circle cx="271.4" cy="187.0" r="3.2" class="fill-unit"/>
+<line x1="282.2" y1="200" x2="282.2" y2="194.5" class="unit" stroke-width="2.4"/><circle cx="282.2" cy="194.5" r="3.2" class="fill-unit"/>
+<line x1="308.2" y1="200" x2="308.2" y2="192.6" class="unit" stroke-width="2.4"/><circle cx="308.2" cy="192.6" r="3.2" class="fill-unit"/>
+<line x1="325.8" y1="200" x2="325.8" y2="198.1" class="unit" stroke-width="2.4"/><circle cx="325.8" cy="198.1" r="3.2" class="fill-unit"/>
+<line x1="337.0" y1="200" x2="337.0" y2="196.5" class="unit" stroke-width="2.4"/><circle cx="337.0" cy="196.5" r="3.2" class="fill-unit"/>
+<line x1="362.6" y1="200" x2="362.6" y2="198.6" class="unit" stroke-width="2.4"/><circle cx="362.6" cy="198.6" r="3.2" class="fill-unit"/>
+<line x1="378.3" y1="200" x2="378.3" y2="196.0" class="unit" stroke-width="2.4"/><circle cx="378.3" cy="196.0" r="3.2" class="fill-unit"/>
+<line x1="463.9" y1="200" x2="463.9" y2="198.5" class="unit" stroke-width="2.4"/><circle cx="463.9" cy="198.5" r="3.2" class="fill-unit"/>
+<line x1="77.1" y1="200" x2="77.1" y2="165.1" class="alt" stroke-width="2.4"/><circle cx="77.1" cy="165.1" r="3.2" class="fill-alt"/>
+<line x1="90.8" y1="200" x2="90.8" y2="136.7" class="alt" stroke-width="2.4"/><circle cx="90.8" cy="136.7" r="3.2" class="fill-alt"/>
+<line x1="131.5" y1="200" x2="131.5" y2="147.2" class="alt" stroke-width="2.4"/><circle cx="131.5" cy="147.2" r="3.2" class="fill-alt"/>
+<line x1="143.3" y1="200" x2="143.3" y2="190.0" class="alt" stroke-width="2.4"/><circle cx="143.3" cy="190.0" r="3.2" class="fill-alt"/>
+<line x1="180.3" y1="200" x2="180.3" y2="189.6" class="alt" stroke-width="2.4"/><circle cx="180.3" cy="189.6" r="3.2" class="fill-alt"/>
+<line x1="184.0" y1="200" x2="184.0" y2="197.6" class="alt" stroke-width="2.4"/><circle cx="184.0" cy="197.6" r="3.2" class="fill-alt"/>
+<line x1="186.9" y1="200" x2="186.9" y2="197.1" class="alt" stroke-width="2.4"/><circle cx="186.9" cy="197.1" r="3.2" class="fill-alt"/>
+<line x1="197.7" y1="200" x2="197.7" y2="164.3" class="alt" stroke-width="2.4"/><circle cx="197.7" cy="164.3" r="3.2" class="fill-alt"/>
+<line x1="217.1" y1="200" x2="217.1" y2="197.3" class="alt" stroke-width="2.4"/><circle cx="217.1" cy="197.3" r="3.2" class="fill-alt"/>
+<line x1="232.9" y1="200" x2="232.9" y2="192.4" class="alt" stroke-width="2.4"/><circle cx="232.9" cy="192.4" r="3.2" class="fill-alt"/>
+<line x1="241.3" y1="200" x2="241.3" y2="194.3" class="alt" stroke-width="2.4"/><circle cx="241.3" cy="194.3" r="3.2" class="fill-alt"/>
+<line x1="246.6" y1="200" x2="246.6" y2="196.0" class="alt" stroke-width="2.4"/><circle cx="246.6" cy="196.0" r="3.2" class="fill-alt"/>
+<line x1="276.4" y1="200" x2="276.4" y2="198.2" class="alt" stroke-width="2.4"/><circle cx="276.4" cy="198.2" r="3.2" class="fill-alt"/>
+<line x1="287.2" y1="200" x2="287.2" y2="181.9" class="alt" stroke-width="2.4"/><circle cx="287.2" cy="181.9" r="3.2" class="fill-alt"/>
+<line x1="290.1" y1="200" x2="290.1" y2="192.6" class="alt" stroke-width="2.4"/><circle cx="290.1" cy="192.6" r="3.2" class="fill-alt"/>
+<line x1="313.2" y1="200" x2="313.2" y2="198.0" class="alt" stroke-width="2.4"/><circle cx="313.2" cy="198.0" r="3.2" class="fill-alt"/>
+<line x1="324.0" y1="200" x2="324.0" y2="197.7" class="alt" stroke-width="2.4"/><circle cx="324.0" cy="197.7" r="3.2" class="fill-alt"/>
+<line x1="326.9" y1="200" x2="326.9" y2="197.9" class="alt" stroke-width="2.4"/><circle cx="326.9" cy="197.9" r="3.2" class="fill-alt"/>
+<line x1="330.8" y1="200" x2="330.8" y2="197.7" class="alt" stroke-width="2.4"/><circle cx="330.8" cy="197.7" r="3.2" class="fill-alt"/>
+<line x1="342.7" y1="200" x2="342.7" y2="197.7" class="alt" stroke-width="2.4"/><circle cx="342.7" cy="197.7" r="3.2" class="fill-alt"/>
+<line x1="355.7" y1="200" x2="355.7" y2="198.4" class="alt" stroke-width="2.4"/><circle cx="355.7" cy="198.4" r="3.2" class="fill-alt"/>
+<line x1="367.6" y1="200" x2="367.6" y2="196.7" class="alt" stroke-width="2.4"/><circle cx="367.6" cy="196.7" r="3.2" class="fill-alt"/>
+<line x1="397.0" y1="200" x2="397.0" y2="193.0" class="alt" stroke-width="2.4"/><circle cx="397.0" cy="193.0" r="3.2" class="fill-alt"/>
+<line x1="416.5" y1="200" x2="416.5" y2="198.7" class="alt" stroke-width="2.4"/><circle cx="416.5" cy="198.7" r="3.2" class="fill-alt"/>
+<line x1="523.3" y1="200" x2="523.3" y2="198.1" class="alt" stroke-width="2.4"/><circle cx="523.3" cy="198.1" r="3.2" class="fill-alt"/>
+<text x="82.6" y="34.4" font-size="12" class="unit halo">|+⟩⊗⁸: 0.565 at E₀</text>
+<text x="98.3" y="134.7" font-size="12" class="alt halo">|0⟩⊗⁸: 0.211 at E₁, 0.116 at E₀</text>
+</svg>
+        <p class="cap">What phase estimation would sample from each input, by energy. From $\ket0^{\otimes8}$ the most likely reading is not even the ground energy.</p>
+      </div>
+      <p class="small"><b>Unit 20</b> shows this is not bad luck: deciding a local Hamiltonian's ground energy is as hard as anything a quantum computer can verify.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>How to read a run.</b> From $\ket{+}^{\otimes8}$, a run returns an estimate near $E_0$ with probability at least $0.565\times0.405 = 0.229$, and in practice
+    $0.565\times0.62\approx0.35$ for the single nearest outcome. Since $E_0$ is the least energy, the smallest estimate seen over a few runs is the
+    one to keep — every eigenvalue is at least $E_0$, so no run can report something meaningfully below $E_0$, beyond the
+    phase-estimation tail.</p>
+    <p><b>Why $\ket0^{\otimes8}$ does badly.</b> The chain commutes with $\prod_iX_i$, which flips every spin; its eigenvectors split into
+    flip-symmetric and flip-antisymmetric ones. The ground state is symmetric. $\ket{0^8} = \tfrac1{\sqrt2}(\ket{\mathrm{sym}} + \ket{\mathrm{anti}})$ with
+    $\ket{\mathrm{sym}}, \ket{\mathrm{anti}}\propto\ket{0^8}\pm\ket{1^8}$, so at most half its weight can be on symmetric eigenvectors; the first excited state is the
+    antisymmetric partner of the ground state and takes $0.211$. The cat state $(\ket{0^8} + \ket{1^8})/\sqrt2$ puts $0.232$ on $E_0$ — twice $0.116$, as
+    this argument predicts.</p>
+    <p><b>The $0.9^n$ example.</b> The overlap of two product states is the product of the single-spin overlaps (unit 03), so per-spin
+    agreement $0.9$ gives $0.9^n$; $0.9^{50} = 0.0052$. For many-body ground states the decay with $n$ is typically exponential for any
+    fixed product trial state — the "orthogonality catastrophe" — which is why state preparation, by adiabatic evolution or
+    variational methods, is a subject of its own (named, not developed).</p>
+    <p><b>Forward pointer.</b> Branch unit 20 proves Kitaev's theorem: estimating the ground energy of a 5-local Hamiltonian to
+    $1/\mathrm{poly}$ accuracy is complete for the quantum analogue of NP. So no efficient method, quantum or classical, is expected to
+    prepare good ground-state approximations for every local Hamiltonian. Dynamics is easy for a quantum computer; ground
+    energies, in the worst case, are not.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">19 · close</p>
+  <h2>The chain, closed</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="tfim">the running example</span>, answered</span>
+        <p class="small"><b>$n = 8$, $t = 5$, $J = h = 1$.</b> $\lVert[A, B]\rVert\le28$ by counting ($19.0$ exactly). First order, 1000 steps: error $0.0144$ against the bound $0.238$. 15,000 rotations, 14,000 CNOTs, about $9.0\times10^5$ T gates, total error $\le0.029$. Strang reaches the same accuracy in 133 steps and about 2,000 rotations.</p>
+        <p class="small"><b>$n = 50$, $t = 10$, $\varepsilon = 10^{-3}$:</b> $9.8\times10^6$ first-order steps by the bound, about $10^4$ for Strang — against 18 PB of classical memory.</p>
+        <p class="small"><b>Energies:</b> $E_0 = -9.838$ read as $-9.844$ with 11 counting qubits — if the input overlaps the ground state.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>The bound is pessimistic by $16.5\times$ here.</b> At $n = 8$ that costs nothing; at $n = 50$ it is a factor in the circuit, which is why commutator-scaling analyses matter.</p>
+      <p class="small"><b>Dynamics is easy; ground energies are not.</b> The simulation is polynomial; the input state for phase estimation is the hard part. Unit 20 makes that a theorem.</p>
+      <p class="small"><b>The classical picture.</b> Mechanics to Relativity's unit 14 treats a Hamiltonian as generating a flow on phase space; splitting that flow into kinetic and potential steps, symmetrically, is the leapfrog integrator — Strang's splitting, one level down.</p>
+      <p class="small"><b>Read next.</b> Nielsen and Chuang §4.7; Childs et al. (2021), sections I–III, for commutator scaling.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What this unit proved.</b> The one-step bound and the $r$-step first-order bound, for two terms and for $L$; that Strang's
+    splitting is second order, with an explicit if crude constant; the CNOT–rotation–CNOT identity and its $k$-qubit generalisation;
+    the gate count for a local Hamiltonian; and the energy readout with its precision. What it cited: the nested-commutator constant
+    for Strang, Suzuki's higher orders, commutator scaling, qubitisation and QSP, Ross–Selinger's T count, and the phase transition.</p>
+    <p><b>The classical cross-reference, with its convention.</b> In Mechanics to Relativity unit 14, Hamilton's equations generate a
+    flow; for $H = T(p) + V(q)$ the flows of $T$ and $V$ alone are exactly solvable (drift and kick), and alternating them — with half
+    kicks at each end — is the Störmer–Verlet integrator, symplectic and second order for the same reason as here: the symmetric
+    product agrees with the true flow through second order. That course writes inner products linear in the first slot; nothing here
+    depends on it.</p>
+    <p><b>Reading.</b> Nielsen and Chuang, §4.7 (simulation of quantum systems), is short and matches section 2. Lloyd (1996) is two
+    pages and readable now. Childs, Su, Tran, Wiebe and Zhu, "Theory of Trotter error with commutator scaling", <i>PRX</i> 11, 011020 (2021):
+    sections I–III state the results this deck cited; skip the proofs on first reading — they need more Lie-algebra bookkeeping than
+    this course has developed, though nothing it lacks in principle. Reading on qubitisation should wait: it assumes block encodings,
+    which this course does not build.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">19 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>You prove the first-order Trotter bound and size a Trotterised Ising simulation for a target accuracy.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Concretely, on paper:</b></p>
+      <ul class="small">
+        <li>prove $\lVert e^{-i(A+B)\delta} - e^{-iA\delta}e^{-iB\delta}\rVert\le\tfrac12\lVert[A, B]\rVert\delta^2$ from $F = U^\dagger V$, its derivative and the two lemmas;</li>
+        <li>telescope it to $\lVert[A, B]\rVert t^2/2r$ for $r$ steps;</li>
+        <li>bound the chain's $\lVert[A, B]\rVert\le4(n - 1)$ by counting clashing pairs;</li>
+        <li>size the 50-spin chain at $t = 10$, $\varepsilon = 10^{-3}$: $r = 9.8\times10^6$ steps.</li>
+      </ul>
+    </div>
+    <div>
+      <p class="small"><b>You have not met it if</b> your proof leaves an $O(\delta^3)$ remainder unbounded, uses $e^{A}e^{B} = e^{A+B}$ for non-commuting $A$, $B$, or adds errors with products of norms; or if your step count is not $9.8\times10^6$.</p>
+      <p class="small">When it holds: <code>./qc done 19</code>. The problems: <code>./qc problems 19</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>A quick self-test.</b> Without notes: (1) state and prove the one-step bound in under ten lines; (2) for $n = 20$ spins,
+    $t = 4$, $\varepsilon = 10^{-2}$, compute the first-order step count from the counting bound. You should find $r\ge2\cdot19\cdot16/0.01 = 60{,}800$. Then, using
+    $3\log_2(1/\varepsilon_{\mathrm{rot}})$ T gates per rotation with the synthesis error matched to the Trotter error, estimate the T count. With
+    $39\times60{,}800 = 2{,}371{,}200$ rotations and $\varepsilon_{\mathrm{rot}} = 0.01/2{,}371{,}200 = 4.2\times10^{-9}$, each costs $3\log_2(2.37\times10^8) = 83.5$ T gates: about $2.0\times10^8$
+    in all.</p>
+  </aside>
+</section>
+
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

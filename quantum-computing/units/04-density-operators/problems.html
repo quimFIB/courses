@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 · Problems — Density operators: what a subsystem knows, and why Alice cannot signal</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="a">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part A · unit 04 · problems</p>
+<h1>Density operators: what a subsystem knows, and why Alice cannot signal</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u04">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the no-signalling theorem —
+for a local unitary and for a projective measurement whose outcome Bob is not told — from the defining
+property of the partial trace and its uniqueness; and you exhibit the HJW isometry between two given
+ensembles of the maximally mixed qubit — for \(\{\ket0, \ket1\}\) with weights \(\tfrac12\) and the trine
+with weights \(\tfrac13\), the \(3\times2\) matrix \(u\), with \(u^\dagger u = I\) checked and the relation
+verified member by member.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the first slot. \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\), \(\ket\pm = (\ket0 \pm \ket1)/\sqrt2\), \(\ket{\pm i} = (\ket0 \pm i\ket1)/\sqrt2\); \(X, Y, Z\) are
+the Pauli matrices and \(H = (X + Z)/\sqrt2\). In \(\ket{ab}\) the first symbol is qubit 0 (Alice, or \(A\)) and is
+the most significant: the order is \(00, 01, 10, 11\). A two-qubit pure state \(\sum_{i,j}C_{ij}\ket{ij}\) has
+coefficient matrix \(C\), rows indexed by \(A\). The partial trace is the unique map with
+\(\operatorname{tr}(A\operatorname{tr}_BX) = \operatorname{tr}((A\otimes I)X)\) for all \(A\), and
+\(\operatorname{tr}_BX = \sum_j(I\otimes\bra j)X(I\otimes\ket j)\); \(\ket{\Phi^+} = (\ket{00} + \ket{11})/\sqrt2\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="A superposition is not a mixture">P1</a></li>
+<li><a class="medium" href="#p2" title="The post-measurement rule, by Bayes">P2</a></li>
+<li><a class="medium" href="#p3" title="Extreme points">P3</a></li>
+<li><a class="medium" href="#p4" title="Purity bounds">P4</a></li>
+<li><a class="medium" href="#p5" title="The Bloch ball is exactly the qubit density operators">P5</a></li>
+<li><a class="routine" href="#p6" title="Uniqueness of the partial trace">P6</a></li>
+<li><a class="routine" href="#p7" title="Entangled iff mixed">P7</a></li>
+<li><a class="routine" href="#p8" title="Purify a given qubit state">P8</a></li>
+<li><a class="medium" href="#p9" title="Two purifications">P9</a></li>
+<li><a class="medium" href="#p10" title="Find the unitary relating two ensembles">P10</a></li>
+<li><a class="hard" href="#p11" title="No-signalling, both cases">P11</a></li>
+<li><a class="medium" href="#p12" title="Steering in the y basis">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Density operators</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> A superposition is not a mixture <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: an ensemble's density operator, the Born rule as a trace, purity, a computed probability</p>
+<div class="statement">
+<ol>
+<li>Write the density operators of the pure state \(\ket+\) and of source \(\mathcal Z\) (\(\ket0\) or \(\ket1\) by a fair
+coin). Give their Bloch vectors and purities.</li>
+<li>Show that a measurement in the \(z\) basis gives the same distribution on both, and find a measurement
+that tells them apart, with its probabilities.</li>
+<li>Source \(\mathcal M\) emits \(\ket0\) with probability \(0.9\) and \(\ket1\) with probability \(0.1\). Source \(\mathcal S\)
+emits the single state \(\sqrt{0.9}\ket0 + \sqrt{0.1}\ket1\) every time. Compute both density operators, and the
+probability of outcome \(+\) when each output is measured in the \(x\) basis.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer here is a \(2\times2\) matrix, or a number \(\operatorname{tr}(P\rho)\) computed from one. A superposition
+and a mixture with the same \(z\) probabilities differ only in the <strong>off-diagonal</strong> entries.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For a unit vector \(\psi = (a, b)\), \(\ket\psi\!\bra\psi = \begin{pmatrix}|a|^2&amp;a\bar b\\\bar ab&amp;|b|^2\end{pmatrix}\). For an
+ensemble, average such matrices with the weights. A measurement along \(n\) gives \(+\) with probability
+\(\tfrac12(1 + r\cdot n)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "\(\rho_{\mathcal S} = \begin{pmatrix}0.9&amp;\sqrt{0.09}\\\sqrt{0.09}&amp;0.1\end{pmatrix} =
+\begin{pmatrix}0.9&amp;0.3\\0.3&amp;0.1\end{pmatrix}\), and \(\Pr(+) = \braket{+|\rho|+} = \tfrac12(\rho_{00} + \rho_{01} + \rho_{10} + \rho_{11})\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A mixture averages the projectors and its off-diagonal entries cancel or shrink; a
+superposition keeps them. Diagonal entries are \(z\) statistics, so \(z\) cannot see the difference; any
+measurement whose projector has off-diagonal entries can.</p>
+<p><strong>1.</strong> \(\ket+\!\bra+ = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}\): Bloch vector \((1, 0, 0)\), purity \(\tfrac14\cdot4 = 1\).
+\(\rho_{\mathcal Z} = \tfrac12\ket0\!\bra0 + \tfrac12\ket1\!\bra1 = \tfrac12I\): Bloch vector \(0\), purity \(\tfrac14 + \tfrac14 = \tfrac12\).</p>
+<p><strong>2.</strong> \(\Pr(0) = \operatorname{tr}(\ket0\!\bra0\rho) = \rho_{00}\), which is \(\tfrac12\) for both; then \(\Pr(1) = \tfrac12\) for both. In the
+\(x\) basis: \(\braket{+|\rho|+}\) is \(1\) for \(\ket+\) and \(\tfrac12\) for \(\mathcal Z\); so outcome \(-\) never happens for \(\ket+\) and
+happens half the time for \(\mathcal Z\). One \(-\) proves the source is \(\mathcal Z\); many \(+\)'s in a row make \(\ket+\) overwhelmingly
+likely.</p>
+<p><strong>3.</strong> \(\rho_{\mathcal M} = 0.9\ket0\!\bra0 + 0.1\ket1\!\bra1 = \mathrm{diag}(0.9, 0.1)\). For \(\mathcal S\), with \(a = \sqrt{0.9}\), \(b = \sqrt{0.1}\),
+\(ab = \sqrt{0.09} = 0.3\), so \(\rho_{\mathcal S} = \begin{pmatrix}0.9&amp;0.3\\0.3&amp;0.1\end{pmatrix}\). Both have trace \(1\) ✓ and the same diagonal.
+Then \(\braket{+|\rho|+} = \tfrac12\sum_{j,k}\rho_{jk}\):</p>
+\[ \Pr\nolimits_{\mathcal M}(+) = \tfrac12(0.9 + 0.1) = 0.5, \qquad \Pr\nolimits_{\mathcal S}(+) = \tfrac12(0.9 + 0.3 + 0.3 + 0.1) = 0.8 . \]
+<p><strong>Check.</strong> Bloch vectors: \(\rho_{\mathcal S}\) has \(r = (2\cdot0.3, 0, 0.9 - 0.1) = (0.6, 0, 0.8)\), length \(1\) — pure ✓ — and
+\(\tfrac12(1 + r_x) = 0.8\) ✓. \(\rho_{\mathcal M}\) has \(r = (0, 0, 0.8)\), \(\tfrac12(1 + 0) = 0.5\) ✓. Purities: \(\rho_{\mathcal M}\): \(0.81 + 0.01 = 0.82\);
+\(\rho_{\mathcal S}\): \(0.81 + 0.09 + 0.09 + 0.01 = 1\) ✓. Same \(z\) statistics, different everything else.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector
+mix = DensityMatrix.mixture([0.9, 0.1], [Statevector.from_label("0"), Statevector.from_label("1")])
+pure = DensityMatrix.from_statevector(Statevector([np.sqrt(0.9), np.sqrt(0.1)]))
+plus = np.array([[1, 1], [1, 1]]) / 2
+for rho in (mix, pure):
+    print(round(rho.expectation(plus).real, 4), round(rho.purity(), 4))   # 0.5 0.82, then 0.8 1.0</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> The post-measurement rule, by Bayes <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the postulates rewritten for density operators, Bayes' rule, the non-selective rule, a purity computed</p>
+<div class="statement">
+<ol>
+<li>A source emits \(\ket{\psi_i}\) with probability \(p_i\); \(\rho = \sum_ip_i\ket{\psi_i}\!\bra{\psi_i}\). A projective measurement
+\(\{P_\lambda\}\) gives \(\lambda\). Using only unit 01's rules and Bayes' rule, show that the state afterwards is
+\(P_\lambda\rho P_\lambda/\operatorname{tr}(P_\lambda\rho)\).</li>
+<li>Take \(\rho = \tfrac12(\ket0\!\bra0 + \ket+\!\bra+)\). Measure \(z\): give both probabilities and both post-measurement states,
+and check one of them against the story "\(\ket0\) or \(\ket+\)" directly. Then give \(\Pr(+)\) for an \(x\) measurement.</li>
+<li>The same \(\rho\) is measured in \(z\) and the result is not recorded. Find the new state and its purity.</li>
+<li>Prove that a non-selective projective measurement never increases purity:
+\(\operatorname{tr}\big(\sum_\lambda P_\lambda\rho P_\lambda\big)^2 \le \operatorname{tr}\rho^2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is about a joint distribution over two things — which state the source chose, and which outcome
+occurred — and the conditional distribution of the first given the second. Part 4 is an inequality
+between two sums of traces.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: \(\Pr(i, \lambda) = p_i\lVert P_\lambda\psi_i\rVert^2\). Part 4: expand \(\operatorname{tr}\rho^2 = \operatorname{tr}\big((\sum_\lambda P_\lambda)\rho(\sum_\mu P_\mu)\rho\big)\)
+and separate the terms \(\lambda = \mu\) from the rest.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: "With \(X_{\lambda\mu} = P_\lambda\rho P_\mu\), \(\operatorname{tr}(P_\lambda\rho P_\mu\rho) = \operatorname{tr}(P_\lambda\rho P_\mu\cdot P_\mu\rho P_\lambda) = \operatorname{tr}(X_{\lambda\mu}X_{\lambda\mu}^\dagger) \ge 0\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A density operator is an average over a story; after an outcome, the story's weights
+update by Bayes and its states update by unit 01. The answer depends on the story only through \(\rho\).
+Forgetting the outcome mixes the branches, and mixing can only lower purity.</p>
+<p><strong>1.</strong> Given that the source chose \(i\), outcome \(\lambda\) has probability \(\lVert P_\lambda\psi_i\rVert^2\) and leaves
+\(P_\lambda\psi_i/\lVert P_\lambda\psi_i\rVert\) (unit 01). So \(\Pr(i, \lambda) = p_i\lVert P_\lambda\psi_i\rVert^2\), \(\Pr(\lambda) = \sum_ip_i\braket{\psi_i|P_\lambda|\psi_i} = \operatorname{tr}(P_\lambda\rho)\),
+and by Bayes \(\Pr(i\mid\lambda) = p_i\lVert P_\lambda\psi_i\rVert^2/\Pr(\lambda)\). The post-measurement ensemble has these weights and
+states; its density operator is</p>
+\[ \sum_i\frac{p_i\lVert P_\lambda\psi_i\rVert^2}{\Pr(\lambda)}\cdot\frac{P_\lambda\ket{\psi_i}\!\bra{\psi_i}P_\lambda}{\lVert P_\lambda\psi_i\rVert^2}
+= \frac{P_\lambda\rho P_\lambda}{\operatorname{tr}(P_\lambda\rho)}, \]
+<p>dropping terms with \(P_\lambda\psi_i = 0\), which have weight zero.</p>
+<p><strong>2.</strong> \(\rho = \begin{pmatrix}3/4&amp;1/4\\1/4&amp;1/4\end{pmatrix}\). \(\Pr(0) = \rho_{00} = \tfrac34\), \(\Pr(1) = \tfrac14\), sum \(1\) ✓. Post-states:
+\(P_0\rho P_0/\tfrac34 = \ket0\!\bra0\) and \(P_1\rho P_1/\tfrac14 = \ket1\!\bra1\) (\(P_0\rho P_0 = \rho_{00}\ket0\!\bra0\)). <em>From the story:</em>
+\(\Pr(0) = \tfrac12\cdot1 + \tfrac12\cdot\tfrac12 = \tfrac34\) ✓; given \(0\), the source sent \(\ket0\) with probability \(\tfrac{1/2}{3/4} = \tfrac23\) and \(\ket+\) with
+\(\tfrac13\), but either way the state is now \(\ket0\) ✓. In \(x\): \(\braket{+|\rho|+} = \tfrac12(\tfrac34 + \tfrac14 + \tfrac14 + \tfrac14) = \tfrac34\).</p>
+<p><strong>3.</strong> \(P_0\rho P_0 + P_1\rho P_1 = \mathrm{diag}(\tfrac34, \tfrac14)\): the off-diagonal entries are erased. Purity
+\(\tfrac9{16} + \tfrac1{16} = \tfrac58 = 0.625\), down from \(\tfrac34\).</p>
+<p><strong>4.</strong> Let \(\rho' = \sum_\lambda P_\lambda\rho P_\lambda\). Using \(\sum_\lambda P_\lambda = I\),
+\(\operatorname{tr}\rho^2 = \sum_{\lambda,\mu}\operatorname{tr}(P_\lambda\rho P_\mu\rho)\). Each term is \(\operatorname{tr}(X_{\lambda\mu}X_{\lambda\mu}^\dagger) \ge 0\) with
+\(X_{\lambda\mu} = P_\lambda\rho P_\mu\), by cyclicity and \(P_\mu^2 = P_\mu\), since \(X_{\lambda\mu}^\dagger = P_\mu\rho P_\lambda\) (\(\rho\), \(P\) Hermitian). The diagonal terms
+are \(\sum_\lambda\operatorname{tr}(P_\lambda\rho P_\lambda\rho) = \sum_\lambda\operatorname{tr}(P_\lambda\rho P_\lambda\cdot P_\lambda\rho P_\lambda) = \operatorname{tr}\rho'^2\), because \(P_\lambda\rho P_\lambda\cdot P_\mu\rho P_\mu = 0\) for \(\lambda \ne \mu\).
+So \(\operatorname{tr}\rho^2 = \operatorname{tr}\rho'^2 + \sum_{\lambda\ne\mu}\operatorname{tr}(X_{\lambda\mu}X_{\lambda\mu}^\dagger) \ge \operatorname{tr}\rho'^2\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> Part 3 against part 4: the dropped terms are \(\lambda \ne \mu\), i.e. \(|\rho_{01}|^2 + |\rho_{10}|^2 = \tfrac1{16} + \tfrac1{16} = \tfrac18\),
+and \(\tfrac34 - \tfrac18 = \tfrac58\) ✓. Pure case: \(\rho = \ket\psi\!\bra\psi\) gives \(\ket{P_\lambda\psi}\!\bra{P_\lambda\psi}/\lVert P_\lambda\psi\rVert^2\), unit 01's rule ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Extreme points <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: convexity, the kernel of a positive operator, the spectral decomposition, many decompositions of one state</p>
+<div class="statement">
+<ol>
+<li>Prove that the density operators on \(H\) form a convex set.</li>
+<li>Prove that every pure state \(\ket\psi\!\bra\psi\) is an extreme point: if \(\ket\psi\!\bra\psi = t\sigma + (1 - t)\tau\) with
+\(0 &lt; t &lt; 1\) and \(\sigma, \tau\) density operators, then \(\sigma = \tau = \ket\psi\!\bra\psi\).</li>
+<li>Prove that no mixed state is an extreme point.</li>
+<li>For \(\rho = \mathrm{diag}(\tfrac23, \tfrac13)\), find two different ways to write \(\rho = \tfrac12\ket{\psi_1}\!\bra{\psi_1} + \tfrac12\ket{\psi_2}\!\bra{\psi_2}\)
+with unit vectors \(\psi_1, \psi_2\), and explain on the Bloch ball why there are infinitely many.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 2 is about what positivity forces when a quadratic form vanishes; part 3 needs one explicit
+decomposition; part 4 is a centre-of-mass problem on the sphere.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 2: test the equation on vectors \(v \perp \psi\). If \(\sigma \ge 0\) and \(\braket{v|\sigma|v} = 0\), then \(\sigma v = 0\) (write
+\(\sigma\) in its eigenbasis). Part 4: two points of the unit sphere with midpoint \(r = (0, 0, \tfrac13)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: "The Bloch vector of \(\rho\) is \((0, 0, \tfrac23 - \tfrac13) = (0, 0, \tfrac13)\), so I need \(r_1 + r_2 = (0, 0, \tfrac23)\) with
+\(|r_1| = |r_2| = 1\): \(r_{1,2} = (\pm a, \pm b, \tfrac13)\) with \(a^2 + b^2 = \tfrac89\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Mixing is a chord; a pure state's support is one line, and a positive operator that
+vanishes on the complement of that line is a multiple of its projector. A mixed state has at least two
+eigenvectors with positive weight, which splits it. Inside the ball, chords through a point are plentiful.</p>
+<p><strong>1.</strong> For \(v\): \(\braket{v|(t\sigma + (1 - t)\tau)v} = t\braket{v|\sigma v} + (1 - t)\braket{v|\tau v} \ge 0\), and the trace is
+\(t + (1 - t) = 1\).</p>
+<p><strong>2.</strong> For \(v \perp \psi\): \(0 = \braket{v|\psi}\braket{\psi|v} = t\braket{v|\sigma|v} + (1 - t)\braket{v|\tau|v}\), a sum of two non-negative
+terms with positive coefficients, so \(\braket{v|\sigma|v} = 0\). With \(\sigma = \sum_k\mu_k\ket{g_k}\!\bra{g_k}\), \(\mu_k \ge 0\):
+\(0 = \sum\mu_k|\braket{g_k|v}|^2\) forces \(\braket{g_k|v} = 0\) whenever \(\mu_k &gt; 0\), so \(\sigma v = \sum\mu_k\braket{g_k|v}g_k = 0\). Thus
+\(\sigma\) kills \(\psi^\perp\). Being Hermitian, it maps \(\mathbb C\psi\) into \((\ker\sigma)^\perp \subseteq (\psi^\perp)^\perp = \mathbb C\psi\), so
+\(\sigma = c\ket\psi\!\bra\psi\); trace one gives \(c = 1\). Likewise \(\tau\). \(\blacksquare\)</p>
+<p><strong>3.</strong> A mixed \(\rho\) has rank \(\ge 2\), so eigenvalues \(\lambda_1, \lambda_2 &gt; 0\) with \(\lambda_1 &lt; 1\). Then
+\(\rho = \lambda_1\ket{e_1}\!\bra{e_1} + (1 - \lambda_1)\sigma\) with \(\sigma = (1 - \lambda_1)^{-1}\sum_{k\ge2}\lambda_k\ket{e_k}\!\bra{e_k}\), a density operator with
+\(\sigma e_1 = 0\), so \(\sigma \ne \ket{e_1}\!\bra{e_1}\). Not extreme. \(\blacksquare\)</p>
+<p><strong>4.</strong> Bloch vector \(r = (0, 0, \tfrac13)\). Take \(r_{1,2} = (\pm\tfrac{2\sqrt2}3, 0, \tfrac13)\): lengths \(\tfrac89 + \tfrac19 = 1\) ✓, midpoint \(r\) ✓. The
+polar angle has \(\cos\theta = \tfrac13\), so \(\cos^2\tfrac\theta2 = \tfrac12(1 + \tfrac13) = \tfrac23\):</p>
+\[ \ket{\psi_{1,2}} = \sqrt{\tfrac23}\,\ket0 \pm \sqrt{\tfrac13}\,\ket1 . \]
+<p>A second way: rotate the chord about the \(z\) axis by \(90^\circ\), \(r_{1,2} = (0, \pm\tfrac{2\sqrt2}3, \tfrac13)\), giving
+\(\ket{\psi_{1,2}} = \sqrt{\tfrac23}\ket0 \pm i\sqrt{\tfrac13}\ket1\). Any rotation angle \(\varphi\) works — \(\sqrt{\tfrac23}\ket0 \pm e^{i\varphi}\sqrt{\tfrac13}\ket1\) — one
+decomposition for each chord through \(r\) whose midpoint is \(r\): infinitely many.</p>
+<p><strong>Check.</strong> \(\tfrac12\sum_\pm\begin{pmatrix}\tfrac23&amp;\pm\tfrac{\sqrt2}3e^{-i\varphi}\\\pm\tfrac{\sqrt2}3e^{i\varphi}&amp;\tfrac13\end{pmatrix} = \mathrm{diag}(\tfrac23, \tfrac13)\) ✓ — the
+off-diagonal entries cancel for every \(\varphi\). The eigen-ensemble \(\{\tfrac23, \ket0;\ \tfrac13, \ket1\}\) is a third story, with unequal weights.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Purity bounds <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: eigenvalue inequalities, purity of a reduced state, determinants of coefficient matrices, a computed number</p>
+<div class="statement">
+<ol>
+<li>Prove that every density operator on \(\mathbb C^d\) has \(1/d \le \operatorname{tr}\rho^2 \le 1\), with equality on the right
+exactly for pure states and on the left exactly for \(I/d\).</li>
+<li>For a qubit, show \(\operatorname{tr}\rho^2 = 1 - 2\det\rho\).</li>
+<li>For a pure two-qubit state with coefficient matrix \(C\), show \(\det\rho_A = |\det C|^2\), so
+\(\operatorname{tr}\rho_A^2 = 1 - 2|\det C|^2\).</li>
+<li>Compute \(\operatorname{tr}\rho_A^2\) for unit 03's state \(\tfrac1{\sqrt3}(\ket{00} + \ket{01} + \ket{10})\), and check it against unit 03's
+Schmidt coefficients, whose squares are \(\tfrac{3\pm\sqrt5}6\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything is about the eigenvalues \(\lambda_k\): non-negative, summing to one. Purity is \(\sum\lambda_k^2\); the
+determinant is \(\prod\lambda_k\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: compare \(\lambda_k^2\) with \(\lambda_k\), and use Cauchy–Schwarz on the vectors \((\lambda_k)\) and \((1, \dots, 1)\).
+Part 2: \((\lambda_1 + \lambda_2)^2\). Part 3: \(\rho_A = CC^\dagger\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: "\(C = \tfrac1{\sqrt3}\begin{pmatrix}1&amp;1\\1&amp;0\end{pmatrix}\), so \(\det C = \tfrac13(0 - 1) = -\tfrac13\) and
+\(|\det C|^2 = \tfrac19\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Purity is a function of the spectrum, which lives in the probability simplex: largest at the
+corners, smallest at the centre. For two qubits, the determinant of the coefficient matrix measures
+entanglement and fixes the purity of either half.</p>
+<p><strong>1.</strong> \(0 \le \lambda_k \le 1\) gives \(\lambda_k^2 \le \lambda_k\), so \(\sum\lambda_k^2 \le \sum\lambda_k = 1\), with equality iff each
+\(\lambda_k^2 = \lambda_k\), i.e. \(\lambda_k \in \{0, 1\}\); summing to one, exactly one is \(1\): \(\rho = \ket{e}\!\bra{e}\), pure. Conversely a pure
+state has eigenvalues \(1, 0, \dots, 0\). Lower bound: Cauchy–Schwarz in \(\mathbb R^d\),
+\(1 = (\sum_k\lambda_k\cdot1)^2 \le (\sum_k\lambda_k^2)(\sum_k1^2) = d\sum_k\lambda_k^2\), with equality iff \((\lambda_k)\) is parallel to \((1, \dots, 1)\), i.e. all
+\(\lambda_k = 1/d\), i.e. \(\rho = I/d\) (the spectral decomposition is then \(\tfrac1d\sum\ket{e_k}\!\bra{e_k} = I/d\)). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\lambda_1^2 + \lambda_2^2 = (\lambda_1 + \lambda_2)^2 - 2\lambda_1\lambda_2 = 1 - 2\det\rho\).</p>
+<p><strong>3.</strong> \(\det\rho_A = \det(CC^\dagger) = \det C\cdot\det C^\dagger = \det C\cdot\overline{\det C} = |\det C|^2\), using
+\(\det C^\dagger = \overline{\det C}\) (transpose does not change a determinant; conjugating every entry conjugates it). With part 2,
+\(\operatorname{tr}\rho_A^2 = 1 - 2|\det C|^2\).</p>
+<p><strong>4.</strong> \(|\det C|^2 = \tfrac19\), so \(\operatorname{tr}\rho_A^2 = 1 - \tfrac29 = \tfrac79 \approx 0.7778\).</p>
+<p><strong>Check.</strong> From the Schmidt coefficients: \(\big(\tfrac{3 + \sqrt5}6\big)^2 + \big(\tfrac{3 - \sqrt5}6\big)^2 = \tfrac{(14 + 6\sqrt5) + (14 - 6\sqrt5)}{36} = \tfrac{28}{36} = \tfrac79\) ✓.
+From the matrix: \(\rho_A = \tfrac13\begin{pmatrix}2&amp;1\\1&amp;1\end{pmatrix}\), and the sum of squared entries is \(\tfrac{4 + 1 + 1 + 1}9 = \tfrac79\) ✓. Bounds:
+\(\tfrac12 \le \tfrac79 \le 1\) ✓; the state is entangled but not maximally. Limits: a product has \(\det C = 0\), purity \(1\); \(\ket{\Phi^+}\) has
+\(\det C = \tfrac12\), purity \(1 - \tfrac12 = \tfrac12\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector
+psi = Statevector(np.array([1, 1, 1, 0]) / np.sqrt(3))
+rhoA = DensityMatrix.from_statevector(psi).partial_trace([0])
+print(np.round(3 * rhoA.matrix.real, 6))       # [[2, 1], [1, 1]]
+print(round(rhoA.purity(), 4), round(7 / 9, 4)) # 0.7778 0.7778</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">The Bloch ball</h2>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> The Bloch ball is exactly the qubit density operators <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Pauli basis, positivity through the spectrum, a two-sided set equality, a determinant criterion</p>
+<div class="statement">
+<p>Let \(\mathcal B = \{\tfrac12(I + r\cdot\sigma) : r \in \mathbb R^3,\ |r| \le 1\}\) and let \(\mathcal D\) be the set of density operators
+on \(\mathbb C^2\).</p>
+<ol>
+<li>Prove \(\mathcal B \subseteq \mathcal D\).</li>
+<li>Prove \(\mathcal D \subseteq \mathcal B\).</li>
+<li>Show that \(\det\tfrac12(I + r\cdot\sigma) = \tfrac14(1 - |r|^2)\), and deduce: a Hermitian \(2\times2\) matrix of trace one is a
+density operator iff its determinant is \(\ge 0\). Why does this test fail for \(3\times3\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Both inclusions come down to one fact: the eigenvalues of \(\tfrac12(I + r\cdot\sigma)\). For the second inclusion you
+also need that every trace-one Hermitian matrix has that form.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Compute \((r\cdot\sigma)^2\) using \(\sigma_j\sigma_k + \sigma_k\sigma_j = 2\delta_{jk}I\). And \(\{I, X, Y, Z\}\) is a basis of \(2\times2\) matrices in
+which the Hermitian ones have real coefficients (unit 02).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "\((r\cdot\sigma)^2 = \sum_{j,k}r_jr_k\sigma_j\sigma_k = \tfrac12\sum_{j,k}r_jr_k(\sigma_j\sigma_k + \sigma_k\sigma_j) = |r|^2I\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(r\cdot\sigma\) squares to \(|r|^2I\) and is traceless, so its eigenvalues are \(\pm|r|\); everything follows.</p>
+<p><strong>Lemma.</strong> \((r\cdot\sigma)^2 = |r|^2I\) (rung 3: the symmetric sum, since \(r_jr_k\) is symmetric). So any eigenvalue \(\mu\) of
+\(r\cdot\sigma\) has \(\mu^2 = |r|^2\). \(r\cdot\sigma\) is Hermitian (real combination of Hermitian matrices) and traceless, so for
+\(r \ne 0\) its two eigenvalues are \(+|r|\) and \(-|r|\); hence \(\tfrac12(I + r\cdot\sigma)\) has eigenvalues \(\tfrac12(1 \pm |r|)\) (also true at
+\(r = 0\)).</p>
+<p><strong>1.</strong> For \(|r| \le 1\): \(\tfrac12(I + r\cdot\sigma)\) is Hermitian with eigenvalues \(\tfrac12(1 \pm |r|) \ge 0\), so positive; its trace is
+\(\tfrac12\operatorname{tr}I = 1\), the Paulis being traceless. So it is in \(\mathcal D\).</p>
+<p><strong>2.</strong> Let \(\rho \in \mathcal D\). It is Hermitian, so \(\rho = aI + b\cdot\sigma\) with \(a \in \mathbb R\), \(b \in \mathbb R^3\) (unit 02). Trace one gives
+\(2a = 1\); put \(r = 2b\), so \(\rho = \tfrac12(I + r\cdot\sigma)\). Positivity: the eigenvalue \(\tfrac12(1 - |r|)\) must be \(\ge 0\), so \(|r| \le 1\).
+So \(\rho \in \mathcal B\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(\tfrac12(I + r\cdot\sigma) = \tfrac12\begin{pmatrix}1 + r_z&amp;r_x - ir_y\\r_x + ir_y&amp;1 - r_z\end{pmatrix}\), with determinant
+\(\tfrac14\big((1 - r_z^2) - (r_x^2 + r_y^2)\big) = \tfrac14(1 - |r|^2)\) — also the product \(\tfrac12(1 + |r|)\cdot\tfrac12(1 - |r|)\) of the eigenvalues ✓. So for
+trace-one Hermitian \(2\times2\) matrices, \(\det \ge 0 \iff |r| \le 1 \iff \rho \in \mathcal D\). For \(3\times3\), a determinant \(\ge 0\) allows two
+negative eigenvalues: \(\mathrm{diag}(2, -\tfrac12, -\tfrac12)\) has trace \(1\) and determinant \(\tfrac12 &gt; 0\), and is not positive. In
+dimension two, trace one forbids both eigenvalues being negative, which is why the test works there.</p>
+<p><strong>Check.</strong> \(r = (0, 0, 1)\): \(\tfrac12(I + Z) = \ket0\!\bra0\), eigenvalues \(1, 0\), determinant \(0\) ✓. \(r = 0\): \(I/2\), determinant \(\tfrac14\),
+the largest possible ✓. \(r = (1, 1, 0)\), outside the ball: \(\tfrac12\begin{pmatrix}1&amp;1 - i\\1 + i&amp;1\end{pmatrix}\) has determinant \(\tfrac14(1 - 2) &lt; 0\) and eigenvalue
+\(\tfrac12(1 - \sqrt2) &lt; 0\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">The partial trace</h2>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Uniqueness of the partial trace <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the trace pairing, the defining property, basis independence by hand, classical marginals</p>
+<div class="statement">
+<ol>
+<li>Prove that at most one map \(T\colon L(H_A\otimes H_B) \to L(H_A)\) satisfies \(\operatorname{tr}(A\,TX) = \operatorname{tr}((A\otimes I)X)\) for all \(A\)
+and \(X\), using that \(\operatorname{tr}(S^\dagger S) &gt; 0\) for \(S \ne 0\).</li>
+<li>From the defining property alone, prove \(\operatorname{tr}_B(S\otimes T) = (\operatorname{tr}T)\,S\).</li>
+<li>Without appealing to uniqueness, prove that \(\sum_j(I\otimes\bra j)X(I\otimes\ket j)\) is the same for every orthonormal
+basis \(\{\ket j\}\) of \(H_B\).</li>
+<li>If \(\rho = \sum_{i,j}p_{ij}\ket{ij}\!\bra{ij}\) for a joint probability distribution \(p_{ij}\), show that
+\(\operatorname{tr}_B\rho = \sum_i\big(\sum_jp_{ij}\big)\ket i\!\bra i\): the partial trace of a classical joint distribution is its marginal.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 and part 2 are both "two operators that pair identically with every \(A\) are equal". Part 3 is a
+change-of-basis computation with a unitary matrix.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: choose \(A\) cleverly — the adjoint of the difference. Part 2: \(\operatorname{tr}(S\otimes T) = \operatorname{tr}S\,\operatorname{tr}T\) (look at the
+diagonal of a Kronecker product). Part 3: write \(\ket{j'} = \sum_kU_{kj'}\ket k\) with \(U\) unitary.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "\(\sum_{j'}(I\otimes\bra{j'})X(I\otimes\ket{j'}) = \sum_{j,k}\Big(\sum_{j'}\overline{U_{jj'}}U_{kj'}\Big)(I\otimes\bra j)X(I\otimes\ket k)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The trace pairing is an inner product, so pairing with every operator pins an operator down.
+The formula's basis independence is the unitarity of the change of basis, which also follows for free from
+uniqueness.</p>
+<p><strong>1.</strong> If \(T_1, T_2\) both qualify, fix \(X\) and let \(D = T_1X - T_2X\). Then \(\operatorname{tr}(AD) = 0\) for every \(A\); take \(A = D^\dagger\):
+\(\operatorname{tr}(D^\dagger D) = \sum_{j,k}|D_{jk}|^2 = 0\), so \(D = 0\). As \(X\) was arbitrary, \(T_1 = T_2\). \(\blacksquare\)</p>
+<p><strong>2.</strong> For every \(A\): \(\operatorname{tr}\big((A\otimes I)(S\otimes T)\big) = \operatorname{tr}(AS\otimes T) = \operatorname{tr}(AS)\operatorname{tr}T = \operatorname{tr}\big(A\cdot(\operatorname{tr}T)S\big)\). (The
+Kronecker matrix of \(M\otimes N\) has diagonal entries \(M_{ii}N_{jj}\), which sum to \(\operatorname{tr}M\operatorname{tr}N\).) So \((\operatorname{tr}T)S\) satisfies the
+defining property for the input \(S\otimes T\); by part 1, it is \(\operatorname{tr}_B(S\otimes T)\).</p>
+<p><strong>3.</strong> A second orthonormal basis is \(\ket{j'} = \sum_kU_{kj'}\ket k\) with \(U\) unitary; then \(\bra{j'} = \sum_j\overline{U_{jj'}}\bra j\). By
+linearity of \(I\otimes\cdot\) in the \(B\) slot,</p>
+\[ \sum_{j'}(I\otimes\bra{j'})X(I\otimes\ket{j'}) = \sum_{j,k}\Big(\sum_{j'}U_{kj'}\overline{U_{jj'}}\Big)(I\otimes\bra j)X(I\otimes\ket k), \]
+<p>and \(\sum_{j'}U_{kj'}\overline{U_{jj'}} = (UU^\dagger)_{kj} = \delta_{kj}\). Only \(k = j\) survives: \(\sum_j(I\otimes\bra j)X(I\otimes\ket j)\). \(\blacksquare\)</p>
+<p><strong>4.</strong> \((I\otimes\bra{j'})\ket{ij} = \delta_{j'j}\ket i\), so \((I\otimes\bra{j'})\ket{ij}\!\bra{ij}(I\otimes\ket{j'}) = \delta_{j'j}\ket i\!\bra i\). Summing over \(j'\) and
+then over \(i, j\) with weights \(p_{ij}\): \(\operatorname{tr}_B\rho = \sum_{i,j}p_{ij}\ket i\!\bra i\).</p>
+<p><strong>Check.</strong> Part 4 with \(p_{00} = p_{11} = \tfrac12\) (perfectly correlated coins): marginal \(\tfrac12I\), the same as
+\(\operatorname{tr}_B\ket{\Phi^+}\!\bra{\Phi^+}\) — which is the warning of the deck's entanglement slide: a mixed half does not certify
+entanglement unless the whole is pure. Part 2 with \(T = \sigma\) a density operator: \(\operatorname{tr}_B(\rho\otimes\sigma) = \rho\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Entangled iff mixed <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the Schmidt decomposition, reduced states of pure states, ranks and spectra, separability</p>
+<div class="statement">
+<ol>
+<li>Prove that a pure state \(\ket\psi \in H_A\otimes H_B\) is a product state if and only if \(\rho_A\) is pure.</li>
+<li>Prove that \(\rho_A\) and \(\rho_B\) have the same non-zero eigenvalues, with multiplicity.</li>
+<li>Give a pure two-qubit state whose \(\rho_A\) has eigenvalues \(0.9\) and \(0.1\), and compute its \(\rho_B\).</li>
+<li>Show by an example that for a <em>mixed</em> state of \(AB\), mixed reduced states do not imply entanglement.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The Schmidt decomposition answers all of parts 1–3 at once: it gives both reduced states in diagonal
+form.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>From \(\ket\psi = \sum_ks_k\ket{a_k}\ket{b_k}\): \(\rho_A = \sum_ks_k^2\ket{a_k}\!\bra{a_k}\), \(\rho_B = \sum_ks_k^2\ket{b_k}\!\bra{b_k}\). For part 4, think of
+two coins that always agree.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "Let \(\ket\psi = \sum_{k=1}^Rs_k\ket{a_k}\ket{b_k}\) be a Schmidt decomposition, \(s_k &gt; 0\). Then \(\rho_A\) has rank \(R\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> In Schmidt form, tracing out either side leaves the other side's Schmidt vectors weighted by
+\(s_k^2\). The number of terms is the rank of each reduced state, and a product is one term.</p>
+<p><strong>1.</strong> Schmidt: \(\ket\psi = \sum_{k=1}^Rs_k\ket{a_k}\ket{b_k}\), orthonormal families, \(s_k &gt; 0\). By the deck's formula (with a basis of
+\(H_B\) containing the \(b_k\)), \(\rho_A = \sum_ks_k^2\ket{a_k}\!\bra{a_k}\), of rank \(R\). Unit 03: \(\psi\) is a product iff \(R = 1\). A
+density operator is pure iff its rank is \(1\). So product \(\iff R = 1 \iff \rho_A\) pure. \(\blacksquare\)</p>
+<p><strong>2.</strong> Likewise \(\rho_B = \sum_ks_k^2\ket{b_k}\!\bra{b_k}\). Both are spectral decompositions with the same weights \(s_k^2\), so the
+non-zero eigenvalues agree with multiplicity (each \(s_k^2\) appears once per \(k\), on either side). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(\ket\psi = \sqrt{0.9}\ket{00} + \sqrt{0.1}\ket{11}\), already in Schmidt form: \(\rho_A = \rho_B = \mathrm{diag}(0.9, 0.1)\). Norm
+\(0.9 + 0.1 = 1\) ✓.</p>
+<p><strong>4.</strong> \(\rho = \tfrac12(\ket{00}\!\bra{00} + \ket{11}\!\bra{11})\) — two coins that always agree — is a mixture of products, so separable
+(not entangled), and \(\rho_A = \rho_B = \tfrac12I\) (P6, part 4). Even simpler: \(\tfrac I2\otimes\tfrac I2\).</p>
+<p><strong>Check.</strong> Part 3 via \(CC^\dagger\): \(C = \mathrm{diag}(\sqrt{0.9}, \sqrt{0.1})\), \(CC^\dagger = \mathrm{diag}(0.9, 0.1)\) ✓; \(\det C = 0.3 \ne 0\), entangled ✓, and
+purity \(0.81 + 0.01 = 0.82 = 1 - 2(0.09)\) ✓ (P4). Part 4: \(\rho\) and \(\ket{\Phi^+}\!\bra{\Phi^+}\) have the same reduced states and the same
+\(z\) correlations; they differ in \(x\): \(\braket{X\otimes X}\) is \(0\) for \(\rho\) and \(1\) for \(\ket{\Phi^+}\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Purification and the Schrödinger–HJW theorem</h2>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Purify a given qubit state <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the spectral decomposition, the purification construction, a partial trace checked, complex amplitudes</p>
+<div class="statement">
+<ol>
+<li>Purify \(\rho = \begin{pmatrix}3/4&amp;1/4\\1/4&amp;1/4\end{pmatrix}\) on \(\mathbb C^2\otimes\mathbb C^2\) in two ways: from its eigen-ensemble and from the
+story \(\{\tfrac12, \ket0;\ \tfrac12, \ket+\}\). Check \(\operatorname{tr}_B\) of each.</li>
+<li>Do the same, from the eigen-ensemble, for \(\sigma = \begin{pmatrix}1/2&amp;-3i/10\\3i/10&amp;1/2\end{pmatrix}\): find its Bloch vector, eigenvalues and
+eigenvectors first, and write the purification in the basis \(\ket{00}, \dots, \ket{11}\).</li>
+<li>Can \(\sigma\) be purified with \(H_B = \mathbb C\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A purification is \(\sum_k\sqrt{\lambda_k}\ket{e_k}\ket{f_k}\); the work is finding \(\lambda_k\) and \(e_k\). For a qubit, the Bloch vector
+gives both: eigenvalues \(\tfrac12(1 \pm |r|)\), eigenvectors at \(\pm\hat r\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1 was done in the deck (<em>Worked: purifying the off-centre mixture, twice</em>); redo it. For \(\sigma\):
+\(\rho_{01} = \tfrac12(r_x - ir_y)\), so read \(r\) off the corner entry.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\sigma_{01} = -0.3i = \tfrac12(r_x - ir_y)\) gives \(r_x = 0\), \(r_y = 0.6\); \(r_z = \sigma_{00} - \sigma_{11} = 0\). So \(r = (0, 0.6, 0)\),
+eigenvalues \(0.8, 0.2\), eigenvectors \(\ket{+i}\), \(\ket{-i}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Diagonalise, then pair each eigenvector with its own orthonormal partner, weighted by the
+square root of its eigenvalue. Any ensemble works in place of the eigen-ensemble, with a register recording
+which member was chosen.</p>
+<p><strong>1.</strong> Eigenvalues \(\cos^2\tfrac\pi8 \approx 0.8536\), \(\sin^2\tfrac\pi8 \approx 0.1464\), eigenvectors \(\ket{e_1} = c\ket0 + s\ket1\),
+\(\ket{e_2} = -s\ket0 + c\ket1\) (\(c = \cos\tfrac\pi8\), \(s = \sin\tfrac\pi8\)). Eigen-purification
+\(\ket\Psi = c\ket{e_1}\ket0 + s\ket{e_2}\ket1 = c^2\ket{00} - s^2\ket{01} + cs\ket{10} + cs\ket{11}\), and \(CC^\dagger = \begin{pmatrix}c^4 + s^4&amp;cs(c^2 - s^2)\\cs(c^2 - s^2)&amp;2c^2s^2\end{pmatrix} = \rho\)
+(using \(c^2s^2 = \tfrac18\), \(c^2 - s^2 = \tfrac1{\sqrt2}\), \(cs = \tfrac1{2\sqrt2}\)). Story purification
+\(\ket{\Psi'} = \tfrac1{\sqrt2}(\ket0\ket0 + \ket+\ket1) = \tfrac1{\sqrt2}\ket{00} + \tfrac12\ket{01} + \tfrac12\ket{11}\), \(C' = \begin{pmatrix}1/\sqrt2&amp;1/2\\0&amp;1/2\end{pmatrix}\),
+\(C'C'^\dagger = \begin{pmatrix}3/4&amp;1/4\\1/4&amp;1/4\end{pmatrix}\) ✓.</p>
+<p><strong>2.</strong> \(r = (0, 0.6, 0)\) (rung 3), \(|r| = 0.6\), eigenvalues \(\tfrac12(1 \pm 0.6) = 0.8, 0.2\). The axis \(+y\) is \(\ket{+i}\), so
+\(\sigma\ket{+i} = 0.8\ket{+i}\); check: \(\sigma\begin{pmatrix}1\\i\end{pmatrix} = \begin{pmatrix}\tfrac12 + (-0.3i)(i)\\0.3i + \tfrac12i\end{pmatrix} = \begin{pmatrix}0.8\\0.8i\end{pmatrix}\) ✓. Then</p>
+\[ \ket\Psi = \sqrt{0.8}\,\ket{+i}\ket0 + \sqrt{0.2}\,\ket{-i}\ket1 = \sqrt{0.4}\ket{00} + \sqrt{0.1}\ket{01} + i\sqrt{0.4}\ket{10} - i\sqrt{0.1}\ket{11}, \]
+<p>since \(\sqrt{0.8}/\sqrt2 = \sqrt{0.4} \approx 0.6325\) and \(\sqrt{0.2}/\sqrt2 = \sqrt{0.1} \approx 0.3162\). Norm: \(0.4 + 0.1 + 0.4 + 0.1 = 1\) ✓.
+\(C = \begin{pmatrix}\sqrt{0.4}&amp;\sqrt{0.1}\\i\sqrt{0.4}&amp;-i\sqrt{0.1}\end{pmatrix}\), and \(CC^\dagger\) has
+\((0,0) = 0.4 + 0.1 = 0.5\), \((0,1) = \sqrt{0.4}\cdot\overline{i\sqrt{0.4}} + \sqrt{0.1}\cdot\overline{-i\sqrt{0.1}} = -0.4i + 0.1i = -0.3i\), \((1,1) = 0.5\): that is \(\sigma\) ✓.</p>
+<p><strong>3.</strong> No: \(H_B = \mathbb C\) makes \(\ket\Psi = \ket a\otimes1\) a product, whose reduced state is pure; \(\sigma\) has rank \(2\). In general
+\(\dim H_B \ge \operatorname{rank}\sigma = 2\) is needed.</p>
+<p><strong>Check.</strong> Purity of \(\sigma\): \(\tfrac12(1 + 0.36) = 0.68 = 0.8^2 + 0.2^2\) ✓. Bob's half of \(\ket\Psi\) is
+\(\mathrm{diag}(0.8, 0.2)\) — the same spectrum as \(\sigma\), as P7 requires ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg
+psi = np.array([np.sqrt(0.4), np.sqrt(0.1), 1j * np.sqrt(0.4), -1j * np.sqrt(0.1)])
+rhoA = linalg.partial_trace(np.outer(psi, psi.conj()), [0], 2)
+print(np.round(rhoA, 6))                      # [[0.5, -0.3j], [0.3j, 0.5]]
+print(np.round(linalg.bloch_vector(rhoA), 6)) # [0, 0.6, 0]</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Two purifications <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the uniqueness of purifications, the coefficient matrix of (I ⊗ V)ψ, a unitary computed and recognised</p>
+<div class="statement">
+<p>P8 produced two purifications of \(\rho = \begin{pmatrix}3/4&amp;1/4\\1/4&amp;1/4\end{pmatrix}\):</p>
+\[ \ket\Psi = c^2\ket{00} - s^2\ket{01} + cs\ket{10} + cs\ket{11}, \qquad \ket{\Psi'} = \tfrac1{\sqrt2}\ket{00} + \tfrac12\ket{01} + \tfrac12\ket{11}, \]
+<p>with \(c = \cos\tfrac\pi8\), \(s = \sin\tfrac\pi8\).</p>
+<ol>
+<li>Show that \((I\otimes V)\sum_{i,j}C_{ij}\ket{ij}\) has coefficient matrix \(CV^{\mathsf T}\).</li>
+<li>Find the unitary \(V\) on the second qubit with \(\ket{\Psi'} = (I\otimes V)\ket\Psi\), and recognise it.</li>
+<li>Find \(V\) a second way, by following the proof in the deck: compute \((\bra{e_k}\otimes I)\ket{\Psi'}\) for the eigenvectors
+\(e_1, e_2\) of \(\rho\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a \(2\times2\) unitary; part 1 turns "find \(V\)" into a matrix equation \(C' = CV^{\mathsf T}\) you can solve
+because \(C\) is invertible.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(V^{\mathsf T} = C^{-1}C'\), with \(C = \begin{pmatrix}c^2&amp;-s^2\\cs&amp;cs\end{pmatrix}\), \(\det C = c^3s + cs^3 = cs\). Useful values: \(c^2 + s^2 = 1\),
+\(c^2 - s^2 = \tfrac1{\sqrt2}\), \(cs = \tfrac1{2\sqrt2}\). For part 3, \(c + s = \sqrt2\,c\) and \(c - s = \sqrt2\,s\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(C^{-1} = \tfrac1{cs}\begin{pmatrix}cs&amp;s^2\\-cs&amp;c^2\end{pmatrix}\), so \(V^{\mathsf T} = C^{-1}C' = \tfrac1{cs}\begin{pmatrix}cs\cdot\tfrac1{\sqrt2}&amp;\tfrac12(cs + s^2)\\-cs\cdot\tfrac1{\sqrt2}&amp;\tfrac12(c^2 - cs)\end{pmatrix}\)" —
+and now simplify the right column.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A unitary on \(B\) acts on the columns of the coefficient matrix; solving for it is a \(2\times2\)
+inversion. The deck's proof gives the same \(V\) as "send \(\ket k\) to the normalised slice of \(\Psi'\) along \(e_k\)".</p>
+<p><strong>1.</strong> \((I\otimes V)\ket{ij} = \ket i\otimes V\ket j = \sum_kV_{kj}\ket{ik}\). So the coefficient of \(\ket{ik}\) in
+\((I\otimes V)\sum C_{ij}\ket{ij}\) is \(\sum_jC_{ij}V_{kj} = (CV^{\mathsf T})_{ik}\).</p>
+<p><strong>2.</strong> Right column of rung 3: \(\tfrac{cs + s^2}{2cs} = \tfrac{c + s}{2c}\) and \(\tfrac{c^2 - cs}{2cs} = \tfrac{c - s}{2s}\). With \(c + s = \sqrt2c\) and \(c - s = \sqrt2s\)
+(both from \(\cos x \pm \sin x = \sqrt2\cos(x \mp \tfrac\pi4)\) at \(x = \tfrac\pi8\)), each is \(\tfrac1{\sqrt2}\). So
+\(V^{\mathsf T} = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;1\\-1&amp;1\end{pmatrix}\) and</p>
+\[ V = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;-1\\1&amp;1\end{pmatrix} = \cos\tfrac\pi4\,I - i\sin\tfrac\pi4\,Y = R_y(\tfrac\pi2), \]
+<p>a real rotation of the second qubit's plane by \(45^\circ\) — on its Bloch sphere, a quarter-turn about \(y\). Unitary: real with
+orthonormal columns ✓.</p>
+<p><strong>3.</strong> The eigenvectors are \(\ket{e_1} = c\ket0 + s\ket1\), \(\ket{e_2} = -s\ket0 + c\ket1\) (real), so \(\braket{e_1|0} = c\),
+\(\braket{e_1|+} = \tfrac{c + s}{\sqrt2} = c\), \(\braket{e_2|0} = -s\) and \(\braket{e_2|+} = \tfrac{c - s}{\sqrt2} = s\). Since \(\ket{\Psi'} = \tfrac1{\sqrt2}(\ket0\ket0 + \ket+\ket1)\),</p>
+\[ (\bra{e_1}\otimes I)\ket{\Psi'} = \tfrac{c}{\sqrt2}(\ket0 + \ket1) = c\ket+, \qquad (\bra{e_2}\otimes I)\ket{\Psi'} = \tfrac{s}{\sqrt2}(-\ket0 + \ket1) = -s\ket- . \]
+<p>For \(\Psi\), the same slices are \(c\ket0\) and \(s\ket1\). So the proof's \(f_k\) are \(\ket0, \ket1\) and its \(f'_k\) are \(\ket+, -\ket-\): \(V\ket0 = \ket+\),
+\(V\ket1 = -\ket- = \tfrac1{\sqrt2}(-\ket0 + \ket1)\). Those are the columns of the \(V\) of part 2 ✓.</p>
+<p><strong>Check.</strong> \(CV^{\mathsf T}\): row \(0\) is \(\tfrac1{\sqrt2}(c^2 + s^2,\ c^2 - s^2) = (\tfrac1{\sqrt2}, \tfrac12)\); row \(1\) is \(\tfrac1{\sqrt2}(cs - cs,\ cs + cs) = (0, \tfrac12)\):
+that is \(C'\) ✓. And \(V\) acts only on \(B\), so \(\rho_A\) is untouched, as the deck's converse says.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg, gates
+c, s = np.cos(np.pi / 8), np.sin(np.pi / 8)
+Psi = np.array([c * c, -s * s, c * s, c * s])
+Psi2 = np.array([1 / np.sqrt(2), 1 / 2, 0, 1 / 2])
+V = gates.ry(np.pi / 2)
+print(np.round(V, 4))                                           # [[0.7071, -0.7071], [0.7071, 0.7071]]
+print(linalg.is_unitary(V), np.allclose(linalg.kron(gates.I, V) @ Psi, Psi2))   # True True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Find the unitary relating two ensembles <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Schrödinger–HJW theorem in a non-square case, an isometry checked entry by entry, padding to a unitary</p>
+<div class="statement">
+<p>Two ensembles of the maximally mixed qubit: \(\mathcal Z = \{\tfrac12, \ket0;\ \tfrac12, \ket1\}\) and the trine
+\(\mathcal T = \{\tfrac13, \ket{t_k}\}_{k=0,1,2}\) with \(\ket{t_k} = \cos\tfrac{\pi k}3\ket0 + \sin\tfrac{\pi k}3\ket1\).</p>
+<ol>
+<li>Check that both give \(I/2\).</li>
+<li>Find the \(3\times2\) matrix \(u\) with \(\sqrt{\tfrac13}\ket{t_i} = \sum_ju_{ij}\sqrt{\tfrac12}\ket j\) for \(i = 0, 1, 2\).</li>
+<li>Check \(u^\dagger u = I_2\), and the relation entry by entry.</li>
+<li>Pad \(\mathcal Z\) with a zero vector and extend \(u\) to a \(3\times3\) unitary.</li>
+<li>Alice holds the other half of a purification of Bob's \(I/2\) on \(\mathbb C^2\otimes\mathbb C^2\). Can she steer Bob into the trine by
+measuring her qubit in a basis?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a matrix with three rows (one per trine state) and two columns (one per \(\mathcal Z\) state). Because the
+\(\mathcal Z\) states are orthonormal, each entry is a single inner product.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Take the inner product of the defining relation with \(\bra j\): \(\sqrt{\tfrac13}\braket{j|t_i} = u_{ij}\sqrt{\tfrac12}\), so
+\(u_{ij} = \sqrt{\tfrac23}\braket{j|t_i}\). Values: \(\cos\tfrac\pi3 = \tfrac12\), \(\sin\tfrac\pi3 = \tfrac{\sqrt3}2\), \(\cos\tfrac{2\pi}3 = -\tfrac12\), \(\sin\tfrac{2\pi}3 = \tfrac{\sqrt3}2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "Row \(0\): \(u_{00} = \sqrt{\tfrac23}\cdot1\), \(u_{01} = \sqrt{\tfrac23}\cdot0\). Row \(1\): \(u_{10} = \sqrt{\tfrac23}\cdot\tfrac12 = \tfrac1{\sqrt6}\),
+\(u_{11} = \sqrt{\tfrac23}\cdot\tfrac{\sqrt3}2 = \tfrac1{\sqrt2}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> With an orthonormal reference ensemble, the HJW matrix is just "coordinates of the weighted
+vectors \(\sqrt{p_i}\psi_i\) in the basis \(\sqrt{q_j}\varphi_j\)". Its columns are orthonormal exactly because the two ensembles have the
+same density operator.</p>
+<p><strong>1.</strong> \(\mathcal Z\): \(\tfrac12(\ket0\!\bra0 + \ket1\!\bra1) = I/2\). \(\mathcal T\): \(\ket{t_k}\!\bra{t_k} = \begin{pmatrix}c_k^2&amp;c_ks_k\\c_ks_k&amp;s_k^2\end{pmatrix}\) with
+\((c_k, s_k) = (1, 0), (\tfrac12, \tfrac{\sqrt3}2), (-\tfrac12, \tfrac{\sqrt3}2)\). Diagonal sums: \(1 + \tfrac14 + \tfrac14 = \tfrac32\) and \(0 + \tfrac34 + \tfrac34 = \tfrac32\);
+off-diagonal: \(0 + \tfrac{\sqrt3}4 - \tfrac{\sqrt3}4 = 0\). Times \(\tfrac13\): \(I/2\) ✓.</p>
+<p><strong>2.</strong> \(u_{ij} = \sqrt{\tfrac23}\braket{j|t_i}\) (rung 2):</p>
+\[ u = \begin{pmatrix}\sqrt{2/3}&amp;0\\1/\sqrt6&amp;1/\sqrt2\\-1/\sqrt6&amp;1/\sqrt2\end{pmatrix}. \]
+<p><strong>3.</strong> Columns: \(\lVert u_{\cdot0}\rVert^2 = \tfrac23 + \tfrac16 + \tfrac16 = 1\), \(\lVert u_{\cdot1}\rVert^2 = 0 + \tfrac12 + \tfrac12 = 1\),
+\(\braket{u_{\cdot0}|u_{\cdot1}} = 0 + \tfrac1{\sqrt{12}} - \tfrac1{\sqrt{12}} = 0\): \(u^\dagger u = I_2\) ✓. Entry by entry, with \(\sqrt{\tfrac12}\ket j\) on the right:</p>
+<ul>
+<li>\(i = 0\): \(\sqrt{\tfrac23}\sqrt{\tfrac12}\ket0 = \sqrt{\tfrac13}\ket0 = \sqrt{\tfrac13}\ket{t_0}\) ✓;</li>
+<li>\(i = 1\): \(\tfrac1{\sqrt6}\cdot\tfrac1{\sqrt2}\ket0 + \tfrac1{\sqrt2}\cdot\tfrac1{\sqrt2}\ket1 = \tfrac1{2\sqrt3}\ket0 + \tfrac12\ket1\), and \(\sqrt{\tfrac13}\ket{t_1} = \tfrac1{\sqrt3}(\tfrac12\ket0 + \tfrac{\sqrt3}2\ket1)\), the same ✓;</li>
+<li>\(i = 2\): \(-\tfrac1{2\sqrt3}\ket0 + \tfrac12\ket1 = \sqrt{\tfrac13}\ket{t_2}\) ✓.</li>
+</ul>
+<p><strong>4.</strong> A third column orthogonal to both: \(v = (a, b, c)\) with \(b + c = 0\) (against column 1) and
+\(\sqrt{\tfrac23}a + \tfrac1{\sqrt6}(b - c) = 0\), i.e. \(a = -b\). Normalised: \(v = \tfrac1{\sqrt3}(1, -1, 1)\). So</p>
+\[ V = \begin{pmatrix}\sqrt{2/3}&amp;0&amp;1/\sqrt3\\1/\sqrt6&amp;1/\sqrt2&amp;-1/\sqrt3\\-1/\sqrt6&amp;1/\sqrt2&amp;1/\sqrt3\end{pmatrix}, \]
+<p>unitary (orthonormal columns), and the relation holds with a third, zero member \(\sqrt{q_2}\varphi_2 = 0\) appended to \(\mathcal Z\).</p>
+<p><strong>5.</strong> No. Measuring a qubit in a basis has two outcomes, and the trine has three members. The deck's steering
+theorem needs at most \(\dim H_A = 2\) members. A three-outcome generalised measurement on Alice's qubit does
+it (unit 21), as does a purification with a qutrit on Alice's side.</p>
+<p><strong>Check.</strong> Weights: \(\sum_ip_i = 1\) and \(\lVert\sqrt{p_i}\psi_i\rVert^2 = \sum_j|u_{ij}|^2q_j\): for \(i = 1\), \(\tfrac16\cdot\tfrac12 + \tfrac12\cdot\tfrac12 = \tfrac13\) ✓. Row norms
+of \(u\) are \(\tfrac23, \tfrac23, \tfrac23\), summing to \(2 = n\), as the trace of the projector \(uu^\dagger\) onto the column space must.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, linalg
+t = [Statevector([np.cos(np.pi * k / 3), np.sin(np.pi * k / 3)]) for k in range(3)]
+r3, r6, r2 = np.sqrt(3), np.sqrt(6), np.sqrt(2)
+V = np.array([[np.sqrt(2 / 3), 0, 1 / r3], [1 / r6, 1 / r2, -1 / r3], [-1 / r6, 1 / r2, 1 / r3]])
+print(linalg.is_unitary(V))                                              # True: part 4's padded u
+print(all(np.allclose(t[i].vector / r3, V[i, :2] / r2) for i in range(3)))  # True: the relation, row by row
+print(np.round(DensityMatrix.mixture([1 / 3] * 3, t).matrix.real, 6))   # [[0.5, 0], [0, 0.5]]</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">No-signalling and steering</h2>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> No-signalling, both cases <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the defining property of the partial trace, its uniqueness, selective versus non-selective measurement</p>
+<div class="statement">
+<ol>
+<li>Let \(\rho\) be any state of \(AB\). Prove that \(\rho_B\) is unchanged by (a) \(\rho \mapsto (U\otimes I)\rho(U^\dagger\otimes I)\) and (b)
+\(\rho \mapsto \sum_\lambda(P_\lambda\otimes I)\rho(P_\lambda\otimes I)\) for a projective measurement \(\{P_\lambda\}\) on \(A\).</li>
+<li>Prove the mirror image: nothing Bob does of these two kinds changes \(\rho_A\).</li>
+<li>Now let Alice measure \(z\) on \(\ket{\Phi^+}\) and <em>tell</em> Bob the outcome. Compute Bob's state conditional on each outcome,
+and show it differs from \(\rho_B\). Show that the conditional states, averaged with their probabilities, give back
+\(\rho_B\) — for any \(\rho\) and any \(\{P_\lambda\}\).</li>
+<li>Explain in two or three sentences why part 3 is not a signal.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every part is an equality of operators on \(H_B\) (or \(H_A\)). The defining property turns such an equality into
+"both sides give the same \(\operatorname{tr}(M\,\cdot)\) for every \(M\)", which is a trace computation on the joint space.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Pair with \(I\otimes M\), move Alice's operators round the trace by cyclicity, and use \((A\otimes B)(C\otimes D) = AC\otimes BD\). Then
+\(U^\dagger U = I\), \(P_\lambda^2 = P_\lambda\), \(\sum_\lambda P_\lambda = I\). Part 3: the conditional state is \(\operatorname{tr}_A\big((P_\lambda\otimes I)\rho(P_\lambda\otimes I)\big)/\Pr(\lambda)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of (b): "For every \(M\) on \(H_B\),
+\(\sum_\lambda\operatorname{tr}\big((I\otimes M)(P_\lambda\otimes I)\rho(P_\lambda\otimes I)\big) = \sum_\lambda\operatorname{tr}\big((P_\lambda\otimes I)(I\otimes M)(P_\lambda\otimes I)\rho\big) = \sum_\lambda\operatorname{tr}((P_\lambda\otimes M)\rho)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Bob's state is defined by what his observables \(I\otimes M\) see, and Alice's operators commute with
+those observables and, averaged, preserve the identity. The selective update is just conditioning on
+information Bob has to be sent.</p>
+<p><strong>1(a).</strong> For every \(M\) on \(H_B\),
+\(\operatorname{tr}\big((I\otimes M)(U\otimes I)\rho(U^\dagger\otimes I)\big) = \operatorname{tr}\big((U^\dagger\otimes I)(I\otimes M)(U\otimes I)\rho\big) = \operatorname{tr}((U^\dagger U\otimes M)\rho) = \operatorname{tr}((I\otimes M)\rho)\).
+By the defining property, the left side is \(\operatorname{tr}\big(M\operatorname{tr}_A[(U\otimes I)\rho(U^\dagger\otimes I)]\big)\) and the right side is
+\(\operatorname{tr}(M\operatorname{tr}_A\rho)\). Equal for every \(M\), so by non-degeneracy (P6) the partial traces are equal.</p>
+<p><strong>1(b).</strong> Rung 3, then \(\sum_\lambda P_\lambda\otimes M = I\otimes M\) (using \(P_\lambda IP_\lambda = P_\lambda\)), so the pairing with every \(M\) is
+\(\operatorname{tr}((I\otimes M)\rho)\); conclude as in (a). \(\blacksquare\)</p>
+<p><strong>2.</strong> The same computation with the factors swapped: pair \((I\otimes V)\rho(I\otimes V^\dagger)\) and
+\(\sum_\mu(I\otimes Q_\mu)\rho(I\otimes Q_\mu)\) with \(A\otimes I\), and use \(\operatorname{tr}(A\operatorname{tr}_B\cdot) = \operatorname{tr}((A\otimes I)\,\cdot)\). Nothing in the proof cared which side
+was which.</p>
+<p><strong>3.</strong> With \(P_k = \ket k\!\bra k\): \((P_k\otimes I)\ket{\Phi^+} = \tfrac1{\sqrt2}\ket{kk}\), so \(\Pr(k) = \tfrac12\) and Bob's conditional state is
+\(\operatorname{tr}_A\ket{kk}\!\bra{kk} = \ket k\!\bra k\) — pure, and not \(\rho_B = I/2\). In general, writing
+\(\rho_B^{(\lambda)} = \operatorname{tr}_A\big((P_\lambda\otimes I)\rho(P_\lambda\otimes I)\big)/\Pr(\lambda)\) with \(\Pr(\lambda) = \operatorname{tr}((P_\lambda\otimes I)\rho)\),</p>
+\[ \sum_\lambda\Pr(\lambda)\,\rho_B^{(\lambda)} = \operatorname{tr}_A\Big(\sum_\lambda(P_\lambda\otimes I)\rho(P_\lambda\otimes I)\Big) = \rho_B \]
+<p>by linearity of \(\operatorname{tr}_A\) and part 1(b). For \(\ket{\Phi^+}\): \(\tfrac12\ket0\!\bra0 + \tfrac12\ket1\!\bra1 = I/2\) ✓.</p>
+<p><strong>4.</strong> Bob's conditional state is a statement about a sub-collection of his runs that only Alice's message
+picks out. Until the message arrives he cannot sort his runs, and his unsorted runs are distributed by
+\(\rho_B\), whatever Alice did. The message is an ordinary signal, limited by the speed of light; the shared pair adds
+correlation, not communication.</p>
+<p><strong>Check.</strong> Trace of each conditional state: \(1\) ✓; probabilities \(\tfrac12 + \tfrac12 = 1\) ✓. Special case \(\rho = \sigma\otimes\tau\) (no
+correlation): \(\rho_B^{(\lambda)} = \tau\) for every \(\lambda\), so even told the outcome Bob learns nothing — conditioning helps only when
+there is correlation to condition on.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Steering in the y basis <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: slicing a state with a complex vector, the U ⊗ Ū invariance of Φ⁺, steering</p>
+<div class="statement">
+<p>Alice and Bob share \(\ket{\Phi^+}\).</p>
+<ol>
+<li>For any \(\ket a = \alpha\ket0 + \beta\ket1\), show \((\bra a\otimes I)\ket{\Phi^+} = \tfrac1{\sqrt2}\ket{\bar a}\), where \(\ket{\bar a} = \bar\alpha\ket0 + \bar\beta\ket1\).</li>
+<li>Alice measures in the \(y\) basis \(\{\ket{+i}, \ket{-i}\}\). Give her outcome probabilities and Bob's state after each.</li>
+<li>Which projective measurement must Alice make for Bob's conditional states to be \(\ket{+i}\) and \(\ket{-i}\)? If both then
+measure \(y\), with what probability do their labels agree?</li>
+<li>Prove \((U\otimes\bar U)\ket{\Phi^+} = \ket{\Phi^+}\) for every unitary \(U\), and use it to rederive part 1 for \(\ket a = U\ket0\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part comes down to the vector \((\bra a\otimes I)\ket{\Phi^+}\) in Bob's space. The subtlety is a complex conjugate:
+the bra conjugates Alice's amplitudes, and Bob's vector inherits the conjugates.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\braket{a|0} = \bar\alpha\). For part 4, use P9's rule: \((A\otimes B)\) acts on coefficient matrices as \(C \mapsto ACB^{\mathsf T}\), and
+\(\ket{\Phi^+}\) has \(C = I/\sqrt2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\ket{+i} = \tfrac1{\sqrt2}(1, i)\), so \(\ket{\overline{+i}} = \tfrac1{\sqrt2}(1, -i) = \ket{-i}\): Alice's outcome \(+i\) leaves Bob in \(\ket{-i}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(\ket{\Phi^+}\) correlates Alice's vector with the <em>conjugate</em> of Bob's, because it is invariant under \(U\otimes\bar U\),
+not \(U\otimes U\). On real vectors conjugation does nothing, so \(z\) and \(x\) correlate perfectly; the \(y\) basis is complex, and
+there the labels flip.</p>
+<p><strong>1.</strong> \((\bra a\otimes I)\ket{kk} = \braket{a|k}\ket k\), with \(\braket{a|0} = \bar\alpha\), \(\braket{a|1} = \bar\beta\). So
+\((\bra a\otimes I)\ket{\Phi^+} = \tfrac1{\sqrt2}(\bar\alpha\ket0 + \bar\beta\ket1) = \tfrac1{\sqrt2}\ket{\bar a}\).</p>
+<p><strong>2.</strong> \(\ket{\overline{\pm i}} = \ket{\mp i}\). Outcome \(\pm i\) has probability \(\lVert\tfrac1{\sqrt2}\ket{\mp i}\rVert^2 = \tfrac12\), and leaves Bob in \(\ket{\mp i}\):
+<em>the other</em> member of the \(y\) basis.</p>
+<p><strong>3.</strong> The \(y\) basis itself: outcome \(+i\) leaves Bob in \(\ket{-i}\), outcome \(-i\) in \(\ket{+i}\) — both of Bob's states occur, with
+probability \(\tfrac12\) each. (Measuring \(\{\ket{\bar a}\}\) to steer to \(\{\ket a\}\) is the general recipe, and \(\{\ket{\overline{\pm i}}\}\) is again the \(y\) basis.) If
+both measure \(y\), the labels <strong>never</strong> agree: probability \(0\). Compare \(z\) or \(x\), where they always agree.</p>
+<p><strong>4.</strong> P9, part 1, gives \(C \mapsto CB^{\mathsf T}\) for \(I\otimes B\); the same computation on the first factor,
+\((A\otimes I)\ket{ij} = \sum_kA_{ki}\ket{kj}\), gives \(C \mapsto AC\). As \(A\otimes B = (A\otimes I)(I\otimes B)\), \((U\otimes\bar U)\) sends the coefficient matrix \(C = \tfrac1{\sqrt2}I\) to \(\tfrac1{\sqrt2}U\bar U^{\mathsf T} = \tfrac1{\sqrt2}UU^\dagger = \tfrac1{\sqrt2}I\).
+So \((U\otimes\bar U)\ket{\Phi^+} = \ket{\Phi^+}\). Now with \(\ket a = U\ket0\): \((\bra a\otimes I) = (\bra0U^\dagger)\otimes I\), and</p>
+\[ (\bra a\otimes I)\ket{\Phi^+} = (\bra0U^\dagger\otimes I)(U\otimes\bar U)\ket{\Phi^+} = (\bra0\otimes\bar U)\ket{\Phi^+} = \bar U\tfrac1{\sqrt2}\ket0 = \tfrac1{\sqrt2}\ket{\bar a}, \]
+<p>since \(\bar U\ket0\) is the entrywise conjugate of \(U\ket0\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> Bob, not told: \(\tfrac12\ket{-i}\!\bra{-i} + \tfrac12\ket{+i}\!\bra{+i} = I/2\) ✓ — no-signalling. Real case: \(a = \ket+\) gives \(\ket{\bar a} = \ket+\),
+the deck's <em>Steering the running example</em> ✓. Bloch picture: conjugation is the reflection \(y \mapsto -y\), which fixes the \(xz\) plane
+and swaps the poles of \(y\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector
+phi = (Statevector.from_label("00").vector + Statevector.from_label("11").vector) / np.sqrt(2)
+plus_i = Statevector.from_label("r").vector                 # |+i⟩
+bob = np.conj(plus_i) @ phi.reshape(2, 2)                    # (⟨+i| ⊗ I)|Φ+⟩
+print(np.round(np.sqrt(2) * bob, 4))                         # [0.7071, -0.7071j]: |−i⟩
+print(round(float(np.linalg.norm(bob) ** 2), 4))             # 0.5</code></pre>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 04</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

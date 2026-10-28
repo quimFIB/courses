@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>16 · Problems — Shor: factoring is order finding, and order finding is phase estimation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="d">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part D · unit 16 · problems</p>
+<h1>Shor: factoring is order finding, and order finding is phase estimation</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u16">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the order-finding reduction — a square root of 1
+other than \(\pm1\) splits \(N\), and for \(N = pq\) a random \(a\) has even order \(r\) with \(a^{r/2}\not\equiv-1\) with probability at
+least ½; you prove Legendre's theorem, that \(|x - p/q| \lt 1/2q^2\) makes \(p/q\) a convergent of \(x\); and you factor 21 by hand from the
+measured distribution — decoding \(427/512\) to \(5/6\), getting \(r = 6\) and the factors 7 and 3 — saying what \(y = 0\), 171, 256 and
+341 give and why they fail, with the probability that one run gives \(r = 6\) directly, \(0.308\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about six hours. Work them on paper first. P9 is the checkpoint's computation and P10 its account of the failing
+runs; P2 and P8 are its proofs.</p>
+<p>Conventions, as in the deck. \(N\) is the number to factor, \(a\) is coprime to it, \(r\) is the order of \(a\) — the least \(r\ge1\) with
+\(a^r\equiv1 \pmod N\) — and \(v(m)\) is the exponent of 2 in \(m\). \(U_a\ket y = \ket{ay \bmod N}\) for \(y \lt N\) and \(\ket y\) above. Qubit 0 is
+the leftmost symbol of a ket, the most significant bit of an index and the top wire; counting qubit \(q\) has weight \(2^{t-1-q}\). The
+counting register has \(t\) qubits with \(N^2\le2^t\lt2N^2\) unless a problem says otherwise, and outcome \(y\) has probability
+\[P(y) = \frac1r\sum_{s=0}^{r-1}F_t\Big(\frac sr - \frac y{2^t}\Big),\qquad F_t(\delta) = \frac{\sin^2(\pi2^t\delta)}{4^t\sin^2(\pi\delta)}\ \ (F_t = 1 \text{ at integer }\delta).\]
+A measured \(y\) is decoded by the <b>nearest-fraction rule</b>: the fraction \(p/q\) with \(q \lt N\) nearest to \(y/2^t\), followed by the test
+\(a^q\equiv1\). Logarithms are base 2.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it. The referee ships no modular multiplier circuit —
+only <code>library.multiply_mod</code>, the permutation one must equal — so P5's block builds the order-finding circuit from it, and later
+blocks reuse that <code>order_finding</code> function.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="A bad a">P1</a></li>
+<li><a class="medium" href="#p2" title="Proof: the reduction's ½">P2</a></li>
+<li><a class="routine" href="#p3" title="Prime powers">P3</a></li>
+<li><a class="medium" href="#p4" title="From a multiple of the order">P4</a></li>
+<li><a class="routine" href="#p5" title="Eigenvectors, and an exact distribution">P5</a></li>
+<li><a class="medium" href="#p6" title="Counting qubits">P6</a></li>
+<li><a class="medium" href="#p7" title="Modular exponentiation's cost">P7</a></li>
+<li><a class="hard" href="#p8" title="Proof: Legendre's theorem">P8</a></li>
+<li><a class="medium" href="#p9" title="Factor 21 in full">P9</a></li>
+<li><a class="medium" href="#p10" title="One run's success">P10</a></li>
+<li><a class="routine" href="#p11" title="Discrete log on a toy group">P11</a></li>
+<li><a class="routine" href="#p12" title="Hidden subgroups">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Factoring is order finding</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> A bad \(a\) <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: computing orders by hand, the reduction's success test, the 2-adic valuation lemma on a case, the probability of one round</p>
+<div class="statement">
+<p>Take \(N = 21\).</p>
+<ol>
+<li>For each of the twelve \(a\in\mathbb Z_{21}^\times\), find the order \(r\) and say whether the reduction succeeds — \(r\) even and
+\(a^{r/2}\not\equiv-1\). Which \(a\) fail, and in which of the two ways?</li>
+<li>For each \(a\) that succeeds, which prime does \(\gcd(a^{r/2} - 1, 21)\) give?</li>
+<li>Explain the pattern through the 2-adic valuations of the orders of \(a\) modulo 3 and modulo 7.</li>
+<li>Step 3 of the reduction picks \(a\) uniformly from \(\{2, \dots, 20\}\). What is the probability that one round ends with a factor of 21?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 1 is a table of twelve rows. Before computing anything, narrow down which orders are possible: the order mod 21 is
+the least common multiple of the orders mod 3 and mod 7.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The order mod 3 divides 2 and the order mod 7 divides 6, so \(r\) divides 6: \(r\in\{1, 2, 3, 6\}\). So \(a^2\) and \(a^3\) settle
+everything — \(r = 2\) iff \(a^2\equiv1\), \(r = 3\) iff \(a^3\equiv1\) (with \(a\ne1\)), and otherwise \(r = 6\) and \(a^{r/2} = a^3\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: the squares mod 21 of \(1, 2, 4, 5, 8, 10, 11, 13, 16, 17, 19, 20\) are \(1, 4, 16, 4, 1, 16, 16, 1, 4, 16, 4, 1\) —
+for instance \(10^2 = 100 = 4\cdot21 + 16\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Every order divides 6, so two powers per \(a\) decide it; the failures are exactly the \(a\) whose orders mod 3 and
+mod 7 carry the same power of 2.</p>
+<p><strong>1 and 2.</strong> Cubes are squares times \(a\): e.g. \(a = 10\): \(16\cdot10 = 160 = 7\cdot21 + 13\); \(a = 17\): \(16\cdot17 = 272 = 12\cdot21 + 20\).</p>
+<table>
+<tr><th>\(a\)</th><th>\(a^2\)</th><th>\(a^3\)</th><th>\(r\)</th><th>\(a^{r/2}\)</th><th>verdict</th><th>\(\gcd(a^{r/2} - 1, 21)\)</th></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>1</td><td>—</td><td>fail: odd</td><td></td></tr>
+<tr><td>2</td><td>4</td><td>8</td><td>6</td><td>8</td><td>succeed</td><td>\(\gcd(7, 21) = 7\)</td></tr>
+<tr><td>4</td><td>16</td><td>1</td><td>3</td><td>—</td><td>fail: odd</td><td></td></tr>
+<tr><td>5</td><td>4</td><td>20</td><td>6</td><td>20</td><td>fail: \(-1\)</td><td></td></tr>
+<tr><td>8</td><td>1</td><td>8</td><td>2</td><td>8</td><td>succeed</td><td>7</td></tr>
+<tr><td>10</td><td>16</td><td>13</td><td>6</td><td>13</td><td>succeed</td><td>\(\gcd(12, 21) = 3\)</td></tr>
+<tr><td>11</td><td>16</td><td>8</td><td>6</td><td>8</td><td>succeed</td><td>7</td></tr>
+<tr><td>13</td><td>1</td><td>13</td><td>2</td><td>13</td><td>succeed</td><td>3</td></tr>
+<tr><td>16</td><td>4</td><td>1</td><td>3</td><td>—</td><td>fail: odd</td><td></td></tr>
+<tr><td>17</td><td>16</td><td>20</td><td>6</td><td>20</td><td>fail: \(-1\)</td><td></td></tr>
+<tr><td>19</td><td>4</td><td>13</td><td>6</td><td>13</td><td>succeed</td><td>3</td></tr>
+<tr><td>20</td><td>1</td><td>20</td><td>2</td><td>20</td><td>fail: \(-1\)</td><td></td></tr>
+</table>
+<p>Six fail: 1, 4, 16 with odd order, and 5, 17, 20 with \(a^{r/2}\equiv20\equiv-1\). Every success lands on one of the two nontrivial
+square roots of 1, 8 or 13: \(8 - 1 = 7\) gives the prime 7 and \(13 - 1 = 12\) gives 3. (And \(\gcd(a^{r/2} + 1, 21)\) gives the other:
+\(\gcd(9, 21) = 3\), \(\gcd(14, 21) = 7\).)</p>
+<p><strong>3.</strong> Mod 3 the order of \(a\) is 1 (valuation 0) for \(a\equiv1\) and 2 (valuation 1) for \(a\equiv2\). Mod 7 the orders of
+\(1, \dots, 6\) are \(1, 3, 6, 3, 6, 2\), valuations \(0, 0, 1, 0, 1, 1\). By the lemma on <i>When does a random a work?</i>, \(a\) fails iff the two
+valuations agree. Valuations \((0, 0)\): \(a\equiv1\pmod 3\) and \(a\equiv1, 2, 4\pmod 7\), which is \(a = 1, 16, 4\) — the odd orders.
+Valuations \((1, 1)\): \(a\equiv2\pmod 3\) and \(a\equiv3, 5, 6\pmod 7\), which is \(a = 17, 5, 20\) — the \(-1\) cases. Half of each
+coordinate has each valuation, so exactly \(\tfrac12\cdot\tfrac12 + \tfrac12\cdot\tfrac12 = \tfrac12\) of the \(a\) fail.</p>
+<p><strong>4.</strong> Of the 19 values in \(\{2, \dots, 20\}\), the 8 multiples of 3 or 7 — \(3, 6, 7, 9, 12, 14, 15, 18\) — give a factor at once
+by \(\gcd(a, 21)\). Of the other 11, six succeed (2, 8, 10, 11, 13, 19) and five fail (4, 5, 16, 17, 20). So one round succeeds with probability
+\((8 + 6)/19 = 14/19 = 0.737\).</p>
+<p><strong>Check.</strong> \(6 + 6 = 12 = \varphi(21)\) ✓, and the failing fraction \(6/12 = \tfrac12\) is exactly the theorem's bound — 21 is a case
+where it is attained, as the deck's grid shows. Spot check: \(5^3 = 125 = 5\cdot21 + 20\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Proof: the reduction's ½ <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Chinese remainder theorem as independence, square roots of 1 mod a prime, counting squares without cyclicity, the bound in a case where it is not attained</p>
+<div class="statement">
+<p>Let \(p\ne q\) be odd primes, \(N = pq\), \(a\) uniform in \(\mathbb Z_N^\times\), and \(r_p\), \(r_q\) the orders of \(a\) modulo \(p\) and \(q\).</p>
+<ol>
+<li>Show that \(r = \operatorname{lcm}(r_p, r_q)\).</li>
+<li>Show that \(a\) succeeds — \(r\) even and \(a^{r/2}\not\equiv-1\pmod N\) — if and only if \(v(r_p)\ne v(r_q)\).</li>
+<li>Write \(p - 1 = 2^em\) with \(m\) odd. Show that exactly half of \(\mathbb Z_p^\times\) has \(v(\operatorname{ord}a) = e\). Do not use that
+\(\mathbb Z_p^\times\) is cyclic.</li>
+<li>Conclude that \(\Pr[\text{fail}]\le\tfrac12\).</li>
+<li>For \(N = 15\), find the failure probability exactly and list the failing \(a\). Why is it below ½?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is an inequality between probabilities, built from three small lemmas. The CRT makes \(a\bmod p\) and \(a\bmod q\)
+independent and uniform, so it is enough to know the distribution of \(v(r_p)\) alone.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 2 has three cases: both valuations 0; equal and at least 1; unequal. Modulo a prime the only square roots of 1 are \(\pm1\). For
+part 3: \(x\mapsto x^2\) is two-to-one on \(\mathbb Z_p^\times\), and the polynomial \(X^{(p-1)/2} - 1\) has at most \((p-1)/2\) roots in the
+field \(\mathbb Z_p\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2's middle case: if \(v(r_p) = v(r_q) = d\ge1\) then \(v(r) = d\) and \(v(r/2) = d - 1 \lt v(r_p)\), so \(r_p\nmid r/2\)
+and \(a^{r/2}\not\equiv1\pmod p\), while \((a^{r/2})^2 = a^r\equiv1\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(a^{r/2}\) is a square root of 1 modulo each prime, so it is \(\pm1\) modulo each; it is \(-1\) modulo both exactly
+when the two orders carry the same power of 2. And modulo one prime, half the residues carry the top power of 2.</p>
+<p><strong>1.</strong> For distinct primes, \(pq\mid a^k - 1\) iff \(p\mid a^k - 1\) and \(q\mid a^k - 1\), iff \(r_p\mid k\) and \(r_q\mid k\) (an order divides
+every exponent that gives 1), iff \(\operatorname{lcm}(r_p, r_q)\mid k\). The least such \(k\ge1\) is the lcm. Hence \(v(r) = \max(v(r_p), v(r_q))\).</p>
+<p><strong>2.</strong> Square roots of 1 mod a prime: \(\mathbb Z_p\) is a field, so \((x-1)(x+1) = 0\) forces \(x = \pm1\), and \(1\ne-1\) as \(p\) is odd.</p>
+<ul>
+<li><i>Both valuations 0.</i> \(r\) is an lcm of odd numbers, so odd: fail.</li>
+<li><i>Both equal to \(d\ge1\).</i> As in rung 3, \(a^{r/2}\) is a square root of 1 mod \(p\) other than 1, so \(\equiv-1\pmod p\); the same mod
+\(q\); by the CRT \(a^{r/2}\equiv-1\pmod N\): fail.</li>
+<li><i>Unequal, say \(v(r_p) > v(r_q)\).</i> \(r = 2^{v(r_p)}m'\) with \(m'\) odd, and \(r_q = 2^{v(r_q)}m_q\) with \(m_q\mid m'\) and
+\(v(r_q)\le v(r_p) - 1\), so \(r_q\mid r/2\) and \(a^{r/2}\equiv1\pmod q\). Were \(a^{r/2}\equiv-1\pmod N\), we would have \(1\equiv-1\pmod q\):
+impossible. And \(r\) is even. Succeed.</li>
+</ul>
+<p><strong>3.</strong> The squaring map is a homomorphism of \(\mathbb Z_p^\times\) with kernel \(\{\pm1\}\), so its image — the squares — has
+\((p-1)/2\) elements. A square \(b^2\) has \((b^2)^{(p-1)/2} = b^{p-1} = 1\) (Fermat), so its order divides \(2^{e-1}m\): valuation at most
+\(e - 1\). The squares are \((p-1)/2\) roots of \(X^{(p-1)/2} - 1\), which has at most that many, so they are all of them; a non-square \(a\)
+therefore has \(a^{(p-1)/2}\ne1\), and its order divides \(2^em\) (Fermat) but not \(2^{e-1}m\). Writing the order as \(2^jm''\) with
+\(m''\mid m\), that forces \(j = e\). So the non-squares, exactly half, are exactly those with valuation \(e\).</p>
+<p><strong>4.</strong> By part 3, \(\Pr[v(r_q) = d]\le\tfrac12\) for every \(d\): the value \(e\) has probability exactly ½, so every other value
+has at most ½. By the CRT, \(a\mapsto(a\bmod p, a\bmod q)\) is a bijection \(\mathbb Z_N^\times\to\mathbb Z_p^\times\times\mathbb Z_q^\times\), so the two
+residues are independent and uniform. Then
+\[\Pr[\text{fail}] = \sum_d\Pr[v(r_p) = d]\,\Pr[v(r_q) = d]\le\tfrac12\sum_d\Pr[v(r_p) = d] = \tfrac12.\]</p>
+<p><strong>5.</strong> Mod 3: valuation 0 or 1, each with probability ½. Mod 5, \(p - 1 = 4 = 2^2\): the orders of \(1, 2, 3, 4\) are \(1, 4, 4, 2\),
+valuations \(0, 2, 2, 1\), with probabilities \(\tfrac14, \tfrac14, \tfrac12\) for \(d = 0, 1, 2\). So
+\(\Pr[\text{fail}] = \tfrac12\cdot\tfrac14 + \tfrac12\cdot\tfrac14 + 0\cdot\tfrac12 = \tfrac14\). The failing \(a\) are \((1\bmod 3, 1\bmod 5) = 1\)
+and \((2\bmod 3, 4\bmod 5) = 14\): 2 of the 8 units. It is below ½ because half the residues mod 5 have valuation 2, which no residue mod 3
+can match.</p>
+<p><strong>Check.</strong> \(a = 14\equiv-1\) has order 2 and \(a^1 = -1\): a failure ✓. \(a = 4\): order 2, \(4\not\equiv14\), and
+\(\gcd(3, 15) = 3\) ✓. For 21 (P1) the bound is attained, since both \(3 - 1\) and \(7 - 1\) have \(e = 1\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Prime powers <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: square roots of 1 modulo \(p^k\), why the reduction needs two distinct primes, the perfect-power test and its cost</p>
+<div class="statement">
+<p>Let \(p\) be an odd prime and \(N = p^k\), \(k\ge1\).</p>
+<ol>
+<li>Show that \(x^2\equiv1\pmod{p^k}\) implies \(x\equiv\pm1\pmod{p^k}\).</li>
+<li>Deduce that every \(a\) coprime to \(N\) makes the reduction fail. Check it for \(N = 25\) with \(a = 2\) and \(a = 7\).</li>
+<li>Step 3's \(\gcd(a, N)\) can still find \(p\). For \(N = 25\) and \(a\) uniform in \(\{2, \dots, 24\}\), how likely is that? Why is it no help for
+large \(p\)?</li>
+<li>Give a classical test that detects \(N = b^k\) with \(k\ge2\), run it on \(N = 2197\), and bound its cost for an \(n\)-bit \(N\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a divisibility argument about the two numbers \(x - 1\) and \(x + 1\). How far apart are they?</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(p^k\) divides their product. If \(p\) divided both, it would divide their difference. For part 4, if \(N = b^k\) with \(b\ge2\) then
+\(k\le\log N\), so there are few \(k\) to try, and \(\lfloor N^{1/k}\rfloor\) can be found by bisection.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: if \(p\mid x - 1\) and \(p\mid x + 1\) then \(p\mid(x + 1) - (x - 1) = 2\), impossible for odd \(p\); so \(p\) divides at most one of
+the two, and \(p^k\), which divides the product, divides that one.</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Modulo a prime power, 1 has only the two square roots \(\pm1\), so the square root the reduction produces is always the
+useless one. The reduction needs two distinct primes; prime powers are caught by a separate, classical test.</p>
+<p><strong>1.</strong> As in rung 3: \(p^k\mid(x-1)(x+1)\) and \(p\) divides at most one factor, so all \(k\) factors of \(p\) sit in that one: \(x\equiv1\)
+or \(x\equiv-1\pmod{p^k}\). (If \(p\) divided neither, \(p^k\) could not divide the product.)</p>
+<p><strong>2.</strong> If \(r\) is odd, the reduction fails. If \(r\) is even, \(x = a^{r/2}\) has \(x^2\equiv1\) and \(x\not\equiv1\) by minimality of \(r\); by
+part 1, \(x\equiv-1\): fail. <i>For 25, \(a = 2\):</i> \(2^4 = 16\), \(2^5 = 32\equiv7\), \(2^{10}\equiv49\equiv24\), \(2^{20}\equiv24^2 = 576 = 23\cdot25 + 1\equiv1\).
+The divisors of 20 below it are \(1, 2, 4, 5, 10\), and \(2, 4, 16, 7, 24\) are all \(\ne1\), so \(r = 20\) and \(2^{10}\equiv24\equiv-1\): fail. <i>\(a = 7\):</i>
+\(7^2 = 49\equiv24\equiv-1\), so \(r = 4\) and \(7^2\equiv-1\): fail. In all, the 20 units of \(\mathbb Z_{25}\) split as 5 of odd order (1, 6, 11, 16, 21,
+of orders 1 or 5) and 15 of even order, every one of which has \(a^{r/2}\equiv24\).</p>
+<p><strong>3.</strong> The values sharing a factor with 25 are \(5, 10, 15, 20\): probability \(4/23 = 0.174\). For \(N = p^k\) in general it is
+\((p^{k-1} - 1)/(p^k - 2)\approx1/p\), negligible for a large prime, so a different test is needed.</p>
+<p><strong>4.</strong> <i>The test.</i> For \(k = 2, 3, \dots, \lfloor\log N\rfloor\), compute \(b = \lfloor N^{1/k}\rfloor\) by bisection on \([1, 2^{\lceil n/k\rceil}]\)
+and test \(b^k = N\). If it holds, \(b\) is a proper factor of \(N\) — output it, prime or not. <i>On 2197:</i> \(\log2197 = 11.10\), so
+\(k\le11\). \(k = 2\): \(46^2 = 2116 \lt 2197 \lt 2209 = 47^2\), no. \(k = 3\): \(13^3 = 2197\), yes: output 13. <i>Cost:</i> at most \(n\) values of \(k\),
+each with at most \(n\) bisection steps, each a power \(b^k\) by repeated squaring — \(O(\log k)\) multiplications of numbers below \(2N\),
+\(O(n^2\log n)\) bit operations. Total \(O(n^4\log n)\): crude, but polynomial.</p>
+<p><strong>Check.</strong> The deck's \(N = 9\): units \(1, 2, 4, 5, 7, 8\) of orders \(1, 6, 3, 6, 3, 2\); the even ones give \(2^3 = 8\), \(5^3 = 125 = 13\cdot9 + 8\),
+\(8^1 = 8\), all \(\equiv-1\) ✓. And \(k = 1\) is a prime, where part 1 is the familiar \(x = \pm1\) in a field ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> From a multiple of the order <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the square-root trick with a known multiple of \(r\), RSA's secret exponent as such a multiple, the valuation criterion again</p>
+<div class="statement">
+<p>Suppose a positive integer \(m\) is known that is a multiple of the order of every unit mod \(N\) — for instance \(m = ed - 1\) from an RSA key,
+since \(a^{ed}\equiv a\). Write \(m = 2^su\) with \(u\) odd. For \(a\) coprime to \(N\), set \(x_0 = a^u\bmod N\) and \(x_{i+1} = x_i^2\bmod N\).</p>
+<ol>
+<li>Show that \(x_i\equiv1\) for some \(i\le s\).</li>
+<li>Suppose \(x_0\not\equiv1\) and let \(j\) be the least index with \(x_j\equiv1\). Show that \(x_{j-1}\) splits \(N\) unless \(x_{j-1}\equiv-1\).</li>
+<li>Take the RSA modulus \(N = 55\) with public exponent \(e = 3\). Find \(d\) and \(m = ed - 1\), and run the procedure with \(a = 2\) and with
+\(a = 19\).</li>
+<li>For \(N = pq\), show that the procedure fails for exactly the \(a\) for which the order-based reduction fails — so it too succeeds with
+probability at least ½.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The sequence is \(x_i = a^{2^iu}\): every part is a question about when a power of \(a\) is 1, modulo \(N\) or modulo one prime.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(x_s = a^m\). For part 4, work modulo \(p\): when is \(a^{2^iu}\equiv1\pmod p\)? Use that \(r_p\mid m\), so the odd part of \(r_p\) divides \(u\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: since the odd part of \(r_p\) divides \(u\), \(a^{2^iu}\equiv1\pmod p\) iff \(r_p\mid2^iu\) iff \(v(r_p)\le i\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> This is Miller's 1976 argument, the deterministic ancestor of the reduction: a multiple of \(r\) is as good as \(r\),
+because halving it until the power stops being 1 lands on the same square root of 1.</p>
+<p><strong>1.</strong> \(x_s = a^{2^su} = a^m\equiv1\), since \(r\mid m\).</p>
+<p><strong>2.</strong> \(j\ge1\) because \(x_0\not\equiv1\). Then \(x_{j-1}^2 = x_j\equiv1\) and \(x_{j-1}\not\equiv1\) by minimality of \(j\). So \(x_{j-1}\) is a
+square root of 1 other than 1; if it is also not \(-1\), the deck's lemma (<i>Order, and a square root of 1 that splits N</i>) makes
+\(\gcd(x_{j-1}\pm1, N)\) proper factors.</p>
+<p><strong>3.</strong> \(\varphi(55) = 4\cdot10 = 40\), and \(d = 3^{-1}\bmod40 = 27\), since \(3\cdot27 = 81 = 2\cdot40 + 1\). So \(m = 80 = 2^4\cdot5\): \(u = 5\),
+\(s = 4\).</p>
+<ul>
+<li>\(a = 2\): \(x_0 = 2^5 = 32\); \(x_1 = 32^2 = 1024 = 18\cdot55 + 34\equiv34\); \(x_2 = 34^2 = 1156 = 21\cdot55 + 1\equiv1\). So \(j = 2\) and
+\(x_1 = 34\not\equiv\pm1\): \(\gcd(33, 55) = 11\) and \(\gcd(35, 55) = 5\). And \(5\cdot11 = 55\) ✓.</li>
+<li>\(a = 19\): \(19^2 = 361 = 6\cdot55 + 31\), \(19^4\equiv31^2 = 961 = 17\cdot55 + 26\), \(x_0 = 19^5\equiv26\cdot19 = 494 = 8\cdot55 + 54\equiv-1\), and \(x_1\equiv1\).
+The last value before 1 is \(-1\): fail, pick another \(a\).</li>
+</ul>
+<p><strong>4.</strong> By rung 3, applied to both primes, \(x_i\equiv1\pmod N\) iff \(i\ge\max(v(r_p), v(r_q))\). So \(j = \max(v(r_p), v(r_q))\). If
+\(j = 0\), \(x_0\equiv1\): both valuations are 0 — this is the case "\(r\) odd". Otherwise look at \(x_{j-1}\) modulo \(p\): if \(v(r_p)\le j - 1\) it is 1;
+if \(v(r_p) = j\) it is a square root of 1 other than 1 modulo the prime \(p\), hence \(-1\). The same modulo \(q\). So \(x_{j-1}\equiv-1\pmod N\) iff
+\(v(r_p) = v(r_q) = j\). The procedure fails iff \(v(r_p) = v(r_q)\) — exactly P2's criterion, so with probability at most ½.</p>
+<p><strong>Check.</strong> Valuations for 55: \(a = 2\) has order 4 mod 5 and 10 mod 11, valuations \(2\ne1\): success, as found. \(a = 19\equiv4\pmod5\) has order 2,
+and \(19\equiv8\pmod{11}\) has order 10: valuations \(1 = 1\), failure, as found ✓. The moral for RSA: anyone holding \(d\) can factor \(N\), so
+recovering \(d\) is no easier than factoring.</p>
+</div></details>
+</section>
+
+<h2 class="group">Order finding as phase estimation, and the circuit</h2>
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Eigenvectors, and an exact distribution <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the eigenvectors of \(U_a\), \(\ket1\) as their equal superposition, phase estimation when \(r\) divides \(2^t\), decoding each outcome</p>
+<div class="statement">
+<p>Take \(N = 15\), \(a = 7\), and four work qubits.</p>
+<ol>
+<li>Find the orbit of 1 under \(U_7\) and write the four eigenvectors \(\ket{u_s}\), with \(e^{2\pi i/4} = i\). Check that \(U_7\ket{u_1} = i\ket{u_1}\), that
+each is normalised, and that \(\sum_s\ket{u_s} = 2\ket1\).</li>
+<li>Choose \(t\). Show that the counting register's distribution is exactly \(\tfrac14\) on four outcomes and 0 elsewhere. Which four?</li>
+<li>Decode each outcome. Which give \(r\), which a proper divisor, which nothing? What is the probability one run gives \(r\) directly?</li>
+<li>Finish the factorisation of 15.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four vectors in the span of the orbit, then a distribution with four atoms. For part 2: when is \(2^ts/r\) an integer for every \(s\), and what
+is \(F_t\) at a nonzero integer multiple of \(2^{-t}\)?</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(7^2 = 49\equiv4\), \(4\cdot7 = 28\equiv13\), \(13\cdot7 = 91\equiv1\). And \(15^2 = 225\le256\lt450\), so \(t = 8\) and \(2^ts/4 = 64s\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\ket{u_s} = \tfrac12\big(\ket1 + i^{-s}\ket7 + (-1)^s\ket4 + i^{s}\ket{13}\big)\), since \(i^{-2s} = (-1)^s\) and \(i^{-3s} = i^{s}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> When \(r\) divides \(2^t\) every eigenphase \(s/r\) is an exact \(t\)-bit fraction, so phase estimation reads it with certainty:
+the distribution is \(r\) clean spikes. This is the deck's warm-up case, where no continued fraction is needed.</p>
+<p><strong>1.</strong> The orbit is \(1\to7\to4\to13\to1\), so \(r = 4\), and</p>
+\[\begin{aligned}\ket{u_0} &amp;= \tfrac12(\ket1 + \ket7 + \ket4 + \ket{13}), &amp; \ket{u_1} &amp;= \tfrac12(\ket1 - i\ket7 - \ket4 + i\ket{13}),\\
+\ket{u_2} &amp;= \tfrac12(\ket1 - \ket7 + \ket4 - \ket{13}), &amp; \ket{u_3} &amp;= \tfrac12(\ket1 + i\ket7 - \ket4 - i\ket{13}).\end{aligned}\]
+<p>\(U_7\) moves \(\ket1\to\ket7\to\ket4\to\ket{13}\to\ket1\), so \(U_7\ket{u_1} = \tfrac12(\ket7 - i\ket4 - \ket{13} + i\ket1)\), and
+\(i\ket{u_1} = \tfrac12(i\ket1 + \ket7 - i\ket4 - \ket{13})\): equal ✓. Each has four entries of modulus ½: norm \(4\cdot\tfrac14 = 1\) ✓. Summing, the
+coefficient of \(\ket1\) is \(\tfrac12\cdot4 = 2\); of \(\ket7\), \(\tfrac12(1 - i - 1 + i) = 0\); of \(\ket4\), \(\tfrac12(1 - 1 + 1 - 1) = 0\); of \(\ket{13}\),
+\(\tfrac12(1 + i - 1 - i) = 0\). So \(\sum_s\ket{u_s} = 2\ket1\) and \(\ket1 = \tfrac12\sum_s\ket{u_s}\), of norm \(4\cdot\tfrac14 = 1\) ✓.</p>
+<p><strong>2.</strong> \(t = 8\) and \(2^8s/4 = 64s\). With \(\delta = s/4 - y/256 = (64s - y)/256\), the numerator of \(F_8\) is \(\sin^2(\pi(64s - y)) = 0\) for every
+integer \(y\), so \(F_8 = 0\) unless \(\delta\) is an integer, where \(F_8 = 1\). For \(0\le y\lt256\) that means \(y = 64s\). Hence
+\(P(y) = \tfrac14\) at \(y = 0, 64, 128, 192\) and 0 elsewhere; the four sum to 1 ✓.</p>
+<p><strong>3.</strong></p>
+<table>
+<tr><th>\(y\)</th><th>\(y/256\)</th><th>decoded</th><th>test</th><th>verdict</th></tr>
+<tr><td>0</td><td>0</td><td>\(0/1\)</td><td>\(q = 1\)</td><td>nothing (\(s = 0\))</td></tr>
+<tr><td>64</td><td>\(1/4\)</td><td>\(1/4\)</td><td>\(7^4\equiv1\)</td><td>\(r = 4\)</td></tr>
+<tr><td>128</td><td>\(1/2\)</td><td>\(1/2\)</td><td>\(7^2 = 49\equiv4\not\equiv1\)</td><td>divisor 2 (\(s = 2\))</td></tr>
+<tr><td>192</td><td>\(3/4\)</td><td>\(3/4\)</td><td>\(7^4\equiv1\)</td><td>\(r = 4\)</td></tr>
+</table>
+<p>For \(q = 4\) the test needs \(7^1, 7^2\not\equiv1\) as well, so that 4 is the order: \(7\) and \(4\) ✓. One run gives \(r = 4\) directly with probability
+\(\tfrac12\) — exactly the fraction \(\varphi(4)/4\) of \(s\) coprime to 4, because here every run lands on its nearest integer.</p>
+<p><strong>4.</strong> \(r = 4\) is even and \(7^2\equiv4\not\equiv14\). \(\gcd(4 - 1, 15) = 3\) and \(\gcd(4 + 1, 15) = 5\) ✓.</p>
+<p><strong>Check.</strong> Unit 15's bound: each \(s\) lands on its nearest integer with probability \(1\ge4/\pi^2\) ✓. And the case \(t = 1\) of part 2's
+argument: one counting qubit reads \(s/4\) to one bit, which is exact only for \(s = 0, 2\) — the formula gives \(P(0) = P(1) = \tfrac12\), consistent ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, library
+
+def order_finding(N, a, t, w):
+    """Outcome distribution of the counting register: t counting, w work qubits."""
+    c = Circuit(t + w)
+    c.x(t + w - 1)                                    # work register |0...01&gt; = |1&gt;
+    for q in range(t):
+        c.h(q)
+    for q in range(t):                                # counting qubit q has weight 2^(t-1-q)
+        b = pow(a, 2**(t - 1 - q), N)                 # repeated squaring, done classically
+        c.permutation(library.multiply_mod(b, N, w), range(t, t + w), [q], name=f"x{b}")
+    c.gate(library.qft_matrix(t).conj().T, *range(t), name="F†")
+    return c.run().probabilities(range(t))
+
+p = order_finding(15, 7, 8, 4)
+print(np.flatnonzero(p &gt; 1e-9), p[p &gt; 1e-9].round(6))   # [  0  64 128 192] [0.25 0.25 0.25 0.25]</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Counting qubits <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the spacing of fractions with bounded denominator, why \(N^2\le2^t\), what the nearest-fraction rule returns when the register is too short</p>
+<div class="statement">
+<ol>
+<li>Show that two distinct fractions with denominators below \(N\) differ by more than \(1/N^2\). Deduce that if \(2^t\ge N^2\) and
+\(|y/2^t - s/r|\le1/2^{t+1}\) with \(r \lt N\), then \(s/r\) (in lowest terms) is the only fraction with denominator below \(N\) within \(1/(2N^2)\) of
+\(y/2^t\). Show \(t = 2n\) always suffices for an odd \(n\)-bit \(N\).</li>
+<li>Now take \(N = 21\), \(a = 2\) and only \(t = 5\). Find the six peaks — the integers nearest \(32s/6\) — and decode each by the nearest-fraction
+rule. Show that no run at a peak returns \(r = 6\), and none returns the divisor 3.</li>
+<li>Legendre's theorem still makes \(\tfrac16\) a convergent of \(\tfrac5{32}\): check its hypothesis. So what exactly has gone wrong?</li>
+<li>A looser decoder tests the denominator of every convergent of \(y/32\) below 21. Show it finds \(r = 6\) from \(y = 5\). Why is that luck rather than
+a guarantee?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a lower bound on \(|p/q - p'/q'|\) by an integer numerator over \(qq'\). Part 2 is six fractions \(y/32\) and the six fractions with
+denominator at most 20 nearest to them.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(32s/6 = 0, 5.33, 10.67, 16, 21.33, 26.67\). The nearest fraction with bounded denominator is a convergent or a semiconvergent (cited in the
+deck), so expand \(5/32\) and \(11/32\) and list those; the peaks at 21 and 27 are mirrors, \(32 - 11\) and \(32 - 5\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(|5/32 - 1/6| = |30 - 32|/192 = 1/96\), while \(|5/32 - 3/19| = |95 - 96|/608 = 1/608\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The decoder knows only that \(r \lt N\), so it must be able to tell \(s/r\) from every fraction with denominator below \(N\).
+Those are spaced at least \(1/N^2\) apart; the measurement is only good to \(1/2^{t+1}\). With \(2^t\ge N^2\) the window is narrow enough to
+contain one of them; with \(t = 5\) it holds many, and the rule picks the wrong one.</p>
+<p><strong>1.</strong> \(|p/q - p'/q'| = |pq' - p'q|/qq'\). The numerator is a nonzero integer, so at least 1, and \(q, q'\le N - 1\), so
+\(qq' \lt N^2\): the difference exceeds \(1/N^2\). Now \(|y/2^t - s/r|\le1/2^{t+1}\le1/2N^2\). If another fraction \(p/q\), \(q \lt N\), were also within
+\(1/2N^2\) of \(y/2^t\), it would be within \(1/N^2\) of \(s/r\) — contradiction. Finally, an odd \(N\) of \(n\) bits has \(N \lt 2^n\), so
+\(N^2 \lt 2^{2n}\) and \(t = 2n\) meets \(2^t\ge N^2\).</p>
+<p><strong>2.</strong> The peaks are 0, 5, 11, 16, 21, 27. Expand: \(5/32 = [0; 6, 2, 2]\), convergents \(\tfrac16, \tfrac2{13}, \tfrac5{32}\), semiconvergents
+\(\tfrac17\) and \(\tfrac3{19}\) (and \(\tfrac11, \dots, \tfrac15\), far off); distances \(\tfrac1{96}, \tfrac1{416}, \tfrac3{224}, \tfrac1{608}\) for \(\tfrac16, \tfrac2{13}, \tfrac17, \tfrac3{19}\). Nearest:
+\(\tfrac3{19}\). And \(11/32 = [0; 2, 1, 10]\), convergents \(\tfrac12, \tfrac13, \tfrac{11}{32}\), semiconvergents \((1 + j)/(2 + 3j)\) for \(j = 1, \dots, 9\), of
+which \(\tfrac7{20}\) (\(j = 6\)) is the last with denominator below 21; \(|11/32 - 7/20| = 4/640 = \tfrac1{160}\) beats \(|11/32 - 1/3| = \tfrac1{96}\).
+Nearest: \(\tfrac7{20}\). Since \(x\mapsto1 - x\) preserves denominators, 27 and 21 decode to \(1 - \tfrac3{19} = \tfrac{16}{19}\) and
+\(1 - \tfrac7{20} = \tfrac{13}{20}\).</p>
+<table>
+<tr><th>\(y\)</th><th>0</th><th>5</th><th>11</th><th>16</th><th>21</th><th>27</th></tr>
+<tr><td>\(s\)</td><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+<tr><td>decoded</td><td>\(0\)</td><td>\(3/19\)</td><td>\(7/20\)</td><td>\(1/2\)</td><td>\(13/20\)</td><td>\(16/19\)</td></tr>
+<tr><td>test</td><td>\(q = 1\)</td><td>\(2^{19}\equiv2\)</td><td>\(2^{20}\equiv4\)</td><td>\(2^2 = 4\)</td><td>\(2^{20}\equiv4\)</td><td>\(2^{19}\equiv2\)</td></tr>
+</table>
+<p>(\(2^{19}\equiv2^{19\bmod6} = 2^1\) and \(2^{20}\equiv2^2\), because \(2^6\equiv1\).) No test passes; only \(y = 16\) yields anything — the divisor 2.
+Over all 32 outcomes (computed), the rule returns 6 or 3 with probability 0, and 2 with probability \(0.168\).</p>
+<p><strong>3.</strong> Legendre needs \(|5/32 - 1/6| = \tfrac1{96} \lt \tfrac1{2\cdot6^2} = \tfrac1{72}\): true, so \(\tfrac16\) is a convergent of \(\tfrac5{32}\),
+as found. Nothing is wrong with Legendre. What fails is <i>uniqueness</i>: \(2^5 = 32 \lt 441 = 21^2\), so the window \(\pm\tfrac1{64}\) around
+\(\tfrac5{32}\) is far wider than the spacing \(\tfrac1{441}\) of fractions with denominator below 21, and \(\tfrac3{19}\) is closer than \(\tfrac16\).</p>
+<p><strong>4.</strong> The convergents of \(\tfrac5{32}\) with denominator below 21 are \(\tfrac01, \tfrac16, \tfrac2{13}\); testing 6 gives \(2^6\equiv1\), so \(r = 6\).
+(Likewise \(27/32 = [0; 1, 5, 2, 2]\) has convergent \(\tfrac56\).) But nothing guaranteed it. The measurement promises only
+\(|y/32 - s/r|\le\tfrac1{64}\), and Legendre needs \(\lt\tfrac1{2r^2}\); since the decoder does not know \(r\), it needs this for every \(r \lt N\), i.e.
+\(\tfrac1{2^{t+1}} \lt \tfrac1{2(N-1)^2}\) — essentially \(2^t\ge N^2\) again. For \(r = 6\) it happened that \(\tfrac1{96} \lt \tfrac1{72}\); a larger order
+would not have been so lucky.</p>
+<p><strong>Check.</strong> Computed with the nearest-fraction rule for each \(t\): one run returns \(r = 6\) with probability 0 at \(t = 5\) and 6,
+\(0.228\) at \(t = 7\), \(0.285\) at \(t = 8\) and \(0.308\) at \(t = 9\), the deck's value. The guarantee at \(t = 9\) is a sufficient condition, not the
+first \(t\) that ever works.</p>
+<h4>With the referee</h4>
+<pre><code># with order_finding() from P5's block
+from fractions import Fraction
+p = order_finding(21, 2, 5, 5)
+q = [Fraction(y, 32).limit_denominator(20).denominator for y in range(32)]   # nearest fraction, denominator below 21
+for d in (6, 3, 2):
+    print(d, round(float(sum(p[y] for y in range(32) if q[y] == d)), 3))   # 6 0.0 · 3 0.0 · 2 0.168</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Modular exponentiation's cost <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: counting gates through four levels of construction, the leading constant, an order of magnitude for a 2048-bit modulus</p>
+<div class="statement">
+<p>Count each Toffoli and CNOT as one gate, and take from the deck: an \(n\)-bit adder costs about \(8n\) gates; a modular addition of a constant
+costs about five adders; the multiply-add \(M_c\) is \(n\) controlled modular additions; an in-place multiplication is two multiply-adds and \(n\)
+swaps, each three CNOTs; and \(t = 2n\).</p>
+<ol>
+<li>Derive the gate count of \(\ket x\ket1\mapsto\ket x\ket{a^x\bmod N}\) as \(c\,n^3\) plus lower order, and find \(c\). Why does adding one control
+to every gate not change the exponent?</li>
+<li>For \(n = 2048\), give the order of magnitude. Compare with the inverse QFT on the counting register.</li>
+<li>Roughly how many qubits?</li>
+<li>Check the formula's scaling and its value at the running example, \(n = 5\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a product of four factors, one per level of the construction, with a power of \(n\) from each level that repeats something
+\(n\) or \(2n\) times.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Levels: adder (\(8n\)) → modular adder (×5) → multiply-add (×\(n\)) → in-place multiplication (×2) → exponentiation (×\(2n\)). A control on
+every gate turns a CNOT into a Toffoli and a Toffoli into a three-control \(X\), each a constant number of Toffolis (unit 10).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: modular adder \(5\cdot8n = 40n\); multiply-add \(n\cdot40n = 40n^2\); in place \(2\cdot40n^2 + 3n\approx80n^2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Schoolbook arithmetic: an addition is linear in \(n\), a multiplication is \(n\) additions, an exponentiation is \(n\)
+multiplications. Three factors of \(n\), and a constant collected on the way.</p>
+<p><strong>1.</strong> Modular adder \(40n\); multiply-add \(40n^2\); in-place multiplication \(80n^2 + 3n\) (the \(n\) swaps are \(3n\) CNOTs); exponentiation
+\(2n(80n^2 + 3n) = 160n^3 + 6n^2\). So \(c\approx160\). Adding a control to every gate replaces each gate by a constant number of gates
+(\(C(G_m\cdots G_1) = C(G_m)\cdots C(G_1)\), and a many-controlled \(X\) costs a constant number of Toffolis per control), which multiplies \(c\) by a
+constant and leaves \(n^3\).</p>
+<p><strong>2.</strong> \(2048^3 = 8.59\times10^9\), so \(160\cdot2048^3 = 1.37\times10^{12}\): about a trillion gates, or \(10^{12}\)–\(10^{13}\) once the
+extra controls are compiled into Toffolis. The inverse QFT on \(t = 4096\) qubits has \(t(t-1)/2 = 8{,}386{,}560\approx8.4\times10^6\)
+controlled phases, plus 4096 Hadamards and 2048 swaps: five orders of magnitude fewer. The exponentiation is the cost. This is before any
+optimisation and before error correction; what it means in hardware is unit 24's and the capstone's question.</p>
+<p><strong>3.</strong> \(2n\) counting qubits, \(n\) work, \(n\) for the second register of the in-place trick, and about \(n\) carry and scratch qubits: about
+\(5n\approx10^4\) for \(n = 2048\). Linear in \(n\).</p>
+<p><strong>4.</strong> Doubling \(n\) multiplies \(160n^3\) by 8 ✓ (cubic). At \(n = 5\): \(160\cdot125 = 20{,}000\) gates — far more than the fourteen-qubit
+picture suggests, because each "×16" box in the deck's circuit hides two multiply-adds of five modular additions each.</p>
+<p><strong>Check.</strong> Units: every factor is a count of gates or a pure number, so the total is a count ✓. The deck's bound \(O(n^3)\) ✓; and faster
+multiplication would lower the exponent to \(O(n^2\log n\log\log n)\) (cited in the deck), at constants that pay only for very large \(n\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Continued fractions, and twenty-one</h2>
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Proof: Legendre's theorem <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the convergent identities, choosing the parity of an expansion, why the constant is ½, applying the theorem to order finding</p>
+<div class="statement">
+<p>You may use identities (i) and (ii) from the deck's <i>Convergents, and the identities they obey</i>: for \(\omega \gt 0\),
+\([a_0; \dots, a_k, \omega] = (\omega p_k + p_{k-1})/(\omega q_k + q_{k-1})\), and \(p_kq_{k-1} - p_{k-1}q_k = (-1)^{k+1}\).</p>
+<ol>
+<li>Prove: if \(x\) is real, \(p/q\) is in lowest terms with \(q\ge1\), and \(|x - p/q| \lt 1/(2q^2)\), then \(p/q\) is a convergent of \(x\).</li>
+<li>Show that \(1/(2q^2)\) cannot be replaced by \(1/q^2\), using \(x = 5/32\) and \(p/q = 3/19\).</li>
+<li>Deduce: if \(2^t\ge N^2\), \(r \lt N\) and \(|y/2^t - s/r|\le1/2^{t+1}\), then \(s/r\) in lowest terms is a convergent of \(y/2^t\).</li>
+<li>Check the proof's \(\omega\) on \(x = 427/512\), \(p/q = 5/6\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a continued fraction of \(x\) that begins with an expansion of \(p/q\): \(x = [a_0; \dots, a_k, \omega]\) with \(\omega\ge1\), so
+that \(\omega\)'s own expansion can be glued on.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Define \(\omega\) by (i). Then (ii) gives \(x - p_k/q_k = (-1)^k/\big(q_k(\omega q_k + q_{k-1})\big)\). For this to match the sign of \(x - p/q\),
+choose the length of \(p/q\)'s expansion: a last term \(a\ge2\) can be written \((a - 1) + \frac11\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: write \(x - p/q = \varepsilon\theta/q^2\) with \(\varepsilon = \pm1\) and \(0\le\theta \lt \tfrac12\), and expand \(p/q = [a_0; \dots, a_k]\) with
+\((-1)^k = \varepsilon\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Write \(x\) as \(p/q\)'s continued fraction with one more, real, term \(\omega\). That is always possible; it is a legal
+continued fraction exactly when \(\omega \gt 1\), and the hypothesis \(\theta \lt \tfrac12\) is what makes \(\omega \gt 1\).</p>
+<p><strong>1.</strong> If \(\theta = 0\), \(x = p/q\) is its own last convergent. Otherwise, as in rung 3. <i>Parity.</i> If the canonical expansion
+\([a_0; \dots, a_k]\) has \((-1)^k\ne\varepsilon\), use \([a_0; \dots, a_k - 1, 1]\) when \(a_k\ge2\) (or \(k = 0\)), or \([a_0; \dots, a_{k-1} + 1]\) when
+\(a_k = 1\) and \(k\ge1\). The length changes by one, and the last convergent is still \(p/q\) — with numerator and denominator exactly \(p\) and \(q\),
+because (ii) makes \(p_k, q_k\) coprime with \(q_k \gt 0\). <i>Solve for \(\omega\).</i> The Möbius map \(\omega\mapsto(\omega p_k + p_{k-1})/(\omega q_k + q_{k-1})\)
+has determinant \(\pm1\), so some real \(\omega\) gives \(x\). By (ii),
+\[x - \frac{p_k}{q_k} = \frac{(\omega p_k + p_{k-1})q_k - p_k(\omega q_k + q_{k-1})}{q_k(\omega q_k + q_{k-1})} = \frac{(-1)^k}{q_k(\omega q_k + q_{k-1})}.\]
+The left side is \(\varepsilon\theta/q_k^2\) with \(\varepsilon = (-1)^k\); cancelling, \(\omega q_k + q_{k-1} = q_k/\theta\), so
+\(\omega = 1/\theta - q_{k-1}/q_k\). Now \(1/\theta \gt 2\), and \(0\le q_{k-1}/q_k\le1\) (the \(q\)'s do not decrease and \(q_{-1} = 0\)), so \(\omega \gt 1\).
+<i>Glue.</i> Expand \(\omega = [b_0; b_1, \dots]\) with \(b_0 = \lfloor\omega\rfloor\ge1\). By (i), \(x = [a_0; \dots, a_k, \omega] = [a_0; \dots, a_k, b_0, b_1, \dots]\), a
+valid continued fraction — every term after \(a_0\) at least 1 — whose \(k\)-th convergent is \(p/q\). (If \(x\) is rational its two expansions differ only
+in their last two terms, which lie beyond index \(k\) unless \(\omega\) is an integer \(\ge2\), in which case nothing merges; either way \(p/q\) is a
+convergent.)</p>
+<p><strong>2.</strong> \(|5/32 - 3/19| = |95 - 96|/608 = 1/608 \lt 1/361 = 1/19^2\), but \(5/32 = [0; 6, 2, 2]\) has convergents \(0, \tfrac16, \tfrac2{13}, \tfrac5{32}\),
+and \(\tfrac3{19}\) is not among them. Consistently, \(1/608 \gt 1/722 = 1/(2\cdot19^2)\): the theorem's hypothesis fails, and so does its conclusion.</p>
+<p><strong>3.</strong> Let \(s/r = s'/r'\) in lowest terms, \(r'\le r \lt N\). Then \(|y/2^t - s'/r'|\le1/2^{t+1}\le1/(2N^2) \lt 1/(2r'^2)\), and part 1 applies.</p>
+<p><strong>4.</strong> \(x - \tfrac56 = (2562 - 2560)/3072 = +\tfrac1{1536}\), so \(\varepsilon = +1\) and \(\theta = 36/1536 = 0.0234\). The canonical
+\(\tfrac56 = [0; 1, 5]\) has \(k = 2\), \((-1)^2 = +1\): no change needed. \(\omega = 1/\theta - q_1/q_2 = 1536/36 - \tfrac16 = 42.667 - 0.167 = 42.5\), and
+\(42.5 = [42; 2]\). So \(427/512 = [0; 1, 5, 42, 2]\) — the deck's expansion ✓.</p>
+<p><strong>Check.</strong> A one-term case: \(x = 0.3\), \(p/q = 1/3\): \(|0.3 - 1/3| = 1/30 \lt 1/18\), and \(0.3 = [0; 3, 3]\) has convergent \(\tfrac13\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Factor 21 in full <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the whole algorithm on the running example — the classical checks, the circuit's constants, the distribution, the decoding, and the runs that fail</p>
+<div class="statement">
+<p>Factor 21 as the algorithm would, without using \(21 = 3\times7\).</p>
+<ol>
+<li>Run the classical checks, and pick \(a = 2\).</li>
+<li>Choose \(t\), count the qubits, list the constants \(b_j = 2^{2^j}\bmod21\), and say which counting qubit controls which.</li>
+<li>Write \(P(y)\), find the six peaks, and compute \(P(0)\) and \(P(85)\) by hand to three figures. Why are the peaks at 0 and 256 sharp?</li>
+<li>A run returns \(y = 427\). Expand \(427/512\), list its convergents, decode, test and factor.</li>
+<li>Other runs return 171, 256 and 0. What does each give, and why does each fail? Which pairs among \(\{427, 171, 256, 0\}\) would finish the job?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is the pair 7 and 3 — but reached only through things the algorithm can compute: a few powers mod 21, nine bits, a Euclid
+expansion and two gcds.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(441\le2^t \lt 882\). Peaks at the integers nearest \(512s/6\). For \(P(85)\), only \(s = 1\) matters: \(512\delta = 512/6 - 85 = \tfrac13\). For
+\(427/512\), run Euclid on \((427, 512)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: \(512 = 1\cdot427 + 85\), \(427 = 5\cdot85 + 2\), \(85 = 42\cdot2 + 1\), \(2 = 2\cdot1\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One quantum run samples \(s/6\) for a uniform \(s\), to nine bits; continued fractions read off \(s/6\) in lowest terms;
+the denominator is \(r\) only when \(s\) is coprime to 6.</p>
+<p><strong>1.</strong> 21 is odd; a primality test says composite; not a perfect power (\(4^2 \lt 21 \lt 5^2\), \(2^3 \lt 21 \lt 3^3\),
+\(2^4 \lt 21 \lt 3^4\), and \(k\le\lfloor\log21\rfloor = 4\)). \(\gcd(2, 21) = 1\).</p>
+<p><strong>2.</strong> \(t = 9\) (\(441\le512 \lt 882\)); work register \(n = 5\) (\(16 \lt 21\le32\)); 14 qubits. Repeated squaring:
+\(b_0 = 2\), \(b_1 = 4\), \(b_2 = 16\), \(b_3 = 256\bmod21 = 4\), then alternating: \(b_4, \dots, b_8 = 16, 4, 16, 4, 16\). Counting qubit \(k\) has weight
+\(2^{8-k}\) and controls multiplication by \(b_{8-k}\): qubits 0 to 8 multiply by \(16, 4, 16, 4, 16, 4, 16, 4, 2\).</p>
+<p><strong>3.</strong> \(P(y) = \tfrac16\sum_{s=0}^5F_9(\tfrac s6 - \tfrac y{512})\). Peaks at the nearest integers to \(0, 85.33, 170.67, 256, 341.33, 426.67\):
+\(0, 85, 171, 256, 341, 427\). At \(y = 0\) (\(s = 0\)) and \(y = 256\) (\(s = 3\)), \(512s/6\) is an integer, so \(\delta = 0\) and \(F_9 = 1\):
+\(P = \tfrac16\) plus tails of about \(5\times10^{-6}\), so \(0.167\). At \(y = 85\), \(512\delta = \tfrac13\):
+\[F_9 = \frac{\sin^2(\pi/3)}{512^2\sin^2(\pi/1536)} = \frac{0.75}{262144\times4.1833\times10^{-6}} = \frac{0.75}{1.0966} = 0.6839,\]
+so \(P(85) = 0.6839/6 = 0.114\). The sharp peaks are sharp because \(F_9\) is exactly 1 at \(\delta = 0\) and exactly 0 at every other integer
+multiple of \(\tfrac1{512}\).</p>
+<p><strong>4.</strong> \(427/512 = [0; 1, 5, 42, 2]\). Convergents by \(p_k = a_kp_{k-1} + p_{k-2}\), \(q_k = a_kq_{k-1} + q_{k-2}\): \(\tfrac01, \tfrac11, \tfrac56,
+\tfrac{211}{253}, \tfrac{427}{512}\). The nearest fraction with denominator below 21 is \(\tfrac56\) (Legendre's condition:
+\(|427/512 - 5/6| = \tfrac1{1536} \lt \tfrac1{72}\)). Test: \(2^6 = 64 = 3\cdot21 + 1\equiv1\), and \(2^1, 2^2, 2^3 = 2, 4, 8\not\equiv1\): \(r = 6\). Even, and
+\(2^3 = 8\not\equiv20\). \(\gcd(7, 21) = 7\), \(\gcd(9, 21) = 3\), and \(7\times3 = 21\) ✓.</p>
+<p><strong>5.</strong></p>
+<ul>
+<li>\(171/512 = [0; 2, 1, 170]\), convergents \(\tfrac12, \tfrac13, \dots\): decoded \(\tfrac13\), \(q = 3\), but \(2^3 = 8\not\equiv1\). This was \(s = 2\) (or 4),
+sharing the factor 2 with 6, so only \(6/2 = 3\) shows.</li>
+<li>\(256/512 = \tfrac12\): \(q = 2\), \(2^2 = 4\not\equiv1\). This was \(s = 3\), sharing 3 with 6.</li>
+<li>\(0/512 = \tfrac01\): \(q = 1\). This was \(s = 0\): the phase 0 carries no information about \(r\).</li>
+</ul>
+<p>Pairs that finish: any pair containing 427 (it gives 6 alone), and \(\{171, 256\}\), since \(\operatorname{lcm}(3, 2) = 6\) and \(2^6\equiv1\). The
+pairs \(\{171, 0\}\) and \(\{256, 0\}\) do not.</p>
+<p><strong>Check.</strong> The 512 values of \(P\) sum to 1 (each \(F_9\) sums to 1 over \(y\)), and \(P(512 - y) = P(y)\): \(427 = 512 - 85\) has the same height
+✓. Unit 15's floor \(4/\pi^2 = 0.405\) is below \(F_9 = 0.684\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code># with order_finding() from P5's block
+import numpy as np
+from fractions import Fraction
+p = order_finding(21, 2, 9, 5)                                    # 14 qubits
+print(sorted(np.argsort(p)[-6:].tolist()))                         # [0, 85, 171, 256, 341, 427]
+print(p[[0, 85, 256, 427]].round(4), round(float(p.sum()), 6))     # [0.1667 0.114  0.1667 0.114 ] 1.0
+print(Fraction(427, 512).limit_denominator(20), pow(2, 6, 21), pow(2, 3, 21))   # 5/6 1 8</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> One run's success <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: summing a peak and its shoulders, where the nearest-fraction rule changes its mind, the five outcome classes, combining runs by least common multiples</p>
+<div class="statement">
+<ol>
+<li>Using \(F_9(\delta)\approx\big(\sin\pi\theta/\pi\theta\big)^2\) with \(\theta = 512\delta\) (accurate here to better than \(10^{-5}\)), compute \(P(84)\), \(P(86)\)
+and \(P(87)\), and show that the outcomes \(84\)–\(87\) and \(425\)–\(428\), which decode to \(\tfrac16\) and \(\tfrac56\), have total probability \(0.308\).</li>
+<li>Show that 88 decodes to \(\tfrac3{17}\) and 83 to \(\tfrac3{19}\), not to \(\tfrac16\).</li>
+<li>Which outcomes give the divisor 3, the divisor 2, nothing? Given their computed totals \(0.321\), \(0.167\), \(0.167\), check that the five classes,
+with the stray-denominator remainder \(0.037\), sum to 1.</li>
+<li>Two independent runs are combined by least common multiples, as in the deck: output the least lcm of some of the runs' denominators that passes the test. What is the probability they give \(r = 6\)? Three runs?</li>
+<li>Compare \(0.308\) with the floor \((4/\pi^2)\cdot\varphi(6)/6\) that unit 15's bound guarantees. Why is the truth so much higher?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is one number: a sum of eight probabilities, which symmetry halves to four. Part 4 is an inclusion–exclusion over three events.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For \(y = 84, 86, 87\), \(\theta = 512/6 - y = \tfrac43, -\tfrac23, -\tfrac53\), and \(\sin^2(\pi\theta) = \tfrac34\) each time; \(P = F/6\), since only \(s = 1\)
+contributes. Two runs succeed if either gives 6, or one gives 3 and the other 2.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(P(86)\approx\tfrac16\cdot\dfrac{0.75}{(2\pi/3)^2} = \tfrac16\cdot\dfrac{0.75}{4.3865} = \tfrac16\cdot0.1710 = 0.0285\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A smeared peak spends most of its weight on the nearest integer and the rest on shoulders that still decode correctly,
+until the rule finds a closer fraction with a different denominator. Runs that return a divisor are not wasted: least common multiples
+combine them.</p>
+<p><strong>1.</strong> \(P(84)\approx\tfrac16\cdot0.75/(4\pi/3)^2 = \tfrac16\cdot0.75/17.546 = \tfrac16\cdot0.04274 = 0.0071\);
+\(P(86) = 0.0285\) (rung 3); \(P(87)\approx\tfrac16\cdot0.75/(5\pi/3)^2 = \tfrac16\cdot0.75/27.416 = \tfrac16\cdot0.02736 = 0.0046\); and
+\(P(85) = 0.1140\) (P9). Sum \(0.0071 + 0.1140 + 0.0285 + 0.0046 = 0.1542\). By the mirror \(y\mapsto512 - y\), \(425\)–\(428\) carry the same,
+so the class has \(2\times0.1542 = 0.308\).</p>
+<p><strong>2.</strong> \(|88/512 - 1/6| = |528 - 512|/3072 = \tfrac1{192} = 0.00521\), but \(|88/512 - 3/17| = |1496 - 1536|/8704 = \tfrac5{1088} = 0.00460\):
+\(\tfrac3{17}\) is nearer. \(|83/512 - 1/6| = |498 - 512|/3072 = 0.00456\), but \(|83/512 - 3/19| = |1577 - 1536|/9728 = 0.00421\): \(\tfrac3{19}\) is nearer.
+Both fail the test: \(2^{17}\equiv2^5 = 32\equiv11\) and \(2^{19}\equiv2\).</p>
+<p><strong>3.</strong> Divisor 3: \(167\)–\(174\) and \(338\)–\(345\), decoding to \(\tfrac13, \tfrac23\) (\(s = 2, 4\)). Divisor 2: \(250\)–\(262\), decoding to
+\(\tfrac12\) (\(s = 3\)). Nothing: \(0\)–\(12\) and \(500\)–\(511\), decoding to \(\tfrac01\) or \(\tfrac11\) (\(s = 0\)). Sum:
+\(0.308 + 0.321 + 0.167 + 0.167 + 0.037 = 1.000\) ✓.</p>
+<p><strong>4.</strong> Write \(p_6 = 0.308\), \(p_3 = 0.321\), \(p_2 = 0.167\). Two runs fail iff neither gives 6 and they are not a 3 and a 2:
+\(\Pr[\text{succeed}] = 1 - (1 - p_6)^2 + 2p_3p_2 = 1 - 0.4789 + 0.1072 = 0.628\) from the three-figure values, \(0.629\) from the unrounded
+ones. For \(k\) runs, failure is "no 6, and not both a 3 and a 2": \((1 - p_6 - p_3)^k + (1 - p_6 - p_2)^k - (1 - p_6 - p_3 - p_2)^k\). At
+\(k = 3\): \(0.371^3 + 0.525^3 - 0.204^3 = 0.0511 + 0.1447 - 0.0085 = 0.187\), so success \(0.813\). The rule matters: the least passing lcm is 6
+exactly in these events, since a subset with lcm 6 uses only the denominators 1, 2, 3, 6 and every passing lcm is a multiple of 6. A running lcm
+of every denominator would fold in strays (a 3 and a stray 4 make 12, which passes) and return exactly 6 less often: \(0.617\) for two runs,
+\(0.778\) for three (computed).</p>
+<p><strong>5.</strong> \(\varphi(6)/6 = \tfrac26\), so the floor is \(0.405\times\tfrac13 = 0.135\). The truth, \(0.308\), is \(2.3\) times that: the floor counts only
+the single nearest integer and the worst case of unit 15's bound, while here the nearest integer carries \(0.684\) and the shoulders 84, 86, 87
+add a further \(0.241\) of each smeared peak's \(\tfrac16\).</p>
+<p><strong>Check.</strong> Part 4 at one run gives \(p_6 = 0.308\) ✓; and the deck's lower bound for good runs, \((1 - \tfrac14)(1 - \tfrac19) = \tfrac23\), sits
+above \(0.629\) because the real runs are not all good ✓.</p>
+<h4>With the referee</h4>
+<pre><code># with p from P9's block
+from fractions import Fraction
+q = [Fraction(y, 512).limit_denominator(20).denominator for y in range(512)]
+cls = {d: float(sum(p[y] for y in range(512) if q[y] == d)) for d in (6, 3, 2, 1)}
+print({d: round(v, 3) for d, v in cls.items()})          # {6: 0.308, 3: 0.321, 2: 0.167, 1: 0.167}
+p6, p3, p2 = cls[6], cls[3], cls[2]
+print(round(1 - (1 - p6)**2 + 2 * p3 * p2, 3))           # 0.629</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Discrete logarithms and hidden subgroups</h2>
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Discrete log on a toy group <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the two-register function and its hidden line, post-processing samples from \(H^\perp\), combining samples whose first coordinate is not a unit</p>
+<div class="statement">
+<p>In \(\mathbb Z_{11}^\times\), \(g = 2\) has order 10. Find \(\ell\) with \(2^\ell\equiv7\pmod{11}\), as the two-register algorithm would.</p>
+<ol>
+<li>For \(f(x_1, x_2) = 2^{x_1}7^{x_2}\bmod11\) on \(G = \mathbb Z_{10}\times\mathbb Z_{10}\), write the hidden subgroup \(H\) and its annihilator
+\(H^\perp\) in terms of the unknown \(\ell\).</li>
+<li>Three idealised runs return \((4, 8)\), \((5, 5)\) and \((3, 1)\). Recover \(\ell\) from each that allows it, and from the other two together. Check.</li>
+<li>What is the probability that one uniform sample from \(H^\perp\) determines \(\ell\) on its own?</li>
+<li>Alice's Diffie–Hellman message is 7 and Bob's is 5. What key do they share?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>\(\ell\) is a residue mod 10, and each sample is one linear congruence in it.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Samples satisfy \(k_2\equiv\ell k_1\pmod{10}\). If \(k_1\) is a unit, invert it; if not, the congruence leaves several \(\ell\), and two such samples
+can intersect to one.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \((3, 1)\) gives \(3\ell\equiv1\pmod{10}\), and \(3\cdot7 = 21\equiv1\), so \(\ell\equiv7\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(f\) is constant along the line \(x_1 + \ell x_2 = \text{const}\) in \(\mathbb Z_{10}^2\); Fourier sampling returns characters
+trivial on that line, each a linear equation for \(\ell\) — the discrete-log analogue of Simon's equations \(y\cdot s = 0\).</p>
+<p><strong>1.</strong> \(f(x_1, x_2) = 2^{x_1 + \ell x_2}\), so \(f(x) = f(x')\) iff \(x - x'\in H = \{(-\ell k, k) : k\in\mathbb Z_{10}\}\), and
+\(H^\perp = \{(k_1, k_2) : k_2\equiv\ell k_1\pmod{10}\} = \{(k, \ell k)\}\), ten elements, \(|G|/|H| = 100/10\) ✓.</p>
+<p><strong>2.</strong> \((3, 1)\): \(\ell\equiv3^{-1} = 7\). \((4, 8)\): \(4\ell\equiv8\pmod{10}\) iff \(2\ell\equiv4\pmod5\) iff \(\ell\equiv2\pmod5\): \(\ell\in\{2, 7\}\).
+\((5, 5)\): \(5\ell\equiv5\pmod{10}\) iff \(\ell\) is odd. Together: \(\ell = 7\). Check: \(2^7 = 128 = 11\cdot11 + 7\) ✓, and each sample lies on \(H^\perp\):
+\(4\cdot7 = 28\equiv8\), \(5\cdot7 = 35\equiv5\), \(3\cdot7 = 21\equiv1\) ✓.</p>
+<p><strong>3.</strong> \(k_1\) is uniform on \(\mathbb Z_{10}\), and a unit for \(k_1\in\{1, 3, 7, 9\}\): probability \(\varphi(10)/10 = 0.4\).</p>
+<p><strong>4.</strong> Alice's secret is \(\ell = 7\), so the key is \(5^7\bmod11\): \(5^2 = 25\equiv3\), \(5^4\equiv9\), \(5^6\equiv27\equiv5\), \(5^7\equiv25\equiv3\).
+Key 3. Check from the other side: Bob's secret is 4 (\(2^4 = 16\equiv5\)), and \(7^4\): \(7^2 = 49\equiv5\), \(5^2 = 25\equiv3\) ✓; and
+\(2^{28}\equiv2^{8} = 256 = 23\cdot11 + 3\) ✓.</p>
+<p><strong>Check.</strong> A curiosity the deck mentions: here \(H = \langle(3, 1)\rangle = \{(3k, k)\}\) and \(H^\perp = \{(k, 7k)\}\) are the same set of ten
+points, because \(7^2 = 49\equiv-1\pmod{10}\): e.g. \((3, 1)\in H\) and \(7\cdot3 = 21\equiv1\) puts it in \(H^\perp\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Hidden subgroups <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: stating problems as hidden subgroup problems, annihilators in \(\mathbb Z_M\), why order finding is exact for 15 and approximate for 21</p>
+<div class="statement">
+<ol>
+<li>State Simon's problem and order finding as hidden subgroup problems, naming \(G\), \(H\) and \(f\), and check that \(f\) is constant on cosets and
+distinct on distinct cosets.</li>
+<li>For \(N = 15\), \(a = 7\), \(t = 8\), the counting register's values \(\{0, \dots, 255\}\) form the group \(\mathbb Z_{256}\). Show that \(f(x) = 7^x\bmod15\)
+hides \(H = 4\mathbb Z_{256}\) there, find \(H^\perp\), and compare with P5.</li>
+<li>Why does the same fail for 21 with \(t = 9\)?</li>
+<li>Name \(G\) and \(H\) for discrete logarithms, and the two non-abelian groups whose hidden subgroup problems are open, with what each would solve.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a pair \((G, H)\) and a two-line check that \(f(x) = f(x')\) iff \(x - x'\in H\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The characters of \(\mathbb Z_M\) are \(\chi_k(x) = e^{2\pi ikx/M}\), and \(\chi_k\) is trivial on \(4\mathbb Z_{256}\) iff \(\chi_k(4) = 1\). For part 3: is
+\(x\mapsto2^x\bmod21\) well defined on \(\mathbb Z_{512}\)?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(7^x\equiv7^{x'}\pmod{15}\) iff \(7^{x - x'}\equiv1\) iff \(4\mid x - x'\) — and since \(4\mid256\), that is a condition on \(x - x'\bmod256\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A hidden subgroup problem asks for the set of shifts that leave \(f\) unchanged. Fourier sampling over \(G\) returns the
+characters that see none of those shifts, and when the circuit's register is a group containing \(H\), that is exact.</p>
+<p><strong>1.</strong> <i>Simon:</i> \(G = \mathbb Z_2^n\), \(H = \{0, s\}\), \(f\) with \(f(x) = f(x')\) iff \(x'\in\{x, x\oplus s\}\), i.e. iff \(x - x' = x\oplus x'\in H\).
+<i>Order finding:</i> \(G = \mathbb Z\), \(H = r\mathbb Z\), \(f(x) = a^x\bmod N\): \(a^x\equiv a^{x'}\) iff \(a^{x - x'}\equiv1\) iff \(r\mid x - x'\) (negative
+exponents mean powers of \(a^{-1}\)).</p>
+<p><strong>2.</strong> By rung 3, \(f\) is well defined on \(\mathbb Z_{256}\) (because \(4\mid256\)) and \(f(x) = f(x')\) iff \(x - x'\in H = \{0, 4, \dots, 252\}\),
+\(|H| = 64\). \(\chi_k(4) = e^{2\pi i\cdot4k/256} = 1\) iff \(64\mid k\): \(H^\perp = \{0, 64, 128, 192\}\), \(|H^\perp| = 256/64 = 4\) ✓. Fourier sampling returns each
+with probability \(\tfrac14\) — exactly P5's distribution.</p>
+<p><strong>3.</strong> For \(f(x) = 2^x\bmod21\) to be a function on \(\mathbb Z_{512}\) we would need \(f(x + 512) = f(x)\), i.e. \(6\mid512\), which fails:
+\(f(511) = 2^{511\bmod6} = 2^1 = 2\) but \(f(512)\) "should" equal \(f(0) = 1\) and is in fact \(2^{512\bmod6} = 2^2 = 4\). No subgroup of \(\mathbb Z_{512}\)
+is hidden, the comb does not fit the register, the peaks smear, and continued fractions are needed to recover \(r\).</p>
+<p><strong>4.</strong> <i>Discrete log:</i> \(G = \mathbb Z_r\times\mathbb Z_r\), \(H = \langle(-\ell, 1)\rangle\) (P11). <i>Open:</i> the dihedral group, whose hidden
+subgroup problem would solve certain lattice problems (Regev 2004), with only a subexponential quantum algorithm known (Kuperberg 2005); and the
+symmetric group, whose problem would solve graph isomorphism. Both are cited in the deck; neither has a polynomial quantum algorithm.</p>
+<p><strong>Check.</strong> \(|H|\cdot|H^\perp| = 64\cdot4 = 256 = |G|\) ✓. Simon at \(n = 1\), \(s = 1\): \(H = \mathbb Z_2\), \(H^\perp = \{0\}\), and Simon's sample
+\(y\) must satisfy \(y\cdot1 = 0\), so \(y = 0\) ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 16</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

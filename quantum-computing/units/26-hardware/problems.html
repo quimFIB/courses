@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>26 · Problems — Hardware and the near term: what exists, what it has shown, and what it has not</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="e">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part E · unit 26 · problems</p>
+<h1>Hardware and the near term: what exists, what it has shown, and what it has not</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u26">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you compute the excited-state population of a 5 GHz
+qubit at 20 mK and at 4 K — \(x = hf/k_BT = 12.0\) and \(p_1 = 6.2\times10^{-6}\); \(x = 0.060\) and \(p_1 = 0.485\), nearly
+maximally mixed — you derive the depth-one QAOA edge expectation on a 3-regular triangle-free graph and maximise it to
+\(\tfrac12 + \tfrac1{3\sqrt3} = 0.6925\), and you state, for one published advantage claim, exactly which classical algorithm it
+was measured against.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about four and a half hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the <strong>first</strong> slot; \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\); qubit 0 is the leftmost symbol of a ket. \(XY = iZ\), \(YZ = iX\), \(ZX = iY\); \(R_x(\theta) = e^{-i\theta X/2}\);
+\(\ket\pm = (\ket0\pm\ket1)/\sqrt2\). Planck's constant is restored where energies appear: a qubit of frequency \(f\) has
+energy gap \(hf\).</p>
+<p>Constants (exact in the SI): \(h = 6.62607015\times10^{-34}\) J s, \(k_B = 1.380649\times10^{-23}\) J/K. For \(f = 5\) GHz,
+\(hf/k_B = 0.2400\) K.</p>
+<p>The cube graph: vertices the bit strings \(000, \dots, 111\), edges between strings differing in one bit; 12 edges. QAOA at
+depth one: \(\ket{\gamma, \beta} = e^{-i\beta B}e^{-i\gamma C}\ket+^{\otimes n}\) with \(C = \sum_{uv\in E}\tfrac12(1 - Z_uZ_v)\) and \(B = \sum_vX_v\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="The fridge">P1</a></li>
+<li><a class="medium" href="#p2" title="DiVincenzo for photons">P2</a></li>
+<li><a class="medium" href="#p3" title="Connectivity cost">P3</a></li>
+<li><a class="routine" href="#p4" title="Random cuts, and where local search stops">P4</a></li>
+<li><a class="hard" href="#p5" title="QAOA&#x27;s edge expectation">P5</a></li>
+<li><a class="medium" href="#p6" title="Triangles matter">P6</a></li>
+<li><a class="routine" href="#p7" title="The cube is easy">P7</a></li>
+<li><a class="medium" href="#p8" title="XEB">P8</a></li>
+<li><a class="medium" href="#p9" title="A claimed advantage against its baseline">P9</a></li>
+<li><a class="medium" href="#p10" title="Dequantisation, in outline">P10</a></li>
+<li><a class="routine" href="#p11" title="A slow clock">P11</a></li>
+<li><a class="routine" href="#p12" title="Fault-tolerance arithmetic, revisited">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Platforms and the fridge</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> The fridge <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: Boltzmann's law for a qubit, the thermal state as a density operator, dimensions; ends in a number</p>
+<div class="statement">
+<p>A superconducting qubit has frequency \(f = 5\) GHz and sits in thermal equilibrium at temperature \(T\).</p>
+<ol>
+<li>Compute \(x = hf/k_BT\) and the excited population \(p_1\) at 20 mK and at 4 K. Check that \(p_0 + p_1 = 1\) each time.</li>
+<li>At 4 K, find the trace distance between the thermal state \(\rho_T\) and the maximally mixed state \(I/2\).</li>
+<li>Find the temperature at which \(p_1 = 10^{-3}\).</li>
+<li>The cube's eight qubits are independent and each thermal. Find the probability that all eight start in \(\ket0\) at 20 mK and at 4 K,
+and compare the second with eight fair coins.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is a <strong>number</strong> from one formula: \(p_1 = e^{-x}/(1 + e^{-x})\), from Boltzmann's law with energies \(0\) and \(hf\),
+normalised.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\rho_T\) and \(I/2\) are both diagonal, so their difference is too, and unit 21's trace distance is half the sum of the
+absolute values of its eigenvalues. For part 3, solve \(e^{-x}/(1 + e^{-x}) = 10^{-3}\) for \(e^{x}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(hf/k_B = 6.62607015\times10^{-34}\times5\times10^9/1.380649\times10^{-23} = 0.2400\) K, so \(x = 0.2400\ \mathrm K/T\).
+For part 3: \(1 + e^{x} = 1000\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two levels, energies \(0\) and \(hf\); Boltzmann weights \(1\) and \(e^{-x}\); normalise. Everything else is
+arithmetic on \(x\).</p>
+<p><strong>1.</strong> Dimensions: \(hf\) is \(\mathrm{J\,s}\cdot\mathrm{s^{-1}} = \mathrm J\) and \(k_BT\) is \(\mathrm{J\,K^{-1}}\cdot\mathrm K = \mathrm J\), so \(x\) is a pure number ✓.
+\(hf = 3.313\times10^{-24}\) J and \(hf/k_B = 0.2400\) K.</p>
+<ul>
+<li>20 mK: \(x = 0.2400/0.020 = 12.00\), \(e^{-x} = 6.16\times10^{-6}\), \(p_1 = 6.16\times10^{-6}/(1 + 6.16\times10^{-6}) = 6.2\times10^{-6}\), \(p_0 = 0.9999938\).</li>
+<li>4 K: \(x = 0.2400/4 = 0.0600\), \(e^{-x} = 0.9418\), \(p_1 = 0.9418/1.9418 = 0.485\), \(p_0 = 1/1.9418 = 0.515\).</li>
+</ul>
+<p>Sums: \(p_0 + p_1 = (1 + e^{-x})/(1 + e^{-x}) = 1\) exactly, and \(0.515 + 0.485 = 1\) ✓.</p>
+<p><strong>2.</strong> \(\rho_T - I/2 = \mathrm{diag}(p_0 - \tfrac12, p_1 - \tfrac12) = \mathrm{diag}(0.0150, -0.0150)\), with eigenvalues \(\pm0.0150\). The trace
+distance is \(\tfrac12(0.0150 + 0.0150) = 0.015\). By unit 21's one-shot guess, handed either this qubit or a qubit in \(I/2\) with
+equal probability, the best measurement says which with probability only \(\tfrac12(1 + 0.015) = 0.5075\). Equivalently the Bloch vector has length \(\tanh(x/2) = 0.030\), and trace
+distance between qubit states is half the distance between Bloch vectors.</p>
+<p><strong>3.</strong> \(p_1 = 1/(1 + e^{x}) = 10^{-3}\) gives \(e^x = 999\), \(x = \ln999 = 6.907\), and \(T = 0.2400\ \mathrm K/6.907 = 34.7\) mK.</p>
+<p><strong>4.</strong> At 20 mK: \((1 - 6.2\times10^{-6})^8 = 0.99995\); at least one excited with probability \(4.9\times10^{-5}\). At 4 K: \(0.515^8 =
+0.0049\), against \(2^{-8} = 0.0039\) for eight fair coins — barely better than a random bit string.</p>
+<p><strong>Check.</strong> Limits: as \(T\to0\), \(x\to\infty\) and \(p_1\to0\); as \(T\to\infty\), \(p_1\to\tfrac12\). The 4 K value agrees with the small-\(x\)
+expansion \(\tfrac12 - x/4 = 0.485\), and the 20 mK value with the large-\(x\) approximation \(p_1\approx e^{-x} = 6.2\times10^{-6}\). And 34.7 mK lies
+between 20 and 50 mK, where \(p_1\) runs from \(6\times10^{-6}\) to \(8\times10^{-3}\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix
+h, kB, f = 6.62607015e-34, 1.380649e-23, 5e9
+for T in (0.020, 4.0):
+    x = h * f / (kB * T)
+    p1 = np.exp(-x) / (1 + np.exp(-x))
+    rho = DensityMatrix(np.diag([1 - p1, p1]))
+    print(f"{T} K: x = {x:.4f}, p1 = {p1:.3g}, to I/2: {rho.trace_distance(DensityMatrix.maximally_mixed(1)):.4f}, all eight in |0&gt;: {(1 - p1)**8:.5f}")
+print(f"p1 = 1e-3 at {1e3 * h * f / (kB * np.log(999)):.2f} mK")</code></pre>
+<p>It prints \(x\), \(p_1\), the trace distance to \(I/2\) (0.5000 at 20 mK — nearly pure; 0.0150 at 4 K), and the all-ground probability,
+then 34.74 mK.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> DiVincenzo for photons <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: reading DiVincenzo's criteria against a platform, the measurement-based step as a proof, heralded retries</p>
+<div class="statement">
+<ol>
+<li>Go through the five criteria for photonic qubits (one photon in two paths). Which are easy, which are hard, and why?</li>
+<li>Prove the generalised measurement-based step: with input \(\ket\psi\) on qubit 0 and \(\ket+\) on qubit 1, apply CZ, then
+measure qubit 0 in the basis \(\{R_z(\theta)^\dagger\ket+, R_z(\theta)^\dagger\ket-\}\) with outcome \(m\). Show that qubit 1 is left in \(X^mHR_z(\theta)\ket\psi\)
+up to global phase, each outcome with probability \(\tfrac12\).</li>
+<li>Explain in two sentences why this sidesteps the problem of a probabilistic two-qubit gate.</li>
+<li>An entangling operation succeeds with probability \(q = \tfrac12\), heralded. Twelve are needed (the cube). Find the probability
+that all twelve succeed in one attempt, and the expected number of attempts if each is retried until it succeeds.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a <strong>table of judgements</strong>, each with its reason; part 2 is an identity between states; part 4 is two
+probabilities and an expectation.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 2: \(R_z(\theta)\) on qubit 0 commutes with CZ, which is diagonal. Measuring qubit 0 in the rotated basis is the same as
+applying \(R_z(\theta)\) to it and then measuring in \(\{\ket\pm\}\). So reduce to the slide's case with input \(R_z(\theta)\ket\psi\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: the probability of outcome \(m\) and the post-measurement state come from
+\(\big(\bra{\pm}R_z(\theta)\otimes I\big)\mathrm{CZ}\big(\ket\psi\otimes\ket+\big) = \big(\bra\pm\otimes I\big)\mathrm{CZ}\big(R_z(\theta)\ket\psi\otimes\ket+\big)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Photons are superb at the criteria about isolation and terrible at the one that needs interaction;
+measurement-based computation moves the interaction out of the computation and into a resource that can be retried.</p>
+<p><strong>1.</strong></p>
+<ul>
+<li><em>Qubits</em>: well characterised (two optical modes); scalable in number — sources and integrated optical chips — but
+every photon must be made on demand, and sources are themselves probabilistic. Medium.</li>
+<li><em>Initialisation</em>: a photon in a known path is \(\ket0\); the difficulty is producing exactly one photon when wanted. Medium.</li>
+<li><em>Coherence</em>: photons barely interact with their surroundings, so a qubit in flight keeps its state; the error that
+matters is loss. Easy for decoherence, hard for loss.</li>
+<li><em>Universal gates</em>: single-qubit gates are beam splitters and phase shifters, easy; two-qubit gates need photons to
+interact, which they do not. Hard: the central problem.</li>
+<li><em>Measurement</em>: single-photon detectors measure each mode; good, but imperfect efficiency is again loss.</li>
+</ul>
+<p>The networking criteria are where photons are unrivalled: they are the flying qubits.</p>
+<p><strong>2.</strong> The basis vectors \(R_z(\theta)^\dagger\ket\pm\) are orthonormal, since \(R_z(\theta)^\dagger\) is unitary. Projecting qubit 0 onto \(R_z(\theta)^\dagger\ket\pm\) means applying
+\(\bra\pm R_z(\theta)\). As \(R_z(\theta)\otimes I\) is diagonal, it commutes with the diagonal CZ, so the unnormalised output is
+\((\bra\pm\otimes I)\,\mathrm{CZ}\,(\ket{\psi'}\otimes\ket+)\) with \(\ket{\psi'} = R_z(\theta)\ket\psi = a'\ket0 + b'\ket1\). By the slide's calculation, CZ gives
+\(a'\ket0\ket+ + b'\ket1\ket-\) and</p>
+\[\tfrac1{\sqrt2}\ket+\big(a'\ket+ + b'\ket-\big) + \tfrac1{\sqrt2}\ket-\big(a'\ket+ - b'\ket-\big).\]
+<p>Outcome \(m = 0\) (\(+\)) leaves \(a'\ket+ + b'\ket- = H\ket{\psi'}\); outcome \(m = 1\) leaves \(a'\ket+ - b'\ket- = XH\ket{\psi'}\) — check: \(XH\ket0 = X\ket+ = \ket+\),
+\(XH\ket1 = X\ket- = -\ket-\) ✓. Each branch has squared norm \(\tfrac12(|a'|^2 + |b'|^2) = \tfrac12\). So qubit 1 holds \(X^mHR_z(\theta)\ket\psi\), exactly (no phase
+is even needed).</p>
+<p><strong>3.</strong> All the entangling — the CZs — is in the resource state, which can be prepared before the computation
+starts; a heralded failure while making it costs only a retry. The computation itself is single-qubit measurements and
+classically tracked Pauli corrections, which photons do well.</p>
+<p><strong>4.</strong> All twelve at once: \((\tfrac12)^{12} = 1/4096 = 2.4\times10^{-4}\). Retried separately, each takes a geometric number of attempts with
+mean \(1/q = 2\), so \(12\times2 = 24\) attempts in expectation — linear, not exponential, in the number of operations.</p>
+<p><strong>Check.</strong> At \(\theta = 0\) part 2 is the slide's statement \(X^mH\ket\psi\) ✓. The geometric mean: \(\sum_{k\ge1}k(1 - q)^{k-1}q = q/(1 - (1 - q))^2 = 1/q\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Connectivity cost <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: routing a circuit onto a coupling graph, a counting proof, a schedule; ends in a number</p>
+<div class="statement">
+<p>A superconducting chip has eight qubits on a \(2\times4\) square grid, two-qubit gates only between grid neighbours. Depth-one QAOA
+on the cube needs one phase gate \(e^{-i\gamma(1 - Z_uZ_v)/2}\) on each of the 12 cube edges. A SWAP exchanges two neighbouring qubits'
+states and costs three CNOTs; each phase gate costs two.</p>
+<ol>
+<li>Show that no placement of the cube's vertices on the grid makes more than 10 of the 12 edges grid links.</li>
+<li>Prove that one SWAP is not enough, however the vertices are placed and whichever SWAP is used.</li>
+<li>Find a placement and a schedule with two SWAPs. You may leave the qubits wherever they end up, since the phase gates commute
+and the mixer acts qubit by qubit.</li>
+<li>Count the CNOTs, and compare with a machine with all-to-all connectivity.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 2 is an <strong>impossibility proof</strong> by counting: some vertex cannot meet three different partners. Part 3 is an
+explicit layout before and after.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The cube is 3-regular: every vertex must, at some time, sit next to three different vertices. A corner of the grid has two
+neighbours. Which corners can gain a new neighbour from one SWAP?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>For part 3, try rows \(000, 001, 010, 011\) and \(100, 101, 110, 111\) in binary order, and swap the two middle qubits of each row.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The cube needs degree 3 everywhere; a \(2\times4\) grid has four corners of degree 2, and a SWAP changes the
+neighbourhoods only of positions next to it.</p>
+<p><strong>1.</strong> The grid has \(2\cdot3 = 6\) horizontal and \(4\) vertical links, 10 in all; a placement makes at most that many cube edges direct.
+(Ten are achieved: rows \(000, 001, 011, 010\) and \(100, 101, 111, 110\), as in the deck.)</p>
+<p><strong>2.</strong> Fix a placement and a SWAP of neighbouring positions \(i, j\). A qubit sitting at a corner \(k\) has two grid neighbours. After the
+SWAP its neighbours are the qubits at the same two positions; they are different qubits only if one of those positions is \(i\) or
+\(j\), or if \(k\) is itself \(i\) or \(j\). So the corner qubit meets a third partner only if \(k\in\{i, j\}\cup N(i)\cup N(j)\). Check the four kinds of
+SWAP (the rest follow by the grid's reflections): a vertical SWAP in an end column reaches only the corners of that column; a
+vertical SWAP in a middle column reaches the two corners beside it; a horizontal SWAP at an end of a row reaches the two
+corners of that end; a horizontal SWAP in the middle of a row reaches the two corners of that row. In every case some corner
+is reached by nothing, and its qubit meets only two partners over the whole circuit. But every cube vertex needs three. So one
+SWAP is impossible.</p>
+<p><strong>3.</strong> Place row 0 as \(000, 001, 010, 011\) and row 1 as \(100, 101, 110, 111\). Direct cube edges: \(000\)–\(001\), \(010\)–\(011\), \(100\)–\(101\),
+\(110\)–\(111\) along the rows and all four columns \(0xy\)–\(1xy\): 8 edges. Do those 8 phase gates. Now SWAP the middle pair of each row
+(two SWAPs, in parallel): row 0 becomes \(000, 010, 001, 011\) and row 1 \(100, 110, 101, 111\). Newly adjacent: \(000\)–\(010\), \(001\)–\(011\),
+\(100\)–\(110\), \(101\)–\(111\) — exactly the 4 missing edges. Do them, then the mixer, then measure, reading each qubit's label from
+where it now sits.</p>
+<p><strong>4.</strong> \(12\times2 + 2\times3 = 30\) CNOTs, against \(24\) with all-to-all connectivity: 25% more two-qubit gates, each a chance of error.</p>
+<p><strong>Check.</strong> The two SWAPs meet the lower bound of part 2, so two is the minimum. Every vertex meets three partners: \(000\)
+meets \(001\) and \(100\) before and \(010\) after ✓; the corners \(000, 011, 100, 111\) each gain their third partner from the middle SWAP beside
+them. The best static placement is not the best start: an exhaustive search over all \(8!\) placements and all pairs of SWAPs
+(by computer, not by hand) finds no two-SWAP schedule starting from a 10-edge placement.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+g, b = np.arctan(1 / np.sqrt(2)), np.pi / 8
+zz = np.diag([1, np.exp(-1j * g), np.exp(-1j * g), 1])         # exp(-i g (1 - ZZ)/2)
+edges = [(v, v ^ (1 &lt;&lt; k)) for v in range(8) for k in range(3) if v &lt; v ^ (1 &lt;&lt; k)]
+grid = {(0, 1), (1, 2), (2, 3), (4, 5), (5, 6), (6, 7), (0, 4), (1, 5), (2, 6), (3, 7)}
+at = list(range(8))                       # at[v]: the position holding vertex v
+c, done = Circuit(8), []
+for q in range(8):
+    c.h(q)
+for swaps in ([], [(1, 2), (5, 6)]):
+    for a, d in swaps:
+        c.swap(a, d)
+        at = [d if x == a else a if x == d else x for x in at]
+    for u, v in edges:
+        pair = tuple(sorted((at[u], at[v])))
+        if (u, v) not in done and pair in grid:
+            c.gate(zz, *pair, name="zz"); done.append((u, v))
+for q in range(8):
+    c.rx(2 * b, q)
+p = c.run().probabilities()
+bits = (np.arange(256)[:, None] &gt;&gt; (7 - np.arange(8))) &amp; 1
+cut = np.array([sum(z[at[u]] != z[at[v]] for u, v in edges) for z in bits])
+print(len(done), c.counts()["swap"], round(p @ cut / 12, 4))    # 12 2 0.6925</code></pre>
+<p>All 12 phase gates are applied between grid neighbours, with two SWAPs, and the expected cut fraction is unchanged by the routing.</p>
+</div></details>
+</section>
+
+<h2 class="group">The algorithm and its baselines</h2>
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Random cuts, and where local search stops <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: linearity of expectation, a potential-function argument; a proof</p>
+<div class="statement">
+<ol>
+<li>Prove that a uniformly random cut of a graph with \(m\) edges cuts \(m/2\) edges in expectation.</li>
+<li>Local search moves any vertex with more uncut than cut incident edges to the other side. Prove that it stops after at most
+\(m\) moves, at a cut of at least \(m/2\).</li>
+<li>On the cube, put \(010, 011, 100, 101\) on side 1 and the rest on side 0. Show that local search cannot move from here, and
+count the cut.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are <strong>proofs</strong>; part 3 is a check at each of eight vertices and a count.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: an indicator per edge. Part 2: the cut size is an integer between 0 and \(m\) that each move increases; for the bound, add up
+over vertices what "no move possible" says about each.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2's bound: at a stopping point, every vertex \(v\) has at least \(\tfrac12\deg v\) cut incident edges, so
+\(\sum_v\#\{\text{cut edges at }v\}\ge\tfrac12\sum_v\deg v\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Expectation is additive over edges; local search climbs an integer ladder of height \(m\), and its stopping condition,
+summed, is the bound.</p>
+<p><strong>1.</strong> Let \(I_{uv}\) indicate that edge \(uv\) is cut. \(\Pr[z_u\ne z_v] = \Pr[01] + \Pr[10] = \tfrac14 + \tfrac14 = \tfrac12\). By linearity,
+\(\mathbb E[\mathrm{cut}] = \sum_{uv}\mathbb E[I_{uv}] = m/2\). No independence between edges is needed.</p>
+<p><strong>2.</strong> Moving \(v\) turns its \(a\) uncut edges into cut ones and its \(b\) cut edges into uncut ones, changing no other edge: the cut
+changes by \(a - b\ge1\). The cut is an integer in \([0, m]\), so there are at most \(m\) moves. When no move is possible, every \(v\) has
+\(b_v\ge a_v\), so \(b_v\ge\tfrac12\deg v\). Summing, \(\sum_vb_v\ge\tfrac12\sum_v\deg v = \tfrac12\cdot2m = m\); each cut edge is counted at both ends, so
+\(\sum_vb_v = 2\,\mathrm{cut}\), and \(\mathrm{cut}\ge m/2\). ∎</p>
+<p><strong>3.</strong> The side of \(b_0b_1b_2\) is \(b_0\oplus b_1\): \(010, 011\) have \(0\oplus1 = 1\), \(100, 101\) have \(1\oplus0 = 1\), the others \(0\). An edge flipping bit 0 or bit 1
+changes \(b_0\oplus b_1\), so it is cut; an edge flipping bit 2 is not. Every vertex has one edge of each kind, so two of its three
+edges are cut and one is not: \(b_v = 2\gt a_v = 1\), and no vertex moves. The cut has 8 edges (the 4 bit-0 and 4 bit-1 edges).</p>
+<p><strong>Check.</strong> \(8\ge m/2 = 6\) ✓, and \(8\lt12\): local search can stop a third short of the maximum. Depth-one QAOA's expected
+8.31 is barely above this stuck point.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> QAOA's edge expectation <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the Heisenberg picture, Pauli conjugation, expectations in a product state, one-variable maximisation; a proof</p>
+<div class="statement">
+<p>Let \(G\) be 3-regular and triangle-free, and \(uv\) an edge.</p>
+<ol>
+<li>Prove \(e^{i\beta X}Ze^{-i\beta X} = \cos2\beta\,Z + \sin2\beta\,Y\) and \(e^{i\gamma C}Y_ue^{-i\gamma C} = Y_u\prod_{w\in N(u)}(\cos\gamma + i\sin\gamma\,Z_uZ_w)\).</li>
+<li>Derive \(\braket{\gamma, \beta|\tfrac12(1 - Z_uZ_v)|\gamma, \beta} = \tfrac12 + \tfrac12\sin4\beta\,\sin\gamma\cos^2\gamma\).</li>
+<li>Maximise over \(\gamma, \beta\), and give the expected cut on the cube.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 2 is an <strong>expectation in the product state</strong> \(\ket{+^n}\) of an operator obtained by conjugating
+\(Z_uZ_v\) backwards through the circuit — mixer first, then cost.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Lemma: if \(A^2 = I\) and \(AP = -PA\), then \(e^{i\theta A}Pe^{-i\theta A} = Pe^{-2i\theta A}\). Both identities in part 1 follow. In \(\ket+\), \(\langle X\rangle = 1\)
+and \(\langle Y\rangle = \langle Z\rangle = 0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>After the mixer, \(Z_uZ_v\) becomes \(c^2Z_uZ_v + cs(Y_uZ_v + Z_uY_v) + s^2Y_uY_v\), \(c = \cos2\beta\), \(s = \sin2\beta\). Treat the three kinds
+of term separately; in each, a term of the expanded product survives only if every qubit ends with \(I\) or \(X\).</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line for the \(Y_uZ_v\) term: \(e^{i\gamma C}Y_uZ_ve^{-i\gamma C} = Y_u(\cos\gamma + i\sin\gamma Z_uZ_v)(\cos\gamma + i\sin\gamma Z_uZ_{w_1})(\cos\gamma + i\sin\gamma Z_uZ_{w_2})Z_v\).</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Write \(\langle Z_uZ_v\rangle = \bra{+^n}U^\dagger Z_uZ_vU\ket{+^n}\) with \(U = e^{-i\beta B}e^{-i\gamma C}\), conjugate by the mixer and then the cost, and
+read off which Pauli products survive in \(\ket{+^n}\).</p>
+<p><strong>1.</strong> The lemma: from \(AP = -PA\), \(A^kP = (-1)^kPA^k\), so \(e^{i\theta A}P = Pe^{-i\theta A}\) and \(e^{i\theta A}Pe^{-i\theta A} = Pe^{-2i\theta A}\); with \(A^2 = I\),
+\(e^{i\phi A} = \cos\phi + i\sin\phi\,A\). With \(A = X\), \(P = Z\): \(Ze^{-2i\beta X} = \cos2\beta\,Z - i\sin2\beta\,ZX = \cos2\beta\,Z + \sin2\beta\,Y\), using \(ZX = iY\). For
+the second, \(e^{i\gamma C} = \prod_{ab}e^{i\gamma/2}e^{-i\gamma Z_aZ_b/2}\); factors not involving \(u\) commute with \(Y_u\) and cancel; each factor with
+\(Z_uZ_w\) anticommutes with \(Y_u\) and, by the lemma with \(\theta = -\gamma/2\), contributes \(e^{i\gamma Z_uZ_w} = \cos\gamma + i\sin\gamma Z_uZ_w\) on the right.</p>
+<p><strong>2.</strong> \(U^\dagger = e^{i\gamma C}e^{i\beta B}\), so \(U^\dagger Z_uZ_vU = e^{i\gamma C}\big(e^{i\beta B}Z_uZ_ve^{-i\beta B}\big)e^{-i\gamma C}\). Only \(X_u, X_v\) in \(B\) fail to commute with
+\(Z_uZ_v\), and by part 1 on each,</p>
+\[e^{i\beta B}Z_uZ_ve^{-i\beta B} = (cZ_u + sY_u)(cZ_v + sY_v) = c^2Z_uZ_v + cs(Y_uZ_v + Z_uY_v) + s^2Y_uY_v.\]
+<p>Now conjugate each by \(e^{i\gamma C}\) and take expectations in \(\ket{+^n}\), where a Pauli product has expectation \(\prod\braket{+|P_i|+}\), zero unless every
+factor is \(I\) or \(X\).</p>
+<ul>
+<li>\(Z_uZ_v\) commutes with \(C\): expectation \(\braket{+|Z|+}^2 = 0\).</li>
+<li>\(Y_uZ_v\): by part 1 and \(e^{i\gamma C}Z_ve^{-i\gamma C} = Z_v\), it becomes \(Y_u\prod_{w\in\{v, w_1, w_2\}}(\cos\gamma + i\sin\gamma Z_uZ_w)Z_v\). Expand over the subset \(S\) of
+factors from which \(i\sin\gamma Z_uZ_w\) is taken. Qubit \(v\) carries \(Z_v\cdot Z_v^{[v\in S]}\): \(I\) iff \(v\in S\). Qubit \(w_i\) carries \(Z\) iff \(w_i\in S\). So only
+\(S = \{v\}\) survives: \(\cos^2\gamma\cdot i\sin\gamma\,Y_uZ_u = i\sin\gamma\cos^2\gamma\,(iX_u) = -\sin\gamma\cos^2\gamma\,X_u\), expectation \(-\sin\gamma\cos^2\gamma\). The same for \(Z_uY_v\).</li>
+<li>\(Y_uY_v\) commutes with \(Z_uZ_v\), so the edge \(uv\) drops out; the others give \(Y_uY_v\prod_{w\in\{w_1, w_2\}}(\cdots Z_uZ_w)\prod_{x\in\{x_1, x_2\}}(\cdots Z_vZ_x)\). With no triangles,
+\(w_1, w_2, x_1, x_2\) are distinct, so any chosen factor leaves an uncancelled \(Z\); only the empty choice survives, \(\cos^4\gamma\,Y_uY_v\), expectation 0.</li>
+</ul>
+<p>Hence \(\langle Z_uZ_v\rangle = -2cs\sin\gamma\cos^2\gamma = -\sin4\beta\sin\gamma\cos^2\gamma\) and \(\langle C_{uv}\rangle = \tfrac12 - \tfrac12\langle Z_uZ_v\rangle = \tfrac12 + \tfrac12\sin4\beta\sin\gamma\cos^2\gamma\). ∎</p>
+<p><strong>3.</strong> \(|\sin4\beta|\le1\), and \(g(\gamma) = \sin\gamma\cos^2\gamma = t - t^3\) with \(t = \sin\gamma\in[-1, 1]\) has \(|g|\le g(1/\sqrt3) = \frac{2}{3\sqrt3}\) (critical points \(t = \pm1/\sqrt3\),
+\(g(\pm1) = 0\)). So the maximum is \(\tfrac12 + \tfrac1{3\sqrt3} = 0.6925\), attained at \(\beta = \pi/8\), \(\sin\gamma = 1/\sqrt3\), i.e. \(\tan\gamma = 1/\sqrt2\), \(\gamma = 0.6155\). The cube is
+3-regular and triangle-free, so every edge gives the same value: \(12\times0.6925 = 6 + 4/\sqrt3 = 8.31\) edges in expectation.</p>
+<p><strong>Check.</strong> \(\gamma = 0\): \(\tfrac12\), the uniform random cut ✓. \(\beta = 0\): \(\tfrac12\) — the cost layer alone only adds phases, which a
+computational-basis measurement cannot see ✓. At \(\gamma = \pi/4\), \(\beta = \pi/8\): \(\tfrac12 + \tfrac12\cdot\tfrac1{\sqrt2}\cdot\tfrac12 = 0.6768\), below the optimum ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+edges = [(v, v ^ (1 &lt;&lt; k)) for v in range(8) for k in range(3) if v &lt; v ^ (1 &lt;&lt; k)]
+bits = (np.arange(256)[:, None] &gt;&gt; (7 - np.arange(8))) &amp; 1
+cut = np.array([sum(z[a] != z[b] for a, b in edges) for z in bits])
+def qaoa(gamma, beta):
+    zz = np.diag([1, np.exp(-1j * gamma), np.exp(-1j * gamma), 1])    # exp(-i gamma (1 - ZZ)/2)
+    c = Circuit(8)
+    for q in range(8):
+        c.h(q)
+    for a, b in edges:
+        c.gate(zz, a, b, name="zz")
+    for q in range(8):
+        c.rx(2 * beta, q)
+    return c.run().probabilities()
+p = qaoa(np.arctan(1 / np.sqrt(2)), np.pi / 8)
+print(round(p @ cut / 12, 4), round(p @ cut, 2), round(p[cut == 12].sum(), 4))   # 0.6925 8.31 0.1863
+print(round(qaoa(np.pi / 4, np.pi / 8) @ cut / 12, 4))                              # 0.6768</code></pre>
+<p>The third number on the first line is the probability that one sample is a maximum cut, used in P7.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Triangles matter <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: locating a hypothesis in a proof, redoing the light-cone calculation with shared neighbours</p>
+<div class="statement">
+<p>\(K_4\), the complete graph on four vertices, is 3-regular with 6 edges, and every edge lies in two triangles.</p>
+<ol>
+<li>Find the maximum cut of \(K_4\), and show that the triangle-free formula cannot hold on \(K_4\).</li>
+<li>In P5's derivation, which step used triangle-freeness? Show that the \(Y_uZ_v\) terms are unchanged on \(K_4\).</li>
+<li>Compute \(\langle Y_uY_v\rangle\) after the cost layer for an edge of \(K_4\), and deduce
+\(\langle C_{uv}\rangle = \tfrac12 + \tfrac12\sin4\beta\sin\gamma\cos^2\gamma - \tfrac14\sin^22\beta\sin^22\gamma\).</li>
+<li>Evaluate it at the triangle-free optimum \(\beta = \pi/8\), \(\tan\gamma = 1/\sqrt2\), and compare with the maximum cut.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a count over the ways to split four vertices; parts 2–3 rerun one step of P5 with \(\{w_1, w_2\} = \{x_1, x_2\}\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In the \(Y_uY_v\) term, a factor \(i\sin\gamma Z_uZ_w\) from \(u\)'s side and \(i\sin\gamma Z_vZ_w\) from \(v\)'s side with the <em>same</em> \(w\) leave \(Z_uZ_v\) and no \(Z_w\).
+Then \(Y_uY_vZ_uZ_v = (Y_uZ_u)(Y_vZ_v)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: the surviving terms choose a set \(S\subseteq\{w_1, w_2\}\) on both sides; \(|S| = 1\) gives \((i\sin\gamma)^2\cos^2\gamma\,Y_uY_vZ_uZ_v\), twice.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> With a shared neighbour \(w\), the \(Z_w\) from each side cancel, so terms that vanished on a tree now survive.</p>
+<p><strong>1.</strong> A side of size \(k\) cuts \(k(4 - k)\) edges: 0, 3, 4 for \(k = 0, 1, 2\). Maximum 4. The triangle-free formula at its optimum would
+give \(6\times0.6925 = 4.15\gt4\) in expectation — more than any cut has. So it cannot hold on \(K_4\).</p>
+<p><strong>2.</strong> Step 5 of the deck, the \(Y_uY_v\) term: it needed \(w_1, w_2, x_1, x_2\) distinct. For \(Y_uZ_v\), the operator is \(Y_u\prod_{w\in N(u)}(\cdots)Z_v\);
+the only \(Z\)'s outside \(u\) are \(Z_v\) and the \(Z_w\) from chosen factors, and the argument (\(S = \{v\}\) only) never looked at \(v\)'s
+neighbours. So \(\langle Y_uZ_v\rangle = \langle Z_uY_v\rangle = -\sin\gamma\cos^2\gamma\) still.</p>
+<p><strong>3.</strong> On \(K_4\), \(u\) and \(v\) have the common other neighbours \(w_1, w_2\). After the cost layer,
+\(Y_uY_v\prod_{w}(\cos\gamma + i\sin\gamma Z_uZ_w)\prod_{w}(\cos\gamma + i\sin\gamma Z_vZ_w)\), both products over \(w\in\{w_1, w_2\}\). Choosing subsets \(S\) on \(u\)'s side and
+\(T\) on \(v\)'s, qubit \(w\) carries \(Z\) once for each of \(S, T\) containing it: \(I\) iff \(S = T\). Writing \(c = \cos\gamma\), \(s = \sin\gamma\):</p>
+<ul>
+<li>\(S = T = \emptyset\): \(c^4Y_uY_v\), expectation 0.</li>
+<li>\(|S| = 1\), two choices: \(c^2(is)^2Y_uY_vZ_uZ_v = -s^2c^2(iX_u)(iX_v) = s^2c^2X_uX_v\), expectation \(s^2c^2\) each.</li>
+<li>\(S = T = \{w_1, w_2\}\): \((is)^4Y_uY_v(Z_uZ_v)^2 = s^4Y_uY_v\), expectation 0.</li>
+</ul>
+<p>So \(\langle Y_uY_v\rangle = 2s^2c^2 = \tfrac12\sin^22\gamma\). Then \(\langle Z_uZ_v\rangle = -\sin4\beta\sin\gamma\cos^2\gamma + \sin^22\beta\cdot\tfrac12\sin^22\gamma\), and \(\langle C_{uv}\rangle = \tfrac12 - \tfrac12\langle Z_uZ_v\rangle\) is the
+stated formula.</p>
+<p><strong>4.</strong> \(\sin^22\beta = \tfrac12\); \(\sin2\gamma = 2\cdot\tfrac1{\sqrt3}\cdot\sqrt{\tfrac23} = \tfrac{2\sqrt2}3\), so \(\sin^22\gamma = \tfrac89\); the new term is \(\tfrac14\cdot\tfrac12\cdot\tfrac89 = \tfrac19\). So
+\(\langle C_{uv}\rangle = 0.6925 - 0.1111 = 0.5813\), and \(\langle C\rangle = 6\times0.5813 = 3.49\) of a possible 4 — a ratio of 0.872. Maximising the \(K_4\) formula
+itself (numerically) gives 0.616 per edge, 3.70 edges, ratio 0.924.</p>
+<p><strong>Check.</strong> \(3.49\le4\) ✓, and the triangle term is \(\le0\) at every angle, as frustration requires: three mutually adjacent
+vertices cannot all be separated. At \(\gamma = 0\) or \(\beta = 0\) the formula gives \(\tfrac12\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+edges = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]                          # K4
+bits = (np.arange(16)[:, None] &gt;&gt; (3 - np.arange(4))) &amp; 1
+cut = np.array([sum(z[a] != z[b] for a, b in edges) for z in bits])
+def fraction(gamma, beta):
+    zz = np.diag([1, np.exp(-1j * gamma), np.exp(-1j * gamma), 1])
+    c = Circuit(4)
+    for q in range(4):
+        c.h(q)
+    for a, b in edges:
+        c.gate(zz, a, b, name="zz")
+    for q in range(4):
+        c.rx(2 * beta, q)
+    return c.run().probabilities() @ cut / 6
+print(round(fraction(np.arctan(1 / np.sqrt(2)), np.pi / 8), 4), cut.max())           # 0.5813 4
+grid = [(g, b) for g in np.linspace(0, np.pi / 2, 181) for b in np.linspace(0, np.pi / 4, 91)]
+print(round(max(fraction(g, b) for g, b in grid), 3))                                 # 0.616</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The cube is easy <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: bipartiteness, comparing a quantum sampler with a classical algorithm on its own terms; ends in a number</p>
+<div class="statement">
+<ol>
+<li>Prove that the cube is bipartite and that its maximum cut is 12.</li>
+<li>Depth-one QAOA at its best angles samples a maximum cut of the cube with probability \(0.1863\) per run (P5's referee).
+How many runs give a maximum cut with probability at least 0.99? How many uniformly random cuts would?</li>
+<li>How long does breadth-first search take to find the maximum cut of a bipartite graph with \(n\) vertices and \(m\) edges? What
+does this say about the running example?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a colouring; part 2 is the smallest integer \(k\) with \(1 - (1 - p)^k\ge0.99\); part 3 is a complexity.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Colour by the parity of the number of 1s. For part 2, the uniform cut is a maximum cut only for the two parity colourings,
+out of \(2^8\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(k\ge\ln0.01/\ln(1 - 0.1863)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The parity colouring is a cut of all edges; once that is seen, the quantum sampler is competing with an
+algorithm that never fails.</p>
+<p><strong>1.</strong> An edge flips exactly one bit, so it changes the parity of the number of 1s: every edge joins an even vertex to an odd one.
+The parity classes \(\{000, 011, 101, 110\}\) and \(\{001, 010, 100, 111\}\) therefore cut all 12 edges, and no cut has more than \(m = 12\).</p>
+<p><strong>2.</strong> \(k\ge\ln0.01/\ln0.8137 = -4.605/-0.2062 = 22.3\), so \(k = 23\) runs (\(0.8137^{23} = 0.0087\le0.01\), while \(0.8137^{22} = 0.0107\)). A uniform cut is maximum
+with probability \(2/256 = 1/128\): \(k\ge\ln0.01/\ln(127/128) = 587.2\), so 588.</p>
+<p><strong>3.</strong> Breadth-first search from any vertex colours by distance parity, visiting each vertex and edge once: \(O(n + m)\). For the cube,
+a few dozen operations give all 12 edges with certainty. So on the running example the quantum algorithm, even on perfect
+hardware, needs 23 runs of an eight-qubit circuit (and an outer loop to find the angles) to have a 99% chance of matching what a
+classical program does exactly in microseconds.</p>
+<p><strong>Check.</strong> \(1 - 0.8137^{23} = 0.991\ge0.99\) ✓. The per-run success probabilities differ by a factor \(0.1863/(1/128) = 23.8\), and the run
+counts by a similar factor, \(588/23 = 25.6\): for small \(p\), \(k\approx\ln100/p\), so the counts scale inversely with the probabilities. They
+differ a little because \(0.1863\) is not small: \(-\ln(1 - 0.1863) = 0.206\), not \(0.186\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Advantage claims</h2>
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> XEB <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: expectations under a sampling distribution, the exponential distribution's moments, a sample-size estimate; a proof</p>
+<div class="statement">
+<p>For a circuit with output distribution \(p\) on \(N = 2^n\) outcomes, a sampler produces \(x_1, \dots, x_s\) and is scored by
+\(F_{\rm XEB} = N\cdot\frac1s\sum_ip(x_i) - 1\).</p>
+<ol>
+<li>Prove that a sampler outputting uniform random \(x\) has \(\mathbb EF_{\rm XEB} = 0\) exactly, for every circuit.</li>
+<li>Assuming the values \(t_x = Np(x)\) are distributed like independent draws from the density \(e^{-t}\), show that an ideal sampler has
+\(\mathbb EF_{\rm XEB}\approx1\).</li>
+<li>Show that a device sampling from \(q = fp + (1 - f)/N\) has \(\mathbb EF_{\rm XEB}\approx f\).</li>
+<li>For a device with \(f = 0.002\), each \(Np(x_i)\) has variance about 1. How many samples make the standard error one fifth of \(f\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is an <strong>expectation</strong> of \(p(x)\) for \(x\) drawn from some distribution, times \(N\), minus 1.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Under \(x\sim r\), \(\mathbb Ep(x) = \sum_xr(x)p(x)\). For the ideal sampler that is \(\sum_xp(x)^2 = N^{-2}\sum_xt_x^2\). Part 3 is linear in \(q\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\int_0^\infty t^2e^{-t}\,dt = 2\), so \(\sum_xt_x^2\approx2N\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(F_{\rm XEB}\) is linear in the sampler's distribution, so it suffices to know its value on the uniform and on the ideal
+distribution.</p>
+<p><strong>1.</strong> \(\mathbb E\frac1s\sum_ip(x_i) = \mathbb Ep(x) = \sum_x\frac1Np(x) = \frac1N\sum_xp(x) = \frac1N\), since \(p\) sums to 1. So \(\mathbb EF = N\cdot\frac1N - 1 = 0\), with no
+assumption on \(p\). ∎</p>
+<p><strong>2.</strong> \(\mathbb Ep(x) = \sum_xp(x)^2 = \frac1{N^2}\sum_xt_x^2\). With the \(t_x\) like independent exponential draws, by the law of large numbers
+\(\frac1N\sum_xt_x^2\approx\mathbb Et^2 = \int_0^\infty t^2e^{-t}dt = 2\) (by parts: \(\int t^2e^{-t} = 2\int te^{-t} = 2\int e^{-t} = 2\)). So \(\sum_xp(x)^2\approx2/N\) and
+\(\mathbb EF\approx N\cdot2/N - 1 = 1\).</p>
+<p><strong>3.</strong> \(\mathbb Ep(x) = \sum_xq(x)p(x) = f\sum_xp(x)^2 + (1 - f)\frac1N\approx\frac{2f}N + \frac{1 - f}N\), so \(\mathbb EF\approx2f + 1 - f - 1 = f\). And \(q\) is a distribution:
+\(q\ge0\) and \(\sum q = f + (1 - f) = 1\) ✓.</p>
+<p><strong>4.</strong> The mean of \(s\) samples has standard error \(1/\sqrt s\). Setting \(1/\sqrt s = f/5 = 4\times10^{-4}\): \(s = 6.25\times10^6\) samples. The 2019 experiment reported a million samples per circuit: on one circuit the standard error is then
+\(10^{-3}\), half the signal, which is why a fidelity this small must be resolved over many samples or many circuits.</p>
+<p><strong>Check.</strong> The exponential's mean is \(\int te^{-t} = 1\), consistent with \(\sum_xt_x = N\sum_xp(x) = N\) — the normalisation of \(p\). For an exactly
+uniformly random state \(\mathbb E\sum p^2 = 2/(N + 1)\) (cited), so \(\mathbb EF = (N - 1)/(N + 1)\): 0.9995 at \(N = 4096\), close to 1 ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+rng = np.random.default_rng(1)
+n, N = 12, 2**12
+c = Circuit(n)
+for layer in range(40):                       # brickwork: random rotations, then CZs
+    for q in range(n):
+        c.gate(gates.rotation(rng.normal(size=3), rng.uniform(0, 2 * np.pi)), q)
+    for q in range(layer % 2, n - 1, 2):
+        c.cz(q, q + 1)
+p = c.run().probabilities()
+f = 0.002
+print(round(N * p @ p - 1, 2))                               # ideal sampler: 1.05
+print(abs(round(N * p.mean() - 1, 12)))                      # uniform sampler: 0.0
+print(round(N * p @ (f * p + (1 - f) / N) - 1, 4))           # fidelity-f mixture: 0.0021</code></pre>
+<p>A 40-layer random circuit on 12 qubits: the ideal score is 1.05 (one instance fluctuates around 1 by a few per cent at this
+size), the uniform score exactly 0, and the mixture's \(0.0021\approx f\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> A claimed advantage against its baseline <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: reading a claim as a theorem with a hypothesis, memory and time arithmetic; ends in numbers</p>
+<div class="statement">
+<p>The 2019 random-circuit-sampling experiment (Arute et al., <i>Nature</i> 574, 505) sampled a 53-qubit, 20-cycle circuit a million
+times in about 200 seconds.</p>
+<ol>
+<li>State exactly what classical computation the 10 000-year figure was for, and whether it was run or estimated.</li>
+<li>How many bytes does a full state vector of 53 qubits take in single-precision complex numbers (8 bytes each), and in double
+(16)? Why did that matter to the second estimate?</li>
+<li>Compute the ratios: 10 000 years to 2.5 days; 2.5 days to 200 s; 15 hours to 200 s.</li>
+<li>Rewrite the claim as a sentence that would still be true after 2022.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 names an <strong>algorithm, a machine and a status</strong> (estimated or run). Parts 2–3 are arithmetic; part 4 puts the
+baseline into the claim.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The deck's timeline has three classical entries: Schrödinger–Feynman (2019, with the experiment), Schrödinger with disk storage
+(Pednault et al. 2019), tensor networks on GPUs (Pan, Chen and Zhang 2022).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(2^{53} = 9.007\times10^{15}\) amplitudes.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> An advantage claim is a comparison with one classical algorithm at one date. Identify it, then follow what
+happened when others looked.</p>
+<p><strong>1.</strong> The 10 000 years was an <em>estimate</em>, by the experiment's authors, of the time for a hybrid Schrödinger–Feynman
+simulation — split the chip into two halves, simulate each half's state vector, and sum over the paths of the gates that cross
+between them — to produce samples at the experiment's fidelity, on the largest supercomputer of the day. It was not run; it was
+an estimate.</p>
+<p><strong>2.</strong> \(2^{53}\times8 = 7.2\times10^{16}\) bytes \(= 72\) PB; \(\times16\): 144 PB. That exceeds any machine's memory, which is why the 2019 estimate used a
+path-splitting method instead. Pednault et al. pointed out that the same supercomputer had about 280 PB of disk: enough to hold
+the full state vector, giving an <em>estimate</em> of 2.5 days with the plain Schrödinger method.</p>
+<p><strong>3.</strong> \(10\,000\times365.25/2.5 = 1.46\times10^6\): the second estimate was a million times smaller than the first. \(2.5\times86\,400/200 = 1080\).
+\(15\times3600/200 = 270\). The device stayed faster than both later figures, by two to three orders of magnitude rather than nine — and the
+2022 figure was an actual run on 512 GPUs, producing a million independent samples at fidelity about 0.0037, higher than the
+experiment's 0.002.</p>
+<p><strong>4.</strong> "In 2019, a 53-qubit device sampled from this circuit family with \(F_{\rm XEB}\approx0.002\) in 200 seconds; the fastest classical method
+then estimated, a Schrödinger–Feynman simulation, would have taken an estimated 10 000 years on the then-largest supercomputer.
+Tensor-network methods later did the task on 512 GPUs in about 15 hours." The baseline, with its date and status, is part of the
+statement.</p>
+<p><strong>Check.</strong> Units: \(10^4\) years \(= 3.16\times10^{11}\) s; 2.5 days \(= 2.16\times10^5\) s; their ratio \(1.46\times10^6\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Dequantisation, in outline <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: input models, an unbiased estimator and its variance, Chebyshev; a proof that ends in a number</p>
+<div class="statement">
+<ol>
+<li>State what <em>sample-and-query access</em> to a vector \(x\in\mathbb R^n\) is, and explain why the data structure the quantum recommendation
+algorithm assumes provides it in \(O(\log n)\) time per operation.</li>
+<li>Draw \(j\) with probability \(x_j^2/\|x\|^2\) and set \(Z = \|x\|^2y_j/x_j\). Prove \(\mathbb EZ = \braket{x|y}\) and \(\mathbb EZ^2\le\|x\|^2\|y\|^2\).</li>
+<li>How many independent copies of \(Z\), averaged, estimate \(\braket{x|y}\) to within \(0.01\|x\|\|y\|\) with probability at least \(0.95\)? How does
+the answer depend on \(n\)?</li>
+<li>Explain in two or three sentences why giving the classical algorithm this access is the fair comparison.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 2 is two <strong>sums over \(j\)</strong> weighted by the sampling probabilities; part 3 is Chebyshev's inequality applied to an
+average.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The tree stores \(x_j^2\) at the leaves and sums at internal nodes. Walking from the root, go left with probability (left sum)/(node
+sum). The variance of an average of \(s\) independent copies is the variance of one over \(s\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(\Pr\big[|\bar Z - \braket{x|y}|\ge\varepsilon\|x\|\|y\|\big]\le\frac{\|x\|^2\|y\|^2/s}{\varepsilon^2\|x\|^2\|y\|^2} = \frac1{s\varepsilon^2}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Length-squared sampling makes each coordinate's weight cancel its own size, so the estimator's variance depends
+on norms only, never on the dimension.</p>
+<p><strong>1.</strong> Sample-and-query access: query any \(x_j\); know \(\|x\|\); draw \(j\) with probability \(x_j^2/\|x\|^2\). The tree has depth \(\log_2n\): a query reads a leaf,
+the norm is the square root of the root, and a sample walks root to leaf choosing each child with probability proportional to
+its stored sum — at each level the conditional probability is right, so the leaf \(j\) is reached with probability \(x_j^2/\|x\|^2\). Each
+takes \(O(\log n)\) steps.</p>
+<p><strong>2.</strong> Only \(j\) with \(x_j\ne0\) are drawn, so \(Z\) is defined.
+\(\mathbb EZ = \sum_{x_j\ne0}\frac{x_j^2}{\|x\|^2}\cdot\frac{\|x\|^2y_j}{x_j} = \sum_jx_jy_j = \braket{x|y}\) (terms with \(x_j = 0\) add nothing to either side), and
+\(\mathbb EZ^2 = \sum_{x_j\ne0}\frac{x_j^2}{\|x\|^2}\cdot\frac{\|x\|^4y_j^2}{x_j^2} = \|x\|^2\sum_{x_j\ne0}y_j^2\le\|x\|^2\|y\|^2\), with equality when \(y\) vanishes wherever \(x\) does.
+(So in general \(\mathbb EZ^2\le\|x\|^2\|y\|^2\), which is what the bound needs.) ∎</p>
+<p><strong>3.</strong> The mean \(\bar Z\) of \(s\) copies has variance \(\le\|x\|^2\|y\|^2/s\). Chebyshev gives failure probability \(\le1/(s\varepsilon^2)\); requiring this \(\le\delta\) with
+\(\varepsilon = 0.01\), \(\delta = 0.05\): \(s\ge1/(0.05\times10^{-4}) = 200\,000\). Independent of \(n\): the same for \(n = 10^3\) or \(10^{30}\), each sample costing \(O(\log n)\).</p>
+<p><strong>4.</strong> The quantum algorithm's input is "a state \(\sum_jx_j\ket j/\|x\|\) prepared quickly from the tree"; measuring that state gives \(j\) with
+probability \(x_j^2/\|x\|^2\) — exactly what the tree gives a classical computer for free. Comparing the quantum algorithm with a classical
+one that must read all \(n\) entries compares different inputs. Tang's algorithm, given the same tree, is polylogarithmic in the
+dimension too, so the exponential separation disappears.</p>
+<p><strong>Check.</strong> If \(x = y\), \(Z = \|x\|^2\) always: zero variance and the exact answer \(\|x\|^2\) ✓. If \(x = e_1\), \(j = 1\) always and \(Z = y_1 = \braket{e_1|y}\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> A slow clock <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: unit 17's query counts turned into wall-clock times, crossover arithmetic; ends in a number</p>
+<div class="statement">
+<p>Unstructured search over \(N\) items: classically \(N/2\) checks on average at \(r\) per second; Grover's \(\frac\pi4\sqrt N\) iterations at \(t\) seconds each.</p>
+<ol>
+<li>Find the crossover size \(N^*\) at which the two times are equal, and the time it takes.</li>
+<li>Evaluate for \(r = 10^9\) per second and \(t = 10\) ms.</li>
+<li>Unit 17's Zalka bound: \(P\) quantum machines need \(\frac\pi4\sqrt{N/P}\) iterations each. If the classical side also uses \(P\) machines, how does
+\(N^*\) change?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is one <strong>equation in \(\sqrt N\)</strong>.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\frac N{2r} = \frac\pi4\sqrt N\,t\); divide by \(\sqrt N\). For part 3, classical search splits perfectly: \(P\) machines give rate \(Pr\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\sqrt{N^*} = \frac\pi2rt\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Linear against square root: they cross once, at a size set by the product of the classical rate and the quantum step
+time.</p>
+<p><strong>1.</strong> \(\frac N{2r} = \frac\pi4\sqrt Nt\iff\sqrt{N^*} = \frac\pi2rt\), so \(N^* = \frac{\pi^2}4r^2t^2\), and the common time is \(N^*/(2r) = \frac{\pi^2}8rt^2\).</p>
+<p><strong>2.</strong> \(rt = 10^9\times10^{-2} = 10^7\): \(\sqrt{N^*} = 1.571\times10^7\), \(N^* = 2.47\times10^{14}\), time \(\frac{\pi^2}8\times10^9\times10^{-4} = 1.23\times10^5\) s \(= 34.3\) hours. Below that size
+the classical core wins.</p>
+<p><strong>3.</strong> Classical time \(N/(2Pr)\); quantum \(\frac\pi4\sqrt{N/P}\,t\). Equal when \(\sqrt N = \frac\pi2\,Prt/\sqrt P = \frac\pi2\sqrt P\,rt\): \(N^*\) grows by a factor \(P\). Matching parallel
+hardware on both sides makes the quantum machine's task <em>harder</em>, because classical search parallelises perfectly and quantum
+search only by \(\sqrt P\).</p>
+<p><strong>Check.</strong> Dimensions: \(rt\) is (checks per second)\(\times\)(seconds) — a pure number, as \(\sqrt{N^*}\) must be ✓. With \(t = 1\) ms the deck's
+\(N^* = 2.47\times10^{12}\) and 20.6 minutes; multiplying \(t\) by 10 multiplies \(N^*\) by 100 and the time by 100: \(1234\times100\) s \(= 34.3\) h ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Fault-tolerance arithmetic, revisited <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: unit 24's surface-code sizing applied to a machine, orders of magnitude against reported devices; ends in a number</p>
+<div class="statement">
+<p>Unit 24 sized one logical qubit good to \(10^{-12}\) per cycle at \(p = 10^{-3}\): a distance-21 surface code, \(2\cdot21^2 - 1 = 881\) physical qubits;
+at the measured \(\Lambda = 2.14\) instead, distance 63 and 7937.</p>
+<ol>
+<li>How many physical qubits for 100 logical qubits, at 881 each and at 7937 each?</li>
+<li>Published resource estimates give magic-state factories a large share of the machine. Suppose factories take as many
+qubits again as the data. What is the total, to an order of magnitude?</li>
+<li>Compare with two devices reported in the references the deck cites: unit 24's 105-qubit superconducting chip, and a
+neutral-atom array of about 6100 atoms. By what factors do they fall short, and why is the second comparison flattering?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is a <strong>product or a ratio</strong>; the answer to part 2 is a power of ten.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Data qubits \(= 100\times\) per-logical count; factories double it. For part 3, ask what the 6100 atoms were shown to do.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(100\times881 = 88\,100\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Multiply unit 24's per-logical-qubit cost, add factories, and set it against devices that exist.</p>
+<p><strong>1.</strong> \(100\times881 = 88\,100\); \(100\times7937 = 793\,700\).</p>
+<p><strong>2.</strong> Doubling: \(1.8\times10^5\) at \(p = 10^{-3}\) (unit 24's \(\Lambda = 10\)), \(1.6\times10^6\) at the measured \(\Lambda = 2.14\). To an order of magnitude, \(10^5\) to \(10^6\) physical qubits for 100 logical
+ones.</p>
+<p><strong>3.</strong> Against 105 qubits: \(88\,100/105 = 839\), so about three orders of magnitude before factories, and \(7.6\times10^3\) at the measured \(\Lambda\). Against
+6100 atoms: \(88\,100/6100 = 14\) — but flattering twice over: the atoms in that array were trapped and coherent, not operated as a
+surface code at \(p = 10^{-3}\) with fast repeated measurement, and an atom array's cycle time (milliseconds for readout) is far longer
+than the superconducting experiments' cycle of about a microsecond, which multiplies the running time.</p>
+<p><strong>Check.</strong> Orders of magnitude only: \(10^2\times10^3 = 10^5\) ✓. And 100 logical qubits is small — factoring a 2048-bit number
+needs thousands, which the capstone computes.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 26</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

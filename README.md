@@ -1,9 +1,9 @@
 # Courses
 
-Two independent self-study courses, sharing one repository and one GitHub Pages
-deployment and nothing else. Each course keeps its own CLI (`co`, `mr`), its own
+Three independent self-study courses, sharing one repository and one GitHub Pages
+deployment and nothing else. Each course keeps its own CLI (`co`, `mr`, `qc`), its own
 `slides/`, its own `CURRICULUM.html`, its own README and its own toolchain.
-Nothing about how either course is built or studied is shared.
+Nothing about how any course is built or studied is shared.
 
 ## The site
 
@@ -13,20 +13,24 @@ Published at <https://quimfib.github.io/courses/>, one subdirectory per course.
   See `combinatorial-optimization/README.md`.
 - `mechanics-to-relativity/` — Mechanics to Relativity.
   See `mechanics-to-relativity/README.md`.
+- `quantum-computing/` — Quantum Computing.
+  See `quantum-computing/README.md`.
 
 ## They differ in kind, not just in subject
 
 The optimization course is worked through by writing Python against a test
 suite: the library supplies everything that is not the lesson, and each
 implementation is then benchmarked against the industrial solver that does the
-same job. The mechanics course is worked through on paper: every problem carries
-a hint ladder and a full worked solution, and there is no code to write.
+same job. The mechanics and quantum computing courses are worked through on
+paper: every problem carries a hint ladder and a full worked solution, and there
+is no code to write (the quantum course's small simulator is optional, for
+checking a hand calculation).
 
 The published site is therefore a different fraction of each. For the
 optimization course it is the theory half — the labs, their tests and their
 reference solutions live in this repository and never reach the site. For the
-mechanics course it is the whole thing: decks, problems, hints, solutions and
-the readiness sheet.
+mechanics and quantum computing courses it is the whole thing: decks, problems,
+hints and solutions (and, for mechanics, the readiness sheet).
 
 ## A course in this repository is a published course
 
@@ -53,7 +57,7 @@ exactly what it always did.
 
 ## Licensing
 
-The course prose, slides, figures, problem sheets and solutions in both courses
+The course prose, slides, figures, problem sheets and solutions in every course
 are CC BY-NC-SA 4.0 — see `LICENSE-CONTENT`.
 
 The code is MIT — see `LICENSE-CODE`, whose scope note matters, because "code"

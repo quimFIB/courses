@@ -1,0 +1,146 @@
+#+title: Glossary — unit 16
+#+startup: content latexpreview
+#+options: ^:{}
+
+The terms this unit introduces, in the order the deck meets them. The slides
+stay the definition of record; each entry names the slide it comes from, so a
+term can be looked up here and read properly there.
+
+Running example: factoring 21 with \(a = 2\), as if \(21 = 3\times7\) were
+unknown. The powers of 2 mod 21 are \(2, 4, 8, 16, 11, 1\), so the order is
+\(r = 6\); \(2^3 = 8 \not\equiv \pm1\), and \(\gcd(7, 21) = 7\), \(\gcd(9, 21) =
+3\). The order is found by phase estimation on \(U_2\ket y = \ket{2y \bmod 21}\)
+with \(t = 9\) counting qubits (\(441 \le 512 < 882\)) and 5 work qubits. The
+measured distribution has peaks at \(0, 85, 171, 256, 341, 427\), of height
+0.167 at 0 and 256 and 0.114 at the other four. One run at \(y = 427\) gives
+\(427/512 = [0; 1, 5, 42, 2]\), whose convergent \(5/6\) gives \(r = 6\). Decoded
+by the nearest fraction with denominator below 21, one run gives \(r = 6\)
+directly with probability 0.308, the divisor 3 with 0.321, the divisor 2 with
+0.167, nothing (near 0) with 0.167, and a wrong denominator with 0.037; two runs
+combined by least common multiples give \(r = 6\) with probability 0.629.
+
+* Factoring is order finding
+
+- RSA :: The public-key cryptosystem of Rivest, Shamir and Adleman (1977):
+  \(N = pq\) and \(e\) coprime to \(\varphi(N) = (p-1)(q-1)\) are public, \(d =
+  e^{-1} \bmod \varphi(N)\) is secret; encryption is \(m \mapsto m^e \bmod N\),
+  decryption \(c \mapsto c^d \bmod N\). Factoring \(N\) gives \(\varphi(N)\) and
+  so \(d\). /Slide: Why factoring: RSA in one slide./
+- order :: For \(\gcd(a, N) = 1\), the least \(r \ge 1\) with \(a^r \equiv 1
+  \pmod N\). It exists by Euler's theorem and divides every \(k\) with \(a^k
+  \equiv 1\). The order of 2 mod 21 is 6. /Slide: Order, and a square root of 1
+  that splits N./
+- nontrivial square root of 1 :: An \(x\) with \(x^2 \equiv 1 \pmod N\) but
+  \(x \not\equiv \pm1\). Then \(\gcd(x - 1, N)\) and \(\gcd(x + 1, N)\) are
+  proper factors of \(N\). An odd \(N\) with \(m\) distinct prime factors has
+  \(2^m\) square roots of 1, so nontrivial ones exist iff \(m \ge 2\); mod 21
+  they are 8 and 13.
+- order-finding reduction :: Factoring from an order-finding subroutine: remove
+  even and prime-power \(N\) (and primes) classically, pick a random \(a\), find
+  its order \(r\), and if \(r\) is even with \(a^{r/2} \not\equiv -1\), output
+  \(\gcd(a^{r/2} - 1, N)\); otherwise pick again. The randomised form of an
+  argument of Miller (1976). /Slide: The reduction, as an algorithm./
+- 2-adic valuation :: \(v(m)\), the exponent of 2 in the integer \(m\). For \(N
+  = pq\), a random \(a\) succeeds in the reduction iff its orders mod \(p\) and
+  mod \(q\) have different 2-adic valuations. /Slide: When does a random a work?/
+- quadratic residue :: A residue mod \(p\) that is a square. Exactly half of
+  \(\mathbb Z_p^\times\) are quadratic residues for odd \(p\); with \(p - 1 =
+  2^em\), \(m\) odd, they are exactly the residues whose order has 2-adic
+  valuation below \(e\). This is why the reduction succeeds with probability at
+  least ½. /Slide: Half the residues carry all the twos./
+- perfect power :: An \(N = b^k\) with \(k \ge 2\). For an odd prime power the
+  reduction always fails, since 1 has only the square roots \(\pm1\) modulo
+  \(p^k\); so prime powers are detected first, by computing \(\lfloor
+  N^{1/k}\rfloor\) for each \(k \le \log_2N\) by bisection. /Slide: Prime powers,
+  primes, and the general case./
+
+* Order finding is phase estimation
+
+- modular multiplication :: The unitary \(U_a\ket y = \ket{ay \bmod N}\) for \(0
+  \le y < N\), \(U_a\ket y = \ket y\) above, on \(n = \lceil\log_2N\rceil\)
+  qubits, for \(\gcd(a, N) = 1\). A permutation of the basis, hence unitary; its
+  eigenvectors on the orbit of 1 are \(\ket{u_s} = r^{-1/2}\sum_k
+  e^{-2\pi isk/r}\ket{a^k}\) with eigenphases \(s/r\), and \(\ket1 =
+  r^{-1/2}\sum_s\ket{u_s}\). /Slide: Multiplication by a is a permutation, so a
+  unitary./
+- repeated squaring :: Computing \(b_j = a^{2^j} \bmod N\) by \(b_{j+1} = b_j^2
+  \bmod N\): \(t - 1\) squarings, done classically. It makes each controlled
+  \(U_a^{2^j}\) a single controlled multiplication by \(b_j\). For \(a = 2\), \(N
+  = 21\): \(2, 4, 16, 4, 16, \dots\) /Slide: Controlled powers by repeated
+  squaring./
+- modular exponentiation :: The map \(\ket x\ket1 \mapsto \ket x\ket{a^x \bmod
+  N}\), built as one controlled multiplication by \(b_j\) per bit of \(x\).
+  \(O(n^3)\) gates with schoolbook arithmetic: \(2n\) multiplications, each
+  \(n\) modular additions of \(O(n)\) gates.
+
+* The circuit
+
+- in-place multiplication :: Applying \(U_c\ket y = \ket{cy \bmod N}\) with a
+  borrowed register: compute \(cy\) into a fresh register by the multiply-add
+  \(M_c\), swap, then subtract \(c^{-1}\cdot cy = y\) from the second register
+  with \(M_{c^{-1}}^{-1}\). The ancilla returns to \(\ket0\) for every \(y\), so
+  the work register undergoes exactly \(U_c\). /Slide: Multiplying in place./
+
+* Continued fractions
+
+- continued fraction :: The expansion \(x = a_0 + 1/(a_1 + 1/(a_2 + \cdots)) =
+  [a_0; a_1, a_2, \dots]\), with \(a_k = \lfloor x_k\rfloor\) and \(x_{k+1} =
+  1/(x_k - a_k)\). For a rational it is Euclid's algorithm and stops: \(5/6 =
+  [0; 1, 5]\). /Slide: Continued fractions, with Euclid underneath./
+- partial quotients :: The integers \(a_k\) of a continued fraction; all but
+  \(a_0\) are at least 1. For a rational \(u/v\), the quotients of Euclid's
+  algorithm on \((u, v)\).
+- convergent :: The truncation \(p_k/q_k = [a_0; \dots, a_k]\), computed by
+  \(p_k = a_kp_{k-1} + p_{k-2}\), \(q_k = a_kq_{k-1} + q_{k-2}\). In lowest terms,
+  since \(p_kq_{k-1} - p_{k-1}q_k = (-1)^{k+1}\); the convergents alternate
+  around \(x\). For \(427/512\): \(0, 1, 5/6, 211/253, 427/512\). /Slide:
+  Convergents, and the identities they obey./
+- Legendre's theorem :: If \(|x - p/q| < 1/(2q^2)\) with \(p/q\) in lowest
+  terms, then \(p/q\) is a convergent of \(x\) (Legendre, 1798). It is why the
+  continued fraction of \(y/2^t\) finds \(s/r\) when \(2^t \ge N^2\). /Slide:
+  Legendre's theorem./
+- nearest-fraction rule :: Shor's decoding: read the measured \(y\) as the
+  fraction with denominator below \(N\) nearest to \(y/2^t\), then test
+  \(a^q \equiv 1\). On a run where \(y\) is the integer nearest \(2^ts/r\) it
+  returns \(s/r\) in lowest terms, a convergent. Some texts use the last
+  convergent with denominator below \(N\) instead; the two agree on every good
+  run. /Slide: Decoding y: the nearest fraction with denominator below N./
+- semiconvergent :: A fraction \((p_{k-1} + jp_k)/(q_{k-1} + jq_k)\) with \(1
+  \le j < a_{k+1}\), between two convergents. The nearest fraction with bounded
+  denominator is a convergent or a semiconvergent (Khinchin, cited); \(3/19\)
+  is a semiconvergent of \(5/32\).
+
+* Discrete logarithms, and the hidden subgroup problem
+
+- discrete logarithm :: Given \(g\) and \(h = g^\ell\) in a cyclic group of
+  order \(r\), the exponent \(\ell \in \mathbb Z_r\). In \(\mathbb Z_{11}^\times\)
+  with \(g = 2\), the discrete logarithm of 5 is 4. Shor's two-register algorithm
+  finds it from samples \((k_1, k_2)\) with \(k_2 \equiv \ell k_1 \pmod r\).
+  /Slide: Discrete logarithms, and the key exchange they protect./
+- Diffie–Hellman key exchange :: Alice sends \(g^\alpha\), Bob sends
+  \(g^\beta\), and both compute \(g^{\alpha\beta}\) (1976). An eavesdropper who
+  can take discrete logarithms recovers the key.
+- elliptic-curve group :: The points of \(y^2 = x^3 + Ax + B\) over
+  \(\mathbb F_p\), with a point at infinity, under the rule that three collinear
+  points sum to zero. Its discrete logarithm problem underlies elliptic-curve
+  cryptography, which Shor's algorithm breaks as it breaks RSA. /Slide:
+  Elliptic curves fall too./
+- post-quantum cryptography :: Public-key cryptography built on problems with
+  no known efficient quantum attack — lattices (ML-KEM, ML-DSA) and hash
+  functions (SLH-DSA), standardised by NIST in 2024. Named in this unit, not
+  taught.
+- hidden subgroup problem :: Given an oracle for \(f\) on a group \(G\) that is
+  constant on the cosets of a subgroup \(H\) and distinct on distinct cosets,
+  find \(H\). Simon (\(\mathbb Z_2^n\), \(\{0, s\}\)), order finding
+  (\(\mathbb Z\), \(r\mathbb Z\)) and discrete logarithm (\(\mathbb Z_r\times
+  \mathbb Z_r\), \(\langle(-\ell, 1)\rangle\)) are instances. Solved for finite
+  abelian groups; open for the dihedral and symmetric groups. /Slide: The
+  hidden subgroup problem./
+- Fourier sampling :: Query \(f\) on a uniform superposition, set the output
+  aside, apply \(F_G\) and measure. For finite abelian \(G\) the outcome is a
+  character uniform on \(H^\perp\), the characters trivial on \(H\);
+  \(O(\log|G|)\) samples determine \(H\). /Slide: Abelian: solved. Non-abelian:
+  open./
+- coset state :: \(\ket{g + H} = |H|^{-1/2}\sum_{h\in H}\ket{g + h}\), what the
+  input register holds after one query of a hidden-subgroup oracle, for a
+  uniformly random coset.

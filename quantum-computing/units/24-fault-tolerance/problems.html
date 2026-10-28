@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>24 · Problems — Fault tolerance: the threshold theorem, magic states, and the surface code</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="e">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part E · unit 24 · problems</p>
+<h1>Fault tolerance: the threshold theorem, magic states, and the surface code</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u24">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the concatenated threshold in the
+simplified model — \(p_1\le\binom A2p^2 = cp^2\) by the union bound, \(p_k\le(cp)^{2^k}/c\) by induction, and the
+polylogarithmic overhead — and you size a surface-code logical qubit for a stated physical error rate and target: at
+\(p = 10^{-3}\), \(p_{\rm th} = 10^{-2}\), \(A = 0.1\) and \(10^{-12}\) per cycle, distance \(d = 21\) and \(881\) physical
+qubits.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the <strong>first</strong> slot; \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\); qubit 0 is the leftmost symbol of a ket and the control of \(\mathrm{CNOT}_{01}\), with
+\(\mathrm{CNOT}\ket{a, b} = \ket{a, a\oplus b}\). \(S = \mathrm{diag}(1, i)\), \(T = \mathrm{diag}(1, \omega)\) with
+\(\omega = e^{i\pi/4}\), so \(S = T^2\); \(Y = iXZ\). The magic state is \(\ket A = T\ket+ = \frac1{\sqrt2}(\ket0 + \omega\ket1)\).</p>
+<p>Steane's code (unit 23): qubits at positions 1 to 7; Hamming's parity-check matrix has column \(j\) equal to the binary
+expansion of \(j\), rows \(0001111\), \(0110011\), \(1010101\); these rows are both the \(X\)-type and the \(Z\)-type checks.
+\(\ket{\bar0}\) is the uniform superposition of the eight simplex codewords (weights 0 and 4), \(\ket{\bar1} = \bar X\ket{\bar0}\)
+with \(\bar X = X^{\otimes7}\), \(\bar Z = Z^{\otimes7}\).</p>
+<p>The simplified model: \(p_k\le cp_{k-1}^2\), \(p_{\rm th} = 1/c\). The surface-code heuristic: \(p_L\approx A(p/p_{\rm th})^{(d+1)/2}\)
+per cycle, with \(A = 0.1\) and \(p_{\rm th} = 10^{-2}\) unless a problem says otherwise; a distance-\(d\) rotated code uses
+\(2d^2 - 1\) qubits. Logarithms are base 2 unless written \(\ln\) or \(\log_{10}\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="medium" href="#p1" title="Propagation">P1</a></li>
+<li><a class="medium" href="#p2" title="One fault, and how repetition helps">P2</a></li>
+<li><a class="medium" href="#p3" title="Transversal Cliffords on Steane's code">P3</a></li>
+<li><a class="hard" href="#p4" title="Doubly exponential">P4</a></li>
+<li><a class="routine" href="#p5" title="Concatenation does the same job">P5</a></li>
+<li><a class="routine" href="#p6" title="Size a logical qubit">P6</a></li>
+<li><a class="medium" href="#p7" title="The surface code's distance">P7</a></li>
+<li><a class="medium" href="#p8" title="Below threshold means">P8</a></li>
+<li><a class="routine" href="#p9" title="What Λ buys">P9</a></li>
+<li><a class="medium" href="#p10" title="Magic-state teleportation">P10</a></li>
+<li><a class="routine" href="#p11" title="Distillation">P11</a></li>
+<li><a class="hard" href="#p12" title="Eastin–Knill's consequence">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Faults and gadgets</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Propagation <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: pushing an error through a gate, conjugation computed on basis states; a proof</p>
+<div class="statement">
+<ol>
+<li>Prove that for any gate \(U\) and error \(E\), \(UE = (UEU^\dagger)U\), and explain in one sentence what this says about
+an error that strikes just before \(U\).</li>
+<li>Prove the four CNOT rules: \(\mathrm{CNOT}(X\otimes I)\mathrm{CNOT} = X\otimes X\),
+\(\mathrm{CNOT}(I\otimes X)\mathrm{CNOT} = I\otimes X\), \(\mathrm{CNOT}(Z\otimes I)\mathrm{CNOT} = Z\otimes I\) and
+\(\mathrm{CNOT}(I\otimes Z)\mathrm{CNOT} = Z\otimes Z\).</li>
+<li>Where does a \(Y\) error go? Compute \(\mathrm{CNOT}(Y\otimes I)\mathrm{CNOT}\) and \(\mathrm{CNOT}(I\otimes Y)\mathrm{CNOT}\).</li>
+<li>A \(Y\) error strikes the control of the first of two CNOTs in a row, \(\mathrm{CNOT}_{01}\) then \(\mathrm{CNOT}_{12}\) on three
+qubits. What error leaves the circuit?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is an <strong>operator identity</strong>. Two operators on two qubits are equal if they agree on the four
+basis states \(\ket{a, b}\); and conjugation respects products, \(U(AB)U^\dagger = (UAU^\dagger)(UBU^\dagger)\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>CNOT is its own inverse, so \(\mathrm{CNOT}^\dagger = \mathrm{CNOT}\). Apply the left side to \(\ket{a, b}\) right to left: first
+CNOT, then the Pauli, then CNOT again. For part 3 write \(Y = iXZ\) and use part 2 twice.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\mathrm{CNOT}(X\otimes I)\mathrm{CNOT}\ket{a, b} = \mathrm{CNOT}(X\otimes I)\ket{a, a\oplus b} =
+\mathrm{CNOT}\ket{a\oplus1, a\oplus b}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Move every error to the end of the circuit by conjugating it through the gates it has not yet
+passed; for CNOT, compute the conjugation on the four basis states.</p>
+<p><strong>1.</strong> \((UEU^\dagger)U = UE(U^\dagger U) = UE\), since \(U\) is unitary. So the circuit "\(E\) then \(U\)" is the same
+operator as "\(U\) then \(UEU^\dagger\)": an error just before \(U\) is exactly the error \(UEU^\dagger\) just after it.</p>
+<p><strong>2.</strong> On \(\ket{a, b}\), using \(\mathrm{CNOT}\ket{a, b} = \ket{a, a\oplus b}\):</p>
+<ul>
+<li>\(X\otimes I\): \(\ket{a, b}\mapsto\ket{a, a\oplus b}\mapsto\ket{a\oplus1, a\oplus b}\mapsto\ket{a\oplus1, (a\oplus1)\oplus(a\oplus b)} = \ket{a\oplus1, b\oplus1} = (X\otimes X)\ket{a, b}\).</li>
+<li>\(I\otimes X\): \(\ket{a, b}\mapsto\ket{a, a\oplus b}\mapsto\ket{a, a\oplus b\oplus1}\mapsto\ket{a, b\oplus1} = (I\otimes X)\ket{a, b}\).</li>
+<li>\(Z\otimes I\): \(\ket{a, b}\mapsto\ket{a, a\oplus b}\mapsto(-1)^a\ket{a, a\oplus b}\mapsto(-1)^a\ket{a, b} = (Z\otimes I)\ket{a, b}\).</li>
+<li>\(I\otimes Z\): \(\ket{a, b}\mapsto\ket{a, a\oplus b}\mapsto(-1)^{a\oplus b}\ket{a, a\oplus b}\mapsto(-1)^{a\oplus b}\ket{a, b}\), and
+\((-1)^{a\oplus b} = (-1)^a(-1)^b\), so this is \((Z\otimes Z)\ket{a, b}\).</li>
+</ul>
+<p>Agreement on a basis gives equality of the operators.</p>
+<p><strong>3.</strong> \(Y\otimes I = i(X\otimes I)(Z\otimes I)\), so its conjugate is \(i(X\otimes X)(Z\otimes I) = iXZ\otimes X = Y\otimes X\). And
+\(I\otimes Y = i(I\otimes X)(I\otimes Z)\) conjugates to \(i(I\otimes X)(Z\otimes Z) = Z\otimes iXZ = Z\otimes Y\). Read: the \(X\) part of a
+\(Y\) on the control is copied forward; the \(Z\) part of a \(Y\) on the target is copied back.</p>
+<p><strong>4.</strong> Through \(\mathrm{CNOT}_{01}\): \(Y_0\mapsto Y_0X_1\). Through \(\mathrm{CNOT}_{12}\), qubit 0 is untouched and \(X_1\) on the
+control becomes \(X_1X_2\): the error leaving is \(Y_0X_1X_2\). One fault, three errors — the reason fault-tolerant gadgets
+never let two qubits of one block meet.</p>
+<p><strong>Check.</strong> Each result squares to \(I\), as the conjugate of a Pauli must. On one basis state: with \(X\) on
+the control, input \(\ket{10}\) becomes \(\ket{00}\) and the CNOT leaves \(\ket{00}\); the clean circuit gives \(\ket{11}\), and
+\((X\otimes X)\ket{11} = \ket{00}\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates
+C = gates.CNOT
+for before, after in [("XI", "XX"), ("IZ", "ZZ"), ("IX", "IX"), ("ZI", "ZI"), ("YI", "YX"), ("IY", "ZY")]:
+    print(before, "->", after, np.allclose(C @ gates.pauli(before) @ C, gates.pauli(after)))   # True, six times</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> One fault, and how repetition helps <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: error propagation in a syndrome circuit, Steane's decoder, majority voting; ends in a number</p>
+<div class="statement">
+<p>Steane's check \(Z_4Z_5Z_6Z_7\) is measured with one ancilla in \(\ket0\), four CNOTs from data qubits 4, 5, 6, 7 (in that
+order) into it, and a \(Z\) meter.</p>
+<ol>
+<li>A \(Z\) fault strikes the ancilla between the second and third CNOTs. What error do the data qubits carry at the end?</li>
+<li>The next round's \(X\)-type checks are measured perfectly, and the decoder applies \(Z_j\) for the position \(j\) the syndrome
+spells. Show that the result is a logical error.</li>
+<li>Now take one syndrome bit, read in rounds; each reading is wrong independently with probability \(q\), and the data do not
+change. Strategy A acts on the first reading. Strategy B reads twice, acts if they agree, and otherwise reads a third time and
+acts on the majority. Find the probability that each acts on a wrong bit, evaluate at \(q = 10^{-3}\), and find B's expected
+number of readings.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a <strong>Pauli on the data</strong>; part 2 is a syndrome, a correction, and a check that the product is a
+logical operator; part 3 is two <strong>probabilities</strong> and an expectation.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The ancilla is the target of every CNOT, and \(Z\) on a target is copied back to the control. A \(Z\) error's syndrome on
+Steane's code is the sum of the Hamming columns at its positions. A weight-3 Hamming codeword is not in the simplex code. For B,
+the answer is wrong exactly when at least two of the (up to) three readings are wrong.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First lines: the fault passes through \(\mathrm{CNOT}_{6\to a}\) and \(\mathrm{CNOT}_{7\to a}\), giving \(Z_6Z_7Z_a\); and
+\(\Pr[\text{B wrong}] = q^2 + 2q(1-q)\cdot q\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One ancilla touching four data qubits lets one fault become two errors, which a distance-3 decoder
+then completes into a logical; repetition makes a wrong action need two faults.</p>
+<p><strong>1.</strong> Push \(Z_a\) to the end. Through \(\mathrm{CNOT}_{6\to a}\) it becomes \(Z_6Z_a\) (\(Z\) on the target copied to the
+control); through \(\mathrm{CNOT}_{7\to a}\), \(Z_6Z_7Z_a\). The \(Z_a\) does not change a \(Z\)-basis measurement, so the data carry
+\(\mathbf{Z_6Z_7}\).</p>
+<p><strong>2.</strong> The \(X\)-type checks read the sum of columns 6 and 7: \(110\oplus111 = 001\), position 1. The decoder applies \(Z_1\);
+the data now carry \(Z_1Z_6Z_7\). Its syndrome is \(001\oplus110\oplus111 = 000\), so it commutes with every check, and its support
+\(\{1, 6, 7\}\) is a weight-3 Hamming codeword. The simplex code's nonzero words all have weight 4, so \(Z_1Z_6Z_7\) is not a
+stabiliser: it is a nontrivial logical \(Z\)-type operator, which on a one-qubit code is \(\bar Z\) times a stabiliser. A logical
+error, from one fault.</p>
+<p><strong>3.</strong> A is wrong with probability \(q\). B is wrong if both first readings are wrong (\(q^2\)), or exactly one is
+(\(2q(1 - q)\)) and the third is wrong (\(q\)):</p>
+\[ \Pr[\text{B wrong}] = q^2 + 2q^2(1 - q) = 3q^2 - 2q^3 . \]
+<p>At \(q = 10^{-3}\): A, \(10^{-3}\); B, \(3\times10^{-6} - 2\times10^{-9} = \mathbf{2.998\times10^{-6}}\), over 300 times smaller. B reads
+three times only when the first two disagree, probability \(2q(1 - q)\), so its expected number of readings is
+\(2 + 2q(1 - q) = 2.001998\).</p>
+<p><strong>Check.</strong> At \(q = \frac12\) the readings are coin flips: \(3\cdot\frac14 - 2\cdot\frac18 = \frac12\) ✓. The formula is the bit-flip
+code's \(3p^2 - 2p^3\) from unit 22 — majority of three, the same mathematics.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+clean = Circuit(5)                         # qubits 0-3: data 4, 5, 6, 7; qubit 4: the ancilla
+for q in range(4):
+    clean.cx(q, 4)
+faulty = Circuit(5).cx(0, 4).cx(1, 4).z(4).cx(2, 4).cx(3, 4)
+print(np.allclose(faulty.unitary(), gates.pauli("IIZZZ") @ clean.unitary()))   # True: Z6 Z7 (and Z on the ancilla)</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Transversal Cliffords on Steane's code <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: stabiliser preservation under conjugation, logical action read off from \(\bar X\) and \(\bar Z\); a proof</p>
+<div class="statement">
+<ol>
+<li>Two Steane blocks \(A\) and \(B\). Show that \(\mathrm{CNOT}^{\otimes7}\), with qubit \(i\) of \(A\) controlling qubit \(i\) of \(B\), maps
+the stabiliser group of the pair to itself, and sends \(\bar X_A\mapsto\bar X_A\bar X_B\), \(\bar X_B\mapsto\bar X_B\),
+\(\bar Z_A\mapsto\bar Z_A\), \(\bar Z_B\mapsto\bar Z_A\bar Z_B\). Conclude it is a logical CNOT.</li>
+<li>Show that \(S^{\otimes7}\) preserves Steane's code and acts on it as \(S^\dagger\), and so \((S^\dagger)^{\otimes7}\) is logical \(S\).</li>
+<li>Check part 2 directly on \(\ket{\bar0}\) and \(\ket{\bar1}\), from the weights of the codewords.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A gate is a logical gate if it maps the stabiliser group to itself (so it preserves the code); <strong>which</strong> logical
+gate is decided by where it sends \(\bar X\) and \(\bar Z\), up to stabilisers and phase.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Apply P1's rules qubit by qubit: \(X\) on the control spreads to the target, \(Z\) on the target spreads to the control. An
+\(X\)-type check \(g\) on block \(A\) becomes \(g_Ag_B\). For \(S\): \(SXS^\dagger = Y\), \(SZS^\dagger = Z\), and \(Y^{\otimes w} = i^wX^{\otimes w}Z^{\otimes w}\). The
+check weights are 4; the logical operators have weight 7.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(S^{\otimes7}\bar XS^{\dagger\otimes7} = Y^{\otimes7} = i^7X^{\otimes7}Z^{\otimes7} = -i\,\bar X\bar Z\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Conjugation by a transversal gate acts on Pauli strings position by position, so its action on the
+checks and on \(\bar X\), \(\bar Z\) can be read off from the one- and two-qubit rules.</p>
+<p><strong>1.</strong> Qubit by qubit, \(X\) on a control becomes \(X\otimes X\), \(X\) on a target stays, \(Z\) on a control stays, \(Z\) on a
+target becomes \(Z\otimes Z\) (P1). So for an \(X\)-type check \(g\) (an \(X\)-string with support \(s\)): \(g_A\mapsto g_Ag_B\) and
+\(g_B\mapsto g_B\). For a \(Z\)-type check \(h\): \(h_A\mapsto h_A\) and \(h_B\mapsto h_Ah_B\). Every image is a product of checks of the
+pair, so the stabiliser group of \(A\otimes B\) — generated by the twelve checks — maps into itself, and, being a finite group
+mapped injectively, onto itself. The same rules give \(\bar X_A = X^{\otimes7}_A\mapsto\bar X_A\bar X_B\), \(\bar X_B\mapsto\bar X_B\),
+\(\bar Z_A\mapsto\bar Z_A\), \(\bar Z_B\mapsto\bar Z_A\bar Z_B\). These are exactly the four CNOT rules of P1 with \(\bar X, \bar Z\) in
+place of \(X, Z\). A unitary on the two logical qubits is determined up to phase by its conjugation action on \(\bar X_A, \bar Z_A,
+\bar X_B, \bar Z_B\), so \(\mathrm{CNOT}^{\otimes7}\) acts as \(\overline{\mathrm{CNOT}}\). (Nothing used Steane beyond being CSS: it works for any CSS
+code with logical operators \(X^{\otimes n}\), \(Z^{\otimes n}\).)</p>
+<p><strong>2.</strong> \(Z\)-type checks commute with \(S^{\otimes7}\). An \(X\)-type check \(g = X^{\otimes4}\) on its support maps to \(Y^{\otimes4} =
+i^4X^{\otimes4}Z^{\otimes4} = g\cdot h\), with \(h\) the \(Z\)-type check on the same support — a stabiliser. So the stabiliser group, and the
+code, are preserved. On the logicals: \(\bar Z\mapsto\bar Z\), and \(\bar X\mapsto Y^{\otimes7} = i^7\bar X\bar Z = -i\bar X\bar Z = -\bar Y\), writing
+\(\bar Y = i\bar X\bar Z\). The single-qubit gate with \(Z\mapsto Z\) and \(X\mapsto-Y\) is \(S^\dagger\) (since \(S^\dagger XS = -Y\)). So \(S^{\otimes7}\)
+is logical \(S^\dagger\), and its inverse \((S^\dagger)^{\otimes7}\) is logical \(S\).</p>
+<p><strong>3.</strong> \((S^\dagger)^{\otimes7}\ket x = (-i)^{|x|}\ket x\). \(\ket{\bar0}\) is built from words of weight 0 and 4: phase \((-i)^0 = (-i)^4 = 1\), so
+\(\ket{\bar0}\mapsto\ket{\bar0}\). \(\ket{\bar1}\) is built from their complements, of weights 7 and 3: \((-i)^7 = (-i)^3 = i\), so
+\(\ket{\bar1}\mapsto i\ket{\bar1}\). The action is \(\mathrm{diag}(1, i) = S\) ✓ — with no global phase to discard.</p>
+<p><strong>Check.</strong> \(S^\dagger XS\): \(XS = \begin{pmatrix}0&i\\1&0\end{pmatrix}\), \(S^\dagger XS = \begin{pmatrix}0&i\\-i&0\end{pmatrix} = -Y\) ✓.
+The referee confirms part 1 on all four logical basis inputs \(\ket{\bar a}\ket{\bar b}\mapsto\ket{\bar a}\ket{\overline{a\oplus b}}\).</p>
+<h4>With the referee</h4>
+<pre><code>import itertools
+import numpy as np
+from qclib import Circuit, Statevector, gates, linalg
+H = np.array([[0, 0, 0, 1, 1, 1, 1], [0, 1, 1, 0, 0, 1, 1], [1, 0, 1, 0, 1, 0, 1]])
+zero = np.zeros(128, dtype=complex)
+for m in itertools.product((0, 1), repeat=3):          # the eight simplex codewords
+    zero[int("".join(map(str, np.array(m) @ H % 2)), 2)] = 1 / np.sqrt(8)
+one = linalg.kron(*[gates.X] * 7) @ zero
+L = [zero, one]
+cnot7 = Circuit(14)
+for i in range(7):
+    cnot7.cx(i, 7 + i)
+print(all(np.allclose(cnot7.run(Statevector(np.kron(L[a], L[b]))).vector, np.kron(L[a], L[a ^ b]))
+          for a in (0, 1) for b in (0, 1)))                 # True
+B = np.stack(L, axis=1)
+print(np.round(B.conj().T @ linalg.kron(*[gates.S.conj().T] * 7) @ B, 6))   # diag(1, 1j)</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Concatenation and the threshold</h2>
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Doubly exponential <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the threshold recursion by induction, the polylogarithmic overhead, why fault tolerance is needed; a proof</p>
+<div class="statement">
+<p>In the simplified model a level-1 gadget has \(A\) locations, fails only if at least two fail, and a level-\(k\) gadget is a
+level-1 gadget built from level-\((k-1)\) gadgets that fail independently.</p>
+<ol>
+<li>Prove \(p_1\le\binom A2p^2\), and then \(p_k\le(cp)^{2^k}/c\) for all \(k\ge0\), with \(c = \binom A2\).</li>
+<li>Each level multiplies the size by \(G\). Prove that logical error \(\varepsilon\) is reached with size factor at most
+\(\big(2\log(1/c\varepsilon)/\log(1/cp)\big)^{\log G}\) when \(cp\lt1\) and \(\varepsilon\lt p\).</li>
+<li>Suppose the gadgets were <em>not</em> fault-tolerant, so that one fault can cause failure: \(p_1\le Ap\). What does
+concatenation give now, and why is there no threshold?</li>
+<li>With \(c = 100\), \(p = 10^{-3}\), \(G = 7\) and \(\varepsilon = 10^{-12}\), evaluate the bound of part 2 and compare it with the actual
+\(7^k\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an <strong>induction</strong> whose step squares something; part 2 is a choice of \(k\) and the identity
+\(G^k = (2^k)^{\log G}\); part 3 is an induction whose step only multiplies; part 4 is arithmetic.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Failure needs some pair of locations to fail together; there are \(\binom A2\) pairs, each with probability \(p^2\). For the step,
+multiply \(p_k\le cp_{k-1}^2\) by \(c\). For part 2, solve \((cp)^{2^k}\le c\varepsilon\) for \(2^k\), and take the least such \(k\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the step: \(cp_k\le c\cdot cp_{k-1}^2 = (cp_{k-1})^2\le\big((cp)^{2^{k-1}}\big)^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> "Failure needs two faults" turns into a squaring at every level; tracking \(cp_k\) instead of \(p_k\) makes
+the squaring exact, and the rest is logarithms.</p>
+<p><strong>1.</strong> The event "the gadget fails" is contained in the union over pairs \(\{i, j\}\) of "\(i\) and \(j\) both fail".
+By independence each has probability \(p^2\); by the union bound \(p_1\le\binom A2p^2 = cp^2\). For level \(k\), the same argument with
+level-\((k-1)\) gadgets as locations gives \(p_k\le cp_{k-1}^2\). Induction on \(k\): for \(k = 0\), \((cp)^1/c = p = p_0\). If
+\(cp_{k-1}\le(cp)^{2^{k-1}}\), then</p>
+\[ cp_k\le(cp_{k-1})^2\le\big((cp)^{2^{k-1}}\big)^2 = (cp)^{2^k}, \]
+<p>which is the claim. With \(p_{\rm th} = 1/c\): \(p_k\le p_{\rm th}(p/p_{\rm th})^{2^k}\), doubly exponentially small when \(p\lt p_{\rm th}\).</p>
+<p><strong>2.</strong> \(p_k\le\varepsilon\) follows from \((cp)^{2^k}\le c\varepsilon\). Both sides are below 1; taking logarithms and dividing by
+\(\log(cp)\lt0\), this is \(2^k\ge L := \log(1/c\varepsilon)/\log(1/cp)\). Since \(\varepsilon\lt p\), \(c\varepsilon\lt cp\lt1\) and so \(L\gt1\). Let
+\(k = \lceil\log L\rceil\ge1\); then \(2^{k-1}\lt L\), so \(2^k\lt2L\). (The hypothesis matters: for \(\varepsilon\ge p\), \(k = 0\) and
+the factor is 1, while the bound can fall below 1.) The size factor is</p>
+\[ G^k = 2^{k\log G} = (2^k)^{\log G}\lt(2L)^{\log G} = \Big(\frac{2\log(1/c\varepsilon)}{\log(1/cp)}\Big)^{\log G}. \]
+<p>For fixed \(p\lt p_{\rm th}\) the denominator is a positive constant, so the factor is \(O\big(\log^{\log G}(1/\varepsilon)\big)\):
+polylogarithmic.</p>
+<p><strong>3.</strong> Now \(p_k\le Ap_{k-1}\), so \(p_k\le A^kp\). For \(A\gt1\) this <em>grows</em> with \(k\): each level only multiplies, and
+multiplying by \(A\) more locations makes failure likelier. Even for \(A\lt1\) (impossible for a real gadget, which has many locations)
+the suppression would be only exponential in \(k\) while the size also grows exponentially — no polylogarithmic overhead. The
+squaring, which comes from fault tolerance, is what makes a threshold.</p>
+<p><strong>4.</strong> \(L = \log_{10}(10^{10})/\log_{10}(10) = 10\), so \(k = \lceil\log10\rceil = \lceil3.32\rceil = 4\) and the actual size factor is
+\(7^4 = \mathbf{2401}\). The bound: \((2L)^{\log7} = 20^{2.807} = 4492\), larger by \((2L/2^k)^{\log7} = (20/16)^{2.807} = 1.87\). In general the
+overshoot is \((2L/2^k)^{\log G}\lt2^{\log G} = G\), since \(2^k\ge L\): the bound is never more than one level's factor too high.</p>
+<p><strong>Check.</strong> \(k = 4\) gives \((cp)^{16}/c = 10^{-16}/10^2 = 10^{-18}\le10^{-12}\) ✓, and \(k = 3\) gives \(10^{-8}/10^2 = 10^{-10}\gt10^{-12}\) ✓: four is
+the least. Dimensions of the bound: \(G^k\) is a pure number and so is \(L\), a ratio of logarithms in the same base ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Concatenation does the same job <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the threshold recursion with numbers, qubit counts, comparing with the surface code; ends in a number</p>
+<div class="statement">
+<p>Take the simplified model with \(p_{\rm th} = 10^{-2}\), so \(p_k\le10^{-2}(p/10^{-2})^{2^k}\), on Steane's code (7 data qubits
+per level), and a target of \(10^{-12}\).</p>
+<ol>
+<li>At \(p = 10^{-3}\): how many levels, and how many data qubits per logical qubit? Compare with the surface code's 881.</li>
+<li>At \(p = 5\times10^{-3}\): the same questions. For the surface code at this \(p\), find \(d\) and the qubit count.</li>
+<li>What is the largest \(p\) for which three levels are enough?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a <strong>least integer</strong> (levels, distance) and a count that follows from it.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(r = p/p_{\rm th}\). Concatenation needs \(r^{2^k}\le10^{-10}\); the surface code needs \(0.1\,r^{(d+1)/2}\le10^{-12}\), i.e.
+\(r^{(d+1)/2}\le10^{-11}\). Take \(\log_{10}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(r = \frac12\), so \(2^k\ge10/\log_{10}2 = 33.2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Both routes reduce to "how many factors of \(r\) are needed"; concatenation supplies them in powers of
+two, the surface code one at a time.</p>
+<p><strong>1.</strong> \(r = 10^{-1}\): need \(10^{-2^k}\le10^{-10}\), \(2^k\ge10\), \(k = 4\) (three levels give \(2^3 = 8\), \(p_3 = 10^{-10}\)).
+Data qubits \(7^4 = \mathbf{2401}\), against the surface code's 881 qubits <em>including</em> its measurement qubits: concatenation needs
+2.7 times as many before its ancillas are counted.</p>
+<p><strong>2.</strong> \(r = \frac12\): need \(2^{-2^k}\le10^{-10}\), \(2^k\ge10\log_210 = 33.2\), so \(2^k = 64\), \(k = 6\) (\(k = 5\) gives
+\(p_5 = 10^{-2}\cdot2^{-32} = 2.3\times10^{-12}\), just too high). Data qubits \(7^6 = \mathbf{117\,649}\). Surface code: \(0.5^{(d+1)/2}\le10^{-11}\)
+needs \((d + 1)/2\ge11\log_210 = 36.5\), so \((d + 1)/2 = 37\), \(d = 73\), and \(2\cdot73^2 - 1 = \mathbf{10\,657}\) qubits. Both swell near
+threshold; concatenation, which moves in squarings, swells more — it was forced from 33.2 up to 64 factors of \(r\).</p>
+<p><strong>3.</strong> Three levels: \(r^8\le10^{-10}\), \(r\le10^{-1.25} = 0.0562\), so \(p\le5.62\times10^{-4}\).</p>
+<p><strong>Check.</strong> At \(p = 5.62\times10^{-4}\), \(p_3 = 10^{-2}(0.0562)^8 = 10^{-2}\cdot10^{-10} = 10^{-12}\) ✓. Part 2's surface code at \(d = 71\):
+\(0.1\cdot0.5^{36} = 1.46\times10^{-12}\), too high ✓, so 73 is the least.</p>
+</div></details>
+</section>
+
+<h2 class="group">The surface code</h2>
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Size a logical qubit <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the heuristic \(p_L\approx A(p/p_{\rm th})^{(d+1)/2}\), the qubit count \(2d^2 - 1\); ends in a number</p>
+<div class="statement">
+<ol>
+<li>With \(p = 10^{-3}\), \(p_{\rm th} = 10^{-2}\) and \(A = 0.1\), find the least odd \(d\) with \(p_L\le10^{-12}\) per cycle, and the
+physical qubits per logical qubit. Check the distance just below.</li>
+<li>The same for a target of \(10^{-15}\).</li>
+<li>The same for \(10^{-12}\) at \(p = 3\times10^{-3}\).</li>
+<li>In general, show that the qubit count grows like \(\log^2(1/\text{target})\) at fixed \(p\lt p_{\rm th}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is an <strong>odd integer</strong> \(d\) and then \(2d^2 - 1\). Solve the inequality for \((d + 1)/2\) first, round
+<em>up</em> to an integer, then find \(d\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(n = (d + 1)/2\). The condition is \(0.1\,r^n\le\text{target}\) with \(r = p/p_{\rm th}\), i.e. \(n\ge\log_{10}(0.1/\text{target})/\log_{10}(1/r)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(r = 10^{-1}\), so \(0.1\cdot10^{-n}\le10^{-12}\) needs \(n\ge11\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Each step of 2 in \(d\) buys one factor of \(r = p/p_{\rm th}\); count the factors needed, then pay \(2d^2 - 1\).</p>
+<p><strong>1.</strong> \(p_L = 0.1\cdot10^{-n} = 10^{-1-n}\le10^{-12}\) iff \(n\ge11\), so \(d = 2n - 1 = \mathbf{21}\) and \(2\cdot441 - 1 = \mathbf{881}\) qubits.
+Below: \(d = 19\), \(n = 10\), \(p_L = 10^{-11}\), ten times too high.</p>
+<p><strong>2.</strong> \(10^{-1-n}\le10^{-15}\) iff \(n\ge14\): \(d = 27\), \(2\cdot729 - 1 = \mathbf{1457}\) qubits. (\(d = 25\) gives \(10^{-14}\).)</p>
+<p><strong>3.</strong> \(r = 0.3\): \(0.1\cdot0.3^n\le10^{-12}\) iff \(n\ge11/\log_{10}(1/0.3) = 11/0.5229 = 21.04\), so \(n = 22\) — note how narrowly:
+\(n = 21\) gives \(0.1\cdot0.3^{21} = 1.05\times10^{-12}\), about five per cent too high. Then \(d = 43\) and \(2\cdot43^2 - 1 = \mathbf{3697}\) qubits.</p>
+<p><strong>4.</strong> At fixed \(r\lt1\), \(n = \lceil\log(0.1/\text{target})/\log(1/r)\rceil = \Theta(\log(1/\text{target}))\), \(d = 2n - 1\), and the
+count \(2d^2 - 1 = \Theta(\log^2(1/\text{target}))\). Compare concatenation's \(O(\log^{2.81}(1/\varepsilon))\) qubits from P4: the surface
+code's exponent is 2, from its two-dimensional layout.</p>
+<p><strong>Check.</strong> Part 1 by exponents: \(-1 - 11 = -12\) ✓. Part 3: the answer lies between parts 1 and P5's \(p = 5\times10^{-3}\)
+(\(d = 73\)), as \(p\) does ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The surface code's distance <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: checks of the rotated layout, commutation by overlaps, logical strings, the distance proof; a proof</p>
+<div class="statement">
+<p>Label the data qubits of the distance-3 rotated code \(1\) to \(9\) row by row, so the top row is 1, 2, 3. The square faces
+are \(X\{1, 2, 4, 5\}\), \(Z\{2, 3, 5, 6\}\), \(Z\{4, 5, 7, 8\}\), \(X\{5, 6, 8, 9\}\); the half-faces are \(Z\{1, 2\}\) (top), \(Z\{8, 9\}\)
+(bottom), \(X\{4, 7\}\) (left), \(X\{3, 6\}\) (right).</p>
+<ol>
+<li>Check that every \(X\) check commutes with every \(Z\) check.</li>
+<li>Show that \(X_1X_2X_3\) and \(Z_1Z_4Z_7\) commute with all checks, anticommute with each other, and so are logical operators.</li>
+<li>Show that \(X_4X_5X_6\) is the same logical operator as \(X_1X_2X_3\), by exhibiting the stabiliser that relates them.</li>
+<li>Prove that every nontrivial \(Z\)-type logical operator has weight at least 3, and say how the argument gives distance \(d\) in
+general.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are <strong>overlap counts</strong>: an \(X\)-string and a \(Z\)-string commute iff they share an even number of
+qubits. Part 3 is a product of checks. Part 4 is a counting argument over rows.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 3, find the \(X\) checks whose supports together cover rows 1 and 2 exactly once. For part 4: if every row is an
+\(\bar X\), a \(Z\)-type logical must anticommute with every row.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(X\{1, 2, 4, 5\}\cdot X\{3, 6\} = X_1X_2X_3X_4X_5X_6\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Everything reduces to the parity of overlaps between \(X\)-strings and \(Z\)-strings; the distance follows
+because each of the \(d\) rows is a copy of \(\bar X\).</p>
+<p><strong>1.</strong> Overlaps of each \(X\) check with each \(Z\) check, \(\{2,3,5,6\}, \{4,5,7,8\}, \{1,2\}, \{8,9\}\) in turn:
+\(\{1,2,4,5\}\): 2, 2, 2, 0. \(\{5,6,8,9\}\): 2, 2, 0, 2. \(\{4,7\}\): 0, 2, 0, 0. \(\{3,6\}\): 2, 0, 0, 0. All even, so all commute.</p>
+<p><strong>2.</strong> \(X_1X_2X_3\) against the \(Z\) checks: overlaps with \(\{2,3,5,6\}\), \(\{4,5,7,8\}\), \(\{1,2\}\), \(\{8,9\}\) are 2, 0, 2, 0 —
+even. \(Z_1Z_4Z_7\) against the \(X\) checks \(\{1,2,4,5\}, \{5,6,8,9\}, \{4,7\}, \{3,6\}\): 2, 0, 2, 0 — even. So both commute with every
+check. They share only qubit 1, so they anticommute. A stabiliser is a product of checks, so it commutes with anything that commutes with every check; if either string were a
+stabiliser it would commute with the other. So neither is, and both are nontrivial logical operators.</p>
+<p><strong>3.</strong> \(X\{1,2,4,5\}\cdot X\{3,6\} = X_1X_2X_3X_4X_5X_6 = (X_1X_2X_3)(X_4X_5X_6)\). So \(X_4X_5X_6 = (X_1X_2X_3)\cdot g\) with \(g\) a
+stabiliser: the same logical operator. Likewise \(X\{5,6,8,9\}\cdot X\{4,7\} = X_4\cdots X_9\) relates rows 2 and 3.</p>
+<p><strong>4.</strong> Let \(L\) be a nontrivial \(Z\)-type logical. The code has one logical qubit, so \(L\) is \(\bar Z\) times a stabiliser, and
+anticommutes with \(\bar X\) — hence with every row-string, each of which is \(\bar X\) times a stabiliser (part 3). An \(X\)-string and a
+\(Z\)-string anticommute iff their overlap is odd, so \(L\) has at least one qubit in each of the three rows: weight \(\ge3\). In
+general the same holds with \(d\) rows (rows \(r\) and \(r + 1\) differ by the product of the \(X\) faces between them, including one
+half-face), giving weight \(\ge d\); \(X\)-type logicals likewise against the \(d\) columns; and a general logical has an \(X\) or a
+\(Z\) part that is itself a nontrivial logical, since the checks are pure \(X\) or pure \(Z\). With the row and column strings of weight
+\(d\), the distance is exactly \(d\).</p>
+<p><strong>Check.</strong> Count: 4 \(X\) checks + 4 \(Z\) checks \(= 8 = 3^2 - 1\) ✓, so one logical qubit. A weight-2 \(Z\) error, \(Z_1Z_4\), has
+overlap 2 with \(\{1,2,4,5\}\) and 1 with \(\{4,7\}\): it is detected, as distance 3 requires ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Below threshold means <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the suppression factor, monotonicity in \(d\), the fixed point of the concatenation recursion; a proof</p>
+<div class="statement">
+<ol>
+<li>From the heuristic, show that \(p_L(d + 2)/p_L(d) = p/p_{\rm th}\), whatever \(A\) and \(d\). Conclude that for \(p\gt p_{\rm th}\)
+increasing \(d\) makes \(p_L\) worse, and that at \(p = p_{\rm th}\) it changes nothing.</li>
+<li>At \(p = 2\times10^{-2}\), evaluate the heuristic at \(d = 3, 5, 7\). What goes wrong, and what does it tell you about where the
+heuristic may be used?</li>
+<li>For the exact recursion \(x_k = cx_{k-1}^2\), prove: if \(x_0\lt1/c\) then \(x_k\to0\); if \(x_0 = 1/c\) it is constant; if
+\(x_0\gt1/c\) it increases without bound. (In the model, probabilities are capped at 1.)</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a <strong>ratio</strong> of two powers; part 2 is three numbers; part 3 is a statement about the iterates of a
+map, best seen after a change of variable.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The exponents \((d + 3)/2\) and \((d + 1)/2\) differ by one. In part 3, put \(y_k = cx_k\): the recursion becomes \(y_k = y_{k-1}^2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(y_k = y_0^{2^k}\) with \(y_0 = cx_0\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Below threshold each unit of code buys a factor smaller than one; above, a factor larger than one. The
+threshold is the fixed point where the factor is exactly one.</p>
+<p><strong>1.</strong> \(\dfrac{p_L(d+2)}{p_L(d)} = \dfrac{A(p/p_{\rm th})^{(d+3)/2}}{A(p/p_{\rm th})^{(d+1)/2}} = \dfrac p{p_{\rm th}}\). So \(\Lambda = p_{\rm th}/p\). If
+\(p\gt p_{\rm th}\) the ratio exceeds 1 and \(p_L\) increases with every step of 2 in \(d\); at \(p = p_{\rm th}\) it is constant, equal to \(A\). A
+bigger code only helps below threshold — the operational definition of "below threshold" as \(\Lambda\gt1\).</p>
+<p><strong>2.</strong> \(r = 2\): \(p_L(3) = 0.1\cdot2^2 = 0.4\), \(p_L(5) = 0.1\cdot2^3 = 0.8\), \(p_L(7) = 0.1\cdot2^4 = 1.6\). The last is not a
+probability. The heuristic is a fit to simulations well below threshold, of the form "a constant times the probability of the
+cheapest failure"; above threshold failures are not rare, the leading-term reasoning behind it is void, and the true \(p_L\)
+saturates near \(\frac12\) (a logical qubit that has forgotten its state is wrong half the time). Use it only for \(p\) well below
+\(p_{\rm th}\) and \(p_L\ll1\).</p>
+<p><strong>3.</strong> With \(y_k = cx_k\): \(y_k = cx_k = c^2x_{k-1}^2 = y_{k-1}^2\), so \(y_k = y_0^{2^k}\). If \(y_0\lt1\), \(y_0^{2^k}\to0\) (indeed
+doubly exponentially), so \(x_k\to0\). If \(y_0 = 1\), \(y_k = 1\) and \(x_k = 1/c\) for all \(k\). If \(y_0\gt1\), \(y_0^{2^k}\) increases without
+bound; capped at probability 1, the logical qubit becomes useless after a few levels.</p>
+<p><strong>Check.</strong> At \(p = p_{\rm th}\) part 1 gives \(p_L = A\) for every \(d\), and part 3 gives \(x_k = 1/c = p_{\rm th}\) for every
+\(k\): both pictures have the threshold as a fixed point ✓. At \(p = 10^{-3}\), \(\Lambda = 10\), the running example ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> What Λ buys <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: extrapolating a measured suppression factor, distance and qubit count from data; ends in a number</p>
+<div class="statement">
+<p>A device's distance-7 surface-code memory has logical error \(\varepsilon_7 = 1.43\times10^{-3}\) per cycle (Google Quantum AI's
+reported value). Assume each increase of \(d\) by 2 divides the error by a constant \(\Lambda\).</p>
+<ol>
+<li>With \(\Lambda = 2\), find the least odd \(d\) with \(\varepsilon_d\le10^{-12}\), and the qubit count. Compare with 881.</li>
+<li>What \(\Lambda\) would reach \(10^{-12}\) at \(d = 21\), from the same \(\varepsilon_7\)?</li>
+<li>The running example has \(\varepsilon_7 = 10^{-5}\) and \(\Lambda = 10\). Explain why the answer to part 2 is not 10.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a least <strong>integer number of steps</strong> \(n\), with \(d = 7 + 2n\); part 2 is a root.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\varepsilon_{7+2n} = \varepsilon_7\Lambda^{-n}\). Solve \(\Lambda^n\ge\varepsilon_7/10^{-12} = 1.43\times10^9\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(n\ge\log_2(1.43\times10^9) = 30.41\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A measured point and a measured slope fix a line on a log scale; read off where it crosses the target.</p>
+<p><strong>1.</strong> \(2^n\ge1.43\times10^9\) needs \(n\ge30.41\), so \(n = 31\), \(d = 7 + 62 = \mathbf{69}\), and \(2\cdot69^2 - 1 = \mathbf{9521}\) qubits —
+\(10.8\) times the running example's 881.</p>
+<p><strong>2.</strong> Seven steps from 7 to 21: \(\Lambda^7\ge1.43\times10^9\), \(\Lambda\ge(1.43\times10^9)^{1/7} = e^{21.08/7} = \mathbf{20.3}\).</p>
+<p><strong>3.</strong> The running example's distance-7 error is \(0.1\cdot10^{-4} = 10^{-5}\), about 140 times lower than the measured
+\(1.43\times10^{-3}\): it assumes both a lower starting point (\(A\) and \(p\) together) and a steeper slope. Starting from the measured
+point, the slope alone must make up the whole \(1.43\times10^9\) in seven steps, which takes \(\Lambda\approx20\).</p>
+<p><strong>Check.</strong> Part 1: \(d = 67\) has \(n = 30\), \(1.43\times10^{-3}/2^{30} = 1.33\times10^{-12}\), too high ✓; \(d = 69\) gives
+\(6.7\times10^{-13}\) ✓. With the reported \(\Lambda = 2.14\) instead of 2 the deck finds \(d = 63\): a slightly larger \(\Lambda\) saves three steps.</p>
+</div></details>
+</section>
+
+<h2 class="group">The T gate</h2>
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Magic-state teleportation <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a gate applied by consuming a state, branch by branch, with the Clifford correction; a proof</p>
+<div class="statement">
+<ol>
+<li>Prove that the deck's circuit — data \(\ket\psi\) on qubit 0, \(\ket A\) on qubit 1, \(\mathrm{CNOT}_{01}\), measure qubit 1 in \(Z\), apply
+\(S\) to qubit 0 if the outcome is 1 — leaves qubit 0 in \(T\ket\psi\) up to global phase, each outcome with probability \(\frac12\).</li>
+<li>The other standard circuit: \(\ket A\) on qubit 0, \(\ket\psi\) on qubit 1, \(\mathrm{CNOT}_{01}\) (control on the magic qubit), measure
+qubit 1 in \(Z\). Find the correction that leaves qubit 0 in \(T\ket\psi\).</li>
+<li>Why is it essential that every correction is a Clifford gate?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is a <strong>two-qubit state</strong> written out in the computational basis, split by the measured qubit's value.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Expand \(\ket\psi\ket A\) into four terms with \(\omega = e^{i\pi/4}\), apply the CNOT term by term, and collect by the measured
+bit. Use \(S = T^2\) and \(\omega T^\dagger\ket\psi = \alpha\omega\ket0 + \beta\ket1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\mathrm{CNOT}_{01}\,\frac1{\sqrt2}(\ket0 + \omega\ket1)(\alpha\ket0 + \beta\ket1) = \frac1{\sqrt2}\big[\ket0(\alpha\ket0 + \beta\ket1) + \omega\ket1(\alpha\ket1 + \beta\ket0)\big]\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The CNOT entangles the data with the magic state so that one measurement outcome leaves \(T\) applied and
+the other \(T^\dagger\); a Clifford fixes the second.</p>
+<p><strong>1.</strong> \(\ket\psi\ket A = \frac1{\sqrt2}(\alpha\ket{00} + \alpha\omega\ket{01} + \beta\ket{10} + \beta\omega\ket{11})\). \(\mathrm{CNOT}_{01}\) flips
+qubit 1 where qubit 0 is 1:</p>
+\[ \tfrac1{\sqrt2}\big(\alpha\ket{00} + \alpha\omega\ket{01} + \beta\ket{11} + \beta\omega\ket{10}\big) = \tfrac1{\sqrt2}\big[(\alpha\ket0 + \beta\omega\ket1)\ket0 + (\alpha\omega\ket0 + \beta\ket1)\ket1\big]. \]
+<p>Outcome 0: probability \(\frac12(|\alpha|^2 + |\beta|^2) = \frac12\), state \(\alpha\ket0 + \omega\beta\ket1 = T\ket\psi\). Outcome 1: probability
+\(\frac12\), state \(\alpha\omega\ket0 + \beta\ket1 = \omega(\alpha\ket0 + \bar\omega\beta\ket1) = \omega T^\dagger\ket\psi\); then
+\(S\,\omega T^\dagger\ket\psi = \omega T^2T^\dagger\ket\psi = \omega T\ket\psi\), which is \(T\ket\psi\) up to the global phase \(\omega\).</p>
+<p><strong>2.</strong> From the first line (rung 3), collect by qubit 1:</p>
+\[ \tfrac1{\sqrt2}\big[(\alpha\ket0 + \omega\beta\ket1)\ket0 + (\beta\ket0 + \omega\alpha\ket1)\ket1\big]. \]
+<p>Outcome 0, probability \(\frac12\): qubit 0 is \(T\ket\psi\), no correction. Outcome 1, probability \(\frac12\): qubit 0 is
+\(\beta\ket0 + \omega\alpha\ket1\). Apply \(X\): \(\omega\alpha\ket0 + \beta\ket1 = \omega T^\dagger\ket\psi\); then \(S\): \(\omega T\ket\psi\). The correction
+is \(\mathbf{SX}\) (first \(X\), then \(S\)), and the output lives on the magic qubit.</p>
+<p><strong>3.</strong> The whole point of the gadget is that its only non-fault-tolerant ingredient is the state \(\ket A\), which can be
+distilled. If a correction were itself a non-Clifford gate, the problem would recur. Clifford corrections are transversal on
+Steane's code (P3), so they are fault-tolerant and need no further magic; the Pauli part of a correction (the \(X\) in
+\(SX\)) need not even be applied, since it can be recorded in the Pauli frame. The \(S\) is not a Pauli and must be applied,
+but transversally.</p>
+<p><strong>Check.</strong> Probabilities \(\frac12 + \frac12 = 1\) in both circuits, independent of \(\alpha, \beta\) ✓. On \(\ket\psi = \ket1\)
+(\(\alpha = 0\), \(\beta = 1\)) in part 2: outcome 0 leaves \(\omega\ket1 = T\ket1\) ✓; outcome 1 leaves \(\ket0\), then \(X\) gives \(\ket1\) and \(S\)
+gives \(i\ket1 = \omega\,T\ket1\), which is \(T\ket1\) up to global phase ✓ — the same phase \(\omega\) as in the general formula.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector, gates, linalg
+rng = np.random.default_rng(7)
+a = rng.normal(size=2) + 1j * rng.normal(size=2)
+a /= np.linalg.norm(a)                                   # a random |psi>
+A = gates.T @ np.array([1, 1]) / np.sqrt(2)              # the magic state
+psi = Statevector(np.kron(a, A))                         # part 1: data on qubit 0
+psi.apply(gates.CNOT, 0, 1)
+print(psi.probabilities([1]))                            # [0.5 0.5]
+for m in (0, 1):
+    branch = psi.vector.reshape(2, 2)[:, m] * np.sqrt(2)
+    print(m, linalg.equal_up_to_phase(gates.S @ branch if m else branch, gates.T @ a))   # True, True
+rev = Statevector(np.kron(A, a))                         # part 2: magic on qubit 0
+rev.apply(gates.CNOT, 0, 1)
+for m in (0, 1):
+    branch = rev.vector.reshape(2, 2)[:, m] * np.sqrt(2)
+    print(m, linalg.equal_up_to_phase(gates.S @ gates.X @ branch if m else branch, gates.T @ a))   # True, True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Distillation <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: iterating \(p\mapsto35p^3\), counting raw states, distillation's own threshold; ends in a number</p>
+<div class="statement">
+<p>Take 15-to-1 distillation as cited: output error \(35p^3\), acceptance probability \(1 - 15p\).</p>
+<ol>
+<li>How many rounds take \(p = 10^{-3}\) below \(10^{-15}\)? How many raw states does each output consume, ignoring rejections?</li>
+<li>Including rejections, estimate the expected number of raw states per final output.</li>
+<li>What is the largest input error for which <em>one</em> round reaches \(10^{-15}\)?</li>
+<li>Above what input error does a round make things worse?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a <strong>number</strong>; the map \(p\mapsto35p^3\) is iterated, and costs multiply.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Each round consumes 15 inputs per attempt and succeeds with probability \(1 - 15p_{\rm in}\), so the expected inputs per output are
+\(15/(1 - 15p_{\rm in})\). For part 4 compare \(35p^3\) with \(p\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: one round gives \(35\times10^{-9} = 3.5\times10^{-8}\), still above \(10^{-15}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Each round cubes the error (times 35) and multiplies the cost by 15; a little rejection overhead is added
+on top.</p>
+<p><strong>1.</strong> Round one: \(3.5\times10^{-8}\gt10^{-15}\). Round two: \(35\times(3.5\times10^{-8})^3 = 35\times4.29\times10^{-23} =
+1.5\times10^{-21}\lt10^{-15}\). So <strong>two</strong> rounds, consuming \(15\times15 = \mathbf{225}\) raw states per output.</p>
+<p><strong>2.</strong> First round: \(15/(1 - 0.015) = 15/0.985 = 15.23\) raw states per first-round output. Second round: acceptance
+\(1 - 15\times3.5\times10^{-8}\), indistinguishable from 1, so 15 first-round outputs each. Total \(15\times15.23 = 228.4\) raw states per
+final output — rejection costs 1.5 per cent.</p>
+<p><strong>3.</strong> \(35p^3\le10^{-15}\) iff \(p\le(10^{-15}/35)^{1/3} = \mathbf{3.06\times10^{-6}}\): the input would have to be about 300 times
+better than \(10^{-3}\).</p>
+<p><strong>4.</strong> \(35p^3\lt p\) iff \(p^2\lt1/35\) iff \(p\lt1/\sqrt{35} = 0.169\). Above that the leading-order formula says a round
+increases the error (and the formula itself is only valid for small \(p\)). Like the threshold theorem, distillation works only
+below a threshold of its own — but this one is far above any realistic \(p\).</p>
+<p><strong>Check.</strong> Part 3 at the boundary: \(35\times(3.06\times10^{-6})^3 = 35\times2.86\times10^{-17} = 1.0\times10^{-15}\) ✓. Part 1 in
+base-10 exponents, with \(\log_{10}35 = 1.54\): round one, \(3(-3) + 1.54 = -7.46\); round two, \(3(-7.46) + 1.54 = -20.82\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Eastin–Knill's consequence <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: why a transversal T fails on Steane's code, the group of transversal logical gates, what can and cannot evade Eastin–Knill; a proof and an explanation</p>
+<div class="statement">
+<ol>
+<li>Compute \(\braket{\bar0|T^{\otimes7}|\bar0}\) and \(\braket{\bar1|T^{\otimes7}|\bar0}\), and conclude that \(T^{\otimes7}\) does not map the code
+space to itself.</li>
+<li>Prove that the transversal unitaries \(U_1\otimes\cdots\otimes U_n\) that preserve a code form a group, and that their logical actions
+form a group.</li>
+<li>Eastin–Knill says this group of logical actions is finite for any code detecting all single-qubit errors. Explain why no
+choice of code removes the need for magic states or another non-transversal trick, and name one such trick besides magic
+states. On Steane's code the transversal gates are exactly the Cliffords: use Gottesman–Knill to explain why a machine
+restricted to them would gain nothing over a classical computer, and say what Eastin–Knill adds to this one-code argument.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is two <strong>inner products</strong> computed from the weights of codewords; part 2 is closure under products and
+inverses; part 3 is an argument in words resting on the two theorems.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(T^{\otimes7}\ket x = \omega^{|x|}\ket x\), and \(\ket{\bar0}\) has one word of weight 0 and seven of weight 4. The supports of \(\ket{\bar0}\) and
+\(\ket{\bar1}\) are disjoint. A state is in the code iff its projection onto the code has norm 1.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(T^{\otimes7}\ket{\bar0} = \frac1{\sqrt8}\big(\ket{0000000} - \sum_{|c| = 4}\ket c\big)\), since \(\omega^4 = -1\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(T^{\otimes7}\) gives the weight-0 and weight-4 words of \(\ket{\bar0}\) opposite signs, which pulls \(\frac7{16}\) of its
+squared norm out of the code; and Eastin–Knill turns this one failure into a theorem about every code.</p>
+<p><strong>1.</strong> From rung 3, \(\braket{\bar0|T^{\otimes7}|\bar0} = \frac18(1 - 7) = -\frac34\). \(T^{\otimes7}\) is diagonal, so it keeps the support of
+\(\ket{\bar0}\) (weights 0, 4), which is disjoint from that of \(\ket{\bar1}\) (weights 3, 7): \(\braket{\bar1|T^{\otimes7}|\bar0} = 0\). The
+projection of the unit vector \(T^{\otimes7}\ket{\bar0}\) onto the code therefore has squared norm \(\frac9{16} + 0 = 0.5625\lt1\): the state is
+not in the code space, and \(T^{\otimes7}\) is not a logical gate.</p>
+<p><strong>2.</strong> Let \(G\) be the set of transversal unitaries preserving the code space \(V\). It contains \(I\). If \(U = \bigotimes U_j\) and
+\(U' = \bigotimes U'_j\) are in \(G\), then \(UU' = \bigotimes U_jU'_j\) is transversal and maps \(V\) into \(V\); and \(U^{-1} = \bigotimes U_j^\dagger\) is
+transversal and, since \(U\) is injective and maps the finite-dimensional \(V\) into itself, onto it, so \(U^{-1}V = V\). So \(G\) is a group. The
+restriction \(U\mapsto U|_V\) is a homomorphism (restriction respects products), so its image — the logical actions — is a group too.</p>
+<p><strong>3.</strong> A finite group of logical unitaries is not dense in the logical unitary group, so transversal gates alone are
+never universal, whatever the code. Universality therefore needs some ingredient that is not transversal: magic states and gate
+teleportation; <em>code switching</em> between codes with complementary transversal gates (Steane's code with transversal \(H\),
+the 15-qubit Reed–Muller code with transversal \(T\), the switch itself not transversal); or other non-transversal constructions.
+On Gottesman–Knill grounds: Steane's transversal gates are exactly the Cliffords, and Clifford circuits on stabiliser states with
+Pauli measurements are classically simulable in polynomial time (unit 23). A machine that used only the transversal gates of
+Steane's code, starting from stabiliser states and measuring Paulis, could therefore be imitated step by step by a classical
+computer, and would offer nothing a classical computer does not. That argument is about one code, and it needs the transversal
+gates to be Cliffords. Eastin–Knill removes both restrictions: for <em>every</em> code detecting single-qubit errors, whatever its
+transversal gates are (on the 15-qubit Reed–Muller code they include \(T\)), they generate only a finite group of logical
+actions, so something non-transversal must always be paid for.</p>
+<p><strong>Check.</strong> For contrast, \((S^\dagger)^{\otimes7}\) multiplies weights 0 and 4 by \((-i)^0 = (-i)^4 = 1\) and keeps \(\ket{\bar0}\) exactly (P3);
+\(T^{\otimes7}\) multiplies them by \(1\) and \(\omega^4 = -1\) and breaks it. The difference is whether the phase per qubit, raised to the
+fourth power, is 1 — true for \(S\), false for \(T\).</p>
+<h4>With the referee</h4>
+<pre><code>import itertools
+import numpy as np
+from qclib import gates, linalg
+H = np.array([[0, 0, 0, 1, 1, 1, 1], [0, 1, 1, 0, 0, 1, 1], [1, 0, 1, 0, 1, 0, 1]])
+zero = np.zeros(128, dtype=complex)
+for m in itertools.product((0, 1), repeat=3):
+    zero[int("".join(map(str, np.array(m) @ H % 2)), 2)] = 1 / np.sqrt(8)
+one = linalg.kron(*[gates.X] * 7) @ zero
+v = linalg.kron(*[gates.T] * 7) @ zero
+print(np.round(np.vdot(zero, v), 6), np.round(np.vdot(one, v), 6))   # (-0.75+0j) 0j</code></pre>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 24</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

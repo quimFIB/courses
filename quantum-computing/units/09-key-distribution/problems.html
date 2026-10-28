@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 · Problems — Quantum key distribution: disturbance as a security guarantee</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="b">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part B · unit 09 · problems</p>
+<h1>Quantum key distribution: disturbance as a security guarantee</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u09">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove that intercept-resend in a random
+basis causes a 25 per cent error rate on the sifted key — all eight cases, probabilities summing to one — and that
+Eve then guesses each sifted bit with probability \(\tfrac34\); and you produce the 11.0 per cent threshold from the
+Shor–Preskill rate \(1 - 2h(Q)\), solving \(2h(Q) = 1\) to three places, with \(r(0.05) = 0.427\) on the way.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about four and a half hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the first slot; \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\) are horizontal and vertical polarisation, the \(\mathtt z\) basis; \(\ket\pm = (\ket0 \pm \ket1)/\sqrt2\) are
+\(\pm45^\circ\), the \(\mathtt x\) basis. Bit 0 is sent as \(\ket0\) or \(\ket+\), bit 1 as \(\ket1\) or \(\ket-\). In \(\ket{ab}\) the first symbol is
+qubit 0. \(Q\) is the error rate on the <em>sifted</em> key. \(h(Q) = -Q\log Q - (1 - Q)\log(1 - Q)\) with \(\log\) base 2, and the
+Shor–Preskill rate is \(r(Q) = 1 - 2h(Q)\) secret bits per sifted bit (cited). The singlet is
+\(\ket{\Psi^-} = (\ket{01} - \ket{10})/\sqrt2\), \(A(\theta) = \cos\theta\,Z + \sin\theta\,X\), and
+\(S = E(a, b) + E(a, b') + E(a', b) - E(a', b')\) with E91's settings \(a = 0\), \(a' = \tfrac\pi2\), \(b = \tfrac\pi4\), \(b' = -\tfrac\pi4\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Twelve more photons">P1</a></li>
+<li><a class="medium" href="#p2" title="Sifting efficiency">P2</a></li>
+<li><a class="medium" href="#p3" title="Intercept-resend causes 25 per cent">P3</a></li>
+<li><a class="medium" href="#p4" title="Eve in the Breidbart basis">P4</a></li>
+<li><a class="hard" href="#p5" title="A gentler attack">P5</a></li>
+<li><a class="routine" href="#p6" title="The binary entropy, close up">P6</a></li>
+<li><a class="routine" href="#p7" title="The rate and where it dies">P7</a></li>
+<li><a class="routine" href="#p8" title="Error correction's cost">P8</a></li>
+<li><a class="hard" href="#p9" title="A CHSH value of 2√2 leaves Eve nothing">P9</a></li>
+<li><a class="medium" href="#p10" title="What a lower S allows">P10</a></li>
+<li><a class="medium" href="#p11" title="Authentication">P11</a></li>
+<li><a class="medium" href="#p12" title="Two-photon pulses">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The protocol</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Twelve more photons <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: sifting, parameter estimation on a sample, the rate as a decision, why small samples decide nothing</p>
+<div class="statement">
+<p>A second run of BB84, with no eavesdropper but a slightly noisy channel:</p>
+<table>
+<thead><tr><th>photon</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th></tr></thead>
+<tbody>
+<tr><td>Alice's bit</td><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+<tr><td>Alice's basis</td><td>x</td><td>z</td><td>z</td><td>x</td><td>z</td><td>x</td><td>x</td><td>z</td><td>z</td><td>x</td><td>z</td><td>z</td></tr>
+<tr><td>Bob's basis</td><td>x</td><td>x</td><td>z</td><td>z</td><td>z</td><td>x</td><td>z</td><td>z</td><td>x</td><td>x</td><td>z</td><td>x</td></tr>
+<tr><td>Bob's result</td><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+</tbody>
+</table>
+<ol>
+<li>Sift: which photons are kept, and what are Alice's and Bob's sifted strings? Where do they differ?</li>
+<li>Alice announces the sample \(3, 8, 11\). Compute \(\hat Q\), and the raw key that remains.</li>
+<li>Compute \(r(\hat Q)\). What do Alice and Bob do — and was that the right decision about this run?</li>
+<li>How likely was it that sifting kept exactly as many photons as it did?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer here is read off the table, except the last two, which are one evaluation of \(h\) and one
+binomial probability.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Compare the two basis rows column by column. Where they agree, Bob's result should equal Alice's bit; where it
+does not, that is an error. The sample's error rate is (mismatches)/(sample size).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "The bases agree at photons 1, 3, 5, 6, 8, 10, 11, so seven of twelve are kept, and Alice's sifted string is
+\(1011101\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Sifting and sampling are bookkeeping; the rate turns the sample into a decision, and the
+decision is only as good as the sample.</p>
+<p><strong>1.</strong> Bases agree at photons \(1\) (\(\mathtt x\)), \(3\) (\(\mathtt z\)), \(5\) (\(\mathtt z\)), \(6\) (\(\mathtt x\)), \(8\) (\(\mathtt z\)), \(10\) (\(\mathtt x\)), \(11\) (\(\mathtt z\)): seven
+kept. Alice's bits there: \(1, 0, 1, 1, 1, 0, 1\), so \(1011101\). Bob's: \(1, 0, 1, 1, 0, 0, 1\), so \(1011001\). They differ only at photon 8: one
+error in seven, a true sifted error rate of \(1/7 = 0.143\).</p>
+<p><strong>2.</strong> At \(3, 8, 11\) Alice reveals \(0, 1, 1\) and Bob has \(0, 0, 1\): one mismatch, so \(\hat Q = 1/3\). The remaining positions
+\(1, 5, 6, 10\) give the raw key \(1110\), the same on both sides.</p>
+<p><strong>3.</strong> \(h(\tfrac13) = \tfrac13\log3 + \tfrac23\log\tfrac32 = \log3 - \tfrac23 = 1.584963 - 0.666667 = 0.918296\), so
+\(r(\tfrac13) = 1 - 1.836592 = -0.8366 \lt 0\): they abort. As a decision about <em>this</em> run it was unlucky — there was no Eve, and the
+four remaining bits agree — but the protocol charges every error to Eve, and a three-bit sample that happens to contain
+the run's only error cannot tell noise from attack. That is the deck's warning that sixteen, or twelve, photons are
+far too few; the sample size needed for a useful estimate is problem P8's.</p>
+<p><strong>4.</strong> Each photon is kept with probability \(\tfrac12\), independently, so the number kept is binomial\((12, \tfrac12)\) and
+\(\Pr(7) = \binom{12}7/2^{12} = 792/4096 = 0.193\).</p>
+<p><strong>Check.</strong> Kept plus discarded: \(7 + 5 = 12\) ✓. Sample plus raw key: \(3 + 4 = 7\) ✓. And at the five discarded photons,
+Bob's results \(1, 0, 1, 1, 0\) against Alice's \(0, 1, 0, 0, 0\) agree only at photon 12 — irrelevant, as wrong-basis results
+should be.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Sifting efficiency <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the sifting probability, biased bases, estimating error rates per basis, why an Eve who prefers one basis is caught</p>
+<div class="statement">
+<ol>
+<li>With uniform, independent basis choices, what fraction of photons survives sifting?</li>
+<li>Suppose Alice and Bob each choose \(\mathtt z\) with probability \(p\) and \(\mathtt x\) with \(1 - p\). Find the sifting rate, and evaluate it at
+\(p = 0.9\).</li>
+<li>With \(p = 0.9\), Eve measures <em>every</em> photon in \(\mathtt z\) and resends what she finds. Compute the error rate in the sifted
+\(\mathtt z\) rounds, in the sifted \(\mathtt x\) rounds, and pooled over all sifted rounds. What does Eve learn?</li>
+<li>Explain why biased bases remain secure, provided the two error rates are estimated separately (Lo, Chau and
+Ardehali 2005, cited).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answers to 1 and 2 are probabilities that two independent choices agree. Part 3 is the eight-case table of the
+deck with Eve's basis fixed.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Two bases agree if both are \(\mathtt z\) or both are \(\mathtt x\). In part 3, Eve's \(\mathtt z\) measurement leaves \(\mathtt z\) states alone; on an \(\mathtt x\)
+state it resends \(\ket0\) or \(\ket1\), which Bob, measuring in \(\mathtt x\), reads as a coin.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\Pr(\text{agree}) = p\cdot p + (1 - p)(1 - p) = p^2 + (1 - p)^2\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Biasing the bases raises the sifting rate towards one, but makes the rare basis a place where a
+lopsided Eve hides — unless each basis's error rate is checked on its own.</p>
+<p><strong>1.</strong> \(\tfrac12\cdot\tfrac12 + \tfrac12\cdot\tfrac12 = \tfrac12\).</p>
+<p><strong>2.</strong> \(p^2 + (1 - p)^2\). At \(p = 0.9\): \(0.81 + 0.01 = 0.82\). As \(p \to 1\) it tends to \(1\); its minimum is \(\tfrac12\), at \(p = \tfrac12\) (derivative
+\(2p - 2(1 - p) = 0\)).</p>
+<p><strong>3.</strong> Sifted \(\mathtt z\) rounds: Eve measures in Alice's basis, reads the bit, resends Alice's own state: error \(0\). Sifted \(\mathtt x\)
+rounds: Eve's \(\mathtt z\) outcome is a coin, she resends \(\ket0\) or \(\ket1\), and Bob's \(\mathtt x\) result is a coin: error \(\tfrac12\). Sifted rounds are \(\mathtt z\)
+with probability \(0.81/0.82\) and \(\mathtt x\) with \(0.01/0.82 = 0.0122\), so the pooled rate is
+\[ Q_{\text{pooled}} = \frac{0.81\cdot0 + 0.01\cdot\tfrac12}{0.82} = 0.0061 . \]
+Eve learns every \(\mathtt z\) key bit exactly — \(98.8\%\) of the sifted key — while the pooled error rate, \(0.6\%\), looks like a
+quiet channel and gives a Shor–Preskill rate of \(1 - 2h(0.0061) = 0.89\). Pooling would be a disaster.</p>
+<p><strong>4.</strong> Estimate \(Q_{\mathtt z}\) and \(Q_{\mathtt x}\) separately, each on a sample of its own basis. In part 3, \(Q_{\mathtt x} = \tfrac12\) and they abort.
+In general Eve does not know the basis of any photon, so her attack is the same on every photon, and the
+\(\mathtt x\) rounds — though rare — sample her effect on the conjugate basis fairly. Lo, Chau and Ardehali (<em>J. Cryptology</em>
+18, 133, 2005) prove the protocol secure with the key rate computed from the separately estimated rates, at a sifting
+efficiency approaching one as \(p \to 1\) for long keys (the rare basis still needs enough rounds for its own estimate).</p>
+<p><strong>Check.</strong> At \(p = \tfrac12\), part 3's attack gives \(Q_{\mathtt z} = 0\), \(Q_{\mathtt x} = \tfrac12\), pooled \(\tfrac14\) — an Eve who
+always uses \(\mathtt z\), the case in the notes to the deck's <i>The simplest attack: measure, then resend</i> ✓. The weights \(0.81/0.82 + 0.01/0.82 = 1\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">What looking costs Eve</h2>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Intercept-resend causes 25 per cent <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: conditioning on the sifted event, the eight cases, the law of total probability, the trade-off for a fraction \(f\)</p>
+<div class="statement">
+<ol>
+<li>Prove that if Eve measures every photon in a uniformly random basis and resends the state she found, then on the
+sifted key \(Q = \tfrac14\), and Eve guesses each sifted bit correctly with probability \(\tfrac34\).</li>
+<li>Prove that attacking each photon independently with probability \(f\) gives \(Q = f/4\), and that after the basis
+announcement Eve knows exactly a fraction \(f/2\) of the sifted bits.</li>
+<li>Alice and Bob observe \(Q = 3\%\). If Eve is doing partial intercept-resend, what \(f\), and what fraction of the sifted key
+does she know?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is an average over cases with known probabilities. The first thing to settle is which variables are
+independent once you condition on "this photon was sifted".</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Sifting depends only on Alice's and Bob's bases, so given sifting, Bob's basis equals Alice's, while Alice's basis, her bit
+and Eve's basis remain independent and uniform. Split on "Eve's basis = Alice's basis".</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "Condition on Eve's basis. If it equals Alice's (probability \(\tfrac12\)), Eve's outcome is Alice's bit and she resends
+Alice's state, so Bob errs with probability \(0\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Half the time Eve is in the right basis and invisible; half the time she is in the wrong one, and
+then two independent coins — hers and Bob's — decide everything.</p>
+<p><strong>1.</strong> Condition on the photon being sifted. Sifting is a function of Alice's and Bob's bases only, which are
+independent of Alice's bit and of Eve's choices; so conditionally, Bob's basis is Alice's, and Alice's basis \(A\), her bit \(a\) and Eve's
+basis \(E\) are independent and uniform.</p>
+<p><em>Case \(E = A\)</em> (probability \(\tfrac12\)). Eve measures Alice's state \(\ket s\) in its own basis: outcome \(a\) with probability \(|\braket{s|s}|^2 = 1\). She resends
+\(\ket s\); Bob, in the same basis, reads \(a\). Error \(0\); Eve right with probability \(1\).</p>
+<p><em>Case \(E \ne A\)</em> (probability \(\tfrac12\)). The bases are mutually unbiased, so Eve's two outcomes each have probability \(\tfrac12\), whatever
+\(a\) is: her guess is right with probability \(\tfrac12\). She resends a state \(\ket t\) of basis \(E\), and Bob measures it in basis \(A\): wrong with
+probability \(|\braket{\bar s|t}|^2 = \tfrac12\), where \(\bar s\) is the other state of basis \(A\), again by mutual unbiasedness.</p>
+<p>By total probability: \(Q = \tfrac12\cdot0 + \tfrac12\cdot\tfrac12 = \tfrac14\) and \(\Pr(\text{right}) = \tfrac12\cdot1 + \tfrac12\cdot\tfrac12 = \tfrac34\). \(\blacksquare\)
+Written as the deck's table: eight cases \((A, a, E)\), weight \(\tfrac18\) each, summing to \(1\); four with error \(0\), four with error \(\tfrac12\).</p>
+<p><strong>2.</strong> Let \(F\) be "attacked", probability \(f\), independent of everything else. Unattacked sifted photons have no error.
+So \(Q = f\cdot\tfrac14 + (1 - f)\cdot0 = f/4\). Eve knows a bit exactly iff she attacked and used the right basis, which she can tell
+after the announcement: probability \(f\cdot\tfrac12\). On the rest she has a coin (wrong basis) or nothing (unattacked).
+\(\blacksquare\)</p>
+<p><strong>3.</strong> \(f = 4Q = 0.12\), and Eve knows \(f/2 = 2Q = 6\%\) of the sifted bits. For comparison the Shor–Preskill rate charges
+\(h(0.03) = 0.194\) bits per bit for privacy amplification — over three times what this Eve knows, because it is priced for the
+worst attack (problem P5 is a worse one).</p>
+<p><strong>Check.</strong> \(f = 1\) recovers part 1 ✓; \(f = 0\) gives \(Q = 0\) ✓. Within the case \(E \ne A\) Bob's outcomes \(\tfrac12 + \tfrac12 = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Statevector
+label = {("z", 0): "0", ("z", 1): "1", ("x", 0): "+", ("x", 1): "-"}
+ket = lambda basis, bit: Statevector.from_label(label[basis, bit])
+Q = right = 0.0
+for A in "zx":                 # Alice's basis; Bob measures in it too (sifted)
+    for a in (0, 1):           # Alice's bit
+        for E in "zx":         # Eve's basis
+            for e in (0, 1):   # Eve's outcome, resent as ket(E, e)
+                p_e = abs(ket(E, e).inner(ket(A, a))) ** 2
+                p_wrong = abs(ket(A, 1 - a).inner(ket(E, e))) ** 2
+                Q += p_e * p_wrong / 8
+                right += p_e * (e == a) / 8
+print(round(Q, 6), round(right, 6))   # 0.25 0.75</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Eve in the Breidbart basis <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a measurement chosen for a bit rather than a state, the Born rule on four states, the error a resent state causes, unit 05's Helstrom value</p>
+<div class="statement">
+<p>Eve measures every photon in the basis \(\ket{b_0} = \cos\tfrac\pi8\ket0 + \sin\tfrac\pi8\ket1\), \(\ket{b_1} = -\sin\tfrac\pi8\ket0 + \cos\tfrac\pi8\ket1\) (an analyser at
+\(22.5^\circ\)), guesses bit 0 on \(b_0\) and bit 1 on \(b_1\), and resends the state she found.</p>
+<ol>
+<li>Check that \(\{\ket{b_0}, \ket{b_1}\}\) is orthonormal, and that \(\ket{b_0}\) is \(22.5^\circ\) from both \(\ket0\) and \(\ket+\).</li>
+<li>Compute Eve's probability of guessing a sifted bit correctly.</li>
+<li>Compute the error rate she causes on the sifted key.</li>
+<li>Unit 05's best measurement for \(\ket0\) against \(\ket+\) is the analyser at \(-22.5^\circ\). Show that Eve does equally well with it,
+once the bases are announced.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Both answers are averages over the four states Alice may send, each with probability \(\tfrac14\), of squared overlaps with
+\(\ket{b_0}\) and \(\ket{b_1}\). Symmetry will make all four terms equal.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Each BB84 state is at angle \(22.5^\circ\) from one Breidbart vector and \(67.5^\circ\) from the other. The error needs two steps:
+Eve's outcome, then Bob's measurement of the resent \(\ket{b_e}\) in Alice's basis.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "If Alice sent \(\ket0\), Eve finds \(b_0\) with probability \(c^2\) and \(b_1\) with \(s^2\), where \(c = \cos\tfrac\pi8\), \(s = \sin\tfrac\pi8\);
+then Bob, measuring \(\ket{b_0}\) in \(\mathtt z\), reads \(1\) with probability \(s^2\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Eve wants the bit, not the state. The bit-0 states \(\ket0\) and \(\ket+\) sit at \(0^\circ\) and \(45^\circ\); their bisector is the best
+single direction for both — and the price, in errors, turns out to be exactly intercept-resend's.</p>
+<p><strong>1.</strong> \(\braket{b_0|b_0} = c^2 + s^2 = 1\), \(\braket{b_1|b_1} = s^2 + c^2 = 1\), \(\braket{b_0|b_1} = -cs + sc = 0\) ✓, with \(c = \cos\tfrac\pi8 = 0.92388\),
+\(s = \sin\tfrac\pi8 = 0.38268\). \(\braket{0|b_0} = c = \cos22.5^\circ\); \(\braket{+|b_0} = (c + s)/\sqrt2 = \cos(\tfrac\pi4 - \tfrac\pi8) = \cos22.5^\circ\) ✓.</p>
+<p><strong>2.</strong> \(|\braket{b_0|0}|^2 = c^2\), \(|\braket{b_0|+}|^2 = c^2\), \(|\braket{b_1|1}|^2 = c^2\), \(|\braket{b_1|-}|^2 = \tfrac12(-s - c)^2 = c^2\) (using \((c + s)^2/2 = c^2\) from part 1).
+Each state yields the right guess with probability \(c^2\), so
+\[ \Pr(\text{right}) = \cos^2\tfrac\pi8 = \tfrac12\big(1 + \tfrac1{\sqrt2}\big) = 0.8536, \]
+unit 05's Helstrom value, on every sifted bit.</p>
+<p><strong>3.</strong> Alice sends \(\ket0\): Eve finds \(b_0\) (probability \(c^2\)) and resends it; Bob's \(\mathtt z\) measurement gives \(1\) with \(|\braket{1|b_0}|^2 = s^2\). Or
+Eve finds \(b_1\) (probability \(s^2\)); Bob gives \(1\) with \(|\braket{1|b_1}|^2 = c^2\). So \(\Pr(\text{error}) = c^2s^2 + s^2c^2 = 2c^2s^2 = \tfrac12\sin^2\tfrac\pi4 = \tfrac14\). The other three
+states give the same by symmetry (each is \(22.5^\circ\) from one Breidbart vector and \(67.5^\circ\) from the other, and so is the state of
+the same basis with the other bit). \(Q = \tfrac14\).</p>
+<p><strong>4.</strong> The analyser at \(-22.5^\circ\) has vectors \(e_+ = c\ket0 - s\ket1\) and \(e_- = s\ket0 + c\ket1\). \(\ket0\) and \(\ket-\) are \(22.5^\circ\) from \(e_+\); \(\ket1\) and \(\ket+\)
+from \(e_-\). So with "\(e_+\) means bit 0" Eve is right with probability \(c^2\) on \(\mathtt z\) rounds and wrong with probability \(c^2\) on \(\mathtt x\)
+rounds. After the announcement she flips her \(\mathtt x\)-round guesses: right with \(c^2\) everywhere, and the errors are unchanged, \(\tfrac14\).</p>
+<p><strong>Check.</strong> Against intercept-resend: same \(Q = \tfrac14\), guess \(0.8536\) instead of \(0.75\) — a better attack, as the deck's
+information–disturbance plot shows. Eve's two outcome probabilities for \(\ket0\): \(c^2 + s^2 = 1\) ✓.</p>
+<p><strong>Nothing measured on the photon does better</strong>, even using the announcement. Let Eve measure in any
+orthonormal basis \(\{\ket{f_0}, \ket{f_1}\}\) and, having seen \(f_j\), guess \(g_{\mathtt z}(j)\) on \(\mathtt z\) rounds and \(g_{\mathtt x}(j)\) on \(\mathtt x\) rounds. The four
+(basis, bit) pairs are equally likely, so
+\[ \Pr(\text{right}) = \sum_j\braket{f_j|\sigma_j|f_j}, \qquad \sigma_j = \tfrac14\big(\ket{u_j}\!\bra{u_j} + \ket{v_j}\!\bra{v_j}\big), \]
+with \(\ket{u_j}\) the \(\mathtt z\) state of bit \(g_{\mathtt z}(j)\) and \(\ket{v_j}\) the \(\mathtt x\) state of bit \(g_{\mathtt x}(j)\). Every such pair has \(|\braket{u|v}| = \tfrac1{\sqrt2}\), and
+\(\ket u\!\bra u + \ket v\!\bra v\) has trace \(2\) and determinant \(1 - |\braket{u|v}|^2\) (it is \(WW^\dagger\) for the matrix \(W\) with columns \(u, v\), and
+\(\det WW^\dagger = \det W^\dagger W\) is the Gram determinant), so eigenvalues \(1 \pm |\braket{u|v}|\). Hence \(\braket{f_j|\sigma_j|f_j} \le \tfrac14(1 + \tfrac1{\sqrt2})\), and
+\(\Pr(\text{right}) \le \tfrac12(1 + \tfrac1{\sqrt2}) = c^2\): the Breidbart basis is optimal. (Unit 21's general measurements obey the same bound, with
+\(\braket{f_j|\sigma_j|f_j}\) replaced by \(\operatorname{tr}(M_j\sigma_j) \le \tfrac14(1 + \tfrac1{\sqrt2})\operatorname{tr}M_j\) and \(\sum_j\operatorname{tr}M_j = 2\).)</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector
+c, s = np.cos(np.pi / 8), np.sin(np.pi / 8)
+b = [Statevector([c, s]), Statevector([-s, c])]          # guess 0, guess 1
+label = {("z", 0): "0", ("z", 1): "1", ("x", 0): "+", ("x", 1): "-"}
+ket = lambda basis, bit: Statevector.from_label(label[basis, bit])
+Q = right = 0.0
+for A in "zx":
+    for a in (0, 1):
+        for e in (0, 1):
+            p_e = abs(b[e].inner(ket(A, a))) ** 2
+            Q += p_e * abs(ket(A, 1 - a).inner(b[e])) ** 2 / 4
+            right += p_e * (e == a) / 4
+print(round(right, 4), round(Q, 4))   # 0.8536 0.25</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> A gentler attack <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: an interaction defined on a basis and extended to a unitary, the Helstrom bound, reduced states, the trade-off as a curve</p>
+<div class="statement">
+<p>Eve couples each photon to a probe qubit of her own, starting in \(\ket0\), by the unitary with</p>
+\[ U\ket0\ket0 = \ket0\ket0, \qquad U\ket1\ket0 = \ket1\ket{e_\varphi}, \qquad \ket{e_\varphi} = \cos\varphi\ket0 + \sin\varphi\ket1, \]
+<p>for a fixed \(0 \le \varphi \le \tfrac\pi2\); the photon goes on to Bob, and Eve measures her probe after the basis announcement.</p>
+<ol>
+<li>Show that such a unitary exists.</li>
+<li>On sifted \(\mathtt z\) rounds: find Bob's error rate, and Eve's best probability of guessing the bit.</li>
+<li>On sifted \(\mathtt x\) rounds: find Bob's error rate, and show Eve learns nothing.</li>
+<li>Deduce \(Q = (1 - \cos\varphi)/4\) and \(\Pr(\text{right}) = \tfrac12 + \tfrac14\sqrt{8Q - 16Q^2}\). Evaluate at \(Q = 0.05\) and compare with
+intercept-resend.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1: a map defined on part of an orthonormal basis extends to a unitary when it sends that part to an orthonormal
+family. Part 2 is unit 05's Helstrom bound for Eve's two possible probe states. Part 3 is a reduced state.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>By linearity \(U\ket+\ket0 = \tfrac1{\sqrt2}(\ket0\ket0 + \ket1\ket{e_\varphi})\). Bob's \(\mathtt x\) error is the probability that the photon is found in \(\ket-\); Eve's
+probe state is the partial trace over the photon, which you can compute in the \(\mathtt z\) basis of the photon.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "\(\Pr(\text{Bob reads }-) = \lVert(\bra-\otimes I)\,U\ket+\ket0\rVert^2 = \tfrac14\lVert\ket0 - \ket{e_\varphi}\rVert^2\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A weak, partial copy of the \(\mathtt z\) value: the probe barely moves, so Bob's \(\mathtt x\) states are barely disturbed, but the
+information it gains grows like the <em>square root</em> of the disturbance. That is why gentle attacks beat intercept-resend.</p>
+<p><strong>1.</strong> \(\ket0\ket0\) and \(\ket1\ket{e_\varphi}\) are orthonormal (different first factors). Send the other two basis vectors to
+\(\ket0\ket1\) and \(\ket1\ket{e_\varphi^\perp}\) with \(\ket{e_\varphi^\perp} = -\sin\varphi\ket0 + \cos\varphi\ket1\): four orthonormal images of four orthonormal vectors, so \(U\)
+is unitary. (It is a controlled rotation: \(\ket1\) on the photon turns the probe by \(\varphi\).)</p>
+<p><strong>2.</strong> On \(\mathtt z\) rounds the photon leaves in Alice's state, so Bob's error is \(0\). Eve's probe is \(\ket0\) (bit 0) or \(\ket{e_\varphi}\) (bit 1),
+equally likely, with overlap \(\cos\varphi\). Unit 05's Helstrom bound:
+\[ \Pr(\text{right}\mid\mathtt z) = \tfrac12\big(1 + \sqrt{1 - \cos^2\varphi}\big) = \tfrac12(1 + \sin\varphi). \]</p>
+<p><strong>3.</strong> \(U\ket\pm\ket0 = \tfrac1{\sqrt2}(\ket0\ket0 \pm \ket1\ket{e_\varphi})\). Take \(\ket+\): Bob reads \(-\) with probability
+\(\lVert(\bra-\otimes I)U\ket+\ket0\rVert^2 = \lVert\tfrac12(\ket0 - \ket{e_\varphi})\rVert^2 = \tfrac14(2 - 2\cos\varphi) = \tfrac12(1 - \cos\varphi)\), using \(\braket{-|0} = \tfrac1{\sqrt2}\), \(\braket{-|1} = -\tfrac1{\sqrt2}\). The same for \(\ket-\). Eve's
+probe: tracing out the photon in its \(\mathtt z\) basis, \(\rho_E = \tfrac12\ket0\!\bra0 + \tfrac12\ket{e_\varphi}\!\bra{e_\varphi}\) for <em>both</em> \(\ket+\) and \(\ket-\) — the sign sits on the cross
+terms, which the partial trace removes. Identical states: by unit 04, no measurement of her probe tells the bit, so
+\(\Pr(\text{right}\mid\mathtt x) = \tfrac12\).</p>
+<p><strong>4.</strong> Sifted rounds are \(\mathtt z\) or \(\mathtt x\) with probability \(\tfrac12\) each:
+\[ Q = \tfrac12\cdot0 + \tfrac12\cdot\tfrac12(1 - \cos\varphi) = \tfrac14(1 - \cos\varphi), \qquad \Pr(\text{right}) = \tfrac12\cdot\tfrac12(1 + \sin\varphi) + \tfrac12\cdot\tfrac12 = \tfrac12 + \tfrac14\sin\varphi . \]
+From the first, \(\cos\varphi = 1 - 4Q\), so \(\sin\varphi = \sqrt{1 - (1 - 4Q)^2} = \sqrt{8Q - 16Q^2}\). At \(Q = 0.05\): \(\cos\varphi = 0.8\), \(\varphi = 36.87^\circ\),
+\(\sin\varphi = \sqrt{0.4 - 0.04} = 0.6\), and \(\Pr(\text{right}) = 0.5 + 0.15 = 0.65\). Intercept-resend at the same \(Q\) gets \(\tfrac12 + Q = 0.55\).</p>
+<p><strong>Check.</strong> \(\varphi = 0\): \(U = I\), \(Q = 0\), guess \(\tfrac12\) ✓ (and <i>Undisturbed means uninformed</i>). \(\varphi = \tfrac\pi2\): \(U\) acts as \(\mathrm{CNOT}_{01}\) on every input with the probe in \(\ket0\), which is all that is used (it differs from \(\mathrm{CNOT}_{01}\) only by the sign of \(U\ket1\ket1 = -\ket1\ket0\)), \(Q = \tfrac14\),
+guess \(\tfrac34\) — intercept-resend's numbers, from a different attack ✓. Near \(Q = 0\), \(\Pr(\text{right}) - \tfrac12 \approx \tfrac14\sqrt{8Q}\): a square root, so the
+first percent of error buys Eve \(\tfrac14\sqrt{0.08} = 0.071\) of guessing advantage, against intercept-resend's \(0.01\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector, gates
+phi = np.arccos(1 - 4 * 0.05)            # cos φ = 1 - 4Q, aiming at Q = 0.05
+def attack(label):                       # photon is qubit 0, Eve's probe qubit 1
+    return Statevector.from_label(label + "0").apply_controlled(gates.ry(2 * phi), [0], [1])
+err_x = attack("+").apply(gates.H, 0).probabilities([0])[1]   # Bob reads − on a + round
+e0, e1 = attack("0").vector[[0, 1]], attack("1").vector[[2, 3]]
+guess_z = 0.5 * (1 + np.sqrt(1 - abs(np.vdot(e0, e1)) ** 2))  # Helstrom, unit 05
+print(round(err_x / 2, 4), round(guess_z / 2 + 0.25, 4))      # Q 0.05, Pr(right) 0.65</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">From error rate to key rate</h2>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> The binary entropy, close up <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: calculus on \(h\), its symmetry and concavity, values, the counting that gives it meaning</p>
+<div class="statement">
+<ol>
+<li>Show \(h(Q) = h(1 - Q)\), \(h'(Q) = \log\frac{1 - Q}{Q}\), and that \(h\) is strictly concave with its maximum \(1\) at \(Q = \tfrac12\).</li>
+<li>Compute \(h(0.01)\), \(h(0.11)\) and \(h(0.25)\) to four places.</li>
+<li>The deck says \(n\) bits flipped with probability \(Q\) have about \(2^{h(Q)n}\) typical flip patterns. Compare \(\log\binom{n}{Qn}\) with
+\(h(Q)n\) at \(Q = 0.05\) for \(n = 100\), \(1000\) and \(10\,000\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is single-variable calculus; part 3 asks for a ratio that should tend to \(1\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Differentiate \(-Q\log Q\) as \(-\frac1{\ln2}(Q\ln Q)\): its derivative is \(-\log Q - \frac1{\ln2}\). Part 3 needs \(\log\binom nk\), which a calculator
+or \(\ln k! \approx k\ln k - k\) handles.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(h'(Q) = \big(-\log Q - \tfrac1{\ln2}\big) + \big(\log(1 - Q) + \tfrac1{\ln2}\big) = \log\frac{1 - Q}{Q}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(h\) is a smooth hump on \([0, 1]\), steep at the ends; its value is a count of patterns in disguise.</p>
+<p><strong>1.</strong> Swapping \(Q\) and \(1 - Q\) swaps the two terms: symmetric. The derivative is as in the last rung; it is positive on
+\((0, \tfrac12)\), zero at \(\tfrac12\), negative after. \(h''(Q) = \frac1{\ln2}\big(-\frac1Q - \frac1{1 - Q}\big) = -\frac{1}{\ln2\,Q(1 - Q)} \lt 0\): strictly concave, maximum at \(\tfrac12\), where
+\(h = -\tfrac12\log\tfrac12 - \tfrac12\log\tfrac12 = 1\).</p>
+<p><strong>2.</strong> \(h(0.01) = 0.01\times6.643856 + 0.99\times0.014500 = 0.066439 + 0.014355 = 0.0808\). \(h(0.11) = 0.11\times3.184425 + 0.89\times0.168123 = 0.350287 + 0.149629 = 0.4999\). \(h(0.25) = 0.25\times2 + 0.75\times0.415037 = 0.8113\).</p>
+<p><strong>3.</strong> With \(k = Qn\):</p>
+<table>
+<thead><tr><th>\(n\)</th><th>\(\log\binom n{0.05n}\)</th><th>\(h(0.05)\,n\)</th><th>ratio</th></tr></thead>
+<tbody>
+<tr><td>\(100\)</td><td>\(26.17\)</td><td>\(28.64\)</td><td>\(0.914\)</td></tr>
+<tr><td>\(1000\)</td><td>\(282.28\)</td><td>\(286.40\)</td><td>\(0.986\)</td></tr>
+<tr><td>\(10\,000\)</td><td>\(2858.20\)</td><td>\(2863.97\)</td><td>\(0.998\)</td></tr>
+</tbody>
+</table>
+<p>The gap grows only like \(\tfrac12\log n\) (Stirling's correction), so the ratio tends to \(1\): naming the flip pattern costs
+\(h(Q)\) bits per bit, to leading order.</p>
+<p><strong>Check.</strong> \(h(0.11) = 0.4999\) is just under \(\tfrac12\), consistent with the threshold \(0.110028\) ✓. \(h(0.01) = h(0.99)\) by part 1 ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The rate and where it dies <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: evaluating \(h\) by hand, the Shor–Preskill rate, solving \(2h(Q) = 1\), uniqueness of the root</p>
+<div class="statement">
+<ol>
+<li>Compute \(r(0.05)\) and \(r(0.02)\) to three places.</li>
+<li>Find the \(Q^*\) in \((0, \tfrac12)\) with \(r(Q^*) = 0\) to three places, and prove it is the only one.</li>
+<li>A link runs at \(Q = 0.06\) instead of \(0.05\). By what fraction does the secret key shrink?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 2 is a number between \(0.1\) and \(0.125\); find a bracket where \(r\) changes sign and shrink it. For uniqueness,
+look at the sign of \(r'\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(r(0.1) = 1 - 2(0.468996) = 0.062 \gt 0\) and \(r(0.125) = -0.087 \lt 0\). Bisect, or use Newton with \(r'(Q) = -2\log\frac{1 - Q}{Q}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(-0.05\log0.05 = 0.05\times4.321928 = 0.216096\) and \(-0.95\log0.95 = 0.95\times0.074001 = 0.070301\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two logarithms per evaluation, then a root of a monotone function.</p>
+<p><strong>1.</strong> \(h(0.05) = 0.216096 + 0.070301 = 0.286397\), so \(r(0.05) = 1 - 0.572794 = 0.427\). For \(0.02\): \(-0.02\log0.02 = 0.02\times5.643856 = 0.112877\);
+\(-0.98\log0.98 = 0.98\times0.029146 = 0.028563\); \(h = 0.141441\), \(r(0.02) = 0.717\).</p>
+<p><strong>2.</strong> Newton from \(Q_0 = 0.1\): \(r(0.1) = 0.062009\), \(r'(0.1) = -2\log9 = -6.339850\), so \(Q_1 = 0.1 + 0.062009/6.339850 = 0.109781\). Then
+\(r(Q_1) = 0.001491\), \(r'(Q_1) = -2\log\frac{0.890219}{0.109781} = -6.039069\), so \(Q_2 = 0.109781 + 0.001491/6.039069 = 0.110028\). Bisection
+from \([0, 0.25]\) (the deck's table) reaches \([0.10986, 0.11035]\) in nine steps. Either way \(Q^* = 0.110\). Uniqueness: \(r'(Q) = -2\log\frac{1 - Q}Q \lt 0\) on
+\((0, \tfrac12)\), so \(r\) is strictly decreasing there and crosses zero once.</p>
+<p><strong>3.</strong> \(h(0.06) = 0.327445\), \(r(0.06) = 0.345110\). The key shrinks by \(1 - 0.345110/0.427206 = 19.2\%\): one point of error costs a fifth of the key.</p>
+<p><strong>Check.</strong> \(h(0.110028) = 0.500000\) ✓. \(r(0.02) \gt r(0.05) \gt r(0.06) \gt 0 \gt r(0.25)\), decreasing as proved ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import linalg
+h = lambda q: linalg.shannon_entropy([q, 1 - q])
+print(round(h(0.05), 4), round(1 - 2 * h(0.05), 4))   # 0.2864 0.4272
+lo, hi = 0.0, 0.25
+for _ in range(30):
+    mid = (lo + hi) / 2
+    lo, hi = (mid, hi) if 1 - 2 * h(mid) &gt; 0 else (lo, mid)
+print(f"{lo:.4f}")                                     # 0.1100</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Error correction's cost <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the rate as a budget, Hoeffding's inequality for the sample, the cost of uncertainty in \(Q\)</p>
+<div class="statement">
+<ol>
+<li>A run yields \(10^6\) sifted bits at \(Q = 5\%\). To leading order, how many bits go to error correction, how many to
+privacy amplification, and how many secret bits remain?</li>
+<li>How large a sample \(k\) guarantees, by Hoeffding's inequality, that \(|\hat Q - Q| \lt 0.01\) except with probability \(10^{-6}\)?</li>
+<li>To be safe Alice and Bob compute the key length at \(\hat Q + 0.01\). With \(\hat Q = 0.05\), what does this margin cost?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is \(h(0.05)\) times \(10^6\), twice. Part 2: the sample's errors are independent indicators with mean \(Q\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Hoeffding: for the mean of \(k\) independent \([0, 1]\)-valued variables, \(\Pr(|\hat Q - Q| \ge \varepsilon) \le 2e^{-2k\varepsilon^2}\). Set the right side to \(10^{-6}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(2e^{-2k(0.01)^2} \le 10^{-6} \iff k \ge \ln(2\times10^6)/(2\times10^{-4})\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The rate is a budget per sifted bit; the sample that sets it costs bits of its own, and the uncertainty
+it leaves costs more.</p>
+<p><strong>1.</strong> \(h(0.05)\times10^6 = 286\,397\) bits each for error correction and privacy amplification, \(2h(0.05)\times10^6 = 572\,794 \approx 5.73\times10^5\)
+in all, leaving \(427\,206\) secret bits.</p>
+<p><strong>2.</strong> \(k \ge \ln(2\times10^6)/(2\times10^{-4}) = 14.5087/0.0002 = 72\,544\) sample bits (rounding up). They are revealed and lost: \(7\%\) of a
+\(10^6\)-bit run, a vanishing fraction of a \(10^9\)-bit one.</p>
+<p><strong>3.</strong> At \(0.06\), \(r = 0.345110\) instead of \(0.427206\): \(345\,110\) secret bits from \(10^6\) instead of \(427\,206\), a loss of \(82\,096\) — the
+price of not knowing \(Q\) better.</p>
+<p><strong>Check.</strong> \(286\,397 + 286\,397 + 427\,206 = 1\,000\,000\) ✓. Hoeffding applies: each sample bit's error indicator is in \([0, 1]\) and, under
+an attack that treats photons independently, the indicators are independent; against correlated attacks the finite-key
+proofs (cited in the deck) use a sampling argument that needs no independence, with similar numbers.</p>
+</div></details>
+</section>
+
+<h2 class="group">The same key from Bell pairs</h2>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> A CHSH value of \(2\sqrt2\) leaves Eve nothing <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the CHSH operator at fixed settings, uniqueness of the maximiser, purification, the product criterion for pure states, independence</p>
+<div class="statement">
+<p>Alice, Bob and Eve share a state \(\rho_{ABE}\), with Alice and Bob each holding a qubit and Eve anything. Alice measures
+\(Z\) or \(X\), Bob \((Z + X)/\sqrt2\) or \((Z - X)/\sqrt2\), and the test rounds give \(S = -2\sqrt2\).</p>
+<ol>
+<li>Show that \(\rho_{AB} = \ket{\Psi^-}\!\bra{\Psi^-}\).</li>
+<li>Prove: if the reduced state \(\rho_{AB}\) of any \(\rho_{ABE}\) is pure, \(\ket\psi\!\bra\psi\), then \(\rho_{ABE} = \ket\psi\!\bra\psi\otimes\rho_E\).</li>
+<li>Deduce that the outcomes of every measurement Eve makes are independent of Alice's and Bob's outcomes.</li>
+<li>Why does the argument say nothing if the test rounds give \(S = -2.8\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is unit 06's uniqueness theorem; part 2 is unit 04's purification plus unit 04's problem P7. Part 3 is a
+trace of a tensor product.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(S = \operatorname{tr}(\rho_{AB}C)\) with \(C\) the CHSH operator, and find \(C\)'s spectrum. For part 2, purify \(\rho_{ABE}\) on \(ABER\) and apply P7 to the
+split \(AB \mid ER\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "With \(B = (Z + X)/\sqrt2\), \(B' = (Z - X)/\sqrt2\): \(B + B' = \sqrt2Z\) and \(B - B' = \sqrt2X\), so
+\(C = Z\otimes(B + B') + X\otimes(B - B') = \sqrt2(Z\otimes Z + X\otimes X)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The maximal value pins Alice and Bob's state down to one pure state, and a pure state of \(AB\) has no
+room for correlations with anything else — so whatever Eve holds is a separate world.</p>
+<p><strong>1.</strong> \(C = \sqrt2(Z\otimes Z + X\otimes X)\) (last rung). \(Z\otimes Z\) and \(X\otimes X\) commute and are diagonal in the Bell basis with eigenvalues
+\((+1, +1)\) on \(\ket{\Phi^+}\), \((+1, -1)\) on \(\ket{\Phi^-}\), \((-1, +1)\) on \(\ket{\Psi^+}\), \((-1, -1)\) on \(\ket{\Psi^-}\) (unit 06). So \(C\) has eigenvalues \(2\sqrt2, 0, 0, -2\sqrt2\),
+the last only on \(\ket{\Psi^-}\). Eve's system does not enter: \(S = \operatorname{tr}(\rho_{ABE}(C\otimes I_E)) = \operatorname{tr}(\rho_{AB}C)\) by the definition of the partial trace. With
+\(w_j = \braket{f_j|\rho_{AB}|f_j} \ge 0\) the weights on the eigenvectors, \(\sum w_j = 1\), \(S + 2\sqrt2 = \sum_jw_j(c_j + 2\sqrt2)\), a sum of non-negative terms; it vanishes
+only if \(w_j = 0\) for the three other eigenvectors. A positive operator with \(\braket{f|\rho|f} = 0\) has \(\rho f = 0\), so \(\rho_{AB}\) is supported on the line of
+\(\ket{\Psi^-}\), and with trace one, \(\rho_{AB} = \ket{\Psi^-}\!\bra{\Psi^-}\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Purify (unit 04): a unit vector \(\ket\Omega \in H_{AB}\otimes H_E\otimes H_R\) with \(\operatorname{tr}_R\ket\Omega\!\bra\Omega = \rho_{ABE}\). Its reduced state on \(AB\) is
+\(\operatorname{tr}_E\operatorname{tr}_R\ket\Omega\!\bra\Omega = \rho_{AB} = \ket\psi\!\bra\psi\), pure. By unit 04's P7, for the split \(AB \mid ER\) a pure state whose reduced state is pure is a product:
+\(\ket\Omega = \ket{\psi'}\otimes\ket\varphi\), and \(\ket{\psi'}\!\bra{\psi'} = \operatorname{tr}_{ER}\ket\Omega\!\bra\Omega = \ket\psi\!\bra\psi\). Then
+\(\rho_{ABE} = \operatorname{tr}_R(\ket\psi\!\bra\psi\otimes\ket\varphi\!\bra\varphi) = \ket\psi\!\bra\psi\otimes\rho_E\) with \(\rho_E = \operatorname{tr}_R\ket\varphi\!\bra\varphi\). \(\blacksquare\)</p>
+<p><strong>3.</strong> For projections \(P_a\), \(Q_b\), \(R_e\) of Alice's, Bob's and Eve's measurements,
+\[ \Pr(a, b, e) = \operatorname{tr}\big((P_a\otimes Q_b\otimes R_e)(\ket{\Psi^-}\!\bra{\Psi^-}\otimes\rho_E)\big) = \braket{\Psi^-|P_a\otimes Q_b|\Psi^-}\,\operatorname{tr}(R_e\rho_E), \]
+a product of a function of \((a, b)\) and a function of \(e\), each summing to one: independence. In particular the key bits,
+conditioned on anything Eve sees, are uniform and anticorrelated. \(\blacksquare\)</p>
+<p><strong>4.</strong> At \(S = -2.8\) the weight on the other eigenvectors need not vanish: \(S + 2\sqrt2 = 0.028\) allows, for example, \(w = 0.01\) on
+\(\ket{\Phi^-}\) (eigenvalue \(0\)) — \(0.01\times2.828 = 0.028\), to rounding (exactly, \(w = 0.0284/2.8284 = 0.0101\)) — and that small weight can be correlated with Eve. Part 1's exact argument gives
+nothing; a <em>robust</em> version, bounding Eve's information by a function of \(S\) that tends to zero as \(|S| \to 2\sqrt2\), is what
+device-independent proofs supply (cited in the deck).</p>
+<p><strong>Check.</strong> On \(\ket{\Psi^-}\) itself, \(\braket{\Psi^-|C|\Psi^-} = \sqrt2(-1 - 1) = -2\sqrt2\) ✓, and \(\operatorname{tr}C = 0\) ✓ (traceless Paulis). Part 2 with \(\rho_{ABE}\) a
+product to begin with returns it unchanged ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> What a lower \(S\) allows <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Werner state's CHSH value and error rate, two thresholds compared, what a Bell violation does and does not certify</p>
+<div class="statement">
+<p>A noisy source emits the Werner state \(\rho_p = p\ket{\Psi^-}\!\bra{\Psi^-} + (1 - p)\tfrac I4\) of unit 06's sheet, \(0 \le p \le 1\).</p>
+<ol>
+<li>Recall why \(S = -2\sqrt2\,p\) at E91's settings, and find \(p\) at which \(|S| = 2\).</li>
+<li>Show that the error rate on E91's key rounds is \(Q = (1 - p)/2\), and evaluate it at that \(p\).</li>
+<li>Find \(p\) and \(|S|\) at the BB84 threshold \(Q = 0.110\). Explain why \(|S| = 2\) is not the threshold for key.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything is linear in \(\rho_p\): the singlet's value times \(p\), plus the maximally mixed state's times \(1 - p\). The answers are
+three numbers and one comparison.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\operatorname{tr}(\tfrac I4 M) = 0\) for every traceless \(M\). An error on a \(Z\)–\(Z\) round is "outcomes equal", with probability \(\tfrac12(1 + E)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(E_{ZZ} = \operatorname{tr}(\rho_p\,Z\otimes Z) = p\braket{\Psi^-|Z\otimes Z|\Psi^-} + (1 - p)\tfrac14\operatorname{tr}(Z\otimes Z) = -p\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Noise lowers \(|S|\) and raises \(Q\) together, and the two thresholds — no local model, and positive key —
+fall at different places, because they answer different questions.</p>
+<p><strong>1.</strong> \(S = \operatorname{tr}(\rho_pC) = p(-2\sqrt2) + (1 - p)\tfrac14\operatorname{tr}C = -2\sqrt2\,p\), since \(C\) is traceless (unit 06, P9). \(|S| = 2\) at \(p = 1/\sqrt2 = 0.7071\).</p>
+<p><strong>2.</strong> \(E_{ZZ} = -p\) (last rung) and likewise \(E_{XX} = -p\). Bob flips his bit, so an error is "outcomes equal": probability
+\(\tfrac12(1 + E) = \tfrac12(1 - p)\). At \(p = 0.7071\): \(Q = 0.1464\).</p>
+<p><strong>3.</strong> \(Q = 0.110028\) needs \(p = 1 - 2Q = 0.7799\), where \(|S| = 2\sqrt2\times0.7799 = 2.206\). So between \(|S| = 2\) (\(Q = 14.6\%\)) and \(|S| = 2.206\) (\(Q = 11.0\%\)) the
+source violates CHSH — no local model explains it — and yet one-way BB84 post-processing extracts no key. The two
+thresholds answer different questions. \(|S| \gt 2\) says the correlations were not pre-programmed; a positive key rate needs
+them to be strong enough that Alice and Bob's shared information, \(1 - h(Q)\), exceeds what Eve can have. With untrusted
+devices it is worse: the device-independent rate (Acín et al. 2007; Pironio et al. 2009; cited) vanishes at \(Q = 0.0715\),
+\(|S| = 2.424\). The Bell threshold is necessary for device-independent key, never sufficient.</p>
+<p><strong>Check.</strong> \(p = 1\): \(S = -2\sqrt2\), \(Q = 0\) ✓. \(p = 0\): \(S = 0\), \(Q = \tfrac12\) — Bob's bits are coins ✓. And the three thresholds are ordered:
+\(7.1\% \lt 11.0\% \lt 14.6\%\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, gates, library, linalg
+Z, X = gates.Z, gates.X
+singlet = DensityMatrix.from_statevector(Statevector(library.bell_state("psi-"))).matrix
+C = np.sqrt(2) * (linalg.kron(Z, Z) + linalg.kron(X, X))
+for p in (1, 1 / np.sqrt(2), 1 - 2 * 0.110028):
+    rho = DensityMatrix(p * singlet + (1 - p) * np.eye(4) / 4)
+    S = rho.expectation(C).real
+    Q = (1 + rho.expectation(linalg.kron(Z, Z)).real) / 2
+    print(round(p, 4), round(S, 4), round(Q, 4))
+# 1 -2.8284 0.0 / 0.7071 -2.0 0.1464 / 0.7799 -2.206 0.11</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">What QKD does not do</h2>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Authentication <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: what each check in BB84 compares, the man-in-the-middle attack, the one-time pad relayed, why a seed is unavoidable</p>
+<div class="statement">
+<ol>
+<li>Suppose the public line is not authenticated. Describe how Eve, controlling both channels, runs BB84 separately with
+Alice and with Bob, and show that every check Alice and Bob perform passes with the statistics of an honest run.</li>
+<li>Alice then sends \(c = m\oplus k_A\). Show how Eve reads \(m\) and delivers to Bob a ciphertext he decrypts correctly.</li>
+<li>Argue that no protocol at all — quantum or classical — lets two parties with no shared secret rule this out.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every test in BB84 compares data held by the two ends of one session. Ask who the two ends are.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Eve plays Bob to Alice and Alice to Bob, following the protocol honestly in each role. For part 3, think about what
+distinguishes Bob from anyone who behaves exactly as Bob would.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "In session 1 Eve measures Alice's photons in random bases, exactly as Bob would, and answers on the public
+line as Bob would; Alice's view of session 1 is that of an honest BB84 run with Eve as Bob."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The quantum part certifies that nobody tampered with the photons between the two ends; it cannot certify
+<em>who</em> the other end is. Only a shared secret can.</p>
+<p><strong>1.</strong> Eve cuts both channels. In session 1 she plays Bob: she receives Alice's photons, measures in random bases, and
+answers Alice's sifting and sampling messages as Bob would; she ends with a key \(k_A\) shared with Alice. In session 2 she
+plays Alice to Bob, sending fresh BB84 photons and answering as Alice would, ending with \(k_B\) shared with Bob. Each session
+has two honest-behaving ends and an untouched quantum channel between them, so its statistics are exactly those of an
+honest run: the estimated error rate is the channel's own, zero in principle, and every check passes. Neither Alice nor Bob
+ever compares data with the other.</p>
+<p><strong>2.</strong> Eve intercepts \(c\), computes \(m = c\oplus k_A\) (she holds \(k_A\)), and sends Bob \(c' = m\oplus k_B\); Bob computes \(c'\oplus k_B = m\). The
+message arrives correctly and Eve has read it. She can also alter it, since she re-encrypts.</p>
+<p><strong>3.</strong> With no shared secret, everything Alice can know about her partner is what the partner sends. An impostor who runs
+Bob's program — whatever it is — sends messages with exactly the distribution Bob's would have, so no test Alice applies can
+separate the two. This is a statement about identity, independent of physics. Hence authentication needs a secret
+shared in advance; with one, Wegman–Carter tags make forging exponentially unlikely, and QKD turns the short seed into a
+long key: <em>key expansion</em>.</p>
+<p><strong>Check.</strong> With authentication, Eve's forged "Bob" messages in session 1 carry no valid tag: the attack fails at the first
+message. And the same attack breaks unauthenticated Diffie–Hellman, so it is not a weakness peculiar to QKD.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Two-photon pulses <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: reduced states of product states, the photon-number-splitting attack, Poisson probabilities, a loss budget</p>
+<div class="statement">
+<ol>
+<li>A pulse carries two photons in Alice's state, \(\ket s\otimes\ket s\). Eve keeps the second and forwards the first. Show that Bob's
+statistics are those of an honest single photon, and that after the basis announcement Eve learns Alice's bit with
+certainty. Why does this not contradict no-cloning?</li>
+<li>Photon numbers are Poisson with mean \(\mu = 0.1\). What fraction of non-empty pulses carry two or more?</li>
+<li>The channel transmits a fraction \(\eta\) of photons, and without Eve Bob detects about \(\mu\eta\) of the pulses. Eve, holding a lossless
+line, blocks every single-photon pulse and forwards one photon from each multi-photon pulse. Below what \(\eta\) can she keep
+Bob's detection rate normal while knowing every key bit? How many kilometres of \(0.2\) dB/km fibre is that?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a partial trace of a product state; parts 2 and 3 are arithmetic with the Poisson distribution.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The reduced state of \(\ket s\otimes\ket s\) on the first factor is \(\ket s\!\bra s\). For part 3, Eve can supply at most \(\Pr(n \ge 2)\) detections per pulse;
+compare with \(\mu\eta\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "Eve's attack keeps Bob's rate normal iff \(\Pr(n \ge 2) \ge \mu\eta\), i.e. \(\eta \le \Pr(n\ge2)/\mu = 0.004679/0.1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A second photon in the same state is a copy Alice made for Eve. Loss in the channel then lets Eve hide
+the fact that she only lets copied pulses through.</p>
+<p><strong>1.</strong> \(\operatorname{tr}_2(\ket s\!\bra s\otimes\ket s\!\bra s) = \ket s\!\bra s\,\operatorname{tr}\ket s\!\bra s = \ket s\!\bra s\) (unit 04): Bob's photon is in exactly Alice's state, so every outcome
+probability is the honest one and no error is introduced. After the announcement Eve measures her photon in the announced
+basis and gets Alice's bit with probability \(|\braket{s|s}|^2 = 1\). No-cloning forbids a machine that copies an <em>unknown</em> state; here
+Alice's laser made two photons in the same state, and Eve only separated them — by measuring the photon number, which
+does not touch polarisation.</p>
+<p><strong>2.</strong> \(\Pr(0) = e^{-0.1} = 0.904837\), \(\Pr(1) = 0.090484\), \(\Pr(n \ge 2) = 0.004679\). Among non-empty pulses: \(0.004679/0.095163 = 0.0492\), about \(4.9\%\).</p>
+<p><strong>3.</strong> Eve can deliver at most one detection per multi-photon pulse: rate \(\Pr(n\ge2) = 0.004679\) per pulse. She matches Bob's expected
+\(\mu\eta\) if \(\eta \le 0.004679/0.1 = 0.0468\), a loss of \(-10\log_{10}0.0468 = 13.3\) dB, which is \(13.3/0.2 = 66.5\) km of fibre. Beyond that distance a
+plain BB84 link with these pulses gives Eve the whole key with no errors and a normal count rate — which is why every
+practical system uses decoy states (deck, <i>Decoy states, and the gaps that remain</i>).</p>
+<p><strong>Check.</strong> The Poisson probabilities sum to one: \(0.904837 + 0.090484 + 0.004679 = 1\) ✓. At \(\eta = 1\) (no loss) Eve cannot hide: blocking all
+single-photon pulses would cut Bob's rate from \(\approx0.095\) to \(0.0047\) per pulse.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 09</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

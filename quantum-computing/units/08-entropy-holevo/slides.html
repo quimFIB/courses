@@ -1,0 +1,2035 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>08 · Entropy and the Holevo bound: how many bits a qubit holds</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="b">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="ens"><span class="ref-name">the running example: $\ket0$ or $\ket+$, by a fair coin</span>Alice sends $\ket0$ (horizontal polarisation) or $\ket+$ (polarisation at $45^\circ$), each with probability $\tfrac12$; $\ \tfrac12 + \tfrac12 = 1$. <span class="ref-note">Average state $\rho = \tfrac12(\ket0\!\bra0 + \ket+\!\bra+) = \begin{pmatrix}3/4 &amp; 1/4\\ 1/4 &amp; 1/4\end{pmatrix}$, eigenvalues $\cos^2\tfrac\pi8 \approx 0.8536$ and $\sin^2\tfrac\pi8 \approx 0.1464$. One bit in; $S(\rho) = \chi \approx 0.601$ bits is the most that can come out, and one measured copy gives $0.399$</span></template>
+  <template data-ref="cq"><span class="ref-name">register and qubit</span>$\rho_{PQ} = \tfrac12\ket0\!\bra0\otimes\ket0\!\bra0 + \tfrac12\ket1\!\bra1\otimes\ket+\!\bra+$: the register $P$ remembers Alice's coin, $Q$ is the qubit she sent. <span class="ref-note">$S(P) = 1$, $S(Q) = 0.601$, $S(PQ) = 1$, so $I(P:Q) = 0.601 = \chi$</span></template>
+  <template data-ref="helstrom"><span class="ref-name">Bob's best single guess</span>Unit 05's Helstrom measurement: an analyser at $-22.5^\circ$, the basis $\ket{b_0} = \cos\tfrac\pi8\ket0 - \sin\tfrac\pi8\ket1$, $\ket{b_1} = \sin\tfrac\pi8\ket0 + \cos\tfrac\pi8\ket1$. <span class="ref-note">Right with probability $0.8536$, wrong with $0.1464$. It extracts $I(X:Y) = 1 - h(0.1464) = 0.399$ bits, against $\chi = 0.601$</span></template>
+  <template data-ref="comp"><span class="ref-name">compressing the source</span>A long run of $n$ qubits from Alice's source fits in about $0.601\,n$ qubits, and no fewer. <span class="ref-note">For $n = 1000$: about $601$ to leading order; the smallest subspace holding weight $0.99$ of $\rho^{\otimes1000}$ has dimension $2^{659.2}$</span></template>
+  <template data-ref="orth"><span class="ref-name">the orthogonal comparison</span>$\ket0$ or $\ket1$ by a fair coin: average state $I/2$, $\chi = 1$, and measuring in $z$ extracts the whole bit. <span class="ref-note">Non-orthogonality costs $1 - 0.601 = 0.399$ bits of $\chi$; a single measurement then loses $0.601 - 0.399 = 0.202$ more</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part B · correlations · branch</p>
+  <div class="unit-no">08</div>
+  <h1>Entropy and the Holevo bound: how many bits a qubit holds</h1>
+  <p class="lede">A qubit has a continuum of states and yields one bit. Shannon's entropy says how many bits a classical source holds, von Neumann's says the same of a quantum one, and strong subadditivity turns "discarding a system never helps" into the Holevo bound: no measurement gets more than $\chi$ bits out, and $\chi \le \log d$.</p>
+  <p class="meta"><span>needs 07</span><span>~3 h slides + 5 h problems</span><span>problems: <code>./qc problems 08</code></span></p>
+  <aside class="notes">
+    <p>Unit 07 sent two classical bits with one qubit and one shared Bell pair, and claimed that one qubit
+    alone could never carry more than one bit. It cited the Holevo bound for that. This unit proves it, and on the
+    way builds the measure of information the claim is about: entropy, classical and quantum.</p>
+    <p>It is a branch: worth taking, and on no spine unit's path. Nothing later depends on it except as an
+    optional cross-reference. It is also deliberately not a course in quantum Shannon theory: channel
+    capacities, the Holevo–Schumacher–Westmoreland theorem and entanglement distillation rates are named at
+    most. Schumacher compression is stated with its proof's structure, not proved in full. Strong
+    subadditivity is cited, never proved: its proof needs Lieb's concavity theorem, which is beyond this
+    course, and the deck says so where it is used.</p>
+    <h4>How to read this deck</h4>
+    <p>One ensemble runs through it: Alice sends $\ket0$ or $\ket+$ with probability $\tfrac12$ each, introduced on
+    the next slide. Proofs are on the slides when they are one line and in these notes under <b>Full proof</b>
+    when they are not; anything imported is labelled <i>cited</i>, with where its proof is. Every number was
+    computed. Logarithms are base 2 unless written $\ln$, so entropies are in bits.</p>
+    <p><b>What is used from earlier units.</b> Unit 00: the spectral theorem and the functional calculus
+    $f(A) = \sum_\lambda f(\lambda)P_\lambda$. Unit 01: projective measurements and unitary evolution, and the which-path
+    detector. Unit 02: the Bloch sphere and Pauli matrices. Unit 03: the tensor product, Kronecker products,
+    the Schmidt decomposition, the Bell states, polarisation as a qubit. Unit 04: density operators, the Bloch
+    ball, the partial trace and its defining property, purification, and the fact that the two halves of a pure
+    state have the same non-zero spectrum. Unit 05: the Helstrom measurement for $\ket0$ against $\ket+$. Unit 07:
+    dense coding and the Bell measurement. From the assumed background: discrete probability — expectation,
+    variance, Chebyshev's inequality, independence — and the calculus of one real variable.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · overview</p>
+  <h2>One bit in: how many come out?</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 560 190" width="560" role="img" aria-label="Alice flips a fair coin; heads sets her polariser to 0 degrees, tails to 45 degrees; one photon travels right to Bob, whose analyser is a crystal at an angle he chooses, splitting the beam to two detectors labelled y equals 0 and y equals 1">
+          <circle cx="36" cy="88" r="20" class="fill-soft"/><text x="36" y="93" text-anchor="middle" font-size="14" class="mono">½</text>
+          <text x="36" y="128" font-size="12" class="soft" text-anchor="middle">coin x</text>
+          <line x1="56" y1="88" x2="96" y2="88" class="ink" stroke-width="1.5"/>
+          <rect x="96" y="52" width="104" height="72" rx="6" fill="none" class="ink" stroke-width="1.5"/>
+          <text x="148" y="44" font-size="14" text-anchor="middle">Alice</text>
+          <line x1="122" y1="104" x2="122" y2="72" class="unit" stroke-width="3" transform="rotate(90 122 88)"/>
+          <line x1="174" y1="104" x2="174" y2="72" class="alt" stroke-width="3" transform="rotate(45 174 88)"/>
+          <text x="122" y="118" font-size="11" text-anchor="middle" class="unit">0°</text>
+          <text x="174" y="118" font-size="11" text-anchor="middle" class="alt">45°</text>
+          <line x1="200" y1="88" x2="350" y2="88" class="unit" stroke-width="2.5" stroke-dasharray="7 5"/>
+          <text x="275" y="76" font-size="13" text-anchor="middle" class="halo">one photon: |0⟩ or |+⟩</text>
+          <rect x="350" y="52" width="80" height="72" rx="6" fill="none" class="alt" stroke-width="2"/>
+          <text x="390" y="44" font-size="14" text-anchor="middle" class="alt">Bob</text>
+          <polygon points="368,70 412,70 412,106 368,106" class="fill-soft"/>
+          <line x1="372" y1="102" x2="408" y2="74" class="ink" stroke-width="1.5"/>
+          <text x="390" y="140" font-size="11" class="soft" text-anchor="middle">analyser at θ</text>
+          <line x1="430" y1="80" x2="500" y2="56" class="ink" stroke-width="1.5"/>
+          <line x1="430" y1="96" x2="500" y2="120" class="ink" stroke-width="1.5"/>
+          <path d="M500,44 a12,12 0 0 1 0,24 z" class="fill-ink"/>
+          <path d="M500,108 a12,12 0 0 1 0,24 z" class="fill-ink"/>
+          <text x="520" y="61" font-size="13" class="mono">y = 0</text>
+          <text x="520" y="125" font-size="13" class="mono">y = 1</text>
+          <text x="275" y="178" font-size="12" class="soft" text-anchor="middle">Bob learns I(X:Y) bits about the coin. How large can that be?</text>
+        </svg>
+        <p class="cap">Each run, a fair coin sets Alice's polariser; Bob chooses his analyser's angle, and gets one bit $y$ out.</p>
+      </div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="ens">$\ket0$ or $\ket+$, by a fair coin</span></span>
+        <p class="small">Alice encodes one fair bit $x$ as $\ket0$ or $\ket+$, probability $\tfrac12$ each ($\tfrac12 + \tfrac12 = 1$). Unit 05: Bob's best single guess of $x$ is right with probability $0.8536$. But <b>how many bits</b> about $x$ can he get, by any measurement?</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>The plan.</b> <b>1</b> Shannon: one bit in · <b>2</b> von Neumann: the state holds $0.601$ · <b>3</b> the inequalities: register and qubit share $0.601$ · <b>4</b> Holevo: at most $0.601$ out, and Bob's best guess gets $0.399$ · <b>5</b> Schumacher: $0.601$ qubits per symbol.</p>
+      <div class="box warn"><span class="label">deliberately left out</span>
+        <p class="small">Channel capacities, the HSW theorem, distillation rates. Strong subadditivity is <b>cited</b>, not proved. POVMs are unit 21's.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="Shannon entropy">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="ens">the coin-flip ensemble</span> is the running example (hover); <kbd>N</kbd> shows the notes.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The physics, from nothing.</b> Light is a wave whose electric field oscillates across its direction of
+    travel; the direction of that oscillation is its polarisation. Unit 03 made it a qubit: horizontal is $\ket0$,
+    vertical $\ket1$, and linear polarisation at angle $\alpha$ is $\cos\alpha\ket0 + \sin\alpha\ket1$, so $45^\circ$ is $\ket+$.
+    A <i>polariser</i> (a filter that passes one linear polarisation) prepares a photon at a chosen angle. An
+    <i>analyser</i> is a birefringent crystal that sends the polarisation at its angle $\theta$ one way and the
+    perpendicular one the other way, with a detector on each exit: it measures in the basis
+    $\{\ket\theta, \ket{\theta + 90^\circ}\}$. That is everything this unit's experiment needs.</p>
+    <p><b>Why a non-orthogonal pair?</b> Because the question is sharpest there. A qubit has a continuum of
+    states, so Alice might hope to pack more than one bit into the choice of angle. The Holevo bound says she
+    cannot, ever. And with only two non-orthogonal states she gets strictly less than one bit — how much less is
+    a number this unit computes three ways. Non-orthogonal encodings are not a curiosity: they are what key
+    distribution uses (unit 09), and what any source whose states overlap delivers.</p>
+    <p><b>Where the running example is.</b> Section 1: Alice's coin carries one bit. Section 2:
+    <i>Worked: the entropy of the running mixture</i> finds $S(\rho) = 0.601$. Section 3: <i>Register and qubit:
+    the running example as one state</i> computes $I(P:Q) = 0.601$. Section 4: the Holevo bound proved, and
+    <i>Worked: the Helstrom measurement extracts 0.399 bits</i>. Section 5: <i>1000 symbols in about 601
+    qubits</i>. The close, <i>The orthogonal ensemble, and what overlap costs</i>, compares $\ket0$ or $\ket1$.</p>
+    <p><b>The referee.</b> The course directory holds an optional NumPy simulator for checking hand
+    calculations; nothing in this deck needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Shannon entropy</h2>
+  <p>How many bits a classical source holds, made precise by counting the sequences it actually produces.</p>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Shannon</p>
+  <h2>How many bits a source holds</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Shannon entropy</span></span>
+        <p class="small">A random variable $X$ on a finite set, with distribution $p$, has</p>
+        $$H(X) = H(p) = -\sum_xp(x)\log p(x)\quad\text{bits},$$
+        <p class="small">with $0\log0 := 0$ (the limit of $t\log t$). For two outcomes, the <span class="term">binary entropy</span> $h(p) = -p\log p - (1 - p)\log(1 - p)$.</p>
+      </div>
+      <p class="small"><b>Twenty questions.</b> $X \in \{a, b, c, d\}$ with $p = (\tfrac12, \tfrac14, \tfrac18, \tfrac18)$, sum $1$ ✓. Ask "is it $a$?", then "is it $b$?", then "is it $c$?": $1, 2, 3, 3$ questions, on average $\tfrac12\cdot1 + \tfrac14\cdot2 + \tfrac18\cdot3 + \tfrac18\cdot3 = 1.75$. And</p>
+      $$H = \tfrac12\cdot1 + \tfrac14\cdot2 + \tfrac18\cdot3 + \tfrac18\cdot3 = 1.75 .$$
+      <p class="small"><b>Alice's coin</b> (<span class="ref" data-ref="ens">the running example</span>): $h(\tfrac12) = 1$ bit in.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 340 228" width="380" role="img" aria-label="the binary entropy h of p against p from 0 to 1: zero at both ends, rising to 1 at p one half, symmetric; a dot at p 0.146 and at 0.854, both at height 0.601">
+        <line x1="40" y1="190" x2="324" y2="190" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="190" x2="40" y2="24" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="30" x2="320" y2="30" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <line x1="40" y1="93.9" x2="279" y2="93.9" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <path d="M40.0,190.0 L41.4,182.7 L42.8,177.1 L44.2,172.0 L45.6,167.4 L47.0,163.0 L48.4,158.9 L49.8,155.0 L51.2,151.2 L52.6,147.6 L54.0,144.2 L54.0,144.2 L58.2,134.5 L62.4,125.7 L66.6,117.5 L70.8,110.0 L75.0,103.0 L79.2,96.5 L83.4,90.4 L87.6,84.8 L91.8,79.5 L96.0,74.5 L100.2,69.9 L104.4,65.5 L108.6,61.5 L112.8,57.7 L117.0,54.2 L121.2,51.0 L125.4,48.0 L129.6,45.3 L133.8,42.8 L138.0,40.5 L142.2,38.5 L146.4,36.7 L150.6,35.1 L154.8,33.8 L159.0,32.6 L163.2,31.7 L167.4,30.9 L171.6,30.4 L175.8,30.1 L180.0,30.0 L184.2,30.1 L188.4,30.4 L192.6,30.9 L196.8,31.7 L201.0,32.6 L205.2,33.8 L209.4,35.1 L213.6,36.7 L217.8,38.5 L222.0,40.5 L226.2,42.8 L230.4,45.3 L234.6,48.0 L238.8,51.0 L243.0,54.2 L247.2,57.7 L251.4,61.5 L255.6,65.5 L259.8,69.9 L264.0,74.5 L268.2,79.5 L272.4,84.8 L276.6,90.4 L280.8,96.5 L285.0,103.0 L289.2,110.0 L293.4,117.5 L297.6,125.7 L301.8,134.5 L306.0,144.2 L306.0,144.2 L307.4,147.6 L308.8,151.2 L310.2,155.0 L311.6,158.9 L313.0,163.0 L314.4,167.4 L315.8,172.0 L317.2,177.1 L318.6,182.7 L320.0,190.0" fill="none" class="unit" stroke-width="2.4"/>
+        <circle cx="180" cy="30" r="5" class="fill-unit"/>
+        <circle cx="81" cy="93.9" r="5" class="fill-alt"/><circle cx="279" cy="93.9" r="5" class="fill-alt"/>
+        <text x="186" y="22" font-size="12" class="halo">fair coin: 1 bit</text>
+        <text x="90" y="112" font-size="12" class="alt halo">0.146 → 0.601</text>
+        <text x="34" y="194" font-size="11" class="mono" text-anchor="end">0</text>
+        <text x="34" y="97" font-size="11" class="mono" text-anchor="end">0.6</text>
+        <text x="34" y="34" font-size="11" class="mono" text-anchor="end">1</text>
+        <text x="40" y="206" font-size="11" class="mono" text-anchor="middle">0</text>
+        <text x="180" y="206" font-size="11" class="mono" text-anchor="middle">½</text>
+        <text x="320" y="206" font-size="11" class="mono" text-anchor="middle">1</text>
+        <text x="180" y="224" font-size="12" class="soft" text-anchor="middle">p</text>
+        <text x="300" y="60" font-size="13" class="unit">h(p)</text>
+      </svg>
+      <p class="cap">The binary entropy. A coin of bias $0.146$ holds $0.601$ bits a toss — the number this unit keeps meeting.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What the number means.</b> Shannon (<i>Bell System Technical Journal</i> 27, 379 and 623, 1948) asked
+    how many binary digits a message from a random source needs. The twenty-questions example is the
+    intuition: an outcome of probability $2^{-k}$ should cost $k$ questions, and $H$ is the average of
+    $-\log p(x)$. When the probabilities are not powers of two no questioning scheme for a single outcome achieves
+    $H$ exactly; what is true, and what makes $H$ <i>the</i> answer, is the statement about long sequences on the
+    next two slides: $n$ outcomes need about $nH$ bits, and no fewer. The twenty-questions picture is
+    motivation; the typical-sequence theorem is the proof.</p>
+    <p><b>The convention $0\log0 = 0$.</b> $t\log t \to 0$ as $t \to 0^+$ (l'Hôpital on $\ln t/(1/t)$), so the
+    function $t \mapsto -t\log t$ extends continuously to $[0, 1]$. Outcomes of probability zero contribute
+    nothing, as they should.</p>
+    <p><b>Units.</b> Base-2 logarithms give bits. With $\ln$ the unit is the nat; $1$ nat $= 1/\ln2 \approx 1.4427$
+    bits. Nothing in this unit uses nats except inside proofs, where $\ln$ appears because its derivative is
+    $1/t$.</p>
+    <p><b>The figure.</b> $h$ is symmetric about $\tfrac12$, zero at $0$ and $1$, and has infinite slope at the ends:
+    $h'(p) = \log\frac{1 - p}p$. The two marked points are $p = \sin^2\tfrac\pi8 = 0.1464$ and $\cos^2\tfrac\pi8 = 0.8536$, where
+    $h = 0.6009$ — the eigenvalues of the running example's average state, as section 2 will show.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Shannon</p>
+  <h2>Gibbs' inequality, and the bounds on H</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Gibbs' inequality</span></span>
+        <p class="small">For distributions $p, q$ with $q &gt; 0$ wherever $p &gt; 0$,</p>
+        $$D(p\Vert q) := \sum_xp(x)\log\frac{p(x)}{q(x)} \ \ge\ 0,$$
+        <p class="small">equality iff $p = q$: the classical relative entropy.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Sum over $p &gt; 0$, with $\ln t \le t - 1$ at $t = q/p$: $\ \sum p\ln\frac qp \le \sum(q - p) \le 0$. Equality forces $q = p$ wherever $p &gt; 0$, and then $\sum q = 1$ leaves nothing elsewhere. $\blacksquare$</p>
+      </div>
+      <div class="box good"><span class="label">so $0 \le H(X) \le \log d$</span>
+        <p class="small">Each $-p\log p \ge 0$, zero only at $p \in \{0, 1\}$: $H = 0$ iff $X$ is certain. With $q$ uniform, $D(p\Vert q) = \log d - H$: $H = \log d$ iff $p$ is uniform.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 340 215" width="370" role="img" aria-label="the curve ln t for t from 0 to 3 lies below its tangent line t minus 1, touching it only at t equals 1">
+        <line x1="40" y1="110" x2="324" y2="110" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="200" x2="40" y2="18" class="rule" stroke-width="1.2"/>
+        <path d="M40.0,155.0 L320.0,20.0" fill="none" class="alt" stroke-width="2.2" stroke-dasharray="7 4"/>
+        <path d="M53.1,198.5 L56.4,188.1 L59.8,179.7 L63.2,172.6 L66.6,166.5 L70.0,161.1 L73.3,156.3 L76.7,152.0 L80.1,148.0 L83.5,144.4 L86.9,141.0 L90.2,137.9 L93.6,134.9 L97.0,132.2 L100.4,129.6 L103.8,127.2 L107.1,124.8 L110.5,122.6 L113.9,120.5 L117.3,118.5 L120.6,116.6 L124.0,114.7 L127.4,113.0 L130.8,111.2 L134.2,109.6 L137.5,108.0 L140.9,106.5 L144.3,105.0 L147.7,103.6 L151.1,102.2 L154.4,100.8 L157.8,99.5 L161.2,98.2 L164.6,97.0 L167.9,95.8 L171.3,94.6 L174.7,93.5 L178.1,92.4 L181.5,91.3 L184.8,90.2 L188.2,89.2 L191.6,88.2 L195.0,87.2 L198.4,86.2 L201.7,85.3 L205.1,84.3 L208.5,83.4 L211.9,82.5 L215.3,81.6 L218.6,80.8 L222.0,79.9 L225.4,79.1 L228.8,78.3 L232.1,77.5 L235.5,76.7 L238.9,76.0 L242.3,75.2 L245.7,74.4 L249.0,73.7 L252.4,73.0 L255.8,72.3 L259.2,71.6 L262.6,70.9 L265.9,70.2 L269.3,69.5 L272.7,68.9 L276.1,68.2 L279.5,67.6 L282.8,67.0 L286.2,66.3 L289.6,65.7 L293.0,65.1 L296.3,64.5 L299.7,63.9 L303.1,63.4 L306.5,62.8 L309.9,62.2 L313.2,61.7 L316.6,61.1 L320.0,60.6" fill="none" class="unit" stroke-width="2.4"/>
+        <circle cx="133.3" cy="110" r="5" class="fill-ink"/>
+        <text x="138" y="128" font-size="12" class="halo">t = 1</text>
+        <text x="262" y="44" font-size="13" class="alt halo">t − 1</text>
+        <text x="270" y="86" font-size="13" class="unit halo">ln t</text>
+        <text x="40" y="212" font-size="11" class="mono" text-anchor="middle">0</text>
+        <text x="133.3" y="212" font-size="11" class="mono" text-anchor="middle">1</text>
+        <text x="226.7" y="212" font-size="11" class="mono" text-anchor="middle">2</text>
+        <text x="320" y="212" font-size="11" class="mono" text-anchor="middle">3</text>
+      </svg>
+      <p class="cap">The one inequality behind every entropy bound in this unit: $\ln t \le t - 1$, equality only at $t = 1$. Klein's inequality in section 3 is the same picture.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of $\ln t \le t - 1$.</b> $f(t) = t - 1 - \ln t$ has $f'(t) = 1 - 1/t$, negative on $(0, 1)$ and positive
+    on $(1, \infty)$, so $f$ has its unique minimum at $t = 1$, where $f(1) = 0$. Hence $f \ge 0$, with equality only at
+    $t = 1$. Geometrically: $\ln$ is concave, so it lies below its tangent at $1$.</p>
+    <p><b>Gibbs, every step.</b> Let $A = \{x : p(x) &gt; 0\}$; by hypothesis $q &gt; 0$ on $A$. Then
+    $-D(p\Vert q)\ln2 = \sum_{x\in A}p(x)\ln\frac{q(x)}{p(x)} \le \sum_{x\in A}p(x)\Big(\frac{q(x)}{p(x)} - 1\Big) = \sum_{x\in A}q(x) - 1 \le 0$.
+    Equality in the first step needs $q(x) = p(x)$ for every $x \in A$; in the second, $\sum_Aq = 1$. Together:
+    $q = p$ on $A$ and $q = 0$ off $A$, so $q = p$. If $q(x) = 0$ for some $x$ with $p(x) &gt; 0$, set $D = +\infty$; the
+    inequality then holds trivially.</p>
+    <p><b>The upper bound, written out.</b> With $q(x) = 1/d$: $D(p\Vert q) = \sum p\log p - \sum p\log(1/d) = -H(p) + \log d$.
+    Gibbs gives $H(p) \le \log d$, with equality iff $p = q$. Check: $d = 2$, the fair coin, $H = 1 = \log2$ ✓.</p>
+    <p><b>The name.</b> Gibbs proved the inequality in his statistical mechanics (1902); the quantity $D$ is
+    also called the Kullback–Leibler divergence (1951). It is not a distance: it is not symmetric, and section 3
+    computes an example where the two orders differ.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Shannon</p>
+  <h2>Typical sequences</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">typical set</span></span>
+        <p class="small">$X_1, \dots, X_n$ independent, each with distribution $p$. A sequence $x^n = x_1\cdots x_n$ is <b>$\delta$-typical</b> if</p>
+        $$\Big|-\tfrac1n\log p(x^n) - H\Big| \le \delta,$$
+        <p class="small">where $p(x^n) = \prod_ip(x_i)$.</p>
+        <p class="small">So $2^{-n(H + \delta)} \le p(x^n) \le 2^{-n(H - \delta)}$ on $T_{n,\delta}$: typical sequences are all about equally likely.</p>
+      </div>
+      <p class="small">$-\log p(x^n) = \sum_i\big(-\log p(x_i)\big)$ is a sum of $n$ independent copies of $L = -\log p(X)$, with mean $\mathbb E L = H$ and some variance $\sigma^2$.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the typical-sequence lemma</span>
+        <p class="small"><b>(i)</b> $\Pr(T_{n,\delta}) \ge 1 - \dfrac{\sigma^2}{n\delta^2} \to 1$.<br>
+        <b>(ii)</b> $|T_{n,\delta}| \le 2^{n(H + \delta)}$.<br>
+        <b>(iii)</b> If $\Pr(T_{n,\delta}) \ge 1 - \varepsilon$, then $|T_{n,\delta}| \ge (1 - \varepsilon)2^{n(H - \delta)}$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>(i)</b> Chebyshev for the mean of $n$ independent copies of $L$, whose variance is $\sigma^2/n$. <b>(ii)</b> $1 \ge \sum_{T}p(x^n) \ge |T|\,2^{-n(H + \delta)}$. <b>(iii)</b> $1 - \varepsilon \le \sum_Tp(x^n) \le |T|\,2^{-n(H - \delta)}$. $\blacksquare$</p>
+      </div>
+      <p class="small">There are $d^n$ sequences; about $2^{nH}$ of them carry almost all the probability.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of (i).</b> Chebyshev's inequality (background): for a random variable $Y$ with finite variance,
+    $\Pr(|Y - \mathbb EY| \ge t) \le \mathrm{Var}\,Y/t^2$. Take $Y = \tfrac1n\sum_iL_i$ with $L_i = -\log p(X_i)$. The $L_i$ are independent
+    (functions of independent variables) and identically distributed, so $\mathbb EY = H$ and
+    $\mathrm{Var}\,Y = \tfrac1{n^2}\cdot n\sigma^2 = \sigma^2/n$. So $\Pr(|Y - H| &gt; \delta) \le \sigma^2/(n\delta^2)$, and $T_{n,\delta}$ is exactly the event $|Y - H| \le \delta$.
+    This is the weak law of large numbers for $L$, with its rate. $\sigma^2 = \sum_xp(x)(\log p(x))^2 - H^2$ is
+    finite because the alphabet is finite (sum only over $p(x) &gt; 0$; outcomes of probability zero never occur).</p>
+    <p><b>Chernoff–Hoeffding instead.</b> The background's Chernoff–Hoeffding bound gives
+    $\Pr(T^c) \le 2e^{-2n\delta^2/(L_{\max} - L_{\min})^2}$, exponentially small rather than $O(1/n)$. Nothing here needs the
+    better rate; Chebyshev keeps the proof self-contained.</p>
+    <p><b>Typical is not "most probable".</b> The single most probable sequence is usually not typical: see the
+    next slide. Typicality is about the <i>empirical entropy</i> $-\tfrac1n\log p(x^n)$, which is what the law of large
+    numbers pins down. The name and the lemma (the "asymptotic equipartition property") are Shannon's, 1948,
+    with the general form due to McMillan (1953) and Breiman (1957).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Shannon</p>
+  <h2>Almost all the probability, on a thin set</h2>
+  <div class="cols wide-left">
+    <div class="fig">
+      <svg viewBox="0 0 360 224" width="470" role="img" aria-label="the probability of seeing k ones in 1000 tosses of a coin with bias 0.146, against k from 100 to 200: a bell-shaped curve peaked at 146; a shaded band from k equals 127 to 166 marks the typical sequences and holds 0.927 of the probability">
+        <rect x="118.3" y="40" width="113.1" height="140" class="fill-soft"/>
+        <line x1="40" y1="180" x2="334" y2="180" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="180" x2="40" y2="24" class="rule" stroke-width="1.2"/>
+        <line x1="174.7" y1="180" x2="174.7" y2="40" class="ink" stroke-width="0.9" stroke-dasharray="3 4"/>
+        <path d="M40.0,180.0 L42.9,180.0 L45.8,180.0 L48.7,180.0 L51.6,179.9 L54.5,179.9 L57.4,179.9 L60.3,179.8 L63.2,179.7 L66.1,179.6 L69.0,179.5 L71.9,179.3 L74.8,179.1 L77.7,178.8 L80.6,178.4 L83.5,177.8 L86.4,177.1 L89.3,176.3 L92.2,175.3 L95.1,174.0 L98.0,172.4 L100.9,170.5 L103.8,168.3 L106.7,165.6 L109.6,162.6 L112.5,159.1 L115.4,155.0 L118.3,150.5 L121.2,145.5 L124.1,140.0 L127.0,134.0 L129.9,127.6 L132.8,120.8 L135.7,113.7 L138.6,106.4 L141.5,99.0 L144.4,91.7 L147.3,84.4 L150.2,77.4 L153.1,70.9 L156.0,64.8 L158.9,59.5 L161.8,54.9 L164.7,51.2 L167.6,48.5 L170.5,46.8 L173.4,46.2 L176.3,46.6 L179.2,48.1 L182.1,50.6 L185.0,54.1 L187.9,58.4 L190.8,63.4 L193.7,69.2 L196.6,75.4 L199.5,82.1 L202.4,89.0 L205.3,96.0 L208.2,103.1 L211.1,110.2 L214.0,117.0 L216.9,123.6 L219.8,129.9 L222.7,135.8 L225.6,141.3 L228.5,146.4 L231.4,151.0 L234.3,155.1 L237.2,158.8 L240.1,162.1 L243.0,165.0 L245.9,167.5 L248.8,169.7 L251.7,171.5 L254.6,173.1 L257.5,174.4 L260.4,175.5 L263.3,176.4 L266.2,177.1 L269.1,177.8 L272.0,178.2 L274.9,178.6 L277.8,178.9 L280.7,179.2 L283.6,179.4 L286.5,179.5 L289.4,179.6 L292.3,179.7 L295.2,179.8 L298.1,179.9 L301.0,179.9 L303.9,179.9 L306.8,179.9 L309.7,180.0 L312.6,180.0 L315.5,180.0 L318.4,180.0 L321.3,180.0 L324.2,180.0 L327.1,180.0 L330.0,180.0" fill="none" class="unit" stroke-width="2.4"/>
+        <text x="175" y="30" font-size="12" class="halo" text-anchor="middle">typical: 0.927 of the probability</text>
+        <text x="40" y="196" font-size="11" class="mono" text-anchor="middle">100</text>
+        <text x="118.3" y="196" font-size="11" class="mono" text-anchor="middle">127</text>
+        <text x="174.7" y="196" font-size="11" class="mono" text-anchor="middle">146</text>
+        <text x="231.4" y="196" font-size="11" class="mono" text-anchor="middle">166</text>
+        <text x="330" y="196" font-size="11" class="mono" text-anchor="middle">200</text>
+        <text x="190" y="216" font-size="12" class="soft" text-anchor="middle">k = number of 1s in 1000 tosses</text>
+        <text x="262" y="100" font-size="12" class="soft">Pr(k ones)</text>
+      </svg>
+      <p class="cap">$n = 1000$ tosses of a coin with $\Pr(1) = 0.1464$, so $H = 0.601$. With $\delta = 0.05$ the typical sequences are those with $127 \le k \le 166$.</p>
+    </div>
+    <div>
+      <p class="small"><b>The numbers</b> ($n = 1000$, $\delta = 0.05$):</p>
+      <ul class="small">
+        <li>$\Pr(T) = 0.927$ exactly; Chebyshev promised $\ge 1 - \frac{0.808}{1000\cdot0.0025} = 0.677$ ✓.</li>
+        <li>$|T| = 2^{643.9}$, inside the lemma's $[0.927\cdot2^{550.9},\ 2^{650.9}]$ ✓.</li>
+        <li>All sequences: $2^{1000}$. The typical ones are a fraction $2^{-356}$ of them.</li>
+      </ul>
+      <div class="box warn"><span class="label">the likeliest sequence is not typical</span>
+        <p class="small">$00\cdots0$ has probability $0.8536^{1000} = 2^{-228.4}$, far above any typical one — and $-\tfrac1n\log p = 0.228$, nowhere near $0.601$. There is only one of it.</p>
+      </div>
+      <p class="small">Why this bias: section 5 shows this curve is the spectrum of 1000 copies of <span class="ref" data-ref="ens">the running example's</span> state.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the numbers come from.</b> A sequence with $k$ ones has probability $p^k(1 - p)^{n - k}$ with $p = 0.1464$,
+    so $-\tfrac1n\log p(x^n) = \tfrac1n\big(k\cdot2.7716 + (n - k)\cdot0.2284\big)$, using $-\log0.1464 = 2.7716$ and $-\log0.8536 = 0.2284$. The
+    typical condition $|\cdot - 0.6009| \le 0.05$ is linear in $k$ and holds exactly for $127 \le k \le 166$. Summing the
+    binomial probabilities $\binom{1000}k p^k(1 - p)^{1000 - k}$ over that range gives $0.9266$, and summing $\binom{1000}k$ gives
+    $2^{643.9}$. The variance of $L = -\log p(X)$ is $p(1 - p)(2.7716 - 0.2284)^2 = \tfrac18\cdot2.5431^2 = 0.8084$, since here
+    $p(1 - p) = \sin^2\tfrac\pi8\cos^2\tfrac\pi8 = \tfrac14\sin^2\tfrac\pi4 = \tfrac18$ exactly.</p>
+    <p><b>Reading the picture.</b> The number of ones is binomial with mean $146.4$ and standard deviation
+    $\sqrt{1000\cdot\tfrac18} = 11.18$; the typical band is about $\pm1.7$ standard deviations. As $n$ grows the band, measured
+    in $k/n$, shrinks like $1/\sqrt n$ at fixed weight — but the number of sequences inside it is still $2^{n(H \pm \delta)}$.
+    That is the whole content of the lemma: almost all the probability sits on about $2^{nH}$ sequences of
+    nearly equal probability $2^{-nH}$.</p>
+    <p><b>The warning, in numbers.</b> The all-zeros sequence is $2^{-228.4}$ against about $2^{-600.9}$ for a typical one: $2^{372}$
+    times likelier. But it is one sequence, and its probability is $10^{-69}$; the $2^{643.9}$ typical sequences
+    together have $0.927$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Shannon</p>
+  <h2>Compression: $H$ bits per symbol, and no fewer</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">Shannon's <span class="term">source coding theorem</span> (1948)</span>
+        <p class="small">A source emits $n$ independent symbols with distribution $p$. <b>(a)</b> If $R &gt; H$, the sequences can be encoded in $nR$ bits and decoded with error probability $\to 0$. <b>(b)</b> If $R &lt; H$, any set of $2^{nR}$ sequences has probability $\to 0$: every $nR$-bit code fails almost surely.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Fix $\delta$ with $H + \delta &lt; R$ in (a), $R &lt; H - \delta$ in (b). <b>(a)</b> Number the typical sequences: $|T| \le 2^{n(H + \delta)} \le 2^{nR}$ labels suffice. Send the label, or a fixed failure label off $T$. Error $\le \Pr(T^c) \to 0$.<br>
+        <b>(b)</b> For $|S| \le 2^{nR}$: $\ \Pr(S) \le \Pr(S\cap T) + \Pr(T^c) \le 2^{nR}2^{-n(H - \delta)} + \Pr(T^c) \to 0$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 200" width="330" role="img" aria-label="a large rectangle labelled all d to the n sequences contains a small ellipse labelled typical, about 2 to the n H; arrows run from the ellipse to a short row of n R bits on the right">
+          <rect x="10" y="20" width="200" height="160" rx="6" class="fill-soft"/>
+          <rect x="10" y="20" width="200" height="160" rx="6" fill="none" class="rule" stroke-width="1.2"/>
+          <text x="110" y="40" font-size="12" class="soft" text-anchor="middle">all dⁿ sequences</text>
+          <ellipse cx="110" cy="112" rx="54" ry="32" class="fill-unit" opacity="0.35"/>
+          <ellipse cx="110" cy="112" rx="54" ry="32" fill="none" class="unit" stroke-width="2"/>
+          <text x="110" y="108" font-size="12" text-anchor="middle">typical</text>
+          <text x="110" y="124" font-size="12" text-anchor="middle" class="mono">≈ 2ⁿᴴ</text>
+          <line x1="164" y1="108" x2="242" y2="96" class="ink" stroke-width="1.5"/>
+          <polygon points="246,95 236,92 238,101" class="fill-ink"/>
+          <rect x="250" y="80" width="70" height="30" rx="4" fill="none" class="alt" stroke-width="2"/>
+          <text x="285" y="100" font-size="13" text-anchor="middle" class="mono alt">nR bits</text>
+          <text x="285" y="132" font-size="11" text-anchor="middle" class="soft">a label for each</text>
+          <text x="110" y="168" font-size="11" text-anchor="middle" class="soft">the rest: probability → 0</text>
+        </svg>
+        <p class="cap">Encode by numbering the typical set; the rest is the error.</p>
+      </div>
+      <p class="small"><b>Alice's coin</b>: $H = 1$, so $n$ fair bits need $n$ bits; there is nothing to compress. Her <i>qubits</i> will be another matter (section 5).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>(a) in full.</b> Choose $\delta &gt; 0$ with $H + \delta \le R$ (possible as $R &gt; H$). The typical set has at most
+    $2^{n(H + \delta)} \le 2^{nR}$ elements, so the strings of $\lceil nR\rceil$ bits can label each of them and still have one
+    left over to mean "failure". The decoder inverts the labelling. A typical sequence is recovered exactly; an
+    atypical one is lost, which happens with probability $\Pr(T^c) \le \sigma^2/(n\delta^2) \to 0$.</p>
+    <p><b>(b) in full.</b> Choose $\delta &gt; 0$ with $R &lt; H - \delta$. A code using $nR$ bits decodes to at most $2^{nR}$ distinct
+    sequences; call that set $S$. It is right only on $S$. Split $S$ into its typical and atypical parts: each
+    typical sequence has probability at most $2^{-n(H - \delta)}$, so $\Pr(S\cap T) \le |S|\,2^{-n(H - \delta)} \le 2^{-n(H - \delta - R)} \to 0$;
+    the atypical part has probability at most $\Pr(T^c) \to 0$. So the probability of decoding correctly tends to
+    zero — not merely stays below one.</p>
+    <p><b>What "bits per symbol" means.</b> The rate $R$ is the number of bits per source symbol in the long run.
+    The theorem makes $H$ the exact threshold. Practical codes (Huffman, arithmetic coding) approach it with
+    variable-length codewords; the typical-set code is the proof, not the practice.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Shannon</p>
+  <h2>Two variables: joint, conditional, mutual</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">for $(X, Y)$ with joint distribution $p(x, y)$</span>
+        <p class="small"><span class="term">joint entropy</span>: $H(XY) = -\sum_{x,y}p(x, y)\log p(x, y)$.<br>
+        <span class="term">conditional entropy</span>: $H(Y|X) = \sum_xp(x)\,H(Y|X = x) = H(XY) - H(X)$.<br>
+        <span class="term">mutual information</span>: $I(X:Y) = H(X) + H(Y) - H(XY)$.</p>
+      </div>
+      <div class="box thm"><span class="label">three facts</span>
+        <p class="small"><b>1.</b> $H(Y|X) \ge 0$: an average of entropies. So $H(XY) \ge H(X)$.<br>
+        <b>2.</b> $I(X:Y) = D\big(p_{XY}\Vert p_Xp_Y\big) \ge 0$, zero iff independent.<br>
+        <b>3.</b> $I(X:Y) \le \min\{H(X), H(Y)\}$, by 1.</p>
+      </div>
+      <p class="small"><b>Running example</b>: if Bob could read $x$ exactly, $Y = X$, $H(XY) = H(X)$ and $I = 1$ bit. Section 4 asks how close a measurement gets.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 330 200" width="350" role="img" aria-label="two overlapping discs labelled H of X and H of Y; the left crescent is H of X given Y, the right crescent H of Y given X, the overlap I of X and Y, and the whole union H of X Y">
+        <circle cx="125" cy="100" r="74" class="fill-unit" opacity="0.18"/>
+        <circle cx="205" cy="100" r="74" class="fill-alt" opacity="0.18"/>
+        <circle cx="125" cy="100" r="74" fill="none" class="unit" stroke-width="2"/>
+        <circle cx="205" cy="100" r="74" fill="none" class="alt" stroke-width="2"/>
+        <text x="90" y="104" font-size="12" text-anchor="middle">H(X|Y)</text>
+        <text x="240" y="104" font-size="12" text-anchor="middle">H(Y|X)</text>
+        <text x="165" y="104" font-size="12" text-anchor="middle" class="halo">I(X:Y)</text>
+        <text x="80" y="18" font-size="13" class="unit">H(X)</text>
+        <text x="222" y="18" font-size="13" class="alt">H(Y)</text>
+        <text x="165" y="194" font-size="12" class="soft" text-anchor="middle">the union: H(XY)</text>
+      </svg>
+      <p class="cap">The classical bookkeeping. Every region is non-negative — a fact section 3 will see fail for quantum systems.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Fact 1, every step.</b> Write $p(x, y) = p(x)p(y|x)$. Then
+    $H(XY) = -\sum p(x)p(y|x)\big(\log p(x) + \log p(y|x)\big) = H(X) + \sum_xp(x)\big(-\sum_yp(y|x)\log p(y|x)\big)$, using
+    $\sum_yp(y|x) = 1$. The bracket is $H(Y|X = x)$, the entropy of a distribution, so $\ge 0$. This is the <b>chain rule</b>
+    $H(XY) = H(X) + H(Y|X)$.</p>
+    <p><b>Fact 2, every step.</b> $D(p_{XY}\Vert p_Xp_Y) = \sum p(x, y)\log\frac{p(x, y)}{p(x)p(y)} = -H(XY) - \sum p(x, y)\log p(x) - \sum p(x, y)\log p(y)$,
+    and the last two sums are $-H(X)$ and $-H(Y)$ after summing out the other variable. The support condition holds:
+    $p(x)p(y) = 0$ forces $p(x, y) = 0$. Gibbs gives $\ge 0$, equality iff $p(x, y) = p(x)p(y)$.</p>
+    <p><b>Fact 3.</b> $I = H(Y) - H(Y|X) \le H(Y)$ and symmetrically $\le H(X)$.</p>
+    <p><b>A check.</b> $Y = X$ a fair bit: $H(XY) = 1$, $I = 1 + 1 - 1 = 1$ ✓. $X, Y$ independent fair bits: $H(XY) = 2$, $I = 0$ ✓.
+    The Venn picture is a mnemonic only: with three variables its central region can be negative. With two it
+    is exact.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Von Neumann entropy</h2>
+  <p>The state is the operator, not the story (unit 04). So the entropy must be a function of the operator — and there is only one sensible candidate.</p>
+</section>
+
+<section>
+  <p class="eyebrow">08 · von Neumann</p>
+  <h2>The entropy of a density operator</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">von Neumann entropy</span></span>
+        <p class="small">With $\eta(t) = -t\log t$ on $[0, 1]$ and unit 00's functional calculus,</p>
+        $$\begin{aligned}S(\rho) &amp;= \operatorname{tr}\eta(\rho) = -\operatorname{tr}\rho\log\rho\\ &amp;= H(\lambda_1, \dots, \lambda_d),\end{aligned}$$
+        <p class="small">the Shannon entropy of the eigenvalues of $\rho$ — a distribution, since $\rho \ge 0$ and $\operatorname{tr}\rho = 1$.</p>
+      </div>
+      <div class="box thm"><span class="label">from Shannon, at once</span>
+        <p class="small"><b>1.</b> $0 \le S(\rho) \le \log d$. <b>2.</b> $S = 0$ iff one eigenvalue is $1$: iff $\rho$ is pure. <b>3.</b> $S = \log d$ iff every $\lambda_k = 1/d$: iff $\rho = I/d$. <b>4.</b> $S(U\rho U^\dagger) = S(\rho)$: same spectrum.</p>
+      </div>
+      <p class="small"><b>A qubit</b>: $\rho = \tfrac12(I + r\cdot\sigma)$ has eigenvalues $\tfrac12(1 \pm |r|)$ (unit 04), so $S = h\big(\tfrac12(1 + |r|)\big)$: entropy depends only on the distance from the centre of the Bloch ball.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 340 228" width="380" role="img" aria-label="the entropy of a qubit against the length of its Bloch vector: 1 at the centre, falling slowly then steeply to 0 at the surface; a dot at radius 0.707 and entropy 0.601">
+        <line x1="40" y1="190" x2="324" y2="190" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="190" x2="40" y2="24" class="rule" stroke-width="1.2"/>
+        <line x1="238" y1="190" x2="238" y2="93.9" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <line x1="40" y1="93.9" x2="238" y2="93.9" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <path d="M40.0,30.0 L43.5,30.0 L47.0,30.1 L50.5,30.2 L54.0,30.3 L57.5,30.5 L61.0,30.6 L64.5,30.9 L68.0,31.2 L71.5,31.5 L75.0,31.8 L78.5,32.2 L82.0,32.6 L85.5,33.1 L89.0,33.6 L92.5,34.1 L96.0,34.6 L99.5,35.3 L103.0,35.9 L106.5,36.6 L110.0,37.3 L113.5,38.0 L117.0,38.8 L120.5,39.7 L124.0,40.5 L127.5,41.5 L131.0,42.4 L134.5,43.4 L138.0,44.4 L141.5,45.5 L145.0,46.6 L148.5,47.8 L152.0,49.0 L155.5,50.2 L159.0,51.5 L162.5,52.9 L166.0,54.2 L169.5,55.7 L173.0,57.1 L176.5,58.6 L180.0,60.2 L183.5,61.8 L187.0,63.5 L190.5,65.2 L194.0,66.9 L197.5,68.7 L201.0,70.6 L204.5,72.5 L208.0,74.5 L211.5,76.5 L215.0,78.6 L218.5,80.8 L222.0,83.0 L225.5,85.2 L229.0,87.6 L232.5,90.0 L236.0,92.4 L239.5,95.0 L243.0,97.6 L246.5,100.3 L250.0,103.0 L253.5,105.9 L257.0,108.8 L260.5,111.8 L264.0,115.0 L267.5,118.2 L271.0,121.5 L274.5,124.9 L278.0,128.5 L281.5,132.2 L285.0,136.0 L288.5,140.0 L292.0,144.2 L295.5,148.5 L299.0,153.1 L302.5,157.9 L306.0,163.0 L309.5,168.5 L313.0,174.5 L316.5,181.2 L320.0,190.0" fill="none" class="unit" stroke-width="2.4"/>
+        <circle cx="238" cy="93.9" r="5.5" class="fill-alt"/>
+        <text x="244" y="86" font-size="12" class="alt halo">0.707 → 0.601</text>
+        <text x="48" y="22" font-size="12" class="halo">I/2: 1 bit</text>
+        <text x="318" y="182" font-size="12" class="halo" text-anchor="end">pure: 0</text>
+        <text x="34" y="194" font-size="11" class="mono" text-anchor="end">0</text>
+        <text x="34" y="97" font-size="11" class="mono" text-anchor="end">0.6</text>
+        <text x="34" y="34" font-size="11" class="mono" text-anchor="end">1</text>
+        <text x="40" y="206" font-size="11" class="mono" text-anchor="middle">0</text>
+        <text x="320" y="206" font-size="11" class="mono" text-anchor="middle">1</text>
+        <text x="180" y="222" font-size="12" class="soft" text-anchor="middle">|r|, distance from the centre of the Bloch ball</text>
+      </svg>
+      <p class="cap">$S = h\big(\tfrac12(1 + |r|)\big)$. <span class="ref" data-ref="ens">The running example</span> sits at $|r| = 1/\sqrt2$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The functional calculus, applied.</b> Unit 00: for a normal operator $A = \sum_\lambda\lambda P_\lambda$ and a function $f$ on its
+    spectrum, $f(A) = \sum_\lambda f(\lambda)P_\lambda$. A density operator is Hermitian with spectrum in $[0, 1]$, and $\eta$ is defined and
+    continuous there (with $\eta(0) = 0$), so $\eta(\rho) = \sum_\lambda\eta(\lambda)P_\lambda$ and $\operatorname{tr}\eta(\rho) = \sum_\lambda\eta(\lambda)\operatorname{tr}P_\lambda$. The trace of a spectral
+    projector is the multiplicity, so this is $\sum_k\eta(\lambda_k)$ over eigenvalues listed with multiplicity: $H(\lambda)$.
+    The formula $-\operatorname{tr}\rho\log\rho$ is the same thing, read with $\log0$ multiplied by $0$.</p>
+    <p><b>Why this and nothing else.</b> Unit 04 proved that $\rho$ determines every measurement statistic, and
+    that different preparation stories with the same $\rho$ cannot be told apart. An entropy that depended on
+    the story would not be a property of the system. Ask also that a unitary — a relabelling of the space —
+    not change it: then it is a function of the spectrum alone. And the spectrum <i>is</i> one of the stories: the
+    eigen-ensemble, a mixture of orthogonal, hence perfectly distinguishable, states, where Shannon's
+    entropy has its full classical meaning. Section 5 gives $S$ its operational meaning directly: it is the
+    number of qubits per symbol a source needs.</p>
+    <p><b>History.</b> Von Neumann defined it in 1927 (<i>Göttinger Nachrichten</i>, 273) from a thermodynamic
+    thought experiment — a gas of molecules in internal state $\rho$, separated by idealised semipermeable walls —
+    two decades before Shannon. Cited, not developed.</p>
+    <p><b>Full proof of 1–4.</b> All four are the corresponding facts about $H$ applied to the spectrum:
+    $0 \le H \le \log d$ with the equality cases (<i>Gibbs' inequality, and the bounds on H</i>); a density operator with
+    spectrum $(1, 0, \dots, 0)$ is $\ket\psi\!\bra\psi$; one with every eigenvalue $1/d$ is $I/d$; and $U\rho U^\dagger$ has the eigenvectors $U\ket{e_k}$
+    with the same eigenvalues.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · von Neumann · example</p>
+  <h2>Worked: the entropy of the running mixture</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label"><span class="ref" data-ref="ens">$\ket0$ or $\ket+$, by a fair coin</span>, every step</span>
+      <p class="small"><b>1. The state.</b> $\rho = \tfrac12\begin{pmatrix}1&amp;0\\0&amp;0\end{pmatrix} + \tfrac14\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix} = \begin{pmatrix}3/4&amp;1/4\\1/4&amp;1/4\end{pmatrix}$, trace $1$ ✓.</p>
+      <p class="small"><b>2. Eigenvalues</b>, from $\operatorname{tr}\rho = 1$ and $\det\rho = \tfrac3{16} - \tfrac1{16} = \tfrac18$: roots of $\lambda^2 - \lambda + \tfrac18$,</p>
+      $$\lambda_\pm = \tfrac12\big(1 \pm \tfrac1{\sqrt2}\big) = \cos^2\tfrac\pi8,\ \sin^2\tfrac\pi8 \approx 0.8536,\ 0.1464 .$$
+      <p class="small">Sum $1$ ✓.</p>
+      <p class="small"><b>3. The entropy.</b> $\log0.8536 = -0.2284$ and $\log0.1464 = -2.7716$, so</p>
+      $$\begin{aligned}S(\rho) &amp;= 0.8536\cdot0.2284 + 0.1464\cdot2.7716\\ &amp;= 0.1950 + 0.4059 = 0.6009 .\end{aligned}$$
+      <p class="small"><b>4. Check by the Bloch ball.</b> $r = (\tfrac12, 0, \tfrac12)$, $|r| = 0.7071$: $\ h(\tfrac12(1 + 0.7071)) = h(0.8536)$ — the same ✓.</p>
+      <p class="small"><b>5. The members.</b> $\ket0\!\bra0$ and $\ket+\!\bra+$ are pure: entropy $0$ each.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 300" width="300" role="img" aria-label="the xz disc of the Bloch ball; ket 0 at the top, ket plus at the right; the chord between them has midpoint r; the diameter through r ends at e1 and e2, the eigenvectors">
+          <circle cx="150" cy="150" r="110" class="fill-soft"/>
+          <circle cx="150" cy="150" r="110" fill="none" class="rule" stroke-width="1.5"/>
+          <line x1="150" y1="30" x2="150" y2="272" class="rule" stroke-width="1"/>
+          <line x1="28" y1="150" x2="272" y2="150" class="rule" stroke-width="1"/>
+          <line x1="72.2" y1="227.8" x2="227.8" y2="72.2" class="unit" stroke-width="2.5"/>
+          <line x1="150" y1="40" x2="260" y2="150" class="alt" stroke-width="2" stroke-dasharray="6 4"/>
+          <circle cx="150" cy="40" r="6" class="fill-alt"/><circle cx="260" cy="150" r="6" class="fill-alt"/>
+          <text x="140" y="36" font-size="13" text-anchor="end">|0⟩</text>
+          <text x="266" y="172" font-size="13">|+⟩</text>
+          <circle cx="227.8" cy="72.2" r="6" class="fill-unit"/><circle cx="72.2" cy="227.8" r="6" class="fill-unit"/>
+          <text x="234" y="66" font-size="13" class="unit halo">e₁: 0.854</text>
+          <text x="40" y="250" font-size="13" class="unit halo">e₂: 0.146</text>
+          <circle cx="205" cy="95" r="6" class="fill-ink"/>
+          <text x="196" y="122" font-size="13" class="halo">r</text>
+          <text x="150" y="292" font-size="11" class="soft" text-anchor="middle">x horizontal, z vertical</text>
+        </svg>
+        <p class="cap">Unit 04's picture: the mixture sits at the chord's midpoint, $1/\sqrt2$ from the centre.</p>
+      </div>
+      <div class="box good"><span class="label">the number to keep</span>
+        <p class="small">The average state holds $0.601$ bits; its members hold none. Section 4 names the difference $\chi$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each step.</b> Step 1: $\ket+\!\bra+ = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}$, and half of it is $\tfrac14\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}$. Step 2: a $2\times2$
+    matrix has characteristic polynomial $\lambda^2 - (\operatorname{tr})\lambda + \det$; the discriminant is $1 - \tfrac12 = \tfrac12$, so
+    $\lambda_\pm = \tfrac12(1 \pm \sqrt{1/2})$; and $\cos^2\tfrac\pi8 = \tfrac12(1 + \cos\tfrac\pi4)$ by the double-angle formula. Step 3:
+    $\log_2 0.853553 = \ln0.853553/\ln2 = -0.158353/0.693147 = -0.228447$; $\log_2 0.146447 = -1.921113/0.693147 = -2.771553$.
+    Products $0.194991$ and $0.405885$; sum $0.600876$. Quoted as $0.601$ bits throughout.</p>
+    <p><b>Step 4, why it must agree.</b> The Bloch vector of a mixture is the average of the members' vectors (unit
+    04): $\tfrac12(0, 0, 1) + \tfrac12(1, 0, 0)$. Its length is $\sqrt{1/4 + 1/4} = 1/\sqrt2$, and unit 04's eigenvalue formula
+    $\tfrac12(1 \pm |r|)$ gives step 2's numbers again.</p>
+    <p><b>The eigenvectors</b> (unit 04, <i>Worked: a mixture off the centre</i>): $\ket{e_1} = \cos\tfrac\pi8\ket0 + \sin\tfrac\pi8\ket1$ and
+    $\ket{e_2} = -\sin\tfrac\pi8\ket0 + \cos\tfrac\pi8\ket1$ — the polarisations at $22.5^\circ$ and $112.5^\circ$. So the same $\rho$ is also "a source
+    that sends $22.5^\circ$ with probability $0.8536$ and $112.5^\circ$ with probability $0.1464$": the eigen-ensemble, whose
+    Shannon entropy is $S(\rho)$.</p>
+    <p><b>Forward.</b> Each member being pure is what makes the second term of the Holevo quantity vanish:
+    $\chi = S(\rho) - \tfrac12S(\ket0\!\bra0) - \tfrac12S(\ket+\!\bra+) = 0.601$. That is the number the Holevo bound will cap Bob at.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · von Neumann</p>
+  <h2>Diagonals have more entropy than the spectrum</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma</span>
+        <p class="small">For any orthonormal basis $\{\ket{f_k}\}$, the diagonal $d_k = \braket{f_k|\rho|f_k}$ is a distribution and</p>
+        $$H(d) \ge S(\rho).$$
+        <p class="small">Measuring in a basis and forgetting the result never lowers the entropy.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">With $\rho = \sum_j\lambda_j\ket{e_j}\!\bra{e_j}$: $\ d_k = \sum_jB_{kj}\lambda_j$, $\ B_{kj} = |\braket{f_k|e_j}|^2$. Rows and columns of $B$ sum to $1$ (Parseval). $\eta$ is concave, so $\eta(d_k) \ge \sum_jB_{kj}\eta(\lambda_j)$; sum over $k$. $\blacksquare$</p>
+      </div>
+      <div class="box warn"><span class="label">the story's entropy is not the state's</span>
+        <p class="small">Alice's coin has $H = 1$; her state has $S = 0.601$. For pure-state stories $H(p) \ge S(\rho)$ always, equal only for orthogonal members — problem P3.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 290" width="300" role="img" aria-label="the xz disc; the running example's vector r at one half, one half lies on a circle of radius 0.707; measuring z and forgetting projects it straight left onto the z axis at height one half, on a smaller circle of radius 0.5, where the entropy is larger">
+          <circle cx="150" cy="150" r="110" class="fill-soft"/>
+          <circle cx="150" cy="150" r="110" fill="none" class="rule" stroke-width="1.5"/>
+          <line x1="150" y1="30" x2="150" y2="272" class="rule" stroke-width="1"/>
+          <line x1="28" y1="150" x2="272" y2="150" class="rule" stroke-width="1"/>
+          <circle cx="150" cy="150" r="77.8" fill="none" class="unit" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <circle cx="150" cy="150" r="55" fill="none" class="alt" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <line x1="205" y1="95" x2="156" y2="95" class="ink" stroke-width="1.6"/>
+          <polygon points="152,95 161,90.5 161,99.5" class="fill-ink"/>
+          <circle cx="205" cy="95" r="6" class="fill-unit"/>
+          <circle cx="150" cy="95" r="6" class="fill-alt"/>
+          <text x="212" y="90" font-size="12" class="unit halo">ρ: S = 0.601</text>
+          <text x="40" y="88" font-size="12" class="alt halo">dephased: 0.811</text>
+          <text x="140" y="36" font-size="13" text-anchor="end">|0⟩</text>
+          <text x="150" y="286" font-size="11" class="soft" text-anchor="middle">x horizontal, z vertical</text>
+        </svg>
+        <p class="cap">Forgetting a $z$ measurement drops $r_x$: the point moves to a smaller circle, so the entropy rises.</p>
+      </div>
+      <p class="small"><b>Running example.</b> $z$ diagonal $(\tfrac34, \tfrac14)$: $h(\tfrac14) = 0.811 \ge 0.601$ ✓. In the eigenbasis: equality.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> $d_k = \bra{f_k}\big(\sum_j\lambda_j\ket{e_j}\!\bra{e_j}\big)\ket{f_k} = \sum_j\lambda_j|\braket{f_k|e_j}|^2$. Each $d_k \ge 0$ and
+    $\sum_kd_k = \operatorname{tr}\rho = 1$. The matrix $B$ is <i>doubly stochastic</i>: $\sum_kB_{kj} = \lVert e_j\rVert^2 = 1$ and $\sum_jB_{kj} = \lVert f_k\rVert^2 = 1$, by
+    Parseval in each basis. $\eta(t) = -t\log t$ is concave on $[0, 1]$ ($\eta''(t) = -1/(t\ln2) &lt; 0$), and $d_k$ is a convex
+    combination of the $\lambda_j$ with weights $B_{kj}$ (row sums one), so Jensen's inequality for a finite average gives
+    $\eta(d_k) \ge \sum_jB_{kj}\eta(\lambda_j)$. Summing over $k$ and using the column sums,
+    $H(d) = \sum_k\eta(d_k) \ge \sum_j\eta(\lambda_j)\sum_kB_{kj} = S(\rho)$. $\blacksquare$</p>
+    <p><b>Jensen for a finite average</b> (from the background, by induction on the number of terms): for concave
+    $\eta$ and weights $w_j \ge 0$ summing to one, $\eta(\sum w_jt_j) \ge \sum w_j\eta(t_j)$.</p>
+    <p><b>The operator meaning.</b> Measuring in $\{f_k\}$ and not recording the outcome sends $\rho$ to
+    $\sum_k\ket{f_k}\!\bra{f_k}\rho\ket{f_k}\!\bra{f_k}$ (unit 04's non-selective measurement), whose spectrum is exactly $d$. So the lemma
+    says: a non-selective measurement in a basis never lowers $S$. In the Bloch picture a $z$ measurement
+    forgotten sends $(r_x, r_y, r_z) \mapsto (0, 0, r_z)$, shortening the vector, and $S$ falls with $|r|$. Running example:
+    $|r|$ from $0.7071$ to $0.5$, entropy $h(0.8536) = 0.601$ to $h(0.75) = 0.811$.</p>
+    <p><b>The warning.</b> The coin-flip story uses non-orthogonal members, and its Shannon entropy $1$ exceeds
+    $S(\rho)$. In general, for $\rho = \sum p_i\ket{\psi_i}\!\bra{\psi_i}$, $S(\rho) \le H(p)$ with equality iff the $\psi_i$ are orthogonal; the
+    proof, on the sheet as problem P3, purifies $\rho$ and applies this lemma.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · von Neumann</p>
+  <h2>Concavity: mixing never lowers entropy</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">concavity</span> of $S$</span>
+        $$S\Big(\sum_ip_i\rho_i\Big) \ \ge\ \sum_ip_iS(\rho_i)$$
+        <p class="small">for density operators $\rho_i$ and a distribution $p$; equality iff all $\rho_i$ with $p_i &gt; 0$ are equal.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Let $\{\ket{e_k}\}$ be an eigenbasis of $\rho = \sum_ip_i\rho_i$. Then</p>
+        $$\begin{aligned}S(\rho) &amp;= \textstyle\sum_k\eta\big(\sum_ip_i\braket{e_k|\rho_i|e_k}\big)\\ &amp;\ge \textstyle\sum_ip_i\sum_k\eta\big(\braket{e_k|\rho_i|e_k}\big)\\ &amp;\ge \textstyle\sum_ip_iS(\rho_i),\end{aligned}$$
+        <p class="small">by concavity of $\eta$, then the diagonal lemma. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>Running example.</b> $0.601 \ge \tfrac12\cdot0 + \tfrac12\cdot0$: two pure states mixed hold $0.601$ bits — the price of not knowing which.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 340 222" width="380" role="img" aria-label="the curve eta of t equals minus t log t on 0 to 1, peaked near t 0.37; a chord joins the points at t 0.1 and t 0.8; at their midpoint t 0.45 the curve lies above the chord">
+        <line x1="40" y1="190" x2="324" y2="190" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="190" x2="40" y2="30" class="rule" stroke-width="1.2"/>
+        <path d="M40.0,190.0 L40.6,185.5 L41.1,182.0 L41.7,178.9 L42.2,176.1 L42.8,173.4 L43.4,170.9 L43.9,168.4 L44.5,166.1 L45.0,163.9 L45.6,161.8 L45.6,161.8 L49.6,148.4 L53.6,137.1 L57.5,127.4 L61.5,118.9 L65.5,111.3 L69.5,104.5 L73.4,98.5 L77.4,93.0 L81.4,88.1 L85.4,83.6 L89.3,79.7 L93.3,76.1 L97.3,72.9 L101.3,70.1 L105.3,67.6 L109.2,65.4 L113.2,63.5 L117.2,61.9 L121.2,60.5 L125.1,59.4 L129.1,58.6 L133.1,58.0 L137.1,57.5 L141.0,57.3 L145.0,57.3 L149.0,57.5 L153.0,57.9 L157.0,58.5 L160.9,59.2 L164.9,60.1 L168.9,61.2 L172.9,62.4 L176.8,63.8 L180.8,65.3 L184.8,67.0 L188.8,68.8 L192.7,70.8 L196.7,72.8 L200.7,75.1 L204.7,77.4 L208.6,79.9 L212.6,82.5 L216.6,85.2 L220.6,88.0 L224.6,90.9 L228.5,93.9 L232.5,97.1 L236.5,100.4 L240.5,103.7 L244.4,107.2 L248.4,110.7 L252.4,114.4 L256.4,118.1 L260.3,122.0 L264.3,125.9 L268.3,130.0 L272.3,134.1 L276.3,138.3 L280.2,142.6 L284.2,147.0 L288.2,151.4 L292.2,156.0 L296.1,160.6 L300.1,165.3 L304.1,170.1 L308.1,175.0 L312.0,179.9 L316.0,184.9 L320.0,190.0" fill="none" class="unit" stroke-width="2.4"/>
+        <line x1="68" y1="107" x2="264" y2="125.6" class="alt" stroke-width="2" stroke-dasharray="6 4"/>
+        <circle cx="68" cy="107" r="5" class="fill-alt"/><circle cx="264" cy="125.6" r="5" class="fill-alt"/>
+        <circle cx="166" cy="116.3" r="5" class="fill-alt"/>
+        <circle cx="166" cy="60.4" r="5" class="fill-unit"/>
+        <line x1="166" y1="66" x2="166" y2="111" class="ink" stroke-width="1.2"/>
+        <text x="172" y="54" font-size="12" class="unit halo">η(average)</text>
+        <text x="172" y="140" font-size="12" class="alt halo">average of η</text>
+        <text x="40" y="206" font-size="11" class="mono" text-anchor="middle">0</text>
+        <text x="143" y="206" font-size="11" class="mono" text-anchor="middle">1/e</text>
+        <text x="320" y="206" font-size="11" class="mono" text-anchor="middle">1</text>
+        <text x="296" y="122" font-size="13" class="unit">η(t)</text>
+      </svg>
+      <p class="cap">$\eta(t) = -t\log t$ is concave: the curve lies above every chord. That one fact, applied eigenvalue by eigenvalue, is the theorem.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> In the eigenbasis of $\rho$, $S(\rho) = \sum_k\eta(\braket{e_k|\rho|e_k})$ (the diagonal is the spectrum). Linearity gives
+    $\braket{e_k|\rho|e_k} = \sum_ip_i\braket{e_k|\rho_i|e_k}$. Concavity of $\eta$ (Jensen with weights $p_i$) gives, for each $k$,
+    $\eta\big(\sum_ip_i\braket{e_k|\rho_i|e_k}\big) \ge \sum_ip_i\eta(\braket{e_k|\rho_i|e_k})$. Sum over $k$ and exchange the sums. Finally
+    $\sum_k\eta(\braket{e_k|\rho_i|e_k})$ is the entropy of $\rho_i$'s diagonal in the basis $\{e_k\}$, which is at least $S(\rho_i)$ by
+    <i>Diagonals have more entropy than the spectrum</i>.</p>
+    <p><b>Equality.</b> If all $\rho_i$ are equal, both sides are $S(\rho_1)$. Conversely, $\eta$ is strictly concave, so
+    equality in the first step forces, for each $k$, the numbers $\braket{e_k|\rho_i|e_k}$ to be the same for all $i$ with
+    $p_i &gt; 0$. Equality in the second forces each $\rho_i$'s diagonal in $\{e_k\}$ to have entropy $S(\rho_i)$; by the
+    equality case of the lemma (strict concavity again: each $d_k$ must be an average of equal $\lambda_j$'s) the
+    basis $\{e_k\}$ then diagonalises $\rho_i$. So every $\rho_i$ is diagonal in one basis with one diagonal: they are equal.</p>
+    <p><b>The figure.</b> Computed: $\eta(0.1) = 0.332$, $\eta(0.8) = 0.258$, their average $0.295$, and $\eta(0.45) = 0.518$ at the
+    midpoint. The maximum is $\eta(1/e) = 1/(e\ln2) = 0.531$.</p>
+    <p><b>An upper bound too.</b> Mixing can raise the entropy by at most the entropy of the mixing:
+    $S(\sum p_i\rho_i) \le \sum p_iS(\rho_i) + H(p)$, with equality iff the $\rho_i$ have orthogonal supports. That is problem P3; the
+    running example has $0.601 \le 0 + 1$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Relative entropy and the inequalities</h2>
+  <p>One inequality proved — Klein's — and the rest follow from it, from purification, and from one theorem that is cited.</p>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>Relative entropy, and Klein's inequality</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="term">relative entropy</span></span>
+        <p class="small">$D(\rho\Vert\sigma) = \operatorname{tr}\rho\log\rho - \operatorname{tr}\rho\log\sigma$ if $\operatorname{supp}\rho \subseteq \operatorname{supp}\sigma$, else $+\infty$. Commuting $\rho, \sigma$: Gibbs' $D$ of the spectra.</p>
+      </div>
+      <div class="box thm"><span class="label"><span class="term">Klein's inequality</span></span>
+        <p class="small">$D(\rho\Vert\sigma) \ge 0$, with equality iff $\rho = \sigma$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\rho = \sum_ip_i\ket{r_i}\!\bra{r_i}$, $\sigma = \sum_jq_j\ket{s_j}\!\bra{s_j}$, $P_{ij} = |\braket{r_i|s_j}|^2$, doubly stochastic. Then</p>
+        $$\begin{aligned}D(\rho\Vert\sigma) &amp;= \textstyle\sum_{i,j}P_{ij}\,p_i\log(p_i/q_j)\\ &amp;\ge \textstyle\frac1{\ln2}\sum_{i,j}P_{ij}(p_i - q_j) = 0,\end{aligned}$$
+        <p class="small">by $a\ln\frac ab \ge a - b$ (Gibbs' tangent line). Equality forces $p_i = q_j$ whenever $P_{ij} &gt; 0$, hence $\sigma\ket{r_i} = p_i\ket{r_i}$: $\sigma = \rho$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 270 250" width="270" role="img" aria-label="two orthonormal bases in the real plane: s1 horizontal and s2 vertical, the eigenbasis of sigma; r1 at 22.5 degrees and r2 at 112.5 degrees, the eigenbasis of rho; the angle between r1 and s1 is marked 22.5 degrees">
+          <line x1="20" y1="190" x2="250" y2="190" class="rule" stroke-width="1"/>
+          <line x1="70" y1="240" x2="70" y2="20" class="rule" stroke-width="1"/>
+          <line x1="70" y1="190" x2="226" y2="190" class="alt" stroke-width="2.6"/>
+          <polygon points="232,190 220,184.5 220,195.5" class="fill-alt"/>
+          <line x1="70" y1="190" x2="70" y2="34" class="alt" stroke-width="2.6"/>
+          <polygon points="70,28 64.5,40 75.5,40" class="fill-alt"/>
+          <line x1="70" y1="190" x2="214.1" y2="130.3" class="unit" stroke-width="2.6"/>
+          <polygon points="219.6,128 206.4,128.7 210.6,138.9" class="fill-unit"/>
+          <line x1="70" y1="190" x2="10.3" y2="45.9" class="unit" stroke-width="2.6"/>
+          <polygon points="8,40.4 8.7,53.6 18.9,49.4" class="fill-unit"/>
+          <path d="M140,190 A70,70 0 0 0 134.7,163.2" fill="none" class="ink" stroke-width="1.3"/>
+          <text x="146" y="178" font-size="12" class="halo">22.5°</text>
+          <text x="238" y="208" font-size="13" class="alt">s₁</text>
+          <text x="78" y="32" font-size="13" class="alt">s₂</text>
+          <text x="222" y="124" font-size="13" class="unit">r₁</text>
+          <text x="20" y="38" font-size="13" class="unit">r₂</text>
+        </svg>
+        <p class="cap">Real vectors in the plane of $\mathbb C^2$ (not the Bloch disc). $P_{11} = \cos^2 22.5^\circ = 0.854$, $P_{12} = 0.146$: the double sum weighs every pair of eigenvectors by their overlap.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Write $\operatorname{tr}\rho\log\rho = \sum_ip_i\log p_i$. For the second term, expand in the eigenbasis of $\rho$:
+    $\operatorname{tr}\rho\log\sigma = \sum_ip_i\braket{r_i|\log\sigma|r_i} = \sum_ip_i\sum_j|\braket{r_i|s_j}|^2\log q_j$, because $\log\sigma = \sum_j\log q_j\ket{s_j}\!\bra{s_j}$ on the
+    support of $\sigma$. Terms with $p_i = 0$ contribute nothing; if some $p_i &gt; 0$ and $P_{ij} &gt; 0$ had $q_j = 0$, then
+    $\ket{r_i}$ would have a component outside $\operatorname{supp}\sigma$, which the support condition excludes. Since $\sum_jP_{ij} = 1$,
+    $\sum_ip_i\log p_i = \sum_{i,j}P_{ij}p_i\log p_i$, and the two combine into the displayed double sum. Now
+    $a\ln(a/b) \ge a - b$ for $a \ge 0$, $b &gt; 0$ (put $t = b/a$ in $\ln t \le t - 1$ and multiply by $-a$; at $a = 0$ it reads $0 \ge -b$).
+    Apply it to each term with weight $P_{ij} \ge 0$ and divide by $\ln2$. Finally $\sum_{i,j}P_{ij}p_i = \sum_ip_i = 1$ and
+    $\sum_{i,j}P_{ij}q_j = \sum_jq_j = 1$ (column sums are one), so the bound is $0$.</p>
+    <p><b>Equality, in full.</b> Equality in $a\ln(a/b) \ge a - b$ needs $a = b$. So $D = 0$ forces $p_i = q_j$ for every pair with
+    $P_{ij} &gt; 0$. Fix $i$: $\ket{r_i} = \sum_j\braket{s_j|r_i}\ket{s_j}$ involves only $s_j$ with $q_j = p_i$, so $\sigma\ket{r_i} = p_i\ket{r_i}$. This holds for
+    every $i$, and $\{r_i\}$ is a basis, so $\sigma = \sum_ip_i\ket{r_i}\!\bra{r_i} = \rho$.</p>
+    <p><b>The spec's form.</b> The same proof is often written with the convexity of $x\log x$: the tangent-line
+    inequality used here is exactly the statement that $x\ln x$ lies above its tangent at $x = b$. And with
+    $\sigma = I/d$, $D(\rho\Vert I/d) = \log d - S(\rho)$: Klein re-proves $S \le \log d$.</p>
+    <p><b>History.</b> O. Klein, <i>Z. Phys.</i> 72, 767 (1931), for the operator inequality behind it; the quantum
+    relative entropy itself is Umegaki's (1962). It is not a distance: next slide.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities · example</p>
+  <h2>Worked: Klein, checked with numbers</h2>
+  <div class="box ex"><span class="label">$\rho$ = <span class="ref" data-ref="ens">the running mixture</span>, against two $\sigma$'s</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. $\rho$'s eigenbasis.</b> $p_1 = 0.8536$ on $\ket{r_1} = \cos\tfrac\pi8\ket0 + \sin\tfrac\pi8\ket1$, $\ p_2 = 0.1464$ on $\ket{r_2} = -\sin\tfrac\pi8\ket0 + \cos\tfrac\pi8\ket1$.</p>
+      <p class="small"><b>2. $\sigma_1 = \mathrm{diag}(\tfrac34, \tfrac14)$</b>, $\rho$ with its $z$ off-diagonals deleted. $s_j = \ket0, \ket1$, and</p>
+      $$P = \begin{pmatrix}0.8536&amp;0.1464\\0.1464&amp;0.8536\end{pmatrix}.$$
+      <p class="small">Rows and columns sum to $1$ ✓.</p>
+      <p class="small"><b>3. The second term.</b> $\sum_ip_iP_{ij}$: $\ 0.8536^2 + 0.1464^2 = 0.75$ and $0.25$ — the $z$ diagonal of $\rho$ ✓. So</p>
+      $$\begin{aligned}-\operatorname{tr}\rho\log\sigma_1 &amp;= 0.75\cdot0.4150 + 0.25\cdot2\\ &amp;= 0.8113 .\end{aligned}$$
+    </div>
+    <div>
+      <p class="small"><b>4. The value.</b> $D(\rho\Vert\sigma_1) = -S(\rho) + 0.8113 = -0.6009 + 0.8113 = 0.2104 &gt; 0$ ✓.</p>
+      <p class="small"><b>5. $\sigma_2 = I/2$.</b> $\log\sigma_2 = -I$, so $-\operatorname{tr}\rho\log\sigma_2 = 1$ and $D(\rho\Vert I/2) = 1 - 0.6009 = 0.3991 &gt; 0$ ✓.</p>
+      <p class="small"><b>6. $\sigma = \rho$</b>: the two terms cancel, $D = 0$ ✓ — the equality case.</p>
+      <div class="box warn"><span class="label">not symmetric</span>
+        <p class="small">The other order: $D(\sigma_1\Vert\rho) = 0.2392 \ne 0.2104$. $D$ measures how far, but it is not a distance.</p>
+      </div>
+      <p class="small">Both checks are lemmas in disguise: $D(\rho\Vert I/d) = \log d - S(\rho)$, and $D(\rho\Vert\text{diag}) = H(\text{diag}) - S(\rho)$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each step.</b> Step 1: unit 04's eigenvectors, as in <i>Worked: the entropy of the running mixture</i>. Step 2:
+    $P_{11} = |\braket{r_1|0}|^2 = \cos^2\tfrac\pi8$, $P_{12} = |\braket{r_1|1}|^2 = \sin^2\tfrac\pi8$, $P_{21} = \sin^2\tfrac\pi8$, $P_{22} = \cos^2\tfrac\pi8$. Step 3: the column
+    sums with weights $p_i$ are $\cos^4\tfrac\pi8 + \sin^4\tfrac\pi8 = 1 - 2\sin^2\tfrac\pi8\cos^2\tfrac\pi8 = 1 - \tfrac14 = \tfrac34$ ✓; this must be
+    $\braket{0|\rho|0}$, since $\sum_ip_i|\braket{r_i|0}|^2 = \bra0\rho\ket0$. Then $-\log\tfrac34 = 0.41504$ and $-\log\tfrac14 = 2$. The sum $0.81128$ is $h(\tfrac14)$.</p>
+    <p><b>The general identities.</b> If $\sigma$ is diagonal in a basis $\{f_k\}$ with entries equal to $\rho$'s diagonal $d_k$ there,
+    then $-\operatorname{tr}\rho\log\sigma = -\sum_kd_k\log d_k = H(d)$, so $D(\rho\Vert\sigma) = H(d) - S(\rho) \ge 0$: Klein re-proves
+    <i>Diagonals have more entropy than the spectrum</i>. With $\sigma = I/d$ it re-proves $S \le \log d$. And
+    $1 - S(\rho) = 0.3991$ here is a coincidence with section 4's Helstrom number $0.3991$: both are $1 - h(\cos^2\tfrac\pi8)$, for
+    reasons particular to this pair (unit 04's notes explain why $\cos^2\tfrac\pi8$ appears twice).</p>
+    <p><b>The reversed order.</b> $D(\sigma_1\Vert\rho) = \operatorname{tr}\sigma_1\log\sigma_1 - \operatorname{tr}\sigma_1\log\rho = -0.8113 - \operatorname{tr}\sigma_1\log\rho$. With
+    $\log\rho = -0.2284\ket{r_1}\!\bra{r_1} - 2.7716\ket{r_2}\!\bra{r_2}$: $\operatorname{tr}\sigma_1\log\rho = -\sum_j\sigma_{jj}\big(0.2284P_{1j} + 2.7716P_{2j}\big)$
+    $= -\big[0.75(0.1950 + 0.4059) + 0.25(0.0335 + 2.3657)\big] = -1.0504$. So $D = -0.8113 + 1.0504 = 0.2392$. Computed also by
+    diagonalising numerically.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>Mutual information is a relative entropy</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">quantum mutual information</span></span>
+        <p class="small">For $\rho_{AB}$ with reduced states $\rho_A, \rho_B$ (unit 04), write $S(A) = S(\rho_A)$ and so on, and</p>
+        $$I(A:B) = S(A) + S(B) - S(AB).$$
+      </div>
+      <div class="box thm"><span class="label"><span class="term">subadditivity</span></span>
+        <p class="small">$I(A:B) = D(\rho_{AB}\Vert\rho_A\otimes\rho_B) \ge 0$, so $S(AB) \le S(A) + S(B)$, with equality iff $\rho_{AB} = \rho_A\otimes\rho_B$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\log(\rho_A\otimes\rho_B) = \log\rho_A\otimes I + I\otimes\log\rho_B$ (eigenvalues $a_ib_j$, $\log a_ib_j = \log a_i + \log b_j$). By the partial trace's defining property, $\operatorname{tr}\rho_{AB}(\log\rho_A\otimes I) = \operatorname{tr}\rho_A\log\rho_A$. So $-\operatorname{tr}\rho_{AB}\log(\rho_A\otimes\rho_B) = S(A) + S(B)$. Klein. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 170" width="330" role="img" aria-label="left, systems A and B joined by a wavy line labelled correlations, the state rho A B; right, A and B with no link, the state rho A tensor rho B; an arrow between them labelled same marginals; I of A and B is the relative entropy between the two">
+          <circle cx="40" cy="70" r="24" class="fill-soft"/><circle cx="120" cy="70" r="24" class="fill-soft"/>
+          <circle cx="40" cy="70" r="24" fill="none" class="unit" stroke-width="2"/><circle cx="120" cy="70" r="24" fill="none" class="unit" stroke-width="2"/>
+          <path d="M64,70 q8,-12 16,0 t16,0" fill="none" class="accent" stroke-width="2.2"/>
+          <text x="40" y="75" text-anchor="middle" font-size="14">A</text><text x="120" y="75" text-anchor="middle" font-size="14">B</text>
+          <text x="80" y="122" text-anchor="middle" font-size="13" class="mono">ρ<tspan baseline-shift="sub" font-size="10">AB</tspan></text>
+          <circle cx="210" cy="70" r="24" class="fill-soft"/><circle cx="290" cy="70" r="24" class="fill-soft"/>
+          <circle cx="210" cy="70" r="24" fill="none" class="alt" stroke-width="2"/><circle cx="290" cy="70" r="24" fill="none" class="alt" stroke-width="2"/>
+          <text x="210" y="75" text-anchor="middle" font-size="14">A</text><text x="290" y="75" text-anchor="middle" font-size="14">B</text>
+          <text x="250" y="122" text-anchor="middle" font-size="13" class="mono">ρ<tspan baseline-shift="sub" font-size="10">A</tspan> ⊗ ρ<tspan baseline-shift="sub" font-size="10">B</tspan></text>
+          <text x="165" y="150" text-anchor="middle" font-size="12" class="soft">same halves; I(A:B) = D(left ‖ right)</text>
+        </svg>
+        <p class="cap">The product of the marginals keeps each half and forgets the correlation; $I$ is how far the true state is from it.</p>
+      </div>
+      <div class="box good"><span class="label">additivity, as a corollary</span>
+        <p class="small">$S(\rho\otimes\sigma) = S(\rho) + S(\sigma)$: the spectrum is $\{a_ib_j\}$. In particular a pure factor adds nothing: $S(\rho\otimes\ket0\!\bra0) = S(\rho)$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The logarithm of a tensor product.</b> If $\rho_A = \sum_ia_i\ket{e_i}\!\bra{e_i}$ and $\rho_B = \sum_jb_j\ket{f_j}\!\bra{f_j}$, then
+    $\rho_A\otimes\rho_B = \sum_{i,j}a_ib_j\ket{e_if_j}\!\bra{e_if_j}$ (unit 03's Kronecker rule), an eigen-decomposition in the product basis. On its
+    support ($a_ib_j &gt; 0$) the functional calculus gives $\log(\rho_A\otimes\rho_B) = \sum(\log a_i + \log b_j)\ket{e_if_j}\!\bra{e_if_j}$, which is
+    $\log\rho_A\otimes I + I\otimes\log\rho_B$ restricted to $\operatorname{supp}\rho_A\otimes\operatorname{supp}\rho_B$.</p>
+    <p><b>The support condition holds.</b> Let $\Pi_A$ project onto $\operatorname{supp}\rho_A$. Then
+    $\operatorname{tr}\big(((I - \Pi_A)\otimes I)\rho_{AB}\big) = \operatorname{tr}((I - \Pi_A)\rho_A) = 0$, and a positive operator whose expectation on a
+    projector is zero lives in the complement of that projector's range; so $\operatorname{supp}\rho_{AB} \subseteq \operatorname{supp}\rho_A\otimes H_B$, and likewise for
+    $B$. Hence $\operatorname{supp}\rho_{AB} \subseteq \operatorname{supp}(\rho_A\otimes\rho_B)$ and $D$ is finite.</p>
+    <p><b>The partial-trace step.</b> Unit 04 defined $\rho_A$ as the unique operator with $\operatorname{tr}((X\otimes I)\rho_{AB}) = \operatorname{tr}(X\rho_A)$ for all $X$.
+    Take $X = \log\rho_A$ (on its support). So $-\operatorname{tr}\rho_{AB}\log(\rho_A\otimes\rho_B) = -\operatorname{tr}\rho_A\log\rho_A - \operatorname{tr}\rho_B\log\rho_B = S(A) + S(B)$, and
+    $D(\rho_{AB}\Vert\rho_A\otimes\rho_B) = -S(AB) + S(A) + S(B)$. Klein gives $\ge 0$ and the equality case.</p>
+    <p><b>Check.</b> A product state: $I = 0$ ✓. $\ket{\Phi^+}$: $S(AB) = 0$, $S(A) = S(B) = 1$, $I = 2$ — positive, and larger than
+    any classical pair of bits could manage; <i>The whole can hold less than a part</i> returns to it.</p>
+    <p><b>Additivity.</b> $\rho\otimes\sigma$ has eigenvalues $a_ib_j$, and $H(\{a_ib_j\}) = H(a) + H(b)$ — the joint entropy of independent
+    variables. In particular a factor in a pure state, spectrum $(1, 0, \dots)$, adds $0$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>Register and qubit: the running example as one state</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">classical–quantum state</span></span>
+        <p class="small">Let a register $P$ keep Alice's coin: $\ \rho_{PQ} = \sum_xp_x\ket x\!\bra x\otimes\rho_x$.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma: its entropy</span>
+        <p class="small">$S\big(\sum_xp_x\ket x\!\bra x\otimes\rho_x\big) = H(p) + \sum_xp_xS(\rho_x)$.</p>
+        <p class="small">Block-diagonal: the eigenvalues are $p_x\lambda_{x,k}$, and $-\sum p_x\lambda_{x,k}\log(p_x\lambda_{x,k})$ splits. $\blacksquare$</p>
+      </div>
+      <p class="small">So $S(P) = H(p)$, $\ S(Q) = S(\sum_xp_x\rho_x)$, and</p>
+      $$I(P:Q) = S\big(\textstyle\sum_xp_x\rho_x\big) - \sum_xp_xS(\rho_x) =: \chi .$$
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 270 230" width="270" role="img" aria-label="a four by four matrix in the basis 00, 01, 10, 11; the top-left two by two block holds one half, 0, 0, 0; the bottom-right block holds one quarter in all four entries; the off-diagonal blocks are zero">
+          <rect x="60" y="30" width="80" height="80" class="fill-unit" opacity="0.25"/>
+          <rect x="140" y="110" width="80" height="80" class="fill-alt" opacity="0.25"/>
+          <rect x="60" y="30" width="160" height="160" fill="none" class="rule" stroke-width="1.2"/>
+          <line x1="140" y1="30" x2="140" y2="190" class="rule" stroke-width="1.2"/>
+          <line x1="60" y1="110" x2="220" y2="110" class="rule" stroke-width="1.2"/>
+          <g font-size="13" class="mono" text-anchor="middle">
+            <text x="80" y="55">½</text><text x="120" y="55">0</text><text x="160" y="55" class="soft">0</text><text x="200" y="55" class="soft">0</text>
+            <text x="80" y="95">0</text><text x="120" y="95">0</text><text x="160" y="95" class="soft">0</text><text x="200" y="95" class="soft">0</text>
+            <text x="80" y="135" class="soft">0</text><text x="120" y="135" class="soft">0</text><text x="160" y="135">¼</text><text x="200" y="135">¼</text>
+            <text x="80" y="175" class="soft">0</text><text x="120" y="175" class="soft">0</text><text x="160" y="175">¼</text><text x="200" y="175">¼</text>
+          </g>
+          <g font-size="11" class="soft mono" text-anchor="end">
+            <text x="52" y="56">00</text><text x="52" y="96">01</text><text x="52" y="136">10</text><text x="52" y="176">11</text>
+          </g>
+          <text x="100" y="22" font-size="12" class="unit" text-anchor="middle">x = 0: ½|0⟩⟨0|</text>
+          <text x="180" y="212" font-size="12" class="alt" text-anchor="middle">x = 1: ½|+⟩⟨+|</text>
+        </svg>
+        <p class="cap">$\rho_{PQ}$ for the running example, register first. Trace $\tfrac12 + \tfrac14 + \tfrac14 = 1$ ✓.</p>
+      </div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="cq">register and qubit</span>, in numbers</span>
+        <p class="small">$S(P) = 1$, $\ S(Q) = 0.601$, $\ S(PQ) = 1 + \tfrac12\cdot0 + \tfrac12\cdot0 = 1$. $\ I(P:Q) = 1 + 0.601 - 1 = 0.601$; subadditivity $1 \le 1.601$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The lemma, in full.</b> In a basis $\ket x\otimes\ket{e_{x,k}}$, where $\{e_{x,k}\}_k$ is an eigenbasis of $\rho_x$, the operator
+    $\sum_xp_x\ket x\!\bra x\otimes\rho_x$ is diagonal with entries $p_x\lambda_{x,k}$: it is block-diagonal, one block $p_x\rho_x$ per value
+    of $x$. These sum to $\sum_xp_x\sum_k\lambda_{x,k} = 1$ ✓. Then
+    $-\sum_{x,k}p_x\lambda_{x,k}\big(\log p_x + \log\lambda_{x,k}\big) = -\sum_xp_x\log p_x\sum_k\lambda_{x,k} + \sum_xp_x\big(-\sum_k\lambda_{x,k}\log\lambda_{x,k}\big) = H(p) + \sum_xp_xS(\rho_x)$.</p>
+    <p><b>The marginals.</b> $\operatorname{tr}_Q\rho_{PQ} = \sum_xp_x\operatorname{tr}(\rho_x)\ket x\!\bra x = \sum_xp_x\ket x\!\bra x$, entropy $H(p)$. And
+    $\operatorname{tr}_P\rho_{PQ} = \sum_xp_x\rho_x$, the average state. So $I(P:Q) = H(p) + S(\bar\rho) - H(p) - \sum p_xS(\rho_x)$, the $H(p)$ cancelling.</p>
+    <p><b>Why bother with the register.</b> It turns "how much does Alice's ensemble say about $x$" into the mutual
+    information of one bipartite state, so that the inequalities of this section apply to it. The register is
+    a bookkeeping device — "Alice writes $x$ on a piece of paper and keeps it" — and since it is diagonal it is
+    as classical as a quantum system can be. Section 4's proof adds a third system and moves the
+    information between them.</p>
+    <p><b>The numbers.</b> With $p = (\tfrac12, \tfrac12)$ and both members pure, $S(PQ) = H(p) = 1$: the spectrum of the
+    figure's matrix is $\tfrac12$ (from the top block) and $\tfrac12, 0$ (from the bottom block, $\tfrac12\ket+\!\bra+$), and $0$ — that is, $(\tfrac12, \tfrac12, 0, 0)$.
+    $I(P:Q) = 0.601$ is less than $H(p) = 1$: the qubit does not hold all of the coin.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>Pure states: the entanglement entropy</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">both halves, one number</span>
+        <p class="small">If $\ket\psi_{AB} = \sum_ks_k\ket{a_k}\ket{b_k}$ (unit 03's Schmidt form), then $\rho_A$ and $\rho_B$ have the same non-zero eigenvalues $s_k^2$ (unit 04), so</p>
+        $$S(A) = S(B) = H(s_1^2, s_2^2, \dots).$$
+      </div>
+      <div class="box def"><span class="label"><span class="term">entanglement entropy</span></span>
+        <p class="small">$E(\psi) := S(\rho_A)$ for pure $\psi$: $0$ iff $\psi$ is a product, $\log d$ iff maximally entangled. One ebit: $E(\Phi^+) = 1$.</p>
+      </div>
+      <div class="box thm"><span class="label">the unique measure (cited)</span>
+        <p class="small">With local operations and classical communication, $n$ copies of $\psi$ convert to $\approx nE(\psi)$ Bell pairs and back, and no measure other than $E$ is consistent with this (Bennett–Bernstein–Popescu–Schumacher 1996; Popescu–Rohrlich 1997).</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 200" width="340" role="img" aria-label="three pairs of bars showing squared Schmidt coefficients: a product state, 1 and 0, entropy 0; the purified running example, 0.854 and 0.146, entropy 0.601; a Bell state, one half and one half, entropy 1">
+          <line x1="20" y1="160" x2="320" y2="160" class="rule" stroke-width="1.2"/>
+          <rect x="40" y="40" width="30" height="120" class="fill-ink" opacity="0.7"/><rect x="74" y="159" width="30" height="1" class="fill-ink"/>
+          <rect x="140" y="57.6" width="30" height="102.4" class="fill-unit"/><rect x="174" y="142.4" width="30" height="17.6" class="fill-unit"/>
+          <rect x="240" y="100" width="30" height="60" class="fill-alt"/><rect x="274" y="100" width="30" height="60" class="fill-alt"/>
+          <text x="72" y="34" font-size="11" class="mono" text-anchor="middle">1, 0</text>
+          <text x="172" y="50" font-size="11" class="mono" text-anchor="middle">0.854, 0.146</text>
+          <text x="272" y="92" font-size="11" class="mono" text-anchor="middle">½, ½</text>
+          <text x="72" y="178" font-size="12" text-anchor="middle">product</text>
+          <text x="172" y="178" font-size="12" text-anchor="middle">ρ purified</text>
+          <text x="272" y="178" font-size="12" text-anchor="middle">Φ⁺</text>
+          <text x="72" y="196" font-size="12" class="mono" text-anchor="middle">E = 0</text>
+          <text x="172" y="196" font-size="12" class="mono unit" text-anchor="middle">E = 0.601</text>
+          <text x="272" y="196" font-size="12" class="mono alt" text-anchor="middle">E = 1</text>
+        </svg>
+        <p class="cap">Squared Schmidt coefficients, which sum to one in each case ✓, and the entropy of each pair.</p>
+      </div>
+      <p class="small"><b>Running example.</b> Purify $\rho$ (unit 04): $\sqrt{0.8536}\ket{e_1}\ket0 + \sqrt{0.1464}\ket{e_2}\ket1$. Its entanglement entropy is $S(\rho) = 0.601$: the mixedness of a state is the entanglement it would have with a purifier.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the theorem.</b> Unit 04 showed that for a pure state with coefficient matrix $C$, $\rho_A = CC^\dagger$
+    and $\rho_B$ has the same non-zero spectrum, and that in Schmidt form $\rho_A = \sum_ks_k^2\ket{a_k}\!\bra{a_k}$ and
+    $\rho_B = \sum_ks_k^2\ket{b_k}\!\bra{b_k}$. Entropy ignores zero eigenvalues ($\eta(0) = 0$), so $S(A) = S(B) = H(s^2)$, and $\sum_ks_k^2 = \lVert\psi\rVert^2 = 1$.
+    $E = 0$ iff one Schmidt coefficient is $1$: Schmidt rank one, a product (unit 03). $E = \log d$ iff all $d$ squared
+    coefficients equal $1/d$.</p>
+    <p><b>The cited theorem, stated carefully.</b> "Local operations and classical communication" (LOCC) means: Alice
+    and Bob may each do anything quantum to their own systems and may telephone each other, but may not send
+    quantum systems. Bennett, Bernstein, Popescu and Schumacher (<i>Phys. Rev. A</i> 53, 2046, 1996) showed that by
+    LOCC, $n$ copies of a pure state $\psi$ can be converted into $m$ Bell pairs with $m/n \to E(\psi)$ and vanishing
+    error ("concentration"), and $m$ Bell pairs into $n$ copies of $\psi$ with the same ratio ("dilution"). Popescu and
+    Rohrlich (<i>Phys. Rev. A</i> 56, R3319, 1997) showed that any measure of pure-state entanglement that is additive and
+    does not increase under LOCC, normalised to one ebit for $\Phi^+$, must equal $E$ asymptotically. Both are cited; LOCC
+    is not developed in this course.</p>
+    <p><b>The purification.</b> $\rho = \lambda_1\ket{e_1}\!\bra{e_1} + \lambda_2\ket{e_2}\!\bra{e_2}$, so unit 04's construction gives
+    $\ket\Psi = \sqrt{\lambda_1}\ket{e_1}\ket0 + \sqrt{\lambda_2}\ket{e_2}\ket1$, already in Schmidt form, with squared coefficients $0.8536, 0.1464$ ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>The whole can hold less than a part</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Classically</b>, $H(XY) = H(X) + H(Y|X) \ge H(X)$: a pair holds at least as much as either member.</p>
+      <p class="small"><b>For $\ket{\Phi^+}$</b>: $\rho_{AB}$ is pure, $S(AB) = 0$; $\ \rho_A = \rho_B = I/2$, $S(A) = S(B) = 1$. So</p>
+      $$S(AB) = 0 \ \lt\ 1 = S(A).$$
+      <div class="box def"><span class="label">quantum conditional entropy</span>
+        <p class="small">$S(A|B) := S(AB) - S(B)$, the same formula as the classical <span class="term">conditional entropy</span>. For $\ket{\Phi^+}$, $S(A|B) = -1$: negative, which no joint distribution allows.</p>
+      </div>
+      <p class="small">And $I(A:B) = 1 + 1 - 0 = 2$, where two classical bits manage at most $\min\{H(X), H(Y)\} = 1$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 330 220" width="340" role="img" aria-label="two groups of four bars. Left, two copies of one fair bit: H X 1, H Y 1, H X Y 1, I 1. Right, a Bell pair: S A 1, S B 1, S A B 0, I 2">
+        <line x1="10" y1="170" x2="320" y2="170" class="rule" stroke-width="1.2"/>
+        <g class="fill-unit"><rect x="20" y="120" width="26" height="50"/><rect x="50" y="120" width="26" height="50"/><rect x="80" y="120" width="26" height="50"/></g>
+        <rect x="110" y="120" width="26" height="50" class="fill-accent"/>
+        <g class="fill-alt"><rect x="180" y="120" width="26" height="50"/><rect x="210" y="120" width="26" height="50"/><rect x="240" y="169" width="26" height="1"/></g>
+        <rect x="270" y="70" width="26" height="100" class="fill-accent"/>
+        <g font-size="10" class="mono" text-anchor="middle">
+          <text x="33" y="186">X</text><text x="63" y="186">Y</text><text x="93" y="186">XY</text><text x="123" y="186">I</text>
+          <text x="193" y="186">A</text><text x="223" y="186">B</text><text x="253" y="186">AB</text><text x="283" y="186">I</text>
+          <text x="33" y="114">1</text><text x="63" y="114">1</text><text x="93" y="114">1</text><text x="123" y="114">1</text>
+          <text x="193" y="114">1</text><text x="223" y="114">1</text><text x="253" y="162">0</text><text x="283" y="64">2</text>
+        </g>
+        <text x="78" y="206" font-size="12" text-anchor="middle">X = Y, a fair bit</text>
+        <text x="238" y="206" font-size="12" text-anchor="middle">|Φ⁺⟩</text>
+        <text x="78" y="30" font-size="11" class="soft" text-anchor="middle">entropies, bits</text>
+      </svg>
+      <p class="cap">Perfectly correlated bits against a Bell pair. The pair's whole holds nothing; its correlation is twice the classical maximum.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the classical inequality fails.</b> The classical proof of $H(XY) \ge H(X)$ used $p(x, y) = p(x)p(y|x)$: a
+    joint distribution has conditional distributions, whose entropies are non-negative. A quantum state has no
+    analogue of "the state of $B$ given the state of $A$" that is itself a state with an entropy. What survives is the
+    weaker Araki–Lieb inequality on the next slide, $S(AB) \ge |S(A) - S(B)|$, which allows $S(AB) = 0$ with $S(A) = S(B)$.</p>
+    <p><b>Negative conditional entropy has a meaning</b> — cited, not developed: Horodecki, Oppenheim and Winter
+    (<i>Nature</i> 436, 673, 2005) showed that when $S(A|B) &lt; 0$, Alice can transfer her share of a state to Bob using
+    classical communication alone and gain $-S(A|B)$ ebits for later use. For $\Phi^+$ that is one ebit: Bob already
+    "has" Alice's half, in the sense that teleportation (unit 07) can move it.</p>
+    <p><b>Mutual information $2$.</b> Classically $I(X:Y) \le \min\{H(X), H(Y)\}$. Quantumly $I(A:B) \le 2\min\{S(A), S(B)\}$
+    (problem P7, from Araki–Lieb), and $\Phi^+$ attains it. Unit 07's dense coding spends exactly these two bits: one
+    qubit plus the pair carries two classical bits. Section 4 makes that precise.</p>
+    <p><b>The check on the figure.</b> Left: $X = Y$ uniform on $\{0, 1\}$; joint distribution $\tfrac12, \tfrac12$ on $00, 11$, so $H(XY) = 1$
+    and $I = 1 + 1 - 1 = 1$. Right: the numbers on the slide. Both pairs give identical outcomes when measured in $z$ —
+    the difference is entirely in what the joint state is, not in what one basis shows.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>Araki–Lieb: how much less</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Araki–Lieb inequality</span> (1970)</span>
+        $$|S(A) - S(B)| \ \le\ S(AB).$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Purify $\rho_{AB}$ by a system $R$ (unit 04). $ABR$ is pure, so each part has the entropy of its complement: $S(R) = S(AB)$, $S(AR) = S(B)$. Subadditivity on $AR$:</p>
+        $$\begin{aligned}S(B) = S(AR) &amp;\le S(A) + S(R)\\ &amp;= S(A) + S(AB).\end{aligned}$$
+        <p class="small">So $S(B) - S(A) \le S(AB)$; swap $A$ and $B$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>Tight</b> for every pure $\rho_{AB}$ ($0 \le 0$) and for $\rho_A\otimes\ket0\!\bra0$ ($S(A) - 0 = S(A)$).</p>
+      <p class="small"><b>Running example</b>, <span class="ref" data-ref="cq">register and qubit</span>: $S(P) - S(Q) = 0.399 \le 1 = S(PQ)$ ✓.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 280 230" width="290" role="img" aria-label="three discs A, B and R at the corners of a triangle; a dashed loop encloses A and B; a note says ABR is pure, so the entropy of AB equals that of R and the entropy of AR equals that of B">
+        <ellipse cx="90" cy="70" rx="80" ry="44" fill="none" class="rule" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <circle cx="50" cy="70" r="26" class="fill-soft"/><circle cx="130" cy="70" r="26" class="fill-soft"/><circle cx="210" cy="170" r="26" class="fill-soft"/>
+        <circle cx="50" cy="70" r="26" fill="none" class="unit" stroke-width="2"/><circle cx="130" cy="70" r="26" fill="none" class="unit" stroke-width="2"/><circle cx="210" cy="170" r="26" fill="none" class="alt" stroke-width="2"/>
+        <text x="50" y="75" text-anchor="middle" font-size="15">A</text><text x="130" y="75" text-anchor="middle" font-size="15">B</text><text x="210" y="175" text-anchor="middle" font-size="15" class="alt">R</text>
+        <line x1="150" y1="88" x2="192" y2="150" class="alt" stroke-width="1.5"/>
+        <line x1="70" y1="90" x2="186" y2="164" class="alt" stroke-width="1.5"/>
+        <text x="90" y="20" text-anchor="middle" font-size="12" class="soft">ρ<tspan baseline-shift="sub" font-size="10">AB</tspan>, any state</text>
+        <text x="20" y="160" font-size="12" class="mono">S(R) = S(AB)</text>
+        <text x="20" y="180" font-size="12" class="mono">S(AR) = S(B)</text>
+        <text x="20" y="214" font-size="12" class="soft">ABR pure: a part and its complement</text>
+      </svg>
+      <p class="cap">Purification turns a statement about $AB$ into one about $AR$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Unit 04: $\rho_{AB}$ has a purification $\ket\Psi \in H_A\otimes H_B\otimes H_R$ with $\operatorname{tr}_R\ket\Psi\!\bra\Psi = \rho_{AB}$. For any
+    split of a pure state into two parts, the two reduced states have the same non-zero spectrum (<i>Pure states:
+    the entanglement entropy</i>), so equal entropies. Splitting $ABR$ as $(AB)|R$ gives $S(AB) = S(R)$; as $(AR)|B$
+    gives $S(AR) = S(B)$. Subadditivity for the pair $A, R$ — with reduced states $\rho_A$ and $\rho_R$ of $\rho_{AR}$ — gives
+    $S(AR) \le S(A) + S(R)$. Substitute. The roles of $A$ and $B$ are symmetric.</p>
+    <p><b>When it is tight.</b> If $\rho_{AB}$ is pure, $S(A) = S(B)$ and $S(AB) = 0$, so both sides are $0$. If
+    $\rho_{AB} = \rho_A\otimes\ket0\!\bra0$, $S(B) = 0$ and $S(AB) = S(A)$ by additivity, so $S(A) - S(B) = S(AB)$. In general equality
+    in $S(A) - S(B) \le S(AB)$ means equality in subadditivity for $B, R$, so $\rho_{BR} = \rho_B\otimes\rho_R$ — problem P5 explores
+    what that forces.</p>
+    <p><b>The running example's numbers.</b> $S(P) = 1$, $S(Q) = 0.601$, $S(PQ) = 1$. The other direction,
+    $S(Q) - S(P) = -0.399 \le 1$, is weaker. And classically $S(PQ) \ge \max\{S(P), S(Q)\} = 1$, which holds with equality here: the
+    register is classical, and for a classical–quantum state the classical inequality survives (problem P6).</p>
+    <p><b>History.</b> H. Araki and E. H. Lieb, <i>Commun. Math. Phys.</i> 18, 160 (1970), who proved both this and
+    subadditivity. Strong subadditivity, conjectured by Lanford and Robinson (1968), was proved by Lieb and Ruskai three years after this paper.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>Strong subadditivity</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">strong subadditivity</span> — cited</span>
+        <p class="small">For every state of three systems $A, B, C$,</p>
+        $$S(ABC) + S(B) \ \le\ S(AB) + S(BC).$$
+        <p class="small">Lieb and Ruskai, <i>J. Math. Phys.</i> 14, 1938 (1973). <b>Not proved in this course</b>: the proof needs Lieb's concavity theorem, which is beyond it.</p>
+      </div>
+      <div class="box good"><span class="label">the form this unit uses</span>
+        $$I(A:BC) \ \ge\ I(A:B)$$
+        <p class="small">Discarding a subsystem never increases mutual information. Expand: $I(A:BC) - I(A:B) = S(AB) + S(BC) - S(ABC) - S(B)$, which is $\ge 0$ exactly by strong subadditivity. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 170" width="320" role="img" aria-label="system A on the left linked to the pair B C; C is then dropped into a bin, leaving A linked to B only; the mutual information can only fall">
+          <circle cx="40" cy="70" r="24" fill="none" class="unit" stroke-width="2"/><text x="40" y="75" text-anchor="middle" font-size="14">A</text>
+          <rect x="150" y="38" width="130" height="64" rx="8" fill="none" class="rule" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <circle cx="185" cy="70" r="24" fill="none" class="unit" stroke-width="2"/><text x="185" y="75" text-anchor="middle" font-size="14">B</text>
+          <circle cx="245" cy="70" r="24" fill="none" class="alt" stroke-width="2"/><text x="245" y="75" text-anchor="middle" font-size="14" class="alt">C</text>
+          <path d="M64,70 q20,-14 40,0 t40,0" fill="none" class="accent" stroke-width="2.2"/>
+          <line x1="245" y1="96" x2="245" y2="122" class="alt" stroke-width="1.5"/>
+          <line x1="229" y1="122" x2="261" y2="122" class="alt" stroke-width="2"/>
+          <line x1="235" y1="129" x2="255" y2="129" class="alt" stroke-width="2"/>
+          <line x1="241" y1="136" x2="249" y2="136" class="alt" stroke-width="2"/>
+          <text x="245" y="156" font-size="12" class="alt" text-anchor="middle">discard C</text>
+          <text x="104" y="118" font-size="12" class="halo mono" text-anchor="middle">I(A:BC) ≥ I(A:B)</text>
+        </svg>
+        <p class="cap">Throwing $C$ away can only lose what $A$ and $BC$ shared.</p>
+      </div>
+      <div class="box thm"><span class="label">the general statement — cited</span>
+        <p class="small"><span class="term">monotonicity of relative entropy</span>: $D(\rho_{XY}\Vert\sigma_{XY}) \ge D(\rho_X\Vert\sigma_X)$ (Lindblad 1975, Uhlmann 1977). With $\sigma = \rho_A\otimes\rho_{BC}$ it is $I(A:BC) \ge I(A:B)$. The two are equivalent; neither is derived from the other here.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why it is cited.</b> Subadditivity took one page because $I(A:B)$ is a single relative entropy and Klein's
+    inequality handles it. Strong subadditivity compares two relative entropies, and no proof of comparable
+    length is known. Lieb and Ruskai derived it from Lieb's concavity theorem (<i>Adv. Math.</i> 11, 267, 1973):
+    for $0 \le t \le 1$ and fixed $K$, the map $(A, B) \mapsto \operatorname{tr}(K^\dagger A^tKB^{1-t})$ is jointly concave on positive operators. Proving
+    that needs complex interpolation or operator-convexity arguments well outside this course. Nielsen and
+    Chuang, appendix 6, give a complete proof for the reader who wants it.</p>
+    <p><b>The equivalence, as a statement only.</b> Monotonicity of relative entropy under partial trace implies
+    strong subadditivity by the choice of $\sigma$ on the slide: $D(\rho_{ABC}\Vert\rho_A\otimes\rho_{BC}) = I(A:BC)$ by the computation on
+    <i>Mutual information is a relative entropy</i>, and tracing out $C$ turns it into $D(\rho_{AB}\Vert\rho_A\otimes\rho_B) = I(A:B)$.
+    Conversely, monotonicity can be derived from strong subadditivity (Lindblad 1975, via a further argument
+    not given here). The course uses only the special case.</p>
+    <p><b>A known case: classical $A, B, C$.</b> For diagonal states the inequality is
+    $I(X:YZ) \ge I(X:Y)$, and the classical chain rule gives $I(X:YZ) = I(X:Y) + I(X:Z|Y)$, where
+    $I(X:Z|Y) = \sum_yp(y)I(X:Z|Y = y)$ is an average of classical mutual informations, each $\ge 0$ by Gibbs. So the
+    classical case is easy, and what is hard is entirely quantum.</p>
+    <p><b>The chain rule, proved.</b> Conditioning on $Y = y$ gives distributions with entropies $H(X|Y = y)$ and so on, and
+    the chain rule of <i>Two variables</i>, averaged over $y$, gives $\sum_yp(y)H(XZ|Y = y) = H(XYZ) - H(Y)$,
+    $\sum_yp(y)H(X|Y = y) = H(XY) - H(Y)$, $\sum_yp(y)H(Z|Y = y) = H(YZ) - H(Y)$. So
+    $I(X:Z|Y) = H(XY) + H(YZ) - H(XYZ) - H(Y)$, and expanding $I(X:YZ) - I(X:Y)$ in joint entropies gives the same four terms.</p>
+    <p><b>Where it is used.</b> Twice in this unit: the Holevo bound, and <i>Worked: conditioning, and a
+    separable state</i>.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities</p>
+  <h2>Two moves: a local unitary, and a discard</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">move 1: local unitaries change nothing</span>
+        <p class="small">For a unitary $U$ on $B$ alone, $\rho'_{AB} = (I\otimes U)\rho_{AB}(I\otimes U)^\dagger$ has $I'(A:B) = I(A:B)$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$S(AB)$: a unitary conjugation, same spectrum. $\rho_A' = \rho_A$: no-signalling (unit 04). $\rho_B' = U\rho_BU^\dagger$: the partial trace commutes with $U$ on $B$. Three entropies unchanged. $\blacksquare$</p>
+      </div>
+      <div class="box thm"><span class="label">move 2: a discard can only lose</span>
+        <p class="small">$I(A:B) \le I(A:BC)$: strong subadditivity.</p>
+      </div>
+      <p class="small">So <b>no processing on $B$'s side</b> — unitaries on $B$ with fresh systems attached, then discards — <b>can increase what $B$ knows about $A$</b>. The Holevo bound is this sentence applied once.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 220" width="420" role="img" aria-label="top: wires A and B, a box U on wire B; the mutual information is the same before and after. Bottom: wires A, B and C; C ends in a ground symbol; the mutual information afterwards is at most what it was">
+        <text x="20" y="44" font-size="14">A</text><text x="20" y="84" font-size="14">B</text>
+        <line x1="40" y1="40" x2="300" y2="40" class="ink" stroke-width="1.6"/>
+        <line x1="40" y1="80" x2="150" y2="80" class="ink" stroke-width="1.6"/><line x1="190" y1="80" x2="300" y2="80" class="ink" stroke-width="1.6"/>
+        <rect x="150" y="64" width="40" height="32" rx="3" fill="none" class="unit" stroke-width="2"/>
+        <text x="170" y="85" font-size="14" text-anchor="middle" class="unit">U</text>
+        <text x="306" y="64" font-size="12" class="mono">I′ = I</text>
+        <text x="20" y="134" font-size="14">A</text><text x="20" y="164" font-size="14">B</text><text x="20" y="194" font-size="14" class="alt">C</text>
+        <line x1="40" y1="130" x2="300" y2="130" class="ink" stroke-width="1.6"/>
+        <line x1="40" y1="160" x2="300" y2="160" class="ink" stroke-width="1.6"/>
+        <line x1="40" y1="190" x2="170" y2="190" class="alt" stroke-width="1.6"/>
+        <line x1="170" y1="178" x2="170" y2="202" class="alt" stroke-width="2"/>
+        <line x1="176" y1="183" x2="176" y2="197" class="alt" stroke-width="2"/>
+        <line x1="182" y1="187" x2="182" y2="193" class="alt" stroke-width="2"/>
+        <text x="306" y="150" font-size="12" class="mono">I(A:B)</text>
+        <text x="306" y="166" font-size="12" class="mono">≤ I(A:BC)</text>
+      </svg>
+      <p class="cap">Wires carry systems left to right; a box is a unitary; the ground symbol is a discard (a partial trace).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of move 1.</b> $S(AB)$: $\rho'_{AB} = V\rho_{AB}V^\dagger$ with $V = I\otimes U$ unitary, so by property 4 of the von Neumann
+    entropy it is unchanged. $\rho'_A$: unit 04's no-signalling theorem says a unitary on $B$ does not change $\rho_A$ —
+    directly, $\operatorname{tr}((X\otimes I)V\rho V^\dagger) = \operatorname{tr}(V^\dagger(X\otimes I)V\rho) = \operatorname{tr}((X\otimes U^\dagger U)\rho) = \operatorname{tr}((X\otimes I)\rho)$ for every $X$. $\rho'_B$: for every $Y$ on $B$,
+    $\operatorname{tr}((I\otimes Y)V\rho V^\dagger) = \operatorname{tr}((I\otimes U^\dagger YU)\rho) = \operatorname{tr}(U^\dagger YU\rho_B) = \operatorname{tr}(YU\rho_BU^\dagger)$, so by uniqueness of the partial trace
+    $\rho'_B = U\rho_BU^\dagger$, with the same entropy. The same holds with $B$ replaced by a composite $BC$, which is how
+    the Holevo proof uses it.</p>
+    <p><b>Attaching a fresh system</b> in a pure state changes no mutual information either: if $\rho_{ABM} = \rho_{AB}\otimes\ket0\!\bra0$
+    then $S(ABM) = S(AB)$ and $S(BM) = S(B)$ by additivity, so $I(A:BM) = I(A:B)$.</p>
+    <p><b>The notation.</b> The wires are only a picture of which operator acts on which tensor factor, as in
+    unit 07; unit 10 makes circuits a formal model. The ground symbol, borrowed from electrical drawings, means
+    the system is no longer looked at — mathematically, the partial trace over it.</p>
+    <p><b>The data-processing inequality.</b> Moves 1 and 2 together say: if $B$ is processed by any physical
+    operation built from them, $I(A:B)$ cannot grow. Unit 21 shows that every physical operation on $B$ — every
+    channel — is of this form (Stinespring), which makes this the quantum data-processing inequality.
+    Here only the special case is needed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · inequalities · example</p>
+  <h2>Worked: conditioning, and a separable state</h2>
+  <div class="box ex"><span class="label">two consequences of strong subadditivity, every step</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Conditioning reduces entropy.</b> Rename strong subadditivity's systems $(A, B, C) \to (B, A, X)$:</p>
+      $$S(BAX) + S(A) \le S(BA) + S(AX),$$
+      <p class="small">that is, $S(B|AX) \le S(B|A)$ with $S(B|A) = S(AB) - S(A)$.</p>
+      <p class="small"><b>2. Conditional entropy is concave.</b> For $\rho_{AB} = \sum_ip_i\rho^{(i)}_{AB}$, attach a register: $\rho_{ABX} = \sum_ip_i\rho^{(i)}_{AB}\otimes\ket i\!\bra i$. By the classical–quantum lemma, applied to $ABX$ and to $AX$,</p>
+      $$S(B|AX) = \textstyle\sum_ip_i\,S(B|A)_{\rho^{(i)}},$$
+      <p class="small">the $H(p)$'s cancelling. With step 1: $S(B|A)_\rho \ge \sum_ip_iS(B|A)_{\rho^{(i)}}$.</p>
+    </div>
+    <div>
+      <p class="small"><b>3. Check on $\ket{\Phi^+}$.</b> $S(B|A) = 0 - 1 = -1$. Mix it half-and-half with $\ket{00}$, for which $S(B|A) = 0 - 0 = 0$: concavity says $S(B|A) \ge -\tfrac12$ for the mixture.</p>
+      <p class="small"><b>4. Compute.</b> $\rho = \tfrac12\ket{\Phi^+}\!\bra{\Phi^+} + \tfrac12\ket{00}\!\bra{00}$. Then $\rho_A = \mathrm{diag}(\tfrac34, \tfrac14)$, $S(A) = 0.811$. The two members have overlap $|\braket{00|\Phi^+}| = 1/\sqrt2$, so $\rho$ has eigenvalues $\tfrac12(1 \pm \tfrac1{\sqrt2})$ and $S(AB) = 0.601$.</p>
+      <p class="small">$S(B|A) = 0.601 - 0.811 = -0.210 \ge -0.5$ ✓.</p>
+      <div class="box good"><span class="label">the use</span>
+        <p class="small">For a product $\rho_A\otimes\rho_B$, $S(B|A) = S(B) \ge 0$. So a mixture of products has $S(B|A) \ge 0$: $S(AB) \ge S(A)$ — problem P6.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1.</b> Strong subadditivity reads $S(ABC) + S(B) \le S(AB) + S(BC)$ for any three systems, $B$ being the
+    one that appears on both sides. Put the present $A$ in the middle slot, $B$ in the first, the register $X$ in the
+    third. Subtract $S(A) + S(AX)$ from both sides: $S(ABX) - S(AX) \le S(AB) - S(A)$.</p>
+    <p><b>Step 2, in full.</b> $\rho_{ABX}$ is classical–quantum with the register $X$ and the quantum part $AB$, so
+    $S(ABX) = H(p) + \sum_ip_iS(AB)_{\rho^{(i)}}$. Tracing out $B$ leaves $\rho_{AX} = \sum_ip_i\rho^{(i)}_A\otimes\ket i\!\bra i$, also classical–quantum, so
+    $S(AX) = H(p) + \sum_ip_iS(A)_{\rho^{(i)}}$. Subtract. And $\operatorname{tr}_X\rho_{ABX} = \rho_{AB}$, so step 1's right side is $S(B|A)_\rho$.</p>
+    <p><b>Step 4, every number.</b> $\ket{\Phi^+}\!\bra{\Phi^+}$ has $\rho_A = I/2$ and $\ket{00}\!\bra{00}$ has $\rho_A = \ket0\!\bra0$; the average is
+    $\tfrac12\cdot\tfrac12I + \tfrac12\ket0\!\bra0 = \mathrm{diag}(\tfrac34, \tfrac14)$, entropy $h(\tfrac14) = 0.8113$. For $S(AB)$: the mixture of two pure states $\psi, \varphi$ with
+    equal weights has, on their span, the Gram-matrix eigenvalues $\tfrac12(1 \pm |\braket{\psi|\varphi}|)$ (problem P8 proves this); here
+    $\braket{00|\Phi^+} = 1/\sqrt2$, the same overlap as $\braket{0|+}$, so the same spectrum as the running example and
+    $S(AB) = 0.6009$. So $S(B|A) = -0.2104$. (It is a coincidence of these numbers that this equals minus the
+    relative entropy $0.2104$ computed on <i>Worked: Klein, checked with numbers</i>.)</p>
+    <p><b>Why the corollary matters.</b> "The whole can hold less than a part" is a signature of entanglement:
+    any state with $S(AB) &lt; S(A)$ is not a mixture of product states. The converse fails: some entangled mixed
+    states have $S(AB) \ge S(A)$ (problem P6's check gives one), so this is a test that can certify entanglement but not rule it out.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>The Holevo bound</h2>
+  <p>Bob measures; how much can he learn about Alice's coin? A register, a pointer, and one discard answer it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo</p>
+  <h2>Alice's message, Bob's measurement</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The protocol.</b> Alice picks $x$ with probability $p_x$ and sends a system $Q$ in state $\rho_x$. Bob measures $Q$ with a projective measurement $\{P_y\}$ (unit 01) and gets $y$, so</p>
+      $$p(x, y) = p_x\operatorname{tr}(P_y\rho_x),$$
+      <p class="small">summing to $\sum_xp_x\operatorname{tr}(\sum_yP_y\rho_x) = \sum_xp_x = 1$ ✓.</p>
+      <div class="box def"><span class="label"><span class="term">accessible information</span></span>
+        <p class="small">$I_{\mathrm{acc}} = \max\,I(X:Y)$ over Bob's measurements: what one copy can tell him about $x$, at best.</p>
+      </div>
+      <div class="box def"><span class="label">the <span class="term">Holevo quantity</span></span>
+        $$\chi = S\Big(\sum_xp_x\rho_x\Big) - \sum_xp_xS(\rho_x).$$
+        <p class="small">Section 3: $\chi = I(P:Q)$ for <span class="ref" data-ref="cq">register and qubit</span>. It needs no measurement at all.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 170" width="340" role="img" aria-label="x enters a box labelled prepare rho x; a wire labelled Q runs to a box labelled measure P y, which outputs y; a dashed arc above links x and y, labelled I of X and Y">
+          <text x="14" y="94" font-size="15" class="mono">x</text>
+          <line x1="30" y1="90" x2="60" y2="90" class="ink" stroke-width="1.5" stroke-dasharray="2 3"/>
+          <rect x="60" y="66" width="76" height="48" rx="5" fill="none" class="unit" stroke-width="2"/>
+          <text x="98" y="88" font-size="12" text-anchor="middle">prepare</text><text x="98" y="104" font-size="13" text-anchor="middle" class="mono">ρₓ</text>
+          <line x1="136" y1="90" x2="206" y2="90" class="ink" stroke-width="2"/>
+          <text x="171" y="82" font-size="13" text-anchor="middle" class="halo">Q</text>
+          <rect x="206" y="66" width="76" height="48" rx="5" fill="none" class="alt" stroke-width="2"/>
+          <text x="244" y="88" font-size="12" text-anchor="middle">measure</text><text x="244" y="104" font-size="13" text-anchor="middle" class="mono">{P<tspan baseline-shift="sub" font-size="10">y</tspan>}</text>
+          <line x1="282" y1="90" x2="306" y2="90" class="ink" stroke-width="1.5" stroke-dasharray="2 3"/>
+          <text x="312" y="94" font-size="15" class="mono">y</text>
+          <path d="M20,60 C80,10 250,10 316,60" fill="none" class="accent" stroke-width="1.6" stroke-dasharray="6 4"/>
+          <text x="166" y="26" font-size="13" text-anchor="middle" class="accent halo">I(X:Y) ≤ ?</text>
+          <text x="166" y="150" font-size="11" text-anchor="middle" class="soft">dotted: classical data · solid: a quantum system</text>
+        </svg>
+        <p class="cap">One use of the channel: a classical $x$ in, a quantum system across, a classical $y$ out.</p>
+      </div>
+      <p class="small"><b>Running example.</b> $Q$ is the photon, $\rho_x \in \{\ket0\!\bra0, \ket+\!\bra+\}$, Bob's measurement an analyser at some angle. $\chi = 0.601 - 0 = 0.601$ (section 2).</p>
+      <div class="box warn"><span class="label">two different questions</span>
+        <p class="small">$\chi$ is a property of the ensemble; $I_{\mathrm{acc}}$ is what a measurement extracts. The theorem says which way they are ordered.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The joint distribution.</b> Given $x$, Bob's outcome has the Born probabilities $\operatorname{tr}(P_y\rho_x)$ (unit 04's density-operator
+    form of unit 01's rule); multiplying by $p_x$ gives $p(x, y)$. It sums to one because $\sum_yP_y = I$ and $\operatorname{tr}\rho_x = 1$.
+    Its marginal on $y$ is $\operatorname{tr}(P_y\bar\rho)$ with $\bar\rho = \sum_xp_x\rho_x$: Bob's outcome statistics, ignoring $x$, depend only on the
+    average state, as unit 04 says they must.</p>
+    <p><b>Which measurements.</b> Here "measurement" means a projective one on $Q$, possibly after Bob attaches an
+    extra system of his own in a fixed state and measures projectively on the pair. That already includes
+    every measurement there is: unit 21 shows (Naimark's theorem) that the general measurements, POVMs, are exactly
+    these. The proof of this section covers the extended case at no cost, because attaching a pure system
+    changes no entropy, so $\chi$ is the same for $\{p_x, \rho_x\}$ and $\{p_x, \rho_x\otimes\ket a\!\bra a\}$.</p>
+    <p><b>The physics of the running example.</b> Bob's analyser at angle $\theta$ measures in
+    $\{\ket\theta, \ket{\theta + 90^\circ}\}$ (unit 03). Rotating the crystal is how he chooses the measurement; the two detectors
+    are the two outcomes.</p>
+    <p><b>Why "accessible".</b> It is the information accessible to Bob from one system, by the best single
+    measurement. It is generally hard to compute — an optimisation over all measurements — which is what makes
+    an upper bound in closed form, like $\chi$, valuable.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo</p>
+  <h2>The Holevo bound</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Holevo bound</span> (Holevo 1973)</span>
+        <p class="small">For every ensemble $\{p_x, \rho_x\}$ and every measurement with outcome $Y$,</p>
+        $$I(X:Y) \ \le\ \chi,$$
+        <p class="small">the Holevo quantity $S(\sum_xp_x\rho_x) - \sum_xp_xS(\rho_x)$ of the ensemble.</p>
+      </div>
+      <div class="box good"><span class="label">corollary: a qubit carries at most one bit</span>
+        <p class="small">$\chi \le S(\bar\rho) \le \log d$, since each $S(\rho_x) \ge 0$. On a qubit, $I(X:Y) \le 1$ — however many states Alice chooses from. Unit 07's citation is discharged.</p>
+      </div>
+      <p class="small">Also $\chi \ge 0$ (concavity), and $\chi \le H(p)$ (problem P3): never more than Alice put in.</p>
+      <p class="small"><b>Running example.</b> $I(X:Y) \le 0.601$ for every analyser angle — the next three slides prove it, and the three after test it.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 240" width="380" role="img" aria-label="a vertical scale from 0 to 1 bit; marks at 0.311 for a z measurement, 0.399 for the Helstrom measurement, 0.601 for chi, and 1 for both the coin's entropy and log 2">
+        <line x1="90" y1="210" x2="90" y2="20" class="rule" stroke-width="1.6"/>
+        <line x1="84" y1="210" x2="96" y2="210" class="ink" stroke-width="1.4"/>
+        <line x1="84" y1="30" x2="96" y2="30" class="ink" stroke-width="1.4"/>
+        <text x="78" y="214" font-size="12" class="mono" text-anchor="end">0</text>
+        <text x="78" y="34" font-size="12" class="mono" text-anchor="end">1</text>
+        <circle cx="90" cy="30" r="6" class="fill-ink"/>
+        <text x="104" y="34" font-size="12">H(X) = log 2 = 1</text>
+        <circle cx="90" cy="101.8" r="6" class="fill-unit"/>
+        <text x="104" y="106" font-size="12" class="unit">χ = 0.601</text>
+        <circle cx="90" cy="138.2" r="6" class="fill-alt"/>
+        <text x="104" y="142" font-size="12" class="alt">Helstrom: 0.399</text>
+        <circle cx="90" cy="154" r="5" class="fill-accent"/>
+        <text x="104" y="166" font-size="12" class="accent">z basis: 0.311</text>
+        <line x1="40" y1="101.8" x2="90" y2="101.8" class="unit" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="20" y="232" font-size="11" class="soft">bits about Alice's coin, running example</text>
+      </svg>
+      <p class="cap">Every measurement lands below $\chi$; $\chi$ lands below the bit Alice put in.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the corollary.</b> $S(\rho_x) \ge 0$ gives $\chi \le S(\bar\rho)$, and $S(\bar\rho) \le \log d$ for any state on $\mathbb C^d$.
+    So $I(X:Y) \le \log d$. For $n$ qubits, $d = 2^n$ and $I \le n$. This holds whatever the number of states in the
+    ensemble: a continuum of polarisation angles buys nothing beyond one bit per photon.</p>
+    <p><b>The other bounds on the figure.</b> $\chi \ge 0$ is concavity of $S$. $\chi \le H(p)$ is the upper bound
+    $S(\sum p_x\rho_x) \le \sum p_xS(\rho_x) + H(p)$, proved on the sheet; so $I(X:Y) \le H(X)$ is recovered, as it must be classically.
+    The two measured values are computed on <i>Worked: the Helstrom measurement extracts 0.399 bits</i>.</p>
+    <p><b>History.</b> A. S. Holevo, <i>Problems of Information Transmission</i> 9, 177 (1973), proved it by a direct
+    operator argument; the bound had been conjectured by Gordon (1964) and stated without proof by Levitin (1969). The proof given here,
+    through strong subadditivity, is the one in Nielsen and Chuang §12.1.1, and it is the reason this unit
+    develops the entropy inequalities at all: once strong subadditivity is granted, the bound is a few lines.</p>
+    <p><b>What it does not say.</b> It bounds what one measured copy yields. With many copies and collective
+    measurements across them, rates up to $\chi$ per copy are achievable — that is a different theorem (the HSW
+    theorem, named on <i>The gap between 0.399 and 0.601</i>), and it does not beat $\chi$ either.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo · proof</p>
+  <h2>Proof, 1: three systems</h2>
+  <div class="fig">
+    <svg viewBox="0 0 640 210" width="680" role="img" aria-label="three wires: P on top carrying the classical register, Q in the middle carrying rho x, M at the bottom starting in ket 0; a bracket joins P and Q at the start; a box U spans Q and M; then Q ends in a ground symbol while P and M continue; dashed vertical lines mark times t0, t1, t2">
+      <text x="20" y="54" font-size="15">P</text><text x="20" y="104" font-size="15">Q</text><text x="20" y="154" font-size="15">M</text>
+      <text x="56" y="80" font-size="12" class="mono">Σ pₓ|x⟩⟨x| ⊗ ρₓ</text>
+      <path d="M48,42 l-6,0 l0,66 l6,0" fill="none" class="ink" stroke-width="1.3"/>
+      <text x="56" y="154" font-size="13" class="mono">|0⟩</text>
+      <line x1="190" y1="50" x2="620" y2="50" class="ink" stroke-width="1.8"/>
+      <line x1="190" y1="100" x2="330" y2="100" class="unit" stroke-width="1.8"/>
+      <line x1="390" y1="100" x2="460" y2="100" class="unit" stroke-width="1.8"/>
+      <line x1="460" y1="88" x2="460" y2="112" class="unit" stroke-width="2"/>
+      <line x1="466" y1="93" x2="466" y2="107" class="unit" stroke-width="2"/>
+      <line x1="472" y1="97" x2="472" y2="103" class="unit" stroke-width="2"/>
+      <line x1="190" y1="150" x2="330" y2="150" class="alt" stroke-width="1.8"/>
+      <line x1="390" y1="150" x2="620" y2="150" class="alt" stroke-width="1.8"/>
+      <rect x="330" y="82" width="60" height="86" rx="4" fill="none" class="ink" stroke-width="2"/>
+      <text x="360" y="130" font-size="16" text-anchor="middle">U</text>
+      <line x1="270" y1="26" x2="270" y2="186" class="rule" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="425" y1="26" x2="425" y2="186" class="rule" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="540" y1="26" x2="540" y2="186" class="rule" stroke-width="1" stroke-dasharray="4 4"/>
+      <text x="270" y="202" font-size="13" class="mono" text-anchor="middle">t₀</text>
+      <text x="425" y="202" font-size="13" class="mono" text-anchor="middle">t₁</text>
+      <text x="540" y="202" font-size="13" class="mono" text-anchor="middle">t₂</text>
+      <text x="360" y="22" font-size="12" class="soft" text-anchor="middle">Bob's measurement, as a unitary on Q and a pointer M</text>
+      <text x="580" y="172" font-size="12" class="alt" text-anchor="middle">reads y</text>
+    </svg>
+    <p class="cap">$P$ keeps Alice's $x$; $Q$ is the system she sends; $M$ is Bob's apparatus, a pointer with one position per outcome. Bob's measurement is a unitary on $QM$, then he discards $Q$ and reads $M$.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small"><b>At $t_0$.</b> $\ \rho_{PQM} = \sum_xp_x\ket x\!\bra x\otimes\rho_x\otimes\ket0\!\bra0$, trace $\sum_xp_x = 1$ ✓.</p>
+    </div>
+    <div>
+      <p class="small">$M$ is a pure factor, which adds no entropy: $\ I(P:QM)_{t_0} = I(P:Q) = \chi$, by <i>Register and qubit</i>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The idea of the proof.</b> Section 3's moves say that operations on one side never increase that side's
+    mutual information with the other. So: start with a state in which $Q$'s mutual information with Alice's
+    register is exactly $\chi$; model Bob's measurement as operations on his side only — a unitary on $Q$ and his
+    apparatus, then throwing $Q$ away — and end with a state whose mutual information is exactly $I(X:Y)$. The
+    inequality falls out.</p>
+    <p><b>$I(P:QM)_{t_0} = I(P:Q)$ in full.</b> By additivity, $S(PQM) = S(PQ) + S(\ket0\!\bra0) = S(PQ)$ and $S(QM) = S(Q)$; $S(P)$ is the
+    same in both. So $I(P:QM) = S(P) + S(Q) - S(PQ) = I(P:Q)$, which is $\chi$ by the classical–quantum lemma.</p>
+    <p><b>The pointer.</b> $M$ has an orthonormal basis $\{\ket y\}$, one vector per outcome of Bob's measurement — a
+    dial with one position per result. Unit 01 modelled its which-path detector simply as a measurement, and
+    warned that a detector which lets the photon through must mark the path on some other system; this is that
+    other system, made explicit: it ends up in $\ket y$, correlated with the branch $y$ of the measured system. Unit
+    05's CNOT, which copies the $z$ basis, is the simplest example. Here the pointer is the whole of Bob's
+    apparatus, idealised; the next slide builds the unitary that moves it.</p>
+    <p><b>Running example, at $t_0$.</b> $\rho_{PQM} = \tfrac12\ket0\!\bra0\otimes\ket0\!\bra0\otimes\ket0\!\bra0 + \tfrac12\ket1\!\bra1\otimes\ket+\!\bra+\otimes\ket0\!\bra0$, and $I(P:QM) = 0.601$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo · proof</p>
+  <h2>Proof, 2: a measurement is a unitary, then a look</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the pointer unitary</span>
+        <p class="small">$V\ket\psi = \sum_yP_y\ket\psi\otimes\ket y$ is an isometry $H_Q \to H_Q\otimes H_M$:</p>
+        $$\begin{aligned}\lVert V\psi\rVert^2 &amp;= \textstyle\sum_y\lVert P_y\psi\rVert^2\\ &amp;= \braket{\psi|\textstyle\sum_yP_y|\psi} = \lVert\psi\rVert^2 .\end{aligned}$$
+        <p class="small">It extends to a unitary $U$ on $QM$: $U(\ket\psi\ket0) = V\ket\psi$.</p>
+      </div>
+      <p class="small"><b>At $t_1$</b>, by linearity in $\rho_x$:</p>
+      $$\rho_{PQM} = \textstyle\sum_xp_x\ket x\!\bra x\otimes\sum_{y,y'}P_y\rho_xP_{y'}\otimes\ket y\!\bra{y'} .$$
+      <p class="small"><b>At $t_2$</b>, trace out $Q$: $\operatorname{tr}(P_y\rho_xP_{y'}) = \operatorname{tr}(P_{y'}P_y\rho_x) = 0$ for $y \ne y'$, so</p>
+      $$\rho_{PM} = \sum_{x,y}p(x, y)\,\ket x\!\bra x\otimes\ket y\!\bra y .$$
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 200" width="330" role="img" aria-label="a state psi times pointer 0 on the left branches into two: P0 psi times pointer at 0, and P1 psi times pointer at 1; each pointer is drawn as a dial">
+          <text x="10" y="104" font-size="14" class="mono">|ψ⟩|0⟩</text>
+          <line x1="70" y1="100" x2="150" y2="50" class="ink" stroke-width="1.6"/>
+          <line x1="70" y1="100" x2="150" y2="150" class="ink" stroke-width="1.6"/>
+          <text x="160" y="54" font-size="14" class="mono">P₀ψ ⊗ |0⟩</text>
+          <text x="160" y="154" font-size="14" class="mono">P₁ψ ⊗ |1⟩</text>
+          <path d="M268,64 a22,22 0 0 1 44,0" fill="none" class="alt" stroke-width="1.6"/>
+          <line x1="290" y1="64" x2="276" y2="48" class="alt" stroke-width="2.2"/>
+          <path d="M268,164 a22,22 0 0 1 44,0" fill="none" class="alt" stroke-width="1.6"/>
+          <line x1="290" y1="164" x2="304" y2="148" class="alt" stroke-width="2.2"/>
+          <text x="276" y="80" font-size="11" class="mono alt">0</text><text x="300" y="180" font-size="11" class="mono alt">1</text>
+          <text x="96" y="194" font-size="12" class="soft">the pointer copies the outcome</text>
+        </svg>
+        <p class="cap">Each branch of $\psi$ is tagged by a pointer position; reading $M$ in $\{\ket y\}$ reads the outcome.</p>
+      </div>
+      <p class="small">$\rho_{PM}$ is diagonal: its entropies are Shannon entropies of $p(x, y)$ and its marginals, so $I(P:M)_{t_2} = I(X:Y)$.</p>
+      <p class="small"><b>Check.</b> For the $z$ measurement on a qubit, $U$ is CNOT from $Q$ to $M$ (unit 05): $\ket j\ket0 \mapsto \ket j\ket j$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The isometry, in full.</b> For $\psi, \varphi \in H_Q$: $\braket{V\psi|V\varphi} = \sum_{y,y'}\braket{P_y\psi|P_{y'}\varphi}\braket{y|y'} = \sum_y\braket{\psi|P_y\varphi} = \braket{\psi|\varphi}$,
+    using $P_y^\dagger = P_y = P_y^2$ and $\sum_yP_y = I$. So $V$ preserves inner products.</p>
+    <p><b>Extending to a unitary.</b> The map $\ket\psi\otimes\ket0 \mapsto V\ket\psi$ is a linear isometry from the subspace
+    $H_Q\otimes\ket0$ (dimension $d$) into $H_Q\otimes H_M$ (dimension $dm$, with $m$ outcomes). Its image has dimension $d$. Choose
+    orthonormal bases of the two orthogonal complements, both of dimension $dm - d$, and send one to the other. The
+    combined map sends an orthonormal basis to an orthonormal basis, so it is unitary. What $U$ does off
+    $H_Q\otimes\ket0$ never matters: $M$ starts in $\ket0$.</p>
+    <p><b>$t_1$ in full.</b> For a pure $\rho_x = \ket\psi\!\bra\psi$: $U(\ket\psi\!\bra\psi\otimes\ket0\!\bra0)U^\dagger = V\ket\psi\!\bra\psi V^\dagger = \sum_{y,y'}P_y\ket\psi\!\bra\psi P_{y'}\otimes\ket y\!\bra{y'}$.
+    Both sides are linear in $\ket\psi\!\bra\psi$, and every $\rho_x$ is a combination of such projectors (its spectral
+    decomposition), so the formula holds for every $\rho_x$. $U$ acts on $QM$ only, so the register factor is untouched.</p>
+    <p><b>$t_2$ in full.</b> The partial trace over $Q$ of $X\otimes\ket y\!\bra{y'}$ is $\operatorname{tr}(X)\ket y\!\bra{y'}$; with $X = P_y\rho_xP_{y'}$, cyclicity gives
+    $\operatorname{tr}(P_{y'}P_y\rho_x)$, which is $\delta_{yy'}\operatorname{tr}(P_y\rho_x)$ since distinct spectral projectors multiply to zero. A diagonal state
+    $\sum p(x, y)\ket{xy}\!\bra{xy}$ has spectrum $p(x, y)$; its marginals are $\sum_xp(x)\ket x\!\bra x$ and $\sum_yp(y)\ket y\!\bra y$. So the three
+    von Neumann entropies are $H(XY)$, $H(X)$, $H(Y)$.</p>
+    <p><b>The CNOT check.</b> For $P_0 = \ket0\!\bra0$, $P_1 = \ket1\!\bra1$: $V(\alpha\ket0 + \beta\ket1) = \alpha\ket0\ket0 + \beta\ket1\ket1$, which is
+    CNOT$_{QM}$ applied to $(\alpha\ket0 + \beta\ket1)\ket0$. Problem P9 follows the running example through this circuit.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo · proof</p>
+  <h2>Proof, 3: the chain</h2>
+  <div class="cols">
+    <div>
+      <div class="box proof"><span class="label">proof of the Holevo bound</span>
+        $$\begin{aligned}
+        I(X:Y) &amp;= I(P:M)_{t_2} &amp;&amp;\text{(diagonal)}\\
+        &amp;\le I(P:QM)_{t_1} &amp;&amp;\text{(discard }Q\text{)}\\
+        &amp;= I(P:QM)_{t_0} &amp;&amp;\text{(}U\text{ on }QM\text{)}\\
+        &amp;= I(P:Q) &amp;&amp;\text{(}M\text{ pure)}\\
+        &amp;= \chi &amp;&amp;\text{(c–q lemma)}
+        \end{aligned}$$
+        <p class="small">$\blacksquare$ — for projective measurements, with or without an extra system of Bob's; unit 21 shows those are all measurements.</p>
+      </div>
+      <p class="small">Each line is one of section 3's results: the diagonal state, strong subadditivity, a local unitary, additivity, the classical–quantum lemma. Only the second is an inequality — so <b>all the loss is in the discard</b>: what Bob throws away when he keeps the pointer and not the system.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 230" width="370" role="img" aria-label="mutual information of the register with Bob's side at three times, for the running example: 0.601 at t0, 0.601 at t1, then 0.399 at t2 for the Helstrom measurement and 0.311 for the z measurement">
+        <line x1="40" y1="190" x2="290" y2="190" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="190" x2="40" y2="20" class="rule" stroke-width="1.2"/>
+        <line x1="40" y1="30" x2="290" y2="30" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <rect x="70" y="93.8" width="44" height="96.2" class="fill-unit"/>
+        <rect x="140" y="93.8" width="44" height="96.2" class="fill-unit"/>
+        <rect x="210" y="126.1" width="30" height="63.9" class="fill-alt"/>
+        <rect x="244" y="140.2" width="30" height="49.8" class="fill-accent"/>
+        <text x="92" y="86" font-size="12" class="mono" text-anchor="middle">0.601</text>
+        <text x="162" y="86" font-size="12" class="mono" text-anchor="middle">0.601</text>
+        <text x="225" y="118" font-size="11" class="mono" text-anchor="middle">0.399</text>
+        <text x="259" y="132" font-size="11" class="mono" text-anchor="middle">0.311</text>
+        <text x="92" y="206" font-size="13" class="mono" text-anchor="middle">t₀</text>
+        <text x="162" y="206" font-size="13" class="mono" text-anchor="middle">t₁</text>
+        <text x="242" y="206" font-size="13" class="mono" text-anchor="middle">t₂</text>
+        <text x="225" y="222" font-size="10" class="alt" text-anchor="middle">Helstrom</text>
+        <text x="263" y="222" font-size="10" class="accent" text-anchor="middle">z</text>
+        <text x="34" y="34" font-size="11" class="mono" text-anchor="end">1</text>
+        <text x="34" y="194" font-size="11" class="mono" text-anchor="end">0</text>
+      </svg>
+      <p class="cap">The running example: what Bob's side shares with $P$, before and after the unitary, and after the discard, for two of Bob's choices.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each step, named.</b> (1) <i>Proof, 2</i> showed $\rho_{PM}$ at $t_2$ is the diagonal state of $p(x, y)$, whose mutual
+    information is the classical $I(X:Y)$. (2) $\rho_{PM} = \operatorname{tr}_Q\rho_{PQM}$, so strong subadditivity in the form $I(A:BC) \ge I(A:B)$ with
+    $A = P$, $B = M$, $C = Q$ gives $I(P:M) \le I(P:QM)$. (3) Move 1 of <i>Two moves</i>, with the composite $QM$ in the role
+    of $B$: a unitary on $QM$ leaves $I(P:QM)$ unchanged. (4) and (5): <i>Proof, 1</i>.</p>
+    <p><b>The figure's numbers.</b> At $t_0$ and $t_1$, $\chi = 0.601$. At $t_2$, the Helstrom measurement's $I(X:Y) = 0.399$ and
+    the $z$ measurement's $0.311$, computed on the next slides. For the $z$ measurement problem P9 computes every
+    entropy at every time: at $t_1$, $S(P) = 1$, $S(QM) = 0.601$, $S(PQM) = 1$; at $t_2$, $S(M) = 0.811$, $S(PM) = 1.5$.</p>
+    <p><b>When is the bound attained?</b> Equality needs equality in strong subadditivity at the discard. For an
+    ensemble of commuting $\rho_x$ — orthogonal pure states, for instance — measuring in the common eigenbasis
+    leaves $Q$ holding nothing that $M$ does not already hold, and $I(X:Y) = \chi$: the orthogonal comparison at the
+    end of the deck. For non-commuting $\rho_x$, no single measurement attains $\chi$ (cited: Holevo 1973 gives the
+    condition), as the running example will show.</p>
+    <p><b>Generalised measurements.</b> If Bob first attaches an ancilla $A$ in a pure state and then measures
+    projectively on $QA$, run the same proof with $Q$ replaced by $QA$: the ensemble $\rho_x\otimes\ket a\!\bra a$ has the same $\chi$.
+    Unit 21's Naimark theorem says every POVM arises so. Nothing in this unit needs POVMs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo</p>
+  <h2>Bob's best guess, drawn</h2>
+  <div class="cols">
+    <div class="fig">
+      <svg viewBox="0 0 320 300" width="320" role="img" aria-label="the real plane; ket 0 horizontal and ket plus at 45 degrees, Alice's two states; Bob's analyser basis b0 at minus 22.5 degrees and b1 at 67.5 degrees, each 22.5 degrees from the nearer of Alice's states">
+        <line x1="20" y1="160" x2="300" y2="160" class="rule" stroke-width="1"/>
+        <line x1="60" y1="290" x2="60" y2="20" class="rule" stroke-width="1"/>
+        <line x1="60" y1="160" x2="200" y2="160" class="unit" stroke-width="2.6"/>
+        <polygon points="206,160 194,154.5 194,165.5" class="fill-unit"/>
+        <line x1="60" y1="160" x2="157.6" y2="62.4" class="unit" stroke-width="2.6"/>
+        <polygon points="161.9,58.1 149.5,62.4 157.6,70.5" class="fill-unit"/>
+        <line x1="60" y1="160" x2="189.4" y2="213.6" class="alt" stroke-width="2.6"/>
+        <polygon points="195,215.9 185.9,206.2 181.7,216.4" class="fill-alt"/>
+        <line x1="60" y1="160" x2="113.6" y2="30.6" class="alt" stroke-width="2.6"/>
+        <polygon points="115.9,25 106.2,34.1 116.4,38.3" class="fill-alt"/>
+        <path d="M102.4,117.6 A60,60 0 0 0 83,104.6" fill="none" class="ink" stroke-width="1.2"/>
+        <path d="M150,160 A90,90 0 0 1 143.2,194.4" fill="none" class="ink" stroke-width="1.2"/>
+        <text x="212" y="164" font-size="14" class="unit">|0⟩</text>
+        <text x="166" y="58" font-size="14" class="unit">|+⟩</text>
+        <text x="200" y="230" font-size="14" class="alt">b₀</text>
+        <text x="122" y="28" font-size="14" class="alt">b₁</text>
+        <text x="104" y="98" font-size="11" class="halo">22.5°</text>
+        <text x="152" y="186" font-size="11" class="halo">22.5°</text>
+        <text x="20" y="284" font-size="11" class="soft">real vectors: polarisation angles</text>
+      </svg>
+      <p class="cap">Unit 05's measurement: the analyser at $-22.5^\circ$. Its basis straddles Alice's pair symmetrically.</p>
+    </div>
+    <div>
+      <p class="small"><span class="ref" data-ref="helstrom">Bob's best single guess</span>: $\ket{b_0} = \cos\tfrac\pi8\ket0 - \sin\tfrac\pi8\ket1$, $\ \ket{b_1} = \sin\tfrac\pi8\ket0 + \cos\tfrac\pi8\ket1$; guess $x = 0$ on $b_0$, $x = 1$ on $b_1$.</p>
+      <p class="small">By Malus's law (unit 03), the probability is $\cos^2$ of the angle between the polarisations:</p>
+      <table class="dense">
+        <thead><tr><th></th><th>$y = 0$ ($b_0$)</th><th>$y = 1$ ($b_1$)</th><th>sum</th></tr></thead>
+        <tbody>
+          <tr><td>$x = 0$: $\ket0$</td><td class="num">$\cos^2 22.5^\circ = 0.8536$</td><td class="num">$\cos^2 67.5^\circ = 0.1464$</td><td class="num">$1$ ✓</td></tr>
+          <tr><td>$x = 1$: $\ket+$</td><td class="num">$\cos^2 67.5^\circ = 0.1464$</td><td class="num">$\cos^2 22.5^\circ = 0.8536$</td><td class="num">$1$ ✓</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Right with probability $0.8536$ whichever $x$ was sent — unit 05's Helstrom bound $\tfrac12(1 + \sqrt{1 - |\braket{0|+}|^2})$. As a channel from $x$ to $y$ it flips with probability $0.1464$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The two pictures.</b> This figure is the real plane of $\mathbb C^2$, where a real unit vector is a polarisation
+    direction and orthogonal states are $90^\circ$ apart (unit 03). The Bloch disc of <i>Worked: the entropy of the
+    running mixture</i> doubles every angle: there $\ket0$ and $\ket+$ are $90^\circ$ apart and orthogonal states antipodal. The
+    analyser at $-22.5^\circ$ here is the Bloch axis along $(-1, 0, 1)/\sqrt2$, perpendicular to the mixture's Bloch vector
+    (unit 04's notes).</p>
+    <p><b>Each entry.</b> $\braket{b_0|0} = \cos\tfrac\pi8$; $\braket{b_0|+} = \tfrac1{\sqrt2}(\cos\tfrac\pi8 - \sin\tfrac\pi8) = \cos(\tfrac\pi8 + \tfrac\pi4) = \cos\tfrac{3\pi}8$, using
+    $\tfrac1{\sqrt2} = \cos\tfrac\pi4 = \sin\tfrac\pi4$ and the addition formula; $\braket{b_1|+} = \tfrac1{\sqrt2}(\sin\tfrac\pi8 + \cos\tfrac\pi8) = \cos(\tfrac\pi4 - \tfrac\pi8) = \cos\tfrac\pi8$. Squares:
+    $\cos^2\tfrac\pi8 = 0.853553$ and $\cos^2\tfrac{3\pi}8 = \sin^2\tfrac\pi8 = 0.146447$. The basis is orthonormal:
+    $\braket{b_0|b_1} = \cos\tfrac\pi8\sin\tfrac\pi8 - \sin\tfrac\pi8\cos\tfrac\pi8 = 0$.</p>
+    <p><b>Why this measurement.</b> Unit 05 proved it maximises the probability of a correct guess. Maximising
+    the probability of guessing right and maximising mutual information are different optimisations, and in
+    general have different answers; for two equiprobable pure states they coincide (Levitin, cited on <i>The gap
+    between 0.399 and 0.601</i>), and the figure there checks it over every analyser angle.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo · example</p>
+  <h2>Worked: the Helstrom measurement extracts 0.399 bits</h2>
+  <div class="cols">
+    <div class="box ex"><span class="label">$I(X:Y)$ for <span class="ref" data-ref="helstrom">Bob's best guess</span>, every step</span>
+      <p class="small"><b>1. Joint distribution</b>, $p(x, y) = \tfrac12p(y|x)$:</p>
+      $$p = \begin{pmatrix}0.4268 &amp; 0.0732\\ 0.0732 &amp; 0.4268\end{pmatrix},\quad \text{sum } 1\ ✓.$$
+      <p class="small"><b>2. Marginals.</b> $p(x) = (\tfrac12, \tfrac12)$, $\ p(y) = (\tfrac12, \tfrac12)$: $\ H(X) = H(Y) = 1$.</p>
+      <p class="small"><b>3. Conditional.</b> Given either $x$, $Y$ is a coin of bias $0.1464$: $\ H(Y|X) = h(0.1464) = 0.6009$.</p>
+      <p class="small"><b>4. The answer.</b></p>
+      $$\begin{aligned}I(X:Y) &amp;= H(Y) - H(Y|X)\\ &amp;= 1 - 0.6009 = 0.3991 \le \chi\ ✓\end{aligned}$$
+      <p class="small"><b>5. Compare $z$</b>: $p = \begin{pmatrix}1/2&amp;0\\1/4&amp;1/4\end{pmatrix}$, $H(Y) = h(\tfrac14) = 0.8113$, $H(Y|X) = \tfrac12\cdot0 + \tfrac12\cdot1$, $I = 0.3113$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 180" width="300" role="img" aria-label="a binary symmetric channel: input 0 goes to output 0 with probability 0.854 and to output 1 with 0.146; input plus goes to output 1 with 0.854 and to output 0 with 0.146">
+          <circle cx="50" cy="50" r="7" class="fill-unit"/><circle cx="50" cy="140" r="7" class="fill-unit"/>
+          <circle cx="250" cy="50" r="7" class="fill-alt"/><circle cx="250" cy="140" r="7" class="fill-alt"/>
+          <line x1="58" y1="50" x2="242" y2="50" class="ink" stroke-width="2.4"/>
+          <line x1="58" y1="140" x2="242" y2="140" class="ink" stroke-width="2.4"/>
+          <line x1="58" y1="56" x2="242" y2="134" class="ink" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="58" y1="134" x2="242" y2="56" class="ink" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="150" y="40" font-size="12" class="mono" text-anchor="middle">0.854</text>
+          <text x="150" y="160" font-size="12" class="mono" text-anchor="middle">0.854</text>
+          <text x="196" y="82" font-size="11" class="mono halo">0.146</text>
+          <text x="196" y="118" font-size="11" class="mono halo">0.146</text>
+          <text x="20" y="55" font-size="13" class="mono">|0⟩</text><text x="20" y="145" font-size="13" class="mono">|+⟩</text>
+          <text x="262" y="55" font-size="13" class="mono">y=0</text><text x="262" y="145" font-size="13" class="mono">y=1</text>
+          <text x="50" y="176" font-size="11" class="soft">x</text><text x="246" y="176" font-size="11" class="soft">y</text>
+        </svg>
+        <p class="cap">Alice's photon plus Bob's analyser is a binary symmetric channel with flip probability $0.1464$.</p>
+      </div>
+      <div class="box warn"><span class="label">0.8536 right, yet only 0.399 bits</span>
+        <p class="small">Being right $85\%$ of the time is worth well under half a bit: each answer still carries $0.601$ bits of doubt about which way it went.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each step.</b> Step 1: $\tfrac12\cdot0.853553 = 0.426777$, $\tfrac12\cdot0.146447 = 0.073223$; row sums $\tfrac12$, total $1$. Step 2:
+    column sums $0.426777 + 0.073223 = 0.5$. Step 3: $H(Y|X) = \sum_xp(x)H(Y|X = x)$ and both rows, normalised, are
+    $(0.8536, 0.1464)$ in some order; $h(0.146447) = 0.600876$ (the same arithmetic as <i>Worked: the entropy of the running
+    mixture</i>). Step 4: $1 - 0.600876 = 0.399124$. Check by the other formula: $H(XY) = H(0.4268, 0.0732, 0.0732, 0.4268)$ $=
+    1 + h(0.1464) = 1.6009$, and $I = 1 + 1 - 1.6009 = 0.3991$ ✓.</p>
+    <p><b>Step 5, the $z$ measurement.</b> $\ket0$ gives $y = 0$ surely; $\ket+$ gives $0$ or $1$ with probability $\tfrac12$ each. So
+    $p(y = 0) = \tfrac12 + \tfrac14 = \tfrac34$, $H(Y) = h(\tfrac14) = 0.811278$, $H(Y|X) = \tfrac12\cdot0 + \tfrac12\cdot1 = 0.5$, and $I = 0.311278$. It guesses right
+    with probability $\tfrac12\cdot1 + \tfrac12\cdot\tfrac12 = \tfrac34$, less than Helstrom's $0.8536$, and extracts less information as well.</p>
+    <p><b>A coincidence to notice and dismiss.</b> $0.399 = 1 - 0.601$ exactly: Helstrom's error rate
+    $\sin^2\tfrac\pi8$ is the smaller eigenvalue of $\rho$, so $H(Y|X) = S(\rho)$. That is particular to this pair — for two pure
+    states at overlap $c$, $S(\rho) = h(\tfrac12(1 + c))$ while the Helstrom error is $\tfrac12(1 - \sqrt{1 - c^2})$, and the two agree only when
+    $c^2 = \tfrac12$. The closing slide plots both as functions of $c$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo</p>
+  <h2>The gap between 0.399 and 0.601</h2>
+  <div class="cols wide-left">
+    <div class="fig">
+      <svg viewBox="0 0 350 228" width="440" role="img" aria-label="the mutual information extracted by an analyser at angle alpha, for alpha from minus 45 to 45 degrees: a curve peaking at 0.399 at minus 22.5 degrees, 0.311 at 0, falling to 0 at 22.5 degrees; a horizontal dashed line at chi equals 0.601 lies above it everywhere">
+        <line x1="50" y1="190" x2="334" y2="190" class="rule" stroke-width="1.2"/>
+        <line x1="50" y1="190" x2="50" y2="24" class="rule" stroke-width="1.2"/>
+        <path d="M50.0,52.7 L330.0,52.7" fill="none" class="unit" stroke-width="2" stroke-dasharray="7 4"/>
+        <path d="M50.0,118.9 L53.1,116.1 L56.2,113.7 L59.3,111.8 L62.4,110.0 L65.6,108.5 L68.7,107.2 L71.8,106.0 L74.9,104.9 L78.0,104.0 L81.1,103.1 L84.2,102.4 L87.3,101.7 L90.4,101.2 L93.6,100.7 L96.7,100.2 L99.8,99.9 L102.9,99.5 L106.0,99.3 L109.1,99.1 L112.2,98.9 L115.3,98.8 L118.4,98.8 L121.6,98.8 L124.7,98.8 L127.8,98.9 L130.9,99.1 L134.0,99.3 L137.1,99.5 L140.2,99.9 L143.3,100.2 L146.4,100.7 L149.6,101.2 L152.7,101.7 L155.8,102.4 L158.9,103.1 L162.0,104.0 L165.1,104.9 L168.2,106.0 L171.3,107.2 L174.4,108.5 L177.6,110.0 L180.7,111.8 L183.8,113.7 L186.9,116.1 L190.0,118.9 L193.1,122.4 L196.2,126.3 L199.3,130.6 L202.4,135.0 L205.6,139.5 L208.7,144.0 L211.8,148.5 L214.9,153.0 L218.0,157.3 L221.1,161.5 L224.2,165.5 L227.3,169.3 L230.4,172.8 L233.6,176.1 L236.7,179.1 L239.8,181.7 L242.9,184.0 L246.0,186.0 L249.1,187.6 L252.2,188.7 L255.3,189.5 L258.4,189.9 L261.6,189.9 L264.7,189.5 L267.8,188.7 L270.9,187.6 L274.0,186.0 L277.1,184.0 L280.2,181.7 L283.3,179.1 L286.4,176.1 L289.6,172.8 L292.7,169.3 L295.8,165.5 L298.9,161.5 L302.0,157.3 L305.1,153.0 L308.2,148.5 L311.3,144.0 L314.4,139.5 L317.6,135.0 L320.7,130.6 L323.8,126.3 L326.9,122.4 L330.0,118.9" fill="none" class="alt" stroke-width="2.4"/>
+        <circle cx="120" cy="98.8" r="5.5" class="fill-alt"/>
+        <circle cx="190" cy="118.9" r="5" class="fill-accent"/>
+        <circle cx="260" cy="190" r="5" class="fill-ink"/>
+        <text x="236" y="46" font-size="12" class="unit halo">χ = 0.601</text>
+        <text x="66" y="90" font-size="12" class="alt halo">Helstrom 0.399</text>
+        <text x="196" y="112" font-size="12" class="accent halo">z: 0.311</text>
+        <text x="266" y="182" font-size="11" class="halo">0: blind</text>
+        <text x="44" y="194" font-size="11" class="mono" text-anchor="end">0</text>
+        <text x="44" y="56" font-size="11" class="mono" text-anchor="end">0.6</text>
+        <text x="50" y="206" font-size="11" class="mono" text-anchor="middle">−45°</text>
+        <text x="120" y="206" font-size="11" class="mono" text-anchor="middle">−22.5°</text>
+        <text x="190" y="206" font-size="11" class="mono" text-anchor="middle">0°</text>
+        <text x="260" y="206" font-size="11" class="mono" text-anchor="middle">22.5°</text>
+        <text x="330" y="206" font-size="11" class="mono" text-anchor="middle">45°</text>
+        <text x="192" y="222" font-size="12" class="soft" text-anchor="middle">Bob's analyser angle α</text>
+      </svg>
+      <p class="cap">$I(X:Y)$ for an analyser at every angle (the pattern repeats every $90^\circ$). The best is unit 05's; none reaches $\chi$.</p>
+    </div>
+    <div>
+      <p class="small"><b>Single-copy optimum — cited.</b> For two equiprobable pure states, no measurement at all — complex bases, extra systems, POVMs — beats the Helstrom one: $I_{\mathrm{acc}} = 0.399$ (Levitin 1995).</p>
+      <p class="small"><b>So $\chi$ is not attained.</b> The gap of $0.202$ bits is real for one photon.</p>
+      <div class="box thm"><span class="label">many copies close it — named, not taught</span>
+        <p class="small">Coding $x$'s across $n$ photons and measuring all $n$ <b>collectively</b>, rates up to $\chi$ bits per photon are achievable, and no more (Holevo 1998; Schumacher–Westmoreland 1997: the <span class="term">HSW theorem</span>). Channel capacities are outside this course.</p>
+      </div>
+      <p class="small"><b>Blind spot</b> at $22.5^\circ$: along the bisector, both states give the same statistics, $I = 0$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The curve.</b> An analyser at $\alpha$ measures in $\{\ket\alpha, \ket{\alpha + 90^\circ}\}$. By Malus's law $p(y = 0|x = 0) = \cos^2\alpha$ and
+    $p(y = 0|x = 1) = \cos^2(\alpha - 45^\circ)$; then $I = h(\bar p) - \tfrac12h(\cos^2\alpha) - \tfrac12h(\cos^2(\alpha - 45^\circ))$ with $\bar p$ the average of the two.
+    Computed every half-degree, at $181$ angles: the maximum is $0.399124$ at $\alpha = -22.5^\circ$, matching the worked example; $\alpha = 0$ gives
+    $0.311278$; $\alpha = 22.5^\circ$ gives $0$. Shifting $\alpha$ by $90^\circ$ swaps the two outcomes and changes nothing.</p>
+    <p><b>The cited result.</b> L. B. Levitin, "Optimal quantum measurements for two pure and mixed states", in
+    <i>Quantum Communications and Measurement</i> (Plenum, 1995), 439–448: for two pure states with equal priors the
+    accessible information is attained by the projective measurement symmetric about the pair — here the
+    Helstrom basis — and equals $1 - h\big(\tfrac12(1 - \sqrt{1 - c^2})\big)$ with $c = |\braket{\psi|\varphi}|$. The figure checks only the
+    real projective measurements; that complex bases and POVMs do no better is the cited part.</p>
+    <p><b>The HSW theorem, as a statement.</b> A. S. Holevo, <i>IEEE Trans. Inf. Theory</i> 44, 269 (1998), and
+    B. Schumacher and M. D. Westmoreland, <i>Phys. Rev. A</i> 56, 131 (1997): if Alice may use long codewords
+    $x_1\cdots x_n$ (each $x_i$ sent as $\rho_{x_i}$) and Bob may make one entangled measurement on all $n$ systems, the
+    achievable rate is $\chi$ bits per system, maximised over ensembles. For the running ensemble that is $0.601$
+    bits per photon, $50\%$ more than any photon-by-photon reading. The proof uses typical subspaces of the
+    kind section 5 builds, plus a decoding argument this course omits.</p>
+    <p><b>The point for this unit.</b> Holevo's bound is about one use and one measurement, and it is not tight
+    there; the reason $\chi$ is the right quantity is that it becomes tight in the many-copy limit.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Holevo · example</p>
+  <h2>Worked: dense coding saturates Holevo</h2>
+  <div class="cols">
+    <div class="box ex"><span class="label">unit 07's protocol, measured against $\chi$</span>
+      <p class="small"><b>1. The ensemble.</b> Alice applies $I, X, Z$ or $XZ$ to her half of $\ket{\Phi^+}$, each with probability $\tfrac14$ (sum $1$ ✓), making the four Bell states $\ket{\beta_x}$ on Bob's two qubits at the end.</p>
+      <p class="small"><b>2. The average.</b> The Bell states are an orthonormal basis, so $\tfrac14\sum_x\ket{\beta_x}\!\bra{\beta_x} = \tfrac14I$: $\ S = \log4 = 2$.</p>
+      <p class="small"><b>3. $\chi$.</b> Each $\ket{\beta_x}$ is pure: $\chi = 2 - 0 = 2$ — the maximum, $\log d$ with $d = 4$.</p>
+      <p class="small"><b>4. Attained.</b> Bob's Bell measurement returns $y = x$ surely: $I(X:Y) = H(X) = 2 = \chi$ ✓.</p>
+      <p class="small"><b>5. The qubit in flight</b>, alone: each Bell state has reduced state $I/2$, so $\chi_{\text{sent}} = S(I/2) - 1 = 0$. Intercepted, it tells nothing.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 190" width="330" role="img" aria-label="a source of Phi plus sends one qubit to Alice and one to Bob; Alice applies one of four Paulis chosen by two bits x and sends her qubit to Bob; Bob makes a Bell measurement on both and outputs two bits y">
+          <rect x="130" y="140" width="70" height="34" rx="5" class="fill-soft"/>
+          <text x="165" y="162" font-size="13" text-anchor="middle" class="mono">|Φ⁺⟩</text>
+          <line x1="140" y1="140" x2="70" y2="96" class="unit" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="190" y1="140" x2="262" y2="110" class="unit" stroke-width="2" stroke-dasharray="6 4"/>
+          <rect x="40" y="62" width="60" height="34" rx="4" fill="none" class="ink" stroke-width="2"/>
+          <text x="70" y="84" font-size="13" text-anchor="middle" class="mono">σₓ</text>
+          <text x="70" y="40" font-size="13" text-anchor="middle">Alice</text>
+          <text x="70" y="56" font-size="11" class="soft mono" text-anchor="middle">x: 2 bits</text>
+          <line x1="100" y1="79" x2="236" y2="79" class="alt" stroke-width="2.4"/>
+          <text x="168" y="70" font-size="12" text-anchor="middle" class="alt halo">one qubit</text>
+          <rect x="236" y="62" width="70" height="60" rx="4" fill="none" class="alt" stroke-width="2"/>
+          <text x="271" y="88" font-size="12" text-anchor="middle">Bell</text>
+          <text x="271" y="104" font-size="12" text-anchor="middle">measure</text>
+          <text x="271" y="40" font-size="13" text-anchor="middle" class="alt">Bob</text>
+          <text x="271" y="140" font-size="11" class="soft mono" text-anchor="middle">y = x</text>
+        </svg>
+        <p class="cap">Unit 07's dense coding. Bob ends with two qubits, so $\chi \le \log4 = 2$, and the protocol attains it.</p>
+      </div>
+      <div class="box good"><span class="label">unit 07's debt, paid</span>
+        <p class="small">One qubit alone: $\le 1$ bit. One qubit and one ebit: Bob holds two qubits, $\le 2$ bits — so dense coding cannot be improved, even with more entanglement (notes), and unit 07's citation now rests on a proved theorem.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each step.</b> Step 1: unit 07, $(\sigma\otimes I)\ket{\Phi^+}$ for $\sigma \in \{I, X, Z, XZ\}$ gives $\ket{\Phi^+}, \ket{\Psi^+}, \ket{\Phi^-}$ and $\ket{\Psi^-}$ up to
+    sign. Step 2: resolution of the identity in the Bell basis (unit 00's $\sum\ket e\!\bra e = I$ for any orthonormal basis); $I/4$
+    has spectrum $(\tfrac14, \tfrac14, \tfrac14, \tfrac14)$ and entropy $2$. Step 4: the Bell measurement is a projective measurement whose
+    projectors are the four $\ket{\beta}\!\bra\beta$, so $p(y|x) = |\braket{\beta_y|\beta_x}|^2 = \delta_{xy}$; then $H(Y|X) = 0$ and $I = H(Y) = 2$.</p>
+    <p><b>Step 5.</b> Unit 04: every Bell state has both reduced states $I/2$. So the ensemble on the travelling qubit
+    alone is $I/2$ for every $x$: $\chi = S(I/2) - \sum_x\tfrac14S(I/2) = 1 - 1 = 0$. By the Holevo bound an eavesdropper who
+    captures it, without Bob's half, learns nothing about $x$ — the information is in the correlation, not in
+    either qubit.</p>
+    <p><b>The resource count.</b> Before the protocol, Bob's half is uncorrelated with $x$ (Alice has not chosen
+    yet). At the end, the $x$-dependent state is on Bob's two qubits, and the Holevo bound on $\mathbb C^4$ caps the
+    information at $2$ bits. Without the ebit, Bob would end with the one received qubit: $\le 1$ bit. Unit 07's
+    "1 ebit + 1 qubit $\ge$ 2 cbits" is therefore exact. (Unit 07's proof that teleportation needs both classical
+    bits rested on its guessing lemma, not on this bound.)</p>
+    <p><b>Full proof: no amount of entanglement beats $2n$.</b> Unit 07 also cited that with any shared entangled
+    state, $n$ qubits carry at most $2n$ bits. Let Bob hold $B'$ of the shared state, and let Alice, after acting on her
+    side according to $x$, send $n$ qubits $Q$; Bob ends with $\rho_x$ on $QB'$. Nothing Alice does changes $\rho_{B'}$
+    (no-signalling, unit 04), so $S(B')$ is the same for every $x$ and for the average $\bar\rho$. Subadditivity gives
+    $S(\bar\rho) \le S(Q)_{\bar\rho} + S(B') \le n + S(B')$; Araki–Lieb gives $S(\rho_x) \ge S(B') - S(Q)_{\rho_x} \ge S(B') - n$. Subtract:
+    $\chi \le 2n$, and the Holevo bound on $QB'$ finishes it. With $n = 1$ that is dense coding's $2$.</p>
+    <p><b>Problem P10</b> replaces $\ket{\Phi^+}$ by a partially entangled state and finds $\chi = 1 + E$: each ebit of
+    entanglement is worth exactly one extra bit.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Schumacher compression</h2>
+  <p>Shannon's theorem, with qubits: a source of quantum states needs $S(\rho)$ qubits per symbol, and the typical sequences become a typical subspace.</p>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Schumacher</p>
+  <h2>Typical subspaces</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\rho = \sum_k\lambda_k\ket{e_k}\!\bra{e_k}$. By the Kronecker rule (unit 03), $\rho^{\otimes n}$ has eigenvectors $\ket{e_{k_1}\cdots e_{k_n}}$ with eigenvalues $\lambda_{k_1}\cdots\lambda_{k_n}$: <b>its spectrum is the distribution of $n$ independent draws from $\lambda$</b>.</p>
+      <div class="box def"><span class="label">the <span class="term">typical subspace</span></span>
+        <p class="small">$\Pi_{n,\delta}$ projects onto the span of the $\ket{e_{k_1}\cdots e_{k_n}}$ whose index sequence is $\delta$-typical for $\lambda$.</p>
+      </div>
+      <div class="box thm"><span class="label">the typical-subspace lemma</span>
+        <p class="small"><b>(i)</b> $\operatorname{tr}(\Pi\rho^{\otimes n}) = \Pr(T_{n,\delta}) \to 1$. <b>(ii)</b> $\operatorname{rank}\Pi \le 2^{n(S + \delta)}$. <b>(iii)</b> A projector $P$ of rank $\le 2^{nR}$ with $R &lt; S - \delta$ has $\operatorname{tr}(P\rho^{\otimes n}) \le 2^{-n(S - \delta - R)} + \Pr(T^c) \to 0$.</p>
+      </div>
+      <p class="small">(i) and (ii) are section 1's lemma for the distribution $\lambda$, whose entropy is $S(\rho)$; (iii) is in the notes.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 350 228" width="380" role="img" aria-label="the weight of rho tensor n captured by its largest eigenvectors, against the base-2 log of their number divided by n; curves for n equals 10, 100 and 1000 steepen towards a step at 0.601">
+          <line x1="50" y1="190" x2="334" y2="190" class="rule" stroke-width="1.2"/>
+          <line x1="50" y1="190" x2="50" y2="24" class="rule" stroke-width="1.2"/>
+          <line x1="218.2" y1="190" x2="218.2" y2="30" class="unit" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <path d="M50.0,190.0 L50.0,157.2 L146.9,100.8 L212.6,57.3 L258.9,37.4 L290.6,31.4 L310.9,30.2 L322.4,30.0 L327.7,30.0 L330.0,30.0" fill="none" class="ink" stroke-width="1.6" stroke-dasharray="4 3"/>
+          <path d="M50.0,190.0 L50.0,190.0 L68.6,190.0 L84.4,190.0 L98.6,190.0 L111.5,189.9 L123.5,189.7 L134.7,189.0 L145.2,187.5 L155.2,184.6 L164.6,179.4 L173.6,171.2 L182.1,159.8 L190.3,145.3 L198.1,128.4 L205.5,110.5 L212.6,92.8 L219.5,76.7 L226.0,63.0 L232.2,52.2 L238.2,44.2 L243.9,38.6 L249.4,35.0 L254.7,32.7 L259.7,31.4 L264.5,30.7 L269.1,30.3 L273.5,30.2 L277.6,30.1 L281.6,30.0 L285.4,30.0 L289.0,30.0 L292.4,30.0 L330.0,30.0" fill="none" class="accent" stroke-width="2"/>
+          <path d="M50.0,190.0 L50.0,190.0 L55.3,190.0 L57.6,190.0 L62.0,190.0 L66.1,190.0 L68.0,190.0 L71.8,190.0 L75.4,190.0 L77.1,190.0 L80.5,190.0 L83.9,190.0 L85.5,190.0 L88.6,190.0 L91.7,190.0 L93.2,190.0 L96.2,190.0 L99.1,190.0 L100.6,190.0 L103.4,190.0 L106.2,190.0 L107.5,190.0 L110.2,190.0 L112.9,190.0 L114.2,190.0 L116.8,190.0 L119.3,190.0 L120.5,190.0 L123.0,190.0 L125.5,190.0 L126.7,190.0 L129.1,190.0 L131.4,190.0 L132.6,190.0 L134.9,190.0 L137.2,190.0 L138.3,190.0 L140.5,190.0 L142.7,190.0 L143.8,190.0 L146.0,190.0 L148.1,190.0 L149.2,190.0 L151.3,190.0 L153.3,190.0 L154.4,190.0 L156.4,190.0 L158.4,190.0 L159.4,190.0 L161.4,190.0 L163.4,190.0 L164.3,190.0 L166.3,190.0 L168.2,190.0 L169.1,190.0 L171.0,190.0 L172.8,190.0 L173.8,190.0 L175.6,190.0 L177.4,190.0 L178.3,190.0 L180.1,190.0 L181.8,190.0 L182.7,190.0 L184.5,190.0 L186.2,190.0 L187.0,190.0 L188.7,189.9 L190.4,189.9 L191.2,189.8 L192.9,189.6 L194.5,189.4 L195.4,189.2 L197.0,188.6 L198.6,187.7 L199.4,187.1 L200.9,185.4 L202.5,183.1 L203.3,181.6 L204.8,178.0 L206.3,173.2 L207.1,170.4 L208.6,163.8 L210.1,155.9 L210.8,151.6 L212.3,142.0 L213.8,131.5 L214.5,126.0 L215.9,114.7 L217.4,103.3 L218.1,97.7 L219.5,86.8 L220.9,76.6 L221.6,71.9 L222.9,63.3 L224.3,55.8 L225.0,52.5 L226.3,46.9 L227.7,42.3 L228.3,40.4 L229.6,37.4 L230.9,35.1 L231.6,34.1 L232.9,32.7 L234.2,31.8 L234.8,31.4 L236.0,30.9 L237.3,30.5 L237.9,30.4 L239.1,30.2 L240.4,30.1 L241.0,30.1 L242.2,30.1 L243.4,30.0 L244.0,30.0 L245.1,30.0 L246.3,30.0 L246.9,30.0 L248.0,30.0 L330.0,30.0" fill="none" class="alt" stroke-width="2.4"/>
+          <text x="104" y="96" font-size="11" class="halo">n = 10</text>
+          <text x="148" y="160" font-size="11" class="accent halo">n = 100</text>
+          <text x="232" y="150" font-size="11" class="alt halo">n = 1000</text>
+          <text x="222" y="22" font-size="12" class="unit">S = 0.601</text>
+          <text x="44" y="194" font-size="11" class="mono" text-anchor="end">0</text>
+          <text x="44" y="34" font-size="11" class="mono" text-anchor="end">1</text>
+          <text x="50" y="206" font-size="11" class="mono" text-anchor="middle">0</text>
+          <text x="330" y="206" font-size="11" class="mono" text-anchor="middle">1</text>
+          <text x="190" y="222" font-size="12" class="soft" text-anchor="middle">(log₂ dimension) / n</text>
+          <text x="58" y="44" font-size="11" class="soft">weight captured</text>
+        </svg>
+        <p class="cap"><span class="ref" data-ref="ens">The running example's</span> $\rho^{\otimes n}$: weight held by the subspace of its largest eigenvalues, against that subspace's size. As $n$ grows the curve becomes a step at $S(\rho)$.</p>
+      </div>
+      <p class="small">At $n = 1000$ this is section 1's coin: $k$ counts the factors $e_2$, each of weight $0.1464$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The spectrum of $\rho^{\otimes n}$.</b> $\rho^{\otimes n}\ket{e_{k_1}}\otimes\cdots\otimes\ket{e_{k_n}} = \rho\ket{e_{k_1}}\otimes\cdots\otimes\rho\ket{e_{k_n}} = \lambda_{k_1}\cdots\lambda_{k_n}\ket{e_{k_1}\cdots e_{k_n}}$, and these
+    $d^n$ product vectors form an orthonormal basis (unit 03). So the eigenvalue attached to the index sequence
+    $k_1\cdots k_n$ is exactly the probability of that sequence under $n$ independent draws from $\lambda$.</p>
+    <p><b>(i) and (ii).</b> $\operatorname{tr}(\Pi\rho^{\otimes n})$ is the sum of the eigenvalues of the typical index sequences, which is $\Pr(T_{n,\delta})$
+    for the distribution $\lambda$; the rank of $\Pi$ is the number of typical sequences. Both are the classical lemma.</p>
+    <p><b>(iii), full proof.</b> $\Pi$ is a sum of eigenprojectors of $\rho^{\otimes n}$, so it commutes with it, and
+    $\rho^{\otimes n} = \Pi\rho^{\otimes n}\Pi + \Pi^\perp\rho^{\otimes n}\Pi^\perp$ with $\Pi^\perp = I - \Pi$. First term: $\Pi\rho^{\otimes n}\Pi$ is positive with largest
+    eigenvalue at most $2^{-n(S - \delta)}$ (typical eigenvalues), so $\operatorname{tr}(P\Pi\rho^{\otimes n}\Pi) \le 2^{-n(S - \delta)}\operatorname{tr}P \le 2^{-n(S - \delta)}2^{nR}$, using
+    $\operatorname{tr}(PA) = \sum_i\braket{p_i|A|p_i} \le \operatorname{rank}(P)\lVert A\rVert$ for $A \ge 0$ and an orthonormal basis $p_i$ of $P$'s range. Second term:
+    $\operatorname{tr}(P\Pi^\perp\rho^{\otimes n}\Pi^\perp) \le \operatorname{tr}(\Pi^\perp\rho^{\otimes n}) = \Pr(T^c)$, since $0 \le P \le I$. Add.</p>
+    <p><b>The figure.</b> For each $n$, order the eigenvalues of $\rho^{\otimes n}$ from largest down — all sequences with $k$ factors
+    $e_2$ share the eigenvalue $0.8536^{n-k}0.1464^k$ and there are $\binom nk$ of them — and plot the cumulative weight
+    against $\tfrac1n\log_2$ of the cumulative count. For $n = 1000$: weight $0.5$ at $0.595$, $0.9$ at $0.631$, $0.99$ at $0.659$. At
+    $n = 100\,000$, weight $0.99$ needs $0.607$. The convergence to $0.601$ is slow, like $1/\sqrt n$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Schumacher</p>
+  <h2>Schumacher's theorem</h2>
+  <div class="box thm"><span class="label"><span class="term">Schumacher compression</span> (Schumacher 1995)</span>
+    <p class="small">A source emits pure states $\ket{\psi_x}$ with probabilities $p_x$, independently, $n$ times; $\rho = \sum_xp_x\ket{\psi_x}\!\bra{\psi_x}$. A scheme of rate $R$ encodes the $n$ systems into $nR$ qubits and decodes back; its <b>fidelity</b> is the average of $\braket{\psi_{x^n}|\sigma_{x^n}|\psi_{x^n}}$ over the source, $\sigma_{x^n}$ the decoded state. <b>(a)</b> If $R &gt; S(\rho)$, schemes with fidelity $\to 1$ exist. <b>(b)</b> If $R &lt; S(\rho)$, every scheme has fidelity $\to 0$.</p>
+  </div>
+  <div class="fig">
+    <svg viewBox="0 0 680 140" width="720" role="img" aria-label="n qubits from the source enter a box that measures whether they lie in the typical subspace; on yes, a unitary moves the typical subspace onto n R qubits, which are sent; the decoder appends blank qubits and undoes the unitary, giving n qubits">
+      <text x="10" y="74" font-size="13">n qubits</text>
+      <line x1="72" y1="70" x2="110" y2="70" class="ink" stroke-width="3"/>
+      <rect x="110" y="40" width="120" height="60" rx="5" fill="none" class="unit" stroke-width="2"/>
+      <text x="170" y="64" font-size="12" text-anchor="middle">measure</text><text x="170" y="82" font-size="13" text-anchor="middle" class="mono">{Π, I − Π}</text>
+      <line x1="230" y1="70" x2="262" y2="70" class="ink" stroke-width="3"/>
+      <rect x="262" y="40" width="100" height="60" rx="5" fill="none" class="unit" stroke-width="2"/>
+      <text x="312" y="64" font-size="12" text-anchor="middle">rotate Π</text><text x="312" y="82" font-size="12" text-anchor="middle">onto nR qubits</text>
+      <line x1="362" y1="70" x2="460" y2="70" class="alt" stroke-width="2.2"/>
+      <text x="411" y="60" font-size="12" text-anchor="middle" class="alt halo">nR qubits sent</text>
+      <rect x="460" y="40" width="110" height="60" rx="5" fill="none" class="alt" stroke-width="2"/>
+      <text x="515" y="64" font-size="12" text-anchor="middle">add |0…0⟩,</text><text x="515" y="82" font-size="12" text-anchor="middle">rotate back</text>
+      <line x1="570" y1="70" x2="606" y2="70" class="ink" stroke-width="3"/>
+      <text x="612" y="74" font-size="13">n qubits</text>
+      <text x="170" y="124" font-size="11" class="soft" text-anchor="middle">outcome I − Π: send a fixed state</text>
+      <text x="515" y="124" font-size="11" class="soft" text-anchor="middle">decoder</text>
+      <text x="312" y="124" font-size="11" class="soft" text-anchor="middle">encoder</text>
+    </svg>
+    <p class="cap">The achievability half: keep the typical subspace, throw the rest. With $R &gt; S + \delta$ the typical subspace fits in $nR$ qubits.</p>
+  </div>
+  <div class="cols">
+    <p class="small"><b>(a), its structure.</b> Fidelity $\ge 2\operatorname{tr}(\Pi\rho^{\otimes n}) - 1 \to 1$, by the lemma's (i) and (ii); proof in the notes.</p>
+    <p class="small"><b>(b), cited.</b> Its core is the lemma's (iii): no $2^{nR}$-dimensional subspace holds much of $\rho^{\otimes n}$. Turning that into a bound on every scheme needs unit 21's channels.</p>
+  </div>
+  <aside class="notes">
+    <p><b>(a), the sketch made complete for this encoder.</b> Fix $\delta$ with $S + \delta &lt; R$; then $\operatorname{rank}\Pi \le 2^{n(S + \delta)} \le 2^{nR}$. Choose
+    a unitary $W$ on the $n$ qubits sending the range of $\Pi$ into the span of $\ket{z}\otimes\ket{0\cdots0}$ with $z$ ranging over
+    $nR$-qubit strings (possible since the target has dimension $2^{nR} \ge \operatorname{rank}\Pi$). The encoder measures $\{\Pi, I - \Pi\}$. On $\Pi$
+    it applies $W$ and sends the first $nR$ qubits (the rest are in $\ket{0\cdots0}$); on $I - \Pi$ it sends a fixed state $\ket j$
+    that decodes into the typical subspace. The decoder appends $\ket{0\cdots0}$ and applies $W^\dagger$. For input $\psi$, with
+    probability $\braket{\psi|\Pi|\psi}$ the output is $\Pi\psi/\lVert\Pi\psi\rVert$, contributing fidelity $\braket{\psi|\Pi|\psi}\cdot|\braket{\psi|\Pi\psi}|^2/\braket{\psi|\Pi|\psi} = \braket{\psi|\Pi|\psi}^2$; the failure
+    branch contributes $\ge 0$. And $a^2 \ge 2a - 1$ (as $(a - 1)^2 \ge 0$). So fidelity $\ge 2\braket{\psi|\Pi|\psi} - 1$; averaging over the source,
+    $\sum_{x^n}p(x^n)\braket{\psi_{x^n}|\Pi|\psi_{x^n}} = \operatorname{tr}(\Pi\rho^{\otimes n})$ because the average of $\ket{\psi_{x^n}}\!\bra{\psi_{x^n}}$ is $\rho^{\otimes n}$. The lemma's (i) sends this to $1$.</p>
+    <p><b>(b), what is cited.</b> B. Schumacher, <i>Phys. Rev. A</i> 51, 2738 (1995), with R. Jozsa and B. Schumacher,
+    <i>J. Mod. Opt.</i> 41, 2343 (1994), for the simplified proof. For encoders that are unitaries plus discards of the
+    kind drawn, the decoded states live in a subspace of dimension $2^{nR}$; with $P$ its projector, each decoded $\sigma$
+    satisfies $\sigma = P\sigma P \le P$, so $\braket{\psi|\sigma|\psi} \le \braket{\psi|P|\psi}$ and the average fidelity is at most $\operatorname{tr}(P\rho^{\otimes n})$, which (iii)
+    sends to $0$. General encoders, which may
+    entangle with an environment, are channels — unit 21's subject — and the converse for them is cited.</p>
+    <p><b>What "qubits" buys.</b> Classical compression may copy and inspect the source's output; here the
+    states are unknown to the encoder and cannot be copied (unit 05), and the measurement of $\{\Pi, I - \Pi\}$ is
+    allowed precisely because it almost never disturbs a typical input.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · Schumacher</p>
+  <h2>1000 symbols in about 601 qubits</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><span class="ref" data-ref="comp">Compressing the source</span>: Alice emits $\ket0$ or $\ket+$ by fair coins, $n = 1000$ times.</p>
+      <ul class="small">
+        <li><b>Uncompressed</b>: $1000$ qubits.</li>
+        <li><b>Leading order</b>: $nS(\rho) = 1000 \times 0.601 = 601$ qubits.</li>
+        <li><b>At $n = 1000$ exactly</b>: the subspace of $\rho^{\otimes1000}$'s largest eigenvalues holding weight $0.99$ has dimension $2^{659.2}$ — so $660$ qubits, fidelity $\ge 2(0.99) - 1 = 0.98$.</li>
+        <li><b>Below rate</b>: any $2^{500}$-dimensional subspace holds weight at most $2^{-50.9} + \Pr(T^c)$ (lemma (iii), $\delta = 0.05$), and $\to 0$ as $n$ grows.</li>
+      </ul>
+      <div class="box warn"><span class="label">not the coin</span>
+        <p class="small">Alice's coins carry $1000$ bits, and Bob could not recover them from $601$ qubits — nor from the uncompressed $1000$ (section 4). Compression reproduces the <b>states</b>, not the coins.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 200" width="340" role="img" aria-label="horizontal bars: 1000 qubits sent uncompressed; 1000 qubits needed for the orthogonal source; 660 qubits at n equals 1000 for fidelity 0.98; 601 qubits as the asymptotic rate">
+          <g font-size="12">
+            <text x="10" y="38">raw</text><rect x="110" y="24" width="200" height="20" class="fill-ink" opacity="0.6"/><text x="300" y="38" class="mono halo" text-anchor="end">1000</text>
+            <text x="10" y="78">|0⟩/|1⟩ source</text><rect x="110" y="64" width="200" height="20" class="fill-accent"/><text x="300" y="78" class="mono halo" text-anchor="end">1000</text>
+            <text x="10" y="118">n = 1000, F ≥ 0.98</text><rect x="110" y="104" width="132" height="20" class="fill-alt"/><text x="248" y="118" class="mono">660</text>
+            <text x="10" y="158">rate S(ρ)</text><rect x="110" y="144" width="120.2" height="20" class="fill-unit"/><text x="236" y="158" class="mono">601</text>
+          </g>
+          <line x1="110" y1="16" x2="110" y2="172" class="rule" stroke-width="1.2"/>
+          <text x="210" y="192" font-size="11" class="soft" text-anchor="middle">qubits per 1000 symbols</text>
+        </svg>
+        <p class="cap">Overlapping states compress; orthogonal ones, with $S(I/2) = 1$, do not.</p>
+      </div>
+      <p class="small"><b>The orthogonal source</b> $\ket0$ or $\ket1$ has $\rho = I/2$, $S = 1$: no compression at all.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> Leading order: $1000 \times 0.6009 = 600.9$, quoted as about $601$. The exact count at $n = 1000$:
+    take the eigenvectors of $\rho^{\otimes1000}$ in decreasing order of eigenvalue — all $\binom{1000}k$ sequences with $k$ factors $e_2$
+    share the eigenvalue $0.8536^{1000-k}0.1464^k$ — until the weight reaches $0.99$. That happens inside the class
+    $k = 173$, after $2^{659.19}$ eigenvectors. The fidelity bound $2w - 1$ is from <i>Schumacher's theorem</i>'s notes. The
+    "below rate" line is the lemma's (iii) with $R = 0.5$ and $\delta = 0.05$: $2^{-n(0.5509 - 0.5)}$, which for $n = 1000$ is $2^{-50.9}$; the atypical weight is $\Pr(T^c) = 0.073$.</p>
+    <p><b>Why fidelity, not exact recovery.</b> A pure state cannot be compressed exactly into fewer dimensions
+    than its source spans; what Schumacher compresses is the <i>typical</i> behaviour, with an error that vanishes as
+    $n \to \infty$. That is the quantum version of Shannon's vanishing error probability.</p>
+    <p><b>The warning, in Holevo's terms.</b> Each of Alice's qubits carries at most $\chi = 0.601$ bits about her coin,
+    and the $601$ compressed qubits carry at most $601$ bits — less than the $1000$ coin bits. The compressed qubits
+    are as good as the originals for anything Bob might do with them; they are not as good as Alice's notebook.
+    That $S(\rho)$ is both the compression rate and (for pure-state ensembles) the Holevo quantity is no accident: both
+    count the dimension the source effectively occupies.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">08 · the close</p>
+  <h2>The orthogonal ensemble, and what overlap costs</h2>
+  <div class="cols wide-left">
+    <div class="fig">
+      <svg viewBox="0 0 350 228" width="440" role="img" aria-label="two curves against the overlap c between two equiprobable pure states, from 0 to 1: chi equals h of one half times 1 plus c, and the accessible information 1 minus h of the Helstrom error; both are 1 at c equals 0 and 0 at c equals 1; at c equals 0.707 they are 0.601 and 0.399">
+        <line x1="50" y1="190" x2="334" y2="190" class="rule" stroke-width="1.2"/>
+        <line x1="50" y1="190" x2="50" y2="24" class="rule" stroke-width="1.2"/>
+        <line x1="248" y1="190" x2="248" y2="93.9" class="rule" stroke-width="0.8" stroke-dasharray="3 4"/>
+        <path d="M50.0,30.0 L53.5,30.0 L57.0,30.1 L60.5,30.2 L64.0,30.3 L67.5,30.5 L71.0,30.6 L74.5,30.9 L78.0,31.2 L81.5,31.5 L85.0,31.8 L88.5,32.2 L92.0,32.6 L95.5,33.1 L99.0,33.6 L102.5,34.1 L106.0,34.6 L109.5,35.3 L113.0,35.9 L116.5,36.6 L120.0,37.3 L123.5,38.0 L127.0,38.8 L130.5,39.7 L134.0,40.5 L137.5,41.5 L141.0,42.4 L144.5,43.4 L148.0,44.4 L151.5,45.5 L155.0,46.6 L158.5,47.8 L162.0,49.0 L165.5,50.2 L169.0,51.5 L172.5,52.9 L176.0,54.2 L179.5,55.7 L183.0,57.1 L186.5,58.6 L190.0,60.2 L193.5,61.8 L197.0,63.5 L200.5,65.2 L204.0,66.9 L207.5,68.7 L211.0,70.6 L214.5,72.5 L218.0,74.5 L221.5,76.5 L225.0,78.6 L228.5,80.8 L232.0,83.0 L235.5,85.2 L239.0,87.6 L242.5,90.0 L246.0,92.4 L249.5,95.0 L253.0,97.6 L256.5,100.3 L260.0,103.0 L263.5,105.9 L267.0,108.8 L270.5,111.8 L274.0,115.0 L277.5,118.2 L281.0,121.5 L284.5,124.9 L288.0,128.5 L291.5,132.2 L295.0,136.0 L298.5,140.0 L302.0,144.2 L305.5,148.5 L309.0,153.1 L312.5,157.9 L316.0,163.0 L319.5,168.5 L323.0,174.5 L326.5,181.2 L330.0,190.0" fill="none" class="unit" stroke-width="2.4"/>
+        <path d="M50.0,30.0 L53.5,30.1 L57.0,30.4 L60.5,30.7 L64.0,31.2 L67.5,31.8 L71.0,32.5 L74.5,33.2 L78.0,34.0 L81.5,34.9 L85.0,35.9 L88.5,37.0 L92.0,38.1 L95.5,39.2 L99.0,40.4 L102.5,41.7 L106.0,43.0 L109.5,44.4 L113.0,45.8 L116.5,47.3 L120.0,48.8 L123.5,50.4 L127.0,52.0 L130.5,53.6 L134.0,55.3 L137.5,57.0 L141.0,58.8 L144.5,60.6 L148.0,62.4 L151.5,64.3 L155.0,66.2 L158.5,68.1 L162.0,70.0 L165.5,72.0 L169.0,74.0 L172.5,76.1 L176.0,78.2 L179.5,80.3 L183.0,82.4 L186.5,84.6 L190.0,86.7 L193.5,88.9 L197.0,91.2 L200.5,93.4 L204.0,95.7 L207.5,98.0 L211.0,100.3 L214.5,102.7 L218.0,105.0 L221.5,107.4 L225.0,109.8 L228.5,112.3 L232.0,114.7 L235.5,117.2 L239.0,119.7 L242.5,122.2 L246.0,124.7 L249.5,127.2 L253.0,129.8 L256.5,132.4 L260.0,135.0 L263.5,137.6 L267.0,140.2 L270.5,142.8 L274.0,145.5 L277.5,148.2 L281.0,150.9 L284.5,153.6 L288.0,156.3 L291.5,159.0 L295.0,161.8 L298.5,164.5 L302.0,167.3 L305.5,170.1 L309.0,172.9 L312.5,175.7 L316.0,178.6 L319.5,181.4 L323.0,184.3 L326.5,187.1 L330.0,190.0" fill="none" class="alt" stroke-width="2.4"/>
+        <circle cx="248" cy="93.9" r="5.5" class="fill-unit"/>
+        <circle cx="248" cy="126.1" r="5.5" class="fill-alt"/>
+        <circle cx="50" cy="30" r="5.5" class="fill-accent"/>
+        <text x="58" y="22" font-size="12" class="accent halo">|0⟩ or |1⟩: 1 bit, both</text>
+        <text x="256" y="88" font-size="12" class="unit halo">χ = 0.601</text>
+        <text x="240" y="150" font-size="12" class="alt halo" text-anchor="end">I<tspan baseline-shift="sub" font-size="10">acc</tspan> = 0.399</text>
+        <text x="44" y="194" font-size="11" class="mono" text-anchor="end">0</text>
+        <text x="44" y="34" font-size="11" class="mono" text-anchor="end">1</text>
+        <text x="50" y="206" font-size="11" class="mono" text-anchor="middle">0</text>
+        <text x="248" y="206" font-size="11" class="mono" text-anchor="middle">1/√2</text>
+        <text x="330" y="206" font-size="11" class="mono" text-anchor="middle">1</text>
+        <text x="190" y="222" font-size="12" class="soft" text-anchor="middle">overlap c = |⟨ψ|φ⟩| of the two states</text>
+      </svg>
+      <p class="cap">Two equiprobable pure states: $\chi = h(\tfrac12(1 + c))$ (problem P8) above $I_{\mathrm{acc}} = 1 - h(\tfrac12(1 - \sqrt{1 - c^2}))$ (Levitin). They meet only at $c = 0$ and $c = 1$.</p>
+    </div>
+    <div>
+      <p class="small"><span class="ref" data-ref="orth">The orthogonal comparison</span>: $\ket0$ or $\ket1$. $\rho = I/2$, $\chi = 1$; measuring $z$ reads $x$ exactly, $I = 1$. Holevo's bound is attained.</p>
+      <table class="dense">
+        <thead><tr><th>bits per photon</th><th>$\ket0/\ket1$</th><th>$\ket0/\ket+$</th></tr></thead>
+        <tbody>
+          <tr><td>put in, $H(X)$</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>held, $\chi$</td><td class="num">1</td><td class="num">0.601</td></tr>
+          <tr><td>read, one copy</td><td class="num">1</td><td class="num">0.399</td></tr>
+          <tr><td>qubits to store</td><td class="num">1</td><td class="num">0.601</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">the running example, closed</span>
+        <p class="small">Non-orthogonality costs $1 - 0.601 = 0.399$ bits of $\chi$ before any measurement; reading one photon at a time loses $0.202$ more.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The two curves.</b> For $\psi, \varphi$ with overlap $c$ and equal weights, the average state has eigenvalues
+    $\tfrac12(1 \pm c)$ — problem P8 derives this from the Gram matrix — so $\chi = h(\tfrac12(1 + c))$, both members being pure. The
+    accessible information is the Helstrom measurement's: unit 05's error probability $\tfrac12(1 - \sqrt{1 - c^2})$ makes the
+    channel binary symmetric, and $I = 1 - h(\text{error})$, optimal by Levitin's theorem (cited). At $c = 1/\sqrt2$: $0.6009$
+    and $0.3991$. At $c = 0$: both $1$. At $c = 1$: both $0$, since identical states carry nothing.</p>
+    <p><b>Reading the table.</b> "Held" is $\chi$, the most any measurement of one photon could extract, and also
+    the rate at which many photons can carry information with collective measurements (HSW, named). "Read" is
+    the single-photon optimum. "Qubits to store" is Schumacher's rate $S(\rho)$, which for pure-state ensembles equals
+    $\chi$. For orthogonal states all four rows agree, and the quantum system behaves like a classical bit.</p>
+    <p><b>The one-sentence summary.</b> A qubit has a continuum of states and holds at most one bit; non-orthogonal
+    states hold less, $\chi$; one measurement reads less again; and every one of those numbers is a von Neumann
+    entropy or a Shannon entropy computed in this deck.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · summary</p>
+  <h2>What this unit bought, and where it stops</h2>
+  <div class="cols">
+    <div class="box good"><span class="label">the toolkit</span>
+      <ul class="small">
+        <li><b>Shannon entropy</b>; Gibbs' inequality; typical sequences by Chebyshev; the source coding theorem; $H(Y|X) \ge 0$ and $I(X:Y) \ge 0$.</li>
+        <li><b>Von Neumann entropy</b> $S(\rho) = H(\text{spectrum})$; diagonals have more entropy; concavity.</li>
+        <li><b>Klein's inequality</b> $D(\rho\Vert\sigma) \ge 0$; subadditivity as $I = D(\rho_{AB}\Vert\rho_A\otimes\rho_B)$; Araki–Lieb by purification; entanglement entropy; negative conditional entropy.</li>
+        <li><b>Strong subadditivity</b>, cited, as $I(A:BC) \ge I(A:B)$; local unitaries leave $I$ unchanged.</li>
+        <li><b>The Holevo bound</b>, proved: $I(X:Y) \le \chi \le \log d$.</li>
+        <li><b>Schumacher compression</b> at rate $S(\rho)$, its structure.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Nielsen and Chuang, <i>Quantum Computation and Quantum Information</i>, chapter 11 (§11.1–11.3; skip the proof of strong subadditivity in §11.4 unless you want Lieb's theorem) and §12.1–12.2.1 (their Holevo proof allows general measurements, unit 21's: read each $E_y$ as a projector; stop before §12.2.2, whose Schumacher proof uses channels). Wilde, <i>Quantum Information Theory</i>, chapters 10–11, skipping the sections on channels. Preskill, <i>Lecture Notes for Physics 219</i>, chapter 10, sections on Shannon, von Neumann and Holevo.</p>
+      <h3>Next</h3>
+      <p class="small">Nothing later depends on this branch. <b>09</b>, the other branch of Part B, uses $h$ for key rates. Unit <b>21</b> extends the Holevo bound to every measurement.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, on purpose.</b> Channel capacities (the HSW theorem, the quantum capacity, coherent
+    information), entanglement distillation and the entanglement of mixed states, the proof of strong
+    subadditivity, Rényi and smooth entropies, and the full converse of Schumacher's theorem for general
+    encoders. Each is a course of its own; this unit stops where the Holevo bound and its tools are complete.</p>
+    <p><b>Reading notes.</b> Nielsen and Chuang prove the Holevo bound exactly this way (Theorem 12.1), and
+    use the term "Holevo χ quantity". Their §12.2.1 has typical sequences with the same definitions as this deck.
+    Their notation $S(A:B)$ is this deck's $I(A:B)$. Wilde's book is the standard modern text; its early chapters
+    restate everything here with more generality and complete proofs of Schumacher's converse.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">08 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>prove the Holevo bound from strong subadditivity — the register $P$, the system $Q$, the pointer $M$; the measurement as a unitary on $QM$; each step of the chain named, with the one inequality coming from discarding $Q$;</li>
+      <li>compute $\chi = 0.601$ bits for the $\ket0/\ket+$ ensemble: $\rho$, its eigenvalues $\cos^2\tfrac\pi8$ and $\sin^2\tfrac\pi8$, and $S(\rho)$ to three decimals.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A proof that never introduces the register, applies strong subadditivity to the wrong pair, or forgets that the pointer's state must be traced over $Q$ to become classical; a $\chi$ of $1$ bit, from the coin's entropy instead of the state's spectrum.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./qc problems 08</code>. When the checkpoint is true: <code>./qc done 08</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the second half on something not in the deck before opening the sheet: the ensemble $\ket0$ or $\ket1$ with
+    probabilities $0.9$ and $0.1$. You should find $\chi = h(0.1) = 0.469$ bits, and that measuring $z$ attains it. Then the
+    sheet's problem P8 does the general pair of pure states.</p>
+    <p>For the first half, the test is whether you can say which section 3 result justifies each line of the
+    chain without looking: the diagonal state, strong subadditivity, local unitaries, additivity, the
+    classical–quantum lemma.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 · Problems — Bell, CHSH and Tsirelson: the classical bound, the quantum bound, and the gap between</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="b">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part B · unit 06 · problems</p>
+<h1>Bell, CHSH and Tsirelson: the classical bound, the quantum bound, and the gap between</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u06">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove \(|S| \le 2\) for every local
+hidden-variable model, and \(|S| \le 2\sqrt2\) for every quantum strategy — \(\pm1\)-valued observables, any state,
+any dimension — deriving \(C^2 = 4I - [A, A']\otimes[B, B']\) on the way; and you produce measurement directions on
+the singlet that attain \(|S| = 2\sqrt2 \approx 2.8284\), checking the value from \(E = -\cos(\theta_a - \theta_b)\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Eleven problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the first slot; \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\); in \(\ket{ab}\) the first symbol is qubit 0, Alice's. \(X, Y, Z\) are the Pauli matrices and
+\(\mathbf n\cdot\boldsymbol\sigma = n_1X + n_2Y + n_3Z\). The singlet is \(\ket{\Psi^-} = (\ket{01} - \ket{10})/\sqrt2\), and
+\(A(\theta) = \cos\theta\,Z + \sin\theta\,X\) is the \(\pm1\)-valued observable at Bloch angle \(\theta\) in the \(xz\) plane (a
+polariser at \(\theta/2\)). Settings \(a, a'\) are Alice's inputs \(x = 0, 1\); \(b, b'\) are Bob's \(y = 0, 1\); outcomes
+are \(\pm1\), with bit \(a\) answered as \((-1)^a\). The CHSH quantity is \(S = E(a, b) + E(a, b') + E(a', b) - E(a', b')\),
+the CHSH operator \(C = A\otimes B + A\otimes B' + A'\otimes B - A'\otimes B'\), and the CHSH game is won with
+probability \(\tfrac12 + S/8\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="medium" href="#p1" title="Deterministic strategies suffice">P1</a></li>
+<li><a class="routine" href="#p2" title="Random responses add nothing">P2</a></li>
+<li><a class="medium" href="#p3" title="Bell's original inequality">P3</a></li>
+<li><a class="medium" href="#p4" title="Product states never violate">P4</a></li>
+<li><a class="medium" href="#p5" title="Non-coplanar settings">P5</a></li>
+<li><a class="medium" href="#p6" title="Uniqueness at the top">P6</a></li>
+<li><a class="routine" href="#p7" title="The game value is optimal">P7</a></li>
+<li><a class="hard" href="#p8" title="Equality needs perpendicular questions">P8</a></li>
+<li><a class="medium" href="#p9" title="Noise kills the violation">P9</a></li>
+<li><a class="routine" href="#p10" title="The PR box is no-signalling">P10</a></li>
+<li><a class="hard" href="#p11" title="Read Delft critically">P11</a></li>
+</ul>
+</header>
+
+<h2 class="group">Local hidden variables and the CHSH bound</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Deterministic strategies suffice <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the definition of a local hidden-variable model, regrouping a sum by response table, linear functions on a convex hull, the CHSH inequality by corners</p>
+<div class="statement">
+<ol>
+<li>Let \((\Lambda, p, A, B)\) be a local hidden-variable model with \(\Lambda\) countable. Prove that there are
+weights \(q(f, g) \ge 0\) on the sixteen deterministic strategies, summing to one, such that the model's
+CHSH value is \(S = \sum_{f, g}q(f, g)\,S(f, g)\), where \(S(f, g)\) is the CHSH value of the deterministic strategy
+\((f, g)\).</li>
+<li>Show that every deterministic strategy has \(S(f, g) = \pm2\), and deduce \(|S| \le 2\).</li>
+<li>How many of the sixteen have \(S(f, g) = +2\)? Relate them to the CHSH game.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 1 is a regrouping of a sum, not an inequality. Every \(\lambda\) "behaves like" exactly one of
+sixteen things.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Each \(\lambda\) has a response table: the two functions \(A(\cdot, \lambda)\) and \(B(\cdot, \lambda)\) on \(\{0, 1\}\). Collect all
+\(\lambda\) with the same table. For part 2, factor \(f(0)\) and \(f(1)\) out of the four terms.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "Let \(\Lambda_{f, g} = \{\lambda : A(\cdot, \lambda) = f,\ B(\cdot, \lambda) = g\}\) and \(q(f, g) = \sum_{\lambda\in\Lambda_{f, g}}p(\lambda)\). On \(\Lambda_{f, g}\),
+\(A(x, \lambda)B(y, \lambda) = f(x)g(y)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A hidden variable matters only through the answers it dictates. There are sixteen
+possible answer tables, so a model is a probability distribution on sixteen points, and anything linear in
+the correlations is an average over those points.</p>
+<p><strong>1.</strong> The sets \(\Lambda_{f, g}\) partition \(\Lambda\): each \(\lambda\) has exactly one table. Put \(q(f, g) = \sum_{\lambda\in\Lambda_{f, g}}p(\lambda) \ge 0\);
+then \(\sum_{f, g}q(f, g) = \sum_\lambda p(\lambda) = 1\). For each input pair,</p>
+\[ E(x, y) = \sum_\lambda p(\lambda)A(x, \lambda)B(y, \lambda) = \sum_{f, g}\sum_{\lambda\in\Lambda_{f, g}}p(\lambda)f(x)g(y) = \sum_{f, g}q(f, g)f(x)g(y), \]
+<p>the rearrangement being legitimate because the series converges absolutely (\(|p(\lambda)A B| \le p(\lambda)\)). \(S\) is a fixed linear
+combination of the four \(E(x, y)\), so \(S = \sum_{f, g}q(f, g)S(f, g)\) with \(S(f, g) = f(0)g(0) + f(0)g(1) + f(1)g(0) - f(1)g(1)\).</p>
+<p><strong>2.</strong> \(S(f, g) = f(0)\big(g(0) + g(1)\big) + f(1)\big(g(0) - g(1)\big)\). If \(g(0) = g(1)\) the second bracket is \(0\) and the first is
+\(\pm2\); if \(g(0) = -g(1)\) the first is \(0\) and the second \(\pm2\). Either way \(S(f, g) = \pm2\). So \(S\) is an average of numbers in
+\(\{-2, 2\}\) with weights \(q\), and \(|S| \le \sum q(f, g)\cdot2 = 2\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(\Pr(\text{win}) = \tfrac12 + S/8\) is \(\tfrac34\) when \(S = 2\) and \(\tfrac14\) when \(S = -2\). The deck's worked example found eight
+strategies winning on three input pairs and eight on one, so <strong>eight</strong> have \(S(f, g) = +2\). Check one: "everyone answers
+\(+1\)" has \(S = 1 + 1 + 1 - 1 = 2\) ✓; Alice \(+1\), Bob \(g(0) = +1\), \(g(1) = -1\): \(S = 1 - 1 + 1 + 1 = 2\) ✓ — the table's \((00, 01)\).</p>
+<p><strong>Check.</strong> Count both ways: there are \(4\cdot4 = 16\) strategies; \(S\) takes value \(+2\) on eight and \(-2\) on eight, so
+the uniform mixture has \(S = 0\) and wins half the time, as random answering should.</p>
+<h4>Another way</h4>
+<p>For an uncountable \(\Lambda\) with probability measure \(\mu\), the same proof works with \(q(f, g) = \mu(\Lambda_{f, g})\): each
+\(\Lambda_{f, g}\) is measurable, being an intersection of the sets \(\{A(x, \cdot) = \pm1\}\), \(\{B(y, \cdot) = \pm1\}\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Random responses add nothing <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: stochastic local models, enlarging the hidden variable, the CHSH bound for numbers in \([-1, 1]\), a computed CHSH value</p>
+<div class="statement">
+<p>In a stochastic local model, given \(\lambda\) Alice answers \(+1\) with probability \(\tfrac12(1 + m_x(\lambda))\) and Bob with
+probability \(\tfrac12(1 + n_y(\lambda))\), independently given \(\lambda\), where \(m_x(\lambda), n_y(\lambda) \in [-1, 1]\).</p>
+<ol>
+<li>Show that \(E(x, y) = \sum_\lambda p(\lambda)m_x(\lambda)n_y(\lambda)\).</li>
+<li>Prove \(|S| \le 2\) directly, without first making the model deterministic.</li>
+<li>For a single \(\lambda\) with \(m_0 = 1\), \(m_1 = 0.6\), \(n_0 = 0.8\), \(n_1 = -0.8\), compute \(S\). Then write down a
+deterministic local model, on a larger \(\Lambda'\), with the same four joint distributions.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an expectation of a product of independent \(\pm1\) variables. Part 2 is the deck's pointwise
+argument with \(\pm1\) replaced by numbers in \([-1, 1]\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A \(\pm1\) variable that is \(+1\) with probability \(\tfrac12(1 + m)\) has mean \(m\). For part 2, bound
+\(|m(n + n') + m'(n - n')|\) by \(|n + n'| + |n - n'|\), and show that is \(2\max(|n|, |n'|)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "For fixed \(\lambda\), \(s(\lambda) = m_0(n_0 + n_1) + m_1(n_0 - n_1)\), so \(|s(\lambda)| \le |n_0 + n_1| + |n_0 - n_1|\), as \(|m_x| \le 1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Given \(\lambda\) the two answers are independent, so their correlation is the product of their means;
+the CHSH expression is bilinear in the means, and a bilinear expression on a box is extreme at a corner — the
+deterministic case.</p>
+<p><strong>1.</strong> Given \(\lambda\), Alice's answer has mean \((+1)\tfrac12(1 + m) + (-1)\tfrac12(1 - m) = m\), Bob's \(n\); independent, so the
+product has mean \(m_x(\lambda)n_y(\lambda)\). Average over \(\lambda\).</p>
+<p><strong>2.</strong> Fix \(\lambda\) and drop it from the notation. \(s = m_0(n_0 + n_1) + m_1(n_0 - n_1)\), and \(|m_x| \le 1\) gives
+\(|s| \le |n_0 + n_1| + |n_0 - n_1|\). For real numbers \(|u + v| + |u - v| = 2\max(|u|, |v|)\) (check the cases \(|u| \ge |v|\), where
+both brackets have the sign of \(u\), and the reverse), so \(|s| \le 2\max(|n_0|, |n_1|) \le 2\). Then \(|S| = |\sum_\lambda p(\lambda)s(\lambda)| \le 2\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(S = 1\cdot(0.8 - 0.8) + 0.6\cdot(0.8 + 0.8) = 0.96\). A deterministic model: \(\lambda' = (u_0, u_1, v_0, v_1) \in \{\pm1\}^4\), drawn
+independently, with \(u_0 = +1\) surely (as \(m_0 = 1\)), \(u_1 = +1\) with probability \(0.8\), \(v_0 = +1\) with probability \(0.9\), \(v_1 = +1\)
+with probability \(0.1\); answers \(A'(x, \lambda') = u_x\), \(B'(y, \lambda') = v_y\). On input \((x, y)\) the pair \((u_x, v_y)\) has exactly the
+original independent distribution, since the other two coordinates are summed out.</p>
+<p><strong>Check.</strong> Recompute \(S\) from the deterministic model: \(\mathbb E[u_0] = 1\), \(\mathbb E[u_1] = 0.8 - 0.2 = 0.6\), \(\mathbb E[v_0] = 0.8\),
+\(\mathbb E[v_1] = -0.8\) — the same means, so the same \(S = 0.96\) ✓. And \(0.96 \le 2\), as part 2 demands; the game is won with
+probability \(\tfrac12 + 0.96/8 = 0.62\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Bell's original inequality <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: CHSH with relabelled settings, perfect anticorrelation as a constraint on response functions, a violation found and computed</p>
+<div class="statement">
+<p>Bell's 1964 inequality concerns three settings \(a, b, c\), each available to both sides, in a model with
+<em>perfect anticorrelation</em>: \(E(b, b) = E(c, c) = -1\).</p>
+<ol>
+<li>Show that perfect anticorrelation forces \(B(y, \lambda) = -A(y, \lambda)\) for every \(\lambda\) of positive weight, and hence
+\(E(b, c) = E(c, b)\).</li>
+<li>Derive \(\ |E(a, b) - E(a, c)| \le 1 + E(b, c)\ \) from the CHSH inequality, applied twice with suitable settings.</li>
+<li>For the singlet with coplanar settings at Bloch angles \(a = 0\), \(b = \pi/3\), \(c = 2\pi/3\) (polarisers at \(0^\circ\), \(30^\circ\),
+\(60^\circ\)), compute both sides.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The CHSH inequality holds for <em>any</em> two settings per side, and nothing stops a setting from being
+the same on both sides. One of the four terms will then be a perfect anticorrelation, \(-1\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Give Alice the settings \(\{b, a\}\) and Bob \(\{b, c\}\), arranged so that the minus sign falls on \(E(a, c)\). The other
+direction swaps the roles of \(b\) and \(c\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "CHSH with \(a \to b\), \(a' \to a\), \(b \to b\), \(b' \to c\) reads \(|E(b, b) + E(b, c) + E(a, b) - E(a, c)| \le 2\), and \(E(b, b) = -1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Perfect anticorrelation lets one setting be shared between the two sides, which turns a CHSH
+term into the constant \(-1\); what is left is Bell's three-setting inequality.</p>
+<p><strong>1.</strong> \(-1 = E(b, b) = \sum_\lambda p(\lambda)A(b, \lambda)B(b, \lambda)\), an average of numbers \(\ge -1\); it equals \(-1\) only if every term with
+\(p(\lambda) \gt 0\) is \(-1\), i.e. \(B(b, \lambda) = -A(b, \lambda)\). Likewise for \(c\). Then
+\(E(c, b) = \sum p\,A(c, \lambda)B(b, \lambda) = -\sum p\,A(c, \lambda)A(b, \lambda) = \sum p\,A(b, \lambda)B(c, \lambda) = E(b, c)\).</p>
+<p><strong>2.</strong> CHSH with Alice's settings \((b, a)\) and Bob's \((b, c)\), minus sign on (Alice \(a\), Bob \(c\)):
+\(E(b, b) + E(b, c) + E(a, b) - E(a, c) \ge -2\). With \(E(b, b) = -1\): \(E(a, c) - E(a, b) \le 1 + E(b, c)\). Now swap \(b\) and \(c\)
+throughout: \(E(a, b) - E(a, c) \le 1 + E(c, b) = 1 + E(b, c)\) by part 1. Together,</p>
+\[ |E(a, b) - E(a, c)| \le 1 + E(b, c). \ \blacksquare \]
+<p><strong>3.</strong> \(E = -\cos(\Delta\theta)\). \(E(a, b) = -\cos\tfrac\pi3 = -\tfrac12\), \(E(a, c) = -\cos\tfrac{2\pi}3 = +\tfrac12\), \(E(b, c) = -\cos\tfrac\pi3 = -\tfrac12\). Left
+side \(|-\tfrac12 - \tfrac12| = 1\); right side \(1 - \tfrac12 = \tfrac12\). <strong>Violated</strong>: \(1 \gt \tfrac12\).</p>
+<p><strong>Check.</strong> The singlet does satisfy the hypothesis: \(E(b, b) = -\cos0 = -1\) ✓. And over the family \(a = 0\), \(b = \theta\),
+\(c = 2\theta\), the excess \(|\cos2\theta - \cos\theta| - (1 - \cos\theta)\) was computed on a fine grid: its maximum is \(0.5000\), at \(\theta = 60.0^\circ\) —
+these settings are the best of their family. Bell's inequality needs perfect anticorrelation, which a real
+apparatus never quite has; CHSH (1969) dropped that hypothesis, which is why experiments test CHSH.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Product states never violate <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: \(\operatorname{tr}(\rho\,A\otimes B)\) for products, separable states as local models, the CHSH bound for numbers in \([-1, 1]\), a computed value</p>
+<div class="statement">
+<ol>
+<li>Prove that for every product state \(\sigma\otimes\tau\) and all \(\pm1\)-valued observables, \(|\operatorname{tr}((\sigma\otimes\tau)C)| \le 2\).</li>
+<li>Extend to every separable state \(\rho = \sum_kp_k\,\sigma_k\otimes\tau_k\) (unit 04).</li>
+<li>Compute \(S\) for \(\ket{01}\) at the deck's optimal settings \(A = Z\), \(A' = X\), \(B, B' = (Z \pm X)/\sqrt2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is the classical bound again: a product state is a local model in disguise. Find the numbers
+that play the role of the outcomes.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\operatorname{tr}((\sigma\otimes\tau)(A\otimes B)) = \operatorname{tr}(\sigma A)\operatorname{tr}(\tau B)\), and \(\operatorname{tr}(\sigma A) \in [-1, 1]\) for a \(\pm1\)-valued \(A\). Then P2's bilinear argument.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "With \(m = \operatorname{tr}(\sigma A)\), \(m' = \operatorname{tr}(\sigma A')\), \(n = \operatorname{tr}(\tau B)\), \(n' = \operatorname{tr}(\tau B')\), the CHSH value is \(m(n + n') + m'(n - n')\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A separable state is a random choice of product states, and in each product state the two
+sides' expectations simply multiply — exactly a stochastic local model with means \(m, n\).</p>
+<p><strong>1.</strong> \(\operatorname{tr}((\sigma\otimes\tau)(A\otimes B)) = \operatorname{tr}(\sigma A\otimes\tau B) = \operatorname{tr}(\sigma A)\operatorname{tr}(\tau B)\), by unit 03's product rule and the trace of a
+Kronecker product. For a \(\pm1\)-valued \(A = P_+ - P_-\), \(\operatorname{tr}(\sigma A) = \operatorname{tr}(\sigma P_+) - \operatorname{tr}(\sigma P_-)\) is a difference of two probabilities
+summing to one, so lies in \([-1, 1]\). With \(m, m', n, n'\) as in the last rung,
+\(|S| = |m(n + n') + m'(n - n')| \le |n + n'| + |n - n'| = 2\max(|n|, |n'|) \le 2\), as in P2.</p>
+<p><strong>2.</strong> \(\operatorname{tr}(\rho C) = \sum_kp_k\operatorname{tr}((\sigma_k\otimes\tau_k)C)\) by linearity, an average of numbers in \([-2, 2]\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(\ket{01} = \ket0\otimes\ket1\): \(m = \braket{0|Z|0} = 1\), \(m' = \braket{0|X|0} = 0\), \(n = \braket{1|\tfrac{Z + X}{\sqrt2}|1} = -\tfrac1{\sqrt2}\),
+\(n' = \braket{1|\tfrac{Z - X}{\sqrt2}|1} = -\tfrac1{\sqrt2}\). So \(S = 1\cdot(-\sqrt2) + 0 = -\sqrt2 \approx -1.4142\).</p>
+<p><strong>Check.</strong> \(|-1.4142| \le 2\) ✓. And it is unit 03's lesson in numbers: \(\ket{01}\) has the singlet's perfect
+anticorrelation in \(Z\), but its \(X\) statistics are uncorrelated (\(m' = 0\)), and that costs half of the \(2\sqrt2\). The converse
+fails: an entangled state need not violate CHSH (P9).</p>
+</div></details>
+</section>
+
+<h2 class="group">The singlet and Tsirelson's bound</h2>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Non-coplanar settings <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the singlet's invariance, the reduced state \(I/2\), unit 02's product rule, maximising over the Bloch sphere, a computed correlation</p>
+<div class="statement">
+<ol>
+<li>Show that \((\sigma_k\otimes I)\ket{\Psi^-} = -(I\otimes\sigma_k)\ket{\Psi^-}\) for \(\sigma_k = X, Y, Z\), and hence for every \(\mathbf n\cdot\boldsymbol\sigma\).</li>
+<li>Deduce that for unit vectors \(\mathbf a, \mathbf b \in \mathbb R^3\), \(\ \braket{\Psi^-|(\mathbf a\cdot\boldsymbol\sigma)\otimes(\mathbf b\cdot\boldsymbol\sigma)|\Psi^-} = -\mathbf a\cdot\mathbf b\). Evaluate it for
+\(\mathbf a = \hat{\mathbf z}\), \(\mathbf b = (1, 1, 1)/\sqrt3\).</li>
+<li>Show that for the singlet, over all Bloch vectors \(\mathbf a, \mathbf a', \mathbf b, \mathbf b'\), \(|S| \le 2\sqrt2\), and that equality
+forces all four into one plane.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is three short computations on the vectors \(\ket{01}\), \(\ket{10}\). Part 3 is a bound on a sum of dot products
+of the form \(\mathbf a\cdot\mathbf u + \mathbf a'\cdot\mathbf v\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 2: move \(\mathbf a\cdot\boldsymbol\sigma\) across to Bob's side, then use \(\rho_B = I/2\) and the product rule. Part 3: with \(\mathbf u = \mathbf b + \mathbf b'\)
+and \(\mathbf v = \mathbf b - \mathbf b'\), \(\mathbf u\perp\mathbf v\), and \(|\mathbf u|^2 + |\mathbf v|^2 = 4\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\((A\otimes B)\ket{\Psi^-} = (I\otimes B)(A\otimes I)\ket{\Psi^-} = -(I\otimes BA)\ket{\Psi^-}\), so \(E = -\operatorname{tr}(\rho_B\,BA) = -\tfrac12\operatorname{tr}(BA)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> On the singlet every Pauli observable on Alice's side equals minus the same observable on Bob's,
+so a two-sided correlation collapses to a one-sided trace against \(I/2\). The CHSH value is then a sum of two dot
+products, bounded by Cauchy–Schwarz in \(\mathbb R^3\).</p>
+<p><strong>1.</strong> \(\sqrt2(X\otimes I)\ket{\Psi^-} = \ket{11} - \ket{00}\) and \(\sqrt2(I\otimes X)\ket{\Psi^-} = \ket{00} - \ket{11}\). \(\ \sqrt2(Z\otimes I)\ket{\Psi^-} = \ket{01} + \ket{10}\) and
+\(\sqrt2(I\otimes Z)\ket{\Psi^-} = -\ket{01} - \ket{10}\). With \(Y\ket0 = i\ket1\), \(Y\ket1 = -i\ket0\): \(\sqrt2(Y\otimes I)\ket{\Psi^-} = i\ket{11} + i\ket{00}\) and
+\(\sqrt2(I\otimes Y)\ket{\Psi^-} = -i\ket{00} - i\ket{11}\). Each pair differs by a sign. By linearity, \((\mathbf n\cdot\boldsymbol\sigma\otimes I)\ket{\Psi^-} = -(I\otimes\mathbf n\cdot\boldsymbol\sigma)\ket{\Psi^-}\).</p>
+<p><strong>2.</strong> Operators on different factors commute (unit 03), so \((A\otimes B)\ket{\Psi^-} = (I\otimes B)(A\otimes I)\ket{\Psi^-} = -(I\otimes B)(I\otimes A)\ket{\Psi^-} = -(I\otimes BA)\ket{\Psi^-}\),
+where part 1 is applied to \(A = \mathbf a\cdot\boldsymbol\sigma\) and then \(I\otimes A\) is an operator on Bob's side. Hence
+\(E = -\operatorname{tr}(\ket{\Psi^-}\!\bra{\Psi^-}(I\otimes BA)) = -\operatorname{tr}(\rho_B\,BA)\) with \(\rho_B = I/2\) (unit 04). By unit 02,
+\(BA = (\mathbf b\cdot\mathbf a)I + i(\mathbf b\times\mathbf a)\cdot\boldsymbol\sigma\), and the Paulis are traceless, so \(E = -\tfrac12\cdot2(\mathbf a\cdot\mathbf b) = -\mathbf a\cdot\mathbf b\). For \(\hat{\mathbf z}\) and
+\((1, 1, 1)/\sqrt3\): \(E = -1/\sqrt3 \approx -0.5774\).</p>
+<p><strong>3.</strong> \(-S = \mathbf a\cdot(\mathbf b + \mathbf b') + \mathbf a'\cdot(\mathbf b - \mathbf b')\), so by Cauchy–Schwarz \(|S| \le |\mathbf u| + |\mathbf v|\) with \(\mathbf u = \mathbf b + \mathbf b'\),
+\(\mathbf v = \mathbf b - \mathbf b'\). Now \(\mathbf u\cdot\mathbf v = |\mathbf b|^2 - |\mathbf b'|^2 = 0\) and \(|\mathbf u|^2 + |\mathbf v|^2 = 2|\mathbf b|^2 + 2|\mathbf b'|^2 = 4\). Writing \(|\mathbf u| = 2\cos t\), \(|\mathbf v| = 2\sin t\)
+with \(t \in [0, \tfrac\pi2]\): \(|S| \le 2(\cos t + \sin t) = 2\sqrt2\sin(t + \tfrac\pi4) \le 2\sqrt2\). Equality needs \(t = \pi/4\) (so \(\mathbf b\perp\mathbf b'\)) and
+equality in both Cauchy–Schwarz steps, so \(\mathbf a = \pm\mathbf u/|\mathbf u|\) and \(\mathbf a' = \pm\mathbf v/|\mathbf v|\): both lie in the plane of \(\mathbf b, \mathbf b'\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> Coplanar case: \(\mathbf a\cdot\mathbf b = \cos(\theta_a - \theta_b)\) for unit vectors in the \(xz\) plane, so part 2 gives the deck's
+\(-\cos(\theta_a - \theta_b)\) ✓. At the deck's optimum \(\mathbf b, \mathbf b'\) are at \(\pm45^\circ\), perpendicular ✓, and
+\(\mathbf u = \sqrt2\hat{\mathbf z}\), \(\mathbf v = \sqrt2\hat{\mathbf x}\) — Alice's \(Z\) and \(X\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector, gates, library
+singlet = Statevector(library.bell_state("psi-"))
+sig = lambda n: n[0] * gates.X + n[1] * gates.Y + n[2] * gates.Z
+a, b = np.array([0, 0, 1]), np.array([1, 1, 1]) / np.sqrt(3)
+print(round(singlet.expectation(np.kron(sig(a), sig(b))).real, 4), round(-a @ b, 4))   # -0.5774 -0.5774</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Uniqueness at the top <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the CHSH operator at the optimal settings, simultaneous eigenvectors of commuting operators, non-degenerate extreme eigenvalues, positivity</p>
+<div class="statement">
+<p>Take \(A = Z\), \(A' = X\), \(B = (Z + X)/\sqrt2\), \(B' = (Z - X)/\sqrt2\).</p>
+<ol>
+<li>Show \(C = \sqrt2(Z\otimes Z + X\otimes X)\), and find its eigenvalues and eigenvectors.</li>
+<li>Show that \(-2\sqrt2\) and \(+2\sqrt2\) are non-degenerate, and identify the states.</li>
+<li>Prove that if \(\operatorname{tr}(\rho C) = -2\sqrt2\) for a density operator \(\rho\), then \(\rho = \ket{\Psi^-}\!\bra{\Psi^-}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The eigenvectors are four states you already know from unit 03. Part 3 is about where the weight of \(\rho\)
+can sit if an average reaches its minimum.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(Z\otimes Z\) and \(X\otimes X\) commute; check each on the four Bell states. For part 3, expand
+\(\operatorname{tr}(\rho C)\) in \(C\)'s eigenbasis.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "With \(w_j = \braket{f_j|\rho|f_j} \ge 0\), \(\sum w_j = 1\): \(\operatorname{tr}(\rho C) + 2\sqrt2 = \sum_jw_j(c_j + 2\sqrt2)\), a sum of non-negative terms."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> At these settings \(C\) is diagonal in the Bell basis, with the two extremes occurring once each; an
+expectation value reaches an extreme eigenvalue only on that eigenvector.</p>
+<p><strong>1.</strong> \(B + B' = \sqrt2Z\), \(B - B' = \sqrt2X\), and \(C = A\otimes(B + B') + A'\otimes(B - B') = \sqrt2(Z\otimes Z + X\otimes X)\). \(Z\otimes Z\) multiplies
+\(\ket{ab}\) by \((-1)^{a\oplus b}\): \(+1\) on \(\ket{\Phi^\pm}\), \(-1\) on \(\ket{\Psi^\pm}\). \(X\otimes X\) swaps \(\ket{00}\leftrightarrow\ket{11}\), \(\ket{01}\leftrightarrow\ket{10}\): \(+1\) on \(\ket{\Phi^+}, \ket{\Psi^+}\),
+\(-1\) on \(\ket{\Phi^-}, \ket{\Psi^-}\). So the Bell basis is an orthonormal eigenbasis of \(C\), with eigenvalues
+\(\sqrt2(1 + 1) = 2\sqrt2\) (\(\Phi^+\)), \(\sqrt2(1 - 1) = 0\) (\(\Phi^-\)), \(\sqrt2(-1 + 1) = 0\) (\(\Psi^+\)), \(\sqrt2(-1 - 1) = -2\sqrt2\) (\(\Psi^-\)).</p>
+<p><strong>2.</strong> A complete orthonormal eigenbasis lists every eigenvalue with its multiplicity; \(\pm2\sqrt2\) each occur once. So
+the \(-2\sqrt2\) eigenspace is the line through \(\ket{\Psi^-}\), the singlet, and the \(+2\sqrt2\) eigenspace the line through \(\ket{\Phi^+}\).</p>
+<p><strong>3.</strong> As in the last rung, the sum is zero only if \(w_j = 0\) for the three eigenvectors with \(c_j \gt -2\sqrt2\). For positive \(\rho\),
+\(\braket{f|\rho|f} = 0\) implies \(\rho f = 0\) (unit 04: write \(\rho = \sum\lambda_k\ket{e_k}\!\bra{e_k}\), then \(0 = \sum\lambda_k|\braket{e_k|f}|^2\) kills every term).
+So \(\rho\) vanishes on \(\ket{\Phi^\pm}\), \(\ket{\Psi^+}\), hence \(\rho = c\ket{\Psi^-}\!\bra{\Psi^-}\) (its range is in the orthogonal complement, and \(\rho\) is
+Hermitian), and \(\operatorname{tr}\rho = 1\) gives \(c = 1\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> \(\operatorname{tr}C = 2\sqrt2 + 0 + 0 - 2\sqrt2 = 0\), matching \(\operatorname{tr}(Z\otimes Z) = \operatorname{tr}(Z)^2 = 0\) ✓. The deck computed \(\braket{\Psi^-|C|\Psi^-} = -2\sqrt2\)
+from \(E = -\cos\) ✓. By contrast the maximally mixed state gives \(\operatorname{tr}(C)/4 = 0\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, library, linalg
+Z, X = gates.Z, gates.X
+C = np.sqrt(2) * (linalg.kron(Z, Z) + linalg.kron(X, X))
+vals, vecs = np.linalg.eigh(C)
+print(np.round(vals, 4))                                            # [-2.8284  0.  0.  2.8284]
+print(linalg.equal_up_to_phase(vecs[:, 0], library.bell_state("psi-")),
+      linalg.equal_up_to_phase(vecs[:, 3], library.bell_state("phi+")))   # True True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The game value is optimal <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: \(\Pr(\text{win}) = \tfrac12 + S/8\) with Tsirelson's bound, a strategy with \(\ket{\Phi^+}\), a computed advantage</p>
+<div class="statement">
+<ol>
+<li>Prove that no quantum strategy — any shared state, any dimension, projective two-outcome measurements —
+wins the CHSH game with probability above \(\cos^2\tfrac\pi8\), and give that number to four places.</li>
+<li>Show that with a shared \(\ket{\Phi^+} = (\ket{00} + \ket{11})/\sqrt2\), the correlation of \(A(\theta_a)\) and \(A(\theta_b)\) is \(+\cos(\theta_a - \theta_b)\),
+so that the deck's four directions win the game without anyone flipping an answer.</li>
+<li>In 1000 games, how many more wins does the optimal quantum strategy expect than the best classical one?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is two lines: one identity true for every strategy, and one bound true for every quantum
+strategy. Part 2 is a four-term expansion like the deck's worked example.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A two-outcome projective measurement is a \(\pm1\)-valued observable. For part 2, write
+\(A(\theta_a)\otimes A(\theta_b)\) as a combination of \(Z\otimes Z\), \(Z\otimes X\), \(X\otimes Z\), \(X\otimes X\), and evaluate each on \(\ket{\Phi^+}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\braket{\Phi^+|Z\otimes Z|\Phi^+} = \braket{\Phi^+|X\otimes X|\Phi^+} = 1\) and \(\braket{\Phi^+|Z\otimes X|\Phi^+} = \braket{\Phi^+|X\otimes Z|\Phi^+} = 0\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The game is the CHSH quantity in disguise; Tsirelson caps the quantity, so it caps the game.
+Which state is used only decides whether a player must relabel.</p>
+<p><strong>1.</strong> Each player's two measurements are \(\pm1\)-valued observables (\(2P - I\) for the projector \(P\) onto the outcome \(+1\)),
+so the strategy has a CHSH operator \(C\) and \(S = \operatorname{tr}(\rho C)\). For every strategy \(\Pr(\text{win}) = \tfrac12 + S/8\), and Tsirelson gives
+\(S \le 2\sqrt2\), so \(\Pr(\text{win}) \le \tfrac12 + \tfrac{\sqrt2}4 = \tfrac12(1 + \cos\tfrac\pi4) = \cos^2\tfrac\pi8 = 0.8536\). The deck's strategy attains it.</p>
+<p><strong>2.</strong> \(A(\theta_a)\otimes A(\theta_b) = c_ac_b\,Z\otimes Z + c_as_b\,Z\otimes X + s_ac_b\,X\otimes Z + s_as_b\,X\otimes X\) with \(c = \cos\), \(s = \sin\). On
+\(\ket{\Phi^+}\): \(Z\otimes Z\) and \(X\otimes X\) fix it (eigenvalue \(1\)), while \(Z\otimes X\) sends it to \((\ket{01} - \ket{10})/\sqrt2\), orthogonal to it, and
+likewise \(X\otimes Z\). So \(E = c_ac_b + s_as_b = \cos(\theta_a - \theta_b)\). At the four directions: \(+\tfrac1{\sqrt2}\) on \(00, 01, 10\), \(-\tfrac1{\sqrt2}\) on \(11\),
+so \(S = +2\sqrt2\) and each input pair is won with probability \(\tfrac12(1 + \tfrac1{\sqrt2}) = \cos^2\tfrac\pi8\).</p>
+<p><strong>3.</strong> \(1000\times0.8536 = 853.6\) against \(750\): about \(104\) more wins per thousand.</p>
+<p><strong>Check.</strong> \(\ket{\Phi^+} = (Z\otimes X)\ket{\Psi^-}\) exactly (unit 04's notes: \(Z\ket0\otimes X\ket1 - Z\ket1\otimes X\ket0 = \ket{00} + \ket{11}\)). So
+\(E_{\Phi^+} = \braket{\Psi^-|ZA(\theta_a)Z\otimes XA(\theta_b)X|\Psi^-}\), and \(ZA(\theta)Z = A(-\theta)\), \(XA(\theta)X = A(\pi - \theta)\); the singlet's formula then
+gives \(-\cos(-\theta_a - \pi + \theta_b) = +\cos(\theta_a - \theta_b)\) ✓ — the "flip" of the deck, moved into the state. Normalisation: \(\Pr(\text{win}) + \Pr(\text{lose}) = \cos^2\tfrac\pi8 + \sin^2\tfrac\pi8 = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector, gates, library
+phi = Statevector(library.bell_state("phi+"))
+A = lambda t: np.cos(t) * gates.Z + np.sin(t) * gates.X
+alice, bob = (0, np.pi / 2), (np.pi / 4, -np.pi / 4)
+win = 0
+for x in (0, 1):
+    for y in (0, 1):
+        E = phi.expectation(np.kron(A(alice[x]), A(bob[y]))).real
+        win += 0.25 * 0.5 * (1 + (-1) ** (x * y) * E)
+print(round(win, 4), round(np.cos(np.pi / 8) ** 2, 4))           # 0.8536 0.8536</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Equality needs perpendicular questions <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the chain of inequalities in Tsirelson's proof, when each is tight, commutators of Pauli observables, a computed bound</p>
+<div class="statement">
+<ol>
+<li>Suppose some state gives \(|S| = 2\sqrt2\). Prove that \(\lVert[A, A']\rVert = \lVert[B, B']\rVert = 2\). (Any dimension.)</li>
+<li>Now let all four be qubit observables \(\mathbf a\cdot\boldsymbol\sigma\), \(\mathbf a'\cdot\boldsymbol\sigma\), \(\mathbf b\cdot\boldsymbol\sigma\), \(\mathbf b'\cdot\boldsymbol\sigma\). Show
+\(\lVert[\mathbf a\cdot\boldsymbol\sigma, \mathbf a'\cdot\boldsymbol\sigma]\rVert = 2\sin\gamma\), with \(\gamma\) the angle between \(\mathbf a\) and \(\mathbf a'\), and deduce that \(|S| = 2\sqrt2\) needs
+\(\mathbf a\perp\mathbf a'\) and \(\mathbf b\perp\mathbf b'\).</li>
+<li>If Alice's directions are \(60^\circ\) apart and Bob's perpendicular, what does the bound
+\(|S| \le \sqrt{4 + \lVert[A, A']\rVert\,\lVert[B, B']\rVert}\) give? Compare with the deck's \(2(|\cos\tfrac\delta2| + |\sin\tfrac\delta2|)\) for the singlet.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Tsirelson's proof is a chain of inequalities ending at \(8\). If the end is reached, every link is tight. Find
+the link that involves the two commutators.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(|S| = 2\sqrt2\) forces an eigenvalue \(\lambda\) of \(C\) with \(\lambda^2 = 8\); then \(8 \le \lVert C^2\rVert \le 4 + \lVert[A, A']\rVert\lVert[B, B']\rVert\), each factor at most \(2\). For
+part 2, use unit 02's product rule on both orders.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\([\mathbf a\cdot\boldsymbol\sigma, \mathbf a'\cdot\boldsymbol\sigma] = 2i(\mathbf a\times\mathbf a')\cdot\boldsymbol\sigma\), and \(\mathbf m\cdot\boldsymbol\sigma\) has eigenvalues \(\pm|\mathbf m|\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(2\sqrt2\) is the end of a chain of inequalities, so every link must be an equality, and the link
+that involves the commutators says both are as large as they can be — which, for Pauli observables, means
+perpendicular directions.</p>
+<p><strong>1.</strong> \(|\operatorname{tr}(\rho C)|\) is at most the largest \(|c_j|\) (fact (d) of the deck), so \(|S| = 2\sqrt2\) forces an eigenvalue with
+\(|c_j| \ge 2\sqrt2\), and Tsirelson gives \(|c_j| \le 2\sqrt2\); so \(c_j^2 = 8\). Its eigenvector \(v\) has \(C^2v = 8v\), so
+\(8 = \lVert C^2v\rVert \le \lVert C^2\rVert \le 4 + \lVert[A, A']\rVert\,\lVert[B, B']\rVert\). Both norms are at most \(2\); if either were less, the product would be less
+than \(4\). So both equal \(2\). \(\blacksquare\)</p>
+<p><strong>2.</strong> By unit 02, \((\mathbf a\cdot\boldsymbol\sigma)(\mathbf a'\cdot\boldsymbol\sigma) = (\mathbf a\cdot\mathbf a')I + i(\mathbf a\times\mathbf a')\cdot\boldsymbol\sigma\) and the reverse order has
+\(\mathbf a'\times\mathbf a = -\mathbf a\times\mathbf a'\); subtracting, \([\mathbf a\cdot\boldsymbol\sigma, \mathbf a'\cdot\boldsymbol\sigma] = 2i(\mathbf a\times\mathbf a')\cdot\boldsymbol\sigma\). For real \(\mathbf m \ne 0\), \(\mathbf m\cdot\boldsymbol\sigma\) is Hermitian,
+traceless, and squares to \(|\mathbf m|^2I\), so its eigenvalues are \(\pm|\mathbf m|\) and its norm \(|\mathbf m|\). Hence the commutator has norm
+\(2|\mathbf a\times\mathbf a'| = 2\sin\gamma\). This is \(2\) only at \(\gamma = \pi/2\); by part 1, \(|S| = 2\sqrt2\) needs \(\mathbf a\perp\mathbf a'\) and, likewise, \(\mathbf b\perp\mathbf b'\).</p>
+<p><strong>3.</strong> \(\lVert[A, A']\rVert = 2\sin60^\circ = \sqrt3 \approx 1.7321\), \(\lVert[B, B']\rVert = 2\). The bound: \(\sqrt{4 + 2\sqrt3} = 1 + \sqrt3 \approx 2.7321\) (indeed
+\((1 + \sqrt3)^2 = 4 + 2\sqrt3\)). The deck's formula with \(\delta = \pi/3\): \(2(\cos30^\circ + \sin30^\circ) = \sqrt3 + 1 \approx 2.7321\). <strong>The same</strong>.</p>
+<p><strong>Check.</strong> In general \(\sqrt{4 + 4\sin\delta} = 2\sqrt{1 + \sin\delta}\) and \(2(\cos\tfrac\delta2 + \sin\tfrac\delta2) = 2\sqrt{1 + \sin\delta}\) (square it), so for the
+singlet with Bob perpendicular the operator bound is attained for every \(\delta \in [0, \pi]\): it is not just a bound at the top.
+At \(\delta = 0\): \(2\), the classical value, as commuting observables must give ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Noise kills the violation <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a mixed state checked to be a density operator, \(\operatorname{tr}(\rho C)\) by linearity, Tsirelson for mixed states, a threshold computed</p>
+<div class="statement">
+<p>A source makes the singlet with probability \(p\) and otherwise something completely random:
+\(\rho_p = p\ket{\Psi^-}\!\bra{\Psi^-} + (1 - p)\tfrac I4\), with \(0 \le p \le 1\) (a <em>Werner state</em>).</p>
+<ol>
+<li>Check that \(\rho_p\) is a density operator, giving its eigenvalues.</li>
+<li>Show that for qubit observables of the form \(\mathbf n\cdot\boldsymbol\sigma\), \(\max|S| = 2\sqrt2\,p\); and that if any of the four observables is
+\(\pm I\), then \(|S| \le 2\).</li>
+<li>Hence find the smallest \(p\) above which the source violates CHSH, to four places.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>\(\operatorname{tr}(\rho C)\) is linear in \(\rho\), so the answer is \(p\) times the singlet's value plus \((1 - p)\) times the noise's. The
+noise contributes a trace.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\operatorname{tr}(A\otimes B) = \operatorname{tr}A\operatorname{tr}B\), and \(\mathbf n\cdot\boldsymbol\sigma\) is traceless. If \(A = \pm I\), what is \([A, A']\)?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\operatorname{tr}(\rho_pC) = p\braket{\Psi^-|C|\Psi^-} + \tfrac{1 - p}4\operatorname{tr}C\), and \(\operatorname{tr}C = 0\) when all four observables are traceless."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Noise is a convex combination, and the CHSH value is linear: the noise part contributes nothing,
+the singlet part at most \(2\sqrt2\), so the value is diluted by the factor \(p\).</p>
+<p><strong>1.</strong> \(\ket{\Psi^-}\) and any three orthonormal vectors completing it diagonalise \(\rho_p\): on \(\ket{\Psi^-}\) the eigenvalue is
+\(p + \tfrac{1 - p}4 = \tfrac{1 + 3p}4\), and on the other three \(\tfrac{1 - p}4\). All \(\ge 0\) for \(0 \le p \le 1\), and the trace is \(\tfrac{1 + 3p}4 + 3\cdot\tfrac{1 - p}4 = 1\) ✓.
+Hermitian, as a real combination of Hermitian operators.</p>
+<p><strong>2.</strong> By linearity \(\operatorname{tr}(\rho_pC) = p\braket{\Psi^-|C|\Psi^-} + \tfrac{1 - p}4\operatorname{tr}C\). For traceless observables each
+\(\operatorname{tr}(A\otimes B) = \operatorname{tr}A\operatorname{tr}B = 0\), so \(S = p\,\braket{\Psi^-|C|\Psi^-}\), and Tsirelson gives \(|S| \le 2\sqrt2\,p\), attained at the deck's four directions
+(\(S = -2\sqrt2\,p\)). If \(A = \pm I\), then \([A, A'] = 0\), so \(C^2 = 4I\) and every eigenvalue of \(C\) is \(\pm2\): \(|S| \le 2\) for every state. Likewise for
+\(A'\), \(B\) or \(B'\). By unit 02 (or the deck's classification), every qubit \(\pm1\)-valued observable is one of these two kinds.</p>
+<p><strong>3.</strong> A violation, \(|S| \gt 2\), needs \(2\sqrt2\,p \gt 2\), i.e. \(p \gt 1/\sqrt2 \approx 0.7071\).</p>
+<p><strong>Check.</strong> \(p = 1\): \(2\sqrt2\), the singlet ✓. \(p = 0\): \(0\), the maximally mixed state shows no correlation at all ✓. At
+\(p = 0.9\): \(S = -2\sqrt2\times0.9 \approx -2.5456\). And a warning: \(\rho_p\) is entangled for every \(p \gt \tfrac13\) (Werner, <em>Phys. Rev. A</em> 40,
+4277 (1989), cited), so for \(\tfrac13 \lt p \le 0.7071\) the state is entangled yet never violates CHSH. Entanglement and Bell violation
+are different things.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, gates, library, linalg
+Z, X = gates.Z, gates.X
+C = np.sqrt(2) * (linalg.kron(Z, Z) + linalg.kron(X, X))
+singlet = DensityMatrix.from_statevector(Statevector(library.bell_state("psi-"))).matrix
+for p in (1 / np.sqrt(2), 0.9):
+    rho = DensityMatrix(p * singlet + (1 - p) * np.eye(4) / 4)
+    print(round(p, 4), round(rho.expectation(C).real, 4))          # 0.7071 -2.0, then 0.9 -2.5456</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">The PR box and the experiments</h2>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> The PR box is no-signalling <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: marginals of a joint distribution, the no-signalling condition, CHSH values of mixtures, the quantum correlations as a noisy PR box</p>
+<div class="statement">
+<p>The PR box has \(P(a, b\mid x, y) = \tfrac12\) if \(a\oplus b = xy\) and \(0\) otherwise. The <em>noise box</em> has \(P(a, b\mid x, y) = \tfrac14\)
+for all entries.</p>
+<ol>
+<li>Prove the PR box is no-signalling: Alice's marginal does not depend on \(y\), nor Bob's on \(x\). Show \(S = 4\).</li>
+<li>Let \(P_q = q\,\mathrm{PR} + (1 - q)\,\mathrm{noise}\), \(0 \le q \le 1\). Show \(P_q\) is no-signalling and \(S = 4q\). For which \(q\) can \(P_q\) be local? Be quantum?</li>
+<li>Show that the deck's quantum strategy (singlet, four directions, Bob flipping) produces exactly the table
+\(P_q\) with \(q = 1/\sqrt2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything here is a table of sixteen numbers for each input pair. "No-signalling" is a statement about
+row and column sums.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A mixture of no-signalling boxes is no-signalling, since marginals are linear. For part 3, a box with
+uniform marginals is fixed by its four correlations \(E_{xy}\), and \(\Pr(a\oplus b = xy) = \tfrac12(1 \pm E_{xy})\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "In \(P_q\), \(E_{xy} = q\cdot(\pm1) + (1 - q)\cdot0\), with \(+\) on \(00, 01, 10\) and \(-\) on \(11\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The PR box is a table whose correlations are perfect but whose marginals are fair coins; mixing it
+with noise scales the correlations, and the quantum optimum is exactly the PR box diluted to \(1/\sqrt2\).</p>
+<p><strong>1.</strong> \(P(a\mid x, y) = \sum_bP(a, b\mid x, y)\); exactly one \(b\), namely \(a\oplus xy\), contributes, with \(\tfrac12\). So \(P(a\mid x, y) = \tfrac12\) for
+all \(y\); by symmetry Bob's marginal is \(\tfrac12\) for all \(x\). Correlations: \(E = +1\) on \(xy = 0\), \(-1\) on \(11\); \(S = 1 + 1 + 1 + 1 = 4\).</p>
+<p><strong>2.</strong> Marginals of \(P_q\) are \(q\cdot\tfrac12 + (1 - q)\cdot\tfrac12 = \tfrac12\) — no-signalling ✓. Correlations \(E_{xy} = \pm q\), so \(S = 4q\). Local
+requires \(4q \le 2\), i.e. \(q \le \tfrac12\); and at \(q \le \tfrac12\) it <em>is</em> local: \(P_{1/2}\) is the equal mixture of the eight
+deterministic strategies that win three pairs (each input pair is then won by six of them and lost by two;
+check below). For \(q \lt \tfrac12\), \(P_q = 2q\,P_{1/2} + (1 - 2q)\,\mathrm{noise}\), and the noise box is local (each side tosses its own fair coin), so
+\(P_q\) is a mixture of local boxes: local. Quantum requires \(4q \le 2\sqrt2\), i.e. \(q \le 1/\sqrt2 \approx 0.7071\); part 3 shows \(q = 1/\sqrt2\) is
+reached, and every smaller \(q\) is too: the same measurements on P9's Werner state \(\rho_p\) give uniform marginals and
+correlations \(\pm p/\sqrt2\), so \(P_q\) with \(p = \sqrt2\,q \in [0, 1]\). So: local exactly for \(q \le \tfrac12\), quantum exactly for \(q \le 1/\sqrt2\).</p>
+<p><strong>3.</strong> The deck's strategy has uniform marginals (each side alone sees \(\operatorname{tr}(\tfrac I2A) = 0\)) and, after Bob's flip,
+\(E_{xy} = +\tfrac1{\sqrt2}\) on \(00, 01, 10\) and \(-\tfrac1{\sqrt2}\) on \(11\). A box with uniform marginals and correlation \(E\) has
+\(P(a, b) = \tfrac14(1 + (-1)^{a\oplus b}E)\), so the table is fixed by the \(E_{xy}\), which are those of \(P_q\) with \(q = 1/\sqrt2\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> The eight three-pair strategies \((a_0a_1, b_0b_1)\) are \((00, 00)\), \((00, 01)\), \((01, 00)\), \((01, 10)\), \((10, 01)\), \((10, 11)\),
+\((11, 10)\), \((11, 11)\). On input \(00\) the game wants \(a_0 = b_0\), which holds for all but \((01, 10)\) and \((10, 01)\): six of eight, so the
+mixture wins \(00\) with probability \(\tfrac68 = \tfrac34 = \tfrac12(1 + \tfrac12)\) ✓, i.e. \(E_{00} = \tfrac12 = q\). Counting the other input pairs the
+same way gives six each, and each answer bit is \(0\) in exactly four of the eight, so the marginals are uniform and the
+mixture's table is \(P_{1/2}\). \(S = 4\times\tfrac12 = 2\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Read Delft critically <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: a sigma count and what it assumes, stochastic domination by a binomial proved by induction, a tail probability computed, what a small sample can and cannot establish</p>
+<div class="statement">
+<p>Delft (2015) reported \(n = 245\) trials, \(S = 2.42 \pm 0.20\), and the CHSH game won \(k = 196\) times; its \(p\)-value was \(0.039\).</p>
+<ol>
+<li>How many standard deviations above \(2\) is \(S\)? What one-sided Gaussian tail probability does that suggest, and
+what does that computation assume?</li>
+<li>Let \(W_1, \dots, W_n \in \{0, 1\}\) be win indicators with \(\Pr(W_i = 1\mid W_1, \dots, W_{i-1}) \le q\) for every \(i\) and every history. Prove
+that \(K = \sum W_i\) satisfies \(\Pr(K \ge k) \le \Pr(\mathrm{Bin}(n, q) \ge k)\) for every \(k\).</li>
+<li>Explain why any local hidden-variable model, even one with memory of earlier trials, satisfies part 2's
+hypothesis with \(q = \tfrac34\), and compute the bound at \(n = 245\), \(k = 196\).</li>
+<li>What can 245 trials not establish? Roughly how many trials at the same win rate \(0.8\) would push the bound
+below \(10^{-6}\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 2 is an induction on \(n\), conditioning on the first trial. Part 3 conditions on the past and asks what
+kind of model the boxes are running in the next trial.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Let \(f_n(k) = \Pr(\mathrm{Bin}(n, q) \ge k)\). It is non-increasing in \(k\), and \(f_n(k) = q\,f_{n-1}(k - 1) + (1 - q)\,f_{n-1}(k)\). Given \(W_1\), the
+remaining \(n - 1\) trials satisfy the same hypothesis.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "With \(p_1 = \Pr(W_1 = 1) \le q\): \(\Pr(K \ge k) \le p_1f_{n-1}(k - 1) + (1 - p_1)f_{n-1}(k)\), by induction applied given \(W_1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A sigma count treats the trials as independent draws from a fixed Gaussian, which a local model
+with memory need not respect. Counting wins needs no such assumption: whatever happened before, a local
+model wins the next trial with probability at most \(\tfrac34\), so the number of wins is dominated by a binomial.</p>
+<p><strong>1.</strong> \((2.42 - 2)/0.20 = 2.1\) standard deviations. A one-sided Gaussian tail beyond \(2.1\) is \(0.018\) (Delft's own
+"conventional" analysis quotes \(0.019\)). It assumes independent, identically distributed trials, a normal
+distribution for the estimate of \(S\), and that the quoted \(0.20\) is the right spread — none of which holds for an
+adversarial local model that may adapt to the history.</p>
+<p><strong>2.</strong> Induction on \(n\). For \(n = 0\) both sides are \([k \le 0]\). Suppose it holds for \(n - 1\) (for all processes and all \(k\)).
+Given \(W_1 = w\), the process \(W_2, \dots, W_n\) satisfies the hypothesis with \(n - 1\) trials, so
+\(\Pr(K \ge k\mid W_1 = w) \le f_{n-1}(k - w)\). Hence, with \(p_1 = \Pr(W_1 = 1) \le q\),</p>
+\[ \Pr(K \ge k) \le p_1f_{n-1}(k - 1) + (1 - p_1)f_{n-1}(k) \le q\,f_{n-1}(k - 1) + (1 - q)\,f_{n-1}(k) = f_n(k), \]
+<p>where the middle step uses \(f_{n-1}(k - 1) \ge f_{n-1}(k)\): moving weight onto the larger term can only increase the sum.
+The last equality is the binomial's own first-trial decomposition. \(\blacksquare\)</p>
+<p><strong>3.</strong> Fix the history of trials \(1, \dots, i - 1\). In trial \(i\) the boxes' answers are functions of their own input
+and of a hidden variable which may include that whole history; the inputs of trial \(i\) are fresh, uniform and
+independent of everything before (free choice). So, conditionally on the history, trial \(i\) is a local
+hidden-variable model, and section 1 bounds its winning probability by \(\tfrac34\). Part 2 then gives</p>
+\[ p \le \sum_{j=196}^{245}\binom{245}{j}\big(\tfrac34\big)^j\big(\tfrac14\big)^{245-j} = 0.0391, \]
+<p>Delft's \(0.039\).</p>
+<p><strong>4.</strong> The \(p\)-value is the probability of data this extreme if local realism held — not the probability that it
+holds, and it says nothing about the free-choice hypothesis, which the test assumes. 245 trials also cannot
+pin down \(S\): \(2.42 \pm 0.20\) is about \(2\) standard deviations from the ideal \(2.8284\), so the data do not show the
+source was near a singlet. At a win rate of \(0.8\), the bound \(\Pr(\mathrm{Bin}(n, \tfrac34) \ge 0.8n)\) first drops below \(10^{-6}\) at about
+\(n = 1600\) trials (computed: \(n = 1609\), \(k = 1288\)).</p>
+<p><strong>Check.</strong> Under \(\mathrm{Bin}(245, \tfrac34)\) the mean is \(183.75\) and the standard deviation \(\sqrt{245\cdot\tfrac34\cdot\tfrac14} = 6.78\); \(196\) is
+\(1.8\) of these above the mean, and a normal approximation to that tail gives \(0.035\) (\(0.041\) with the usual half-unit
+continuity correction) — close to the exact \(0.039\), as it should be for a sum of 245 bounded terms. And \(196/245 = 0.800\) against \(\tfrac12 + 2.42/8 = 0.8025\): close, the gap
+coming from the four input pairs not occurring exactly equally often.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 06</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

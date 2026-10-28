@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 · Problems — No-cloning, and how well two states can be told apart</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="b">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part B · unit 05 · problems</p>
+<h1>No-cloning, and how well two states can be told apart</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u05">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the no-cloning theorem both
+ways — by linearity, and by inner products, where \(\braket{\psi|\varphi} = \braket{\psi|\varphi}^2\) up to phase forces
+\(|\braket{\psi|\varphi}|\in\{0, 1\}\) — and you prove the Helstrom bound \(\tfrac12(1 + \sqrt{1 - |\braket{\psi|\varphi}|^2})\) for two
+equiprobable pure states, producing for \(\ket0\) against \(\ket+\) the value \(\tfrac12(1 + \tfrac1{\sqrt2}) \approx 0.8536\) and the
+optimal measurement: the basis at angles \(-\pi/8\) and \(3\pi/8\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about four hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the <strong>first</strong> slot. Qubit 0 is
+the leftmost symbol of a ket. \(\ket\pm = \tfrac1{\sqrt2}(\ket0 \pm \ket1)\), \(\ket{\pm i} = \tfrac1{\sqrt2}(\ket0 \pm i\ket1)\), linear polarisation at angle
+\(\theta\) is \(\ket\theta = \cos\theta\ket0 + \sin\theta\ket1\), and</p>
+\[ X = \begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix},\quad Z = \begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix},\quad
+\mathrm{CNOT}_{01} = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X,\quad \ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{00} + \ket{11}). \]
+<p>A <strong>cloner</strong> for a set \(S\) is a unitary \(U\) on \(H\otimes H\) and a fixed unit vector \(s\) with \(U(\psi\otimes s) = e^{i\gamma_\psi}\psi\otimes\psi\) for
+all \(\psi\in S\). In two-state discrimination with a projector \(P\) for the answer "\(\psi\)", the success probability is
+\(p_{\rm succ} = \tfrac12\braket{\psi|P|\psi} + \tfrac12\braket{\varphi|(I - P)|\varphi}\), and its maximum is
+\(\tfrac12(1 + \sqrt{1 - |c|^2})\) with \(c = \braket{\psi|\varphi}\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Linearity, by the numbers">P1</a></li>
+<li><a class="routine" href="#p2" title="A copier for the x basis">P2</a></li>
+<li><a class="medium" href="#p3" title="Copying a known set">P3</a></li>
+<li><a class="medium" href="#p4" title="Ancillas do not help copying">P4</a></li>
+<li><a class="medium" href="#p5" title="No-deleting">P5</a></li>
+<li><a class="medium" href="#p6" title="Finish off FLASH">P6</a></li>
+<li><a class="routine" href="#p7" title="Helstrom at angle θ">P7</a></li>
+<li><a class="medium" href="#p8" title="Unequal priors">P8</a></li>
+<li><a class="medium" href="#p9" title="Many copies">P9</a></li>
+<li><a class="routine" href="#p10" title="Unambiguous discrimination, stated">P10</a></li>
+<li><a class="medium" href="#p11" title="Cloning fidelity">P11</a></li>
+<li><a class="hard" href="#p12" title="Cloning would beat Helstrom">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Copying</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Linearity, by the numbers <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: linearity of a unitary, the inner product on a tensor product, how badly a classical copier fails on a superposition</p>
+<div class="statement">
+<p>Let \(U\) copy \(\ket0\) and \(\ket1\) exactly onto a blank \(s\): \(U(\ket k\otimes s) = \ket k\ket k\) for \(k = 0, 1\) (for example \(\mathrm{CNOT}_{01}\) with \(s = \ket0\)). Let
+\(\ket\alpha = \cos\alpha\ket0 + \sin\alpha\ket1\) with \(0 \le \alpha \le \pi/2\).</p>
+<ol>
+<li>Compute \(U(\ket\alpha\otimes s)\) and check that it is normalised.</li>
+<li>Compute its overlap \(f(\alpha)\) with the true copy \(\ket\alpha\ket\alpha\).</li>
+<li>For which \(\alpha\) is \(f(\alpha) = 1\)? Where on \([0, \pi/2]\) is \(f\) smallest, and what is its value there? Check against the deck's <i>Worked: CNOT on |+⟩|0⟩</i>.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a vector in \(\mathbb C^4\); part 2 is a real function of \(\alpha\), a sum of two cubes; part 3 is a one-variable minimum.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Expand \(\ket\alpha\ket\alpha\) in the basis \(\ket{00}, \ket{01}, \ket{10}, \ket{11}\). Only two of its four coefficients meet a nonzero coefficient of \(U(\ket\alpha\otimes s)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "\(U(\ket\alpha\otimes s) = \cos\alpha\,U(\ket0\otimes s) + \sin\alpha\,U(\ket1\otimes s) = \cos\alpha\ket{00} + \sin\alpha\ket{11}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Linearity fixes the output on every superposition once it is fixed on \(\ket0\) and \(\ket1\); the
+output keeps only the "both 0" and "both 1" parts of a true copy.</p>
+<p><strong>1.</strong> \(\ket\alpha\otimes s = \cos\alpha\,(\ket0\otimes s) + \sin\alpha\,(\ket1\otimes s)\), so by linearity \(U(\ket\alpha\otimes s) = \cos\alpha\ket{00} + \sin\alpha\ket{11}\). Norm squared
+\(\cos^2\alpha + \sin^2\alpha = 1\) ✓.</p>
+<p><strong>2.</strong> \(\ket\alpha\ket\alpha = \cos^2\alpha\ket{00} + \cos\alpha\sin\alpha(\ket{01} + \ket{10}) + \sin^2\alpha\ket{11}\), norm squared \(\cos^4\alpha + 2\cos^2\alpha\sin^2\alpha + \sin^4\alpha = (\cos^2\alpha + \sin^2\alpha)^2 = 1\) ✓.
+All coefficients are real, so</p>
+\[ f(\alpha) = \braket{\alpha\alpha|U(\alpha\otimes s)} = \cos^2\alpha\cdot\cos\alpha + \sin^2\alpha\cdot\sin\alpha = \cos^3\alpha + \sin^3\alpha . \]
+<p><strong>3.</strong> On \([0, \pi/2]\), \(\cos\alpha, \sin\alpha \in [0, 1]\), so \(\cos^3\alpha \le \cos^2\alpha\) and \(\sin^3\alpha \le \sin^2\alpha\), and \(f(\alpha) \le 1\) with equality iff each of
+\(\cos\alpha, \sin\alpha\) is \(0\) or \(1\): \(\alpha = 0\) or \(\pi/2\), the states \(\ket0\) and \(\ket1\) themselves. For the minimum,
+\(f'(\alpha) = -3\cos^2\alpha\sin\alpha + 3\sin^2\alpha\cos\alpha = 3\sin\alpha\cos\alpha(\sin\alpha - \cos\alpha)\), which vanishes inside \((0, \pi/2)\) only at \(\alpha = \pi/4\). Since
+\(f(0) = f(\pi/2) = 1\), the minimum is \(f(\pi/4) = 2\cdot(1/\sqrt2)^3 = 1/\sqrt2 \approx 0.7071\).</p>
+<p><strong>Check.</strong> At \(\alpha = \pi/4\), \(\ket\alpha = \ket+\) and the output is \(\ket{\Phi^+}\): the deck found \(\braket{{+}{+}|\Phi^+} = 1/\sqrt2\) ✓. The probability
+that the output passes the test "is it \(\ket\alpha\ket\alpha\)?" is \(f^2\), at worst \(\tfrac12\). If \(U\) carried phases, \(U(\ket k\otimes s) = e^{i\gamma_k}\ket{kk}\), the
+overlap would be \(|e^{i\gamma_0}\cos^3\alpha + e^{i\gamma_1}\sin^3\alpha| \le f(\alpha)\) by the triangle inequality: phases can only make it worse.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> A copier for the x basis <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: change of basis by a unitary, the product rule for tensor operators, that copyability is a property of a set</p>
+<div class="statement">
+<p>Let \(H = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix}\) and \(U = (H\otimes H)\,\mathrm{CNOT}_{01}\,(H\otimes H)\).</p>
+<ol>
+<li>Check that \(H\) is unitary and that \(H\ket0 = \ket+\), \(H\ket1 = \ket-\), \(H\ket\pm = \ket0, \ket1\).</li>
+<li>Show that \(U\) is a cloner for \(\{\ket+, \ket-\}\) with blank \(\ket+\).</li>
+<li>Compute \(U(\ket0\ket+)\) and its overlap with \(\ket0\ket0\).</li>
+<li>Show that \(U = I\otimes\ket0\!\bra0 + X\otimes\ket1\!\bra1\): the CNOT with control qubit 1 and target qubit 0, which unit 10 will call \(\mathrm{CNOT}_{10}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything follows from "\(H\) swaps the \(z\) and \(x\) bases and \(H^2 = I\)". Part 3's answer is a Bell state; part 4 is an identity between \(4\times4\) matrices, best proved without writing them out.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Follow \(\ket\pm\ket+\) through the three factors of \(U\) one at a time. For part 4, conjugate each term of \(\mathrm{CNOT}_{01}\) by \(H\otimes H\), using \(HXH = Z\), \(\ket\pm\!\bra\pm = \tfrac12(I \pm X)\) and \(\tfrac12(I \pm Z) = \ket0\!\bra0, \ket1\!\bra1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\((H\otimes H)\ket+\ket+ = \ket0\ket0\), then \(\mathrm{CNOT}_{01}\ket{00} = \ket{00}\), then \((H\otimes H)\ket{00} = \ket{{+}{+}}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(H\) carries the \(x\) basis to the \(z\) basis; copy there with CNOT; carry back. A copier for one
+orthonormal basis is a copier for any other after a change of basis — but only for that basis.</p>
+<p><strong>1.</strong> \(H\) is real and symmetric, so \(H^\dagger H = H^2 = \tfrac12\begin{pmatrix}2&amp;0\\0&amp;2\end{pmatrix} = I\) ✓. Its columns are \(\tfrac1{\sqrt2}(1, 1) = \ket+\) and \(\tfrac1{\sqrt2}(1, -1) = \ket-\), so
+\(H\ket0 = \ket+\), \(H\ket1 = \ket-\); applying \(H\) again, \(H\ket+ = H^2\ket0 = \ket0\) and \(H\ket- = \ket1\).</p>
+<p><strong>2.</strong> By the product rule \((H\otimes H)(a\otimes b) = Ha\otimes Hb\). For \(\ket+\ket+\): \(\ket+\ket+ \mapsto \ket0\ket0 \mapsto \ket0\ket0 \mapsto \ket+\ket+\). For \(\ket-\ket+\):
+\(\ket-\ket+ \mapsto \ket1\ket0 \mapsto \ket1\ket1 \mapsto \ket-\ket-\). Both copied, no phase. \(U\) is unitary as a product of unitaries.</p>
+<p><strong>3.</strong> \(\ket0\ket+ \mapsto \ket+\ket0 \mapsto \ket{\Phi^+}\) (the deck's worked example), and then \((H\otimes H)\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{{+}{+}} + \ket{{-}{-}})\). Expanding,
+\(\ket{{+}{+}} + \ket{{-}{-}} = \tfrac12[(\ket{00} + \ket{01} + \ket{10} + \ket{11}) + (\ket{00} - \ket{01} - \ket{10} + \ket{11})] = \ket{00} + \ket{11}\), so \(U(\ket0\ket+) = \ket{\Phi^+}\) again. Its overlap
+with \(\ket0\ket0\) is \(\tfrac1{\sqrt2} \approx 0.7071\): the \(x\)-copier fails on \(\ket0\) exactly as the \(z\)-copier fails on \(\ket+\).</p>
+<p><strong>4.</strong> Conjugating term by term with \((H\otimes H)(A\otimes B)(H\otimes H) = HAH\otimes HBH\):</p>
+\[ U = H\ket0\!\bra0H\otimes HIH + H\ket1\!\bra1H\otimes HXH = \ket+\!\bra+\otimes I + \ket-\!\bra-\otimes Z . \]
+<p>Here \(HXH = \tfrac12\begin{pmatrix}1&amp;1\\-1&amp;1\end{pmatrix}\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix} = Z\) (the first product being \(HX\)). With \(\ket\pm\!\bra\pm = \tfrac12(I \pm X)\):</p>
+\[ U = \tfrac12(I + X)\otimes I + \tfrac12(I - X)\otimes Z = I\otimes\tfrac12(I + Z) + X\otimes\tfrac12(I - Z) = I\otimes\ket0\!\bra0 + X\otimes\ket1\!\bra1 . \]
+<p>That is: flip qubit 0 when qubit 1 is \(1\), i.e. \(\mathrm{CNOT}_{10}\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> On \(\ket+\ket+\), \(\mathrm{CNOT}_{10}\) gives \(\tfrac12(\ket{00} + \ket{11} + \ket{10} + \ket{01})\) (flipping qubit 0 in the two terms where qubit 1 is \(1\)), which is
+\(\ket{{+}{+}}\) again ✓. On \(\ket-\ket+ = \tfrac12(\ket{00} + \ket{01} - \ket{10} - \ket{11})\) it gives \(\tfrac12(\ket{00} + \ket{11} - \ket{10} - \ket{01}) = \ket-\ket-\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector, gates, linalg
+HH = linalg.kron(gates.H, gates.H)
+U = HH @ gates.CX @ HH
+print(np.allclose(U, gates.SWAP @ gates.CX @ gates.SWAP))      # True: CNOT_10
+for b in "+-":
+    out = U @ Statevector.from_label(b + "+").vector
+    print(np.allclose(out, Statevector.from_label(b + b).vector))  # True, True
+out = U @ Statevector.from_label("0+").vector
+print(round(abs(np.vdot(Statevector.from_label("00").vector, out)), 4))  # 0.7071</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Copying a known set <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the inner-product proof with phases, building a unitary from a permutation of a basis, the exact criterion for cloning</p>
+<div class="statement">
+<ol>
+<li>Prove: a finite set of states has a cloner if and only if any two of its members are orthogonal or equal as states (equal up to a phase). Allow the phase \(e^{i\gamma_\psi}\) in the definition.</li>
+<li>Decide, with reasons, which of these sets has a cloner: (a) \(\{\ket0, \ket1, \ket+\}\) in \(\mathbb C^2\); (b) \(\{\ket{00}, \ket{01}, \ket{11}\}\), as states of one system with \(H = \mathbb C^4\); (c) \(\{\ket+, \ket-, -\ket+\}\) in \(\mathbb C^2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>"Only if" is an identity between inner products; "if" is a construction: a unitary that permutes an orthonormal basis of \(H\otimes H\). Each verdict in part 2 is decided by overlaps alone — and by remembering what "equal as states" means.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For "only if", compare \(\braket{\psi\otimes s|\varphi\otimes s}\) with \(\braket{U(\psi\otimes s)|U(\varphi\otimes s)}\) and take moduli. For "if", extend the distinct members to an orthonormal basis \(e_0, \dots, e_{d-1}\) and send \(e_j\otimes e_k\) to \(e_j\otimes e_{(j + k)\bmod d}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of "only if": "With \(c = \braket{\psi|\varphi}\), unitarity gives \(c\braket{s|s} = e^{i(\gamma_\varphi - \gamma_\psi)}c^2\), so \(|c| = |c|^2\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A unitary keeps every overlap, and copying squares it; the only overlaps that survive
+squaring are \(0\) and \(1\). Conversely, orthogonal states are a classical alphabet, and permuting basis
+pairs copies an alphabet.</p>
+<p><strong>Only if.</strong> Let \(U\) clone \(\psi\) and \(\varphi\), and \(c = \braket{\psi|\varphi}\). Then \(\braket{\psi\otimes s|\varphi\otimes s} = c\braket{s|s} = c\), and \(\braket{U(\psi\otimes s)|U(\varphi\otimes s)} =
+\overline{e^{i\gamma_\psi}}e^{i\gamma_\varphi}\braket{\psi|\varphi}^2 = e^{i(\gamma_\varphi - \gamma_\psi)}c^2\). Unitarity makes these equal; taking moduli, \(|c| = |c|^2\), so \(|c|\in\{0, 1\}\). If \(|c| = 1\), Cauchy–Schwarz
+holds with equality, so \(\varphi = \lambda\psi\) with \(|\lambda| = 1\): the same state.</p>
+<p><strong>If.</strong> Pick one representative of each distinct state: \(\psi_0, \dots, \psi_{m-1}\), pairwise orthogonal unit vectors. Extend them by
+Gram–Schmidt to an orthonormal basis \(e_0 = \psi_0, \dots, e_{m-1} = \psi_{m-1}, e_m, \dots, e_{d-1}\) of \(H\). The \(e_j\otimes e_k\) are an orthonormal basis of
+\(H\otimes H\). Define \(U\) on it by \(U(e_j\otimes e_k) = e_j\otimes e_{(j + k)\bmod d}\) and extend linearly. The index map \((j, k)\mapsto(j, (j + k)\bmod d)\) is a bijection
+(inverse \((j, k')\mapsto(j, (k' - j)\bmod d)\)), so \(U\) maps an orthonormal basis onto an orthonormal basis and is unitary. With blank \(s = e_0\):
+\(U(\psi_j\otimes s) = \psi_j\otimes\psi_j\). A member \(e^{i\alpha}\psi_j\) of the set goes to \(e^{i\alpha}\psi_j\otimes\psi_j = e^{-i\alpha}(e^{i\alpha}\psi_j)\otimes(e^{i\alpha}\psi_j)\), a copy up to the
+phase \(e^{-i\alpha}\). \(\blacksquare\)</p>
+<p><strong>2.</strong> (a) <em>No</em>: \(|\braket{0|+}| = \tfrac1{\sqrt2}\notin\{0, 1\}\). (b) <em>Yes</em>: distinct computational basis vectors of \(\mathbb C^4\) are orthonormal; the
+construction with \(d = 4\) copies them. (c) <em>Yes</em>: \(-\ket+\) is the state \(\ket+\) (phase \(-1\)), and \(\ket+\perp\ket-\); P2's \(U\) does it, sending
+\((-\ket+)\ket+\) to \(-\ket+\ket+ = -(-\ket+)(-\ket+)\), a copy with phase \(-1\).</p>
+<p><strong>Check.</strong> For \(d = 2\), \((j + k)\bmod2 = j\oplus k\) and the construction is \(\ket j\ket k\mapsto\ket j\ket{k\oplus j}\), which is \(\mathrm{CNOT}_{01}\) ✓. And the criterion
+is about the set: \(\{\ket+, \ket-\}\) passes, \(\{\ket0, \ket+\}\) fails, though \(\ket+\) is in both.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Ancillas do not help copying <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the inner-product method with an environment, Cauchy–Schwarz, isometries</p>
+<div class="statement">
+<ol>
+<li>A machine with its own system \(E\), starting in \(e\), applies a unitary \(U\) on \(H\otimes H\otimes E\) with \(U(\psi\otimes s\otimes e) = \psi\otimes\psi\otimes e_\psi\) for \(\psi\in\{\psi_1, \psi_2\}\),
+where the final machine states \(e_\psi\) are unit vectors that may depend on \(\psi\). Prove \(|\braket{\psi_1|\psi_2}|\in\{0, 1\}\).</li>
+<li>Do the same for a machine making \(N \ge 2\) copies: \(U(\psi\otimes s^{\otimes(N-1)}\otimes e) = \psi^{\otimes N}\otimes e_\psi\).</li>
+<li>Where exactly is unitarity used? Show the conclusion still holds if \(U\) is only an <em>isometry</em> \(V: H\otimes H\otimes E\to K\) into a larger space, i.e. \(V^\dagger V = I\) — a machine that may bring in further parts as it runs.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is the deck's inequality \(|c| \le |c|^2\) or \(|c| \le |c|^N\), and the observation that it needs only "keeps inner products".</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Why may the phase be dropped from the definition here? Then take inner products of the two outputs; bound \(|\braket{e_{\psi_1}|e_{\psi_2}}|\) by Cauchy–Schwarz.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "With \(c = \braket{\psi_1|\psi_2}\): \(c = \braket{\psi_1\otimes s\otimes e|\psi_2\otimes s\otimes e} = \braket{U(\cdot)|U(\cdot)} = c^2\braket{e_{\psi_1}|e_{\psi_2}}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The machine's final state contributes a factor of modulus at most one, which can only make
+the squared overlap smaller still; so the identity \(|c| = |c|^2\) becomes the inequality \(|c| \le |c|^2\), which forces the
+same conclusion.</p>
+<p><strong>1.</strong> Any phase \(e^{i\gamma_\psi}\) on the output can be absorbed into \(e_\psi\), so none is written. Unit 03's product rule and \(U^\dagger U = I\):</p>
+\[ c\,\braket{s|s}\braket{e|e} = \braket{U(\psi_1\otimes s\otimes e)|U(\psi_2\otimes s\otimes e)} = c^2\braket{e_{\psi_1}|e_{\psi_2}}, \]
+<p>so \(c = c^2\braket{e_{\psi_1}|e_{\psi_2}}\). Taking moduli and using \(|\braket{e_{\psi_1}|e_{\psi_2}}| \le \lVert e_{\psi_1}\rVert\,\lVert e_{\psi_2}\rVert = 1\): \(|c| \le |c|^2\), i.e. \(|c|(1 - |c|) \le 0\). Since \(0 \le |c| \le 1\)
+(Cauchy–Schwarz again), \(|c|(1 - |c|) \ge 0\), so \(|c|(1 - |c|) = 0\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Identically, \(c = c^N\braket{e_{\psi_1}|e_{\psi_2}}\), so \(|c| \le |c|^N\). If \(0 \lt |c| \lt 1\), then \(|c|^N \lt |c|\) for \(N \ge 2\), a contradiction. So \(|c|\in\{0, 1\}\).</p>
+<p><strong>3.</strong> The only property of \(U\) used is \(\braket{Uu|Uv} = \braket{u|v}\), i.e. \(U^\dagger U = I\). An isometry has exactly this: \(\braket{Vu|Vv} = \braket{u|V^\dagger Vv} = \braket{u|v}\),
+and the outputs \(\psi\otimes\psi\otimes e_\psi\) now live in \(H\otimes H\otimes E'\) with \(K = H\otimes H\otimes E'\). The argument is unchanged.</p>
+<p><strong>Check.</strong> For orthogonal \(\psi_1, \psi_2\) nothing is violated: \(c = 0\) satisfies \(0 = 0\cdot\braket{e_{\psi_1}|e_{\psi_2}}\) for any machine states, and
+P3's cloner, with \(E\) idle (\(e_\psi = e\)), is an example. For \(\ket0, \ket+\) the needed inequality reads \(0.7071 \le 0.5\), false.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> No-deleting <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the inner-product method in reverse, reading a theorem's equality case, Pati and Braunstein's result</p>
+<div class="statement">
+<p>A <em>deleter</em> takes two copies of an unknown state and blanks one, using an ancilla: a unitary \(U\) on
+\(H\otimes H\otimes A\) with \(U(\psi\otimes\psi\otimes a) = \psi\otimes\ket0\otimes a_\psi\), the \(a_\psi\) unit vectors (Pati and Braunstein, <i>Nature</i> 404, 164, 2000).</p>
+<ol>
+<li>Show that orthogonal states delete freely: find a unitary on two qubits, no ancilla, with \(\ket k\ket k\mapsto\ket k\ket0\) for \(k = 0, 1\).</li>
+<li>Suppose \(U\) deletes \(\psi_1\) and \(\psi_2\). Prove \(c^2 = c\,\braket{a_{\psi_1}|a_{\psi_2}}\), with \(c = \braket{\psi_1|\psi_2}\).</li>
+<li>Deduce: if the ancilla's final state does not depend on \(\psi\), then \(|c|\in\{0, 1\}\). And if it does, then whenever \(c \ne 0\), \(\braket{a_{\psi_1}|a_{\psi_2}} = c\). For \(\ket0\) and \(\ket+\), give the overlap of the two final ancilla states, and say in one sentence where the "deleted" copy went.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a gate you already know. Parts 2–3 are one line of inner products and one line of algebra; the number in part 3 is the overlap of \(\ket0\) and \(\ket+\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Take the inner product of the two inputs, then of the two outputs. The blanked slot contributes \(\braket{0|0} = 1\). If \(c \ne 0\), divide by it.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\braket{\psi_1\otimes\psi_1\otimes a|\psi_2\otimes\psi_2\otimes a} = c^2\), while \(\braket{\psi_1\otimes0\otimes a_{\psi_1}|\psi_2\otimes0\otimes a_{\psi_2}} = c\,\braket{a_{\psi_1}|a_{\psi_2}}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Deleting is copying run backwards, and the inner-product argument runs backwards too:
+the overlap that the two copies carried, \(c^2\), cannot vanish into nothing; whatever of it the remaining
+copy does not hold must be held by the ancilla.</p>
+<p><strong>1.</strong> \(\mathrm{CNOT}_{01}\): \(\ket0\ket0\mapsto\ket0\ket0\) and \(\ket1\ket1\mapsto\ket1\ket{1\oplus1} = \ket1\ket0\). Unitary (a permutation matrix).</p>
+<p><strong>2.</strong> Unitarity and the product rule: \(c^2\braket{a|a} = c\,\braket{0|0}\braket{a_{\psi_1}|a_{\psi_2}}\), and \(\braket{a|a} = \braket{0|0} = 1\), so \(c^2 = c\,\braket{a_{\psi_1}|a_{\psi_2}}\). (Any phase on the output
+is absorbed into \(a_\psi\).) \(\blacksquare\)</p>
+<p><strong>3.</strong> If \(a_\psi = a'\) for all \(\psi\), then \(\braket{a_{\psi_1}|a_{\psi_2}} = 1\) and \(c^2 = c\), so \(c\in\{0, 1\}\): perfect deletion with an untouched ancilla works only for
+orthogonal or identical states. In general, if \(c \ne 0\), dividing gives \(\braket{a_{\psi_1}|a_{\psi_2}} = c\): the ancilla's two final states have exactly the
+overlap the inputs had. For \(\ket0, \ket+\): \(\braket{a_0|a_+} = \tfrac1{\sqrt2} \approx 0.7071\), the overlap of a single copy. The deleted copy was not destroyed; it
+moved into the ancilla, which now distinguishes the two cases exactly as well as a copy of the state would.</p>
+<p><strong>Check.</strong> A deleter that works this way exists: swap the second copy into the ancilla (take \(A = H\), \(a = \ket0\), and \(U\) the
+swap of the last two factors), giving \(\psi\otimes\ket0\otimes\psi\) with \(a_\psi = \psi\) and \(\braket{a_{\psi_1}|a_{\psi_2}} = c\) ✓. Pati and Braunstein's reading:
+quantum information can be moved, but neither copied nor deleted.</p>
+</div></details>
+</section>
+
+<h2 class="group">FLASH</h2>
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Finish off FLASH <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the no-signalling statement of unit 03, building a projector from a record, a proof of no-cloning from no-signalling</p>
+<div class="statement">
+<p>Alice and Bob share the singlet \(\ket{\Psi^-}\). Alice measures her photon in \(z\) or in \(x\). Suppose Bob had a unitary
+\(C\) on his photon, \(2m - 1\) blanks in a fixed state and a machine in a fixed state, with
+\(C(\chi\otimes\text{blanks}\otimes e) = \chi^{\otimes2m}\otimes e_\chi\) for \(\chi\in\{\ket0, \ket1, \ket+, \ket-\}\). He measures copies \(1, \dots, m\) in \(z\) and copies
+\(m + 1, \dots, 2m\) in \(x\).</p>
+<ol>
+<li>Find the probability that Bob's \(m\) results in \(z\) all agree, when Alice measured \(z\), and when she measured \(x\). Evaluate for \(m = 10\).</li>
+<li>Show that "all \(m\) results in \(z\) agree" is an outcome of a projective measurement on Bob's side alone (his photon, blanks and machine).</li>
+<li>Use unit 03's no-signalling statement to conclude that no such \(C\) exists. Which tools did this use, and which did it not need?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is two numbers, one of them \(1\). Part 2 is a projector conjugated by \(C\). Part 3 is a contradiction: two values of a probability that is supposed to have one.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>After Alice's \(z\) measurement Bob's photon is \(\ket0\) or \(\ket1\); after \(x\), \(\ket+\) or \(\ket-\) (deck, <i>Alice's choice, and Bob's photon</i>). The projector onto "copies \(1..m\) all agree in \(z\)" is
+\(R = \big((\ket0\!\bra0)^{\otimes m} + (\ket1\!\bra1)^{\otimes m}\big)\otimes I\). Is \(C^\dagger RC\) a projector?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "If Alice chose \(x\), each of Bob's \(z\) results on \(\ket\pm\) is a fair coin, independently, so all \(m\) agree with probability \(2\cdot2^{-m}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A perfect copier would make one of Bob's local statistics depend on Alice's choice;
+unit 03 proved that no local statistic can. So the copier cannot exist.</p>
+<p><strong>1.</strong> <em>Alice chose \(z\).</em> Her result (a fair coin) leaves Bob's photon in \(\ket1\) or \(\ket0\), so the copier gives \(\ket1^{\otimes2m}\) or \(\ket0^{\otimes2m}\) (times \(e_\chi\)), and
+the \(m\) results in \(z\) are all \(1\) or all \(0\): they agree with probability \(1\). <em>Alice chose \(x\).</em> Bob's photon is \(\ket-\) or \(\ket+\); each copy measured in \(z\)
+gives \(0\) or \(1\) with probability \(|\braket{0|\pm}|^2 = \tfrac12\), independently across copies (the copies are in a product state), so all \(m\) agree with probability \(2^{-m} + 2^{-m} = 2^{1-m}\).
+For \(m = 10\): \(1\) against \(2^{-9} = \tfrac1{512} \approx 0.001953\).</p>
+<p><strong>2.</strong> On the \(2m\) copies let \(R = \big((\ket0\!\bra0)^{\otimes m} + (\ket1\!\bra1)^{\otimes m}\big)\otimes I\), the identity on copies \(m + 1, \dots, 2m\) and on the machine: a sum of two
+orthogonal projectors, hence a projector, whose expectation is the probability that the \(m\) results in \(z\) agree. Bob's
+whole procedure, "apply \(C\), then test \(R\)", is the test \(Q = C^\dagger RC\) on his side before copying, and \(Q^\dagger = Q\), \(Q^2 = C^\dagger RCC^\dagger RC = C^\dagger R^2C = Q\): a projector.
+With \(I - Q\) it forms a projective measurement on Bob's side, \(H_B\otimes(\text{blanks})\otimes(\text{machine})\).</p>
+<p><strong>3.</strong> Regard Bob's side as one system \(H_{B'}\) and the initial state as \(\ket{\Psi^-}\otimes\beta\in H_A\otimes H_{B'}\) with \(\beta\) the fixed blanks and machine.
+Unit 03's problem P10: for any projective measurement \(\{P_\lambda\}\) by Alice, \(\sum_\lambda\braket{\cdot|(P_\lambda\otimes Q)|\cdot} = \braket{\cdot|(I\otimes Q)|\cdot}\), the same number for every
+choice of \(\{P_\lambda\}\). But part 1 found it to be \(1\) for Alice's \(z\) and \(2^{1-m}\) for her \(x\), which differ for every \(m \ge 2\). Contradiction: no such \(C\). \(\blacksquare\)</p>
+<p>It used: the singlet's form in both bases (unit 03), the Born rule, the product rule for tensor
+operators, and unit 03's no-signalling for projective measurements. It did not need relativity, unit 04's
+partial trace, or the inner-product proof — an independent route to no-cloning.</p>
+<p><strong>Check.</strong> Without a copier (\(m = 1\), no blanks), "all one result agrees" has probability \(1\) in both cases, \(1 = 2^{0}\) ✓: no
+contradiction, as there must not be. And Bob's single-copy \(z\) statistics are \(\tfrac12, \tfrac12\) whatever Alice did, the deck's
+<i>Bob alone sees a fair coin</i> ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Telling states apart</h2>
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Helstrom at angle θ <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the Helstrom bound and measurement, half-angle formulas, a number</p>
+<div class="statement">
+<p>Two states \(\psi, \varphi\) have \(|\braket{\psi|\varphi}| = \cos\tfrac\theta2\), \(0 \lt \theta \le \pi\). Multiply \(\varphi\) by a phase so that \(\braket{\psi|\varphi} = \cos\tfrac\theta2\).</p>
+<ol>
+<li>Give the best success probability, and evaluate it at \(\theta = \pi/3, \pi/2, 2\pi/3\).</li>
+<li>Show that \(b = (\psi + \varphi)/(2\cos\tfrac\theta4)\) and \(d = (\psi - \varphi)/(2\sin\tfrac\theta4)\) are orthonormal, and that \(e_\pm = (b \pm d)/\sqrt2\) is the Helstrom measurement
+(guess \(\psi\) on \(e_+\)): compute \(|\braket{e_+|\psi}|^2\) and \(|\braket{e_-|\varphi}|^2\).</li>
+<li>For \(\psi = \ket0\), \(\varphi = \ket+\), write \(e_+\) in coordinates and compare with the deck.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three numbers between \(\tfrac12\) and \(1\), then two unit vectors written in terms of \(\psi\) and \(\varphi\): the bisector direction \(b\) and the direction \(d\) across it.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Use \(1 + \cos\tfrac\theta2 = 2\cos^2\tfrac\theta4\) and \(1 - \cos\tfrac\theta2 = 2\sin^2\tfrac\theta4\). Then \(\braket{\psi|b} = \cos\tfrac\theta4\) and \(\braket{\psi|d} = \sin\tfrac\theta4\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\lVert\psi + \varphi\rVert^2 = 2 + 2\cos\tfrac\theta2 = 4\cos^2\tfrac\theta4\), so \(\lVert b\rVert = 1\); and \(\braket{\psi + \varphi|\psi - \varphi} = 1 - \cos\tfrac\theta2 + \cos\tfrac\theta2 - 1 = 0\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The bisector \(b\) and its perpendicular \(d\) are a basis of the plane; the Helstrom basis is that basis
+turned through \(45^\circ\), so \(e_\pm = (b \pm d)/\sqrt2\).</p>
+<p><strong>1.</strong> \(\sqrt{1 - \cos^2\tfrac\theta2} = \sin\tfrac\theta2\) (non-negative on \([0, \pi]\)), so \(p_{\rm succ} = \tfrac12(1 + \sin\tfrac\theta2)\). At \(\pi/3\): \(\tfrac12(1 + \tfrac12) = 0.75\). At \(\pi/2\):
+\(\tfrac12(1 + \tfrac1{\sqrt2}) \approx 0.8536\). At \(2\pi/3\): \(\tfrac12(1 + \tfrac{\sqrt3}2) \approx 0.9330\).</p>
+<p><strong>2.</strong> \(\lVert\psi \pm \varphi\rVert^2 = 2 \pm 2\cos\tfrac\theta2\), which is \(4\cos^2\tfrac\theta4\) or \(4\sin^2\tfrac\theta4\), so \(b\) and \(d\) are unit vectors; and \(\braket{\psi + \varphi|\psi - \varphi} = 1 - \cos\tfrac\theta2 + \cos\tfrac\theta2 - 1 = 0\)
+(the overlap is real), so they are orthogonal. Hence \(e_\pm = (b \pm d)/\sqrt2\) are orthonormal too. Now</p>
+\[ \braket{\psi|b} = \frac{1 + \cos\frac\theta2}{2\cos\frac\theta4} = \cos\tfrac\theta4,\quad \braket{\psi|d} = \frac{1 - \cos\frac\theta2}{2\sin\frac\theta4} = \sin\tfrac\theta4,\quad \braket{\varphi|b} = \cos\tfrac\theta4,\quad \braket{\varphi|d} = -\sin\tfrac\theta4 . \]
+<p>So \(\braket{e_+|\psi} = \tfrac1{\sqrt2}(\cos\tfrac\theta4 + \sin\tfrac\theta4)\) and \(\braket{e_-|\varphi} = \tfrac1{\sqrt2}(\cos\tfrac\theta4 + \sin\tfrac\theta4)\): equal. Squaring,
+\(\tfrac12(1 + 2\sin\tfrac\theta4\cos\tfrac\theta4) = \tfrac12(1 + \sin\tfrac\theta2)\) for each, so the average is the bound: this is the Helstrom measurement.</p>
+<p><strong>3.</strong> \(\theta = \pi/2\): \(\cos\tfrac\pi8 = 0.9239\), \(\sin\tfrac\pi8 = 0.3827\). \(b = (\ket0 + \ket+)/1.8478 = 0.9239\ket0 + 0.3827\ket1\) (the bisector, at \(\pi/8\)), and
+\(d = (\ket0 - \ket+)/0.7654 = 0.3827\ket0 - 0.9239\ket1\). So \(e_+ = (b + d)/\sqrt2 = (1.3066\ket0 - 0.5412\ket1)/1.4142 = 0.9239\ket0 - 0.3827\ket1\), at angle \(-\pi/8\) ✓, as in
+the deck's <i>Worked: |0⟩ against |+⟩, the best measurement</i>.</p>
+<p><strong>Check.</strong> \(\theta = \pi\): \(\varphi \perp \psi\), \(b = (\psi + \varphi)/\sqrt2\), \(d = (\psi - \varphi)/\sqrt2\), and \(e_+ = \psi\), \(e_- = \varphi\): measure in the states' own basis, success \(1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector
+def helstrom(psi, phi, p=0.5):           # p for psi; best success = (1 - p) + top eigenvalue
+    G = p * np.outer(psi, psi.conj()) - (1 - p) * np.outer(phi, phi.conj())
+    return (1 - p) + max(np.linalg.eigvalsh(G))
+zero = Statevector.from_label("0").vector
+for th in (np.pi/3, np.pi/2, 2*np.pi/3):
+    print(round(helstrom(zero, np.array([np.cos(th/2), np.sin(th/2)])), 4))  # 0.75, 0.8536, 0.933</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Unequal priors <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: rerunning the Helstrom proof with a weight, eigenvalues of a 2×2 matrix, a number</p>
+<div class="statement">
+<p>Now \(\psi\) is sent with probability \(p\) and \(\varphi\) with probability \(1 - p\).</p>
+<ol>
+<li>Show \(p_{\rm succ} = (1 - p) + \operatorname{tr}(P\Gamma)\) with \(\Gamma = p\ket\psi\!\bra\psi - (1 - p)\ket\varphi\!\bra\varphi\), and prove</li>
+</ol>
+\[ \max p_{\rm succ} = \tfrac12\Big(1 + \sqrt{1 - 4p(1 - p)|\braket{\psi|\varphi}|^2}\Big). \]
+<ol start="2">
+<li>Evaluate for \(\ket0\), \(\ket+\) and \(p = 0.9\). Compare with always guessing \(\ket0\), and with the \(z\)-basis rule of the deck.</li>
+<li>Check the formula at \(p = \tfrac12\), at \(c = 0\) and at \(|c| = 1\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The proof is the deck's, with \(\Delta\) replaced by \(\Gamma\): the best \(P\) projects onto the eigenvector of \(\Gamma\) with positive eigenvalue. The number is a little above \(0.95\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In the deck's basis \(u_1 = \psi\), \(u_2 = (\varphi - |c|\psi)/s\), \(\Gamma\) has trace \(2p - 1\) and determinant \(-p(1 - p)s^2\). One eigenvalue is positive and one negative.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "\(\Gamma|_S = \begin{pmatrix}p - (1 - p)|c|^2 &amp; -(1 - p)|c|s\\ -(1 - p)|c|s &amp; -(1 - p)s^2\end{pmatrix}\), with \(s^2 = 1 - |c|^2\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The success is still affine in \(P\); maximising a linear function \(\operatorname{tr}(P\Gamma)\) over projectors picks out the
+positive eigenvalue of \(\Gamma\).</p>
+<p><strong>1.</strong> \(p_{\rm succ} = p\braket{\psi|P|\psi} + (1 - p)(1 - \braket{\varphi|P|\varphi}) = (1 - p) + \operatorname{tr}(P\Gamma)\), by \(\braket{u|P|u} = \operatorname{tr}(P\ket u\!\bra u)\). As in the deck, \(\Gamma\) is Hermitian and lives on
+\(S = \mathrm{span}(\psi, \varphi)\); in the basis \(u_1, u_2\) (phase of \(\varphi\) chosen so \(\braket{\psi|\varphi} = |c|\)) its matrix is the one in rung 3. Trace: \(p - (1 - p)(|c|^2 + s^2) = 2p - 1\).
+Determinant: \(-(p - (1 - p)|c|^2)(1 - p)s^2 - (1 - p)^2|c|^2s^2 = -p(1 - p)s^2\). So the eigenvalues are</p>
+\[ \lambda_\pm = \tfrac12\Big((2p - 1) \pm \sqrt{(2p - 1)^2 + 4p(1 - p)s^2}\Big) = \tfrac12\Big((2p - 1) \pm \sqrt{1 - 4p(1 - p)|c|^2}\Big), \]
+<p>using \((2p - 1)^2 + 4p(1 - p) = 1\). If \(s \gt 0\) and \(0 \lt p \lt 1\) the determinant is negative, so \(\lambda_+ \gt 0 \gt \lambda_-\). Writing \(\Gamma = \lambda_+\ket{g_+}\!\bra{g_+} + \lambda_-\ket{g_-}\!\bra{g_-}\),
+\(\operatorname{tr}(P\Gamma) = \lambda_+\lVert Pg_+\rVert^2 + \lambda_-\lVert Pg_-\rVert^2 \le \lambda_+\), with equality for \(P = \ket{g_+}\!\bra{g_+}\). Hence \(\max p_{\rm succ} = 1 - p + \lambda_+ = \tfrac12(1 + \sqrt{1 - 4p(1 - p)|c|^2})\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(|c|^2 = \tfrac12\), \(p = 0.9\): \(4\cdot0.9\cdot0.1\cdot0.5 = 0.18\), \(\sqrt{0.82} = 0.90554\), so \(\max p_{\rm succ} = \tfrac12(1.90554) \approx 0.9528\). Always guessing \(\ket0\): \(0.9\). The
+\(z\)-basis rule (outcome \(0\mapsto\ket0\), \(1\mapsto\ket+\)): \(0.9\cdot1 + 0.1\cdot\tfrac12 = 0.95\). The optimal basis is the eigenbasis of
+\(\Gamma = \begin{pmatrix}0.85&amp;-0.05\\-0.05&amp;-0.05\end{pmatrix}\): \(\lambda_+ = 0.85277\), eigenvector at angle \(-3.17^\circ\): only slightly off \(z\), on the side away from \(\ket+\), and much nearer the likelier \(\ket0\) than the equal-prior \(-22.5^\circ\). It is right on \(\ket0\)
+with probability \(0.9969\) and on \(\ket+\) with \(0.5552\): \(0.9\cdot0.9969 + 0.1\cdot0.5552 = 0.9528\) ✓.</p>
+<p><strong>3.</strong> \(p = \tfrac12\): \(4p(1 - p) = 1\), the deck's formula ✓. \(c = 0\): \(1\) ✓. \(|c| = 1\): \(\tfrac12(1 + |2p - 1|) = \max(p, 1 - p)\) — guess the likelier one, all
+that is possible when the states are the same ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector
+zero, plus = Statevector.from_label("0").vector, Statevector.from_label("+").vector
+p = 0.9
+G = p * np.outer(zero, zero) - (1 - p) * np.outer(plus, plus.conj())
+print(round((1 - p) + max(np.linalg.eigvalsh(G)), 4))   # 0.9528</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Many copies <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: overlaps of tensor powers, the Helstrom bound in a large space, comparing a joint measurement with a copy-by-copy one</p>
+<div class="statement">
+<p>Bob is given \(N\) copies of the unknown state: \(\ket0^{\otimes N}\) or \(\ket+^{\otimes N}\), equally likely.</p>
+<ol>
+<li>Show \(\braket{\psi^{\otimes N}|\varphi^{\otimes N}} = \braket{\psi|\varphi}^N\), and give the best success probability for \(\ket0\) against \(\ket+\) as a function of \(N\).</li>
+<li>Tabulate it for \(N = 1, \dots, 5\) and find the least \(N\) with success at least \(0.99\).</li>
+<li>A simpler rule: measure each copy in \(z\) and answer \(\ket+\) if any result is \(1\). Find its success and the least \(N\) reaching \(0.99\).</li>
+<li>Why does this not rescue FLASH: why can Bob, who holds one photon, not first make \(N\) copies and then use part 1?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is unit 03's inner product applied \(N - 1\) times, then the Helstrom formula with \(|c|^2\) replaced by \(|c|^{2N}\). The answers to parts 2 and 3 are two small integers, one apart.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(|c|^2 = \tfrac12\), the success is \(\tfrac12(1 + \sqrt{1 - 2^{-N}})\); success \(\ge 0.99\) means \(\sqrt{1 - 2^{-N}} \ge 0.98\). For part 3, which state can produce a \(1\)?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "\(\ket0^{\otimes N}\) always gives all zeros, so it is never misread; \(\ket+^{\otimes N}\) gives all zeros with probability \(2^{-N}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Copies multiply overlaps, so the states become nearly orthogonal exponentially fast; a joint
+measurement on all copies exploits this a little better than measuring them one by one.</p>
+<p><strong>1.</strong> By induction with \(\braket{a\otimes b|c\otimes d} = \braket{a|c}\braket{b|d}\): \(\braket{\psi^{\otimes N}|\varphi^{\otimes N}} = \braket{\psi|\varphi}\braket{\psi^{\otimes(N-1)}|\varphi^{\otimes(N-1)}} = \braket{\psi|\varphi}^N\). The Helstrom bound on
+\(H^{\otimes N}\) gives \(\tfrac12(1 + \sqrt{1 - |c|^{2N}})\); with \(|c|^2 = \tfrac12\), \(\tfrac12(1 + \sqrt{1 - 2^{-N}})\).</p>
+<p><strong>2.</strong> \(N = 1\): \(0.8536\); \(N = 2\): \(\tfrac12(1 + \sqrt{0.75}) = 0.9330\); \(N = 3\): \(\tfrac12(1 + \sqrt{0.875}) = 0.9677\); \(N = 4\): \(\tfrac12(1 + \sqrt{0.9375}) = 0.9841\); \(N = 5\):
+\(\tfrac12(1 + \sqrt{0.96875}) = 0.9921\). Success \(\ge 0.99\) iff \(1 - 2^{-N} \ge 0.98^2 = 0.9604\) iff \(2^{-N} \le 0.0396\) iff \(N \ge \log_2(1/0.0396) = 4.66\): the least is \(N = 5\).</p>
+<p><strong>3.</strong> A \(\ket0^{\otimes N}\) gives all zeros and is answered correctly; a \(\ket+^{\otimes N}\) is misread only if all \(N\) results are \(0\), probability \(2^{-N}\) (independent
+fair coins). Success \(\tfrac12\cdot1 + \tfrac12(1 - 2^{-N}) = 1 - 2^{-N-1}\): \(0.75, 0.875, 0.9375, 0.96875, 0.984375\) for \(N = 1..5\), and \(0.9921875\) at \(N = 6\). It needs \(2^{-N-1} \le 0.01\),
+i.e. \(N \ge 5.64\): the least is \(N = 6\), one copy more.</p>
+<p><strong>4.</strong> Making \(N\) copies from one is cloning: by P4's second part no unitary, with any machine, turns one copy of
+\(\ket0\) or \(\ket+\) into \(N \ge 2\) copies. Copies help only if they are given.</p>
+<p><strong>Check.</strong> \(N = 1\) reproduces the deck's \(0.8536\) and \(0.75\) ✓. As \(N\to\infty\) both successes tend to \(1\), and the Helstrom
+error \(\tfrac12(1 - \sqrt{1 - 2^{-N}}) \approx 2^{-N-2}\) is about half the copy-by-copy error \(2^{-N-1}\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector, linalg
+zero, plus = Statevector.from_label("0").vector, Statevector.from_label("+").vector
+for N in range(1, 7):
+    a, b = linalg.kron(*[zero] * N), linalg.kron(*[plus] * N)
+    D = np.outer(a, a.conj()) - np.outer(b, b.conj())
+    print(N, round(0.5 + 0.5 * max(np.linalg.eigvalsh(D)), 4))  # ... 5 0.9921, 6 0.9961</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Unambiguous discrimination, stated <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: what "never wrong" demands of a projective measurement, comparing two figures of merit, a consistency check on a cited result</p>
+<div class="statement">
+<p>The deck stated (Ivanovic, Dieks, Peres): for two equiprobable pure states, the best probability of a
+conclusive answer by a measurement that is never wrong is \(1 - |\braket{\psi|\varphi}|\).</p>
+<ol>
+<li>Evaluate it for \(\ket0, \ket+\) and compare with Helstrom's \(0.8536\).</li>
+<li>Prove that a projective measurement on \(\mathbb C^2\) alone, never wrong, is conclusive with probability at most \(\tfrac14\) for \(\ket0, \ket+\).</li>
+<li>Show that any never-wrong scheme with conclusive probability \(q\) gives a minimum-error scheme with success \(\tfrac12(1 + q)\), and deduce from Helstrom that \(q \le \sqrt{1 - |c|^2}\). Is the cited \(1 - |c|\) consistent with this?</li>
+<li>In two sentences, why does "never wrong" cost so much?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a subtraction. Part 2 is about which basis vectors a conclusive outcome can be. Part 3: what should the scheme do when it says "don't know"?</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>An outcome may be read "\(\ket+\)" only if \(\ket0\) never produces it, so its basis vector is orthogonal to \(\ket0\). On "don't know", guess at random.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "On a conclusive answer the scheme is right; on 'don't know' a coin is right half the time; so success \(= q + \tfrac12(1 - q) = \tfrac12(1 + q)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A never-wrong outcome must be impossible for one of the two states; on a qubit that pins the
+measurement down completely, and a scheme that is never wrong can always be turned into one that
+always answers, which Helstrom bounds.</p>
+<p><strong>1.</strong> \(1 - \tfrac1{\sqrt2} \approx 0.2929\), against \(0.8536\): the never-wrong scheme answers less than a third of the time.</p>
+<p><strong>2.</strong> A projective measurement on \(\mathbb C^2\) with more than one outcome is a basis \(\{f, f^\perp\}\). An outcome read "\(\ket+\)" must have probability \(0\)
+on \(\ket0\): \(f\perp\ket0\), so \(f = \ket1\) up to phase. An outcome read "\(\ket0\)" must be \(\perp\ket+\), so \(\ket-\). Since \(\braket{1|-} = -\tfrac1{\sqrt2} \ne 0\), no basis contains both;
+at most one outcome is conclusive. In \(\{\ket0, \ket1\}\): conclusive with probability \(\tfrac12|\braket{1|+}|^2 = \tfrac14\). In \(\{\ket+, \ket-\}\): \(\tfrac12|\braket{-|0}|^2 = \tfrac14\). Any other
+basis has no conclusive outcome. So at most \(\tfrac14\). \(\blacksquare\)</p>
+<p><strong>3.</strong> Answer as the scheme says when conclusive (always right), and toss a coin on "don't know": success
+\(q + \tfrac12(1 - q) = \tfrac12(1 + q)\). The coin makes the guessing rule random, but its success is the average of
+the two deterministic rules "guess \(\psi\) on 'don't know'" and "guess \(\varphi\) on 'don't know'", so it is no larger than the better of them.
+If the scheme is a projective measurement, possibly after an ancilla and a unitary, the deck's
+<i>An ancilla does not help</i> bounds each deterministic rule, and so gives \(\tfrac12(1 + q) \le \tfrac12(1 + \sqrt{1 - |c|^2})\), so \(q \le \sqrt{1 - |c|^2}\). Consistent: \((1 - |c|)^2 \le (1 - |c|)(1 + |c|)\) since \(1 - |c| \le 1 + |c|\),
+so \(1 - |c| \le \sqrt{1 - |c|^2}\). For \(\ket0, \ket+\): \(0.2929 \le 0.7071\) ✓.</p>
+<p><strong>4.</strong> For an outcome to be trusted it must be one that one of the states can never give, and for
+states this close most outcomes can come from either. A scheme that accepts a small error (Helstrom's
+\(0.1464\)) can use every outcome; one that accepts none must discard most of them.</p>
+<p><strong>Check.</strong> \(c = 0\): \(1 - 0 = 1\), and orthogonal states are told apart for certain ✓. \(|c| = 1\): \(0\), nothing can be concluded about
+identical states ✓. And \(0.25 \lt 0.2929\): the cited optimum needs more than a projective measurement on the
+qubit — unit 21's general measurements, which by Naimark are an ancilla plus a projective measurement.</p>
+</div></details>
+</section>
+
+<h2 class="group">Approximate copies, and one root</h2>
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Cloning fidelity <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the fidelity of a copy as a test probability, averaging over a symmetric set of states, benchmarks for the cited 5/6</p>
+<div class="statement">
+<p>The fidelity of a copy is the probability that it passes the test "is it \(\psi\)?". Average over the six states
+\(\ket0, \ket1, \ket\pm, \ket{\pm i}\), each with probability \(\tfrac16\).</p>
+<ol>
+<li><em>Measure and prepare</em>: measure the input in \(z\), get \(k\), output \(\ket k\ket k\). Show the fidelity of each copy for input \(\psi\) is \(\sum_k|\braket{k|\psi}|^4\), and average it over the six states.</li>
+<li>Do the same with the basis chosen at random among \(z, x, y\).</li>
+<li><em>Keep and pad</em>: output the original and a fixed \(\ket0\), in an order chosen by a fair coin. Find each copy's average fidelity.</li>
+<li>Rank these against the Bužek–Hillery \(\tfrac56\) (cited) and against \(\mathrm{CNOT}_{01}\) with blank \(\ket0\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four fractions, all between \(\tfrac12\) and \(1\). The six states fall into three bases, and every overlap between different bases has \(|\braket{e|f}|^2 = \tfrac12\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Outcome \(k\) has probability \(|\braket{k|\psi}|^2\), and then the copy \(\ket k\) passes the test with probability \(|\braket{\psi|k}|^2\). For an input in the measured basis the sum is \(1\); for one in another basis, \(\tfrac14 + \tfrac14\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "Average \(= \tfrac16(1 + 1 + \tfrac12 + \tfrac12 + \tfrac12 + \tfrac12)\), the two \(z\) states giving \(1\) and the four others \(\tfrac12\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Fidelity is a probability of passing a test, so each strategy's fidelity is a short sum over its
+outcomes; the six states are symmetric enough that every basis does equally well.</p>
+<p><strong>1.</strong> Outcome \(k\) has probability \(|\braket{k|\psi}|^2\) (Born); the copy is then \(\ket k\), which passes the test \(\{\psi, \psi^\perp\}\) with probability \(|\braket{\psi|k}|^2\).
+By total probability the fidelity is \(\sum_k|\braket{k|\psi}|^2|\braket{\psi|k}|^2 = \sum_k|\braket{k|\psi}|^4\), the same for both copies. For \(\psi = \ket0\) or \(\ket1\): \(1\). For \(\ket\pm\) or \(\ket{\pm i}\):
+\(|\braket{0|\psi}|^2 = |\braket{1|\psi}|^2 = \tfrac12\), so \(\tfrac14 + \tfrac14 = \tfrac12\). Average: \(\tfrac16(2\cdot1 + 4\cdot\tfrac12) = \tfrac23\).</p>
+<p><strong>2.</strong> In basis \(x\) or \(y\) the same count holds — two of the six states give \(1\) and four give \(\tfrac12\), since the three bases are
+mutually unbiased (unit 00) — so each basis averages \(\tfrac23\), and so does a random choice among them.</p>
+<p><strong>3.</strong> The original passes with probability \(1\); the padding \(\ket0\) passes with probability \(|\braket{\psi|0}|^2\), which averages
+\(\tfrac16(1 + 0 + 4\cdot\tfrac12) = \tfrac12\) over the six. Each copy is the original with probability \(\tfrac12\): average fidelity \(\tfrac12\cdot1 + \tfrac12\cdot\tfrac12 = \tfrac34\).</p>
+<p><strong>4.</strong> \(\mathrm{CNOT}_{01}\): on \(\ket0, \ket1\) a perfect copy; on the other four, the output is \(\tfrac1{\sqrt2}(\ket{00} \pm \ket{11})\) or \(\tfrac1{\sqrt2}(\ket{00} \pm i\ket{11})\), and either
+copy passes with probability \(\tfrac12\) (as in the deck's worked example); average \(\tfrac23\). Ranking: CNOT \(= \) measure-and-prepare \(= \tfrac23 \lt\) keep-and-pad
+\(\tfrac34 \lt\) Bužek–Hillery \(\tfrac56 \approx 0.8333 \lt 1\). No strategy reaches \(1\) on all six, by no-cloning.</p>
+<p><strong>Check.</strong> Each fidelity is a probability in \([0, 1]\), and a strategy that knew \(\psi\) would score \(1\). The measure-and-prepare value
+\(\tfrac23\) is also its average over all states of a qubit (Massar and Popescu 1995, cited; unit 07 computes such averages
+over the Bloch sphere).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Statevector
+six = [Statevector.from_label(c).vector for c in "01+-rl"]   # r, l: the states |+i>, |-i>
+def measure_prepare(psi, basis):
+    return sum(abs(np.vdot(k, psi))**4 for k in basis)
+for name, basis in (("z", six[0:2]), ("x", six[2:4]), ("y", six[4:6])):
+    print(name, round(np.mean([measure_prepare(psi, basis) for psi in six]), 4))  # 0.6667 each
+print(round(np.mean([0.5 + 0.5 * abs(np.vdot(psi, six[0]))**2 for psi in six]), 4))  # 0.75</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Cloning would beat Helstrom <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: composing a copier with a measurement, the ancilla form of the Helstrom bound, the one root of both theorems</p>
+<div class="statement">
+<ol>
+<li>Suppose a unitary \(U\) on \(H\otimes H\otimes E\) cloned \(\psi\) and \(\varphi\), with blank \(s\), machine state \(e\) and final machine states \(e_\psi, e_\varphi\), and \(0 \lt |\braket{\psi|\varphi}| \lt 1\).
+Describe a device made of an ancilla, a unitary and a projective measurement that discriminates \(\psi\) from \(\varphi\) with success
+\(\tfrac12(1 + \sqrt{1 - |c|^4})\), and conclude a contradiction.</li>
+<li>Evaluate both sides of the contradiction for \(\ket0\), \(\ket+\).</li>
+<li>Conversely, show from the deck's theorems that if \(\psi\) and \(\varphi\) can be discriminated with certainty, then they can be cloned. Conclude: "cloneable" and "perfectly distinguishable" are the same condition on a pair of distinct states.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The device is "clone, then measure the two copies in the Helstrom basis for \(\psi\otimes\psi\) against \(\varphi\otimes\varphi\)". The contradiction is with the deck's <i>An ancilla does not help</i>.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The ancilla is \(s\otimes e\). The measurement is \(\{P\otimes I_E, (I - P)\otimes I_E\}\) with \(P\) the Helstrom projector for \(\psi\otimes\psi\), \(\varphi\otimes\varphi\), whose overlap is \(c^2\). Compare \(\sqrt{1 - |c|^4}\) with \(\sqrt{1 - |c|^2}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "On input \(\psi\), the state before the measurement is \(\psi\otimes\psi\otimes e_\psi\), and \(\braket{\psi\psi e_\psi|(P\otimes I)|\psi\psi e_\psi} = \braket{\psi\psi|P|\psi\psi}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two copies are easier to tell apart than one, because the overlap squares. A copier would let
+one copy behave like two, and so beat the best possible one-copy measurement.</p>
+<p><strong>1.</strong> <em>The device.</em> Append the ancilla \(s\otimes e\) (fixed); apply \(U\); measure \(\{P\otimes I_E, (I - P)\otimes I_E\}\), where \(P\) is the Helstrom projector
+on \(H\otimes H\) for \(\psi\otimes\psi\) against \(\varphi\otimes\varphi\); guess \(\psi\) on \(P\). On input \(\psi\) the state before measuring is \(\psi\otimes\psi\otimes e_\psi\), and since
+\((P\otimes I)(\psi\otimes\psi\otimes e_\psi) = P(\psi\otimes\psi)\otimes e_\psi\) with \(\lVert e_\psi\rVert = 1\), the probability of guessing \(\psi\) is \(\braket{\psi\psi|P|\psi\psi}\). Likewise for \(\varphi\). So the
+device's success is that of the Helstrom measurement for \(\psi\otimes\psi\), \(\varphi\otimes\varphi\), whose overlap is \(c^2\):
+\(\tfrac12(1 + \sqrt{1 - |c|^4})\). <em>The contradiction.</em> The device is an ancilla, a unitary and a projective measurement,
+so <i>An ancilla does not help</i> bounds it by \(\tfrac12(1 + \sqrt{1 - |c|^2})\). But \(0 \lt |c| \lt 1\) gives \(|c|^4 \lt |c|^2\), so \(\sqrt{1 - |c|^4} \gt \sqrt{1 - |c|^2}\) and the device beats
+the bound. So no such \(U\) exists: a third proof of no-cloning, from discrimination. \(\blacksquare\)</p>
+<p><strong>2.</strong> \(|c|^2 = \tfrac12\), \(|c|^4 = \tfrac14\): the device would reach \(\tfrac12(1 + \sqrt{0.75}) \approx 0.9330\), against the bound \(\tfrac12(1 + \sqrt{0.5}) \approx 0.8536\).</p>
+<p><strong>3.</strong> If some measurement discriminates \(\psi, \varphi\) with certainty, <i>Certainty needs orthogonality</i> gives \(\psi\perp\varphi\), and P3's
+construction (or \(\mathrm{CNOT}_{01}\) in a suitable basis) clones them. Conversely a cloner for two distinct states forces
+\(|c|\in\{0, 1\}\), and "distinct" excludes \(1\), so \(c = 0\), and then \(P = \ket\psi\!\bra\psi\) discriminates them with certainty. Both conditions are
+\(\braket{\psi|\varphi} = 0\): one root. \(\blacksquare\)</p>
+<p><strong>Check.</strong> At \(|c| = 0\) both sides are \(1\), no contradiction, and orthogonal states do clone ✓. At \(|c| = 1\) both are \(\tfrac12\), no
+contradiction, and identical states trivially "clone" as one state ✓. The argument bites exactly in between,
+where the theorem says it should.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 05</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

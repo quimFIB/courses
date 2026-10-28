@@ -1,0 +1,1810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 · No-cloning, and how well two states can be told apart</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="b">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="photon"><span class="ref-name">the running example: Bob's photon</span>Bob holds one photon, polarised $\ket0$ (horizontal) or $\ket+ = \tfrac1{\sqrt2}(\ket0 + \ket1)$ (diagonal), each with probability $\tfrac12$, and is not told which. Can he copy it? How well can he tell which it is? <span class="ref-note">$\braket{0|+} = \tfrac1{\sqrt2} \approx 0.7071$: neither $0$ nor $1$. So no copier exists (section 2), and the best single measurement is right with probability $\tfrac12(1 + \tfrac1{\sqrt2}) \approx 0.8536$ (section 4)</span></template>
+  <template data-ref="noclone"><span class="ref-name">why Bob cannot copy it</span>A unitary keeps inner products. A copier would send $\braket{0|+} = \tfrac1{\sqrt2}$ to $\braket{00|{+}{+}} = \tfrac12$. <span class="ref-note">In angles: $45^\circ$ would have to open to $60^\circ$. Moduli $0.7071 \ne 0.5$, so no unitary, with any blank and any machine, copies both</span></template>
+  <template data-ref="cnot"><span class="ref-name">CNOT on Bob's photon</span>$\mathrm{CNOT}_{01}$ with blank $\ket0$ copies $\ket0$ exactly. On $\ket+$ it gives $\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{00} + \ket{11})$, not $\ket{{+}{+}}$. <span class="ref-note">Overlap $\braket{{+}{+}|\Phi^+} = \tfrac1{\sqrt2}$; each output qubit, tested for $\ket+$, passes only half the time</span></template>
+  <template data-ref="best"><span class="ref-name">the best measurement</span>Measure in $e_+ = \cos\tfrac\pi8\ket0 - \sin\tfrac\pi8\ket1$ (guess $\ket0$) and $e_- = \sin\tfrac\pi8\ket0 + \cos\tfrac\pi8\ket1$ (guess $\ket+$): an analyser turned to $-22.5^\circ$. <span class="ref-note">Right with probability $\cos^2\tfrac\pi8 = \tfrac12(1 + \tfrac1{\sqrt2}) \approx 0.8536$ on either state; wrong $0.1464$. The $z$ basis manages $0.75$</span></template>
+  <template data-ref="flash"><span class="ref-name">FLASH (Herbert, 1982)</span>Alice measures her photon of a singlet pair in $z$ or in $x$, leaving Bob's in $\ket0/\ket1$ or $\ket+/\ket-$. Bob copies his photon many times and measures half the copies in each basis: the basis whose results all agree is Alice's. <span class="ref-note">It needs a copier for $\ket0, \ket1, \ket+, \ket-$ at once, and none exists</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part B · correlations · spine</p>
+  <div class="unit-no">05</div>
+  <h1>No-cloning, and how well two states can be told apart</h1>
+  <p class="lede">An unknown quantum state cannot be copied, and two states that are not orthogonal cannot be told apart for certain — two theorems with one root. This unit proves both, and finds exactly how well the best measurement can do.</p>
+  <p class="meta"><span>needs 03</span><span>~2 h slides + 4 h problems</span><span>problems: <code>./qc problems 05</code></span></p>
+  <aside class="notes">
+    <p>Unit 03 showed what a pair of systems can hold that no pair of separate states can. This unit
+    turns to the other side: what a <i>single</i> unknown state withholds. Two theorems say it, and they
+    have one root, non-orthogonality. An unknown state cannot be copied; and two states that are not
+    orthogonal cannot be told apart with certainty, with the exact best success probability — the
+    Helstrom bound — proved here for two pure states.</p>
+    <p>Both feed what comes later: unit 07's teleportation moves a state without copying it, unit 09's
+    eavesdropper cannot copy what she intercepts and so must disturb it, and unit 12's account of what a
+    quantum algorithm can read out of its final state starts here.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through it: Bob's photon, in one of two states $45^\circ$ apart, introduced on the
+    overview slide. Proofs are on the slides when they are one line and in these notes under <b>Full proof</b>
+    when they are not; anything imported is labelled <i>cited</i>, with where its proof is. Every number
+    was computed.</p>
+    <p><b>What is used, and from where.</b> Unit 00: complex inner products, Cauchy–Schwarz and its equality
+    case, orthogonal projectors, the adjoint, unitary operators as exactly the inner-product-preserving
+    ones, the spectral theorem for Hermitian operators, and $\operatorname{tr}\ket u\!\bra v = \braket{v|u}$. Unit 01:
+    states as unit vectors up to phase, the Born rule for a projective measurement, evolution of a closed
+    system by a unitary. Unit 03: the tensor product, its inner product
+    $\braket{a\otimes b|c\otimes d} = \braket{a|c}\braket{b|d}$, coefficient matrices and their rank as the test for
+    entanglement, the Bell states and the singlet, polarisation as a qubit, $\mathrm{CNOT}_{01}$ from its problem
+    P2, and the statement that a projective measurement on one side never changes the other side's
+    outcome probabilities (its problem P10). From the assumed background: trace and determinant of a
+    $2\times2$ matrix, and the law of total probability.</p>
+    <p><b>Not used.</b> No Bloch sphere (unit 02) and no density operators (unit 04): where a later unit
+    would say something more naturally, the notes say so as an aside, never as a step.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · overview</p>
+  <h2>Bob holds one of two photons</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="photon">Bob's photon</span></span>
+        <p class="small">Bob holds one photon. Its polarisation is $\ket0$ (horizontal) or $\ket+ = \tfrac1{\sqrt2}(\ket0 + \ket1)$ (diagonal, at $45^\circ$), each with probability $\tfrac12$, and nobody tells him which. Both are normalised: $1$ and $\tfrac12 + \tfrac12$. Their overlap is $\braket{0|+} = \tfrac1{\sqrt2}$.</p>
+        <p class="small"><b>Two questions.</b> Can he <b>copy</b> it? How well can he <b>tell which</b> it is?</p>
+      </div>
+      <p class="small">Section 1 says why anyone wanted to know: a proposal, in 1982, for a telegraph faster than light, which needed exactly this copier.</p>
+      <p class="small"><b>The plan.</b> <b>1</b> Herbert's telegraph · <b>2</b> no-cloning, proved twice · <b>3</b> what does copy · <b>4</b> telling two states apart · <b>5</b> the telegraph, dismantled.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 250 200" width="330" role="img" aria-label="two arrows from a common origin: ket 0 along the horizontal, ket plus at 45 degrees above it, with the angle between them marked 45 degrees">
+          <path d="M86,170 A46,46 0 0 0 72.5,137.5" fill="none" class="ink" stroke-width="1.3"/>
+          <text x="99" y="151" font-size="13" text-anchor="middle">45°</text>
+          <line x1="40" y1="170" x2="179" y2="170" class="unit" stroke-width="2.5"/><polygon points="190,170 179,174.9 179,165.1" class="fill-unit"/>
+          <line x1="40" y1="170" x2="138.3" y2="71.7" class="accent" stroke-width="2.5"/><polygon points="146.1,63.9 141.8,75.2 134.8,68.2" class="fill-accent"/>
+          <text x="198" y="175" font-size="15">|0⟩</text>
+          <text x="152" y="56" font-size="15" text-anchor="middle">|+⟩</text>
+          <text x="200" y="195" font-size="12" class="soft" text-anchor="middle">horizontal</text>
+          <text x="152" y="28" font-size="12" class="soft" text-anchor="middle">diagonal</text>
+        </svg>
+        <p class="cap">Two polarisations $45^\circ$ apart: neither orthogonal nor the same. Everything in this deck follows from that.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="cloner">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the running example is.</b> Section 1 shows where Bob's photon comes from: Alice's choice of
+    analyser on the other photon of a singlet pair. Section 2 proves he cannot copy it, twice, and
+    <i>Worked: no copier for |0⟩ and |+⟩</i> runs the second proof on exactly this pair. Section 3 shows the
+    machine that copies $\ket0$ perfectly and what it does to $\ket+$ (<i>Worked: CNOT on |+⟩|0⟩</i>). Section 4 finds
+    how well he can tell the two apart — $0.75$ in the obvious basis, $0.8536$ in the best one — and what
+    extra copies or an extra apparatus would buy. Section 5 shows why the impossibility of a copier is
+    exactly what saves the speed of light, and <i>Bob's photon, closed</i> gathers the answers.</p>
+    <p><b>Why these two states.</b> They are the simplest pair that is neither orthogonal nor identical, and
+    they are physical: horizontal and diagonal polarisation, the two analyser settings of unit 03. The
+    angle between them, $45^\circ$, will be halved: the best measurement sits $22.5^\circ = \pi/8$ from each.</p>
+    <p><b>The referee.</b> The course directory holds an optional NumPy simulator for checking hand
+    calculations; nothing in this deck needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Herbert's telegraph</h2>
+  <p>In 1982 a paper proposed sending messages faster than light with a shared pair of photons and a photon copier. It was wrong, and finding out why produced this unit.</p>
+</section>
+
+<section>
+  <p class="eyebrow">05 · Herbert's telegraph</p>
+  <h2>Alice's choice, and Bob's photon</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 03's crystal sends one photon of a pair to Alice and one to Bob, in the singlet. Written in the $z$ basis and in the $x$ basis:</p>
+      $$\ket{\Psi^-} = \tfrac1{\sqrt2}(\ket{01} - \ket{10}) = -\tfrac1{\sqrt2}(\ket{{+}{-}} - \ket{{-}{+}}) .$$
+      <p class="small">Unit 03: if Alice's analyser, in basis $\{n, n^\perp\}$, gives $n$, Bob's photon is left in $n^\perp$.</p>
+      <table class="dense">
+        <thead><tr><th>Alice's analyser</th><th>her result</th><th>Bob's photon</th><th class="num">prob.</th></tr></thead>
+        <tbody>
+          <tr><td>$z$ ($0^\circ$)</td><td>$0$ / $1$</td><td>$\ket1$ / $\ket0$</td><td class="num">$\tfrac12$ / $\tfrac12$</td></tr>
+          <tr><td>$x$ ($45^\circ$)</td><td>$+$ / $-$</td><td>$\ket-$ / $\ket+$</td><td class="num">$\tfrac12$ / $\tfrac12$</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">where <span class="ref" data-ref="photon">Bob's photon</span> comes from</span>
+        <p class="small">Alice's choice of analyser decides the <b>kind</b> of state Bob holds: $z$ kind or $x$ kind. Take one of each — $\ket0$ and $\ket+$ — and Bob's question is the running example's.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 210" width="500" role="img" aria-label="a laser enters a crystal from below; one photon goes left to Alice's analyser, which can be set to 0 or 45 degrees; one photon goes right to Bob, labelled with the states it can be left in">
+          <line x1="210" y1="205" x2="210" y2="122" class="warn" stroke-width="3"/>
+          <text x="218" y="192" font-size="12" class="soft">laser</text>
+          <rect x="188" y="82" width="44" height="40" class="fill-soft"/>
+          <text x="210" y="74" font-size="12" text-anchor="middle">crystal</text>
+          <line x1="188" y1="102" x2="96" y2="102" class="unit" stroke-width="2.5"/>
+          <line x1="232" y1="102" x2="318" y2="102" class="unit" stroke-width="2.5"/>
+          <rect x="66" y="87" width="30" height="30" class="fill-soft"/>
+          <line x1="66" y1="117" x2="96" y2="87" class="ink" stroke-width="1.5"/>
+          <text x="81" y="70" font-size="15" text-anchor="middle">Alice</text>
+          <text x="81" y="142" font-size="13" text-anchor="middle">z: 0°</text>
+          <text x="81" y="160" font-size="13" text-anchor="middle">or x: 45°</text>
+          <rect x="318" y="84" width="84" height="36" rx="6" class="fill-ground ink" stroke-width="1.4"/>
+          <text x="360" y="107" font-size="13" text-anchor="middle">photon</text>
+          <text x="360" y="70" font-size="15" text-anchor="middle">Bob</text>
+          <text x="360" y="142" font-size="13" text-anchor="middle">|1⟩ or |0⟩</text>
+          <text x="360" y="160" font-size="13" text-anchor="middle">or |−⟩ or |+⟩</text>
+          <text x="140" y="94" font-size="12" class="soft" text-anchor="middle">to Alice</text>
+          <text x="275" y="94" font-size="12" class="soft" text-anchor="middle">to Bob</text>
+        </svg>
+        <p class="cap">Alice chooses her analyser. Her result, a fair coin, leaves Bob's photon in the state perpendicular to it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The $x$-basis form of the singlet, in full.</b> With $\ket\pm = \tfrac1{\sqrt2}(\ket0 \pm \ket1)$,</p>
+    <p>$\ket{{+}{-}} = \tfrac12(\ket{00} - \ket{01} + \ket{10} - \ket{11})$ and $\ket{{-}{+}} = \tfrac12(\ket{00} + \ket{01} - \ket{10} - \ket{11})$,</p>
+    <p>so $\ket{{+}{-}} - \ket{{-}{+}} = \tfrac12(-2\ket{01} + 2\ket{10}) = -(\ket{01} - \ket{10})$, and $\ket{\Psi^-} = -\tfrac1{\sqrt2}(\ket{{+}{-}} - \ket{{-}{+}})$.
+    The overall sign is a global phase. It agrees with unit 03's identity $(U\otimes U)\ket{\Psi^-} = \det(U)\ket{\Psi^-}$
+    for the unitary $U$ with columns $\ket+, \ket-$, whose determinant is $-\tfrac12 - \tfrac12 = -1$.</p>
+    <p><b>The table.</b> Unit 03's <i>Measure photon A, and photon B is left in n⊥</i>: in the basis $\{n, n^\perp\}$
+    the singlet is $\tfrac{c}{\sqrt2}(\ket{n}\ket{n^\perp} - \ket{n^\perp}\ket{n})$ with $|c| = 1$, so Alice's result $n$ (probability $\tfrac12$) leaves Bob's photon
+    in $n^\perp$, up to phase. For $n = \ket0$, $n^\perp = \ket1$; for $n = \ket+$, $n^\perp = \ket-$. Each row's two outcomes have probability $\tfrac12$:
+    sum $1$ ✓.</p>
+    <p><b>Why "one of each".</b> Bob does not know Alice's result, so from his side he holds one of two
+    states at random within a kind. FLASH asks him to tell the kinds apart; the running example strips
+    that to its core, one state of each kind. If he could not even tell $\ket0$ from $\ket+$ reliably, he could not
+    tell the kinds apart; section 5 makes the full argument without this simplification.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · Herbert's telegraph</p>
+  <h2>Bob alone sees a fair coin</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Bob measures his photon in $z$ or in $x$. The probability that his result is the first exit ($0$, or $+$), by total probability over Alice's results:</p>
+      <table class="dense">
+        <thead><tr><th></th><th class="num">Bob in $z$</th><th class="num">Bob in $x$</th></tr></thead>
+        <tbody>
+          <tr><td>Alice in $z$</td><td class="num">$\tfrac12\cdot0 + \tfrac12\cdot1 = \tfrac12$</td><td class="num">$\tfrac12\cdot\tfrac12 + \tfrac12\cdot\tfrac12 = \tfrac12$</td></tr>
+          <tr><td>Alice in $x$</td><td class="num">$\tfrac12\cdot\tfrac12 + \tfrac12\cdot\tfrac12 = \tfrac12$</td><td class="num">$\tfrac12\cdot0 + \tfrac12\cdot1 = \tfrac12$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Every entry is $\tfrac12$. Whatever Alice chose, Bob's records look like a fair coin.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label"><span class="term">no-signalling</span>, for projective measurements (unit 03, problem P10)</span>
+        <p class="small">For any projective measurement $\{P_\lambda\}$ on Alice's side, any $\{Q_\mu\}$ on Bob's, and any state $\psi$, Bob's outcome probabilities are the same whatever Alice measures, or whether she measures at all, or applies a unitary first:</p>
+        $$\textstyle\sum_\lambda\braket{\psi|(P_\lambda\otimes Q_\mu)|\psi} = \braket{\psi|(I\otimes Q_\mu)|\psi} .$$
+      </div>
+      <div class="box warn"><span class="label">what Herbert needed</span>
+        <p class="small">A way round this, for <b>one</b> photon: some device that makes Bob's statistics depend on Alice's choice. The theorem says no measurement on Bob's side alone will. Herbert's idea was to <b>copy</b> the photon first.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The table, entry by entry.</b> Alice in $z$, Bob in $z$: Alice's $0$ (probability $\tfrac12$) leaves $\ket1$, which gives Bob's $0$ with
+    probability $|\braket{0|1}|^2 = 0$; Alice's $1$ leaves $\ket0$, giving $0$ with probability $1$. Alice in $z$, Bob in $x$: $|\braket{+|1}|^2 = |\braket{+|0}|^2 = \tfrac12$.
+    Alice in $x$, Bob in $z$: $|\braket{0|-}|^2 = |\braket{0|+}|^2 = \tfrac12$. Alice in $x$, Bob in $x$: $|\braket{+|-}|^2 = 0$ and $|\braket{+|+}|^2 = 1$. Each entry is a
+    probability of Bob's first exit; the second exit gets $\tfrac12$ in every case, and each column's two exits sum to $1$ ✓.</p>
+    <p><b>The theorem's proof</b> is unit 03's problem P10, in two lines: the probability that Alice gets $\lambda$ and Bob $\mu$
+    is $\lVert(P_\lambda\otimes Q_\mu)\psi\rVert^2 = \braket{\psi|(P_\lambda\otimes Q_\mu)|\psi}$, and summing over $\lambda$ with $\sum_\lambda P_\lambda = I$ gives Bob's probability with no
+    measurement by Alice. A unitary $V\otimes I$ first changes nothing, since $(V\otimes I)^\dagger(I\otimes Q_\mu)(V\otimes I) = V^\dagger V\otimes Q_\mu = I\otimes Q_\mu$. This
+    is the only form of no-signalling this unit uses. Unit 04 proves it for every local operation, but unit 04
+    is not needed here.</p>
+    <p><b>Why this matters physically.</b> If Bob's statistics did depend on Alice's choice, Alice could send
+    a message by choosing, and Bob could read it at once, however far apart they are.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · Herbert's telegraph</p>
+  <h2>FLASH: copy Bob's photon, then look</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b><span class="ref" data-ref="flash">Herbert's proposal</span></b> (<i>Found. Phys.</i> 12, 1171, 1982), with a copier:</p>
+      <ol class="small">
+        <li>Bob turns his one photon into $20$ identical copies.</li>
+        <li>He sends $10$ through a $z$ analyser and $10$ through an $x$ analyser.</li>
+        <li>If Alice chose $z$, his photon was $\ket0$ or $\ket1$: all ten $z$ results agree, and the $x$ results are fair coins. If she chose $x$, the other way round.</li>
+      </ol>
+      <p class="small"><b>The numbers.</b> Ten fair coins all agree with probability $2\cdot2^{-10} = \tfrac1{512}$. Bob's rule: "Alice chose the basis whose ten results agree; if both do, toss a coin". He is wrong with probability $\tfrac12\cdot\tfrac1{512} = \tfrac1{1024} \approx 0.001$.</p>
+      <div class="box warn"><span class="label">why that would be extraordinary</span>
+        <p class="small">Alice's choice would reach Bob instantly, at any distance. Relativity (Einstein 1905, <i>cited</i>, and tested ever since) forbids any signal faster than light.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 230" width="500" role="img" aria-label="Bob's photon enters a box labelled copier; many photons leave it, fanning out to two analysers, a z analyser above and an x analyser below; next to each, a row of ten results: above all zeros, below a random mix of plus and minus">
+          <line x1="10" y1="115" x2="70" y2="115" class="unit" stroke-width="2.5"/>
+          <text x="38" y="105" font-size="12" class="soft" text-anchor="middle">Bob's</text>
+          <rect x="70" y="88" width="74" height="54" rx="6" class="fill-soft"/>
+          <text x="107" y="120" font-size="14" text-anchor="middle">copier</text>
+          <line x1="144" y1="108" x2="216" y2="58" class="unit" stroke-width="1.8"/>
+          <line x1="144" y1="111" x2="216" y2="66" class="unit" stroke-width="1.8"/>
+          <line x1="144" y1="114" x2="216" y2="74" class="unit" stroke-width="1.8"/>
+          <line x1="144" y1="116" x2="216" y2="156" class="unit" stroke-width="1.8"/>
+          <line x1="144" y1="119" x2="216" y2="164" class="unit" stroke-width="1.8"/>
+          <line x1="144" y1="122" x2="216" y2="172" class="unit" stroke-width="1.8"/>
+          <text x="180" y="58" font-size="12" class="soft" text-anchor="middle">×10</text>
+          <text x="180" y="190" font-size="12" class="soft" text-anchor="middle">×10</text>
+          <rect x="216" y="51" width="30" height="30" class="fill-soft"/><line x1="216" y1="81" x2="246" y2="51" class="ink" stroke-width="1.5"/>
+          <rect x="216" y="149" width="30" height="30" class="fill-soft"/><line x1="216" y1="179" x2="246" y2="149" class="ink" stroke-width="1.5"/>
+          <text x="231" y="40" font-size="13" text-anchor="middle">z</text>
+          <text x="231" y="200" font-size="13" text-anchor="middle">x</text>
+          <text x="258" y="71" font-size="13" class="mono">0000000000</text>
+          <text x="258" y="169" font-size="13" class="mono">+−−++−+−−+</text>
+          <text x="258" y="104" font-size="11" class="soft">all agree: Alice chose z</text>
+          <text x="258" y="202" font-size="11" class="soft">fair coins</text>
+        </svg>
+        <p class="cap">What Bob would see if Alice chose $z$ and his photon were $\ket0$. Had she chosen $x$, the lower row would agree and the upper one scatter.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The name.</b> FLASH stood for "First Laser-Amplified Superluminal Hookup". Herbert's version had Alice choose
+    between linear polarisation (horizontal/vertical) and circular polarisation, unit 00's $z$ and $y$ bases.
+    The deck uses $z$ and $x$, the two linear analysers of unit 03; the argument is identical, since any two of
+    the three bases are mutually unbiased.</p>
+    <p><b>The error probability, in full.</b> Suppose Alice chose $z$. Then Bob's photon is $\ket0$ or $\ket1$ and so are
+    all twenty copies, so the ten $z$ results agree with probability $1$. Each $x$ result on $\ket0$ or $\ket1$ is $+$ or $-$
+    with probability $\tfrac12$, independently; all ten agree with probability $2^{-10}$ (all $+$) $+\ 2^{-10}$ (all $-$) $= 2^{-9} = \tfrac1{512}$. Bob errs
+    only if both rows agree and his coin then picks $x$: $\tfrac1{512}\cdot\tfrac12 = \tfrac1{1024} \approx 0.000977$. The case "Alice chose $x$" is the
+    same with the rows exchanged.</p>
+    <p><b>Relativity, in one paragraph.</b> No physics is assumed in this course, so this is stated, not
+    derived: special relativity (Einstein 1905) holds that no signal, of any kind, travels faster than light,
+    and every experiment since has agreed. Faster-than-light signals would, for some observers, arrive
+    before they were sent. A proposal to violate it is worth reading exactly to find the error.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · Herbert's telegraph</p>
+  <h2>The copier Herbert had in mind: a laser amplifier</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>An atom stores energy</b> in discrete amounts, and can release one amount as one photon of a definite frequency. A <b>pumped</b> medium is a crystal or gas whose atoms have been loaded with that energy.</p>
+      <p class="small"><b><span class="term">stimulated emission</span></b> (Einstein 1917, <i>cited</i>): a photon passing a loaded atom can trigger it to release a second photon <b>identical</b> to the first — same direction, frequency and polarisation. One photon becomes two, then four. That is a <span class="term">laser amplifier</span>.</p>
+      <p class="small"><b><span class="term">spontaneous emission</span></b>: loaded atoms also release photons on their own, at random times and with random polarisation, and some join the beam.</p>
+      <div class="box warn"><span class="label">the catch</span>
+        <p class="small">The copies come with noise. Milonni and Hardies, and Mandel (1982–83, <i>cited</i>), showed that spontaneous emission is exactly enough to hide Alice's choice. Section 2 shows why <b>no</b> device could do better.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 220" width="500" role="img" aria-label="a long tube of loaded atoms; one photon with a vertical polarisation mark enters from the left; on the right several photons leave with the same vertical mark, and two leave with tilted marks, one of them at an angle out of the beam">
+          <rect x="110" y="60" width="200" height="90" rx="10" class="fill-soft"/>
+          <circle cx="140" cy="85" r="5" class="fill-ink"/><circle cx="175" cy="120" r="5" class="fill-ink"/><circle cx="205" cy="80" r="5" class="fill-ink"/><circle cx="235" cy="125" r="5" class="fill-ink"/><circle cx="262" cy="92" r="5" class="fill-ink"/><circle cx="290" cy="128" r="5" class="fill-ink"/>
+          <text x="210" y="50" font-size="12" class="soft" text-anchor="middle">pumped medium: loaded atoms</text>
+          <line x1="15" y1="105" x2="98" y2="105" class="unit" stroke-width="2.5"/><polygon points="108,105 97,110 97,100" class="fill-unit"/>
+          <line x1="55" y1="95" x2="55" y2="115" class="unit" stroke-width="2"/>
+          <text x="55" y="135" font-size="12" text-anchor="middle">one photon</text>
+          <line x1="320" y1="80" x2="395" y2="80" class="unit" stroke-width="2.5"/><line x1="360" y1="71" x2="360" y2="89" class="unit" stroke-width="2"/>
+          <line x1="320" y1="98" x2="395" y2="98" class="unit" stroke-width="2.5"/><line x1="350" y1="89" x2="350" y2="107" class="unit" stroke-width="2"/>
+          <line x1="320" y1="116" x2="395" y2="116" class="unit" stroke-width="2.5"/><line x1="370" y1="107" x2="370" y2="125" class="unit" stroke-width="2"/>
+          <line x1="320" y1="134" x2="395" y2="134" class="warn" stroke-width="2.5"/><line x1="352" y1="141" x2="364" y2="127" class="warn" stroke-width="2"/>
+          <line x1="300" y1="150" x2="350" y2="200" class="warn" stroke-width="2.5"/><line x1="318" y1="178" x2="334" y2="174" class="warn" stroke-width="2"/>
+          <text x="360" y="62" font-size="12" text-anchor="middle">stimulated: copies</text>
+          <text x="270" y="212" font-size="12" text-anchor="middle" class="soft">spontaneous: random</text>
+        </svg>
+        <p class="cap">A short bar across a beam marks its polarisation. Stimulated photons copy the input's; spontaneous ones do not, and cannot be told from the copies.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The physics, from nothing, and only as much as is needed.</b> An atom's energy takes discrete values
+    (unit 01's "stationary states" with their energies; why the values are discrete is atomic physics, not
+    this course). Dropping from a higher to a lower value releases the difference as one photon. Einstein
+    showed in 1917 (<i>cited</i>) that thermal radiation is consistent only if there are two ways to do this:
+    <i>stimulated</i> emission, triggered by a photon already present and producing a twin of it, and <i>spontaneous</i>
+    emission, which happens anyway. A laser, and a laser amplifier, exploit the first. Neither can switch off the
+    second.</p>
+    <p><b>The refutation of FLASH's device, cited.</b> P. W. Milonni and M. L. Hardies, "Photons cannot always be
+    replicated", <i>Phys. Lett. A</i> 92, 321 (1982), and L. Mandel, <i>Nature</i> 304, 188 (1983): for an ideal
+    amplifier the spontaneously emitted photons are just numerous enough, and just random enough, that
+    Bob's records have the same statistics whatever Alice chose. Section 5 explains why that is not
+    luck: any device that is a unitary on the photon and its own parts must behave this way.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · Herbert's telegraph</p>
+  <h2>Refereed, published, refuted</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1981–82.</b> Nick Herbert's FLASH goes to referees in 1981 and appears in <i>Foundations of Physics</i> in 1982. One referee, Asher Peres, recommended publication <b>knowing it was wrong</b>: the error was instructive, and finding it would move the subject on (Peres 2003, <i>cited</i>).</p>
+      <p class="small"><b>The same year</b>, two short papers found it:</p>
+      <ul class="small">
+        <li>W. K. Wootters and W. H. Zurek, "A single quantum cannot be cloned", <i>Nature</i> 299, 802;</li>
+        <li>D. Dieks, "Communication by EPR devices", <i>Phys. Lett. A</i> 92, 271.</li>
+      </ul>
+      <p class="small">Both: <b>linearity alone forbids a copier.</b> Section 2 gives their argument and a sharper one.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the lesson of the episode</span>
+        <p class="small">FLASH did not misuse quantum mechanics anywhere except in one assumption: that a copier exists. Every other step is correct. So either quantum mechanics permits faster-than-light signalling, or the copier is impossible. It is the copier.</p>
+      </div>
+      <div class="box warn"><span class="label">a wrong paper that was worth printing</span>
+        <p class="small">The no-cloning theorem is now a cornerstone of quantum cryptography (unit 09). It was found because a wrong idea was published and people went looking for the mistake.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Sources, cited.</b> N. Herbert, "FLASH — a superluminal communicator based upon a new kind of quantum
+    measurement", <i>Found. Phys.</i> 12, 1171 (1982). W. K. Wootters and W. H. Zurek, <i>Nature</i> 299, 802 (1982). D. Dieks,
+    <i>Phys. Lett. A</i> 92, 271 (1982). A. Peres, "How the no-cloning theorem got its name", <i>Fortschr. Phys.</i> 51, 458
+    (2003).</p>
+    <p><b>Peres's account.</b> Peres writes that he told the editor the paper was wrong but should be published,
+    because it would provoke a search for the error and that search would be fruitful. The other referee,
+    GianCarlo Ghirardi, recommended rejection and identified the flaw — the linearity of quantum evolution —
+    in his report; he later told the story himself (G. C. Ghirardi, "Entanglement, nonlocality, superluminal
+    signaling and cloning", arXiv:1305.2305, 2013, <i>cited</i>). Both accounts are worth reading as history of how a
+    field corrects itself. Peres received the manuscript early in 1981; the two refutations were in print in
+    1982, the year FLASH itself was.</p>
+    <p><b>Earlier than 1982.</b> A proof of the same impossibility had appeared, unnoticed, in J. L. Park, "The
+    concept of transition in quantum mechanics", <i>Found. Phys.</i> 1, 23 (1970), as J. Ortigoso pointed out
+    ("Twelve years before the quantum no-cloning theorem", <i>Am. J. Phys.</i> 86, 201, 2018, <i>cited</i>). Ideas are often found twice; the second finding, prompted by a sharp question, is the one
+    that sticks.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>No-cloning, proved twice</h2>
+  <p>Linearity forbids a machine that copies every state. Preservation of inner products forbids one that copies any two states that are neither orthogonal nor the same.</p>
+</section>
+
+<section>
+  <p class="eyebrow">05 · no-cloning</p>
+  <h2>What a copier would have to be</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">cloner</span></span>
+        <p class="small">A cloner for a set $S$ of states of $H$ is a unitary $U$ on $H\otimes H$ and a fixed unit vector $s\in H$, the <span class="term">blank state</span>, with</p>
+        $$U(\psi\otimes s) = e^{i\gamma_\psi}\,\psi\otimes\psi\quad(\psi\in S).$$
+        <p class="small">It is a <span class="term">universal cloner</span> if $S$ is every state of $H$.</p>
+      </div>
+      <ul class="small">
+        <li><b>Unitary</b>: the photon and the blank, isolated, evolve by a unitary (unit 01, postulate 3).</li>
+        <li><b>Fixed blank</b>: the machine is not told $\psi$; that is what "unknown" means.</li>
+        <li><b>A phase $e^{i\gamma_\psi}$</b>, which may depend on $\psi$, is allowed: states are rays (unit 01).</li>
+      </ul>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 150" width="420" role="img" aria-label="a circuit: two horizontal wires enter a box labelled U; the top wire carries psi in, the bottom the blank s; both wires leave carrying psi">
+          <line x1="70" y1="45" x2="270" y2="45" class="unit" stroke-width="2"/>
+          <line x1="70" y1="105" x2="270" y2="105" class="alt" stroke-width="2"/>
+          <rect x="140" y="25" width="60" height="100" class="fill-ground ink" stroke-width="1.6"/>
+          <text x="170" y="81" font-size="20" text-anchor="middle">U</text>
+          <text x="62" y="50" font-size="16" text-anchor="end">ψ</text>
+          <text x="62" y="110" font-size="16" text-anchor="end">s</text>
+          <text x="278" y="50" font-size="16">ψ</text>
+          <text x="278" y="110" font-size="16">ψ</text>
+          <text x="20" y="140" font-size="12" class="soft">unknown, and a blank</text>
+          <text x="230" y="140" font-size="12" class="soft">two copies</text>
+        </svg>
+        <p class="cap">Wires carry systems, time runs left to right, and a box is a unitary acting on the wires it covers. Unit 10 makes this picture a formal model.</p>
+      </div>
+      <div class="box warn"><span class="label">machines with parts of their own</span>
+        <p class="small">A real copier has internal parts that may change. They are added on <i>A machine with parts of its own</i>, and change nothing.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this is the right definition.</b> "Copying" means: whatever the input state $\psi$ (among those the
+    machine is built for), the output is two systems each in state $\psi$. The machine's design, $U$ and $s$, cannot
+    depend on $\psi$: a machine that is told $\psi$ can simply prepare a second copy from the description, and
+    that is not copying an unknown state. The output $\psi\otimes\psi$ is a product state, as two independent copies must
+    be (unit 03's composite-system postulate: systems prepared independently are in a product state).</p>
+    <p><b>Why the phase.</b> $\psi$ and $e^{i\alpha}\psi$ are the same state. A machine that outputs $e^{i\gamma}\psi\otimes\psi$ has produced two copies of
+    the state $\psi$, and must count as a success. The theorems below allow $\gamma_\psi$ to be any function of $\psi$.</p>
+    <p><b>Why both factors are $H$.</b> The blank must be able to hold a copy, so it is another system of the same
+    kind. A machine whose blank lives in a bigger space, or which uses internal parts, is covered on
+    <i>A machine with parts of its own</i>.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · no-cloning</p>
+  <h2>Proof one: linearity</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">no-cloning theorem</span>, first form (Wootters–Zurek; Dieks; 1982)</span>
+        <p class="small">There is no universal cloner for a qubit.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Suppose $U(\ket0\ket s) = e^{ia}\ket{00}$ and $U(\ket1\ket s) = e^{ib}\ket{11}$. Since $\ket{+}\ket s = \tfrac1{\sqrt2}(\ket0\ket s + \ket1\ket s)$, linearity forces</p>
+        $$U(\ket+\ket s) = \tfrac1{\sqrt2}\big(e^{ia}\ket{00} + e^{ib}\ket{11}\big),$$
+        <p class="small">whose coefficient matrix $\tfrac1{\sqrt2}\mathrm{diag}(e^{ia}, e^{ib})$ has rank $2$: an entangled state (unit 03). A copy $e^{i\gamma}\ket{{+}{+}}$ is a product, rank $1$. They differ. $\blacksquare$</p>
+      </div>
+      <p class="small">Norms: $\tfrac12 + \tfrac12 = 1$ and $4\cdot\tfrac14 = 1$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 190" width="450" role="img" aria-label="two 2 by 2 grids of coefficients; the left grid, what linearity forces, has 0.71 on the diagonal and 0 off it, rank 2; the right grid, a true copy of plus, has 0.5 in every cell, rank 1">
+          <text x="85" y="20" font-size="13" text-anchor="middle">what linearity forces</text>
+          <text x="275" y="20" font-size="13" text-anchor="middle">a copy, |+⟩|+⟩</text>
+          <rect x="40" y="40" width="45" height="45" class="fill-soft"/><rect x="85" y="40" width="45" height="45" class="fill-ground ink" stroke-width="1"/>
+          <rect x="40" y="85" width="45" height="45" class="fill-ground ink" stroke-width="1"/><rect x="85" y="85" width="45" height="45" class="fill-soft"/>
+          <text x="62" y="68" font-size="13" text-anchor="middle">0.71</text><text x="107" y="68" font-size="13" text-anchor="middle">0</text>
+          <text x="62" y="113" font-size="13" text-anchor="middle">0</text><text x="107" y="113" font-size="13" text-anchor="middle">0.71</text>
+          <rect x="230" y="40" width="45" height="45" class="fill-soft"/><rect x="275" y="40" width="45" height="45" class="fill-soft"/>
+          <rect x="230" y="85" width="45" height="45" class="fill-soft"/><rect x="275" y="85" width="45" height="45" class="fill-soft"/>
+          <text x="252" y="68" font-size="13" text-anchor="middle">0.5</text><text x="297" y="68" font-size="13" text-anchor="middle">0.5</text>
+          <text x="252" y="113" font-size="13" text-anchor="middle">0.5</text><text x="297" y="113" font-size="13" text-anchor="middle">0.5</text>
+          <text x="30" y="68" font-size="12" class="soft" text-anchor="end">0</text><text x="30" y="113" font-size="12" class="soft" text-anchor="end">1</text>
+          <text x="62" y="146" font-size="12" class="soft" text-anchor="middle">0</text><text x="107" y="146" font-size="12" class="soft" text-anchor="middle">1</text>
+          <text x="85" y="176" font-size="13" text-anchor="middle" class="alt">rank 2: entangled</text>
+          <text x="275" y="176" font-size="13" text-anchor="middle">rank 1: a product</text>
+        </svg>
+        <p class="cap">Coefficient matrices, rows indexed by qubit 0 (phases $a = b = 0$ shown). No phase turns the left one into the right one.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> A universal cloner copies in particular $\ket0$ and $\ket1$, so there are phases $a, b$ with
+    $U(\ket0\otimes s) = e^{ia}\ket0\ket0$ and $U(\ket1\otimes s) = e^{ib}\ket1\ket1$. The map $v \mapsto v\otimes s$ is linear, and so is $U$, hence</p>
+    <p>$U(\ket+\otimes s) = \tfrac1{\sqrt2}U(\ket0\otimes s) + \tfrac1{\sqrt2}U(\ket1\otimes s) = \tfrac1{\sqrt2}(e^{ia}\ket{00} + e^{ib}\ket{11})$.</p>
+    <p>Its coefficient matrix is $C = \tfrac1{\sqrt2}\begin{pmatrix}e^{ia}&amp;0\\0&amp;e^{ib}\end{pmatrix}$, with $\det C = \tfrac12e^{i(a+b)} \ne 0$, so rank $2$ and the state is
+    entangled (unit 03: a two-qubit pure state is a product iff its coefficient matrix has rank $1$, iff $\det C = 0$).
+    A universal cloner must also copy $\ket+$: $U(\ket+\otimes s) = e^{ic}\ket+\ket+$ for some $c$, a product state with coefficient matrix
+    $\tfrac{e^{ic}}2\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}$, determinant $0$. The same vector cannot have both matrices. $\blacksquare$</p>
+    <p><b>Any dimension.</b> If $\dim H \ge 2$, take orthonormal $e_1, e_2$ and run the same argument with $\tfrac1{\sqrt2}(e_1 + e_2)$: the forced
+    output has coefficient matrix of rank $2$ in the basis $\{e_i\otimes e_j\}$, a copy has rank $1$.</p>
+    <p><b>What it uses.</b> Only linearity — not unitarity. Any linear machine fails. That is the
+    form in which Wootters–Zurek and Dieks stated it. Its weakness: it needs three states, two orthogonal
+    and their superposition. It says nothing about a machine built for just $\ket0$ and $\ket+$. <i>Proof two: inner products</i> does.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · no-cloning</p>
+  <h2>Proof two: inner products</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">no-cloning, second form</span>
+        <p class="small">If a cloner copies $\psi$ and $\varphi$, then $|\braket{\psi|\varphi}| = 0$ or $1$: the two are orthogonal or the same state.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">A unitary keeps inner products, so take the inner product of $U(\psi\otimes s)$ with $U(\varphi\otimes s)$ both ways:</p>
+        $$\braket{\psi|\varphi}\underbrace{\braket{s|s}}_{1} = e^{i(\gamma_\varphi - \gamma_\psi)}\braket{\psi|\varphi}^2 .$$
+        <p class="small">Take moduli: $|c| = |c|^2$ with $c = \braket{\psi|\varphi}$, so $|c|\in\{0, 1\}$. $\blacksquare$</p>
+      </div>
+      <p class="small">$|c| = 1$ means $\varphi = e^{i\alpha}\psi$: the equality case of Cauchy–Schwarz (unit 00).</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 345 200" width="425" role="img" aria-label="graph on the unit interval of y equals c, a straight line, and y equals c squared, a curve below it; they meet only at 0 and 1; a vertical marker at c = 0.707 shows the line at 0.707 and the curve at 0.5">
+          <line x1="40" y1="170" x2="310" y2="170" class="ink" stroke-width="1.2"/>
+          <line x1="40" y1="170" x2="40" y2="20" class="ink" stroke-width="1.2"/>
+          <line x1="40" y1="170" x2="300" y2="30" class="unit" stroke-width="2.5"/>
+          <polyline points="40,170 53,169.7 66,168.6 79,166.8 92,164.4 105,161.2 118,157.4 131,152.8 144,147.6 157,141.7 170,135 183,127.6 196,119.6 209,110.8 222,101.4 235,91.2 248,80.4 261,68.9 274,56.6 287,43.7 300,30" fill="none" class="accent" stroke-width="2.5"/>
+          <line x1="223.8" y1="170" x2="223.8" y2="71" class="rule" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <circle cx="223.8" cy="71" r="4.5" class="fill-unit"/><circle cx="223.8" cy="100" r="4.5" class="fill-accent"/>
+          <circle cx="40" cy="170" r="5" class="fill-good"/><circle cx="300" cy="30" r="5" class="fill-good"/>
+          <text x="40" y="188" font-size="12" text-anchor="middle">0</text>
+          <text x="300" y="188" font-size="12" text-anchor="middle">1</text>
+          <text x="224" y="188" font-size="12" text-anchor="middle">0.707</text>
+          <text x="314" y="174" font-size="13" class="soft">|c|</text>
+          <text x="196" y="62" font-size="13" text-anchor="end" class="halo">|c| = 0.707</text>
+          <text x="232" y="112" font-size="13" class="halo">|c|² = 0.5</text>
+          <text x="120" y="122" font-size="13" class="soft">|c|</text>
+          <text x="160" y="160" font-size="13" class="soft">|c|²</text>
+        </svg>
+        <p class="cap">$|c|$ and $|c|^2$ agree only at $0$ and $1$. The marker is the running example.</p>
+      </div>
+      <div class="box good"><span class="label">sharper than proof one</span>
+        <p class="small">It forbids a copier for <b>any</b> pair that is neither orthogonal nor equal — two states suffice. The theorem is exactly about non-orthogonality.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Write $c = \braket{\psi|\varphi}$. Since $U$ is unitary, $\braket{Uu|Uv} = \braket{u|U^\dagger Uv} = \braket{u|v}$ for all $u, v$. With $u = \psi\otimes s$ and $v = \varphi\otimes s$:</p>
+    <p><i>Left side.</i> $\braket{\psi\otimes s|\varphi\otimes s} = \braket{\psi|\varphi}\braket{s|s} = c$, by unit 03's inner product on a tensor product and $\lVert s\rVert = 1$.</p>
+    <p><i>Right side.</i> $\braket{e^{i\gamma_\psi}\psi\otimes\psi|e^{i\gamma_\varphi}\varphi\otimes\varphi} = e^{-i\gamma_\psi}e^{i\gamma_\varphi}\braket{\psi|\varphi}\braket{\psi|\varphi} = e^{i(\gamma_\varphi - \gamma_\psi)}c^2$, the first phase conjugated because the inner
+    product is conjugate-linear in its first slot.</p>
+    <p>So $c = e^{i(\gamma_\varphi - \gamma_\psi)}c^2$, and taking moduli $|c| = |c|^2$, i.e. $|c|(1 - |c|) = 0$. If $|c| = 1$, Cauchy–Schwarz holds with equality,
+    so $\varphi = \lambda\psi$ for some $\lambda$, and $|\lambda| = 1$ since both are unit vectors: the same ray. $\blacksquare$</p>
+    <p><b>Without phases.</b> If the machine must output exactly $\psi\otimes\psi$, the identity is $c = c^2$, so $c\in\{0, 1\}$: even $\psi$ and $-\psi$ cannot both
+    be "copied" exactly, since $U(-\psi\otimes s) = -\psi\otimes\psi \ne (-\psi)\otimes(-\psi)$. That is an artefact of insisting on vectors rather than states, which
+    is why the definition allows the phase.</p>
+    <p><b>Why it is sharper.</b> Proof one needs a machine that handles three particular states. Proof two kills a
+    machine designed for just two, so long as they overlap partially. Together with the converse in
+    section 3 it gives an exact criterion: a set of states can be cloned iff any two of them are orthogonal
+    or equal.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · no-cloning · example</p>
+  <h2>Worked: no copier for |0⟩ and |+⟩</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example: <span class="ref" data-ref="noclone">Bob cannot copy his photon</span></span>
+        <p class="small"><b>1. Suppose</b> $U(\ket0\ket s) = e^{ia}\ket0\ket0$ and $U(\ket+\ket s) = e^{ib}\ket+\ket+$, with $\lVert s\rVert = 1$.</p>
+        <p class="small"><b>2. Before.</b> $\braket{0\otimes s|{+}\otimes s} = \braket{0|+}\braket{s|s} = \tfrac1{\sqrt2}\cdot1 \approx 0.7071$.</p>
+        <p class="small"><b>3. After.</b> $\braket{e^{ia}00|e^{ib}{+}{+}} = e^{i(b-a)}\braket{0|+}\braket{0|+} = e^{i(b-a)}\cdot\tfrac12$, of modulus $0.5$.</p>
+        <p class="small"><b>4. $U$ is unitary</b>, so step 2 equals step 3. Moduli: $0.7071 = 0.5$. False.</p>
+        <p class="small"><b>5. So</b> no unitary and no blank copy both $\ket0$ and $\ket+$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>In angles</b>: $\arccos0.7071 = 45^\circ$ and $\arccos0.5 = 60^\circ$. Copying would open the angle between the states; a unitary is a rigid motion and cannot.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 200" width="450" role="img" aria-label="two pictures: on the left ket 0 and ket plus at 45 degrees, labelled before; on the right the would-be copies ket 00 and ket plus plus at 60 degrees, labelled after copying">
+          <line x1="30" y1="160" x2="139" y2="160" class="unit" stroke-width="2.5"/><polygon points="150,160 139,164.9 139,155.1" class="fill-unit"/>
+          <line x1="30" y1="160" x2="107.1" y2="82.9" class="accent" stroke-width="2.5"/><polygon points="114.9,75.1 110.6,86.4 103.6,79.4" class="fill-accent"/>
+          <path d="M70,160 A40,40 0 0 0 58.3,131.7" fill="none" class="ink" stroke-width="1.3"/>
+          <text x="82" y="144" font-size="13" text-anchor="middle">45°</text>
+          <line x1="210" y1="160" x2="319" y2="160" class="unit" stroke-width="2.5"/><polygon points="330,160 319,164.9 319,155.1" class="fill-unit"/>
+          <line x1="210" y1="160" x2="264.5" y2="65.6" class="accent" stroke-width="2.5"/><polygon points="270,56.1 268.8,68.1 260.2,63.1" class="fill-accent"/>
+          <path d="M250,160 A40,40 0 0 0 230,125.4" fill="none" class="ink" stroke-width="1.3"/>
+          <text x="259" y="139" font-size="13" text-anchor="middle">60°</text>
+          <text x="156" y="165" font-size="14">|0⟩</text><text x="118" y="68" font-size="14">|+⟩</text>
+          <text x="334" y="165" font-size="14">|00⟩</text><text x="274" y="52" font-size="14">|++⟩</text>
+          <text x="90" y="192" font-size="13" text-anchor="middle">before: overlap 0.707</text>
+          <text x="270" y="192" font-size="13" text-anchor="middle">copies: overlap 0.5</text>
+        </svg>
+        <p class="cap">The angle between two states, $\arccos|\braket{\psi|\varphi}|$, is what a unitary must keep. Copying would turn $45^\circ$ into $60^\circ$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each step's justification.</b> Step 2 uses unit 03's $\braket{a\otimes b|c\otimes d} = \braket{a|c}\braket{b|d}$ and $\braket{0|+} = \tfrac1{\sqrt2}(\braket{0|0} + \braket{0|1}) = \tfrac1{\sqrt2}$.
+    Step 3 uses the same rule twice and the conjugate-linearity of the first slot, which turns $e^{ia}$ into $e^{-ia}$.
+    Step 4 is the defining property of a unitary, $U^\dagger U = I$. Nothing about $s$ was used except $\lVert s\rVert = 1$, and
+    nothing about $a, b$: no blank and no choice of phases helps.</p>
+    <p><b>The angle.</b> For unit vectors define the angle between the states $\psi, \varphi$ as $\arccos|\braket{\psi|\varphi}| \in [0, \pi/2]$. A
+    unitary keeps it. For real vectors in a plane, like these, it is the ordinary angle between the lines
+    they span. Here the two copies $\ket{00}$ and $\ket{{+}{+}}$ live in $\mathbb C^4$, and $\arccos\tfrac12 = 60^\circ$; the picture draws them in the plane they
+    span. (Unit 02 would draw $\ket0$ and $\ket+$ as two points a quarter-turn apart on the Bloch sphere; this deck
+    does not need that picture.)</p>
+    <p><b>What it leaves open.</b> A machine that copies <i>approximately</i>, or that copies sometimes and
+    reports failure otherwise. Both exist; <i>Never wrong, sometimes silent</i> and <i>Approximate copies, stated</i> say what is known.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · no-cloning</p>
+  <h2>A machine with parts of its own</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">no-cloning, with an <span class="term">ancilla</span></span>
+        <p class="small">Let the machine have its own system $E$, starting in $e$, and let $U$ be any unitary on $H\otimes H\otimes E$ with</p>
+        $$U(\psi\otimes s\otimes e) = \psi\otimes\psi\otimes e_\psi$$
+        <p class="small">for two states $\psi$ and $\varphi$. Then $|\braket{\psi|\varphi}|\in\{0, 1\}$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Inner products: $c = c^2\braket{e_\psi|e_\varphi}$. Cauchy–Schwarz: $|\braket{e_\psi|e_\varphi}| \le 1$, so $|c| \le |c|^2$, so $|c|(1 - |c|) \le 0$; with $|c| \le 1$, $|c| \in \{0, 1\}$. $\blacksquare$</p>
+      </div>
+      <p class="small">$E$ can be anything: the lab, the laser medium, the light it emits. Every device whose workings are a unitary on something fails.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 180" width="420" role="img" aria-label="a circuit with three wires through one box U: psi, the blank s, and the machine's own system starting in e; out come psi, psi, and the machine's final state e sub psi">
+          <line x1="70" y1="35" x2="270" y2="35" class="unit" stroke-width="2"/>
+          <line x1="70" y1="85" x2="270" y2="85" class="alt" stroke-width="2"/>
+          <line x1="70" y1="135" x2="270" y2="135" class="ink" stroke-width="2" stroke-dasharray="6 4"/>
+          <rect x="140" y="15" width="60" height="140" class="fill-ground ink" stroke-width="1.6"/>
+          <text x="170" y="91" font-size="20" text-anchor="middle">U</text>
+          <text x="62" y="40" font-size="16" text-anchor="end">ψ</text>
+          <text x="62" y="90" font-size="16" text-anchor="end">s</text>
+          <text x="62" y="140" font-size="16" text-anchor="end">e</text>
+          <text x="278" y="40" font-size="16">ψ</text>
+          <text x="278" y="90" font-size="16">ψ</text>
+          <text x="278" y="140" font-size="16">e<tspan font-size="11" dy="4">ψ</tspan></text>
+          <text x="170" y="174" font-size="12" class="soft" text-anchor="middle">the machine's own parts, free to end anywhere</text>
+        </svg>
+        <p class="cap">The machine's final state $e_\psi$ may depend on $\psi$ in any way. It does not help.</p>
+      </div>
+      <div class="box warn"><span class="label">what this does not cover</span>
+        <p class="small"><b>Measure, then prepare</b>: that would need to tell $\ket0$ from $\ket+$ for certain, which section 4 forbids. <b>Copying that sometimes fails</b> and says so exists (<span class="term">probabilistic cloning</span>), but it is not a cloner.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Phases are absorbed into $e_\psi$, which is a unit vector because $U$ keeps norms and $\lVert\psi\otimes\psi\rVert = 1$. With
+    $c = \braket{\psi|\varphi}$, unitarity and unit 03's product rule for inner products give</p>
+    <p>$c\,\braket{s|s}\braket{e|e} = \braket{\psi\otimes s\otimes e|\varphi\otimes s\otimes e} = \braket{U(\psi\otimes s\otimes e)|U(\varphi\otimes s\otimes e)} = c^2\braket{e_\psi|e_\varphi}$.</p>
+    <p>So $c = c^2\braket{e_\psi|e_\varphi}$. Taking moduli and using $|\braket{e_\psi|e_\varphi}| \le \lVert e_\psi\rVert\lVert e_\varphi\rVert = 1$: $|c| \le |c|^2$. Since also $|c| \le 1$ by Cauchy–Schwarz, $|c|^2 \le |c|$,
+    so $|c| = |c|^2$ and $|c| \in \{0, 1\}$. $\blacksquare$</p>
+    <p><b>More copies.</b> A machine making $N \ge 2$ copies, $U(\psi\otimes s^{\otimes(N-1)}\otimes e) = \psi^{\otimes N}\otimes e_\psi$, gives $c = c^N\braket{e_\psi|e_\varphi}$ and so
+    $|c| \le |c|^N$: again $|c|\in\{0, 1\}$. FLASH's twenty-copy machine is ruled out the same way.</p>
+    <p><b>The two cases left out.</b> A machine that measures and then prepares copies from the result is not
+    a unitary as written. But it could only copy $\ket0$ and $\ket+$ perfectly if its measurement told them apart with
+    certainty, and <i>Certainty needs orthogonality</i> proves that impossible. A machine that is allowed to
+    fail, and to know when it has, can copy any two distinct states — indeed any linearly independent set —
+    with some probability less than one
+    (Duan and Guo, <i>Phys. Rev. Lett.</i> 80, 4999, 1998, <i>cited</i>): that is <i>probabilistic cloning</i>, and it never
+    copies with certainty.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>What does copy</h2>
+  <p>Orthogonal states copy freely: a classical bit is the orthogonal case. The theorem is exactly about what lies between.</p>
+</section>
+
+<section>
+  <p class="eyebrow">05 · what copies</p>
+  <h2>CNOT copies the z basis</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">$\mathrm{CNOT}_{01}$ (unit 03, problem P2)</span>
+        $$\mathrm{CNOT}_{01} = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X$$
+        $$= \begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;1&amp;0&amp;0\\0&amp;0&amp;0&amp;1\\0&amp;0&amp;1&amp;0\end{pmatrix}$$
+        <p class="small">On basis states: $\ket{x}\ket{y} \mapsto \ket{x}\ket{y\oplus x}$, with $\oplus$ addition mod $2$.</p>
+      </div>
+      <p class="small"><b>Check: unitary.</b> A permutation matrix: its columns are the standard basis in another order, hence orthonormal. It is also Hermitian, and squares to $I$.</p>
+      <div class="box good"><span class="label">a cloner for $\{\ket0, \ket1\}$, blank $\ket0$</span>
+        <p class="small">$\ket0\ket0 \mapsto \ket0\ket0$ and $\ket1\ket0 \mapsto \ket1\ket1$. No phase even needed. So <span class="ref" data-ref="cnot">Bob's $\ket0$</span> copies perfectly.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 170" width="420" role="img" aria-label="a CNOT circuit: top wire with a filled dot, bottom wire with a circled plus, joined by a vertical line; inputs x and 0, outputs x and x">
+          <line x1="60" y1="50" x2="280" y2="50" class="unit" stroke-width="2"/>
+          <line x1="60" y1="120" x2="280" y2="120" class="alt" stroke-width="2"/>
+          <line x1="170" y1="50" x2="170" y2="134" class="ink" stroke-width="2"/>
+          <circle cx="170" cy="50" r="7" class="fill-ink"/>
+          <circle cx="170" cy="120" r="14" class="fill-ground ink" stroke-width="2"/>
+          <line x1="156" y1="120" x2="184" y2="120" class="ink" stroke-width="2"/><line x1="170" y1="106" x2="170" y2="134" class="ink" stroke-width="2"/>
+          <text x="52" y="55" font-size="16" text-anchor="end">|x⟩</text>
+          <text x="52" y="125" font-size="16" text-anchor="end">|0⟩</text>
+          <text x="288" y="55" font-size="16">|x⟩</text>
+          <text x="288" y="125" font-size="16">|x⟩</text>
+          <text x="170" y="28" font-size="12" class="soft" text-anchor="middle">control</text>
+          <text x="170" y="158" font-size="12" class="soft" text-anchor="middle">target</text>
+          <text x="20" y="90" font-size="12" class="soft">qubit 0 on top</text>
+        </svg>
+        <p class="cap">● on the control wire, ⊕ on the target: flip the target when the control is $1$. With the target starting at $0$, the bit is copied.</p>
+      </div>
+      <p class="small">In a classical circuit, a wire that splits in two is this — <span class="term">fan-out</span>. Classical bits copy because they are orthogonal states.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The matrix, from the definition.</b> By blocks, $\ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X = \begin{pmatrix}I&amp;0\\0&amp;X\end{pmatrix}$, with qubit 0 indexing the blocks (the course's
+    order: $\ket{01}$ is basis vector $1$). Unit 03's problem P2 defines it, writes this matrix and checks it is unitary.</p>
+    <p><b>Checks, in full.</b> Unitary: $\mathrm{CNOT}^\dagger\mathrm{CNOT} = (\ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X)^2 = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X^2 = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes I = I$, using $X^\dagger = X$,
+    $X^2 = I$, $\ket0\!\bra0\ket1\!\bra1 = 0$ and unit 03's product rule $(A\otimes B)(C\otimes D) = AC\otimes BD$. On basis states: $\ket0\ket y \mapsto \ket0\ket y$ and $\ket1\ket y \mapsto \ket1 X\ket y = \ket1\ket{y\oplus1}$.</p>
+    <p><b>Notation.</b> Circuits as a formal model, with their gate sets and costs, are unit 10's. Here a
+    diagram is shorthand for a product of unitaries on tensor factors, with qubit 0 as the top wire.</p>
+    <p><b>Why "classical" means "orthogonal".</b> A classical memory cell holds one of finitely many
+    perfectly distinguishable configurations. In quantum terms, those are orthogonal states: by
+    <i>Certainty needs orthogonality</i>, only orthogonal states can be told apart without error. So "classical
+    information can be copied" and "orthogonal states can be cloned" are one statement.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · what copies · example</p>
+  <h2>Worked: CNOT on |+⟩|0⟩</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example: <span class="ref" data-ref="cnot">the copier for |0⟩, fed |+⟩</span></span>
+        <p class="small"><b>1. Input.</b> $\ket+\ket0 = \tfrac1{\sqrt2}(\ket{00} + \ket{10})$; norm $\tfrac12 + \tfrac12 = 1$ ✓.</p>
+        <p class="small"><b>2. Linearity.</b> $\ket{00}\mapsto\ket{00}$, $\ket{10}\mapsto\ket{11}$, so the output is</p>
+        $$\tfrac1{\sqrt2}(\ket{00} + \ket{11}) = \ket{\Phi^+},\qquad\text{norm } 1\ ✓ .$$
+        <p class="small"><b>3. The copy wanted</b>, of norm $4\cdot\tfrac14 = 1$ ✓: $\ket{{+}{+}} = \tfrac12(\ket{00} + \ket{01} + \ket{10} + \ket{11})$.</p>
+        <p class="small"><b>4. Overlap.</b> $\braket{{+}{+}|\Phi^+} = \tfrac12\cdot\tfrac1{\sqrt2}(1 + 1) = \tfrac1{\sqrt2} \approx 0.7071$.</p>
+        <p class="small"><b>5. What it is.</b> $\ket{\Phi^+}$ has coefficient matrix $\tfrac1{\sqrt2}I$, determinant $\tfrac12 \ne 0$: a Bell state, entangled — not a copy of anything.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 160" width="440" role="img" aria-label="the CNOT circuit with inputs ket plus on top and ket 0 below; the two output wires are joined by a brace labelled Phi plus, the Bell state, and beside it the words not plus plus">
+          <line x1="60" y1="45" x2="250" y2="45" class="unit" stroke-width="2"/>
+          <line x1="60" y1="115" x2="250" y2="115" class="alt" stroke-width="2"/>
+          <line x1="150" y1="45" x2="150" y2="129" class="ink" stroke-width="2"/>
+          <circle cx="150" cy="45" r="7" class="fill-ink"/>
+          <circle cx="150" cy="115" r="14" class="fill-ground ink" stroke-width="2"/>
+          <line x1="136" y1="115" x2="164" y2="115" class="ink" stroke-width="2"/><line x1="150" y1="101" x2="150" y2="129" class="ink" stroke-width="2"/>
+          <text x="52" y="50" font-size="16" text-anchor="end">|+⟩</text>
+          <text x="52" y="120" font-size="16" text-anchor="end">|0⟩</text>
+          <path d="M258,40 Q270,40 270,60 L270,72 Q270,80 280,80 Q270,80 270,88 L270,100 Q270,120 258,120" fill="none" class="ink" stroke-width="1.5"/>
+          <text x="288" y="78" font-size="16">|Φ⁺⟩</text>
+          <text x="288" y="100" font-size="12" class="warn">not |+⟩|+⟩</text>
+          <text x="180" y="150" font-size="12" class="soft" text-anchor="middle">one joint state; neither wire has a state of its own</text>
+        </svg>
+        <p class="cap">The machine that copies $\ket0$ and $\ket1$ perfectly entangles $\ket+$ with its blank instead of copying it.</p>
+      </div>
+      <div class="box good"><span class="label">exactly what proof one said</span>
+        <p class="small">CNOT is a cloner for $\{\ket0, \ket1\}$, so linearity forces $\tfrac1{\sqrt2}(\ket{00} + \ket{11})$ on $\ket+$ — the state on <i>Proof one: linearity</i>, now produced by a real machine.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 4 in full.</b> $\braket{{+}{+}|\Phi^+} = \tfrac12\cdot\tfrac1{\sqrt2}\big(\braket{00|00} + \braket{11|11}\big)$, the cross terms vanishing because distinct basis vectors are
+    orthogonal; that is $\tfrac1{2\sqrt2}\cdot2 = \tfrac1{\sqrt2}$. So if the output were tested for being $\ket{{+}{+}}$ (a two-outcome measurement with
+    projector $\ket{{+}{+}}\!\bra{{+}{+}}$), it would pass with probability $|\braket{{+}{+}|\Phi^+}|^2 = \tfrac12$.</p>
+    <p><b>Testing one output.</b> A fairer test of a copier looks at one output at a time: measure qubit 0 in
+    $\{\ket+, \ket-\}$. By unit 01's Born rule with the projector $\ket+\!\bra+\otimes I$: $(\ket+\!\bra+\otimes I)\ket{\Phi^+} = \tfrac1{\sqrt2}\big(\ket+\braket{+|0}\ket0 + \ket+\braket{+|1}\ket1\big)
+    = \tfrac12\ket+(\ket0 + \ket1) = \tfrac1{\sqrt2}\ket+\ket+$, of squared norm $\tfrac12$. So each output, tested for $\ket+$, passes half the time — no better than a
+    random guess between $\ket+$ and $\ket-$. The same projector on $\ket0\ket0$, testing for $\ket0$, passes with probability $1$. This "pass probability"
+    is the fidelity of a copy, defined properly on <i>Approximate copies, stated</i>.</p>
+    <p><b>What CNOT is good for here.</b> Unit 07 uses this very circuit, with $\ket{\Phi^+}$ as its output, to make
+    the entangled pairs that teleportation spends. A failed copier is a working entangler.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · what copies</p>
+  <h2>Every orthogonal set copies</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the exact criterion</span>
+        <p class="small">A finite set of states has a cloner if and only if any two of its members are orthogonal or equal.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Only if:</b> <i>Proof two: inner products</i>. <b>If:</b> extend the distinct members to an orthonormal basis $e_0, \dots, e_{d-1}$ of $H$, and set</p>
+        $$U(e_j\otimes e_k) = e_j\otimes e_{(j + k)\bmod d} .$$
+        <p class="small">$U$ permutes an orthonormal basis of $H\otimes H$, so it is unitary; with blank $s = e_0$, $U(e_j\otimes e_0) = e_j\otimes e_j$. $\blacksquare$</p>
+      </div>
+      <p class="small">For $d = 2$ this $U$ is $\mathrm{CNOT}_{01}$: $(j + k)\bmod2 = k\oplus j$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 240" width="370" role="img" aria-label="a 3 by 3 grid of dots labelled by pairs j k; the left column, k equal 0, is highlighted as the blank; arrows from (1,0) to (1,1) and from (2,0) to (2,2) carry each blank pair onto the diagonal">
+          <text x="150" y="20" font-size="13" text-anchor="middle">basis vectors eⱼ ⊗ eₖ, d = 3</text>
+          <rect x="62" y="38" width="36" height="174" rx="8" class="fill-soft"/>
+          <text x="80" y="230" font-size="12" text-anchor="middle">k = 0</text><text x="150" y="230" font-size="12" text-anchor="middle">k = 1</text><text x="220" y="230" font-size="12" text-anchor="middle">k = 2</text>
+          <text x="40" y="65" font-size="12" text-anchor="end">j = 0</text><text x="40" y="130" font-size="12" text-anchor="end">j = 1</text><text x="40" y="195" font-size="12" text-anchor="end">j = 2</text>
+          <circle cx="80" cy="60" r="7" class="fill-good"/><circle cx="150" cy="60" r="6" class="fill-ink"/><circle cx="220" cy="60" r="6" class="fill-ink"/>
+          <circle cx="80" cy="125" r="6" class="fill-ink"/><circle cx="150" cy="125" r="7" class="fill-good"/><circle cx="220" cy="125" r="6" class="fill-ink"/>
+          <circle cx="80" cy="190" r="6" class="fill-ink"/><circle cx="150" cy="190" r="6" class="fill-ink"/><circle cx="220" cy="190" r="7" class="fill-good"/>
+          <line x1="88" y1="125" x2="131" y2="125" class="accent" stroke-width="2.2"/><polygon points="141,125 130,130 130,120" class="fill-accent"/>
+          <path d="M88,192 Q150,214 205,194" fill="none" class="accent" stroke-width="2.2"/><polygon points="213,191 204,199 201,189" class="fill-accent"/>
+          <text x="236" y="210" font-size="12" class="good">copied</text>
+        </svg>
+        <p class="cap">The map shifts row $j$ by $j$. The blank column, shaded, lands on the diagonal $e_j\otimes e_j$: every basis state copied. Green marks the copies.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of "if".</b> Let the set's distinct members (as states) be $\psi_0, \dots, \psi_{m-1}$, pairwise orthogonal unit vectors,
+    so $m \le d = \dim H$. Extend them to an orthonormal basis $e_0 = \psi_0, \dots, e_{m-1} = \psi_{m-1}, e_m, \dots, e_{d-1}$ (Gram–Schmidt). The vectors
+    $e_j\otimes e_k$ are an orthonormal basis of $H\otimes H$ (unit 03). The map $(j, k)\mapsto(j, (j + k)\bmod d)$ is a bijection of $\{0, \dots, d-1\}^2$ — its inverse is
+    $(j, k')\mapsto(j, (k' - j)\bmod d)$ — so the linear map $U$ it defines sends an orthonormal basis onto an orthonormal basis, and is
+    unitary. With $s = e_0$: $U(\psi_j\otimes s) = e_j\otimes e_{j} = \psi_j\otimes\psi_j$. A member equal to $\psi_j$ only up to phase, $e^{i\alpha}\psi_j$, goes to
+    $e^{i\alpha}\psi_j\otimes\psi_j = e^{-i\alpha}(e^{i\alpha}\psi_j)\otimes(e^{i\alpha}\psi_j)$: copied, with phase $e^{-i\alpha}$ allowed by the definition. $\blacksquare$</p>
+    <p><b>Only if</b> is exactly the second proof, applied to each pair. Problem P3 asks for both directions in
+    your own words.</p>
+    <p><b>The point.</b> Whether a set of states can be copied is a property of the <i>set</i>, not of any one
+    member. $\ket+$ on its own is copied by a machine built for $\{\ket+, \ket-\}$; it is $\ket+$ <i>together with</i> $\ket0$ that cannot be.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · what copies</p>
+  <h2>Bob would need one machine for four states</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Each kind copies on its own.</b> $\mathrm{CNOT}_{01}$ copies the $z$ kind, $\{\ket0, \ket1\}$. The same construction copies the $x$ kind, $\{\ket+, \ket-\}$, with blank $\ket+$ (problem P2).</p>
+      <p class="small"><b>FLASH needs both at once.</b> Bob does not know which kind he holds — that is the message. So his machine must copy all four of $\ket0, \ket1, \ket+, \ket-$.</p>
+      <div class="box thm"><span class="label">so FLASH has no copier</span>
+        <p class="small">$|\braket{0|+}| = \tfrac1{\sqrt2} \notin \{0, 1\}$, so by the exact criterion no cloner exists for any set containing <span class="ref" data-ref="photon">$\ket0$ and $\ket+$</span>, let alone all four.</p>
+      </div>
+      <p class="small">The theorem is about <b>non-orthogonality</b>, not about superposition: $\ket+$ is a superposition and copies fine among its own kind.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 250" width="370" role="img" aria-label="four arrows from a common origin: ket 0 to the right and ket 1 up, the z kind; ket plus at 45 degrees up and ket minus at 45 degrees down, the x kind; dashed arcs mark that arrows of different kinds are 45 degrees apart">
+          <line x1="110" y1="135" x2="204" y2="135" class="unit" stroke-width="2.5"/><polygon points="215,135 204,139.9 204,130.1" class="fill-unit"/>
+          <line x1="110" y1="135" x2="110" y2="41" class="unit" stroke-width="2.5"/><polygon points="110,30 114.9,41 105.1,41" class="fill-unit"/>
+          <line x1="110" y1="135" x2="176.5" y2="68.5" class="accent" stroke-width="2.5"/><polygon points="184.2,60.8 180,72 173,65" class="fill-accent"/>
+          <line x1="110" y1="135" x2="176.5" y2="201.5" class="accent" stroke-width="2.5"/><polygon points="184.2,209.2 173,205 180,198" class="fill-accent"/>
+          <path d="M160,135 A50,50 0 0 0 145.4,99.6" fill="none" class="rule" stroke-width="1.4" stroke-dasharray="4 3"/>
+          <text x="164" y="116" font-size="12">45°</text>
+          <text x="222" y="140" font-size="14">|0⟩</text>
+          <text x="110" y="22" font-size="14" text-anchor="middle">|1⟩</text>
+          <text x="190" y="56" font-size="14">|+⟩</text>
+          <text x="190" y="225" font-size="14">|−⟩</text>
+          <text x="10" y="222" font-size="12" class="soft">z kind (horizontal, vertical):</text>
+          <text x="10" y="238" font-size="12" class="soft">copied by CNOT</text>
+          <text x="200" y="22" font-size="12" class="soft">x kind (diagonals):</text>
+          <text x="200" y="38" font-size="12" class="soft">its own copier</text>
+        </svg>
+        <p class="cap">Within a kind, the states are at $90^\circ$ and copy. Across kinds they are at $45^\circ$, and nothing copies both.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The $x$-kind copier.</b> Problem P2 finds it explicitly: change basis with the unitary that swaps the $z$ and $x$
+    bases, copy with CNOT, change back. It copies $\ket\pm$ onto a blank $\ket+$, and what it does to $\ket0$ is the mirror image of
+    <i>Worked: CNOT on |+⟩|0⟩</i>.</p>
+    <p><b>A common misreading.</b> "Quantum states cannot be copied" is often heard as "superpositions cannot be
+    copied". Both halves of that are wrong in general. The basis states $\ket0, \ket1$ are copyable only <i>as a set</i>,
+    by a machine built for that set; the superpositions $\ket\pm$ are copyable as a set too. What cannot be done is to
+    copy states from a set containing a non-orthogonal pair — and "an unknown state", with no promise at
+    all, is the extreme case: every pair.</p>
+    <p><b>The running example.</b> Bob's photon, $\ket0$ or $\ket+$, sits across the two kinds. That is exactly what
+    makes it uncopyable, and, section 4 will show, imperfectly distinguishable.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Telling two states apart</h2>
+  <p>One copy, one measurement, one guess. Orthogonal states are told apart for certain; for any others there is a best success probability, and it is Helstrom's.</p>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>The task: one copy, one guess</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">state discrimination</span> (minimum error)</span>
+        <p class="small">A fair coin prepares $\psi$ or $\varphi$. Bob makes a projective measurement $\{P_k\}$ and guesses by a rule $g$: outcome $k \mapsto$ "$\psi$" or "$\varphi$". His <span class="term">success probability</span> is</p>
+        $$p_{\rm succ} = \tfrac12\!\!\sum_{g(k) = \psi}\!\!\braket{\psi|P_k|\psi} + \tfrac12\!\!\sum_{g(k) = \varphi}\!\!\braket{\varphi|P_k|\varphi} .$$
+      </div>
+      <div class="box thm"><span class="label">only two outcomes matter</span>
+        <p class="small">With $P = \sum_{g(k)=\psi}P_k$, an orthogonal projector,</p>
+        $$p_{\rm succ} = \tfrac12\braket{\psi|P|\psi} + \tfrac12\braket{\varphi|(I - P)|\varphi} .$$
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 150" width="500" role="img" aria-label="a flow: a coin box prepares psi or phi with probability one half each; an arrow goes to Bob's measurement box with projectors P and I minus P and a meter; arrows from it lead to the guesses psi and phi">
+          <rect x="10" y="45" width="100" height="60" rx="6" class="fill-soft"/>
+          <text x="60" y="70" font-size="13" text-anchor="middle">coin</text>
+          <text x="60" y="90" font-size="13" text-anchor="middle">ψ or φ, ½ each</text>
+          <line x1="110" y1="75" x2="160" y2="75" class="unit" stroke-width="2.5"/><polygon points="170,75 159,80 159,70" class="fill-unit"/>
+          <rect x="170" y="35" width="110" height="80" rx="6" class="fill-ground ink" stroke-width="1.5"/>
+          <path d="M196,92 A29,29 0 0 1 254,92" fill="none" class="ink" stroke-width="1.5"/>
+          <line x1="225" y1="92" x2="243" y2="58" class="ink" stroke-width="1.5"/>
+          <text x="225" y="108" font-size="12" text-anchor="middle">{P, I − P}</text>
+          <line x1="280" y1="60" x2="330" y2="38" class="accent" stroke-width="2"/>
+          <line x1="280" y1="90" x2="330" y2="112" class="accent" stroke-width="2"/>
+          <text x="338" y="42" font-size="14">guess ψ</text>
+          <text x="338" y="120" font-size="14">guess φ</text>
+          <text x="225" y="25" font-size="12" class="soft" text-anchor="middle">Bob's measurement</text>
+          <text x="300" y="40" font-size="12" class="soft" text-anchor="middle">P</text>
+          <text x="282" y="130" font-size="12" class="soft">I − P</text>
+        </svg>
+        <p class="cap">Every outcome Bob reads as "$\psi$" is lumped into one projector $P$; the rest is $I - P$. Nothing else about the measurement matters.</p>
+      </div>
+      <p class="small"><b>The game for <span class="ref" data-ref="photon">Bob's photon</span>:</b> $\psi = \ket0$, $\varphi = \ket+$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof that only $P$ matters.</b> The $P_k$ are orthogonal projectors with $P_kP_l = \delta_{kl}P_k$ and $\sum_kP_k = I$ (unit 01's
+    projection-valued measure). Let $A = \{k : g(k) = \psi\}$ and $P = \sum_{k\in A}P_k$. Then $P^\dagger = P$, and $P^2 = \sum_{k, l\in A}P_kP_l = \sum_{k\in A}P_k = P$: an
+    orthogonal projector. Its complement is $\sum_{k\notin A}P_k = I - P$. By linearity of $\braket{\psi|\cdot|\psi}$, the first sum in $p_{\rm succ}$ is $\braket{\psi|P|\psi}$ and the
+    second is $\braket{\varphi|(I - P)|\varphi}$. $\blacksquare$</p>
+    <p><b>The formula, unpacked.</b> By the law of total probability, $p_{\rm succ} = \tfrac12\Pr(\text{guess }\psi\mid\psi) + \tfrac12\Pr(\text{guess }\varphi\mid\varphi)$,
+    and by the Born rule $\Pr(k\mid\psi) = \braket{\psi|P_k|\psi}$.</p>
+    <p><b>Scope.</b> Bob's measurement here is projective on the system itself. <i>An ancilla does not help</i>
+    extends the result to a measurement on the system together with an extra apparatus. Unequal
+    probabilities for $\psi$ and $\varphi$ are problem P8. Measurements more general than projective are unit 21's;
+    <i>An ancilla does not help</i> says why they cannot beat the bound proved here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>Certainty needs orthogonality</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">perfect discrimination</span>
+        <p class="small">Some projective measurement has $p_{\rm succ} = 1$ if and only if $\braket{\psi|\varphi} = 0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$p_{\rm succ} = 1$ forces $\braket{\psi|P|\psi} = 1$ and $\braket{\varphi|P|\varphi} = 0$. Since $\braket{v|P|v} = \lVert Pv\rVert^2$ and $\lVert v - Pv\rVert^2 = \lVert v\rVert^2 - \lVert Pv\rVert^2$, that says $P\psi = \psi$ and $P\varphi = 0$. Then</p>
+        $$\braket{\psi|\varphi} = \braket{P\psi|\varphi} = \braket{\psi|P\varphi} = 0 .$$
+        <p class="small">Conversely $P = \ket\psi\!\bra\psi$ works when $\psi\perp\varphi$. $\blacksquare$</p>
+      </div>
+      <p class="small">So <span class="ref" data-ref="photon">$\ket0$ and $\ket+$</span>, with $\braket{0|+} = \tfrac1{\sqrt2}$, can never be told apart for certain.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 280 200" width="350" role="img" aria-label="the range of P drawn as a thick horizontal line and its kernel as a thick vertical line; psi lies along the range, phi along the kernel; a third arrow at 45 degrees, marked with a question mark, lies in neither">
+          <line x1="70" y1="170" x2="250" y2="170" class="good" stroke-width="6"/>
+          <line x1="70" y1="170" x2="70" y2="20" class="warn" stroke-width="6"/>
+          <line x1="70" y1="170" x2="199" y2="170" class="unit" stroke-width="2.5"/><polygon points="210,170 199,174.9 199,165.1" class="fill-unit"/>
+          <line x1="70" y1="170" x2="70" y2="41" class="alt" stroke-width="2.5"/><polygon points="70,30 75,41 65.1,41" class="fill-alt"/>
+          <line x1="70" y1="170" x2="141.4" y2="98.6" class="accent" stroke-width="2"/><polygon points="149.2,90.8 144.9,102.1 137.9,95.1" class="fill-accent"/>
+          <text x="214" y="160" font-size="15">ψ</text>
+          <text x="82" y="38" font-size="15">φ</text>
+          <text x="156" y="86" font-size="15">?</text>
+          <text x="220" y="192" font-size="12" class="good" text-anchor="middle">range of P</text>
+          <text x="54" y="100" font-size="12" class="warn" text-anchor="end" transform="rotate(-90 54 100)">kernel of P</text>
+        </svg>
+        <p class="cap">Never wrong on $\psi$ puts $\psi$ in the range of $P$; never wrong on $\varphi$ puts $\varphi$ in its kernel. Range and kernel are orthogonal. A state at $45^\circ$ lies in neither.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> $p_{\rm succ} = \tfrac12\braket{\psi|P|\psi} + \tfrac12\braket{\varphi|(I - P)|\varphi}$ is an average of two numbers in $[0, 1]$, so it equals $1$ iff both
+    are $1$: $\braket{\psi|P|\psi} = 1$ and $\braket{\varphi|P|\varphi} = 0$. For an orthogonal projector, $\braket{v|P|v} = \braket{v|P^\dagger P|v} = \lVert Pv\rVert^2$, and by Pythagoras
+    ($Pv \perp v - Pv$, since $\braket{Pv|v - Pv} = \braket{v|(P - P^2)|v} = 0$) $\lVert v\rVert^2 = \lVert Pv\rVert^2 + \lVert v - Pv\rVert^2$. With $v = \psi$: $\lVert\psi - P\psi\rVert^2 = 1 - 1 = 0$, so $P\psi = \psi$.
+    With $v = \varphi$: $\lVert P\varphi\rVert = 0$. Then $\braket{\psi|\varphi} = \braket{P\psi|\varphi} = \braket{\psi|P^\dagger\varphi} = \braket{\psi|P\varphi} = 0$. Conversely, if $\psi\perp\varphi$, take $P = \ket\psi\!\bra\psi$:
+    $\braket{\psi|P|\psi} = 1$ and $\braket{\varphi|P|\varphi} = |\braket{\psi|\varphi}|^2 = 0$. $\blacksquare$</p>
+    <p><b>The one root.</b> Both theorems of this unit come down to the overlap. A cloner needs $|c|\in\{0, 1\}$;
+    a perfect discriminator needs $c = 0$. And they are linked: a perfect discriminator for $\psi, \varphi$ would give a
+    copier (measure, then prepare two copies of the answer), and a copier would beat the best discriminator
+    (copy, then measure both copies) — problem P12 turns the second into a third proof of no-cloning.</p>
+    <p><b>Why physics cares.</b> Unit 01 defined a measurement's outcomes as eigenvalues with orthogonal
+    eigenspaces. That orthogonality is not a convention: this theorem says a measurement can only ever
+    separate perfectly what is orthogonal.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart · example</p>
+  <h2>Worked: |0⟩ against |+⟩, measured in z</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example: the obvious measurement on <span class="ref" data-ref="photon">Bob's photon</span></span>
+        <p class="small"><b>1. The rule.</b> Measure in $\{\ket0, \ket1\}$; outcome $0 \mapsto$ "$\ket0$", outcome $1 \mapsto$ "$\ket+$". So $P = \ket0\!\bra0$.</p>
+        <p class="small"><b>2. The joint probabilities</b>, coin times Born rule:</p>
+        <table class="dense">
+          <thead><tr><th>sent</th><th class="num">outcome 0</th><th class="num">outcome 1</th></tr></thead>
+          <tbody>
+            <tr><td>$\ket0$</td><td class="num">$\tfrac12\cdot1 = 0.5$</td><td class="num">$\tfrac12\cdot0 = 0$</td></tr>
+            <tr><td>$\ket+$</td><td class="num">$\tfrac12\cdot\tfrac12 = 0.25$</td><td class="num">$\tfrac12\cdot\tfrac12 = 0.25$</td></tr>
+          </tbody>
+        </table>
+        <p class="small">Sum $0.5 + 0 + 0.25 + 0.25 = 1$ ✓.</p>
+        <p class="small"><b>3. Success</b>: the correct cells, $0.5 + 0.25 = 0.75$. Every error is $\ket+$ landing on $0$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 260 220" width="320" role="img" aria-label="the z basis drawn as dashed horizontal and vertical axes; ket 0 along the horizontal; ket plus at 45 degrees with dotted drop lines to both axes, each component one over root two, each probability one half">
+          <line x1="60" y1="180" x2="225" y2="180" class="rule" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <line x1="60" y1="180" x2="60" y2="20" class="rule" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <line x1="159" y1="81" x2="159" y2="180" class="rule" stroke-width="1.2" stroke-dasharray="2 3"/>
+          <line x1="159" y1="81" x2="60" y2="81" class="rule" stroke-width="1.2" stroke-dasharray="2 3"/>
+          <line x1="60" y1="180" x2="189" y2="180" class="unit" stroke-width="2.5"/><polygon points="200,180 189,184.9 189,175.1" class="fill-unit"/>
+          <line x1="60" y1="180" x2="151.2" y2="88.8" class="accent" stroke-width="2.5"/><polygon points="159,81 154.7,92.3 147.7,85.3" class="fill-accent"/>
+          <text x="205" y="172" font-size="14">|0⟩</text>
+          <text x="165" y="76" font-size="14">|+⟩</text>
+          <text x="230" y="214" font-size="12" class="soft" text-anchor="end">outcome 0</text>
+          <text x="66" y="28" font-size="12" class="soft">outcome 1</text>
+          <text x="159" y="198" font-size="12" text-anchor="middle">1/√2</text>
+          <text x="54" y="86" font-size="12" text-anchor="end">1/√2</text>
+        </svg>
+        <p class="cap">$\ket0$ is caught every time; $\ket+$ falls on each axis with probability $(1/\sqrt2)^2 = \tfrac12$.</p>
+      </div>
+      <p class="small">Measuring in $\{\ket+, \ket-\}$ instead (outcome $+ \mapsto$ "$\ket+$") gives $0.75$ too, by the same table mirrored. Can a basis in between do better?</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2, each cell.</b> $\Pr(\ket0\text{ sent}, 0) = \tfrac12|\braket{0|0}|^2 = \tfrac12$; $\Pr(\ket0, 1) = \tfrac12|\braket{1|0}|^2 = 0$; $\Pr(\ket+, 0) = \tfrac12|\braket{0|+}|^2 = \tfrac12\cdot\tfrac12$;
+    $\Pr(\ket+, 1) = \tfrac12|\braket{1|+}|^2 = \tfrac14$. In the formula of <i>The task: one copy, one guess</i>: $\tfrac12\braket{0|P|0} + \tfrac12\braket{+|(I - P)|+} = \tfrac12\cdot1 + \tfrac12\cdot\tfrac12 = \tfrac34$.</p>
+    <p><b>The $x$ basis.</b> Outcome $+$ means "$\ket+$", outcome $-$ means "$\ket0$". Then $\ket+$ is always right, and $\ket0$ gives $-$ with probability
+    $|\braket{-|0}|^2 = \tfrac12$: success $\tfrac12\cdot1 + \tfrac12\cdot\tfrac12 = \tfrac34$ again, with all the errors now on $\ket0$.</p>
+    <p><b>In general.</b> Measuring in $\psi$'s own basis $\{\psi, \psi^\perp\}$ always gives $\tfrac12\cdot1 + \tfrac12(1 - |c|^2) = 1 - \tfrac12|c|^2$, which is $\tfrac34$ here.
+    Both strategies put all the error on one state. The question <i>The Helstrom bound</i> answers is whether sharing
+    the error evenly does better. It does.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>The Helstrom bound</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Helstrom bound</span> (two pure states, equal priors)</span>
+        <p class="small">Over all projective measurements and guessing rules,</p>
+        $$\max\,p_{\rm succ} = \tfrac12\Big(1 + \sqrt{1 - |\braket{\psi|\varphi}|^2}\Big),$$
+        <p class="small">and the maximum is attained. Proved in <i>Proof, step one</i> to <i>step three</i>.</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Orthogonal</b>, $c = 0$: $1$, as <i>Certainty needs orthogonality</i> says ✓. <b>Same state</b>, $|c| = 1$: $\tfrac12$, a coin toss ✓. <b><span class="ref" data-ref="best">Bob's photon</span></b>, $|c| = \tfrac1{\sqrt2}$: $\tfrac12(1 + \tfrac1{\sqrt2}) \approx 0.8536$, above the $0.75$ of the $z$ basis.</p>
+      </div>
+      <p class="small">Helstrom (1976, <i>cited</i>) for the general theory: unequal priors (problem P8) and mixed states (unit 21).</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 240" width="440" role="img" aria-label="success probability against the overlap modulus c from 0 to 1; the Helstrom curve falls from 1 at c equal 0 to one half at c equal 1, staying above the curve one minus c squared over two, which measures in psi's own basis; at c equal 0.707 the two are 0.854 and 0.75">
+          <line x1="50" y1="210" x2="340" y2="210" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="210" x2="50" y2="15" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="115" x2="330" y2="115" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+          <polyline points="50,20 57,20 64,20.1 71,20.3 78,20.5 85,20.7 92,21.1 99,21.5 106,21.9 113,22.4 120,23 127,23.7 134,24.4 141,25.2 148,26 155,26.9 162,27.9 169,29 176,30.2 183,31.4 190,32.7 197,34.1 204,35.7 211,37.3 218,39 225,40.8 232,42.8 239,44.9 246,47.2 253,49.6 260,52.2 267,55 274,58 281,61.3 288,65 295,69 302,73.6 309,78.9 316,85.3 323,93.9 330,115" fill="none" class="accent" stroke-width="2.5"/>
+          <polyline points="50,20 57,20.1 64,20.2 71,20.5 78,20.9 85,21.5 92,22.1 99,22.9 106,23.8 113,24.8 120,25.9 127,27.2 134,28.6 141,30 148,31.6 155,33.4 162,35.2 169,37.2 176,39.2 183,41.4 190,43.8 197,46.2 204,48.7 211,51.4 218,54.2 225,57.1 232,60.1 239,63.3 246,66.6 253,69.9 260,73.4 267,77.1 274,80.8 281,84.7 288,88.6 295,92.7 302,97 309,101.3 316,105.7 323,110.3 330,115" fill="none" class="unit" stroke-width="2" stroke-dasharray="6 4"/>
+          <line x1="248" y1="210" x2="248" y2="40" class="rule" stroke-width="1" stroke-dasharray="2 3"/>
+          <circle cx="248" cy="47.8" r="4.5" class="fill-accent"/><circle cx="248" cy="67.5" r="4.5" class="fill-unit"/>
+          <text x="256" y="40" font-size="12" class="halo">0.854</text>
+          <text x="256" y="80" font-size="12" class="halo">0.75</text>
+          <text x="44" y="24" font-size="12" text-anchor="end">1</text>
+          <text x="44" y="119" font-size="12" text-anchor="end">½</text>
+          <text x="44" y="214" font-size="12" text-anchor="end">0</text>
+          <text x="50" y="228" font-size="12" text-anchor="middle">0</text>
+          <text x="248" y="228" font-size="12" text-anchor="middle">1/√2</text>
+          <text x="330" y="228" font-size="12" text-anchor="middle">1</text>
+          <text x="190" y="228" font-size="12" class="soft" text-anchor="middle">|⟨ψ|φ⟩|</text>
+          <text x="70" y="150" font-size="12" class="accent halo">Helstrom: best possible</text>
+          <text x="70" y="168" font-size="12" class="halo">dashed: ψ's own basis, 1 − |c|²/2</text>
+        </svg>
+        <p class="cap">Success against overlap. The best measurement beats the obvious one everywhere except at the ends; the running example sits at $|c| = 1/\sqrt2$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The source.</b> C. W. Helstrom, <i>Quantum Detection and Estimation Theory</i> (Academic Press, 1976), proves the
+    general form: for density operators $\rho, \sigma$ with priors $p, 1 - p$, the best success is $\tfrac12(1 + \lVert p\rho - (1 - p)\sigma\rVert_1)$. That needs unit
+    04's density operators and unit 21's trace norm; it is <i>cited</i>, not used. What is proved here is the pure-state,
+    equal-prior case, which is all this unit needs, and the proof is exactly the general one restricted to
+    a plane.</p>
+    <p><b>The checks, in full.</b> $c = 0$: $\tfrac12(1 + \sqrt1) = 1$. $|c| = 1$: $\tfrac12(1 + 0) = \tfrac12$, and indeed if $\varphi = e^{i\alpha}\psi$ every measurement gives the
+    same statistics for both, so no rule beats a coin. $|c|^2 = \tfrac12$: $\sqrt{1 - \tfrac12} = \tfrac1{\sqrt2} \approx 0.70711$, so $\tfrac12(1.70711) = 0.85355$.</p>
+    <p><b>The comparison curve.</b> "Measure in $\psi$'s own basis" gives $1 - \tfrac12|c|^2$ (<i>Worked: |0⟩ against |+⟩, measured in z</i>). Since
+    $\tfrac12(1 + \sqrt{1 - x}) \ge 1 - \tfrac12x$ iff $\sqrt{1 - x} \ge 1 - x$, true for $x = |c|^2 \in [0, 1]$, Helstrom is never worse, with equality only at $x = 0$ and $x = 1$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>Proof, step one: the success is linear in P</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Rewrite $\braket{\varphi|(I - P)|\varphi} = 1 - \braket{\varphi|P|\varphi}$:</p>
+      $$p_{\rm succ} = \tfrac12 + \tfrac12\big(\braket{\psi|P|\psi} - \braket{\varphi|P|\varphi}\big).$$
+      <p class="small">Unit 00's $\operatorname{tr}\ket v\!\bra u = \braket{u|v}$, with $v = Au$, gives $\braket{u|A|u} = \operatorname{tr}(A\ket u\!\bra u)$. So</p>
+      <div class="box thm"><span class="label">step one</span>
+        $$p_{\rm succ} = \tfrac12 + \tfrac12\operatorname{tr}(P\Delta),$$
+        $$\Delta := \ket\psi\!\bra\psi - \ket\varphi\!\bra\varphi .$$
+      </div>
+      <p class="small"><b>$\Delta$ lives on a plane.</b> It is Hermitian; $\Delta v = \psi\braket{\psi|v} - \varphi\braket{\varphi|v}$ lies in $S = \mathrm{span}(\psi, \varphi)$ for every $v$, and is $0$ for $v \perp S$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 220" width="420" role="img" aria-label="a shaded parallelogram drawn in perspective, the plane S, holding the arrows psi and phi from a common origin; a third arrow v rises straight up out of the plane, labelled: Delta sends it to zero">
+          <polygon points="20,185 230,185 320,110 110,110" class="fill-soft"/>
+          <text x="236" y="181" font-size="13" text-anchor="end">S = span(ψ, φ)</text>
+          <line x1="130" y1="160" x2="226" y2="160" class="unit" stroke-width="2.5"/><polygon points="237,160 226,164.9 226,155.1" class="fill-unit"/>
+          <line x1="130" y1="160" x2="196" y2="128" class="accent" stroke-width="2.5"/><polygon points="206,123 197.3,132.8 193.4,124" class="fill-accent"/>
+          <line x1="130" y1="160" x2="130" y2="41" class="alt" stroke-width="2.5"/><polygon points="130,30 135,41 125,41" class="fill-alt"/>
+          <text x="244" y="165" font-size="15">ψ</text>
+          <text x="210" y="120" font-size="15">φ</text>
+          <text x="140" y="45" font-size="15">v ⊥ S</text>
+          <text x="140" y="66" font-size="12" class="soft">Δv = 0</text>
+          <text x="20" y="210" font-size="12" class="soft">the rest of H: invisible to Δ</text>
+        </svg>
+        <p class="cap">However large $H$ is, $\Delta$ acts only on the plane of the two states. The whole problem is two-dimensional.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> <i>The rewriting:</i> $\braket{\varphi|(I - P)|\varphi} = \braket{\varphi|\varphi} - \braket{\varphi|P|\varphi} = 1 - \braket{\varphi|P|\varphi}$, so
+    $p_{\rm succ} = \tfrac12\braket{\psi|P|\psi} + \tfrac12 - \tfrac12\braket{\varphi|P|\varphi}$.</p>
+    <p><i>The trace identity:</i> for any operator $A$ and vector $u$, $A\ket u\!\bra u = \ket{Au}\!\bra u$, and unit 00's
+    problem P4 proved $\operatorname{tr}\ket v\!\bra u = \braket{u|v}$; with $v = Au$ that is $\operatorname{tr}(A\ket u\!\bra u) = \braket{u|Au}$. By linearity of the trace,
+    $\braket{\psi|P|\psi} - \braket{\varphi|P|\varphi} = \operatorname{tr}(P\ket\psi\!\bra\psi) - \operatorname{tr}(P\ket\varphi\!\bra\varphi) = \operatorname{tr}(P\Delta)$.</p>
+    <p><i>$\Delta$ on the plane:</i> $\Delta^\dagger = (\ket\psi\!\bra\psi)^\dagger - (\ket\varphi\!\bra\varphi)^\dagger = \Delta$. For any $v$, $\Delta v = \braket{\psi|v}\psi - \braket{\varphi|v}\varphi \in S$; if $v \perp S$, both
+    coefficients vanish. So $\Delta$ maps $H$ into $S$ and kills $S^\perp$; being Hermitian, it maps $S$ into $S$, and its spectral
+    decomposition (unit 00) has all its nonzero eigenvalues on $S$.</p>
+    <p><b>Why "linear in $P$" is the key.</b> The success is an affine function of the operator $P$. Maximising a
+    linear function over projectors is a spectral problem: put $P$ on the eigenvectors with positive
+    eigenvalues. Step three does exactly that.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>Proof, step two: Δ in the plane</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Coordinates.</b> Multiply $\varphi$ by a phase so that $\braket{\psi|\varphi} = |c| \ge 0$ — $\Delta$ does not change. Let $s = \sqrt{1 - |c|^2}$ and take the orthonormal basis of $S$</p>
+      $$u_1 = \psi,\qquad u_2 = (\varphi - |c|\psi)/s,$$
+      <p class="small">so $\psi = (1, 0)$ and $\varphi = (|c|, s)$, norm $|c|^2 + s^2 = 1$ ✓. In this basis $\Delta = \psi\psi^{\mathsf T} - \varphi\varphi^{\mathsf T}$ is</p>
+      $$\Delta\big|_S = \begin{pmatrix}1 - |c|^2 &amp; -|c|s\\ -|c|s &amp; -s^2\end{pmatrix} = \begin{pmatrix}s^2 &amp; -|c|s\\ -|c|s &amp; -s^2\end{pmatrix}.$$
+      <div class="box thm"><span class="label">step two</span>
+        <p class="small">Trace $0$, determinant $-s^4 - |c|^2s^2 = -s^2$. So the eigenvalues are $\pm s$, with orthonormal eigenvectors $e_\pm$:</p>
+        $$\Delta = s\ket{e_+}\!\bra{e_+} - s\ket{e_-}\!\bra{e_-} .$$
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 260 220" width="320" role="img" aria-label="axes u1 and u2; psi along u1; phi at angle alpha above it with dotted drops to the axes, its coordinates labelled c on the u1 axis and s on the u2 axis">
+          <line x1="50" y1="180" x2="209" y2="180" class="ink" stroke-width="1.2"/><polygon points="220,180 209,184.9 209,175.1" class="fill-ink"/>
+          <line x1="50" y1="180" x2="50" y2="21" class="ink" stroke-width="1.2"/><polygon points="50,10 55,21 45,21" class="fill-ink"/>
+          <line x1="146.4" y1="65.1" x2="146.4" y2="180" class="rule" stroke-width="1.2" stroke-dasharray="2 3"/>
+          <line x1="146.4" y1="65.1" x2="50" y2="65.1" class="rule" stroke-width="1.2" stroke-dasharray="2 3"/>
+          <line x1="50" y1="180" x2="189" y2="180" class="unit" stroke-width="2.5"/><polygon points="200,180 189,184.9 189,175.1" class="fill-unit"/>
+          <line x1="50" y1="180" x2="139.3" y2="73.5" class="accent" stroke-width="2.5"/><polygon points="146.4,65.1 143.1,76.7 135.6,70.3" class="fill-accent"/>
+          <path d="M85,180 A35,35 0 0 0 72.5,153.2" fill="none" class="ink" stroke-width="1.3"/>
+          <text x="92" y="166" font-size="13">α</text>
+          <text x="226" y="185" font-size="13">u₁</text>
+          <text x="60" y="20" font-size="13">u₂</text>
+          <text x="196" y="172" font-size="14">ψ</text>
+          <text x="154" y="62" font-size="14">φ</text>
+          <text x="146" y="198" font-size="13" text-anchor="middle">|c|</text>
+          <text x="40" y="70" font-size="13" text-anchor="end">s</text>
+        </svg>
+        <p class="cap">With the phase fixed, both states have real coordinates in the plane: $\cos\alpha = |c|$, $\sin\alpha = s$. The real drawing is exact.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> <i>The phase.</i> If $c = |c|e^{i\theta}$, replace $\varphi$ by $e^{-i\theta}\varphi$: the same state, and $\ket\varphi\!\bra\varphi$ is unchanged since the phases
+    cancel. Now $\braket{\psi|\varphi} = |c|$. Assume $|c| \lt 1$ (if $|c| = 1$, $\varphi = \psi$ after the phase, $\Delta = 0$, and every $P$ gives $p_{\rm succ} = \tfrac12$, matching the
+    formula).</p>
+    <p><i>The basis.</i> $u_2 = (\varphi - |c|\psi)/s$ is Gram–Schmidt: $\braket{\psi|\varphi - |c|\psi} = |c| - |c| = 0$ and $\lVert\varphi - |c|\psi\rVert^2 = 1 - 2|c|^2 + |c|^2 = 1 - |c|^2 = s^2$. Then
+    $\varphi = |c|u_1 + su_2$.</p>
+    <p><i>The matrix.</i> $\ket\psi\!\bra\psi$ has matrix $(1, 0)^{\mathsf T}(1, 0)$ and $\ket\varphi\!\bra\varphi$ has $(|c|, s)^{\mathsf T}(|c|, s)$, both real. Their difference is the
+    matrix shown. Trace: $s^2 - s^2 = 0$. Determinant: $s^2(-s^2) - (|c|s)^2 = -s^2(s^2 + |c|^2) = -s^2$. A $2\times2$ matrix with trace $0$ and
+    determinant $-s^2$ has characteristic polynomial $\lambda^2 - s^2$, so eigenvalues $\pm s$. Being real symmetric (Hermitian), it has
+    orthonormal eigenvectors $e_\pm$ in $S$ (unit 00's spectral theorem), and $\Delta = se_+e_+^\dagger - se_-e_-^\dagger$ on $S$, $0$ on $S^\perp$. $\blacksquare$</p>
+    <p><b>The running example.</b> $|c| = s = \tfrac1{\sqrt2}$, and since $\braket{0|+}$ is already real and positive, $u_1 = \ket0$ and
+    $u_2 = (\ket+ - \tfrac1{\sqrt2}\ket0)/\tfrac1{\sqrt2} = \ket1$: the plane is $\mathbb C^2$ itself, with its usual basis, and $\Delta = \tfrac12\begin{pmatrix}1&amp;-1\\-1&amp;-1\end{pmatrix}$, eigenvalues $\pm\tfrac1{\sqrt2}$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>Proof, step three: no projector beats s</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Insert step two into step one:</p>
+      $$\begin{aligned}\operatorname{tr}(P\Delta) &amp;= s\braket{e_+|P|e_+} - s\braket{e_-|P|e_-}\\ &amp;= s\big(\lVert Pe_+\rVert^2 - \lVert Pe_-\rVert^2\big).\end{aligned}$$
+      <p class="small">A projector shortens: $0 \le \lVert Pv\rVert^2 \le \lVert v\rVert^2 = 1$. So $\operatorname{tr}(P\Delta) \le s(1 - 0) = s$, with equality iff $Pe_+ = e_+$ and $Pe_- = 0$.</p>
+      <div class="box thm"><span class="label">step three: the bound, and who attains it</span>
+        $$p_{\rm succ} \le \tfrac12(1 + s) = \tfrac12\Big(1 + \sqrt{1 - |c|^2}\Big),$$
+        <p class="small">with equality for the <span class="term">Helstrom measurement</span>: measure in the basis $e_\pm$ and guess $\psi$ on $e_+$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 220" width="370" role="img" aria-label="two orthogonal arrows e plus and e minus; a thick line through the origin is the range of P, 30 degrees from e plus; dotted perpendiculars drop from both arrow tips to the line, showing their shadows: e plus keeps 0.75 of its squared length, e minus 0.25">
+          <line x1="60" y1="150" x2="257" y2="115.3" class="good" stroke-width="5"/>
+          <line x1="182.2" y1="194.5" x2="170.9" y2="130.5" class="rule" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <line x1="104.5" y1="27.8" x2="124" y2="138.7" class="rule" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <line x1="60" y1="150" x2="171.8" y2="190.7" class="accent" stroke-width="2"/><polygon points="182.2,194.5 170.1,195.4 173.5,186" class="fill-accent"/>
+          <line x1="60" y1="150" x2="100.7" y2="38.2" class="alt" stroke-width="2"/><polygon points="104.5,27.8 105.4,39.9 96,36.5" class="fill-alt"/>
+          <circle cx="170.9" cy="130.5" r="4" class="fill-accent"/><circle cx="124" cy="138.7" r="4" class="fill-alt"/>
+          <text x="196" y="208" font-size="14">e₊</text>
+          <text x="112" y="24" font-size="14">e₋</text>
+          <text x="262" y="112" font-size="12" class="good" text-anchor="end">range of P</text>
+          <text x="176" y="150" font-size="12" class="halo">‖Pe₊‖² = 0.75</text>
+          <text x="128" y="96" font-size="12" class="halo">‖Pe₋‖² = 0.25</text>
+        </svg>
+        <p class="cap">A projector's range, $30^\circ$ from $e_+$: the shadows' squared lengths are $0.75$ and $0.25$, difference $0.5$. Turning the range onto $e_+$ makes them $1$ and $0$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> By linearity of the trace and $\operatorname{tr}(P\ket e\!\bra e) = \braket{e|P|e}$ (step one's identity),
+    $\operatorname{tr}(P\Delta) = s\braket{e_+|P|e_+} - s\braket{e_-|P|e_-}$. For an orthogonal projector $\braket{v|P|v} = \lVert Pv\rVert^2$, and $\lVert Pv\rVert^2 \le \lVert Pv\rVert^2 + \lVert v - Pv\rVert^2 = \lVert v\rVert^2$
+    (Pythagoras, as on <i>Certainty needs orthogonality</i>). So $\braket{e_+|P|e_+} \le 1$ and $\braket{e_-|P|e_-} \ge 0$, giving $\operatorname{tr}(P\Delta) \le s$. Equality needs
+    $\lVert Pe_+\rVert = 1$, i.e. $Pe_+ = e_+$ (Pythagoras again), and $Pe_- = 0$. Then $p_{\rm succ} = \tfrac12 + \tfrac12\operatorname{tr}(P\Delta) \le \tfrac12(1 + s)$.</p>
+    <p><i>Attained.</i> Extend $\{e_+, e_-\}$ to an orthonormal basis of $H$ by adding a basis of $S^\perp$, measure in it, guess $\psi$ on $e_+$
+    and $\varphi$ on everything else. Then $P = \ket{e_+}\!\bra{e_+}$, which has $Pe_+ = e_+$, $Pe_- = 0$. The outcomes in $S^\perp$ never occur, since both states lie in $S$;
+    how they are guessed is irrelevant. $\blacksquare$</p>
+    <p><b>The figure's numbers.</b> If the range of $P$ is a line at angle $30^\circ$ from $e_+$, then $\lVert Pe_+\rVert^2 = \cos^230^\circ = 0.75$ and $\lVert Pe_-\rVert^2 = \cos^260^\circ = 0.25$,
+    so $\operatorname{tr}(P\Delta) = 0.5\,s$, half the best.</p>
+    <p><b>The shape of the argument.</b> It is the variational characterisation of the largest eigenvalue,
+    applied to a matrix with one positive and one negative eigenvalue. Unit 21 runs the same argument for
+    any two density operators, where the answer becomes the trace norm.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>The best basis straddles the bisector</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Where are $e_\pm$?</b> With $\cos\alpha = |c|$ and $\sin\alpha = s$, step two's matrix is $s$ times</p>
+      $$\begin{pmatrix}\sin\alpha &amp; -\cos\alpha\\ -\cos\alpha &amp; -\sin\alpha\end{pmatrix} = \begin{pmatrix}\cos2\beta &amp; \sin2\beta\\ \sin2\beta &amp; -\cos2\beta\end{pmatrix}$$
+      <p class="small">with $2\beta = \alpha - \tfrac\pi2$: a reflection, whose $+1$ eigenvector is $(\cos\beta, \sin\beta)$. So</p>
+      <div class="box thm"><span class="label">the Helstrom basis</span>
+        <p class="small">$e_+$ is at angle $\tfrac\alpha2 - \tfrac\pi4$ and $e_-$ at $\tfrac\alpha2 + \tfrac\pi4$: $45^\circ$ on either side of the bisector $\tfrac\alpha2$ of $\psi$ and $\varphi$.</p>
+      </div>
+      <p class="small"><b>Errors shared evenly.</b> $|\braket{e_+|\psi}|^2 = \cos^2(\tfrac\pi4 - \tfrac\alpha2) = \tfrac12(1 + \sin\alpha)$, and $|\braket{e_-|\varphi}|^2$ is the same. Average $\tfrac12(1 + s)$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 260 230" width="320" role="img" aria-label="psi along the horizontal and phi at angle alpha above it; a dashed bisector between them; the measurement vectors e plus and e minus at 45 degrees below and above the bisector">
+          <line x1="60" y1="170" x2="200.5" y2="104.5" class="rule" stroke-width="1.3" stroke-dasharray="6 4"/>
+          <line x1="60" y1="170" x2="184" y2="170" class="unit" stroke-width="2.5"/><polygon points="195,170 184,174.9 184,165.1" class="fill-unit"/>
+          <line x1="60" y1="170" x2="139.7" y2="75" class="accent" stroke-width="2.5"/><polygon points="146.8,66.6 143.5,78.2 135.9,71.8" class="fill-accent"/>
+          <line x1="60" y1="170" x2="157.5" y2="205.5" class="good" stroke-width="2"/><polygon points="167.8,209.2 155.8,210.1 159.2,200.8" class="fill-good"/>
+          <line x1="60" y1="170" x2="95.5" y2="72.5" class="good" stroke-width="2"/><polygon points="99.2,62.2 100.1,74.2 90.8,70.8" class="fill-good"/>
+          <path d="M98,170 A38,38 0 0 0 84.4,140.9" fill="none" class="ink" stroke-width="1.3"/>
+          <text x="104" y="160" font-size="14">α</text>
+          <path d="M146.1,129.9 A95,95 0 0 0 92.5,80.7" fill="none" class="rule" stroke-width="1.3"/>
+          <text x="146" y="108" font-size="12">45°</text>
+          <text x="203" y="175" font-size="15">ψ</text>
+          <text x="150" y="60" font-size="15">φ</text>
+          <text x="172" y="222" font-size="14">e₊</text>
+          <text x="100" y="56" font-size="14">e₋</text>
+          <text x="205" y="100" font-size="12" class="soft">bisector</text>
+        </svg>
+        <p class="cap">The best measurement is the orthonormal pair placed symmetrically about the bisector, $e_+$ on $\psi$'s side. Each state is "seen" with the same probability.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> From step two, $\Delta|_S = \begin{pmatrix}s^2 &amp; -|c|s\\ -|c|s &amp; -s^2\end{pmatrix} = s\begin{pmatrix}\sin\alpha &amp; -\cos\alpha\\ -\cos\alpha &amp; -\sin\alpha\end{pmatrix}$ with $\alpha\in[0, \pi/2]$ defined by $\cos\alpha = |c|$, $\sin\alpha = s$.
+    Choose $2\beta = \alpha - \pi/2$; then $\cos2\beta = \cos(\alpha - \pi/2) = \sin\alpha$ and $\sin2\beta = \sin(\alpha - \pi/2) = -\cos\alpha$, so the matrix is
+    $R = \begin{pmatrix}\cos2\beta &amp; \sin2\beta\\ \sin2\beta &amp; -\cos2\beta\end{pmatrix}$. Check: $R(\cos\beta, \sin\beta)^{\mathsf T} = (\cos2\beta\cos\beta + \sin2\beta\sin\beta,\ \sin2\beta\cos\beta - \cos2\beta\sin\beta)^{\mathsf T} = (\cos\beta, \sin\beta)^{\mathsf T}$
+    by the subtraction formulas, and likewise $R(-\sin\beta, \cos\beta)^{\mathsf T} = -(-\sin\beta, \cos\beta)^{\mathsf T}$. So $e_+ = \cos\beta\,u_1 + \sin\beta\,u_2$ with $\beta = \tfrac\alpha2 - \tfrac\pi4$,
+    and $e_-$ at $\beta + \tfrac\pi2 = \tfrac\alpha2 + \tfrac\pi4$.</p>
+    <p><i>The two conditional successes.</i> $\psi$ is at angle $0$, so $|\braket{e_+|\psi}|^2 = \cos^2\beta = \cos^2(\tfrac\pi4 - \tfrac\alpha2) = \tfrac12(1 + \cos(\tfrac\pi2 - \alpha)) = \tfrac12(1 + \sin\alpha)$.
+    $\varphi$ is at angle $\alpha$, so $|\braket{e_-|\varphi}|^2 = \cos^2(\tfrac\alpha2 + \tfrac\pi4 - \alpha) = \cos^2(\tfrac\pi4 - \tfrac\alpha2)$, the same. Their average is $\tfrac12(1 + s)$, matching step
+    three. $\blacksquare$</p>
+    <p><b>Unequal priors</b> tilt the basis towards the likelier state, and the two errors stop being equal:
+    problem P8. With equal priors, the symmetry of the problem under exchanging $\psi$ and $\varphi$ (a reflection in the
+    bisector) already suggests the answer; the proof shows it is right.</p>
+    <p><b>Forward pointer.</b> Unit 02 would place these as points on the Bloch sphere: the two states at Bloch
+    angle $2\alpha$, the measurement axis parallel to the chord joining them (perpendicular to their bisector).
+    For $\ket0, \ket+$ the chord runs from $(1, 0, 0)$ to $(0, 0, 1)$, and $e_+$'s Bloch vector is $(-\tfrac1{\sqrt2}, 0, \tfrac1{\sqrt2})$, along it. Not needed here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart · example</p>
+  <h2>Worked: |0⟩ against |+⟩, the best measurement</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example: <span class="ref" data-ref="best">Helstrom for Bob's photon</span></span>
+        <p class="small"><b>1. Angles.</b> $\ket0$ at $0$, $\ket+$ at $\alpha = \tfrac\pi4$; bisector $\tfrac\pi8$. So $e_+$ at $-\tfrac\pi8$, $e_-$ at $\tfrac{3\pi}8$:</p>
+        $$\begin{aligned}e_+ &amp;= 0.9239\ket0 - 0.3827\ket1,\\ e_- &amp;= 0.3827\ket0 + 0.9239\ket1 .\end{aligned}$$
+        <p class="small">Orthonormal: $\cos^2 + \sin^2 = 1$ each, $\braket{e_+|e_-} = 0.9239\cdot0.3827 - 0.3827\cdot0.9239 = 0$ ✓.</p>
+        <p class="small"><b>2. Right on $\ket0$:</b> $|\braket{e_+|0}|^2 = \cos^2\tfrac\pi8 = 0.8536$.</p>
+        <p class="small"><b>3. Right on $\ket+$:</b> $\braket{e_-|+} = \tfrac{0.3827 + 0.9239}{\sqrt2} = 0.9239$, squared $0.8536$.</p>
+        <p class="small"><b>4. Success</b> $\tfrac12(0.8536 + 0.8536) = 0.8536 = \tfrac12(1 + \tfrac1{\sqrt2})$ ✓; <b>error</b> $\sin^2\tfrac\pi8 = 0.1464$; sum $1$ ✓.</p>
+      </div>
+      <p class="small"><b>In the lab:</b> a polarising beam splitter turned to $-22.5^\circ$. Transmitted: guess $\ket0$. Reflected: guess $\ket+$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 250 235" width="310" role="img" aria-label="ket 0 along the horizontal and ket plus at 45 degrees; a dashed bisector at 22.5 degrees; the measurement vectors at minus 22.5 degrees, labelled guess 0, and at 67.5 degrees, labelled guess plus">
+          <line x1="55" y1="165" x2="201" y2="104.5" class="rule" stroke-width="1.3" stroke-dasharray="6 4"/>
+          <line x1="55" y1="165" x2="184" y2="165" class="unit" stroke-width="2.5"/><polygon points="195,165 184,169.9 184,160.1" class="fill-unit"/>
+          <line x1="55" y1="165" x2="146.2" y2="73.8" class="accent" stroke-width="2.5"/><polygon points="154,66 149.7,77.3 142.7,70.3" class="fill-accent"/>
+          <line x1="55" y1="165" x2="161.2" y2="209" class="good" stroke-width="2"/><polygon points="171.4,213.2 159.4,213.6 163.1,204.4" class="fill-good"/>
+          <line x1="55" y1="165" x2="99" y2="58.8" class="good" stroke-width="2"/><polygon points="103.2,48.6 103.6,60.6 94.4,56.9" class="fill-good"/>
+          <path d="M110.4,188 A60,60 0 0 0 115,165" fill="none" class="ink" stroke-width="1.3"/>
+          <text x="120" y="186" font-size="11">22.5°</text>
+          <text x="200" y="170" font-size="14">|0⟩</text>
+          <text x="158" y="62" font-size="14">|+⟩</text>
+          <text x="176" y="230" font-size="13" class="good" text-anchor="middle">guess 0</text>
+          <text x="104" y="38" font-size="13" class="good" text-anchor="middle">guess +</text>
+          <text x="205" y="100" font-size="11" class="soft">bisector</text>
+        </svg>
+        <p class="cap">Each state is $22.5^\circ = \pi/8$ from its own measurement vector, so each is identified with probability $\cos^2(\pi/8)$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers, to more places.</b> $\cos\tfrac\pi8 = 0.92388$, $\sin\tfrac\pi8 = 0.38268$, $\cos^2\tfrac\pi8 = 0.853553$, $\sin^2\tfrac\pi8 = 0.146447$. Exactly,
+    $\cos^2\tfrac\pi8 = \tfrac12(1 + \cos\tfrac\pi4) = \tfrac{2 + \sqrt2}4$.</p>
+    <p><b>Step 3 exactly.</b> $\braket{e_-|+} = \tfrac1{\sqrt2}(\sin\tfrac\pi8 + \cos\tfrac\pi8) = \sin(\tfrac\pi8 + \tfrac\pi4) = \sin\tfrac{3\pi}8 = \cos\tfrac\pi8$.</p>
+    <p><b>The joint table.</b> $(\ket0, \text{guess }0)$: $\tfrac12\cdot0.8536 = 0.4268$; $(\ket0, \text{guess }+)$: $0.0732$; $(\ket+, \text{guess }0)$: $0.0732$; $(\ket+, \text{guess }+)$: $0.4268$.
+    Sum $1$ ✓. Compare the $z$ basis: $0.5, 0, 0.25, 0.25$ — the same total error of a quarter is now cut to $0.1464$ and
+    split evenly.</p>
+    <p><b>The analyser.</b> Unit 03's linear polarisation $\ket\theta = \cos\theta\ket0 + \sin\theta\ket1$ makes $e_+ = \ket{-22.5^\circ}$ and $e_- = \ket{67.5^\circ}$: an analyser
+    turned to $-22.5^\circ$ transmits $e_+$ and reflects $e_-$. For linear polarisations the angle in the drawing is the angle
+    in the laboratory.</p>
+    <p><b>A name.</b> In quantum cryptography this basis, halfway between $z$ and $x$, is called the <i>Breidbart
+    basis</i>; unit 09's eavesdropper uses it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart · example</p>
+  <h2>Worked: Helstrom at any angle</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example: $\ket0$ against $\ket{\theta'} := \cos\tfrac\theta2\ket0 + \sin\tfrac\theta2\ket1$, $\ 0 \le \theta \le \pi$</span>
+        <p class="small"><b>1. Overlap.</b> $\braket{0|\theta'} = \cos\tfrac\theta2 \ge 0$, already real; $\lVert\theta'\rVert^2 = \cos^2 + \sin^2 = 1$ ✓. So $\alpha = \tfrac\theta2$ and $s = \sin\tfrac\theta2$.</p>
+        <p class="small"><b>2. Bound.</b></p>
+        $$\max p_{\rm succ} = \tfrac12\big(1 + \sin\tfrac\theta2\big).$$
+        <p class="small"><b>3. Measurement.</b> $e_+$ at angle $\tfrac\theta4 - \tfrac\pi4$, $e_-$ at $\tfrac\theta4 + \tfrac\pi4$.</p>
+        <p class="small"><b>4. Checks.</b> $\theta = 0$: the same state, $\tfrac12$ ✓. $\theta = \pi$: $\ket1$, orthogonal, success $1$, and $e_+ = \ket0$, $e_- = \ket1$ ✓. $\theta = \tfrac\pi2$: $\ket+$, success $0.8536$ and $e_+$ at $-\tfrac\pi8$, as in <i>Worked: |0⟩ against |+⟩, the best measurement</i> ✓.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 245" width="440" role="img" aria-label="success probability against theta from 0 to pi; the curve rises from one half at theta 0 to 1 at theta pi, concave; the running example at theta pi over 2 is marked at 0.854">
+          <line x1="50" y1="210" x2="340" y2="210" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="210" x2="50" y2="12" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="20" x2="330" y2="20" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="50" y1="115" x2="330" y2="115" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+          <polyline points="50,210 57,202.5 64,195.1 71,187.7 78,180.3 85,172.9 92,165.6 99,158.4 106,151.3 113,144.2 120,137.3 127,130.5 134,123.7 141,117.2 148,110.7 155,104.4 162,98.3 169,92.4 176,86.6 183,81 190,75.6 197,70.5 204,65.5 211,60.8 218,56.3 225,52 232,48 239,44.2 246,40.7 253,37.5 260,34.5 267,31.7 274,29.3 281,27.1 288,25.2 295,23.7 302,22.3 309,21.3 316,20.6 323,20.1 330,20" fill="none" class="accent" stroke-width="2.5"/>
+          <line x1="190" y1="210" x2="190" y2="75.6" class="rule" stroke-width="1" stroke-dasharray="2 3"/>
+          <circle cx="190" cy="75.6" r="4.5" class="fill-accent"/>
+          <circle cx="50" cy="210" r="4.5" class="fill-good"/><circle cx="330" cy="20" r="4.5" class="fill-good"/>
+          <text x="198" y="80" font-size="12" class="halo">0.854: |0⟩ vs |+⟩</text>
+          <text x="44" y="24" font-size="12" text-anchor="end">1</text>
+          <text x="44" y="119" font-size="12" text-anchor="end">0.75</text>
+          <text x="44" y="214" font-size="12" text-anchor="end">0.5</text>
+          <text x="50" y="228" font-size="12" text-anchor="middle">0</text>
+          <text x="190" y="228" font-size="12" text-anchor="middle">π/2</text>
+          <text x="330" y="228" font-size="12" text-anchor="middle">π</text>
+          <text x="270" y="228" font-size="12" class="soft" text-anchor="middle">θ</text>
+        </svg>
+        <p class="cap">$\tfrac12(1 + \sin\tfrac\theta2)$: a coin toss at $\theta = 0$, certainty at $\theta = \pi$, and the running example halfway.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every step.</b> Here $u_1 = \ket0$ and, since $\braket{0|\theta'}$ is real and non-negative, $u_2 = (\ket{\theta'} - \cos\tfrac\theta2\ket0)/\sin\tfrac\theta2 = \ket1$ for
+    $0 \lt \theta \le \pi$. So the general picture is the usual plane of $\ket0, \ket1$, with $\ket{\theta'}$ at angle $\alpha = \theta/2$. Then $s = \sqrt{1 - \cos^2\tfrac\theta2} = \sin\tfrac\theta2$ (non-negative
+    on $[0, \pi]$), the bound is $\tfrac12(1 + \sin\tfrac\theta2)$, and the Helstrom basis is at $\tfrac\alpha2 \mp \tfrac\pi4 = \tfrac\theta4 \mp \tfrac\pi4$.</p>
+    <p><b>Checks, worked.</b> At $\theta = \pi$: $e_+$ at angle $0$, $e_+ = \ket0$; $e_-$ at $\tfrac\pi2$, $e_- = \ket1$: measure in $z$, never wrong. At $\theta = \pi/2$: $e_+$ at
+    $\tfrac\pi8 - \tfrac\pi4 = -\tfrac\pi8$, and $\sin\tfrac\pi4 = \tfrac1{\sqrt2}$ gives $0.8536$. At $\theta = 0$: both states are $\ket0$ and the formula gives $\tfrac12$ for every
+    measurement. Two more values, for the sheet: $\theta = \pi/3$ gives $\tfrac12(1 + \tfrac12) = 0.75$; $\theta = 2\pi/3$ gives $\tfrac12(1 + \tfrac{\sqrt3}2) = 0.9330$.</p>
+    <p><b>Why $\theta/2$.</b> The parametrisation is chosen to match unit 02, where $\ket{\theta'}$ is the point at polar angle $\theta$ on
+    the Bloch sphere, so that $\theta$ is the Bloch angle between the two states and the success is $\tfrac12(1 + \sin\tfrac\theta2)$. That
+    reading is a forward-compatible aside; nothing here uses the sphere.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>An ancilla does not help</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">Helstrom survives extra apparatus</span>
+        <p class="small">Append an <span class="term">ancilla</span> in a fixed state $a$, apply any unitary $V$ on $H\otimes A$, then measure projectively. The success is still at most $\tfrac12(1 + \sqrt{1 - |\braket{\psi|\varphi}|^2})$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The device discriminates $\psi' = V(\psi\otimes a)$ from $\varphi' = V(\varphi\otimes a)$, and</p>
+        $$\braket{\psi'|\varphi'} = \braket{\psi|\varphi}\braket{a|a} = \braket{\psi|\varphi}.$$
+        <p class="small">The bound depends only on that overlap. $\blacksquare$</p>
+      </div>
+      <p class="small">Unit 21 shows every general measurement can be built this way (Naimark's theorem, <i>cited</i>), so $0.8536$ is final for <span class="ref" data-ref="photon">Bob's photon</span>.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 170" width="420" role="img" aria-label="a circuit: the unknown state on the top wire and an ancilla a on the bottom wire enter a box V; both wires then end in meters; a note says the overlap going in equals the overlap coming out">
+          <line x1="60" y1="50" x2="250" y2="50" class="unit" stroke-width="2"/>
+          <line x1="60" y1="115" x2="250" y2="115" class="alt" stroke-width="2"/>
+          <rect x="120" y="30" width="56" height="105" class="fill-ground ink" stroke-width="1.6"/>
+          <text x="148" y="89" font-size="20" text-anchor="middle">V</text>
+          <rect x="230" y="35" width="40" height="30" class="fill-ground ink" stroke-width="1.4"/>
+          <path d="M236,59 A14,14 0 0 1 264,59" fill="none" class="ink" stroke-width="1.2"/><line x1="250" y1="59" x2="259" y2="41" class="ink" stroke-width="1.2"/>
+          <rect x="230" y="100" width="40" height="30" class="fill-ground ink" stroke-width="1.4"/>
+          <path d="M236,124 A14,14 0 0 1 264,124" fill="none" class="ink" stroke-width="1.2"/><line x1="250" y1="124" x2="259" y2="106" class="ink" stroke-width="1.2"/>
+          <text x="52" y="55" font-size="15" text-anchor="end">ψ or φ</text>
+          <text x="52" y="120" font-size="15" text-anchor="end">a</text>
+          <text x="285" y="88" font-size="14">guess</text>
+          <text x="170" y="162" font-size="12" class="soft" text-anchor="middle">overlap in = overlap out = ⟨ψ|φ⟩</text>
+        </svg>
+        <p class="cap">A meter, drawn as a dial, is a projective measurement. However large the ancilla and however clever $V$, the overlap the meters face is the original one.</p>
+      </div>
+      <div class="box warn"><span class="label">and a copier would have beaten it</span>
+        <p class="small">A cloner would turn overlap $c$ into $c^2$ and raise the success above the bound: no-cloning a third time (problem P12).</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> The device's statistics on input $\psi$ are those of a projective measurement on the unit
+    vector $\psi' = V(\psi\otimes a)$ of $H\otimes A$; likewise for $\varphi$. So its success is the success of some projective
+    measurement discriminating $\psi'$ from $\varphi'$, which <i>Proof, step three</i> bounds by $\tfrac12(1 + \sqrt{1 - |\braket{\psi'|\varphi'}|^2})$ — that proof
+    worked in any Hilbert space. Unitarity and unit 03's product rule give $\braket{\psi'|\varphi'} = \braket{\psi|\varphi}\braket{a|a} = \braket{\psi|\varphi}$. $\blacksquare$</p>
+    <p><b>What "every general measurement" means, cited.</b> Unit 21 introduces positive operator-valued
+    measures, the most general measurements, and Naimark's dilation theorem: every one of them is an
+    ancilla, a unitary, and a projective measurement, exactly as drawn. Given that theorem, this slide's
+    proof shows the Helstrom bound holds for all measurements. Unit 21 also proves the bound directly for
+    mixed states.</p>
+    <p><b>Why a copier would break it.</b> If $U$ cloned $\psi$ and $\varphi$, then "clone, then do Helstrom on the pair" would be an
+    ancilla-and-unitary device, bounded by $\tfrac12(1 + \sqrt{1 - |c|^2})$; but it discriminates states of overlap $|c|^2$, achieving
+    $\tfrac12(1 + \sqrt{1 - |c|^4})$, strictly larger when $0 \lt |c| \lt 1$. Contradiction. For the running example: $\tfrac12(1 + \sqrt{1 - \tfrac14}) = 0.9330 \gt 0.8536$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>More copies help, as fast as the overlap shrinks</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>$N$ copies</b> of the unknown state are the states $\psi^{\otimes N}$ and $\varphi^{\otimes N}$, with overlap (unit 03)</p>
+      $$\braket{\psi^{\otimes N}|\varphi^{\otimes N}} = \braket{\psi|\varphi}^N,$$
+      <p class="small">so Helstrom gives</p>
+      $$p_{\rm succ} = \tfrac12\Big(1 + \sqrt{1 - |c|^{2N}}\Big).$$
+      <p class="small"><b><span class="ref" data-ref="photon">Bob's photon</span></b>, $|c|^2 = \tfrac12$: success $\tfrac12(1 + \sqrt{1 - 2^{-N}})$.</p>
+      <table class="dense">
+        <thead><tr><th>$N$</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th></tr></thead>
+        <tbody>
+          <tr><td>Helstrom on all $N$</td><td class="num">0.8536</td><td class="num">0.9330</td><td class="num">0.9677</td><td class="num">0.9841</td><td class="num">0.9921</td></tr>
+          <tr><td>each copy in $z$</td><td class="num">0.75</td><td class="num">0.875</td><td class="num">0.9375</td><td class="num">0.9688</td><td class="num">0.9844</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Five copies give $0.99$; measuring copy by copy in $z$ needs six. But Bob has <b>one</b> photon, and cannot make more.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 230" width="430" role="img" aria-label="error probability on a logarithmic scale against the number of copies N from 1 to 6; both strategies fall steadily, the Helstrom points below the copy-by-copy z points; a dashed line at 0.01 is first crossed by Helstrom at N equal 5 and by copy-by-copy at N equal 6">
+          <line x1="50" y1="205" x2="345" y2="205" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="205" x2="50" y2="15" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="155" x2="340" y2="155" class="warn" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <line x1="50" y1="65" x2="54" y2="65" class="ink" stroke-width="1.2"/>
+          <polyline points="70,50.1 120,80.7 170,109.2 220,136.9 270,164.3 320,191.6" fill="none" class="accent" stroke-width="2"/>
+          <polyline points="70,29.2 120,56.3 170,83.4 220,110.5 270,137.6 320,164.6" fill="none" class="unit" stroke-width="2" stroke-dasharray="6 4"/>
+          <circle cx="70" cy="50.1" r="4" class="fill-accent"/><circle cx="120" cy="80.7" r="4" class="fill-accent"/><circle cx="170" cy="109.2" r="4" class="fill-accent"/><circle cx="220" cy="136.9" r="4" class="fill-accent"/><circle cx="270" cy="164.3" r="5" class="fill-accent"/><circle cx="320" cy="191.6" r="4" class="fill-accent"/>
+          <circle cx="70" cy="29.2" r="4" class="fill-unit"/><circle cx="120" cy="56.3" r="4" class="fill-unit"/><circle cx="170" cy="83.4" r="4" class="fill-unit"/><circle cx="220" cy="110.5" r="4" class="fill-unit"/><circle cx="270" cy="137.6" r="4" class="fill-unit"/><circle cx="320" cy="164.6" r="5" class="fill-unit"/>
+          <text x="44" y="69" font-size="12" text-anchor="end">0.1</text>
+          <text x="44" y="159" font-size="12" text-anchor="end">0.01</text>
+          <text x="70" y="222" font-size="12" text-anchor="middle">1</text><text x="120" y="222" font-size="12" text-anchor="middle">2</text><text x="170" y="222" font-size="12" text-anchor="middle">3</text><text x="220" y="222" font-size="12" text-anchor="middle">4</text><text x="270" y="222" font-size="12" text-anchor="middle">5</text><text x="320" y="222" font-size="12" text-anchor="middle">6</text>
+          <text x="340" y="222" font-size="12" class="soft">N</text>
+          <text x="92" y="122" font-size="12" class="accent halo">Helstrom</text>
+          <text x="150" y="60" font-size="12" class="halo">copy by copy, z</text>
+          <text x="58" y="12" font-size="12" class="soft">error probability (log scale)</text>
+        </svg>
+        <p class="cap">Errors on a log scale against copies. The dashed line is $0.01$: Helstrom crosses it at $N = 5$, the copy-by-copy rule at $N = 6$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The overlap.</b> Unit 03's rule $\braket{a\otimes b|c\otimes d} = \braket{a|c}\braket{b|d}$, applied $N - 1$ times, gives $\braket{\psi^{\otimes N}|\varphi^{\otimes N}} = \braket{\psi|\varphi}^N$. The Helstrom
+    bound on $H^{\otimes N}$ then gives the formula, with a joint measurement on all $N$ copies at once.</p>
+    <p><b>The table, computed.</b> $\tfrac12(1 + \sqrt{1 - 2^{-N}})$: $N = 1$: $0.853553$; $2$: $\tfrac12(1 + \sqrt{0.75}) = 0.933013$; $3$: $\tfrac12(1 + \sqrt{0.875}) = 0.967707$;
+    $4$: $\tfrac12(1 + \sqrt{0.9375}) = 0.984123$; $5$: $\tfrac12(1 + \sqrt{0.96875}) = 0.992125$; $6$: $0.996078$. The least $N$ with success at least $0.99$ is $5$.</p>
+    <p><b>Copy by copy.</b> Measure each copy in $z$ and guess $\ket+$ if any outcome is $1$. A $\ket0$ is never misread; a $\ket+$ is misread
+    only if all $N$ outcomes are $0$, probability $2^{-N}$. Success $1 - 2^{-N-1}$: $0.75, 0.875, 0.9375, 0.96875, 0.984375, 0.9921875$. It needs $N = 6$ for
+    $0.99$. Whether a cleverer copy-by-copy rule could match the joint measurement is a question this
+    deck does not settle; problem P9 works the numbers.</p>
+    <p><b>The moral for FLASH.</b> Extra copies would buy distinguishability — that is exactly why Herbert
+    wanted them, and exactly why the universe does not supply them.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>Never wrong, sometimes silent</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">unambiguous discrimination</span></span>
+        <p class="small">Three answers: "$\psi$", "$\varphi$", "don't know". The first two must <b>never</b> be wrong. Maximise the probability of a conclusive answer.</p>
+      </div>
+      <div class="box thm"><span class="label">the optimum, stated (Ivanovic 1987; Dieks 1988; Peres 1988)</span>
+        <p class="small">For equal priors the best conclusive probability is $1 - |\braket{\psi|\varphi}|$. Proved in unit 21, where general measurements exist.</p>
+      </div>
+      <p class="small"><b><span class="ref" data-ref="photon">Bob's photon</span>:</b> $1 - \tfrac1{\sqrt2} = 0.2929$, against Helstrom's $0.8536$. Never being wrong costs most of the answers.</p>
+      <p class="small"><b>On the qubit alone</b>, projectively, only $\tfrac14$: measure in $z$; outcome $1$ proves "$\ket+$", outcome $0$ says nothing. Success $\tfrac12\cdot\tfrac12 = \tfrac14$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 260 250" width="320" role="img" aria-label="ket 0 to the right and ket plus at 45 degrees; ket 1, perpendicular to ket 0, points up and is labelled: only plus can give this; ket minus, perpendicular to ket plus, points down-right and is labelled: only 0 can give this">
+          <line x1="110" y1="150" x2="209" y2="150" class="unit" stroke-width="2.5"/><polygon points="220,150 209,154.9 209,145.1" class="fill-unit"/>
+          <line x1="110" y1="150" x2="180" y2="80" class="accent" stroke-width="2.5"/><polygon points="187.8,72.2 183.5,83.5 176.5,76.5" class="fill-accent"/>
+          <line x1="110" y1="150" x2="110" y2="62" class="good" stroke-width="2"/><polygon points="110,51 115,62 105,62" class="fill-good"/>
+          <line x1="110" y1="150" x2="172.2" y2="212.2" class="good" stroke-width="2"/><polygon points="180,220 168.7,215.7 175.7,208.7" class="fill-good"/>
+          <text x="226" y="155" font-size="14">|0⟩</text>
+          <text x="192" y="68" font-size="14">|+⟩</text>
+          <text x="110" y="40" font-size="14" text-anchor="middle">|1⟩</text>
+          <text x="186" y="234" font-size="14">|−⟩</text>
+          <text x="10" y="70" font-size="12" class="good">⊥ |0⟩: only |+⟩</text>
+          <text x="10" y="86" font-size="12" class="good">can give this</text>
+          <text x="10" y="226" font-size="12" class="good">⊥ |+⟩: only |0⟩</text>
+          <text x="10" y="242" font-size="12" class="good">can give this</text>
+        </svg>
+        <p class="cap">A conclusive outcome must be impossible for one of the states: $\ket1$ never comes from $\ket0$, and $\ket-$ never from $\ket+$. They are not orthogonal, so no single basis contains both.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Sources, cited.</b> I. D. Ivanovic, <i>Phys. Lett. A</i> 123, 257 (1987); D. Dieks, <i>Phys. Lett. A</i> 126, 303 (1988); A.
+    Peres, <i>Phys. Lett. A</i> 128, 19 (1988). The optimum $1 - |\braket{\psi|\varphi}|$ needs a measurement with three outcomes on a qubit, which no
+    projective measurement on $\mathbb C^2$ has; unit 21's positive operator-valued measures provide it, and that unit
+    proves optimality.</p>
+    <p><b>The projective quarter, in full.</b> A projective measurement on $\mathbb C^2$ has either one outcome (useless) or a basis
+    $\{f, f^\perp\}$. An outcome may be read as "$\ket+$" only if $\ket0$ can never produce it, so $f\perp\ket0$, i.e. $f = \ket1$ up to phase; it may be read as
+    "$\ket0$" only if it is $\perp\ket+$, i.e. $\ket-$. The basis $\{\ket0, \ket1\}$ has a conclusive outcome $\ket1$, reached only from $\ket+$, with probability
+    $\tfrac12\cdot|\braket{1|+}|^2 = \tfrac14$; its other outcome $\ket0$ is inconclusive. The basis $\{\ket+, \ket-\}$ likewise gives $\tfrac12\cdot|\braket{-|0}|^2 = \tfrac14$. No basis contains both
+    $\ket1$ and $\ket-$, since $\braket{1|-} = -\tfrac1{\sqrt2} \ne 0$. So $\tfrac14$ is the best on the qubit alone, and $0.2929 \gt 0.25$ is a case where general
+    measurements strictly beat projective ones (with an ancilla, by Naimark, they become projective
+    again).</p>
+    <p><b>Why "never wrong" costs.</b> The Helstrom measurement accepts a $14.6\%$ error to answer always.
+    Unambiguous discrimination refuses all error, and must then say "don't know" whenever the outcome
+    could have come from either state — which, for states this close, is most of the time. Problem P10
+    puts the two side by side.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · telling apart</p>
+  <h2>Approximate copies, stated</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">fidelity of a copy</span></span>
+        <p class="small">If the machine's output is $\Omega$, copy 1's fidelity is the probability it passes the test "is it $\psi$?" — a measurement in $\{\psi, \psi^\perp\}$:</p>
+        $$F_1 = \braket{\Omega|(\ket\psi\!\bra\psi\otimes I)|\Omega} .$$
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">Bužek–Hillery cloner</span> (1996, <i>cited</i>)</span>
+        <p class="small">A universal machine exists whose two copies each have fidelity $\tfrac56 \approx 0.8333$, for <b>every</b> input $\psi$; no symmetric universal machine does better (Gisin–Massar 1997, <i>cited</i>).</p>
+      </div>
+      <p class="small"><b>Benchmarks.</b> Measure in a basis and prepare two copies of the answer: $\tfrac23$ on average (problem P11). <span class="ref" data-ref="cnot">CNOT</span>: $1$ on $\ket0$, $\tfrac12$ on $\ket+$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="-14 0 354 180" width="436" role="img" aria-label="a circuit with three input wires, psi, a blank and the machine, entering a box labelled BH; two output wires each labelled copy, passes the psi test with probability five sixths; the machine wire leaves labelled discarded">
+          <line x1="60" y1="35" x2="250" y2="35" class="unit" stroke-width="2"/>
+          <line x1="60" y1="85" x2="250" y2="85" class="alt" stroke-width="2"/>
+          <line x1="60" y1="135" x2="250" y2="135" class="ink" stroke-width="2" stroke-dasharray="6 4"/>
+          <rect x="125" y="15" width="62" height="140" class="fill-ground ink" stroke-width="1.6"/>
+          <text x="156" y="91" font-size="17" text-anchor="middle">BH</text>
+          <text x="52" y="40" font-size="15" text-anchor="end">ψ</text>
+          <text x="52" y="90" font-size="15" text-anchor="end">blank</text>
+          <text x="52" y="140" font-size="15" text-anchor="end">machine</text>
+          <text x="258" y="40" font-size="14">copy: 5/6</text>
+          <text x="258" y="90" font-size="14">copy: 5/6</text>
+          <text x="258" y="140" font-size="13" class="soft">discarded</text>
+          <text x="170" y="174" font-size="12" class="soft" text-anchor="middle">the same 5/6 whatever ψ is</text>
+        </svg>
+        <p class="cap">No machine makes two perfect copies; the best universal one makes two copies that each pass the test five times in six.</p>
+      </div>
+      <div class="box warn"><span class="label">not enough for FLASH</span>
+        <p class="small">Noisy copies, however good, leave Bob's statistics blind to Alice's choice — section 5 proves it for every machine at once.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Sources, cited.</b> V. Bužek and M. Hillery, "Quantum copying: beyond the no-cloning theorem", <i>Phys. Rev.
+    A</i> 54, 1844 (1996), constructs the machine on three qubits (input, blank, machine) and shows each copy has
+    fidelity $\tfrac56$ for every input. N. Gisin and S. Massar, <i>Phys. Rev. Lett.</i> 79, 2153 (1997), and D. Bruß et al.,
+    <i>Phys. Rev. A</i> 57, 2368 (1998), prove no symmetric universal $1\to2$ cloner beats $\tfrac56$. The construction is short but
+    its analysis is natural with unit 04's reduced states; it is stated, not derived.</p>
+    <p><b>The definition, unpacked.</b> The test is a projective measurement on copy 1 with projector $\ket\psi\!\bra\psi\otimes I$, so its
+    pass probability is unit 01's Born rule. A perfect copy, $\Omega = \psi\otimes\psi$, passes with probability $1$. The definition needs
+    no density operator, which is why it can be used here; unit 04 rewrites it as $\braket{\psi|\rho_1|\psi}$ for copy 1's reduced state.</p>
+    <p><b>The CNOT benchmark.</b> From <i>Worked: CNOT on |+⟩|0⟩</i>: on $\ket0$ the output is $\ket{00}$, fidelity $1$; on $\ket+$ it is $\ket{\Phi^+}$, fidelity $\tfrac12$.
+    Over unit 00's six states $\ket0, \ket1, \ket\pm, \ket{\pm i}$ it averages $\tfrac16(1 + 1 + 4\cdot\tfrac12) = \tfrac23$ — no better than measure and prepare. Problem P11
+    computes the measure-and-prepare average, which is also $\tfrac23$ over all states (Massar and Popescu 1995,
+    <i>cited</i>; unit 07 computes such averages over the Bloch sphere).</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>The telegraph, dismantled</h2>
+  <p>A copier would have been a telegraph. Neither exists, and unit 03 already said why the second cannot.</p>
+</section>
+
+<section>
+  <p class="eyebrow">05 · FLASH</p>
+  <h2>A copier would have been a telegraph</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Suppose</b> a unitary $C$ on Bob's photon, $19$ blanks and a machine made $20$ copies of each of $\ket0, \ket1, \ket+, \ket-$. Bob measures copies $1$–$10$ in $z$, $11$–$20$ in $x$.</p>
+      <table class="dense">
+        <thead><tr><th>Alice chose</th><th class="num">$z$ results all agree</th><th class="num">$x$ results all agree</th></tr></thead>
+        <tbody>
+          <tr><td>$z$</td><td class="num">$1$</td><td class="num">$2^{-9} \approx 0.002$</td></tr>
+          <tr><td>$x$</td><td class="num">$2^{-9} \approx 0.002$</td><td class="num">$1$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">"All ten $z$ results agree" is one outcome of a projective measurement on Bob's side. Its probability is $1$ or $0.002$ <b>depending on Alice's choice</b>.</p>
+      <div class="box warn"><span class="label">the clash</span>
+        <p class="small">Unit 03's no-signalling statement says that probability cannot depend on Alice's choice.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 210" width="420" role="img" aria-label="Bob's two rows of ten results under each of Alice's choices: if Alice chose z, the z row is all ones and the x row is a random mix; if she chose x, the z row is a random mix and the x row is all pluses">
+          <text x="20" y="30" font-size="14">Alice chose z</text>
+          <text x="40" y="58" font-size="12" class="soft">z:</text><text x="70" y="58" font-size="14" class="mono good">1111111111</text>
+          <text x="40" y="82" font-size="12" class="soft">x:</text><text x="70" y="82" font-size="14" class="mono">−++−+−−++−</text>
+          <text x="20" y="128" font-size="14">Alice chose x</text>
+          <text x="40" y="156" font-size="12" class="soft">z:</text><text x="70" y="156" font-size="14" class="mono">0110100111</text>
+          <text x="40" y="180" font-size="12" class="soft">x:</text><text x="70" y="180" font-size="14" class="mono good">++++++++++</text>
+          <line x1="15" y1="105" x2="325" y2="105" class="rule" stroke-width="1"/>
+          <text x="240" y="58" font-size="12" class="good">agree</text>
+          <text x="240" y="180" font-size="12" class="good">agree</text>
+        </svg>
+        <p class="cap">Bob's records, with a copier: which row agrees spells Alice's choice. (Sample rows; the agreeing row is certain, the other random.)</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The table, in full.</b> If Alice chose $z$, Bob's photon is $\ket0$ or $\ket1$; the copier gives twenty copies of it; the ten $z$
+    results all equal it (probability $1$), and the ten $x$ results are independent fair coins, all equal with probability
+    $2\cdot2^{-10} = 2^{-9} = 0.001953$. Symmetrically if she chose $x$.</p>
+    <p><b>Why it is one projective measurement.</b> Bob's ten $z$ measurements and ten $x$ measurements, on
+    different copies, together form one projective measurement on the twenty copies (a product of
+    commuting projectors for each record), and "all $z$ results agree" is the sum of two of its outcomes'
+    projectors. Composed with $C$, it is the projective measurement $\{C^\dagger QC\}$ on Bob's side before copying: Bob's
+    side here is his photon together with the blanks and the machine.</p>
+    <p><b>The argument as a whole</b> is problem P6, "Finish off FLASH", with every step: a copier implies a
+    dependence of Bob's statistics on Alice's choice; unit 03's statement forbids it; so there is no copier.
+    It is a further proof of no-cloning, from a physical principle rather than from linear algebra — although
+    the principle, here, was itself proved from linear algebra in unit 03.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · FLASH</p>
+  <h2>Why nothing on Bob's side can signal</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">unit 03, applied to Bob's whole laboratory</span>
+        <p class="small">Let Bob's side be his photon, any blanks and any machine, starting in a fixed state. Whatever unitary $V$ he applies there and whatever projective measurement he then makes, his outcome probabilities are the same whichever measurement Alice makes.</p>
+      </div>
+      <p class="small"><b>So</b> the copier $C$ cannot be a unitary — one more proof of no-cloning. And any real device <b>is</b> a unitary on photon and parts: the laser amplifier's copies <b>must</b> be noisy enough to hide Alice's choice. Spontaneous emission is that noise.</p>
+      <div class="box good"><span class="label">FLASH's error, located</span>
+        <p class="small">Every step was quantum mechanics except one: a device that is not. The <span class="ref" data-ref="flash">telegraph</span> fails exactly because the copier cannot exist.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 200" width="480" role="img" aria-label="Alice on the left with her analyser; a singlet source in the middle; on the right a large dashed box labelled Bob's laboratory containing his photon, blanks and machine, a unitary V and a meter; a caption says: whatever is in the box, its statistics ignore Alice">
+          <rect x="15" y="70" width="70" height="56" rx="6" class="fill-soft"/>
+          <text x="50" y="95" font-size="13" text-anchor="middle">Alice</text>
+          <text x="50" y="114" font-size="12" text-anchor="middle">z or x</text>
+          <rect x="128" y="80" width="36" height="36" class="fill-soft"/>
+          <text x="146" y="70" font-size="12" text-anchor="middle">pair</text>
+          <line x1="128" y1="98" x2="85" y2="98" class="unit" stroke-width="2.5"/>
+          <line x1="164" y1="98" x2="214" y2="98" class="unit" stroke-width="2.5"/>
+          <rect x="200" y="20" width="190" height="160" rx="10" fill="none" class="ink" stroke-width="1.5" stroke-dasharray="7 5"/>
+          <text x="295" y="40" font-size="13" text-anchor="middle">Bob's laboratory</text>
+          <line x1="214" y1="98" x2="270" y2="98" class="unit" stroke-width="2"/>
+          <line x1="214" y1="128" x2="270" y2="128" class="alt" stroke-width="2"/>
+          <line x1="214" y1="150" x2="270" y2="150" class="ink" stroke-width="2" stroke-dasharray="5 4"/>
+          <text x="214" y="122" font-size="11" class="soft">blanks</text>
+          <text x="214" y="170" font-size="11" class="soft">machine</text>
+          <rect x="270" y="80" width="44" height="84" class="fill-ground ink" stroke-width="1.5"/>
+          <text x="292" y="127" font-size="17" text-anchor="middle">V</text>
+          <line x1="314" y1="122" x2="334" y2="122" class="ink" stroke-width="2"/>
+          <rect x="334" y="104" width="40" height="34" class="fill-ground ink" stroke-width="1.4"/>
+          <path d="M340,131 A14,14 0 0 1 368,131" fill="none" class="ink" stroke-width="1.2"/><line x1="354" y1="131" x2="363" y2="112" class="ink" stroke-width="1.2"/>
+          <text x="200" y="196" font-size="12" class="soft" text-anchor="middle">whatever is in the box, its statistics ignore Alice's choice</text>
+        </svg>
+        <p class="cap">Bob's side, drawn as one box: a unitary and a projective measurement on his photon and everything he adds to it. Unit 03's theorem covers the box whole.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> The joint state is $\Psi^-\otimes\beta$ in $H_A\otimes(H_B\otimes K)$, where $\beta\in K$ is the fixed starting state of Bob's blanks and
+    machine. Regroup the factors as $H_A\otimes H_{B'}$ with $H_{B'} = H_B\otimes K$: Bob's procedure, a unitary $V$ on $H_{B'}$ followed by a projective
+    measurement $\{Q_\mu\}$, has outcome probabilities $\braket{\Psi^-\otimes\beta|(I\otimes V^\dagger Q_\mu V)|\Psi^-\otimes\beta}$ if Alice does nothing, and $\{V^\dagger Q_\mu V\}$ is a projective
+    measurement on Bob's side. Unit 03's problem P10 shows that Alice's projective measurement, whichever
+    it is, leaves these probabilities unchanged. $\blacksquare$</p>
+    <p><b>The logic.</b> (1) Unit 03: nothing of this form on Bob's side can depend on Alice's choice. (2)
+    <i>A copier would have been a telegraph</i>: a unitary copier would make it depend. Hence (3) no unitary copier of $\ket0, \ket1, \ket+, \ket-$ exists.
+    The same reasoning covers every real attempt: the laser amplifier, modelled with the medium and the
+    light it emits as Bob's "machine", is such a box, so its copies cannot carry Alice's choice. The cited
+    calculations of Milonni–Hardies and Mandel find the mechanism; this argument shows there had to be one.</p>
+    <p><b>What it does not need.</b> Neither relativity nor density operators. Unit 04 proves a stronger
+    no-signalling theorem, for every local operation; this unit needed only unit 03's projective version.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · the close</p>
+  <h2>Bob's photon, closed</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b><span class="ref" data-ref="photon">The question</span>:</b> one photon, $\ket0$ or $\ket+$, each with probability $\tfrac12$.</p>
+      <ul class="small">
+        <li><b>Copy it?</b> No: a unitary would need $0.7071 = 0.5$ (section 2). No apparatus helps.</li>
+        <li><b>A copier for half the job?</b> CNOT copies $\ket0$ and turns $\ket+$ into the Bell state $\ket{\Phi^+}$ (section 3).</li>
+        <li><b>Tell which?</b> In $z$: $0.75$. At best, <span class="ref" data-ref="best">an analyser at $-22.5^\circ$</span>: $\cos^2\tfrac\pi8 = 0.8536$, error $0.1464$ (section 4).</li>
+        <li><b>Never wrong?</b> At most $0.2929$ conclusive. <b>Five copies?</b> $0.9921$ — but there is one.</li>
+        <li><b>Signal with it?</b> No: Bob's side never sees Alice's choice (section 5).</li>
+      </ul>
+      <p class="small"><b>Next time you meet $0.8536$:</b> unit 06's CHSH game wins with probability $\cos^2\tfrac\pi8$ too, its angles again $\pi/8$ apart. Unit 06 says how far the resemblance goes.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 260 230" width="320" role="img" aria-label="looking down the beam: a circle; a horizontal double line for horizontal polarisation, ket 0; a diagonal double line at 45 degrees for ket plus; a thick line at minus 22.5 degrees for the analyser's transmitting axis, and a thin line perpendicular to it for its reflecting axis">
+          <circle cx="130" cy="115" r="95" class="fill-soft"/>
+          <line x1="40" y1="115" x2="220" y2="115" class="unit" stroke-width="2.5"/>
+          <line x1="66.4" y1="178.6" x2="193.6" y2="51.4" class="accent" stroke-width="2.5"/>
+          <line x1="46.8" y1="80.6" x2="213.2" y2="149.4" class="good" stroke-width="5"/>
+          <line x1="95.6" y1="198.2" x2="164.4" y2="31.8" class="good" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <text x="226" y="112" font-size="14">|0⟩</text>
+          <text x="198" y="46" font-size="14">|+⟩</text>
+          <text x="136" y="176" font-size="12" class="good halo">transmit: guess 0</text>
+          <text x="168" y="26" font-size="12" class="good halo">reflect: guess +</text>
+          <text x="130" y="226" font-size="12" class="soft" text-anchor="middle">looking along the beam</text>
+        </svg>
+        <p class="cap">The answer as hardware: an analyser whose transmitting axis (thick) is at $-22.5^\circ$, as far below $\ket0$ as the bisector of the two polarisations is above it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The running example, closed.</b> Every claim in its hover card has been proved: no copier
+    (<i>Worked: no copier for |0⟩ and |+⟩</i>, with machines included on <i>A machine with parts of its own</i>); the best
+    single measurement and its value (<i>Worked: |0⟩ against |+⟩, the best measurement</i>, resting on the Helstrom
+    proof). The states were normalised and each distribution summed to one on its slide.</p>
+    <p><b>The figure.</b> Linear polarisation is a line, not an arrow: $\ket\theta$ and $\ket{\theta + 180^\circ} = -\ket\theta$ are the same state.
+    The analyser's two axes are at $-22.5^\circ$ (transmitted, $e_+$) and $67.5^\circ$ (reflected, $e_-$). Horizontal is $22.5^\circ$ from the first,
+    diagonal $22.5^\circ$ from the second.</p>
+    <p><b>The CHSH remark, precisely.</b> In unit 06 Alice and Bob share a Bell pair and win a game with
+    probability at most $\tfrac34$ classically and $\cos^2(\pi/8) \approx 0.8536$ quantumly, using analysers $\pi/8$ apart. One way to see the
+    link: once Alice has measured, Bob's photon is in one of two states $45^\circ$ apart, and he must guess
+    something about it — a discrimination problem much like this one. Unit 06 does not need this unit;
+    the match is worth noticing there, not using.</p>
+    <p><b>Where it goes.</b> Unit 07: teleportation moves Bob's photon's state to a third party without
+    copying it — and must destroy the original to do so. Unit 09: an eavesdropper on $\ket0/\ket+$-type signals
+    faces exactly this unit's two limits, and her best single-photon guess is this unit's $0.8536$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · summary</p>
+  <h2>What this unit bought, and where it stops</h2>
+  <div class="cols">
+    <div class="box good"><span class="label">the toolkit</span>
+      <ul class="small">
+        <li><b>No-cloning</b> by linearity (no universal cloner) and by inner products ($|c| = |c|^2$), with or without a machine of its own.</li>
+        <li><b>The exact criterion:</b> a set can be cloned iff its members are pairwise orthogonal or equal; $\mathrm{CNOT}_{01}$ and its shifts do it.</li>
+        <li><b>Certainty needs orthogonality.</b></li>
+        <li><b>Helstrom:</b> $\tfrac12(1 + \sqrt{1 - |c|^2})$, via $p_{\rm succ} = \tfrac12 + \tfrac12\operatorname{tr}(P\Delta)$ on the plane of the two states; the basis straddling the bisector.</li>
+        <li><b>Extras:</b> an ancilla does not help; $N$ copies give overlap $c^N$.</li>
+        <li><b>Stated:</b> unambiguous discrimination $1 - |c|$; the $\tfrac56$ cloner.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Wootters and Zurek, <i>Nature</i> 299, 802 (1982): two pages, and the clearest statement. Nielsen and Chuang, <i>Quantum Computation and Quantum Information</i>, §2.2.4 with Box 2.3 (non-orthogonal states cannot be distinguished; it uses the general measurements of their §2.2.3, unit 21 here, so read its operators as projectors) and Box 12.1 (no-cloning). Peres, "How the no-cloning theorem got its name" (2003), for the history. Barnett and Croke, "Quantum state discrimination", <i>Adv. Opt. Photon.</i> 1, 238 (2009), §§2–3 — after unit 21, since it uses general measurements throughout.</p>
+      <h3>Next</h3>
+      <p class="small"><b>06</b> Bell, CHSH and Tsirelson (needs 04, not this unit). <b>07</b> teleportation and dense coding: moving a state without copying it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, on purpose.</b> The general Helstrom bound for mixed states and unequal priors
+    (unequal priors are problem P8; mixed states are unit 21's). The proof of unambiguous discrimination's
+    optimum (unit 21). The construction and analysis of the Bužek–Hillery cloner, and asymmetric and
+    $N\to M$ cloning. Probabilistic cloning beyond its statement. No-deleting appears on the sheet as problem P5,
+    because its proof is this unit's inner-product argument once more.</p>
+    <p><b>Reading notes.</b> Nielsen and Chuang's Box 2.3 proves that non-orthogonal states cannot be
+    distinguished reliably, using a general measurement; its argument is <i>Certainty needs orthogonality</i>
+    with the projectors replaced by positive operators. Their Box 12.1 gives the inner-product proof of
+    no-cloning in the same form as <i>Proof two: inner products</i>. Barnett and Croke survey minimum-error and
+    unambiguous discrimination, with the experiments; read it once unit 21 has defined positive
+    operator-valued measures.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">05 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>prove the no-cloning theorem both ways — by linearity, and by inner products, $\braket{\psi|\varphi} = \braket{\psi|\varphi}^2$ up to phase forcing $|\braket{\psi|\varphi}| \in \{0, 1\}$;</li>
+      <li>prove the Helstrom bound $\tfrac12(1 + \sqrt{1 - |\braket{\psi|\varphi}|^2})$ for two equiprobable pure states, and produce for $\ket0$ against $\ket+$ the value $\tfrac12(1 + \tfrac1{\sqrt2}) \approx 0.8536$ and the optimal measurement: the basis at angles $-\pi/8$ and $3\pi/8$.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A no-cloning proof that never uses unitarity or linearity, or that forgets the blank must be fixed; a Helstrom bound asserted rather than derived from the eigenvalues of $\ket\psi\!\bra\psi - \ket\varphi\!\bra\varphi$; $0.75$ given as the best; a measurement basis that is not orthonormal.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./qc problems 05</code>. When the checkpoint is true: <code>./qc done 05</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on a pair not in the deck before opening the sheet: $\ket0$ against $\cos\tfrac\pi6\ket0 + \sin\tfrac\pi6\ket1$, the
+    horizontal and $30^\circ$ polarisations. The overlap is $\cos30^\circ = \tfrac{\sqrt3}2 \approx 0.8660$, so no copier exists ($0.8660 \ne 0.75$), the
+    Helstrom success is $\tfrac12(1 + \sqrt{1 - \tfrac34}) = \tfrac12(1 + \tfrac12) = 0.75$, and the optimal basis is at $\tfrac\alpha2 \mp \tfrac\pi4$ with $\alpha = 30^\circ$: $-30^\circ$ (guess $\ket0$) and $60^\circ$
+    (guess the other). Measuring in $z$ would give only $1 - \tfrac12\cdot\tfrac34 = 0.625$.</p>
+    <p>Every number in this paragraph was computed. If yours disagree, check that you used the overlap
+    $|\braket{\psi|\varphi}|$ and not its square — the commonest slip.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

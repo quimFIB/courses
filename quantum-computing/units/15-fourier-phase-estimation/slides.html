@@ -1,0 +1,2054 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15 · Fourier on finite abelian groups, the quantum Fourier transform, and phase estimation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="d">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="pe"><span class="ref-name">the running example: three bits of one third</span>$U = \mathrm{diag}(1, e^{2\pi i/3})$ on one qubit; $U\ket1 = e^{2\pi i\cdot\frac13}\ket1$, so $\ket1$ is an eigenvector with eigenphase $\varphi = \tfrac13$. Estimate $\varphi$ with three counting qubits. <span class="ref-note">$2^3\varphi = 8/3 = 2.67$ is not an integer, so no outcome is certain. The nearest three-bit fraction, $3/8 = 0.375$, appears with probability $0.688$; its neighbour $2/8$ with $0.175$; all eight outcomes sum to 1. The guarantee is $4/\pi^2 \approx 0.405$</span></template>
+  <template data-ref="f8"><span class="ref-name">the Fourier transform on $\mathbb Z_8$</span>$F_8\ket j = \tfrac1{\sqrt8}\sum_{k=0}^{7}\omega^{jk}\ket k$, $\ \omega = e^{2\pi i/8} = \tfrac{1+i}{\sqrt2}$. <span class="ref-note">The matrix $(\omega^{jk})/\sqrt8$: symmetric, unitary, column 0 the uniform superposition. Its rows are the eight characters $\chi_k(j) = \omega^{jk}$ of $\mathbb Z_8$</span></template>
+  <template data-ref="five"><span class="ref-name">the product formula at $\ket5$</span>$F_8\ket{101} = 2^{-3/2}\,(\ket0 - \ket1)(\ket0 + i\ket1)(\ket0 + \omega^5\ket1)$. <span class="ref-note">Phases $0.j_3 = 0.1$, $0.j_2j_3 = 0.01$, $0.j_1j_2j_3 = 0.101$, that is $\tfrac12, \tfrac14, \tfrac58$ of a turn. A product state: no entanglement</span></template>
+  <template data-ref="qft3"><span class="ref-name">the three-qubit QFT circuit</span>$H$ on qubit 0, $C(R_2)$ from 1, $C(R_3)$ from 2; $H$ on qubit 1, $C(R_2)$ from 2; $H$ on qubit 2; swap qubits 0 and 2. <span class="ref-note">Three $H$, three controlled phases, one swap; equal to $F_8$ on all eight inputs</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part D · algorithms · spine</p>
+  <div class="unit-no">15</div>
+  <h1>Fourier on finite abelian groups, the quantum Fourier transform, and phase estimation</h1>
+  <p class="lede">Units 13 and 14 used a Fourier transform without the name. Here it is in general, with a circuit of $O(n^2)$ gates on $\mathbb Z_{2^n}$ — and phase estimation, which turns that circuit into the engine of Shor, quantum counting and energy readout.</p>
+  <p class="meta"><span>needs 14</span><span>~3 h slides + 5 h problems</span><span>problems: <code>./qc problems 15</code></span></p>
+  <aside class="notes">
+    <p>Unit 13 wrote $H^{\otimes n}\ket x = 2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y$ and remarked that the signs $(-1)^{x\cdot y}$ are the
+    <b>characters</b> of the group $\mathbb Z_2^n$. Unit 14 ran Simon's algorithm on that transform, and its problem sheet showed that
+    replacing $\mathbb Z_2^n$ by $\mathbb Z_4$ breaks it: two signs are not enough. This unit builds the object both units were using —
+    characters of a finite abelian group, and the Fourier transform as the unitary change of basis to them — and then does two things
+    with it.</p>
+    <ul>
+      <li>On $\mathbb Z_{2^n}$ the transform of a basis state is a <b>product state</b>, and that product formula is a circuit of $n$
+      Hadamards and $n(n-1)/2$ controlled phases. Classically the fast Fourier transform needs about $n2^n$ operations on the same vector.
+      The comparison is real and also misleading, and the deck says why early and loudly: the output is a state, not a list of numbers.</li>
+      <li><b>Phase estimation</b> uses the inverse transform to read an eigenvalue $e^{2\pi i\varphi}$ of a unitary into a register, to $t$
+      bits, with probability at least $4/\pi^2$ for the nearest $t$-bit fraction. Unit 16 (Shor), unit 17 (quantum counting) and unit 19
+      (energy readout) are all this one circuit.</li>
+    </ul>
+    <p>What this unit is not: harmonic analysis on non-abelian groups (unit 16 names it, for the hidden subgroup problem), or signal
+    processing.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through it: estimating the eigenphase $\varphi = \tfrac13$ of a one-qubit gate with three counting qubits, set up
+    on the next slide. Proofs are on the slides when they are one line and in these notes under <b>Full proof</b> when they are not;
+    anything imported is labelled <i>cited</i>, with where its proof is. Every number was computed.</p>
+    <p><b>Used from earlier units.</b> Unit 00: complex inner-product spaces, unitary and normal operators, eigenvalues of a unitary on
+    the unit circle, roots of unity and the $3\times3$ Fourier matrix with the course's sign (its problem sheet). Unit 01: the Born rule,
+    global phase, the Mach–Zehnder interferometer and its phase shifter $P(\varphi)$. Unit 02: $H$, $S$, $T$, the Bloch sphere's equator.
+    Unit 03: tensor products, product states, Schmidt rank. Unit 10: circuits read left to right and written right to left,
+    controlled-$U$, the phase gate $P(\alpha) = \mathrm{diag}(1, e^{i\alpha})$, SWAP from three CNOTs, deferred measurement, the
+    parameter count. Unit 13: the query model, phase kickback, $H^{\otimes n}$ and the characters $(-1)^{x\cdot y}$. Unit 14: Simon's
+    algorithm and its coset states. From the assumed background: group homomorphisms, cyclic groups, direct products, Lagrange's
+    theorem; geometric series; binary expansions; Chernoff–Hoeffding. The operator norm is defined here in one line (unit 11, not a
+    prerequisite, develops it).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · overview</p>
+  <h2>Three bits of one third</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="pe">phase one third</span></span>
+        $$U = \begin{pmatrix}1 &amp; 0\\ 0 &amp; e^{2\pi i/3}\end{pmatrix},\qquad U\ket1 = e^{2\pi i\cdot\frac13}\ket1 .$$
+        <p class="small">$U$ is unitary (diagonal, entries of modulus 1), and $\ket1$ is an eigenvector with <b>eigenphase</b> $\varphi = \tfrac13$. Given a box that applies controlled-$U$, and a copy of $\ket1$:</p>
+        <p class="small"><b>The question.</b> Estimate $\varphi$ to three bits. The candidates are $k/8$; one third is none of them, since $2/8 \lt 1/3 \lt 3/8$. Which outcome comes out, and how reliably?</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> characters · <b>2</b> the Fourier transform · <b>3</b> its circuit · <b>4</b> phase estimation · <b>5</b> precision.</p>
+      <p class="small muted">A <span class="term" data-term="character">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="pe">the running example</span> shows a card on hover; <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 300" width="300" role="img" aria-label="a circle marked with the eight three-bit fractions 0/8 to 7/8 as angles; the eigenphase one third, an arrow at 120 degrees, sits between 2/8 and 3/8, nearer 3/8; both neighbours are highlighted">
+<circle cx="150" cy="150" r="105" fill="none" class="rule" stroke-width="1.5"/>
+<circle cx="255.0" cy="150.0" r="4.5" class="fill-ink"/>
+<text x="279.0" y="155.0" font-size="13" text-anchor="middle" class="soft">0/8</text>
+<circle cx="224.2" cy="75.8" r="4.5" class="fill-ink"/>
+<text x="241.2" y="63.8" font-size="13" text-anchor="middle" class="soft">1/8</text>
+<circle cx="150.0" cy="45.0" r="6" class="fill-accent"/>
+<text x="150.0" y="26.0" font-size="13" text-anchor="middle">2/8</text>
+<circle cx="75.8" cy="75.8" r="6" class="fill-accent"/>
+<text x="58.8" y="63.8" font-size="13" text-anchor="middle">3/8</text>
+<circle cx="45.0" cy="150.0" r="4.5" class="fill-ink"/>
+<text x="21.0" y="155.0" font-size="13" text-anchor="middle" class="soft">4/8</text>
+<circle cx="75.8" cy="224.2" r="4.5" class="fill-ink"/>
+<text x="58.8" y="246.2" font-size="13" text-anchor="middle" class="soft">5/8</text>
+<circle cx="150.0" cy="255.0" r="4.5" class="fill-ink"/>
+<text x="150.0" y="284.0" font-size="13" text-anchor="middle" class="soft">6/8</text>
+<circle cx="224.2" cy="224.2" r="4.5" class="fill-ink"/>
+<text x="241.2" y="246.2" font-size="13" text-anchor="middle" class="soft">7/8</text>
+<line x1="150.0" y1="150.0" x2="255.0" y2="150.0" class="rule" stroke-width="1.2"/>
+<line x1="150.0" y1="150.0" x2="97.5" y2="59.1" class="unit" stroke-width="2.4"/>
+<circle cx="97.5" cy="59.1" r="6" class="fill-unit"/>
+<text x="120.0" y="110.0" font-size="15" text-anchor="end" class="halo">φ = 1/3</text>
+<path d="M 180 150 A 30 30 0 0 0 135.0 124.0" fill="none" class="unit" stroke-width="1.4"/>
+<text x="174.0" y="120.0" font-size="12" text-anchor="start" class="soft">2π/3</text>
+</svg>
+        <p class="cap">One third of a turn, between the three-bit fractions $2/8$ and $3/8$.</p>
+      </div>
+      <div class="box warn"><span class="label">what the QFT is not</span>
+        <p class="small">It transforms $2^n$ amplitudes with $O(n^2)$ gates — and you <b>cannot read</b> the amplitudes. A measurement returns one outcome. It is useful only when the answer is a few likely outcomes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the example goes.</b> Section 1 draws the eight characters of $\mathbb Z_8$, the group the three counting qubits label.
+    Section 2 writes $F_8$ and evaluates the product formula at $\ket5$. Section 3 builds the three-qubit circuit and multiplies it out.
+    Section 4 runs phase estimation on $\varphi = \tfrac13$ and tabulates all eight outcome probabilities (<i>Worked: phase one third,
+    the peak and its neighbour</i>). Section 5 asks what more counting qubits buy, and the close compares $0.688$ with the guarantee
+    $4/\pi^2$.</p>
+    <p><b>Why this example.</b> $U$ is as simple as a gate can be, so nothing distracts from the mechanism, and its powers are free:
+    $U^{2^j} = \mathrm{diag}(1, e^{2\pi i\,2^j/3})$. The phase $\tfrac13$ is chosen because it has no finite binary expansion
+    ($0.010101\ldots$), so the estimate is never exact and the whole distribution matters. In unit 16 the phases will be $s/r$ for an
+    unknown order $r$, and they will usually look like this one.</p>
+    <p><b>The warning box</b> is repeated, with the numbers, on <i>Exponentially faster at a task nobody wants</i>. Every circuit and
+    distribution in this deck can also be checked with the course's optional simulator; none needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Characters</h2>
+  <p>Unit 13's signs $(-1)^{x\cdot y}$ were homomorphisms into the circle. On $\mathbb Z_N$ the same homomorphisms take values in the $N$-th roots of unity.</p>
+</section>
+
+<section>
+  <p class="eyebrow">15 · characters</p>
+  <h2>Unit 13's signs were homomorphisms</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 13: $H^{\otimes n}\ket x = 2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y$. Fix $y$; then $x\mapsto(-1)^{x\cdot y}$ turns addition into multiplication:</p>
+      $$(-1)^{(x\oplus x')\cdot y} = (-1)^{x\cdot y}\,(-1)^{x'\cdot y}.$$
+      <p class="small">It is a <b>group homomorphism</b> $(\mathbb Z_2^n, \oplus)\to(\{\pm1\}, \times)$, and the $2^n$ of them, one per $y$, are the columns of $H^{\otimes n}$ up to $2^{-n/2}$.</p>
+      <div class="box warn"><span class="label">why signs are not enough</span>
+        <p class="small">A homomorphism $\mathbb Z_4\to\{\pm1\}$ is fixed by the image of $1$, so there are only two. But $\mathbb C^4$ needs four orthogonal vectors. Allow values on the whole unit circle and $\chi(1)\in\{1, i, -1, -i\}$ gives four (unit 14, problem sheet).</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 395 215" width="395" role="img" aria-label="two unit circles: for Z2 the character values are 1 and minus 1, on the real axis; for Z4 they are 1, i, minus 1 and minus i, the four quarter turns">
+<circle cx="95" cy="100" r="62" fill="none" class="rule" stroke-width="1.4"/>
+<line x1="23.0" y1="100.0" x2="167.0" y2="100.0" class="rule" stroke-width="1"/>
+<line x1="95.0" y1="28.0" x2="95.0" y2="172.0" class="rule" stroke-width="1"/>
+<circle cx="157.0" cy="100.0" r="6" class="fill-unit"/>
+<text x="177.0" y="105.0" font-size="14" text-anchor="middle">1</text>
+<circle cx="33.0" cy="100.0" r="6" class="fill-unit"/>
+<text x="13.0" y="105.0" font-size="14" text-anchor="middle">−1</text>
+<text x="95.0" y="202.0" font-size="13" text-anchor="middle">ℤ₂: χ(j) = (−1)ʲᵏ</text>
+<circle cx="300" cy="100" r="62" fill="none" class="rule" stroke-width="1.4"/>
+<line x1="228.0" y1="100.0" x2="372.0" y2="100.0" class="rule" stroke-width="1"/>
+<line x1="300.0" y1="28.0" x2="300.0" y2="172.0" class="rule" stroke-width="1"/>
+<circle cx="362.0" cy="100.0" r="6" class="fill-unit"/>
+<text x="382.0" y="105.0" font-size="14" text-anchor="middle">1</text>
+<circle cx="300.0" cy="38.0" r="6" class="fill-unit"/>
+<text x="300.0" y="23.0" font-size="14" text-anchor="middle">i</text>
+<circle cx="238.0" cy="100.0" r="6" class="fill-unit"/>
+<text x="218.0" y="105.0" font-size="14" text-anchor="middle">−1</text>
+<circle cx="300.0" cy="162.0" r="6" class="fill-unit"/>
+<text x="300.0" y="187.0" font-size="14" text-anchor="middle">−i</text>
+<text x="300.0" y="202.0" font-size="13" text-anchor="middle">ℤ₄: χ(j) = iʲᵏ</text>
+</svg>
+        <p class="cap">The values a homomorphism into the circle can take: $\pm1$ for $\mathbb Z_2$, the fourth roots of unity for $\mathbb Z_4$.</p>
+      </div>
+      <p class="small">So the target is $U(1) = \{z\in\mathbb C : |z| = 1\}$, a group under multiplication.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The homomorphism property, checked.</b> $(x\oplus x')\cdot y = \sum_i(x_i + x'_i)y_i$ modulo 2, and $(-1)^{a}$ only depends on
+    $a$ modulo 2, so $(-1)^{(x\oplus x')\cdot y} = (-1)^{x\cdot y + x'\cdot y}$. That is the whole content: the bitwise XOR is addition in
+    $\mathbb Z_2^n$, and the exponential turns sums into products.</p>
+    <p><b>Why $\mathbb Z_4$ needs $i$.</b> A homomorphism $\chi$ from the cyclic group $\mathbb Z_4$ is determined by $\chi(1)$, since
+    $\chi(j) = \chi(1)^j$; and $\chi(1)^4 = \chi(4) = \chi(0) = 1$. Into $\{\pm1\}$ that leaves $\chi(1) = \pm1$: two homomorphisms, the
+    vectors $(1,1,1,1)$ and $(1,-1,1,-1)$ in $\mathbb C^4$. Two vectors cannot be a basis of a four-dimensional space. Into $U(1)$ the
+    equation $z^4 = 1$ has four solutions, and the four vectors $(1, z, z^2, z^3)$ turn out to be orthogonal (the next slides prove it in
+    general). This is the gap unit 14's problem P11, on $\mathbb Z_4\times\mathbb Z_4$, pointed at.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · characters</p>
+  <h2>Characters, and the characters of $\mathbb Z_N$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">character</span>, the <span class="term">dual group</span></span>
+        <p class="small">For a finite abelian group $(G, +)$, a character is a homomorphism $\chi: G\to U(1)$: $\ \chi(g + h) = \chi(g)\chi(h)$. The characters form a group $\hat G$ under pointwise product, with identity the <span class="term">trivial character</span> $\chi_0\equiv1$.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma</span>
+        <p class="small">$\chi(g)^{|G|} = 1$, so $|\chi(g)| = 1$ and $\chi(-g) = \overline{\chi(g)}$.</p>
+      </div>
+      <p class="small"><i>Proof.</i> $|G|g = 0$ (Lagrange), so $\chi(g)^{|G|} = \chi(|G|g) = \chi(0) = 1$; then $\chi(-g) = \chi(g)^{-1} = \overline{\chi(g)}$. ∎</p>
+      <div class="box thm"><span class="label">theorem: the characters of $\mathbb Z_N$</span>
+        <p class="small">With $\omega = e^{2\pi i/N}$: $\ \chi_k(j) = \omega^{jk}$, $k = 0, \dots, N-1$, and $k\mapsto\chi_k$ is an isomorphism $\mathbb Z_N\cong\hat{\mathbb Z}_N$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 312" width="330" role="img" aria-label="the eight eighth roots of unity on the unit circle, labelled 1, omega, i, omega cubed, minus 1, omega to the 5, minus i, omega to the 7; a dashed star polygon joins them in the order the character chi 3 visits them, three eighths of a turn each step">
+<circle cx="160" cy="150" r="110" fill="none" class="rule" stroke-width="1.4"/>
+<line x1="36.0" y1="150.0" x2="284.0" y2="150.0" class="rule" stroke-width="1"/>
+<line x1="160.0" y1="26.0" x2="160.0" y2="274.0" class="rule" stroke-width="1"/>
+<path d="M 270.0 150.0 L 82.2 72.2 L 160.0 260.0 L 237.8 72.2 L 50.0 150.0 L 237.8 227.8 L 160.0 40.0 L 82.2 227.8 L 270.0 150.0" fill="none" class="accent" stroke-width="1.6" stroke-dasharray="5 3"/>
+<circle cx="270.0" cy="150.0" r="5" class="fill-unit"/>
+<text x="292.0" y="155.0" font-size="14" text-anchor="middle">1</text>
+<circle cx="237.8" cy="72.2" r="5" class="fill-unit"/>
+<text x="253.3" y="61.7" font-size="14" text-anchor="middle">ω</text>
+<circle cx="160.0" cy="40.0" r="5" class="fill-unit"/>
+<text x="160.0" y="23.0" font-size="14" text-anchor="middle">i</text>
+<circle cx="82.2" cy="72.2" r="5" class="fill-unit"/>
+<text x="66.7" y="61.7" font-size="14" text-anchor="middle">ω³</text>
+<circle cx="50.0" cy="150.0" r="5" class="fill-unit"/>
+<text x="28.0" y="155.0" font-size="14" text-anchor="middle">−1</text>
+<circle cx="82.2" cy="227.8" r="5" class="fill-unit"/>
+<text x="66.7" y="248.3" font-size="14" text-anchor="middle">ω⁵</text>
+<circle cx="160.0" cy="260.0" r="5" class="fill-unit"/>
+<text x="160.0" y="287.0" font-size="14" text-anchor="middle">−i</text>
+<circle cx="237.8" cy="227.8" r="5" class="fill-unit"/>
+<text x="253.3" y="248.3" font-size="14" text-anchor="middle">ω⁷</text>
+<text x="160.0" y="310.0" font-size="13" text-anchor="middle" class="alt">χ₃: j ↦ ω³ʲ visits 1, ω³, ω⁶, ω, ω⁴, …</text>
+</svg>
+        <p class="cap">$\mathbb Z_8$: $\chi_k$ sends $1$ to $\omega^k$, so the eight characters are the eight points. $\chi_3$ steps round by $\omega^3$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the theorem.</b> A character of $\mathbb Z_N$ satisfies $\chi(j) = \chi(1)^j$ by induction on $j$, and
+    $\chi(1)^N = \chi(N\cdot1) = \chi(0) = 1$, so $\chi(1) = \omega^k$ for exactly one $k\in\{0, \dots, N-1\}$: $\chi = \chi_k$.
+    Conversely each $\chi_k(j) = \omega^{jk}$ is well defined on residues (changing $j$ by $N$ changes $\omega^{jk}$ by $\omega^{Nk} = 1$) and is a
+    homomorphism, $\omega^{(j+j')k} = \omega^{jk}\omega^{j'k}$. Finally $\chi_k\chi_l = \chi_{k+l}$, so $k\mapsto\chi_k$ is a homomorphism,
+    and it is a bijection by the first part. ∎</p>
+    <p><b>Why $\hat G$ is a group.</b> If $\chi, \psi$ are characters then $(\chi\psi)(g+h) = \chi(g)\chi(h)\psi(g)\psi(h) = (\chi\psi)(g)(\chi\psi)(h)$
+    because $U(1)$ is commutative; and $\bar\chi = \chi^{-1}$ is a character. Commutativity of the target is what makes this work, and it
+    is why the theory here is for abelian groups: for a non-abelian group one-dimensional characters do not separate enough elements, and
+    matrices replace numbers (representation theory; named in unit 16, not used).</p>
+    <p><b>The running example.</b> The three counting qubits will hold a label $x\in\{0, \dots, 7\}$, and the group is $\mathbb Z_8$ with
+    $\omega = e^{2\pi i/8} = e^{i\pi/4} = (1 + i)/\sqrt2$. The eight characters are drawn as the eight values $\chi_k(1) = \omega^k$; the star
+    is the path $j\mapsto\omega^{3j}$, which visits every root because $\gcd(3, 8) = 1$. Unit 00's problem sheet met the case $N = 3$ and
+    fixed the sign: $\omega = e^{+2\pi i/N}$, kept for the whole course.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · characters</p>
+  <h2>Products of groups, and $\hat G\cong G$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: characters of a product</span>
+        <p class="small">Every character of $G\times H$ is $(g, h)\mapsto\chi(g)\psi(h)$ for unique $\chi\in\hat G$, $\psi\in\hat H$; so $\widehat{G\times H}\cong\hat G\times\hat H$.</p>
+      </div>
+      <p class="small"><i>Proof.</i> Given $\rho\in\widehat{G\times H}$, set $\chi(g) = \rho(g, 0)$, $\psi(h) = \rho(0, h)$; then $\rho(g, h) = \rho(g, 0)\rho(0, h)$. Uniqueness: put $h = 0$, then $g = 0$. ∎</p>
+      <div class="box good"><span class="label">$\mathbb Z_2^n$ recovered</span>
+        <p class="small">$\hat{\mathbb Z}_2 = \{\chi_0, \chi_1\}$ with $\chi_y(x) = (-1)^{xy}$. So the characters of $\mathbb Z_2^n$ are $x\mapsto\prod_i(-1)^{x_iy_i} = (-1)^{x\cdot y}$ — unit 13's signs, and there are no others.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">structure theorem</span> for finite abelian groups (cited)</span>
+        <p class="small">Every finite abelian group is isomorphic to $\mathbb Z_{N_1}\times\cdots\times\mathbb Z_{N_r}$.</p>
+      </div>
+      <p class="small">With the two theorems before it: $\hat G\cong\hat{\mathbb Z}_{N_1}\times\cdots\cong\mathbb Z_{N_1}\times\cdots\cong G$. In particular</p>
+      $$|\hat G| = |G| .$$
+      <div class="box warn"><span class="label">two traps</span>
+        <p class="small">The isomorphism $\hat G\cong G$ depends on the chosen decomposition: it is not canonical. And groups of the same order need not match: $\mathbb Z_2\times\mathbb Z_4\not\cong\mathbb Z_8$ (problem P1), and their Fourier matrices differ.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the product theorem.</b> Existence: $\rho(g, h) = \rho((g, 0) + (0, h)) = \rho(g, 0)\rho(0, h)$, and $g\mapsto\rho(g, 0)$
+    is a homomorphism because $g\mapsto(g, 0)$ is. Uniqueness: if $\chi(g)\psi(h) = \chi'(g)\psi'(h)$ for all $g, h$, then $h = 0$ gives
+    $\chi = \chi'$ and $g = 0$ gives $\psi = \psi'$. Conversely $(g, h)\mapsto\chi(g)\psi(h)$ is a character, and the bijection
+    $(\chi, \psi)\mapsto\chi\psi$ respects pointwise products. ∎</p>
+    <p><b>Cited.</b> The structure theorem: Dummit and Foote, <i>Abstract Algebra</i>, §5.2 (the fundamental theorem of finitely
+    generated abelian groups). This course uses it only to know that $|\hat G| = |G|$ for every finite abelian $G$; for the groups the
+    course actually meets — $\mathbb Z_N$, $\mathbb Z_2^n$, and products of a few cyclic groups — the two theorems on these slides prove it
+    directly, and nothing is cited.</p>
+    <p><b>Why "not canonical".</b> For $\mathbb Z_N$ the isomorphism $k\mapsto\chi_k$ needed a choice of generator ($1$) and of a
+    primitive root ($\omega$); a different choice gives a different isomorphism. There is a canonical isomorphism $G\to\hat{\hat G}$,
+    $g\mapsto(\chi\mapsto\chi(g))$, but not one $G\to\hat G$. In practice this is why one must say which convention a Fourier matrix uses.</p>
+    <p><b>Why $\mathbb Z_2\times\mathbb Z_4\not\cong\mathbb Z_8$.</b> Every element of $\mathbb Z_2\times\mathbb Z_4$ has order dividing 4,
+    while $1\in\mathbb Z_8$ has order 8.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · characters</p>
+  <h2>Orthogonality of characters</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">orthogonality of characters</span></span>
+        <p class="small">On $\mathbb C^G$ with $\braket{\chi|\psi} = \sum_{g}\overline{\chi(g)}\,\psi(g)$:</p>
+        $$\braket{\chi|\psi} = |G|\,\delta_{\chi\psi}.$$
+      </div>
+      <div class="box proof"><span class="label">proof: translation invariance</span>
+        <p class="small"><b>Lemma.</b> If $\chi\ne\chi_0$ then $\sum_g\chi(g) = 0$. Pick $h$ with $\chi(h)\ne1$. As $g$ runs over $G$ so does $g + h$, so</p>
+        $$S = \sum_g\chi(g + h) = \chi(h)\,S\ \Rightarrow\ S = 0 .$$
+        <p class="small"><b>Theorem.</b> $\overline{\chi}\psi = \chi^{-1}\psi$ is a character, trivial iff $\chi = \psi$. Apply the lemma to it. ∎</p>
+      </div>
+      <p class="small"><b>So</b> the $|G|$ vectors $|G|^{-1/2}\chi$ are orthonormal in $\mathbb C^G$, and there are $|\hat G| = |G|$ of them: an orthonormal basis.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 250 180" width="300" role="img" aria-label="eight unit arrows laid head to tail, the j-th pointing at angle 3j times 45 degrees, labelled omega to the 3j reduced mod 8; they trace a closed eight-pointed star and return to the start, so the sum of omega to the 3j over j is zero">
+<line x1="100.0" y1="108.9" x2="220.0" y2="108.9" class="unit" stroke-width="2.2"/>
+<polygon points="220.0,108.9 210.0,103.9 210.0,113.9" class="fill-unit"/>
+<text x="113.5" y="123.4" font-size="13" text-anchor="middle" class="halo">ω⁰</text>
+<line x1="220.0" y1="108.9" x2="135.1" y2="24.0" class="unit" stroke-width="2.2"/>
+<polygon points="135.1,24.0 138.7,34.6 145.8,27.5" class="fill-unit"/>
+<text x="217.2" y="97.6" font-size="13" text-anchor="middle" class="halo">ω³</text>
+<line x1="135.1" y1="24.0" x2="135.1" y2="144.0" class="unit" stroke-width="2.2"/>
+<polygon points="135.1,144.0 140.1,134.0 130.1,134.0" class="fill-unit"/>
+<text x="125.6" y="42.5" font-size="13" text-anchor="middle" class="halo">ω⁶</text>
+<line x1="135.1" y1="144.0" x2="220.0" y2="59.1" class="unit" stroke-width="2.2"/>
+<polygon points="220.0,59.1 209.4,62.7 216.5,69.8" class="fill-unit"/>
+<text x="151.4" y="146.2" font-size="13" text-anchor="middle" class="halo">ω¹</text>
+<line x1="220.0" y1="59.1" x2="100.0" y2="59.1" class="unit" stroke-width="2.2"/>
+<polygon points="100.0,59.1 110.0,64.1 110.0,54.1" class="fill-unit"/>
+<text x="206.5" y="54.6" font-size="13" text-anchor="middle" class="halo">ω⁴</text>
+<line x1="100.0" y1="59.1" x2="184.9" y2="144.0" class="unit" stroke-width="2.2"/>
+<polygon points="184.9,144.0 181.3,133.4 174.2,140.5" class="fill-unit"/>
+<text x="102.8" y="80.4" font-size="13" text-anchor="middle" class="halo">ω⁷</text>
+<line x1="184.9" y1="144.0" x2="184.9" y2="24.0" class="unit" stroke-width="2.2"/>
+<polygon points="184.9,24.0 179.9,34.0 189.9,34.0" class="fill-unit"/>
+<text x="194.4" y="135.5" font-size="13" text-anchor="middle" class="halo">ω²</text>
+<line x1="184.9" y1="24.0" x2="100.0" y2="108.9" class="unit" stroke-width="2.2"/>
+<polygon points="100.0,108.9 110.6,105.3 103.5,98.2" class="fill-unit"/>
+<text x="168.6" y="31.8" font-size="13" text-anchor="middle" class="halo">ω⁵</text>
+<circle cx="100.0" cy="108.9" r="6" class="fill-accent"/>
+<text x="88.0" y="113.9" font-size="12" text-anchor="end" class="soft">start = end</text>
+</svg>
+        <p class="cap">$\chi_3$ on $\mathbb Z_8$: the eight values $\omega^{3j}$, laid head to tail, close up. Shifting every $j$ by $h$ rotates the star by $\chi_3(h)$ and gives the same sum.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The inner product.</b> It is unit 00's, conjugate-linear in the first slot, on the space $\mathbb C^G$ of functions $G\to\mathbb C$
+    with the basis of indicator functions $\ket g$. A character is a vector in it: $\ket\chi = \sum_g\chi(g)\ket g$, of squared norm
+    $\sum_g|\chi(g)|^2 = |G|$ by the lemma on the previous slide.</p>
+    <p><b>The step $\overline\chi\psi$.</b> $\overline{\chi(g)}\psi(g) = \chi(g)^{-1}\psi(g) = (\chi^{-1}\psi)(g)$, using $|\chi(g)| = 1$. So
+    $\braket{\chi|\psi} = \sum_g(\chi^{-1}\psi)(g)$, which is $|G|$ if $\chi^{-1}\psi = \chi_0$ (every term 1) and $0$ otherwise by the
+    lemma.</p>
+    <p><b>The trick is the whole theory.</b> "The sum over the group is invariant under translation, and a non-trivial character is not" is
+    the only idea in this section. It is the same idea that made unit 13's $\sum_x(-1)^{x\cdot y}$ vanish for $y\ne0$, and unit 14's
+    amplitudes cancel unless $y\cdot s = 0$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · characters · example</p>
+  <h2>Worked: orthogonality on $\mathbb Z_N$, and $F_N$ unitary</h2>
+  <div class="box ex"><span class="label">$\chi_k(j) = \omega^{jk}$, $\ \omega = e^{2\pi i/N}$; the matrix $(F_N)_{kj} = \omega^{jk}/\sqrt N$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Directly, by a geometric series.</b> With $r = \omega^{l-k}$:</p>
+      $$\braket{\chi_k|\chi_l} = \sum_{j=0}^{N-1}\omega^{-jk}\omega^{jl} = \sum_{j=0}^{N-1}r^j .$$
+      <p class="small">If $l = k$, $r = 1$ and the sum is $N$. If $0 \lt |l - k| \lt N$ then $r\ne1$ and $r^N = 1$, so the sum is $\dfrac{r^N - 1}{r - 1} = 0$.</p>
+      <p class="small"><b>2. Unitarity.</b> The rows of $F_N$ are the $\chi_k/\sqrt N$, orthonormal by step 1, so $F_NF_N^\dagger = I$; a square matrix with a right inverse has it as a left inverse, so $F_N^\dagger F_N = I$.</p>
+    </div>
+    <div>
+      <p class="small"><b>3. Check at $N = 8$, $k = 0$, $l = 3$:</b> $\sum_j\omega^{3j} = 1 + \omega^3 + \omega^6 + \omega + \omega^4 + \omega^7 + \omega^2 + \omega^5$, every eighth root once, since $3j$ runs over all residues mod 8. The roots pair off as $\omega^m + \omega^{m+4} = \omega^m(1 + \omega^4) = 0$. Sum $0$ ✓.</p>
+      <p class="small"><b>4. Check at $N = 2$:</b> $\omega = -1$ and</p>
+      $$F_2 = \tfrac1{\sqrt2}\begin{pmatrix}1 &amp; 1\\ 1 &amp; -1\end{pmatrix} = H ,$$
+      <p class="small">the Hadamard gate, unitary ✓ — the one-qubit case of unit 13.</p>
+      <p class="small"><b>5. Columns too.</b> $F_N^\dagger F_N = I$ says $\sum_k\omega^{k(j'-j)} = N\delta_{jj'}$: the sum over characters at fixed group elements.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Two proofs of the same fact.</b> Step 1 is the translation-invariance proof with the translation made explicit: multiplying the
+    geometric sum by $r$ shifts it by one term, which is translating $j$ by 1. The pairing in step 3 is translation by $4$, where
+    $\chi_3(4) = \omega^{12} = \omega^4 = -1$.</p>
+    <p><b>The linear-algebra step in 2.</b> If $AB = I$ for square $A, B$ then $B$ is injective ($Bv = 0\Rightarrow v = ABv = 0$), so invertible, and
+    $B^{-1} = AB B^{-1} = A$. Hence $BA = I$. Here $A = F_N$, $B = F_N^\dagger$.</p>
+    <p><b>Step 5, in general.</b> For any finite abelian $G$, the same argument gives the <i>dual orthogonality</i>
+    $\sum_{\chi\in\hat G}\overline{\chi(g)}\chi(g') = |G|\delta_{gg'}$: rows orthonormal implies columns orthonormal, once the matrix is
+    square — which is where $|\hat G| = |G|$ is used.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>The Fourier transform</h2>
+  <p>The unitary change of basis to the characters. It turns shifts into phases, and on $\mathbb Z_{2^n}$ it sends a basis state to a product state.</p>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the transform</p>
+  <h2>The Fourier transform of a finite abelian group</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Fourier transform</span> $F_G$</span>
+        <p class="small">From $\mathbb C^G$ (basis $\ket g$) to $\mathbb C^{\hat G}$ (basis $\ket\chi$):</p>
+        $$F_G\ket g = \frac1{\sqrt{|G|}}\sum_{\chi\in\hat G}\chi(g)\,\ket\chi .$$
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$F_G$ is unitary.</p>
+      </div>
+      <p class="small"><i>Proof.</i> Its matrix $M_{\chi g} = \chi(g)/\sqrt{|G|}$ is square ($|\hat G| = |G|$) with orthonormal rows (orthogonality of characters), so $MM^\dagger = I = M^\dagger M$, as in the worked example. ∎</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>$G$</th><th>characters</th><th>$F_G$</th></tr></thead>
+        <tbody>
+          <tr><td>$\mathbb Z_N$</td><td>$\chi_k(j) = \omega^{jk}$</td><td>$F_N\ket j = \frac1{\sqrt N}\sum_k\omega^{jk}\ket k$</td></tr>
+          <tr><td>$\mathbb Z_2^n$</td><td>$\chi_y(x) = (-1)^{x\cdot y}$</td><td>$H^{\otimes n}$ (unit 13)</td></tr>
+          <tr><td>$\mathbb Z_2$</td><td>$\pm1$</td><td>$H$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Labelling $\chi_k$ by $k$ makes $F_N$ a map $\mathbb C^N\to\mathbb C^N$: the <span class="term">quantum Fourier transform</span> (QFT) on $\mathbb Z_N$. On qubits, $N = 2^n$.</p>
+      <div class="box warn"><span class="label">the sign, fixed for the course</span>
+        <p class="small">$e^{+2\pi ijk/N}$ and $1/\sqrt N$. Numerical libraries' DFT uses $e^{-2\pi ijk/N}$ and no normalisation: their DFT is $\sqrt N\,F_N^\dagger$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Two instances, one theorem.</b> Unit 13 proved $H^{\otimes n}$ unitary by computing $H^{\otimes n}H^{\otimes n} = I$; unit 00's sheet
+    checked $F_3$ by hand. Both are this theorem, and the proof is the one line of orthogonality.</p>
+    <p><b>Why "Fourier".</b> For $G = \mathbb Z_N$ the coefficients $\braket{\chi_k|f}/\sqrt N$ of a function $f$ are the discrete Fourier
+    coefficients of $f$, and the inverse transform writes $f$ as a sum of the "pure frequencies" $\chi_k$. On the circle group (not
+    finite, not used here) the same construction gives Fourier series. The dual-orthogonality relation of the worked example is the
+    statement that $F_G^{-1} = F_G^\dagger$, the inverse transform.</p>
+    <p><b>Basis states of $\mathbb C^{\hat G}$.</b> Writing $\ket\chi$ as a basis vector is a labelling choice. For the computation the
+    labels must be bit strings, and the isomorphism $\hat G\cong G$ supplies them: for $\mathbb Z_N$, $\chi_k\mapsto k$. That is the
+    non-canonical step, made once and for all by the course's convention.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the transform · running example</p>
+  <h2>$F_8$, entry by entry</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><span class="ref" data-ref="f8">$F_8$</span> $= \tfrac1{\sqrt8}(\omega^{jk})$, $\ \omega = e^{2\pi i/8} = \tfrac{1+i}{\sqrt2}$. Each entry below is the exponent $jk\bmod8$: the entry is $\omega$ to that power, over $\sqrt8$.</p>
+      <table class="dense">
+        <thead><tr><th>$k\backslash j$</th><th class="num">0</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">6</th><th class="num">7</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>1</td><td class="num">0</td><td class="num">1</td><td class="num">2</td><td class="num">3</td><td class="num">4</td><td class="num">5</td><td class="num">6</td><td class="num">7</td></tr>
+          <tr><td>2</td><td class="num">0</td><td class="num">2</td><td class="num">4</td><td class="num">6</td><td class="num">0</td><td class="num">2</td><td class="num">4</td><td class="num">6</td></tr>
+          <tr><td>3</td><td class="num">0</td><td class="num">3</td><td class="num">6</td><td class="num">1</td><td class="num">4</td><td class="num">7</td><td class="num">2</td><td class="num">5</td></tr>
+          <tr><td>4</td><td class="num">0</td><td class="num">4</td><td class="num">0</td><td class="num">4</td><td class="num">0</td><td class="num">4</td><td class="num">0</td><td class="num">4</td></tr>
+          <tr><td>5</td><td class="num">0</td><td class="num">5</td><td class="num">2</td><td class="num">7</td><td class="num">4</td><td class="num">1</td><td class="num">6</td><td class="num">3</td></tr>
+          <tr><td>6</td><td class="num">0</td><td class="num">6</td><td class="num">4</td><td class="num">2</td><td class="num">0</td><td class="num">6</td><td class="num">4</td><td class="num">2</td></tr>
+          <tr><td>7</td><td class="num">0</td><td class="num">7</td><td class="num">6</td><td class="num">5</td><td class="num">4</td><td class="num">3</td><td class="num">2</td><td class="num">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <p class="small"><b>Column $j$ is $F_8\ket j$.</b> Column 0: all exponents 0, so $F_8\ket0 = \tfrac1{\sqrt8}\sum_k\ket k$, of norm $8\cdot\tfrac18 = 1$ ✓.</p>
+      <p class="small"><b>Column 4:</b> exponents $0, 4, 0, 4, \dots$, and $\omega^4 = -1$: $F_8\ket4 = \tfrac1{\sqrt8}\sum_k(-1)^k\ket k$.</p>
+      <p class="small"><b>Symmetric:</b> $jk = kj$, so $F_8^{\mathsf T} = F_8$. Not Hermitian: $\overline{\omega^{jk}} = \omega^{-jk}$.</p>
+      <p class="small"><b>Rows are characters:</b> row 3 is $\chi_3$, the star of <i>Characters, and the characters of $\mathbb Z_N$</i>.</p>
+      <p class="small"><b>Column 5</b> will be met again: exponents $0, 5, 2, 7, 4, 1, 6, 3$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the table.</b> Row $k$, column $j$ holds $jk\bmod8$, and the matrix entry is $\omega^{jk}/\sqrt8$. Because $\omega^8 = 1$, only
+    the residue matters, which is why the table has only the entries $0, \dots, 7$. The even rows use only even powers, i.e. the fourth
+    roots of unity $\pm1, \pm i$; row 4 uses only $\pm1$.</p>
+    <p><b>Orthogonality, visibly.</b> Rows 1 and 3 each contain every residue once; rows 2 and 6 contain $0, 2, 4, 6$ twice each. Any two
+    distinct rows differ, entry by entry, by a non-trivial character (row $l$ minus row $k$ is row $l - k$), whose values sum to zero —
+    the lemma of <i>Orthogonality of characters</i>.</p>
+    <p><b>A fact for later.</b> $F_8^2$ sends $\ket j$ to $\ket{-j\bmod8}$, so $F_8^4 = I$ (problem P6). The inverse $F_8^{-1} = F_8^\dagger$ has
+    exponent table $-jk\bmod8$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the transform</p>
+  <h2>Shifts become phases</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Let $T_a\ket g = \ket{g + a}$ (a permutation of the basis, so unitary) and $D_a = \sum_\chi\chi(a)\ket\chi\!\bra\chi$ (diagonal, entries of modulus 1, so unitary). Then</p>
+        $$F_G\,T_a = D_a\,F_G .$$
+      </div>
+      <p class="small"><i>Proof.</i> $F_GT_a\ket g = |G|^{-1/2}\sum_\chi\chi(g + a)\ket\chi = |G|^{-1/2}\sum_\chi\chi(a)\chi(g)\ket\chi = D_aF_G\ket g$. ∎</p>
+      <p class="small"><b>Consequence.</b> Measuring $F_GT_a\ket\psi$ in the basis $\ket\chi$ gives the same distribution as $F_G\ket\psi$: each amplitude only gains a factor $\chi(a)$ of modulus 1. <b>An unknown shift is invisible after the transform.</b></p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 262" width="420" role="img" aria-label="three bar charts over the eight elements of Z8: first, probability one half on 1 and on 5; second, the same state shifted by 2, one half on 3 and 7; third, the Fourier probabilities, the same for both, one quarter on each even k">
+<line x1="28.0" y1="60.0" x2="262.0" y2="60.0" class="rule" stroke-width="1"/>
+<text x="40.0" y="74.0" font-size="11" text-anchor="middle" class="soft">0</text>
+<rect x="61.0" y="18.6" width="18" height="41.4" class="fill-unit"/>
+<text x="70.0" y="74.0" font-size="11" text-anchor="middle" class="soft">1</text>
+<text x="100.0" y="74.0" font-size="11" text-anchor="middle" class="soft">2</text>
+<text x="130.0" y="74.0" font-size="11" text-anchor="middle" class="soft">3</text>
+<text x="160.0" y="74.0" font-size="11" text-anchor="middle" class="soft">4</text>
+<rect x="181.0" y="18.6" width="18" height="41.4" class="fill-unit"/>
+<text x="190.0" y="74.0" font-size="11" text-anchor="middle" class="soft">5</text>
+<text x="220.0" y="74.0" font-size="11" text-anchor="middle" class="soft">6</text>
+<text x="250.0" y="74.0" font-size="11" text-anchor="middle" class="soft">7</text>
+<text x="276.0" y="36.0" font-size="13" text-anchor="start">ψ = (|1⟩+|5⟩)/√2</text>
+<text x="276.0" y="54.0" font-size="12" text-anchor="start" class="soft">½ on each</text>
+<line x1="28.0" y1="150.0" x2="262.0" y2="150.0" class="rule" stroke-width="1"/>
+<text x="40.0" y="164.0" font-size="11" text-anchor="middle" class="soft">0</text>
+<text x="70.0" y="164.0" font-size="11" text-anchor="middle" class="soft">1</text>
+<text x="100.0" y="164.0" font-size="11" text-anchor="middle" class="soft">2</text>
+<rect x="121.0" y="108.6" width="18" height="41.4" class="fill-alt"/>
+<text x="130.0" y="164.0" font-size="11" text-anchor="middle" class="soft">3</text>
+<text x="160.0" y="164.0" font-size="11" text-anchor="middle" class="soft">4</text>
+<text x="190.0" y="164.0" font-size="11" text-anchor="middle" class="soft">5</text>
+<text x="220.0" y="164.0" font-size="11" text-anchor="middle" class="soft">6</text>
+<rect x="241.0" y="108.6" width="18" height="41.4" class="fill-alt"/>
+<text x="250.0" y="164.0" font-size="11" text-anchor="middle" class="soft">7</text>
+<text x="276.0" y="126.0" font-size="13" text-anchor="start">T₂ψ = (|3⟩+|7⟩)/√2</text>
+<text x="276.0" y="144.0" font-size="12" text-anchor="start" class="soft">½ on each</text>
+<line x1="28.0" y1="240.0" x2="262.0" y2="240.0" class="rule" stroke-width="1"/>
+<rect x="31.0" y="219.3" width="18" height="20.7" class="fill-accent"/>
+<text x="40.0" y="254.0" font-size="11" text-anchor="middle" class="soft">0</text>
+<text x="70.0" y="254.0" font-size="11" text-anchor="middle" class="soft">1</text>
+<rect x="91.0" y="219.3" width="18" height="20.7" class="fill-accent"/>
+<text x="100.0" y="254.0" font-size="11" text-anchor="middle" class="soft">2</text>
+<text x="130.0" y="254.0" font-size="11" text-anchor="middle" class="soft">3</text>
+<rect x="151.0" y="219.3" width="18" height="20.7" class="fill-accent"/>
+<text x="160.0" y="254.0" font-size="11" text-anchor="middle" class="soft">4</text>
+<text x="190.0" y="254.0" font-size="11" text-anchor="middle" class="soft">5</text>
+<rect x="211.0" y="219.3" width="18" height="20.7" class="fill-accent"/>
+<text x="220.0" y="254.0" font-size="11" text-anchor="middle" class="soft">6</text>
+<text x="250.0" y="254.0" font-size="11" text-anchor="middle" class="soft">7</text>
+<text x="276.0" y="216.0" font-size="13" text-anchor="start">|F₈ψ|² = |F₈T₂ψ|²</text>
+<text x="276.0" y="234.0" font-size="12" text-anchor="start" class="soft">¼ on each even k</text>
+</svg>
+        <p class="cap">$\mathbb Z_8$: a state on the coset $\{1, 5\}$ of the subgroup $\{0, 4\}$, and its shift by 2. After $F_8$ both give $\tfrac14$ on each even $k$; total $4\cdot\tfrac14 = 1$ ✓.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The example in the figure, computed.</b> $F_8\tfrac1{\sqrt2}(\ket1 + \ket5) = \tfrac14\sum_k(\omega^k + \omega^{5k})\ket k = \tfrac14\sum_k\omega^k(1 + (-1)^k)\ket k$,
+    since $\omega^{4k} = (-1)^k$. Odd $k$ cancel; even $k$ have amplitude $\omega^k/2$ and probability $\tfrac14$. The shifted state gives
+    $\tfrac14\sum_k\omega^{3k}(1 + (-1)^k)\ket k$: the same moduli, different phases, exactly as the theorem says with $D_2 = \mathrm{diag}(\omega^{2k})$.</p>
+    <p><b>Why this is the engine.</b> Unit 14's Simon algorithm produced, after the query and a measurement of the second register, a
+    state $\tfrac1{\sqrt2}(\ket x + \ket{x\oplus s})$ with $x$ uniformly random and unknown. That is a translate of the subgroup state
+    $\tfrac1{\sqrt2}(\ket0 + \ket s)$. By this theorem the random $x$ disappears from the outcome distribution after $H^{\otimes n}$, and what is
+    left depends only on the subgroup $\{0, s\}$: it is supported on the characters trivial on it, $y\cdot s = 0$. Unit 16 replaces
+    $\mathbb Z_2^n$ by $\mathbb Z_N$ and $\{0, s\}$ by the multiples of a period $r$, and the same theorem puts the outcomes near multiples
+    of $N/r$. The figure is the smallest instance: subgroup $\{0, 4\}$, period 4, outcomes the multiples of $8/4 = 2$.</p>
+    <p><b>The converse, for completeness.</b> $F_G$ also turns multiplication by a character into a shift of the label: $F_G\,(\psi\cdot) = T\,F_G$,
+    the dual statement. It is not needed in this unit.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the transform</p>
+  <h2>On $\mathbb Z_{2^n}$, a basis state goes to a product state</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">binary fraction</span></span>
+        <p class="small">For bits $j_l, \dots, j_n$: $\ 0.j_lj_{l+1}\cdots j_n = \dfrac{j_l}2 + \dfrac{j_{l+1}}4 + \cdots + \dfrac{j_n}{2^{n-l+1}}$.</p>
+        <p class="small">Write $j\in\{0, \dots, 2^n - 1\}$ as $j = j_12^{n-1} + \cdots + j_n$: $j_1$ the most significant bit, on qubit 0.</p>
+      </div>
+      <div class="box thm"><span class="label">the <span class="term">product formula</span></span>
+        $$F_{2^n}\ket j = \bigotimes_{l=1}^{n}\frac{\ket0 + e^{2\pi i\,0.j_{n-l+1}\cdots j_n}\ket1}{\sqrt2},$$
+        <p class="small">factor $l$ on qubit $l - 1$: qubit 0 carries $0.j_n$, the last qubit carries $0.j_1j_2\cdots j_n$.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>A product state</b>: Schmidt rank 1 across every cut (unit 03). A Fourier transform of $2^n$ numbers, and the result is $n$ unentangled qubits, each on the Bloch equator. Each factor has norm $\tfrac1{\sqrt2}\sqrt{1 + 1} = 1$ ✓.</p>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">$j = 0$: every phase is $0$, so $F\ket0 = \ket+^{\otimes n}$, the uniform superposition — column 0 of the table ✓.</p>
+        <p class="small">$n = 1$: $F_2\ket{j_1} = \tfrac1{\sqrt2}(\ket0 + e^{i\pi j_1}\ket1) = \tfrac1{\sqrt2}(\ket0 + (-1)^{j_1}\ket1) = H\ket{j_1}$ ✓.</p>
+        <p class="small">$j = 2^{n-1}$ ($j_1 = 1$, rest 0): only the last factor has a phase, $e^{i\pi} = -1$; so $F\ket{10\cdots0} = \ket+^{\otimes(n-1)}\ket-$ ✓, the state $\sum_k(-1)^k\ket k/\sqrt{2^n}$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why it matters.</b> A circuit acts on qubits; a product state is $n$ separate one-qubit states, so it can be built one qubit at a
+    time. The next section turns this formula, read factor by factor, into gates. Nothing like it holds for a general unitary on $2^n$
+    dimensions: unit 10's count says most need $\Omega(4^n)$ gates. The QFT is one of the rare exceptions, and the product formula is the
+    reason.</p>
+    <p><b>The pattern of the phases.</b> Qubit 0 (the most significant output bit) sees only $j_n$, the parity of $j$; qubit 1 sees the last
+    two bits, and so on. The least significant output qubit sees all of $j$. Read on the Bloch sphere, each factor is a point on the
+    equator at longitude $2\pi\cdot0.j_{n-l+1}\cdots j_n$.</p>
+    <p><b>Third check, in the table.</b> For $n = 3$, $j = 4 = 100$: $F_8\ket4 = \ket+\ket+\ket-$, whose amplitude on $\ket k$ is $(-1)^{k_3}/\sqrt8 = (-1)^k/\sqrt8$ —
+    column 4 of <i>$F_8$, entry by entry</i>.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the transform</p>
+  <h2>Proof of the product formula</h2>
+  <div class="box proof"><span class="label">expand $k$ in binary</span>
+  <div class="cols">
+    <div>
+      <p class="small">Write $k = \sum_{l=1}^nk_l2^{n-l}$, $k_l\in\{0, 1\}$, with $k_l$ on qubit $l - 1$, so $\ket k = \ket{k_1}\cdots\ket{k_n}$. Then $\dfrac{jk}{2^n} = \sum_l\dfrac{jk_l}{2^l}$ and</p>
+      $$F\ket j = \frac1{2^{n/2}}\sum_{k_1, \dots, k_n}\ \bigotimes_{l=1}^n e^{2\pi i\,jk_l/2^l}\ket{k_l} .$$
+      <p class="small">The sum over $k$ is a sum over each $k_l$ independently, so it factorises:</p>
+      $$F\ket j = \frac1{2^{n/2}}\bigotimes_{l=1}^n\big(\ket0 + e^{2\pi i\,j/2^l}\ket1\big) .$$
+    </div>
+    <div>
+      <p class="small"><b>The last step.</b> Dividing $j$ by $2^l$ moves the binary point $l$ places left:</p>
+      $$\frac{j}{2^l} = \underbrace{j_1\cdots j_{n-l}}_{\text{an integer}}.\,j_{n-l+1}\cdots j_n ,$$
+      <p class="small">and $e^{2\pi i\cdot\text{integer}} = 1$. So $e^{2\pi ij/2^l} = e^{2\pi i\,0.j_{n-l+1}\cdots j_n}$, which is the formula. ∎</p>
+      <p class="small muted">Every step is an identity of finite sums; the only idea is that $e^{2\pi i x}$ forgets the integer part of $x$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The factorisation, in detail.</b> For any vectors, $\sum_{k_1, \dots, k_n}a_1(k_1)\ket{k_1}\otimes\cdots\otimes a_n(k_n)\ket{k_n} =
+    \big(\sum_{k_1}a_1(k_1)\ket{k_1}\big)\otimes\cdots\otimes\big(\sum_{k_n}a_n(k_n)\ket{k_n}\big)$ by multilinearity of $\otimes$ (unit 03). Here
+    $a_l(k_l) = e^{2\pi ijk_l/2^l}$, which depends on $k_l$ alone — that is what the binary expansion of $k$ bought. The analogous
+    expansion of $j$ is what reduces each phase to a binary fraction.</p>
+    <p><b>Where the course's conventions enter.</b> Qubit 0 is the most significant bit of both $j$ and $k$, so $\ket k = \ket{k_1}\cdots\ket{k_n}$
+    with $k_1$ the coefficient of $2^{n-1}$, and $k_l$ meets $2^{-l}$. With the opposite order (Qiskit's) the factors appear in the
+    opposite order. The sign $+2\pi i$ is the course's; with $-2\pi i$ every phase is conjugated.</p>
+    <p><b>History.</b> The product formula is implicit in Coppersmith's 1994 report and in Shor's paper; the form here, with the
+    binary-fraction notation, is from Cleve, Ekert, Macchiavello and Mosca (1998) and Nielsen and Chuang §5.1. The classical fast Fourier
+    transform rests on the same factorisation, applied to vectors instead of states.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the transform · example</p>
+  <h2>Worked: the product formula at $\ket5$</h2>
+  <div class="box ex"><span class="label">$n = 3$, $j = 5 = 101$: $\ j_1 = 1, j_2 = 0, j_3 = 1$; $\ \omega = e^{2\pi i/8}$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The three phases.</b></p>
+      <p class="small">qubit 0: $0.j_3 = 0.1 = \tfrac12$, so $e^{i\pi} = -1$;<br>
+      qubit 1: $0.j_2j_3 = 0.01 = \tfrac14$, so $e^{i\pi/2} = i$;<br>
+      qubit 2: $0.j_1j_2j_3 = 0.101 = \tfrac58$, so $e^{2\pi i\cdot5/8} = \omega^5$.</p>
+      <p class="small"><b>2. The state.</b></p>
+      $$\begin{aligned}F_8\ket5 = \tfrac1{2\sqrt2}\,&amp;(\ket0 - \ket1)\\ &amp;\otimes(\ket0 + i\ket1)\otimes(\ket0 + \omega^5\ket1).\end{aligned}$$
+      <p class="small"><b>3. Against the table.</b> The coefficient of $\ket{k_1k_2k_3}$ is $(-1)^{k_1}i^{k_2}\omega^{5k_3}/\sqrt8 = \omega^{4k_1 + 2k_2 + 5k_3}/\sqrt8$. Column 5 wants $\omega^{5k}$, and $5k = 20k_1 + 10k_2 + 5k_3\equiv4k_1 + 2k_2 + 5k_3 \pmod 8$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 170" width="440" role="img" aria-label="three circles, one per output qubit of F applied to ket 5; each shows the relative phase of ket 1 against ket 0 as an arrow: qubit 0 at half a turn, minus 1; qubit 1 at a quarter turn, i; qubit 2 at five eighths of a turn, omega to the 5">
+<circle cx="75" cy="70" r="48" fill="none" class="rule" stroke-width="1.4"/>
+<line x1="75.0" y1="70.0" x2="123.0" y2="70.0" class="rule" stroke-width="1"/>
+<line x1="75.0" y1="70.0" x2="27.0" y2="70.0" class="unit" stroke-width="2.4"/>
+<circle cx="27.0" cy="70.0" r="5" class="fill-unit"/>
+<text x="11.0" y="75.0" font-size="14" text-anchor="middle" class="halo">−1</text>
+<text x="75.0" y="142.0" font-size="13" text-anchor="middle">qubit 0</text>
+<text x="75.0" y="160.0" font-size="12" text-anchor="middle" class="soft">0.j₃ = 0.1</text>
+<circle cx="220" cy="70" r="48" fill="none" class="rule" stroke-width="1.4"/>
+<line x1="220.0" y1="70.0" x2="268.0" y2="70.0" class="rule" stroke-width="1"/>
+<line x1="220.0" y1="70.0" x2="220.0" y2="22.0" class="unit" stroke-width="2.4"/>
+<circle cx="220.0" cy="22.0" r="5" class="fill-unit"/>
+<text x="234.0" y="14.0" font-size="14" text-anchor="middle" class="halo">i</text>
+<text x="220.0" y="142.0" font-size="13" text-anchor="middle">qubit 1</text>
+<text x="220.0" y="160.0" font-size="12" text-anchor="middle" class="soft">0.j₂j₃ = 0.01</text>
+<circle cx="365" cy="70" r="48" fill="none" class="rule" stroke-width="1.4"/>
+<line x1="365.0" y1="70.0" x2="413.0" y2="70.0" class="rule" stroke-width="1"/>
+<line x1="365.0" y1="70.0" x2="331.1" y2="103.9" class="unit" stroke-width="2.4"/>
+<circle cx="331.1" cy="103.9" r="5" class="fill-unit"/>
+<text x="315.1" y="121.9" font-size="14" text-anchor="middle" class="halo">ω⁵</text>
+<text x="365.0" y="142.0" font-size="13" text-anchor="middle">qubit 2</text>
+<text x="365.0" y="160.0" font-size="12" text-anchor="middle" class="soft">0.j₁j₂j₃ = 0.101</text>
+</svg>
+        <p class="cap">$F_8\ket5$ as three equator points: $\tfrac12$, $\tfrac14$ and $\tfrac58$ of a turn.</p>
+      </div>
+      <p class="small"><b>4. One entry by hand.</b> $k = 3 = 011$: $(+1)(i)(\omega^5) = \omega^2\omega^5 = \omega^7$; the table's row 3, column 5 says $15\bmod8 = 7$ ✓.</p>
+      <p class="small"><b>5. Norm.</b> Three factors of norm $\sqrt2$ times $\tfrac1{2\sqrt2}$: $1$ ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 3 is the general proof in miniature.</b> $\omega^{5k}$ factorises because $k = 4k_1 + 2k_2 + k_3$, and $\omega^{5\cdot4} = \omega^{20} = \omega^4 = -1$,
+    $\omega^{5\cdot2} = \omega^{10} = \omega^2 = i$. The integer parts that the proof throws away are, here, the multiples of 8 dropped from 20 and
+    10.</p>
+    <p><b>Numerically.</b> $\omega^5 = e^{5\pi i/4} = -\tfrac{1+i}{\sqrt2} \approx -0.7071 - 0.7071i$.</p>
+    <p><b>The <span class="ref" data-ref="five">product state</span> is unentangled</b>: measuring qubit 0 alone gives 0 or 1 with probability $\tfrac12$ each, independently of the
+    others, as for every basis input. All information about $j$ is in the relative phases, which no single computational-basis
+    measurement sees. That is the first hint of why the transform cannot be read out.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>The circuit</h2>
+  <p>The product formula read as instructions: $n$ Hadamards, $n(n-1)/2$ controlled phases, $\lfloor n/2\rfloor$ swaps.</p>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit</p>
+  <h2>Two gates build every factor</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">controlled phase rotation</span> $R_k$</span>
+        $$R_k = \begin{pmatrix}1 &amp; 0\\ 0 &amp; e^{2\pi i/2^k}\end{pmatrix} = P(2\pi/2^k),$$
+        <p class="small">unit 10's phase gate: diagonal with entries of modulus 1, so unitary ✓. $R_1 = Z$, $R_2 = S$, $R_3 = T$. Controlled, $C(R_k) = \mathrm{diag}(1, 1, 1, e^{2\pi i/2^k})$: it puts a phase on $\ket{11}$ only, so it is <b>symmetric</b> in its two qubits.</p>
+      </div>
+      <p class="small"><b>(a)</b> $H\ket{j_l} = \tfrac1{\sqrt2}(\ket0 + e^{2\pi i\,0.j_l}\ket1)$, since $e^{2\pi i\,j_l/2} = (-1)^{j_l}$.</p>
+      <p class="small"><b>(b)</b> If the target is $\tfrac1{\sqrt2}(\ket0 + e^{2\pi i\theta}\ket1)$ and the control holds the bit $b$, $C(R_k)$ makes it $\tfrac1{\sqrt2}(\ket0 + e^{2\pi i(\theta + b/2^k)}\ket1)$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 210" width="460" role="img" aria-label="one qubit holding bit j l: H puts the phase 0.j l on it; a controlled R2 from the qubit holding j l plus 1 extends the phase to 0.j l j l plus 1; a controlled R3 from the next qubit extends it to three digits">
+<line x1="70.0" y1="36.0" x2="430.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<line x1="70.0" y1="96.0" x2="430.0" y2="96.0" class="ink" stroke-width="1.6"/>
+<line x1="70.0" y1="156.0" x2="430.0" y2="156.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="41.0" font-size="14" text-anchor="end">|jₗ⟩</text>
+<text x="62.0" y="101.0" font-size="14" text-anchor="end">|jₗ₊₁⟩</text>
+<text x="62.0" y="161.0" font-size="14" text-anchor="end">|jₗ₊₂⟩</text>
+<rect x="92.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="110.0" y="41.0" font-size="15" text-anchor="middle">H</text>
+<line x1="220.0" y1="96.0" x2="220.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<circle cx="220.0" cy="96.0" r="5.5" class="fill-ink"/>
+<rect x="202.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="220.0" y="41.0" font-size="15" text-anchor="middle">R₂</text>
+<line x1="330.0" y1="156.0" x2="330.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<circle cx="330.0" cy="156.0" r="5.5" class="fill-ink"/>
+<rect x="312.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="330.0" y="41.0" font-size="15" text-anchor="middle">R₃</text>
+<text x="165.0" y="22.0" font-size="12" text-anchor="middle" class="fill-accent">0.jₗ</text>
+<text x="275.0" y="22.0" font-size="12" text-anchor="middle" class="fill-accent">0.jₗjₗ₊₁</text>
+<text x="385.0" y="22.0" font-size="12" text-anchor="middle" class="fill-accent">0.jₗjₗ₊₁jₗ₊₂</text>
+<text x="250.0" y="196.0" font-size="12" text-anchor="middle" class="soft">each controlled Rₖ appends one binary digit to the phase</text>
+</svg>
+        <p class="cap">$H$ writes the first digit; each $C(R_k)$ from the qubit $k - 1$ places below appends the next.</p>
+      </div>
+      <p class="small"><b>So</b> $0.j_l$, then $+\tfrac{j_{l+1}}4$, then $+\tfrac{j_{l+2}}8$: after $H$ and $C(R_2), \dots, C(R_{n-l+1})$, the qubit holding $j_l$ carries $0.j_lj_{l+1}\cdots j_n$, and the controls are untouched.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Proof of (b).</b> $C(R_k)$ is diagonal in the computational basis of both qubits; on $\ket a\ket b$ it multiplies by $e^{2\pi i\,ab/2^k}$. With
+    the control in $\ket b$ and the target $\tfrac1{\sqrt2}(\ket0 + e^{2\pi i\theta}\ket1)$, the $\ket0$ term is unchanged and the $\ket1$ term gains
+    $e^{2\pi ib/2^k}$. The control is untouched, because the gate is diagonal. This is phase kickback (unit 13) in the case where the
+    "eigenvector" is a basis state and the "eigenvalue" depends on its bit.</p>
+    <p><b>Why symmetric matters.</b> Drawing $R_k$ on the upper wire with the dot on the lower one, or the other way round, is the same gate.
+    Circuits in the literature draw it both ways; nothing changes.</p>
+    <p><b>Order of operations.</b> The rotations on the qubit holding $j_l$ use the bits $j_{l+1}, \dots, j_n$ as controls, so those qubits must
+    still hold their input bits. That is why the circuit treats qubit 0 first, then qubit 1, and so on: by the time a qubit is
+    transformed, every qubit that still needs it as a control has finished.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit · running example</p>
+  <h2>The three-qubit QFT</h2>
+  <div class="fig">
+    <svg viewBox="0 0 630 215" width="630" role="img" aria-label="the three-qubit QFT circuit, qubit 0 on top: H on qubit 0, then R2 on qubit 0 controlled by qubit 1, then R3 on qubit 0 controlled by qubit 2; H on qubit 1, then R2 on qubit 1 controlled by qubit 2; H on qubit 2; finally a swap of qubits 0 and 2. The outputs carry the phases 0.j3, 0.j2j3 and 0.j1j2j3 from top to bottom">
+<line x1="70.0" y1="40.0" x2="540.0" y2="40.0" class="ink" stroke-width="1.6"/>
+<line x1="70.0" y1="100.0" x2="540.0" y2="100.0" class="ink" stroke-width="1.6"/>
+<line x1="70.0" y1="160.0" x2="540.0" y2="160.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="45.0" font-size="14" text-anchor="end">|j₁⟩</text>
+<text x="62.0" y="105.0" font-size="14" text-anchor="end">|j₂⟩</text>
+<text x="62.0" y="165.0" font-size="14" text-anchor="end">|j₃⟩</text>
+<rect x="92.0" y="24.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="110.0" y="45.0" font-size="15" text-anchor="middle">H</text>
+<line x1="170.0" y1="100.0" x2="170.0" y2="40.0" class="ink" stroke-width="1.6"/>
+<circle cx="170.0" cy="100.0" r="5.5" class="fill-ink"/>
+<rect x="152.0" y="24.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="170.0" y="45.0" font-size="15" text-anchor="middle">R₂</text>
+<line x1="230.0" y1="160.0" x2="230.0" y2="40.0" class="ink" stroke-width="1.6"/>
+<circle cx="230.0" cy="160.0" r="5.5" class="fill-ink"/>
+<rect x="212.0" y="24.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="230.0" y="45.0" font-size="15" text-anchor="middle">R₃</text>
+<rect x="272.0" y="84.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="290.0" y="105.0" font-size="15" text-anchor="middle">H</text>
+<line x1="350.0" y1="160.0" x2="350.0" y2="100.0" class="ink" stroke-width="1.6"/>
+<circle cx="350.0" cy="160.0" r="5.5" class="fill-ink"/>
+<rect x="332.0" y="84.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="350.0" y="105.0" font-size="15" text-anchor="middle">R₂</text>
+<rect x="392.0" y="144.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="410.0" y="165.0" font-size="15" text-anchor="middle">H</text>
+<line x1="490.0" y1="40.0" x2="490.0" y2="160.0" class="ink" stroke-width="1.6"/>
+<line x1="483.0" y1="33.0" x2="497.0" y2="47.0" class="ink" stroke-width="1.6"/>
+<line x1="483.0" y1="47.0" x2="497.0" y2="33.0" class="ink" stroke-width="1.6"/>
+<line x1="483.0" y1="153.0" x2="497.0" y2="167.0" class="ink" stroke-width="1.6"/>
+<line x1="483.0" y1="167.0" x2="497.0" y2="153.0" class="ink" stroke-width="1.6"/>
+<line x1="452.0" y1="14.0" x2="452.0" y2="186.0" class="rule" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="548.0" y="45.0" font-size="13" text-anchor="start">0.j₃</text>
+<text x="548.0" y="105.0" font-size="13" text-anchor="start">0.j₂j₃</text>
+<text x="548.0" y="165.0" font-size="13" text-anchor="start">0.j₁j₂j₃</text>
+<text x="300.0" y="204.0" font-size="12" text-anchor="middle" class="soft">at the dashed line: 0.j₁j₂j₃ on top, 0.j₂j₃, 0.j₃ at the bottom</text>
+</svg>
+    <p class="cap wide"><span class="ref" data-ref="qft3">The circuit</span>, qubit 0 on top, time left to right: $H$; $C(R_2)$ and $C(R_3)$ onto qubit 0; $H$; $C(R_2)$ onto qubit 1; $H$; one swap.</p>
+  </div>
+  <div class="cols three">
+    <div><p class="small"><b>Qubit 0</b> (holds $j_1$): $H$, then $R_2$ controlled by $j_2$, $R_3$ by $j_3$. It ends with $0.j_1j_2j_3$.</p></div>
+    <div><p class="small"><b>Qubit 1</b> ($j_2$): $H$, then $R_2$ controlled by $j_3$: $0.j_2j_3$. <b>Qubit 2</b> ($j_3$): $H$ alone: $0.j_3$.</p></div>
+    <div><p class="small"><b>Count:</b> 3 $H$, 3 controlled phases, 1 swap (3 CNOTs, unit 10). The phases sit in reverse order — hence the swap.</p></div>
+  </div>
+  <aside class="notes">
+    <p><b>As a product of matrices</b>, in the course's right-to-left order:
+    $F_8 = \mathrm{SWAP}_{02}\,H_2\,C_{21}(R_2)\,H_1\,C_{20}(R_3)\,C_{10}(R_2)\,H_0$, where $C_{cq}(R_k)$ has control $c$ and target $q$ and
+    $H_q$ acts on qubit $q$. Every factor is unitary, so the product is.</p>
+    <p><b>Which gates are which.</b> $R_2 = S$ and $R_3 = T$, so this circuit is $H$, $C(S)$, $C(T)$, $H$, $C(S)$, $H$, SWAP. Unit 10's problem P7
+    built $C(S)$ from CNOTs and $T$-type gates; $C(T)$ needs gates of angle $\pi/8$, which unit 11 prices.</p>
+    <p><b>The swap</b> is not decoration: without it, the circuit computes $F_8$ followed by the bit reversal of the output label. The
+    next slides check the circuit against the matrix, then say exactly where the swaps go and why sources disagree.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit · example</p>
+  <h2>Worked: the circuit equals $F_8$</h2>
+  <div class="box ex"><span class="label">input $\ket{j_1j_2j_3}$, a basis state; write $\ket{\theta} = \tfrac1{\sqrt2}(\ket0 + e^{2\pi i\theta}\ket1)$</span>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th>after</th><th>qubit 0</th><th>qubit 1</th><th>qubit 2</th></tr></thead>
+        <tbody>
+          <tr><td>input</td><td>$\ket{j_1}$</td><td>$\ket{j_2}$</td><td>$\ket{j_3}$</td></tr>
+          <tr><td>$H_0$</td><td>$\ket{0.j_1}$</td><td>$\ket{j_2}$</td><td>$\ket{j_3}$</td></tr>
+          <tr><td>$C_{10}(R_2)$</td><td>$\ket{0.j_1j_2}$</td><td>$\ket{j_2}$</td><td>$\ket{j_3}$</td></tr>
+          <tr><td>$C_{20}(R_3)$</td><td>$\ket{0.j_1j_2j_3}$</td><td>$\ket{j_2}$</td><td>$\ket{j_3}$</td></tr>
+          <tr><td>$H_1$</td><td>$\ket{0.j_1j_2j_3}$</td><td>$\ket{0.j_2}$</td><td>$\ket{j_3}$</td></tr>
+          <tr><td>$C_{21}(R_2)$</td><td>$\ket{0.j_1j_2j_3}$</td><td>$\ket{0.j_2j_3}$</td><td>$\ket{j_3}$</td></tr>
+          <tr><td>$H_2$</td><td>$\ket{0.j_1j_2j_3}$</td><td>$\ket{0.j_2j_3}$</td><td>$\ket{0.j_3}$</td></tr>
+          <tr><td>SWAP$_{02}$</td><td>$\ket{0.j_3}$</td><td>$\ket{0.j_2j_3}$</td><td>$\ket{0.j_1j_2j_3}$</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <p class="small"><b>1.</b> Each row uses (a) or (b) of <i>Two gates build every factor</i>. The state stays a product throughout.</p>
+      <p class="small"><b>2.</b> The last row is the product formula for $n = 3$. It holds for all eight $j$, and two linear maps that agree on a basis are equal: <b>circuit $= F_8$</b>.</p>
+      <p class="small"><b>3. Spot check, $j = 5$.</b> Before the swap: $0.101 = \tfrac58$ on qubit 0, $0.01 = \tfrac14$ on qubit 1, $0.1 = \tfrac12$ on qubit 2. After it: $(-1)$, $(i)$, $(\omega^5)$ from the top — <span class="ref" data-ref="five">the worked $\ket5$</span> ✓.</p>
+      <p class="small"><b>4. Spot check, $j = 0$:</b> every phase 0, every qubit $\ket+$: column 0 ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why a table of states and not an $8\times8$ product.</b> Multiplying seven $8\times8$ matrices by hand is possible and error-prone;
+    tracking a general basis input through the gates proves all 64 entries at once, because each gate maps a product of
+    equator states and basis states to another such product. Problem P5 does the same for four qubits, and its referee block multiplies
+    the matrices for you.</p>
+    <p><b>Uniqueness by linearity.</b> A linear map on $\mathbb C^8$ is determined by its values on the eight basis vectors; the circuit and
+    $F_8$ have the same values, so they are the same matrix, entry for entry, including the global phase.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit</p>
+  <h2>Where the swaps go</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 520 205" width="520" role="img" aria-label="left, what each qubit holds after the Hadamards and rotations: qubit 0 holds 0.j1j2j3, qubit 1 holds 0.j2j3, qubit 2 holds 0.j3. Right, what the product formula wants: the reverse. Crossing lines join qubit 0 to qubit 2: one swap">
+<text x="40.0" y="45.0" font-size="13" text-anchor="end" class="mono">q0</text>
+<text x="60.0" y="45.0" font-size="14" text-anchor="start">0.j₁j₂j₃</text>
+<text x="400.0" y="45.0" font-size="14" text-anchor="start">0.j₃</text>
+<text x="40.0" y="100.0" font-size="13" text-anchor="end" class="mono">q1</text>
+<text x="60.0" y="100.0" font-size="14" text-anchor="start">0.j₂j₃</text>
+<text x="400.0" y="100.0" font-size="14" text-anchor="start">0.j₂j₃</text>
+<text x="40.0" y="155.0" font-size="13" text-anchor="end" class="mono">q2</text>
+<text x="60.0" y="155.0" font-size="14" text-anchor="start">0.j₃</text>
+<text x="400.0" y="155.0" font-size="14" text-anchor="start">0.j₁j₂j₃</text>
+<line x1="150.0" y1="40.0" x2="390.0" y2="150.0" class="accent" stroke-width="1.8"/>
+<line x1="150.0" y1="150.0" x2="390.0" y2="40.0" class="accent" stroke-width="1.8"/>
+<line x1="150.0" y1="95.0" x2="390.0" y2="95.0" class="rule" stroke-width="1.4"/>
+<text x="100.0" y="190.0" font-size="12" text-anchor="middle" class="soft">after the H and Rₖ</text>
+<text x="440.0" y="190.0" font-size="12" text-anchor="middle" class="soft">what the formula wants</text>
+</svg>
+        <p class="cap">Before the swaps, qubit $l - 1$ holds $0.j_l\cdots j_n$; the formula wants it on qubit $n - l$.</p>
+      </div>
+      <p class="small"><b>Derived in the course's order</b> (qubit 0 the most significant bit of input and output): the gates finish qubit $l - 1$ with $0.j_l\cdots j_n$, but factor $l$ of the product formula, $0.j_{n-l+1}\cdots j_n$, belongs on qubit $l - 1$. The two orders are reverses, so the circuit ends with swaps of qubits $q$ and $n - 1 - q$ for $q \lt n/2$: $\lfloor n/2\rfloor$ swaps.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">sources differ</span>
+        <p class="small"><b>Nielsen and Chuang</b> (Fig. 5.1) number qubits as this course does and also end with swaps — left undrawn, named in the caption.</p>
+        <p class="small"><b>Qiskit</b> makes qubit 0 the <i>least</i> significant bit, so its drawn circuit is the mirror image, rotations aimed the other way.</p>
+        <p class="small"><b>Many implementations omit the swaps</b> and read the output register backwards: a relabelling costs no gates. Phase estimation can do the same.</p>
+        <p class="small">Before reusing a circuit, check its qubit order and its sign against $F\ket1 = 2^{-n/2}\sum_k\omega^k\ket k$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The check suggested in the box.</b> $F\ket1$, $j = 0\cdots01$: by the product formula qubit $l - 1$ carries $0.0\cdots01$ with
+    $l$ digits, i.e. phase $e^{2\pi i/2^l}$. So qubit 0 carries $-1$, qubit 1 carries $i$, and the last qubit carries $\omega$. A circuit with the
+    swaps missing puts $\omega$ on qubit 0 instead; a circuit with the opposite sign puts $\bar\omega$ on the last qubit. One input
+    distinguishes all four possibilities.</p>
+    <p><b>Swaps first instead?</b> Reversing the qubits <i>before</i> the gates is a different circuit: it would need the rotations aimed the
+    other way (from the top qubits down) to produce the same matrix. Either arrangement is correct if derived; mixing them is the common
+    error.</p>
+    <p><b>Cost.</b> A swap is three CNOTs (unit 10, problem P1), so the reversal costs $3\lfloor n/2\rfloor$ CNOTs, linear in $n$, negligible
+    beside the $n(n-1)/2$ rotations. In phase estimation and in Shor's algorithm the swaps are usually not built at all.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit</p>
+  <h2>The QFT on $n$ qubits</h2>
+  <div class="fig">
+    <svg viewBox="0 0 670 302" width="670" role="img" aria-label="the n-qubit QFT circuit: qubit 0 gets H then controlled R2, R3, up to Rn from qubits 1 to n minus 1; qubit 1 gets H then R2 up to R n minus 1; and so on down to a lone H on the last qubit; then swaps reverse the qubit order">
+<line x1="70.0" y1="36.0" x2="640.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="41.0" font-size="13" text-anchor="end" class="mono">q0</text>
+<line x1="70.0" y1="86.0" x2="640.0" y2="86.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="91.0" font-size="13" text-anchor="end" class="mono">q1</text>
+<line x1="70.0" y1="136.0" x2="640.0" y2="136.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="141.0" font-size="13" text-anchor="end" class="mono">q2</text>
+<line x1="70.0" y1="206.0" x2="640.0" y2="206.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="211.0" font-size="13" text-anchor="end" class="mono">qn−2</text>
+<line x1="70.0" y1="256.0" x2="640.0" y2="256.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="261.0" font-size="13" text-anchor="end" class="mono">qn−1</text>
+<text x="40.0" y="178.0" font-size="18" text-anchor="middle">⋮</text>
+<rect x="82.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="100.0" y="41.0" font-size="15" text-anchor="middle">H</text>
+<line x1="150.0" y1="86.0" x2="150.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<circle cx="150.0" cy="86.0" r="5.5" class="fill-ink"/>
+<rect x="132.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="150.0" y="41.0" font-size="15" text-anchor="middle">R₂</text>
+<line x1="200.0" y1="136.0" x2="200.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<circle cx="200.0" cy="136.0" r="5.5" class="fill-ink"/>
+<rect x="182.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="200.0" y="41.0" font-size="15" text-anchor="middle">R₃</text>
+<text x="240.0" y="41.0" font-size="16" text-anchor="middle">⋯</text>
+<line x1="282.0" y1="256.0" x2="282.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<circle cx="282.0" cy="256.0" r="5.5" class="fill-ink"/>
+<rect x="264.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="282.0" y="41.0" font-size="15" text-anchor="middle">Rₙ</text>
+<rect x="317.0" y="70.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="335.0" y="91.0" font-size="15" text-anchor="middle">H</text>
+<line x1="385.0" y1="136.0" x2="385.0" y2="86.0" class="ink" stroke-width="1.6"/>
+<circle cx="385.0" cy="136.0" r="5.5" class="fill-ink"/>
+<rect x="367.0" y="70.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="385.0" y="91.0" font-size="15" text-anchor="middle">R₂</text>
+<text x="425.0" y="91.0" font-size="16" text-anchor="middle">⋯</text>
+<line x1="470.0" y1="256.0" x2="470.0" y2="86.0" class="ink" stroke-width="1.6"/>
+<circle cx="470.0" cy="256.0" r="5.5" class="fill-ink"/>
+<rect x="447.0" y="70.0" width="46" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="470.0" y="91.0" font-size="15" text-anchor="middle">Rₙ₋₁</text>
+<text x="515.0" y="172.0" font-size="20" text-anchor="middle">⋯</text>
+<rect x="537.0" y="240.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="555.0" y="261.0" font-size="15" text-anchor="middle">H</text>
+<line x1="605.0" y1="36.0" x2="605.0" y2="256.0" class="ink" stroke-width="1.6"/>
+<line x1="598.0" y1="29.0" x2="612.0" y2="43.0" class="ink" stroke-width="1.6"/>
+<line x1="598.0" y1="43.0" x2="612.0" y2="29.0" class="ink" stroke-width="1.6"/>
+<line x1="598.0" y1="249.0" x2="612.0" y2="263.0" class="ink" stroke-width="1.6"/>
+<line x1="598.0" y1="263.0" x2="612.0" y2="249.0" class="ink" stroke-width="1.6"/>
+<rect x="80" y="10" width="222" height="264" rx="6" fill="none" class="accent" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="191.0" y="292.0" font-size="12" text-anchor="middle" class="soft">qubit 0: H, then n − 1 controlled phases</text>
+<text x="605.0" y="292.0" font-size="12" text-anchor="middle" class="soft">⌊n/2⌋ swaps</text>
+</svg>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: gate count</span>
+        <p class="small">$F_{2^n}$ is computed exactly by $n$ Hadamards, $\tfrac{n(n-1)}2$ controlled phases and $\lfloor n/2\rfloor$ swaps: $O(n^2)$ gates.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><i>Proof.</i> Qubit $l - 1$ needs the phase $0.j_l\cdots j_n$, of $n - l + 1$ digits: one $H$ and $n - l$ rotations $R_2, \dots, R_{n-l+1}$. Summing, $\sum_{l=1}^n(n - l) = \tfrac{n(n-1)}2$; the swaps are the previous slide's. ∎ <b>Check</b>, $n = 3$: $3$, $3$, $1$ — <span class="ref" data-ref="qft3">the running circuit</span> ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Correctness for general $n$</b> is the worked example's table with $n$ columns: qubit $q$ is untouched until its turn, then receives
+    $H$ and its rotations, whose controls (qubits $q + 1, \dots, n - 1$) still hold their input bits; afterwards it holds $0.j_{q+1}\cdots j_n$ and
+    is never touched again except by the final swaps. The reversal then produces the product formula.</p>
+    <p><b>Uniformity.</b> The circuit for $n$ qubits is written down by a simple loop over $q$ and $k$, so the family is uniform in the sense
+    of the assumed background: a Turing machine prints it in time polynomial in $n$. The gates are not from a finite set, since
+    $R_k$'s angle shrinks with $k$; unit 11 says how to approximate them, and the next slides show that most of them can simply be
+    dropped.</p>
+    <p><b>Depth.</b> As drawn the depth is $O(n^2)$. Gates on disjoint qubits can run in the same time step, and pipelining the rotations
+    brings the depth to $O(n)$; an approximate version reaches $O(\log n)$ (cited: R. Cleve and J. Watrous, "Fast parallel circuits for the
+    quantum Fourier transform", FOCS 2000). Not needed here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit</p>
+  <h2>Exponentially faster at a task nobody wants</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 450 265" width="450" role="img" aria-label="operation counts on a logarithmic scale against n from 1 to 40: the FFT's n times 2 to the n climbs steeply, past 10 to the 10 at n equals 30; the QFT's n(n+1)/2 gates stay below 10 to the 3; at n equals 30 the marked values are 3.2 times 10 to the 10 and 465">
+<line x1="60.0" y1="220.0" x2="420.0" y2="220.0" class="ink" stroke-width="1.2"/>
+<line x1="60.0" y1="220.0" x2="60.0" y2="20.0" class="ink" stroke-width="1.2"/>
+<line x1="56.0" y1="220.0" x2="60.0" y2="220.0" class="ink" stroke-width="1"/>
+<text x="52.0" y="224.0" font-size="11" text-anchor="end" class="soft">10⁰</text>
+<line x1="56.0" y1="191.4" x2="60.0" y2="191.4" class="ink" stroke-width="1"/>
+<text x="52.0" y="195.4" font-size="11" text-anchor="end" class="soft">10²</text>
+<line x1="56.0" y1="162.9" x2="60.0" y2="162.9" class="ink" stroke-width="1"/>
+<text x="52.0" y="166.9" font-size="11" text-anchor="end" class="soft">10⁴</text>
+<line x1="56.0" y1="134.3" x2="60.0" y2="134.3" class="ink" stroke-width="1"/>
+<text x="52.0" y="138.3" font-size="11" text-anchor="end" class="soft">10⁶</text>
+<line x1="56.0" y1="105.7" x2="60.0" y2="105.7" class="ink" stroke-width="1"/>
+<text x="52.0" y="109.7" font-size="11" text-anchor="end" class="soft">10⁸</text>
+<line x1="56.0" y1="77.1" x2="60.0" y2="77.1" class="ink" stroke-width="1"/>
+<text x="52.0" y="81.1" font-size="11" text-anchor="end" class="soft">10¹⁰</text>
+<line x1="56.0" y1="48.6" x2="60.0" y2="48.6" class="ink" stroke-width="1"/>
+<text x="52.0" y="52.6" font-size="11" text-anchor="end" class="soft">10¹²</text>
+<line x1="56.0" y1="20.0" x2="60.0" y2="20.0" class="ink" stroke-width="1"/>
+<text x="52.0" y="24.0" font-size="11" text-anchor="end" class="soft">10¹⁴</text>
+<line x1="60.0" y1="220.0" x2="60.0" y2="224.0" class="ink" stroke-width="1"/>
+<text x="60.0" y="238.0" font-size="11" text-anchor="middle" class="soft">0</text>
+<line x1="150.0" y1="220.0" x2="150.0" y2="224.0" class="ink" stroke-width="1"/>
+<text x="150.0" y="238.0" font-size="11" text-anchor="middle" class="soft">10</text>
+<line x1="240.0" y1="220.0" x2="240.0" y2="224.0" class="ink" stroke-width="1"/>
+<text x="240.0" y="238.0" font-size="11" text-anchor="middle" class="soft">20</text>
+<line x1="330.0" y1="220.0" x2="330.0" y2="224.0" class="ink" stroke-width="1"/>
+<text x="330.0" y="238.0" font-size="11" text-anchor="middle" class="soft">30</text>
+<line x1="420.0" y1="220.0" x2="420.0" y2="224.0" class="ink" stroke-width="1"/>
+<text x="420.0" y="238.0" font-size="11" text-anchor="middle" class="soft">40</text>
+<text x="240.0" y="256.0" font-size="12" text-anchor="middle" class="soft">n (qubits; the vector has 2ⁿ entries)</text>
+<path d="M 69.0 215.7 L 78.0 207.1 L 87.0 200.3 L 96.0 194.2 L 105.0 188.5 L 114.0 183.1 L 123.0 177.8 L 132.0 172.7 L 141.0 167.7 L 150.0 162.7 L 159.0 157.8 L 168.0 153.0 L 177.0 148.2 L 186.0 143.4 L 195.0 138.7 L 204.0 134.0 L 213.0 129.3 L 222.0 124.7 L 231.0 120.0 L 240.0 115.4 L 249.0 110.8 L 258.0 106.2 L 267.0 101.6 L 276.0 97.1 L 285.0 92.5 L 294.0 88.0 L 303.0 83.4 L 312.0 78.9 L 321.0 74.4 L 330.0 69.9 L 339.0 65.4 L 348.0 60.9 L 357.0 56.4 L 366.0 51.9 L 375.0 47.4 L 384.0 43.0 L 393.0 38.5 L 402.0 34.0 L 411.0 29.6 L 420.0 25.1" fill="none" class="accent" stroke-width="2.2"/>
+<path d="M 69.0 220.0 L 78.0 213.2 L 87.0 208.9 L 96.0 205.7 L 105.0 203.2 L 114.0 201.1 L 123.0 199.3 L 132.0 197.8 L 141.0 196.4 L 150.0 195.1 L 159.0 194.0 L 168.0 193.0 L 177.0 192.0 L 186.0 191.1 L 195.0 190.3 L 204.0 189.5 L 213.0 188.8 L 222.0 188.1 L 231.0 187.4 L 240.0 186.8 L 249.0 186.2 L 258.0 185.7 L 267.0 185.1 L 276.0 184.6 L 285.0 184.1 L 294.0 183.6 L 303.0 183.2 L 312.0 182.7 L 321.0 182.3 L 330.0 181.9 L 339.0 181.5 L 348.0 181.1 L 357.0 180.7 L 366.0 180.4 L 375.0 180.0 L 384.0 179.7 L 393.0 179.3 L 402.0 179.0 L 411.0 178.7 L 420.0 178.4" fill="none" class="unit" stroke-width="2.2"/>
+<text x="276.0" y="54.3" font-size="13" text-anchor="end" class="halo">FFT: n·2ⁿ</text>
+<text x="330.0" y="160.0" font-size="13" text-anchor="middle" class="halo">QFT: n(n+1)/2 gates</text>
+<circle cx="330.0" cy="69.9" r="4.5" class="fill-accent"/>
+<circle cx="330.0" cy="181.9" r="4.5" class="fill-unit"/>
+<text x="338.0" y="85.9" font-size="12" text-anchor="start" class="halo">3.2 × 10¹⁰</text>
+<text x="338.0" y="197.9" font-size="12" text-anchor="start" class="halo">465</text>
+</svg>
+        <p class="cap">The <span class="term">fast Fourier transform</span> on a $2^n$-vector against the QFT's gate count, log scale.</p>
+      </div>
+      <p class="small"><b>$n = 30$:</b> the QFT is $30$ $H$ + $435$ controlled phases $= 465$ gates (+ 15 swaps). The FFT (Cooley–Tukey 1965, cited) takes about $n2^n = 30\cdot2^{30}\approx3.2\times10^{10}$ operations.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">why the comparison misleads</span>
+        <p class="small"><b>1. You cannot read the output.</b> $F\ket\psi$ is a state. A measurement returns one $k$, with probability $|\braket{k|F|\psi}|^2$, and destroys the rest. Estimating one amplitude to $\pm\varepsilon$ takes about $1/\varepsilon^2$ fresh runs; there are $2^n$ amplitudes.</p>
+        <p class="small"><b>2. You cannot load the input.</b> An arbitrary $2^n$-vector needs exponentially many gates to prepare, by unit 10's parameter count.</p>
+        <p class="small"><b>3. So</b> the QFT pays only when the computation itself prepares the input, and the answer is concentrated on a few outcomes that one sample reveals. Phase estimation is the case where both hold.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> $n(n-1)/2 = 30\cdot29/2 = 435$ controlled phases, plus $30$ Hadamards, is $465$ gates; the $\lfloor30/2\rfloor = 15$ swaps
+    add 45 CNOTs if built. $30\cdot2^{30} = 32\,212\,254\,720\approx3.2\times10^{10}$. The FFT count is up to a constant: Cooley and Tukey's
+    radix-2 recursion does $N/2$ butterflies at each of $\log N$ levels, about $\tfrac12N\log N$ complex multiplications.</p>
+    <p><b>Cited: the FFT.</b> J. W. Cooley and J. W. Tukey, "An algorithm for the machine calculation of complex Fourier series",
+    <i>Math. Comp.</i> 19, 297, 1965. The idea: $F_N$ on a vector splits into $F_{N/2}$ on the even-indexed entries and $F_{N/2}$ on the odd ones,
+    recombined with $N/2$ multiplications by powers of $\omega$, so $T(N) = 2T(N/2) + O(N) = O(N\log N)$. The product formula is the same
+    splitting, one bit at a time.</p>
+    <p><b>Item 1, made precise.</b> By Chernoff–Hoeffding (assumed background), estimating a probability $p$ to $\pm\varepsilon$ with
+    confidence $1 - \delta$ needs $O(\log(1/\delta)/\varepsilon^2)$ independent samples, and each sample costs a fresh preparation of
+    $\ket\psi$ and a fresh QFT. Amplitude phases are harder still: they need interference with a reference.</p>
+    <p><b>Item 2.</b> Unit 10 counted parameters for unitaries; the same count for states — a normalised state up to phase has
+    $2^{n+1} - 2$ real parameters, and a circuit of $g$ two-qubit gates has at most $16g$ — shows most states need $\Omega(2^n)$ gates to
+    prepare from $\ket{0\cdots0}$.</p>
+    <p>The comparison is still a theorem worth having: no classical algorithm could even <i>write down</i> the output of a $2^n$-point
+    transform in fewer than $2^n$ steps, and the QFT produces it, in superposition, in $O(n^2)$. The art of quantum algorithms is
+    arranging for that superposition to be worth one measurement.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit</p>
+  <h2>The approximate QFT: most rotations can be dropped</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">The <span class="term">operator norm</span>: $\lVert A\rVert = \max_{\lVert v\rVert = 1}\lVert Av\rVert$. For diagonal $D$, $\lVert D\rVert = \max_i|d_i|$.</p>
+      <div class="box thm"><span class="label">lemma: errors add</span>
+        <p class="small">For unitaries, $\lVert U_m\cdots U_1 - V_m\cdots V_1\rVert\le\sum_i\lVert U_i - V_i\rVert$.</p>
+      </div>
+      <p class="small"><i>Proof.</i> Telescope: the difference is $\sum_iU_m\cdots U_{i+1}(U_i - V_i)V_{i-1}\cdots V_1$, and unitaries have norm 1. ∎</p>
+      <div class="box thm"><span class="label">theorem: the <span class="term">approximate QFT</span> (Coppersmith 1994)</span>
+        <p class="small">Drop every $C(R_k)$ with $k \gt m$. The result $\tilde F$ satisfies</p>
+        $$\lVert F - \tilde F\rVert\le\frac{2\pi(n - m)}{2^m} .$$
+      </div>
+      <p class="small"><i>Proof.</i> $\lVert C(R_k) - I\rVert = |e^{2\pi i/2^k} - 1| = 2\sin\tfrac\pi{2^k}\le\tfrac{2\pi}{2^k}$. There are $n - k + 1$ gates $C(R_k)$, and $n - k + 1\le n - m$ when $k \gt m$; so the lemma gives at most $(n - m)\sum_{k\gt m}2\pi/2^k = 2\pi(n - m)/2^m$. ∎</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 390 270" width="390" role="img" aria-label="a triangle of the 28 controlled phase gates of the eight-qubit QFT: row q lists R2 up to R of 8 minus q acting on qubit q. Columns R2 and R3 are dark, kept; columns R4 to R8 are pale, dropped, beyond a dashed cutoff at m equals 3. Under each column its angle: 90, 45, 22.5, 11.3, 5.63, 2.81, 1.41 degrees">
+<text x="92.0" y="24.0" font-size="13" text-anchor="middle">R₂</text>
+<text x="136.0" y="24.0" font-size="13" text-anchor="middle">R₃</text>
+<text x="180.0" y="24.0" font-size="13" text-anchor="middle">R₄</text>
+<text x="224.0" y="24.0" font-size="13" text-anchor="middle">R₅</text>
+<text x="268.0" y="24.0" font-size="13" text-anchor="middle">R₆</text>
+<text x="312.0" y="24.0" font-size="13" text-anchor="middle">R₇</text>
+<text x="356.0" y="24.0" font-size="13" text-anchor="middle">R₈</text>
+<text x="60.0" y="52.0" font-size="12" text-anchor="end" class="mono">q0</text>
+<rect x="73" y="37" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="117" y="37" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="161" y="37" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="205" y="37" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="249" y="37" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="293" y="37" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="337" y="37" width="38" height="20" rx="3" class="fill-soft"/>
+<text x="60.0" y="78.0" font-size="12" text-anchor="end" class="mono">q1</text>
+<rect x="73" y="63" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="117" y="63" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="161" y="63" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="205" y="63" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="249" y="63" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="293" y="63" width="38" height="20" rx="3" class="fill-soft"/>
+<text x="60.0" y="104.0" font-size="12" text-anchor="end" class="mono">q2</text>
+<rect x="73" y="89" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="117" y="89" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="161" y="89" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="205" y="89" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="249" y="89" width="38" height="20" rx="3" class="fill-soft"/>
+<text x="60.0" y="130.0" font-size="12" text-anchor="end" class="mono">q3</text>
+<rect x="73" y="115" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="117" y="115" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="161" y="115" width="38" height="20" rx="3" class="fill-soft"/>
+<rect x="205" y="115" width="38" height="20" rx="3" class="fill-soft"/>
+<text x="60.0" y="156.0" font-size="12" text-anchor="end" class="mono">q4</text>
+<rect x="73" y="141" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="117" y="141" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="161" y="141" width="38" height="20" rx="3" class="fill-soft"/>
+<text x="60.0" y="182.0" font-size="12" text-anchor="end" class="mono">q5</text>
+<rect x="73" y="167" width="38" height="20" rx="3" class="fill-unit"/>
+<rect x="117" y="167" width="38" height="20" rx="3" class="fill-unit"/>
+<text x="60.0" y="208.0" font-size="12" text-anchor="end" class="mono">q6</text>
+<rect x="73" y="193" width="38" height="20" rx="3" class="fill-unit"/>
+<line x1="158.0" y1="32.0" x2="158.0" y2="218.0" class="warn" stroke-width="2" stroke-dasharray="5 3"/>
+<text x="166.0" y="236.0" font-size="12" text-anchor="start" class="soft">drop every Rₖ with k > m = 3</text>
+<text x="64.0" y="260.0" font-size="12" text-anchor="end" class="soft">angle</text>
+<text x="92.0" y="260.0" font-size="11" text-anchor="middle" class="soft">90°</text>
+<text x="136.0" y="260.0" font-size="11" text-anchor="middle" class="soft">45°</text>
+<text x="180.0" y="260.0" font-size="11" text-anchor="middle" class="soft">22.5°</text>
+<text x="224.0" y="260.0" font-size="11" text-anchor="middle" class="soft">11.3°</text>
+<text x="268.0" y="260.0" font-size="11" text-anchor="middle" class="soft">5.63°</text>
+<text x="312.0" y="260.0" font-size="11" text-anchor="middle" class="soft">2.81°</text>
+<text x="356.0" y="260.0" font-size="11" text-anchor="middle" class="soft">1.41°</text>
+</svg>
+        <p class="cap">$n = 8$, $m = 3$: keep $13$ of the $28$ rotations.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The diagonal norm.</b> $\lVert Dv\rVert^2 = \sum_i|d_i|^2|v_i|^2\le\max_i|d_i|^2\lVert v\rVert^2$, with equality at the basis vector where the max is
+    attained. Here $C(R_k) - I = \mathrm{diag}(0, 0, 0, e^{2\pi i/2^k} - 1)$.</p>
+    <p><b>The telescoping, in full.</b> $U_m\cdots U_1 - V_m\cdots V_1 = \sum_{i=1}^m\big(U_m\cdots U_iV_{i-1}\cdots V_1 - U_m\cdots U_{i+1}V_i\cdots V_1\big)$ — consecutive
+    terms cancel, leaving the first minus the last. The $i$-th term is $U_m\cdots U_{i+1}(U_i - V_i)V_{i-1}\cdots V_1$, and
+    $\lVert AB\rVert\le\lVert A\rVert\lVert B\rVert$ with $\lVert U\rVert = 1$ for unitary $U$. Apply it with $V_i = I$ for the dropped gates and $V_i = U_i$ for the rest.</p>
+    <p><b>The sine bound.</b> $|e^{i\theta} - 1| = |e^{i\theta/2} - e^{-i\theta/2}| = 2|\sin(\theta/2)|\le|\theta|$.</p>
+    <p><b>What the norm means for outcomes.</b> For any state $\ket\psi$ and projector $P$, with $a = F\ket\psi$ and $b = \tilde F\ket\psi$:
+    $\big|\lVert Pa\rVert^2 - \lVert Pb\rVert^2\big| = \big|\lVert Pa\rVert - \lVert Pb\rVert\big|\,(\lVert Pa\rVert + \lVert Pb\rVert)\le\lVert a - b\rVert\cdot2\le2\lVert F - \tilde F\rVert$. So every
+    outcome probability moves by at most twice the norm error.</p>
+    <p><b>Cited, with the proof given here.</b> D. Coppersmith, "An approximate Fourier transform useful in quantum factoring", IBM
+    Research Report RC 19642, 1994 (arXiv:quant-ph/0201067). Barenco, Ekert, Suominen and Törmä (<i>Phys. Rev. A</i> 54, 139, 1996)
+    showed that with decoherence the approximate transform can do better than the exact one.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit</p>
+  <h2>The approximate QFT, in numbers</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>$O(n\log n)$ gates.</b> Take $m = \lceil\log n\rceil + c$. The error is at most $2\pi n/2^m\le2\pi\cdot2^{-c}$, a constant, and each qubit keeps at most $m - 1$ rotations: $\le n(m - 1) = O(n\log n)$ gates.</p>
+      <table class="dense">
+        <thead><tr><th class="num">$n$</th><th class="num">$m$</th><th class="num">exact $\lVert F - \tilde F\rVert$</th><th class="num">$\sum$ of dropped $2\sin\frac\pi{2^k}$</th><th class="num">$\frac{2\pi(n-m)}{2^m}$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">2</td><td class="num">1</td><td class="num">1.414</td><td class="num">1.414</td><td class="num">3.142</td></tr>
+          <tr><td class="num">8</td><td class="num">5</td><td class="num">0.414</td><td class="num">0.417</td><td class="num">0.589</td></tr>
+          <tr><td class="num">8</td><td class="num">7</td><td class="num">0.0245</td><td class="num">0.0245</td><td class="num">0.0491</td></tr>
+          <tr><td class="num">10</td><td class="num">8</td><td class="num">0.0307</td><td class="num">0.0307</td><td class="num">0.0491</td></tr>
+        </tbody>
+      </table>
+      <p class="small"><b>Check</b>, $n = 2$, $m = 1$: dropping the one $C(S)$ costs exactly $|i - 1| = \sqrt2$ ✓, under the bound $\pi$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">a Shor-sized transform: $n = 4096$, target error $0.01$</span>
+        <p class="small">Need $2\pi(4096 - m)/2^m\le0.01$: $m = 21$ gives $0.0122$, too big; $m = 22$ gives $0.0061$ ✓.</p>
+        <p class="small">Kept: $\sum_{k=2}^{22}(4097 - k) = 85\,785$ controlled phases, against $\tfrac{4096\cdot4095}2 = 8\,386\,560$ for the exact transform — <b>1 per cent</b> of them.</p>
+        <p class="small">The largest dropped angle is $2\pi/2^{23}\approx7.5\times10^{-7}$ rad.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>How the table was computed.</b> The "exact" column is the operator norm of the difference of the two $2^n\times2^n$ matrices, the
+    largest singular value, computed numerically. The middle column is the bound before the last simplification:
+    $\sum_{k=m+1}^n(n - k + 1)\,2\sin(\pi/2^k)$. For small dropped angles the errors of the dropped gates nearly add in the worst
+    direction, which is why the middle column is almost tight; the final bound throws away a factor of up to 2 for simplicity.</p>
+    <p><b>The $n = 2$ row by hand.</b> $\tilde F = \mathrm{SWAP}\,(I\otimes H)(H\otimes I)$ and $F = \mathrm{SWAP}\,(I\otimes H)\,C(S)\,(H\otimes I)$, so
+    $F - \tilde F = \mathrm{SWAP}(I\otimes H)(C(S) - I)(H\otimes I)$, whose norm is $\lVert C(S) - I\rVert = |i - 1| = \sqrt2$ because multiplying by unitaries
+    preserves the operator norm.</p>
+    <p><b>Why 4096.</b> Shor's algorithm for an $L$-bit modulus uses a counting register of about $2L$ qubits (unit 16); RSA-2048 gives
+    $L = 2048$. The count of kept gates: $\sum_{k=2}^{22}(n - k + 1) = 21n - \sum_{k=2}^{22}(k - 1) = 21\cdot4096 - 231 = 85\,785$.</p>
+    <p><b>The physical moral.</b> A rotation by $10^{-6}$ radians is far below the control precision of any device built so far, so
+    building it would add noise, not accuracy. Dropping it is not a compromise.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · the circuit</p>
+  <h2>The inverse QFT</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Phase estimation needs $F^{-1} = F^\dagger$. For a circuit $U = G_m\cdots G_1$,</p>
+      $$U^\dagger = G_1^\dagger\cdots G_m^\dagger :$$
+      <p class="small">the gates in <b>reverse order</b>, each <b>replaced by its adjoint</b>. Here $H^\dagger = H$, $\mathrm{SWAP}^\dagger = \mathrm{SWAP}$, and</p>
+      $$C(R_k)^\dagger = C(R_k^\dagger) = \mathrm{diag}(1, 1, 1, e^{-2\pi i/2^k}).$$
+      <div class="box thm"><span class="label">the <span class="term">inverse QFT</span></span>
+        $$F_N^{-1}\ket k = \frac1{\sqrt N}\sum_{j=0}^{N-1}\omega^{-jk}\ket j ,$$
+        <p class="small">same gate count, phases conjugated. Its product formula has $e^{-2\pi i\,0.k_{n-l+1}\cdots k_n}$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 560 190" width="560" role="img" aria-label="the inverse three-qubit QFT: the same gates in reverse order with conjugated phases: a swap of qubits 0 and 2, H on qubit 2, R2 dagger on qubit 1 controlled by qubit 2, H on qubit 1, R3 dagger on qubit 0 controlled by qubit 2, R2 dagger on qubit 0 controlled by qubit 1, H on qubit 0">
+<line x1="70.0" y1="40.0" x2="540.0" y2="40.0" class="ink" stroke-width="1.6"/>
+<line x1="70.0" y1="100.0" x2="540.0" y2="100.0" class="ink" stroke-width="1.6"/>
+<line x1="70.0" y1="160.0" x2="540.0" y2="160.0" class="ink" stroke-width="1.6"/>
+<text x="62.0" y="45.0" font-size="13" text-anchor="end" class="mono">q0</text>
+<text x="62.0" y="105.0" font-size="13" text-anchor="end" class="mono">q1</text>
+<text x="62.0" y="165.0" font-size="13" text-anchor="end" class="mono">q2</text>
+<line x1="110.0" y1="40.0" x2="110.0" y2="160.0" class="ink" stroke-width="1.6"/>
+<line x1="103.0" y1="33.0" x2="117.0" y2="47.0" class="ink" stroke-width="1.6"/>
+<line x1="103.0" y1="47.0" x2="117.0" y2="33.0" class="ink" stroke-width="1.6"/>
+<line x1="103.0" y1="153.0" x2="117.0" y2="167.0" class="ink" stroke-width="1.6"/>
+<line x1="103.0" y1="167.0" x2="117.0" y2="153.0" class="ink" stroke-width="1.6"/>
+<rect x="152.0" y="144.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="170.0" y="165.0" font-size="15" text-anchor="middle">H</text>
+<line x1="230.0" y1="160.0" x2="230.0" y2="100.0" class="ink" stroke-width="1.6"/>
+<circle cx="230.0" cy="160.0" r="5.5" class="fill-ink"/>
+<rect x="210.0" y="84.0" width="40" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="230.0" y="105.0" font-size="15" text-anchor="middle">R₂†</text>
+<rect x="272.0" y="84.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="290.0" y="105.0" font-size="15" text-anchor="middle">H</text>
+<line x1="350.0" y1="160.0" x2="350.0" y2="40.0" class="ink" stroke-width="1.6"/>
+<circle cx="350.0" cy="160.0" r="5.5" class="fill-ink"/>
+<rect x="330.0" y="24.0" width="40" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="350.0" y="45.0" font-size="15" text-anchor="middle">R₃†</text>
+<line x1="410.0" y1="100.0" x2="410.0" y2="40.0" class="ink" stroke-width="1.6"/>
+<circle cx="410.0" cy="100.0" r="5.5" class="fill-ink"/>
+<rect x="390.0" y="24.0" width="40" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="410.0" y="45.0" font-size="15" text-anchor="middle">R₂†</text>
+<rect x="452.0" y="24.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="470.0" y="45.0" font-size="15" text-anchor="middle">H</text>
+</svg>
+        <p class="cap">$F_8^{-1}$: the running circuit mirrored, each $R_k$ replaced by $R_k^\dagger$.</p>
+      </div>
+      <p class="small"><b>Check</b> on the running example: feed $F_8\ket5$, the product of <i>Worked: the product formula at $\ket5$</i>. The swap restores the order; $H$ on qubit 2 turns $\ket{0.1}$ into $\ket1$; each $R_k^\dagger$ then strips one digit off the qubit above before its $H$. Output $\ket{101} = \ket5$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why reverse and adjoint.</b> $(AB)^\dagger = B^\dagger A^\dagger$, applied $m - 1$ times. For a unitary, adjoint is inverse.</p>
+    <p><b>The check in detail.</b> After the swap qubit 2 holds $\ket{0.1} = \ket-$, qubit 1 holds $\ket{0.01}$, qubit 0 holds $\ket{0.101}$. $H\ket- = \ket1$,
+    so qubit 2 reads $j_3 = 1$. $C(R_2^\dagger)$ from qubit 2 subtracts $\tfrac14$ from qubit 1's phase: $0.01 - 0.01 = 0$, and $H\ket+ = \ket0$: $j_2 = 0$.
+    On qubit 0, $C(R_3^\dagger)$ from qubit 2 subtracts $\tfrac18$ and $C(R_2^\dagger)$ from qubit 1 subtracts $0$: $0.101 - 0.001 = 0.1$, and
+    $H\ket- = \ket1$: $j_1 = 1$. Output $\ket{101}$.</p>
+    <p><b>A useful fact.</b> $F_N^2\ket j = \ket{-j\bmod N}$, so $F_N^{-1} = F_N^3$ (problem P6). In phase estimation one can also run the forward
+    $F$ and reinterpret outcome $y$ as $-y$; the inverse is the cleaner convention, and it is the one used here.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Phase estimation</h2>
+  <p>Kick an unknown eigenphase into a register as a Fourier state, one binary digit per qubit, and undo the Fourier transform.</p>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation</p>
+  <h2>The experiment: an interferometer measures a phase</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 172" width="360" role="img" aria-label="a Mach-Zehnder interferometer: a photon meets a beam splitter B, the two paths go round a rectangle via two mirrors, a glass slab on path 1 adds the phase phi, and a second beam splitter B recombines them into detector D0, above it, and detector D1, to its right">
+<text x="14.0" y="160.0" font-size="12" text-anchor="start" class="soft">photon in</text>
+<line x1="20.0" y1="130.0" x2="86.0" y2="130.0" class="unit" stroke-width="2.4"/>
+<line x1="100.0" y1="130.0" x2="260.0" y2="130.0" class="unit" stroke-width="2"/>
+<line x1="100.0" y1="130.0" x2="100.0" y2="50.0" class="unit" stroke-width="2"/>
+<line x1="100.0" y1="50.0" x2="260.0" y2="50.0" class="unit" stroke-width="2"/>
+<line x1="260.0" y1="130.0" x2="260.0" y2="50.0" class="unit" stroke-width="2"/>
+<line x1="85.0" y1="145.0" x2="115.0" y2="115.0" class="ink" stroke-width="3"/>
+<text x="124.0" y="152.0" font-size="14" text-anchor="start">B</text>
+<line x1="88.0" y1="62.0" x2="112.0" y2="38.0" class="ink" stroke-width="4"/>
+<line x1="248.0" y1="142.0" x2="272.0" y2="118.0" class="ink" stroke-width="4"/>
+<line x1="245.0" y1="65.0" x2="275.0" y2="35.0" class="ink" stroke-width="3"/>
+<text x="236.0" y="78.0" font-size="14" text-anchor="end">B</text>
+<rect x="166" y="38" width="28" height="24" class="fill-soft accent" stroke-width="1.4"/>
+<text x="180.0" y="30.0" font-size="13" text-anchor="middle">slab: P(φ)</text>
+<line x1="260.0" y1="50.0" x2="320.0" y2="50.0" class="unit" stroke-width="2"/>
+<rect x="320" y="38" width="22" height="24" rx="4" class="fill-ink"/>
+<text x="331.0" y="82.0" font-size="13" text-anchor="middle">D₁</text>
+<line x1="260.0" y1="50.0" x2="260.0" y2="16.0" class="unit" stroke-width="2"/>
+<rect x="249" y="4" width="22" height="12" rx="3" class="fill-ink"/>
+<text x="282.0" y="16.0" font-size="13" text-anchor="start">D₀</text>
+<text x="180.0" y="150.0" font-size="12" text-anchor="middle" class="soft">path 0</text>
+<text x="108.0" y="95.0" font-size="12" text-anchor="start" class="soft">path 1</text>
+</svg>
+        <p class="cap">Unit 01's Mach–Zehnder interferometer: one photon, two paths, a slab adding phase $\varphi$ to one, two detectors.</p>
+      </div>
+      <p class="small"><b>The apparatus, from nothing.</b> A half-silvered mirror (beam splitter $B$) sends a single photon into a superposition of two paths. Mirrors bring the paths together at a second splitter, and a detector on each exit clicks. A glass slab on path 1 delays it: in unit 01's model, $P(\varphi) = \mathrm{diag}(1, e^{i\varphi})$ on the path qubit.</p>
+    </div>
+    <div>
+      <p class="small"><b>What it measures.</b> The apparatus is the unitary $BP(\varphi)B$, and</p>
+      $$\Pr(D_0) = \sin^2\tfrac\varphi2,\qquad\Pr(D_1) = \cos^2\tfrac\varphi2 ,$$
+      <p class="small">summing to 1 ✓. One photon is one biased coin. To learn $\varphi$ to $\pm\varepsilon$ by counting clicks takes about $1/\varepsilon^2$ photons (Chernoff–Hoeffding).</p>
+      <div class="box good"><span class="label">the question phase estimation answers</span>
+        <p class="small">If the slab could be made $2, 4, 8, \dots$ times thicker — the phase doubled each time — could $t$ photons give $t$ <b>binary digits</b> of $\varphi$, instead of $4^t$ photons for $t$ digits?</p>
+      </div>
+      <p class="small muted">Atomic clocks are interferometers of this kind with atoms in place of photons (Ramsey, 1950).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The calculation.</b> With unit 01's $B = \tfrac1{\sqrt2}\begin{pmatrix}1 &amp; i\\ i &amp; 1\end{pmatrix}$ and the photon entering path 0:
+    $P(\varphi)B\ket0 = \tfrac1{\sqrt2}(\ket0 + ie^{i\varphi}\ket1)$, then
+    $B$ gives $\tfrac12\big[(1 - e^{i\varphi})\ket0 + i(1 + e^{i\varphi})\ket1\big]$. So $\Pr(D_0) = \tfrac14|1 - e^{i\varphi}|^2 = \sin^2(\varphi/2)$ and
+    $\Pr(D_1) = \cos^2(\varphi/2)$; with balanced arms, $\varphi = 0$, the photon always reaches $D_1$, and $D_0$ is unit 01's dark detector. The figure
+    places them as unit 01 does: $D_0$ above the second splitter, $D_1$ to its right.</p>
+    <p><b>Why $1/\varepsilon^2$.</b> Each photon is an independent Bernoulli trial with success probability $p = \sin^2(\varphi/2)$. With $M$
+    photons the empirical frequency is within $\pm\varepsilon'$ of $p$ with probability at least $1 - 2e^{-2M\varepsilon'^2}$
+    (Hoeffding), and away from $p\in\{0, 1\}$ an error $\varepsilon'$ in $p$ is an error of order $\varepsilon'$ in $\varphi$. So $M\sim1/\varepsilon^2$:
+    $t$ binary digits, $\varepsilon = 2^{-t}$, cost about $4^t$ photons. Phase estimation will use $2^t - 1$ applications of the phase.</p>
+    <p><b>Ramsey's method</b> (N. F. Ramsey, <i>Phys. Rev.</i> 78, 695, 1950; Nobel Prize 1989): an atom with two energy levels is a qubit. A
+    short pulse of radiation acts on it as a beam splitter; the atom then evolves freely for a time $\tau$, during which its two
+    levels acquire a relative phase proportional to $\tau$ times the mismatch between the atom's frequency and the radiation's; a
+    second pulse recombines. Doubling $\tau$ doubles the phase — the "thicker slab". How a pulse acts on an atom is derived in unit 25
+    for a different two-level system and is taken as given here. Since 1967 the SI second has been defined by the caesium transition
+    used in such clocks: $9\,192\,631\,770$ periods.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation</p>
+  <h2>Kickback of an eigenphase</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: <span class="term">phase kickback</span> of an <span class="term">eigenphase</span></span>
+        <p class="small">If $U\ket u = e^{2\pi i\varphi}\ket u$, then for any $\alpha, \beta$</p>
+        $$\begin{aligned}&amp;C(U)\,(\alpha\ket0 + \beta\ket1)\ket u\\ &amp;\quad= (\alpha\ket0 + \beta e^{2\pi i\varphi}\ket1)\ket u .\end{aligned}$$
+      </div>
+      <p class="small"><i>Proof.</i> $\ket0\ket u\mapsto\ket0\ket u$ and $\ket1\ket u\mapsto\ket1U\ket u = e^{2\pi i\varphi}\ket1\ket u$; extend linearly. ∎ The eigenvector comes out unchanged, and the phase has moved to the control. Unit 13's kickback is $U = X$, $\ket u = \ket-$, $\varphi = \tfrac12$.</p>
+      <p class="small"><b>The <span class="term">Hadamard test</span>:</b> $H$, $C(U)$, $H$, measure. The control ends in $\tfrac12[(1 + e^{2\pi i\varphi})\ket0 + (1 - e^{2\pi i\varphi})\ket1]$, so</p>
+      $$\Pr(0) = \cos^2\pi\varphi,\quad\Pr(1) = \sin^2\pi\varphi .$$
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 262" width="330" role="img" aria-label="top: a two-wire circuit, H on a control qubit, a controlled U onto the eigenvector u, H again, and a meter. Bottom: the probability of reading 0 against phi from 0 to 1, the curve cos squared of pi phi, with the point phi equals one third at one quarter marked; a dashed curve cos squared of 2 pi phi oscillates twice as fast">
+<line x1="50.0" y1="30.0" x2="300.0" y2="30.0" class="ink" stroke-width="1.6"/>
+<line x1="50.0" y1="84.0" x2="250.0" y2="84.0" class="ink" stroke-width="1.6"/>
+<text x="42.0" y="35.0" font-size="14" text-anchor="end">|0⟩</text>
+<text x="42.0" y="89.0" font-size="14" text-anchor="end">|u⟩</text>
+<rect x="72.0" y="14.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="90.0" y="35.0" font-size="15" text-anchor="middle">H</text>
+<line x1="150.0" y1="30.0" x2="150.0" y2="84.0" class="ink" stroke-width="1.6"/>
+<circle cx="150.0" cy="30.0" r="5.5" class="fill-ink"/>
+<rect x="132.0" y="68.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="150.0" y="89.0" font-size="15" text-anchor="middle">U</text>
+<rect x="192.0" y="14.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="210.0" y="35.0" font-size="15" text-anchor="middle">H</text>
+<rect x="253.0" y="14.0" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 259.0 40.0 A 11 11 0 0 1 281.0 40.0" fill="none" class="ink" stroke-width="1.3"/><line x1="270.0" y1="40.0" x2="279.0" y2="21.0" class="ink" stroke-width="1.3"/>
+<text x="258.0" y="89.0" font-size="14" text-anchor="start">|u⟩</text>
+<line x1="60.0" y1="240.0" x2="300.0" y2="240.0" class="ink" stroke-width="1.2"/>
+<line x1="60.0" y1="240.0" x2="60.0" y2="126.0" class="ink" stroke-width="1.2"/>
+<text x="54.0" y="244.0" font-size="11" text-anchor="end" class="soft">0</text>
+<text x="54.0" y="189.0" font-size="11" text-anchor="end" class="soft">0.5</text>
+<text x="54.0" y="134.0" font-size="11" text-anchor="end" class="soft">1</text>
+<text x="60.0" y="256.0" font-size="11" text-anchor="middle" class="soft">0</text>
+<text x="180.0" y="256.0" font-size="11" text-anchor="middle" class="soft">½</text>
+<text x="300.0" y="256.0" font-size="11" text-anchor="middle" class="soft">1</text>
+<text x="306.0" y="244.0" font-size="13" text-anchor="start">φ</text>
+<path d="M 60.0 130.0 L 62.0 130.1 L 64.0 130.3 L 66.0 130.7 L 68.0 131.2 L 70.0 131.9 L 72.0 132.7 L 74.0 133.7 L 76.0 134.8 L 78.0 136.0 L 80.0 137.4 L 82.0 138.9 L 84.0 140.5 L 86.0 142.3 L 88.0 144.1 L 90.0 146.1 L 92.0 148.2 L 94.0 150.4 L 96.0 152.7 L 98.0 155.0 L 100.0 157.5 L 102.0 160.0 L 104.0 162.6 L 106.0 165.3 L 108.0 168.0 L 110.0 170.8 L 112.0 173.6 L 114.0 176.4 L 116.0 179.3 L 118.0 182.1 L 120.0 185.0 L 122.0 187.9 L 124.0 190.7 L 126.0 193.6 L 128.0 196.4 L 130.0 199.2 L 132.0 202.0 L 134.0 204.7 L 136.0 207.4 L 138.0 210.0 L 140.0 212.5 L 142.0 215.0 L 144.0 217.3 L 146.0 219.6 L 148.0 221.8 L 150.0 223.9 L 152.0 225.9 L 154.0 227.7 L 156.0 229.5 L 158.0 231.1 L 160.0 232.6 L 162.0 234.0 L 164.0 235.2 L 166.0 236.3 L 168.0 237.3 L 170.0 238.1 L 172.0 238.8 L 174.0 239.3 L 176.0 239.7 L 178.0 239.9 L 180.0 240.0 L 182.0 239.9 L 184.0 239.7 L 186.0 239.3 L 188.0 238.8 L 190.0 238.1 L 192.0 237.3 L 194.0 236.3 L 196.0 235.2 L 198.0 234.0 L 200.0 232.6 L 202.0 231.1 L 204.0 229.5 L 206.0 227.7 L 208.0 225.9 L 210.0 223.9 L 212.0 221.8 L 214.0 219.6 L 216.0 217.3 L 218.0 215.0 L 220.0 212.5 L 222.0 210.0 L 224.0 207.4 L 226.0 204.7 L 228.0 202.0 L 230.0 199.2 L 232.0 196.4 L 234.0 193.6 L 236.0 190.7 L 238.0 187.9 L 240.0 185.0 L 242.0 182.1 L 244.0 179.3 L 246.0 176.4 L 248.0 173.6 L 250.0 170.8 L 252.0 168.0 L 254.0 165.3 L 256.0 162.6 L 258.0 160.0 L 260.0 157.5 L 262.0 155.0 L 264.0 152.7 L 266.0 150.4 L 268.0 148.2 L 270.0 146.1 L 272.0 144.1 L 274.0 142.3 L 276.0 140.5 L 278.0 138.9 L 280.0 137.4 L 282.0 136.0 L 284.0 134.8 L 286.0 133.7 L 288.0 132.7 L 290.0 131.9 L 292.0 131.2 L 294.0 130.7 L 296.0 130.3 L 298.0 130.1 L 300.0 130.0" fill="none" class="unit" stroke-width="2"/>
+<path d="M 60.0 130.0 L 62.0 130.3 L 64.0 131.2 L 66.0 132.7 L 68.0 134.8 L 70.0 137.4 L 72.0 140.5 L 74.0 144.1 L 76.0 148.2 L 78.0 152.7 L 80.0 157.5 L 82.0 162.6 L 84.0 168.0 L 86.0 173.6 L 88.0 179.3 L 90.0 185.0 L 92.0 190.7 L 94.0 196.4 L 96.0 202.0 L 98.0 207.4 L 100.0 212.5 L 102.0 217.3 L 104.0 221.8 L 106.0 225.9 L 108.0 229.5 L 110.0 232.6 L 112.0 235.2 L 114.0 237.3 L 116.0 238.8 L 118.0 239.7 L 120.0 240.0 L 122.0 239.7 L 124.0 238.8 L 126.0 237.3 L 128.0 235.2 L 130.0 232.6 L 132.0 229.5 L 134.0 225.9 L 136.0 221.8 L 138.0 217.3 L 140.0 212.5 L 142.0 207.4 L 144.0 202.0 L 146.0 196.4 L 148.0 190.7 L 150.0 185.0 L 152.0 179.3 L 154.0 173.6 L 156.0 168.0 L 158.0 162.6 L 160.0 157.5 L 162.0 152.7 L 164.0 148.2 L 166.0 144.1 L 168.0 140.5 L 170.0 137.4 L 172.0 134.8 L 174.0 132.7 L 176.0 131.2 L 178.0 130.3 L 180.0 130.0 L 182.0 130.3 L 184.0 131.2 L 186.0 132.7 L 188.0 134.8 L 190.0 137.4 L 192.0 140.5 L 194.0 144.1 L 196.0 148.2 L 198.0 152.7 L 200.0 157.5 L 202.0 162.6 L 204.0 168.0 L 206.0 173.6 L 208.0 179.3 L 210.0 185.0 L 212.0 190.7 L 214.0 196.4 L 216.0 202.0 L 218.0 207.4 L 220.0 212.5 L 222.0 217.3 L 224.0 221.8 L 226.0 225.9 L 228.0 229.5 L 230.0 232.6 L 232.0 235.2 L 234.0 237.3 L 236.0 238.8 L 238.0 239.7 L 240.0 240.0 L 242.0 239.7 L 244.0 238.8 L 246.0 237.3 L 248.0 235.2 L 250.0 232.6 L 252.0 229.5 L 254.0 225.9 L 256.0 221.8 L 258.0 217.3 L 260.0 212.5 L 262.0 207.4 L 264.0 202.0 L 266.0 196.4 L 268.0 190.7 L 270.0 185.0 L 272.0 179.3 L 274.0 173.6 L 276.0 168.0 L 278.0 162.6 L 280.0 157.5 L 282.0 152.7 L 284.0 148.2 L 286.0 144.1 L 288.0 140.5 L 290.0 137.4 L 292.0 134.8 L 294.0 132.7 L 296.0 131.2 L 298.0 130.3 L 300.0 130.0" fill="none" class="alt" stroke-width="2" stroke-dasharray="5 3"/>
+<circle cx="140.0" cy="212.5" r="4.5" class="fill-accent"/>
+<text x="148.0" y="216.5" font-size="12" text-anchor="start" class="halo">φ = ⅓: ¼</text>
+<text x="66.0" y="122.0" font-size="12" text-anchor="start" class="fill-unit">P(0) = cos²πφ</text>
+<text x="300.0" y="122.0" font-size="12" text-anchor="end" class="alt">with U²: cos²2πφ</text>
+</svg>
+        <p class="cap">The interferometer again, with $H$ for $B$ and the eigenphase for the slab. With $C(U^2)$ the fringes are twice as fine.</p>
+      </div>
+      <p class="small"><b><span class="ref" data-ref="pe">Running example</span>:</b> $\varphi = \tfrac13$ gives $\Pr(0) = \cos^2\tfrac\pi3 = \tfrac14$, $\Pr(1) = \tfrac34$; sum 1 ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Unitary eigenvalues.</b> Every eigenvalue of a unitary has modulus 1 (unit 00), so it can always be written $e^{2\pi i\varphi}$ with
+    $\varphi\in[0, 1)$: the eigenphase is well defined modulo 1, which is why phase estimation lives on the circle and why the estimate
+    $0.999$ is close to $0$.</p>
+    <p><b>The Hadamard test, in full.</b> $H\ket0 = \tfrac1{\sqrt2}(\ket0 + \ket1)$; kickback gives $\tfrac1{\sqrt2}(\ket0 + e^{2\pi i\varphi}\ket1)$; $H$ maps
+    this to $\tfrac12[(1 + e^{2\pi i\varphi})\ket0 + (1 - e^{2\pi i\varphi})\ket1]$. And $|1 + e^{i\theta}|^2 = 2 + 2\cos\theta = 4\cos^2(\theta/2)$, so
+    $\Pr(0) = \cos^2(\pi\varphi)$.</p>
+    <p><b>What one test cannot tell.</b> $\cos^2(\pi\varphi) = \cos^2(\pi(1 - \varphi))$: the test cannot separate $\varphi$ from $1 - \varphi$. A second
+    test with $S^\dagger$ inserted before the last $H$ measures $\sin(2\pi\varphi)$ and resolves it. Phase estimation needs neither trick:
+    the inverse Fourier transform combines all the doublings coherently.</p>
+    <p><b>Why "Hadamard test".</b> The name is standard (it estimates $\mathrm{Re}\braket{u|U|u}$ when $\ket u$ is not an eigenvector). It is the
+    $t = 1$ case of phase estimation, since $F_2^{-1} = H$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation</p>
+  <h2>The phase-estimation circuit</h2>
+  <div class="fig">
+    <svg viewBox="0 0 620 262" width="620" role="img" aria-label="the phase-estimation circuit with three counting qubits on top and the eigenvector u on the bottom wire: H on each counting qubit; controlled U from qubit 2, controlled U squared from qubit 1, controlled U to the fourth from qubit 0; then the inverse QFT on the counting qubits, and meters reading y1 y2 y3">
+<line x1="64.0" y1="36.0" x2="480.0" y2="36.0" class="ink" stroke-width="1.6"/>
+<line x1="64.0" y1="90.0" x2="480.0" y2="90.0" class="ink" stroke-width="1.6"/>
+<line x1="64.0" y1="144.0" x2="480.0" y2="144.0" class="ink" stroke-width="1.6"/>
+<line x1="64.0" y1="210.0" x2="560.0" y2="210.0" class="ink" stroke-width="1.6"/>
+<text x="56.0" y="41.0" font-size="14" text-anchor="end">|0⟩</text>
+<text x="56.0" y="95.0" font-size="14" text-anchor="end">|0⟩</text>
+<text x="56.0" y="149.0" font-size="14" text-anchor="end">|0⟩</text>
+<text x="56.0" y="215.0" font-size="14" text-anchor="end">|u⟩ = |1⟩</text>
+<rect x="86.0" y="20.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="104.0" y="41.0" font-size="15" text-anchor="middle">H</text>
+<rect x="86.0" y="74.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="104.0" y="95.0" font-size="15" text-anchor="middle">H</text>
+<rect x="86.0" y="128.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="104.0" y="149.0" font-size="15" text-anchor="middle">H</text>
+<line x1="170.0" y1="144.0" x2="170.0" y2="210.0" class="ink" stroke-width="1.6"/>
+<circle cx="170.0" cy="144.0" r="5.5" class="fill-ink"/>
+<rect x="152.0" y="194.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="170.0" y="215.0" font-size="15" text-anchor="middle">U</text>
+<line x1="235.0" y1="90.0" x2="235.0" y2="210.0" class="ink" stroke-width="1.6"/>
+<circle cx="235.0" cy="90.0" r="5.5" class="fill-ink"/>
+<rect x="217.0" y="194.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="235.0" y="215.0" font-size="15" text-anchor="middle">U²</text>
+<line x1="300.0" y1="36.0" x2="300.0" y2="210.0" class="ink" stroke-width="1.6"/>
+<circle cx="300.0" cy="36.0" r="5.5" class="fill-ink"/>
+<rect x="282.0" y="194.0" width="36" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="300.0" y="215.0" font-size="15" text-anchor="middle">U⁴</text>
+<rect x="354.0" y="16.0" width="62" height="148.0" class="fill-ground accent" stroke-width="1.6"/><text x="385.0" y="96.0" font-size="16" text-anchor="middle">F₈⁻¹</text>
+<rect x="463.0" y="20.0" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 469.0 46.0 A 11 11 0 0 1 491.0 46.0" fill="none" class="ink" stroke-width="1.3"/><line x1="480.0" y1="46.0" x2="489.0" y2="27.0" class="ink" stroke-width="1.3"/>
+<text x="506.0" y="41.0" font-size="13" text-anchor="start" class="soft">y₁</text>
+<rect x="463.0" y="74.0" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 469.0 100.0 A 11 11 0 0 1 491.0 100.0" fill="none" class="ink" stroke-width="1.3"/><line x1="480.0" y1="100.0" x2="489.0" y2="81.0" class="ink" stroke-width="1.3"/>
+<text x="506.0" y="95.0" font-size="13" text-anchor="start" class="soft">y₂</text>
+<rect x="463.0" y="128.0" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 469.0 154.0 A 11 11 0 0 1 491.0 154.0" fill="none" class="ink" stroke-width="1.3"/><line x1="480.0" y1="154.0" x2="489.0" y2="135.0" class="ink" stroke-width="1.3"/>
+<text x="506.0" y="149.0" font-size="13" text-anchor="start" class="soft">y₃</text>
+<text x="564.0" y="215.0" font-size="14" text-anchor="start">|u⟩</text>
+<line x1="335.0" y1="12.0" x2="335.0" y2="236.0" class="rule" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="335.0" y="252.0" font-size="12" text-anchor="middle" class="soft">here: (1/√8) Σₓ e^(2πiφx) |x⟩|u⟩</text>
+</svg>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">phase estimation</span>, $t$ counting qubits</span>
+        <p class="small">The <span class="term">counting register</span>: $t$ qubits in $\ket+$. Counting qubit $l$ (qubit 0 on top) controls $U^{2^{t-1-l}}$ on $\ket u$. Then $F_{2^t}^{-1}$, then measure: outcome $y$, estimate $\tilde\varphi = y/2^t$.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Running example</b>, $t = 3$: $U^2 = \mathrm{diag}(1, e^{4\pi i/3})$, $U^4 = \mathrm{diag}(1, e^{8\pi i/3}) = U$. Applications of $U$: $1 + 2 + 4 = 7 = 2^t - 1$ in all.</p>
+      <p class="small">Each controlled power is unitary, as a controlled unitary (unit 10).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The circuit, gate by gate.</b> $H$ on each counting qubit; $C(U)$ from qubit 2, $C(U^2)$ from qubit 1, $C(U^4)$ from qubit 0, all
+    acting on the target $\ket u$; the inverse QFT on qubits 0–2; three meters. Unit 10's deferred-measurement principle says the meters
+    can be moved anywhere after the last gate on their qubit, and also that the inverse QFT's controlled rotations may be replaced by
+    classically controlled ones after measuring the controls first (Griffiths and Niu, <i>Phys. Rev. Lett.</i> 76, 3228, 1996): the
+    whole counting register can then be one qubit, reused $t$ times.</p>
+    <p><b>The powers.</b> For the running example $U^{2^j}$ is just another phase gate, so building it is free. In general it is not:
+    implementing $U^{2^j}$ by repeating $U$ costs $2^j$ applications, $2^t - 1$ in all — the subject of <i>What it costs, and what it
+    is for</i>.</p>
+    <p><b>History.</b> Kitaev introduced the method ("Quantum measurements and the Abelian stabilizer problem", 1995,
+    arXiv:quant-ph/9511026) with one counting qubit at a time; Cleve, Ekert, Macchiavello and Mosca (<i>Proc. R. Soc. Lond. A</i> 454, 339,
+    1998) gave the form with the inverse QFT used here, and showed Shor's algorithm is an instance.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation</p>
+  <h2>What the register holds before the inverse QFT</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">After the controlled powers, the state is</p>
+        $$\frac1{2^{t/2}}\sum_{x=0}^{2^t-1}e^{2\pi i\varphi x}\ket x\otimes\ket u .$$
+      </div>
+      <p class="small"><i>Proof.</i> $U^{2^j}\ket u = e^{2\pi i\varphi2^j}\ket u$. By kickback, counting qubit $l$ becomes $\tfrac1{\sqrt2}(\ket0 + e^{2\pi i\varphi2^{t-1-l}}\ket1)$, and $\ket u$ is unchanged. Multiply out the product: the phase of $\ket{x_0\cdots x_{t-1}}$ is $2\pi\varphi\sum_lx_l2^{t-1-l} = 2\pi\varphi x$. ∎</p>
+      <p class="small">Normalised: $2^t$ terms of squared modulus $2^{-t}$ ✓.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">corollary: the exact case</span>
+        <p class="small">If $2^t\varphi = j$ is an integer, the register is $F_{2^t}\ket j$, so $F^{-1}$ returns $\ket j$: the outcome is $j$ <b>with certainty</b>, and $\tilde\varphi = \varphi$.</p>
+      </div>
+      <p class="small"><i>Proof.</i> $e^{2\pi i\varphi x} = e^{2\pi ijx/2^t} = \omega^{jx}$, which is $F\ket j$ by definition. ∎</p>
+      <p class="small"><b>The product formula, run backwards:</b> qubit $l$'s phase is $2^{t-1-l}\varphi$ modulo 1, which for $\varphi = 0.\varphi_1\varphi_2\cdots$ is $0.\varphi_{t-l}\varphi_{t-l+1}\cdots$: each doubling shifts the binary point by one.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The expansion, in detail.</b> $\bigotimes_{l=0}^{t-1}\tfrac1{\sqrt2}(\ket0 + e^{2\pi i\varphi2^{t-1-l}}\ket1) = 2^{-t/2}\sum_{x_0, \dots, x_{t-1}}\prod_le^{2\pi i\varphi x_l2^{t-1-l}}\ket{x_0\cdots x_{t-1}}$, and
+    $\sum_lx_l2^{t-1-l} = x$ because qubit 0 is the most significant bit. This is the computation of <i>Proof of the product
+    formula</i> read in the other direction, with $j/2^t$ replaced by an arbitrary real $\varphi$.</p>
+    <p><b>The doubling picture.</b> Write $\varphi = 0.\varphi_1\varphi_2\varphi_3\cdots$ in binary. Multiplying by $2^j$ shifts the point $j$ places, and the
+    integer part is invisible. So the qubit that controls $U^{2^{t-1}}$ (qubit 0) sees $0.\varphi_t\varphi_{t+1}\cdots$, the qubit controlling
+    $U$ (qubit $t - 1$) sees all of $0.\varphi_1\varphi_2\cdots$. When $\varphi$ has exactly $t$ bits, these are precisely the product-formula phases
+    of $F\ket j$ with $j = \varphi_1\cdots\varphi_t$; otherwise each qubit carries a tail of further digits, which is where the error comes from.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation · example</p>
+  <h2>Worked: phase $3/8$, read exactly</h2>
+  <div class="box ex"><span class="label">$U' = \mathrm{diag}(1, e^{2\pi i\cdot3/8}) = \mathrm{diag}(1, \omega^3)$, $\ \ket u = \ket1$, $\ t = 3$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The binary expansion.</b> $\varphi = \tfrac38 = 0.011$, so $2^3\varphi = 3$, an integer: the exact case.</p>
+      <p class="small"><b>2. The three kicked-back phases</b>, modulo 1:</p>
+      <table class="dense">
+        <thead><tr><th>counting qubit</th><th>controls</th><th>phase</th><th>value</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>$U'^4$</td><td>$4\cdot\tfrac38 = 1.5\to0.1$</td><td>$-1$</td></tr>
+          <tr><td>1</td><td>$U'^2$</td><td>$2\cdot\tfrac38 = 0.75 = 0.11$</td><td>$-i$</td></tr>
+          <tr><td>2</td><td>$U'$</td><td>$\tfrac38 = 0.011$</td><td>$\omega^3$</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <p class="small"><b>3. Compare with the product formula</b> for $F_8\ket3$, $j = 011$: qubit 0 carries $0.j_3 = 0.1$, qubit 1 carries $0.j_2j_3 = 0.11$, qubit 2 carries $0.j_1j_2j_3 = 0.011$. The same three phases ✓.</p>
+      <p class="small"><b>4. So</b> the register is exactly $F_8\ket3$, $F_8^{-1}$ returns $\ket{011}$, and the outcome is $3$ with probability $1$: $\tilde\varphi = \tfrac38$ exactly.</p>
+      <p class="small"><b>5. Distribution:</b> $(0, 0, 0, 1, 0, 0, 0, 0)$, summing to 1 ✓. Contrast <span class="ref" data-ref="pe">$\varphi = \tfrac13$</span>, where $2^3\varphi = 2.67$ and no outcome is certain.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this example first.</b> It is the case in which phase estimation is literally "the inverse of the product formula", with
+    nothing left over. Every non-exact case is a perturbation of it: the register state is a Fourier state of a non-integer
+    "frequency" $2^t\varphi$, and the inverse transform spreads it over the nearby integers.</p>
+    <p><b>Step 2's arithmetic.</b> $e^{2\pi i\cdot1.5} = e^{3\pi i} = -1$; $e^{2\pi i\cdot0.75} = e^{3\pi i/2} = -i$; $e^{2\pi i\cdot3/8} = \omega^3 = e^{3\pi i/4}$. And on the table of
+    <i>$F_8$, entry by entry</i>, column 3 is $\omega^{3k}$: for $k = 4 = 100$ the product $(-1)(1)(1) = -1 = \omega^{12}$ ✓.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation</p>
+  <h2>The general case: the outcome distribution</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">With $N = 2^t$ and $\delta_y = N\varphi - y$, outcome $y$ has probability</p>
+        $$p(y) = \frac{\sin^2(\pi\delta_y)}{N^2\sin^2(\pi\delta_y/N)}\qquad(\delta_y\notin N\mathbb Z),$$
+        <p class="small">and $p(y) = 1$ if $\delta_y = 0$.</p>
+      </div>
+      <p class="small"><i>Proof.</i> The amplitude of $\ket y$ after $F^{-1}$ is $\frac1N\sum_x\omega^{-xy}e^{2\pi i\varphi x} = \frac1N\sum_{x=0}^{N-1}r^x$ with $r = e^{2\pi i\delta_y/N}\ne1$. That is $\frac1N\frac{r^N - 1}{r - 1}$, and $|e^{i\theta} - 1| = 2|\sin\tfrac\theta2|$. ∎</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Sums to 1:</b> $\sum_yp(y) = \lVert F^{-1}\ket\psi\rVert^2 = 1$, since $F^{-1}$ is unitary (<span class="term">Parseval</span>).</p>
+        <p class="small"><b>Exact case:</b> if $N\varphi$ is an integer, every other $\delta_y$ is a non-zero integer and $\sin\pi\delta_y = 0$: $p(y) = 0$ ✓.</p>
+        <p class="small"><b>$t = 1$, $\varphi = \tfrac13$:</b> $p(0) = \dfrac{\sin^2(2\pi/3)}{4\sin^2(\pi/3)} = \tfrac14$, the Hadamard test's $\cos^2\tfrac\pi3$ ✓.</p>
+      </div>
+      <p class="small">The distribution depends on $\varphi$ only through $N\varphi$: it peaks at the integers nearest $2^t\varphi$, and falls off like $1/\delta_y^2$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The amplitude, step by step.</b> $F^{-1}\ket x = N^{-1/2}\sum_y\omega^{-xy}\ket y$, so $\braket{y|F^{-1}|\psi} = N^{-1/2}\sum_x\omega^{-xy}\,N^{-1/2}e^{2\pi i\varphi x}$, and
+    $\omega^{-xy}e^{2\pi i\varphi x} = e^{2\pi ix(\varphi - y/N)} = e^{2\pi ix\delta_y/N}$. The geometric series has ratio $r = e^{2\pi i\delta_y/N}$, which is 1 exactly when
+    $\delta_y\in N\mathbb Z$. Then $|r^N - 1| = |e^{2\pi i\delta_y} - 1| = 2|\sin\pi\delta_y|$ and $|r - 1| = 2|\sin(\pi\delta_y/N)|$.</p>
+    <p><b>Parseval proves a trigonometric identity.</b> Since the probabilities sum to 1 for every $\varphi$, setting $x = \pi\varphi$ gives
+    $\sum_{y=0}^{N-1}\csc^2(x - \pi y/N) = N^2\csc^2(Nx)$ for $Nx\notin\pi\mathbb Z$. (It can be proved directly by partial fractions; here it falls out
+    of unitarity.)</p>
+    <p><b>Wrap-around.</b> $\delta_y$ and $\delta_y + N$ give the same $p$: the outcomes live on a circle of $N$ points, and $y = 0$ is adjacent
+    to $y = N - 1$. An eigenphase near $1$ produces outcomes near $0$ as well as near $N - 1$; both are good estimates of a phase
+    modulo 1.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation · example</p>
+  <h2>Worked: phase one third, the peak and its neighbour</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="pe">$\varphi = \tfrac13$</span>, $t = 3$, $N = 8$: $\ N\varphi = \tfrac83 = 2.67$, between outcomes 2 and 3</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The numerator is the same for every $y$.</b> $\delta_y = \tfrac83 - y$ differs from an integer by $\pm\tfrac13$, so $\sin^2(\pi\delta_y) = \sin^2\tfrac\pi3 = \tfrac34$. Hence</p>
+      $$p(y) = \frac{3/4}{64\,\sin^2\!\big(\pi(\tfrac83 - y)/8\big)} .$$
+      <p class="small"><b>2. The peak</b>, $y = 3$: $\delta_3 = -\tfrac13$, and $\sin^2\tfrac\pi{24} = 0.017037$, so</p>
+      $$p(3) = \frac{0.75}{64\times0.017037} = \frac{0.75}{1.0904} = 0.6878 .$$
+    </div>
+    <div>
+      <p class="small"><b>3. The neighbour</b>, $y = 2$: $\delta_2 = \tfrac23$, $\sin^2\tfrac\pi{12} = \tfrac{2 - \sqrt3}4 = 0.066987$:</p>
+      $$p(2) = \frac{0.75}{64\times0.066987} = \frac{0.75}{4.2872} = 0.1749 .$$
+      <p class="small"><b>4. Two exact values.</b> $y = 0$: $\delta = \tfrac83$, $\sin^2\tfrac\pi3 = \tfrac34$, so $p(0) = \tfrac{3/4}{64\cdot3/4} = \tfrac1{64} = 0.0156$. $\ y = 4$: $\delta = -\tfrac43$, $\sin^2\tfrac\pi6 = \tfrac14$, $p(4) = \tfrac3{64} = 0.0469$.</p>
+      <p class="small"><b>5. Reading.</b> The most likely estimate is $\tfrac38 = 0.375$, the nearest three-bit fraction to $0.333$, not the truncation $\tfrac28$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The sines.</b> $\pi(\tfrac83 - 3)/8 = -\pi/24$ and $\pi(\tfrac83 - 2)/8 = \pi/12$. $\sin^2(\pi/24) = \tfrac12(1 - \cos\tfrac\pi{12}) = \tfrac12(1 - 0.965926) = 0.017037$;
+    $\sin^2(\pi/12) = \tfrac12(1 - \cos\tfrac\pi6) = \tfrac12(1 - \tfrac{\sqrt3}2) = \tfrac{2 - \sqrt3}4 = 0.066987$. To more places,
+    $p(3) = 0.687838$ and $p(2) = 0.174940$.</p>
+    <p><b>Why not the truncation.</b> $\tfrac13 = 0.010101\ldots$ in binary; its first three bits are $010$, i.e. $\tfrac28$. But $\tfrac13 - \tfrac28 = 0.083$
+    while $\tfrac38 - \tfrac13 = 0.042$, and the distribution peaks at the nearer one. "The first $t$ bits" and "the nearest $t$-bit
+    fraction" are different things; phase estimation delivers the second.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation · running example</p>
+  <h2>All eight outcomes</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 215" width="440" role="img" aria-label="bar chart of the outcome probabilities for phi one third with three counting qubits, outcomes 0 to 7: 0.016, 0.032, 0.175, 0.688, 0.047, 0.019, 0.013, 0.012; the tallest bar is outcome 3, that is 3/8, and a dashed line marks the true value 8/3 = 2.67 between outcomes 2 and 3">
+<line x1="50.0" y1="165.0" x2="420.0" y2="165.0" class="ink" stroke-width="1.2"/>
+<line x1="46.0" y1="165.0" x2="50.0" y2="165.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="169.0" font-size="11" text-anchor="end" class="soft">0</text>
+<line x1="46.0" y1="118.0" x2="50.0" y2="118.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="122.0" font-size="11" text-anchor="end" class="soft">0.25</text>
+<line x1="50.0" y1="118.0" x2="420.0" y2="118.0" class="rule" stroke-width="0.8" stroke-dasharray="2 4"/>
+<line x1="46.0" y1="71.0" x2="50.0" y2="71.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="75.0" font-size="11" text-anchor="end" class="soft">0.5</text>
+<line x1="50.0" y1="71.0" x2="420.0" y2="71.0" class="rule" stroke-width="0.8" stroke-dasharray="2 4"/>
+<line x1="46.0" y1="24.0" x2="50.0" y2="24.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="28.0" font-size="11" text-anchor="end" class="soft">0.75</text>
+<line x1="50.0" y1="24.0" x2="420.0" y2="24.0" class="rule" stroke-width="0.8" stroke-dasharray="2 4"/>
+<rect x="58.3" y="162.1" width="29.6" height="2.9" class="fill-unit"/>
+<text x="73.1" y="157.1" font-size="11" text-anchor="middle" class="halo">.016</text>
+<text x="73.1" y="180.0" font-size="11" text-anchor="middle" class="mono">000</text>
+<text x="73.1" y="194.0" font-size="10" text-anchor="middle" class="soft">0/8</text>
+<rect x="104.6" y="159.1" width="29.6" height="5.9" class="fill-unit"/>
+<text x="119.4" y="154.1" font-size="11" text-anchor="middle" class="halo">.032</text>
+<text x="119.4" y="180.0" font-size="11" text-anchor="middle" class="mono">001</text>
+<text x="119.4" y="194.0" font-size="10" text-anchor="middle" class="soft">1/8</text>
+<rect x="150.8" y="132.1" width="29.6" height="32.9" class="fill-unit"/>
+<text x="165.6" y="127.1" font-size="11" text-anchor="middle" class="halo">.175</text>
+<text x="165.6" y="180.0" font-size="11" text-anchor="middle" class="mono">010</text>
+<text x="165.6" y="194.0" font-size="10" text-anchor="middle" class="soft">2/8</text>
+<rect x="197.1" y="35.7" width="29.6" height="129.3" class="fill-accent"/>
+<text x="211.9" y="30.7" font-size="11" text-anchor="middle" class="halo">.688</text>
+<text x="211.9" y="180.0" font-size="11" text-anchor="middle" class="mono">011</text>
+<text x="211.9" y="194.0" font-size="10" text-anchor="middle" class="soft">3/8</text>
+<rect x="243.3" y="156.2" width="29.6" height="8.8" class="fill-unit"/>
+<text x="258.1" y="151.2" font-size="11" text-anchor="middle" class="halo">.047</text>
+<text x="258.1" y="180.0" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="258.1" y="194.0" font-size="10" text-anchor="middle" class="soft">4/8</text>
+<rect x="289.6" y="161.5" width="29.6" height="3.5" class="fill-unit"/>
+<text x="304.4" y="156.5" font-size="11" text-anchor="middle" class="halo">.019</text>
+<text x="304.4" y="180.0" font-size="11" text-anchor="middle" class="mono">101</text>
+<text x="304.4" y="194.0" font-size="10" text-anchor="middle" class="soft">5/8</text>
+<rect x="335.8" y="162.6" width="29.6" height="2.4" class="fill-unit"/>
+<text x="350.6" y="157.6" font-size="11" text-anchor="middle" class="halo">.013</text>
+<text x="350.6" y="180.0" font-size="11" text-anchor="middle" class="mono">110</text>
+<text x="350.6" y="194.0" font-size="10" text-anchor="middle" class="soft">6/8</text>
+<rect x="382.1" y="162.8" width="29.6" height="2.2" class="fill-unit"/>
+<text x="396.9" y="157.8" font-size="11" text-anchor="middle" class="halo">.012</text>
+<text x="396.9" y="180.0" font-size="11" text-anchor="middle" class="mono">111</text>
+<text x="396.9" y="194.0" font-size="10" text-anchor="middle" class="soft">7/8</text>
+<line x1="196.5" y1="20.0" x2="196.5" y2="165.0" class="warn" stroke-width="1.6" stroke-dasharray="4 3"/>
+<text x="196.5" y="16.0" font-size="12" text-anchor="middle" class="halo">2³φ = 2.67</text>
+</svg>
+        <p class="cap">$\varphi = \tfrac13$, $t = 3$. The peak at $3/8$; the true $2^3\varphi = 2.67$ dashed.</p>
+      </div>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th class="num">$y$</th><th class="num">$\delta_y$</th><th class="num">$p(y)$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td class="num">$8/3$</td><td class="num">0.0156</td></tr>
+          <tr><td class="num">1</td><td class="num">$5/3$</td><td class="num">0.0316</td></tr>
+          <tr><td class="num">2</td><td class="num">$2/3$</td><td class="num">0.1749</td></tr>
+          <tr><td class="num">3</td><td class="num">$-1/3$</td><td class="num">0.6878</td></tr>
+          <tr><td class="num">4</td><td class="num">$-4/3$</td><td class="num">0.0469</td></tr>
+          <tr><td class="num">5</td><td class="num">$-7/3$</td><td class="num">0.0186</td></tr>
+          <tr><td class="num">6</td><td class="num">$-10/3$</td><td class="num">0.0126</td></tr>
+          <tr><td class="num">7</td><td class="num">$-13/3$</td><td class="num">0.0119</td></tr>
+          <tr><td><b>sum</b></td><td></td><td class="num"><b>1</b></td></tr>
+        </tbody>
+      </table>
+      <p class="small">The sum is exactly 1 (Parseval); the rounded entries add to $0.9999$. Within one step of the peak (outcomes 2, 3, 4): $0.9097$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The sum.</b> To six places the eight values are $0.015625, 0.031622, 0.174940, 0.687838, 0.046875, 0.018619, 0.012560, 0.011922$,
+    which sum to $1.000001$, i.e. 1 up to rounding; the four-place entries in the table sum to $0.9999$ for the same reason. That the exact sum is
+    1 is Parseval, <i>The general case: the outcome distribution</i>.</p>
+    <p><b>The shape.</b> The outcomes live on a circle of eight points, so distances wrap round: $y = 7$ is also $y = -1$, at distance
+    $2.67 + 1 = 3.67$ below $2.67$, while $y = 6$ is $3.33$ above it. That is why $p(6) = 0.0126$ and $p(7) = 0.0119$ are nearly equal, and why the
+    tail on the right of the peak is not simply a mirror of the one on the left.</p>
+    <p><b>The guarantee.</b> The next section proves $p(\text{nearest})\ge4/\pi^2\approx0.405$ for every $\varphi$ and $t$; here $0.688$. And
+    $p(2) + p(3) = 0.8628$: the estimate lands on one of the two fractions bracketing $\tfrac13$ with probability $0.86$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · phase estimation</p>
+  <h2>A superposition of eigenvectors: a sample of one phase</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Let $\ket\psi = \sum_sc_s\ket{u_s}$ with orthonormal eigenvectors $U\ket{u_s} = e^{2\pi i\varphi_s}\ket{u_s}$ and $\sum_s|c_s|^2 = 1$. Phase estimation on $\ket\psi$ gives</p>
+        $$\Pr(y) = \sum_s|c_s|^2\,p_{\varphi_s}(y) ,$$
+        <p class="small">exactly as if $s$ were drawn with probability $|c_s|^2$ first and then $\varphi_s$ estimated.</p>
+      </div>
+      <p class="small"><i>Proof.</i> By linearity the final state is $\sum_sc_s\ket{\Phi_s}\ket{u_s}$, $\ket{\Phi_s}$ the register state for $\varphi_s$. Then $\Pr(y) = \lVert\sum_sc_s\braket{y|\Phi_s}\ket{u_s}\rVert^2 = \sum_s|c_s|^2|\braket{y|\Phi_s}|^2$, cross terms vanishing by orthonormality. ∎</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 430 222" width="430" role="img" aria-label="stacked bar chart over the eight outcomes for the input plus, half eigenvector 1 of phase one third and half eigenvector 0 of phase zero: blue bars are half the one-third distribution, peaking at 0.344 on 011; a dark bar of height one half sits on 000, which totals 0.508">
+<line x1="50.0" y1="150.0" x2="410.0" y2="150.0" class="ink" stroke-width="1.2"/>
+<text x="43.0" y="154.0" font-size="11" text-anchor="end" class="soft">0</text>
+<line x1="46.0" y1="150.0" x2="50.0" y2="150.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="89.0" font-size="11" text-anchor="end" class="soft">0.25</text>
+<line x1="46.0" y1="85.0" x2="50.0" y2="85.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="24.0" font-size="11" text-anchor="end" class="soft">0.5</text>
+<line x1="46.0" y1="20.0" x2="50.0" y2="20.0" class="ink" stroke-width="1"/>
+<rect x="58.1" y="148.0" width="28.8" height="2.0" class="fill-unit"/>
+<rect x="58.1" y="18.0" width="28.8" height="130.0" class="fill-accent"/>
+<text x="72.5" y="165.0" font-size="11" text-anchor="middle" class="mono">000</text>
+<text x="72.5" y="13.0" font-size="11" text-anchor="middle" class="halo">.508</text>
+<rect x="103.1" y="145.9" width="28.8" height="4.1" class="fill-unit"/>
+<text x="117.5" y="165.0" font-size="11" text-anchor="middle" class="mono">001</text>
+<text x="117.5" y="140.9" font-size="11" text-anchor="middle" class="halo">.016</text>
+<rect x="148.1" y="127.3" width="28.8" height="22.7" class="fill-unit"/>
+<text x="162.5" y="165.0" font-size="11" text-anchor="middle" class="mono">010</text>
+<text x="162.5" y="122.3" font-size="11" text-anchor="middle" class="halo">.087</text>
+<rect x="193.1" y="60.6" width="28.8" height="89.4" class="fill-unit"/>
+<text x="207.5" y="165.0" font-size="11" text-anchor="middle" class="mono">011</text>
+<text x="207.5" y="55.6" font-size="11" text-anchor="middle" class="halo">.344</text>
+<rect x="238.1" y="143.9" width="28.8" height="6.1" class="fill-unit"/>
+<text x="252.5" y="165.0" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="252.5" y="138.9" font-size="11" text-anchor="middle" class="halo">.023</text>
+<rect x="283.1" y="147.6" width="28.8" height="2.4" class="fill-unit"/>
+<text x="297.5" y="165.0" font-size="11" text-anchor="middle" class="mono">101</text>
+<text x="297.5" y="142.6" font-size="11" text-anchor="middle" class="halo">.009</text>
+<rect x="328.1" y="148.4" width="28.8" height="1.6" class="fill-unit"/>
+<text x="342.5" y="165.0" font-size="11" text-anchor="middle" class="mono">110</text>
+<text x="342.5" y="143.4" font-size="11" text-anchor="middle" class="halo">.006</text>
+<rect x="373.1" y="148.5" width="28.8" height="1.5" class="fill-unit"/>
+<text x="387.5" y="165.0" font-size="11" text-anchor="middle" class="mono">111</text>
+<text x="387.5" y="143.5" font-size="11" text-anchor="middle" class="halo">.006</text>
+<rect x="58" y="178" width="12" height="12" class="fill-unit"/>
+<text x="76.0" y="189.0" font-size="12" text-anchor="start">½ × the φ = 1/3 distribution (from |1⟩)</text>
+<rect x="58" y="198" width="12" height="12" class="fill-accent"/>
+<text x="76.0" y="209.0" font-size="12" text-anchor="start">½ × the φ = 0 distribution (from |0⟩): all on 000</text>
+</svg>
+        <p class="cap">The running $U$ with $\ket+ = \tfrac1{\sqrt2}(\ket0 + \ket1)$ as input: $\ket0$ has phase $0$, $\ket1$ has phase $\tfrac13$.</p>
+      </div>
+      <p class="small">$\Pr(000) = \tfrac12\cdot1 + \tfrac12\cdot0.0156 = 0.5078$; the rest is half the familiar distribution. Total $\tfrac12 + \tfrac12 = 1$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The fact Shor uses.</b> In order finding (unit 16), $U$ multiplies by $a$ modulo $N$, and its eigenvectors $\ket{u_s}$ have phases $s/r$,
+    $s = 0, \dots, r - 1$, where $r$ is the unknown order. Nobody can prepare a single $\ket{u_s}$ without knowing $r$; but
+    $\ket1 = \tfrac1{\sqrt r}\sum_s\ket{u_s}$, which is trivial to prepare. By this theorem, phase estimation on $\ket1$ returns an estimate of $s/r$
+    for a uniformly random $s$ — and that is enough.</p>
+    <p><b>The eigenvector afterwards.</b> Measuring $y$ leaves the target in a mixture weighted towards the $\ket{u_s}$ whose phase is near
+    $y/2^t$; when the phases are well separated relative to $2^{-t}$ the target is (nearly) projected onto one eigenvector. In unit 19
+    this is how phase estimation prepares an energy eigenstate.</p>
+    <p><b>The figure's numbers.</b> $\tfrac12p_{1/3}(y)$ for $y = 0, \dots, 7$ is $0.0078, 0.0158, 0.0875, 0.3439, 0.0234, 0.0093, 0.0063, 0.0060$, and
+    $\tfrac12p_0 = \tfrac12$ on $y = 0$, since $\varphi = 0$ is exact.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Precision</h2>
+  <p>How likely the nearest fraction is, what more counting qubits buy, and how many give $n$ correct bits with confidence $1 - \varepsilon$.</p>
+</section>
+
+<section>
+  <p class="eyebrow">15 · precision</p>
+  <h2>The nearest fraction, with probability at least $4/\pi^2$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">$4/\pi^2$ bound</span></span>
+        <p class="small">Let $y^*$ be the integer nearest $2^t\varphi$ (mod $2^t$), so $|\delta| \le\tfrac12$ with $\delta = 2^t\varphi - y^*$. Then</p>
+        $$p(y^*)\ge\frac4{\pi^2}\approx0.405 .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">If $\delta = 0$, $p = 1$. Otherwise use two inequalities:</p>
+        <p class="small">$|\sin(\pi\delta/2^t)|\le\pi|\delta|/2^t$, since $|\sin x|\le|x|$;<br>$|\sin\pi\delta|\ge2|\delta|$ for $|\delta|\le\tfrac12$, since $\sin$ is concave on $[0, \tfrac\pi2]$ and so lies above its chord: $\sin x\ge\tfrac{2}{\pi}x$.</p>
+        $$p(y^*)\ge\frac{4\delta^2}{2^{2t}\,\pi^2\delta^2/2^{2t}} = \frac4{\pi^2}.\ \ ∎$$
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 380 222" width="380" role="img" aria-label="the probability of the nearest outcome against the offset delta from minus one half to one half: an arch equal to 1 at delta 0 falling towards the ends; the solid curve is the large-t limit, sine of pi delta over pi delta, squared, which ends at 4 over pi squared, about 0.405, drawn as a dashed floor; a dashed curve for t equals 1 lies above it and ends at one half; the running example at delta minus one third, t equals 3, is marked at 0.688">
+<line x1="50.0" y1="186.0" x2="350.0" y2="186.0" class="ink" stroke-width="1.2"/>
+<line x1="200.0" y1="186.0" x2="200.0" y2="12.0" class="rule" stroke-width="1"/>
+<line x1="50.0" y1="186.0" x2="50.0" y2="12.0" class="ink" stroke-width="1.2"/>
+<text x="44.0" y="190.0" font-size="11" text-anchor="end" class="soft">0</text>
+<text x="44.0" y="105.0" font-size="11" text-anchor="end" class="soft">0.5</text>
+<text x="44.0" y="20.0" font-size="11" text-anchor="end" class="soft">1</text>
+<text x="50.0" y="202.0" font-size="11" text-anchor="middle" class="soft">−½</text>
+<text x="200.0" y="202.0" font-size="11" text-anchor="middle" class="soft">0</text>
+<text x="350.0" y="202.0" font-size="11" text-anchor="middle" class="soft">½</text>
+<text x="356.0" y="190.0" font-size="13" text-anchor="start">δ</text>
+<line x1="50.0" y1="117.1" x2="350.0" y2="117.1" class="warn" stroke-width="1.4" stroke-dasharray="5 3"/>
+<text x="200.0" y="133.1" font-size="12" text-anchor="middle" class="halo">4/π² ≈ 0.405</text>
+<path d="M 50.0 101.0 L 51.5 99.7 L 53.0 98.3 L 54.5 97.0 L 56.0 95.7 L 57.5 94.3 L 59.0 93.0 L 60.5 91.7 L 62.0 90.3 L 63.5 89.0 L 65.0 87.7 L 66.5 86.4 L 68.0 85.1 L 69.5 83.8 L 71.0 82.5 L 72.5 81.2 L 74.0 79.9 L 75.5 78.6 L 77.0 77.3 L 78.5 76.0 L 80.0 74.7 L 81.5 73.5 L 83.0 72.2 L 84.5 71.0 L 86.0 69.7 L 87.5 68.5 L 89.0 67.2 L 90.5 66.0 L 92.0 64.8 L 93.5 63.6 L 95.0 62.4 L 96.5 61.2 L 98.0 60.1 L 99.5 58.9 L 101.0 57.7 L 102.5 56.6 L 104.0 55.5 L 105.5 54.3 L 107.0 53.2 L 108.5 52.1 L 110.0 51.0 L 111.5 50.0 L 113.0 48.9 L 114.5 47.9 L 116.0 46.8 L 117.5 45.8 L 119.0 44.8 L 120.5 43.8 L 122.0 42.8 L 123.5 41.8 L 125.0 40.9 L 126.5 40.0 L 128.0 39.0 L 129.5 38.1 L 131.0 37.2 L 132.5 36.4 L 134.0 35.5 L 135.5 34.7 L 137.0 33.8 L 138.5 33.0 L 140.0 32.2 L 141.5 31.5 L 143.0 30.7 L 144.5 30.0 L 146.0 29.2 L 147.5 28.5 L 149.0 27.8 L 150.5 27.2 L 152.0 26.5 L 153.5 25.9 L 155.0 25.3 L 156.5 24.7 L 158.0 24.1 L 159.5 23.5 L 161.0 23.0 L 162.5 22.5 L 164.0 22.0 L 165.5 21.5 L 167.0 21.0 L 168.5 20.6 L 170.0 20.2 L 171.5 19.8 L 173.0 19.4 L 174.5 19.0 L 176.0 18.7 L 177.5 18.3 L 179.0 18.0 L 180.5 17.8 L 182.0 17.5 L 183.5 17.3 L 185.0 17.0 L 186.5 16.8 L 188.0 16.7 L 189.5 16.5 L 191.0 16.4 L 192.5 16.3 L 194.0 16.2 L 195.5 16.1 L 197.0 16.0 L 198.5 16.0 L 200.0 16.0 L 201.5 16.0 L 203.0 16.0 L 204.5 16.1 L 206.0 16.2 L 207.5 16.3 L 209.0 16.4 L 210.5 16.5 L 212.0 16.7 L 213.5 16.8 L 215.0 17.0 L 216.5 17.3 L 218.0 17.5 L 219.5 17.8 L 221.0 18.0 L 222.5 18.3 L 224.0 18.7 L 225.5 19.0 L 227.0 19.4 L 228.5 19.8 L 230.0 20.2 L 231.5 20.6 L 233.0 21.0 L 234.5 21.5 L 236.0 22.0 L 237.5 22.5 L 239.0 23.0 L 240.5 23.5 L 242.0 24.1 L 243.5 24.7 L 245.0 25.3 L 246.5 25.9 L 248.0 26.5 L 249.5 27.2 L 251.0 27.8 L 252.5 28.5 L 254.0 29.2 L 255.5 30.0 L 257.0 30.7 L 258.5 31.5 L 260.0 32.2 L 261.5 33.0 L 263.0 33.8 L 264.5 34.7 L 266.0 35.5 L 267.5 36.4 L 269.0 37.2 L 270.5 38.1 L 272.0 39.0 L 273.5 40.0 L 275.0 40.9 L 276.5 41.8 L 278.0 42.8 L 279.5 43.8 L 281.0 44.8 L 282.5 45.8 L 284.0 46.8 L 285.5 47.9 L 287.0 48.9 L 288.5 50.0 L 290.0 51.0 L 291.5 52.1 L 293.0 53.2 L 294.5 54.3 L 296.0 55.5 L 297.5 56.6 L 299.0 57.7 L 300.5 58.9 L 302.0 60.1 L 303.5 61.2 L 305.0 62.4 L 306.5 63.6 L 308.0 64.8 L 309.5 66.0 L 311.0 67.2 L 312.5 68.5 L 314.0 69.7 L 315.5 71.0 L 317.0 72.2 L 318.5 73.5 L 320.0 74.7 L 321.5 76.0 L 323.0 77.3 L 324.5 78.6 L 326.0 79.9 L 327.5 81.2 L 329.0 82.5 L 330.5 83.8 L 332.0 85.1 L 333.5 86.4 L 335.0 87.7 L 336.5 89.0 L 338.0 90.3 L 339.5 91.7 L 341.0 93.0 L 342.5 94.3 L 344.0 95.7 L 345.5 97.0 L 347.0 98.3 L 348.5 99.7 L 350.0 101.0" fill="none" class="alt" stroke-width="2" stroke-dasharray="4 3"/>
+<path d="M 50.0 117.1 L 51.5 115.7 L 53.0 114.3 L 54.5 112.9 L 56.0 111.5 L 57.5 110.1 L 59.0 108.7 L 60.5 107.3 L 62.0 105.9 L 63.5 104.5 L 65.0 103.0 L 66.5 101.6 L 68.0 100.2 L 69.5 98.7 L 71.0 97.3 L 72.5 95.8 L 74.0 94.4 L 75.5 93.0 L 77.0 91.5 L 78.5 90.1 L 80.0 88.6 L 81.5 87.2 L 83.0 85.7 L 84.5 84.3 L 86.0 82.9 L 87.5 81.5 L 89.0 80.0 L 90.5 78.6 L 92.0 77.2 L 93.5 75.8 L 95.0 74.4 L 96.5 73.0 L 98.0 71.6 L 99.5 70.2 L 101.0 68.8 L 102.5 67.4 L 104.0 66.1 L 105.5 64.7 L 107.0 63.4 L 108.5 62.1 L 110.0 60.7 L 111.5 59.4 L 113.0 58.1 L 114.5 56.8 L 116.0 55.6 L 117.5 54.3 L 119.0 53.1 L 120.5 51.8 L 122.0 50.6 L 123.5 49.4 L 125.0 48.2 L 126.5 47.0 L 128.0 45.9 L 129.5 44.7 L 131.0 43.6 L 132.5 42.5 L 134.0 41.4 L 135.5 40.3 L 137.0 39.3 L 138.5 38.2 L 140.0 37.2 L 141.5 36.2 L 143.0 35.3 L 144.5 34.3 L 146.0 33.4 L 147.5 32.5 L 149.0 31.6 L 150.5 30.7 L 152.0 29.8 L 153.5 29.0 L 155.0 28.2 L 156.5 27.4 L 158.0 26.7 L 159.5 26.0 L 161.0 25.2 L 162.5 24.6 L 164.0 23.9 L 165.5 23.3 L 167.0 22.7 L 168.5 22.1 L 170.0 21.5 L 171.5 21.0 L 173.0 20.5 L 174.5 20.0 L 176.0 19.5 L 177.5 19.1 L 179.0 18.7 L 180.5 18.3 L 182.0 18.0 L 183.5 17.7 L 185.0 17.4 L 186.5 17.1 L 188.0 16.9 L 189.5 16.7 L 191.0 16.5 L 192.5 16.3 L 194.0 16.2 L 195.5 16.1 L 197.0 16.1 L 198.5 16.0 L 200.0 16.0 L 201.5 16.0 L 203.0 16.1 L 204.5 16.1 L 206.0 16.2 L 207.5 16.3 L 209.0 16.5 L 210.5 16.7 L 212.0 16.9 L 213.5 17.1 L 215.0 17.4 L 216.5 17.7 L 218.0 18.0 L 219.5 18.3 L 221.0 18.7 L 222.5 19.1 L 224.0 19.5 L 225.5 20.0 L 227.0 20.5 L 228.5 21.0 L 230.0 21.5 L 231.5 22.1 L 233.0 22.7 L 234.5 23.3 L 236.0 23.9 L 237.5 24.6 L 239.0 25.2 L 240.5 26.0 L 242.0 26.7 L 243.5 27.4 L 245.0 28.2 L 246.5 29.0 L 248.0 29.8 L 249.5 30.7 L 251.0 31.6 L 252.5 32.5 L 254.0 33.4 L 255.5 34.3 L 257.0 35.3 L 258.5 36.2 L 260.0 37.2 L 261.5 38.2 L 263.0 39.3 L 264.5 40.3 L 266.0 41.4 L 267.5 42.5 L 269.0 43.6 L 270.5 44.7 L 272.0 45.9 L 273.5 47.0 L 275.0 48.2 L 276.5 49.4 L 278.0 50.6 L 279.5 51.8 L 281.0 53.1 L 282.5 54.3 L 284.0 55.6 L 285.5 56.8 L 287.0 58.1 L 288.5 59.4 L 290.0 60.7 L 291.5 62.1 L 293.0 63.4 L 294.5 64.7 L 296.0 66.1 L 297.5 67.4 L 299.0 68.8 L 300.5 70.2 L 302.0 71.6 L 303.5 73.0 L 305.0 74.4 L 306.5 75.8 L 308.0 77.2 L 309.5 78.6 L 311.0 80.0 L 312.5 81.5 L 314.0 82.9 L 315.5 84.3 L 317.0 85.7 L 318.5 87.2 L 320.0 88.6 L 321.5 90.1 L 323.0 91.5 L 324.5 93.0 L 326.0 94.4 L 327.5 95.8 L 329.0 97.3 L 330.5 98.7 L 332.0 100.2 L 333.5 101.6 L 335.0 103.0 L 336.5 104.5 L 338.0 105.9 L 339.5 107.3 L 341.0 108.7 L 342.5 110.1 L 344.0 111.5 L 345.5 112.9 L 347.0 114.3 L 348.5 115.7 L 350.0 117.1" fill="none" class="unit" stroke-width="2"/>
+<circle cx="100.0" cy="69.1" r="4.5" class="fill-accent"/>
+<text x="108.0" y="87.1" font-size="12" text-anchor="start" class="halo">δ = −⅓, t = 3: 0.688</text>
+<text x="59.0" y="67.0" font-size="12" text-anchor="start" class="alt">t = 1</text>
+<text x="308.0" y="97.6" font-size="12" text-anchor="end" class="fill-unit">t → ∞</text>
+</svg>
+        <p class="cap">$p(y^*)$ against $\delta$. As $t\to\infty$ it tends to $\big(\frac{\sin\pi\delta}{\pi\delta}\big)^2$, which is $4/\pi^2$ at $\delta = \pm\tfrac12$.</p>
+      </div>
+      <p class="small"><b>Running example:</b> $\delta = -\tfrac13$, $p = 0.688\ge0.405$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Concavity, in full.</b> On $[0, \pi/2]$, $\sin'' = -\sin\le0$, so $\sin$ lies above the chord from $(0, 0)$ to $(\pi/2, 1)$, which is
+    $x\mapsto2x/\pi$. With $x = \pi|\delta|\le\pi/2$ this gives $|\sin\pi\delta|\ge2|\delta|$ (Jordan's inequality). And $|\sin x|\le|x|$ for all real $x$
+    because $|\sin x| = |\int_0^x\cos|\le|x|$.</p>
+    <p><b>Tightness.</b> At $\delta = \tfrac12$ exactly, $p = 1/(2^{2t}\sin^2(\pi/2^{t+1}))$. Since $2^t\sin(\pi/2^{t+1})\to\pi/2$ as $t\to\infty$, $p\to4/\pi^2$. So no better
+    constant holds for all $t$; problem P10 computes the approach. The limiting curve uses $2^t\sin(\pi\delta/2^t)\to\pi\delta$.</p>
+    <p><b>The two nearest together.</b> At $\delta = \tfrac12$ both neighbours have the same probability, so by the theorem the two together
+    have at least $8/\pi^2\approx0.81$. For other $\varphi$ the two integers bracketing $2^t\varphi$ also have at least $0.81$ between them —
+    computed over $t\le11$ and a fine grid of offsets, not proved here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · precision</p>
+  <h2>More counting qubits: resolution, not confidence</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th class="num">$t$</th><th class="num">$2^t\varphi$</th><th>nearest $y/2^t$</th><th class="num">$p(y^*)$</th><th class="num">within $\pm1$</th></tr></thead>
+        <tbody>
+          <tr><td class="num">2</td><td class="num">1.33</td><td>$1/4$</td><td class="num">0.6998</td><td class="num">0.9498</td></tr>
+          <tr><td class="num">3</td><td class="num">2.67</td><td>$3/8$</td><td class="num">0.6878</td><td class="num">0.9097</td></tr>
+          <tr><td class="num">4</td><td class="num">5.33</td><td>$5/16$</td><td class="num">0.6849</td><td class="num">0.9006</td></tr>
+          <tr><td class="num">6</td><td class="num">21.33</td><td>$21/64$</td><td class="num">0.6840</td><td class="num">0.8978</td></tr>
+          <tr><td class="num">10</td><td class="num">341.33</td><td>$341/1024$</td><td class="num">0.6839</td><td class="num">0.8976</td></tr>
+        </tbody>
+      </table>
+      <p class="small">$2^t/3$ always has fractional part $\tfrac13$ or $\tfrac23$, so $|\delta| = \tfrac13$ for every $t$, and $p(y^*)\to\big(\tfrac{\sin(\pi/3)}{\pi/3}\big)^2 = \tfrac{27}{4\pi^2} = 0.6839$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 212" width="470" role="img" aria-label="outcome distributions for phi one third plotted against y over 2 to the t: with t equals 3, pale bars spaced one eighth apart, the tallest 0.688 at 3/8; with t equals 6, thin stems with dots spaced one sixty-fourth apart, crowded closer round one third, the tallest 0.684 at 21/64">
+<line x1="50.0" y1="172.0" x2="430.0" y2="172.0" class="ink" stroke-width="1.2"/>
+<line x1="50.0" y1="172.0" x2="50.0" y2="22.0" class="ink" stroke-width="1.2"/>
+<text x="44.0" y="176.0" font-size="11" text-anchor="end" class="soft">0</text>
+<text x="44.0" y="126.0" font-size="11" text-anchor="end" class="soft">0.25</text>
+<text x="44.0" y="76.0" font-size="11" text-anchor="end" class="soft">0.5</text>
+<text x="44.0" y="26.0" font-size="11" text-anchor="end" class="soft">0.75</text>
+<text x="50.0" y="188.0" font-size="11" text-anchor="middle" class="soft">0</text>
+<text x="145.0" y="188.0" font-size="11" text-anchor="middle" class="soft">¼</text>
+<text x="240.0" y="188.0" font-size="11" text-anchor="middle" class="soft">½</text>
+<text x="335.0" y="188.0" font-size="11" text-anchor="middle" class="soft">¾</text>
+<text x="430.0" y="188.0" font-size="11" text-anchor="middle" class="soft">1</text>
+<text x="434.0" y="176.0" font-size="12" text-anchor="start">y/2ᵗ</text>
+<line x1="176.7" y1="18.0" x2="176.7" y2="172.0" class="warn" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="176.7" y="14.0" font-size="12" text-anchor="middle" class="halo">φ = ⅓</text>
+<rect x="41.0" y="168.9" width="18" height="3.1" class="fill-soft unit" stroke-width="1.2"/>
+<rect x="88.5" y="165.7" width="18" height="6.3" class="fill-soft unit" stroke-width="1.2"/>
+<rect x="136.0" y="137.0" width="18" height="35.0" class="fill-soft unit" stroke-width="1.2"/>
+<rect x="183.5" y="34.4" width="18" height="137.6" class="fill-soft unit" stroke-width="1.2"/>
+<rect x="231.0" y="162.6" width="18" height="9.4" class="fill-soft unit" stroke-width="1.2"/>
+<rect x="278.5" y="168.3" width="18" height="3.7" class="fill-soft unit" stroke-width="1.2"/>
+<rect x="326.0" y="169.5" width="18" height="2.5" class="fill-soft unit" stroke-width="1.2"/>
+<rect x="373.5" y="169.6" width="18" height="2.4" class="fill-soft unit" stroke-width="1.2"/>
+<line x1="145.0" y1="172.0" x2="145.0" y2="171.5" class="alt" stroke-width="1.8"/>
+<circle cx="145.0" cy="171.5" r="2.6" class="fill-alt"/>
+<line x1="150.9" y1="172.0" x2="150.9" y2="171.2" class="alt" stroke-width="1.8"/>
+<circle cx="150.9" cy="171.2" r="2.6" class="fill-alt"/>
+<line x1="156.9" y1="172.0" x2="156.9" y2="170.6" class="alt" stroke-width="1.8"/>
+<circle cx="156.9" cy="170.6" r="2.6" class="fill-alt"/>
+<line x1="162.8" y1="172.0" x2="162.8" y2="169.2" class="alt" stroke-width="1.8"/>
+<circle cx="162.8" cy="169.2" r="2.6" class="fill-alt"/>
+<line x1="168.8" y1="172.0" x2="168.8" y2="163.4" class="alt" stroke-width="1.8"/>
+<circle cx="168.8" cy="163.4" r="2.6" class="fill-alt"/>
+<line x1="174.7" y1="172.0" x2="174.7" y2="35.2" class="alt" stroke-width="1.8"/>
+<circle cx="174.7" cy="35.2" r="2.6" class="fill-alt"/>
+<line x1="180.6" y1="172.0" x2="180.6" y2="137.8" class="alt" stroke-width="1.8"/>
+<circle cx="180.6" cy="137.8" r="2.6" class="fill-alt"/>
+<line x1="186.6" y1="172.0" x2="186.6" y2="166.5" class="alt" stroke-width="1.8"/>
+<circle cx="186.6" cy="166.5" r="2.6" class="fill-alt"/>
+<line x1="192.5" y1="172.0" x2="192.5" y2="169.9" class="alt" stroke-width="1.8"/>
+<circle cx="192.5" cy="169.9" r="2.6" class="fill-alt"/>
+<line x1="198.4" y1="172.0" x2="198.4" y2="170.9" class="alt" stroke-width="1.8"/>
+<circle cx="198.4" cy="170.9" r="2.6" class="fill-alt"/>
+<line x1="204.4" y1="172.0" x2="204.4" y2="171.3" class="alt" stroke-width="1.8"/>
+<circle cx="204.4" cy="171.3" r="2.6" class="fill-alt"/>
+<line x1="210.3" y1="172.0" x2="210.3" y2="171.5" class="alt" stroke-width="1.8"/>
+<circle cx="210.3" cy="171.5" r="2.6" class="fill-alt"/>
+<rect x="278.0" y="38.0" width="14" height="12" class="fill-soft unit" stroke-width="1.2"/>
+<text x="298.0" y="48.0" font-size="12" text-anchor="start">t = 3: 0.688 at 3/8</text>
+<line x1="285.0" y1="74.0" x2="285.0" y2="60.0" class="alt" stroke-width="1.8"/>
+<circle cx="285.0" cy="60.0" r="2.6" class="fill-alt"/>
+<text x="298.0" y="72.0" font-size="12" text-anchor="start">t = 6: 0.684 at 21/64</text>
+</svg>
+        <p class="cap">The same distribution at $t = 3$ and $t = 6$: the peak is as tall, eight times as narrow.</p>
+      </div>
+      <p class="small"><b>Each qubit halves the error and keeps the confidence.</b> To raise the confidence instead, add qubits <b>beyond</b> the bits you need, and accept any outcome near the peak: the next slide.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The pattern.</b> $2^t\bmod3$ alternates $2, 1, 2, 1, \dots$ for $t = 1, 2, 3, \dots$, so $2^t/3$ has fractional part $\tfrac23$ (odd $t$) or $\tfrac13$ (even $t$),
+    and the nearest integer is always at distance $\tfrac13$. The estimate's error is $|\tilde\varphi - \varphi| = \tfrac13\cdot2^{-t}$ when the peak is
+    hit: $0.042$ at $t = 3$, $0.0052$ at $t = 6$.</p>
+    <p><b>The limit.</b> With $\delta$ fixed, $2^{2t}\sin^2(\pi\delta/2^t)\to\pi^2\delta^2$, so $p(y^*)\to\sin^2(\pi\delta)/(\pi\delta)^2$; at $\delta = \tfrac13$ this is
+    $\tfrac34\cdot\tfrac9{\pi^2} = \tfrac{27}{4\pi^2}$.</p>
+    <p><b>$t = 1$</b> is left out of the table: there the "nearest" fraction to $\tfrac13$ among $\{0, \tfrac12\}$ is $\tfrac12$ with probability $0.75$, and "within $\pm1$"
+    covers both outcomes.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · precision</p>
+  <h2>$n$ bits with confidence $1 - \varepsilon$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (Cleve et al. 1998; Nielsen and Chuang §5.2.1)</span>
+        <p class="small">With $t = n + \big\lceil\log\big(2 + \tfrac1{2\varepsilon}\big)\big\rceil$ counting qubits, the estimate satisfies $|\tilde\varphi - \varphi| \lt 2^{-n}$ (distance on the circle) with probability at least $1 - \varepsilon$.</p>
+      </div>
+      <p class="small"><b>Proof, in outline</b> (full in the notes). Let $b$ be the largest integer with $b\le2^t\varphi$. With $\Delta = 2^t\varphi - b\in[0, 1)$, the amplitude of outcome $b + l$ is at most $\dfrac1{2|l - \Delta|}$ in modulus. Summing the squares over $|l| \gt e$ gives at most $\dfrac1{2(e - 1)}$. Accept $|l|\le e = 2^{t-n} - 1$; then $\dfrac1{2(2^{t-n} - 2)}\le\varepsilon$ is the condition on $t$.</p>
+    </div>
+    <div>
+      <div class="box good"><span class="label">ten bits at 99 per cent</span>
+        <p class="small">$n = 10$, $\varepsilon = 0.01$: $2 + \tfrac1{0.02} = 52$, $\log52 = 5.70$, so $t = 10 + 6 = 16$.</p>
+        <p class="small">Guaranteed failure $\le\tfrac1{2(2^6 - 2)} = \tfrac1{124} = 0.0081$. Computed worst case over $\varphi$: about $0.0032$. The bound is safe, and about $2.5$ times pessimistic.</p>
+      </div>
+      <div class="box warn"><span class="label">"n correct bits"</span>
+        <p class="small">means $|\tilde\varphi - \varphi| \lt 2^{-n}$. The binary digits can still differ through a carry: $\varphi = 0.0111\cdots1$ just below $\tfrac12$, estimate $0.1000\cdots$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Let $N = 2^t$, $b = \lfloor N\varphi\rfloor$, $\Delta = N\varphi - b\in[0, 1)$. For $-N/2 \lt l\le N/2$ the amplitude of outcome $(b + l)\bmod N$ is
+    $\alpha_l = \frac1N\sum_xe^{2\pi ix(\Delta - l)/N} = \frac1N\frac{1 - e^{2\pi i(\Delta - l)}}{1 - e^{2\pi i(\Delta - l)/N}}$.
+    The numerator has modulus at most 2. In the denominator $\theta = 2\pi(\Delta - l)/N$ satisfies $|\theta|\le\pi$ (from the range of $l$
+    and $0\le\Delta \lt 1$), and $|1 - e^{i\theta}| = 2|\sin(\theta/2)|\ge2|\theta|/\pi$ by the chord bound of the previous slide. So
+    $|\alpha_l|\le\frac1N\cdot\frac{2}{4|\Delta - l|/N} = \frac1{2|l - \Delta|}$.</p>
+    <p>Now sum over $|l| \gt e$ for an integer $e\ge2$. For $l\ge e + 1$, $l - \Delta \gt l - 1\ge e$; for $l\le-(e + 1)$, $|l - \Delta|\ge|l|\ge e + 1$. Hence
+    $\Pr(|l| \gt e)\le\frac14\big[\sum_{l\ge e+1}\frac1{(l-1)^2} + \sum_{l\ge e+1}\frac1{l^2}\big]\le\frac12\sum_{m\ge e}\frac1{m^2}\le\frac12\int_{e-1}^\infty\frac{\mathrm dm}{m^2} = \frac1{2(e - 1)}$.</p>
+    <p>Finally, if $|l|\le e = 2^{t-n} - 1$ then $|\tilde\varphi - \varphi| = |l - \Delta|/N \lt (e + 1)/N = 2^{-n}$: for $l\ge0$, $l - \Delta \gt -1$ and $l - \Delta\le e$;
+    for $l \lt 0$, $|l - \Delta| = |l| + \Delta \lt e + 1$. So the failure probability is at most $\frac1{2(2^{t-n} - 2)}$, which is $\le\varepsilon$ exactly
+    when $2^{t-n}\ge2 + \frac1{2\varepsilon}$, i.e. $t - n\ge\log(2 + \frac1{2\varepsilon})$. ∎</p>
+    <p><b>The worst case quoted.</b> Computed by evaluating the exact distribution of <i>The general case</i> at $t = 16$ for 2000 values of
+    $\varphi$ spread over $[0, 1)$ and taking the largest probability of an outcome at circular distance $\ge2^{-10}$: $0.0032$.</p>
+    <p><b>Cost of confidence.</b> The extra qubits grow like $\log(1/\varepsilon)$, so confidence is cheap. An alternative with the same
+    scaling: run with $t = n + 1$ several times and take the median.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · precision</p>
+  <h2>The worst case: exactly halfway</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 200" width="420" role="img" aria-label="bar chart of the outcome probabilities for phi equals 5/16, exactly halfway between 2/8 and 3/8, with three counting qubits: two equal tallest bars of 0.411 on outcomes 2 and 3, then 0.051 on 1 and 4, 0.023 on 0 and 5, 0.016 on 6 and 7">
+<line x1="50.0" y1="150.0" x2="400.0" y2="150.0" class="ink" stroke-width="1.2"/>
+<line x1="46.0" y1="150.0" x2="50.0" y2="150.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="154.0" font-size="11" text-anchor="end" class="soft">0</text>
+<line x1="46.0" y1="87.0" x2="50.0" y2="87.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="91.0" font-size="11" text-anchor="end" class="soft">0.25</text>
+<line x1="50.0" y1="87.0" x2="400.0" y2="87.0" class="rule" stroke-width="0.8" stroke-dasharray="2 4"/>
+<line x1="46.0" y1="24.0" x2="50.0" y2="24.0" class="ink" stroke-width="1"/>
+<text x="43.0" y="28.0" font-size="11" text-anchor="end" class="soft">0.5</text>
+<line x1="50.0" y1="24.0" x2="400.0" y2="24.0" class="rule" stroke-width="0.8" stroke-dasharray="2 4"/>
+<rect x="57.9" y="144.3" width="28.0" height="5.7" class="fill-unit"/>
+<text x="71.9" y="139.3" font-size="11" text-anchor="middle" class="halo">.023</text>
+<text x="71.9" y="165.0" font-size="11" text-anchor="middle" class="mono">000</text>
+<text x="71.9" y="179.0" font-size="10" text-anchor="middle" class="soft">0/8</text>
+<rect x="101.6" y="137.2" width="28.0" height="12.8" class="fill-unit"/>
+<text x="115.6" y="132.2" font-size="11" text-anchor="middle" class="halo">.051</text>
+<text x="115.6" y="165.0" font-size="11" text-anchor="middle" class="mono">001</text>
+<text x="115.6" y="179.0" font-size="10" text-anchor="middle" class="soft">1/8</text>
+<rect x="145.4" y="46.6" width="28.0" height="103.4" class="fill-accent"/>
+<text x="159.4" y="41.6" font-size="11" text-anchor="middle" class="halo">.410</text>
+<text x="159.4" y="165.0" font-size="11" text-anchor="middle" class="mono">010</text>
+<text x="159.4" y="179.0" font-size="10" text-anchor="middle" class="soft">2/8</text>
+<rect x="189.1" y="46.6" width="28.0" height="103.4" class="fill-accent"/>
+<text x="203.1" y="41.6" font-size="11" text-anchor="middle" class="halo">.410</text>
+<text x="203.1" y="165.0" font-size="11" text-anchor="middle" class="mono">011</text>
+<text x="203.1" y="179.0" font-size="10" text-anchor="middle" class="soft">3/8</text>
+<rect x="232.9" y="137.2" width="28.0" height="12.8" class="fill-unit"/>
+<text x="246.9" y="132.2" font-size="11" text-anchor="middle" class="halo">.051</text>
+<text x="246.9" y="165.0" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="246.9" y="179.0" font-size="10" text-anchor="middle" class="soft">4/8</text>
+<rect x="276.6" y="144.3" width="28.0" height="5.7" class="fill-unit"/>
+<text x="290.6" y="139.3" font-size="11" text-anchor="middle" class="halo">.023</text>
+<text x="290.6" y="165.0" font-size="11" text-anchor="middle" class="mono">101</text>
+<text x="290.6" y="179.0" font-size="10" text-anchor="middle" class="soft">5/8</text>
+<rect x="320.4" y="145.9" width="28.0" height="4.1" class="fill-unit"/>
+<text x="334.4" y="140.9" font-size="11" text-anchor="middle" class="halo">.016</text>
+<text x="334.4" y="165.0" font-size="11" text-anchor="middle" class="mono">110</text>
+<text x="334.4" y="179.0" font-size="10" text-anchor="middle" class="soft">6/8</text>
+<rect x="364.1" y="145.9" width="28.0" height="4.1" class="fill-unit"/>
+<text x="378.1" y="140.9" font-size="11" text-anchor="middle" class="halo">.016</text>
+<text x="378.1" y="165.0" font-size="11" text-anchor="middle" class="mono">111</text>
+<text x="378.1" y="179.0" font-size="10" text-anchor="middle" class="soft">7/8</text>
+<line x1="181.2" y1="20.0" x2="181.2" y2="150.0" class="warn" stroke-width="1.6" stroke-dasharray="4 3"/>
+<text x="181.2" y="16.0" font-size="12" text-anchor="middle" class="halo">2³φ = 2.5</text>
+</svg>
+        <p class="cap">$\varphi = 5/16$, halfway between $2/8$ and $3/8$, $t = 3$: two equal peaks.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">At $\delta = \pm\tfrac12$ both neighbours tie at $p = \dfrac1{2^{2t}\sin^2(\pi/2^{t+1})}$:</p>
+      <table class="dense">
+        <thead><tr><th class="num">$t$</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">10</th></tr></thead>
+        <tbody><tr><td class="num">$p$</td><td class="num">0.5000</td><td class="num">0.4268</td><td class="num">0.4105</td><td class="num">0.4066</td><td class="num">0.4056</td><td class="num">0.4053</td></tr></tbody>
+      </table>
+      <p class="small">decreasing to $4/\pi^2 = 0.40528$: the bound of <i>The nearest fraction, with probability at least $4/\pi^2$</i> is attained in the limit.</p>
+      <p class="small">The two together: $0.821$ at $t = 3$, never below $8/\pi^2 = 0.81$. Either is an equally good estimate, $2^{-t-1}$ from $\varphi$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The $t = 3$ figure.</b> $\varphi = 5/16$, $2^3\varphi = 2.5$; outcome probabilities $0.0226, 0.0506, 0.4105, 0.4105, 0.0506, 0.0226, 0.0162, 0.0162$
+    for $y = 0, \dots, 7$, symmetric about $2.5$ (and about $6.5$, round the circle).</p>
+    <p><b>Why halfway is worst.</b> $p(y^*)$ as a function of $|\delta|\in[0, \tfrac12]$ is decreasing (the figure on <i>The nearest
+    fraction, with probability at least $4/\pi^2$</i>); the farther $2^t\varphi$ is from an integer, the more the probability spreads, and
+    $\delta = \pm\tfrac12$ is as far as the nearest integer can be. <b>Full proof.</b> With $N = 2^t$, the amplitude computed on <i>The general
+    case</i> is, up to a phase, $\frac1N\sum_{x=0}^{N-1}e^{2\pi ix\delta/N}$; pairing $x$ with $N - 1 - x$ makes it real,
+    $\frac1N\sum_{x=0}^{N-1}\cos\big(\pi\delta(N - 1 - 2x)/N\big)$. Each $|N - 1 - 2x|\le N - 1 \lt N$, so for $0\le\delta\le1$ every argument lies in
+    $[0, \pi)$ in absolute value and every cosine decreases as $\delta$ grows. The sum is therefore positive and decreasing on $[0, \tfrac12]$, and
+    so is its square $p(y^*)$; it is even in $\delta$. ∎</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · precision</p>
+  <h2>What it costs, and what it is for</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The cost in uses of $U$.</b> The controlled powers are $C(U^{2^j})$, $j = 0, \dots, t - 1$. Built by repeating $C(U)$, that is $2^t - 1$ uses for precision $2^{-t}$: cost $O(1/\varepsilon)$, against $O(1/\varepsilon^2)$ for repeating the Hadamard test. A quadratic saving, no more.</p>
+      <p class="small"><b>The exponential saving needs fast powers:</b> a circuit for $U^{2^j}$ of size polynomial in $j$. That is a property of $U$, not of phase estimation.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>unit</th><th>$U$</th><th>eigenphases</th><th>fast powers?</th></tr></thead>
+        <tbody>
+          <tr><td>16 Shor</td><td>$x\mapsto ax\bmod N$</td><td>$s/r$</td><td>yes: $a^{2^j}\bmod N$ by squaring</td></tr>
+          <tr><td>17 counting</td><td>the Grover rotation, by angle $\theta$</td><td>$\pm\theta/2\pi$</td><td>no: $2^t$ queries</td></tr>
+          <tr><td>19 energies</td><td>$e^{-iH\tau}$</td><td>$-E\tau/2\pi$</td><td>time $2^j\tau$, simulated</td></tr>
+        </tbody>
+      </table>
+      <p class="small">One circuit, three subjects: the engine of the next four units.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Shor's fast powers.</b> $U_a^{2^j}$ multiplies by $a^{2^j}\bmod N$, which is again a single modular multiplication by a number a
+    classical computer finds by $j$ squarings. So each controlled power costs one controlled modular multiplier, $O(L^2)$ gates for an
+    $L$-bit $N$, and the whole of phase estimation is polynomial (unit 16).</p>
+    <p><b>Quantum counting</b> (unit 17) has no fast powers: the Grover rotation's powers cost one oracle query each, so $t$ bits cost about
+    $2^t$ queries — which is exactly Grover's quadratic scaling, and optimal by unit 18.</p>
+    <p><b>Energy readout</b> (unit 19): an eigenvector of a Hamiltonian $H$ with energy $E$ is an eigenvector of $e^{-iH\tau}$ with eigenphase
+    $-E\tau/2\pi$ modulo 1 (with $\hbar = 1$); simulating the evolution for time $2^j\tau$ is the controlled power, at cost growing with
+    the time. Phase estimation of an approximate ground state is the standard proposal for computing molecular energies.</p>
+    <p><b>The Heisenberg limit.</b> In metrology the $1/\varepsilon$ scaling with the number of uses is called the Heisenberg limit and
+    $1/\varepsilon^2$ the standard quantum limit; phase estimation attains the former. No strategy does better than $\Omega(1/\varepsilon)$ uses
+    (cited: e.g. Giovannetti, Lloyd and Maccone, <i>Phys. Rev. Lett.</i> 96, 010401, 2006).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · close</p>
+  <h2>Three bits of one third, closed</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="pe">the running example</span>, answered</span>
+        <p class="small">Three counting qubits, $U$ applied $7$ times, inverse $F_8$ (<span class="ref" data-ref="qft3">7 gates</span>). Outcome $3/8 = 0.375$ with probability $0.688\ge4/\pi^2 = 0.405$ ✓; one of $2/8, 3/8, 4/8$ with $0.910$. For ten bits at 99 per cent: 16 counting qubits.</p>
+      </div>
+      <h3>What was proved</h3>
+      <ul class="small">
+        <li>Characters: orthogonality, $\widehat{G\times H}\cong\hat G\times\hat H$, $\hat{\mathbb Z}_N\cong\mathbb Z_N$; $F_G$ unitary; shifts become phases.</li>
+        <li>The product formula, and from it the QFT circuit: $n$ $H$, $\tfrac{n(n-1)}2$ controlled phases, $\lfloor n/2\rfloor$ swaps.</li>
+        <li>The approximate QFT: error $\le2\pi(n - m)/2^m$.</li>
+        <li>Phase estimation: exact case, distribution, superpositions, $4/\pi^2$, and $t = n + \lceil\log(2 + \tfrac1{2\varepsilon})\rceil$.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Nielsen and Chuang, §5.1 (the QFT) and §5.2 (phase estimation, including §5.2.1's bound); stop before §5.3, which is unit 16. Their qubit order and sign match this course's. Cleve, Ekert, Macchiavello and Mosca (1998), sections 1–5, readable now. For characters of finite abelian groups beyond this deck, Terras, <i>Fourier Analysis on Finite Groups and Applications</i>, Part I (finite abelian groups); Part II is non-abelian and not needed.</p>
+      <h3>Next</h3>
+      <p class="small"><b>16</b> Shor: order finding is phase estimation on $x\mapsto ax\bmod N$. <b>17</b> Grover, and quantum counting as phase estimation. <b>19</b> Hamiltonian simulation, and energies read by phase estimation.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The close in numbers.</b> $p(2) + p(3) + p(4) = 0.1749 + 0.6878 + 0.0469 = 0.9097$. The guarantee $4/\pi^2$ is for the single nearest
+    fraction; the running example beats it comfortably because $|\delta| = \tfrac13$, not the worst case $\tfrac12$.</p>
+    <p><b>Why phase estimation is the engine of unit 16.</b> Order finding needs an eigenphase $s/r$ to about $2L$ bits, from a register
+    prepared in $\ket1$ (a superposition of all the eigenvectors, <i>A superposition of eigenvectors</i>), with fast powers by repeated
+    squaring. Everything in that sentence except the continued fractions that turn $s/r$ into $r$ was proved in this deck.</p>
+    <p><b>What was left out.</b> Fourier analysis on non-abelian groups (unit 16 names it); the semiclassical QFT beyond a remark; depth
+    optimisation of the QFT; error-robust variants of phase estimation (iterative and Bayesian phase estimation).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">15 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>derive the QFT circuit on $\mathbb Z_{2^n}$ from the product formula — including where the swaps go in the course's qubit order — and count its gates;</li>
+      <li>prove the $4/\pi^2$ bound for the nearest $t$-bit fraction;</li>
+      <li>compute the full outcome distribution of phase estimation for $\varphi = \tfrac13$ with three counting qubits: $0.688$ on $3/8$, $0.175$ on $2/8$, all eight summing to 1.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A circuit whose last qubit carries $0.j_n$ instead of $0.j_1\cdots j_n$ — swaps missing or misplaced. A $4/\pi^2$ proof that bounds $\sin\pi\delta$ by $\pi\delta$ (wrong direction). A distribution for $\tfrac13$ peaking at $2/8$, or not summing to one.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./qc problems 15</code>. When the checkpoint is true: <code>./qc done 15</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try one thing not in the deck before opening the sheet: run phase estimation for $\varphi = \tfrac13$ with $t = 2$ by hand, and check
+    that the nearest fraction $\tfrac14$ comes out with probability $0.6998$ and the four outcomes sum to 1.</p>
+    <p><b>The trap in the second item.</b> The two inequalities go in opposite directions: the numerator $\sin\pi\delta$ is bounded
+    <i>below</i> (by the chord), the denominator's sine <i>above</i> (by its argument). Swapping either gives a bound in the wrong direction.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>23 · Problems — Stabilisers: codes as abelian groups, and the circuits a classical computer can run</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="e">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part E · unit 23 · problems</p>
+<h1>Stabilisers: codes as abelian groups, and the circuits a classical computer can run</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u23">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> You prove the Gottesman–Knill theorem — the tableau update for
+\(H\), \(S\) and CNOT, and the two cases of a Pauli measurement — and the CSS construction, that
+\(Z\)-checks from \(C_1\) and \(X\)-checks from \(C_2\subseteq C_1\) commute and fix a code of dimension
+\(2^{k_1 - k_2}\); and you build Steane's code from Hamming's parity-check matrix: its six generators,
+their commutation, \(\dim V_S = 2\), the logical operators \(\bar X = X^{\otimes7}\) and
+\(\bar Z = Z^{\otimes7}\) with weight-3 representatives, and distance 3.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five and a half hours. Work them on paper first.</p>
+<p>Conventions as in the deck. Pauli strings are written with qubit 0 leftmost, except for Steane's code,
+whose qubits are numbered 1 to 7 to match Hamming's positions. \(M\) is Hamming's parity-check matrix, columns
+\(1, \dots, 7\) in binary with the 4s bit on top: rows \(h_1 = 0001111\), \(h_2 = 0110011\), \(h_3 = 1010101\).
+Steane's generators are \(g_1 = X^{h_1}, g_2 = X^{h_2}, g_3 = X^{h_3}, g_4 = Z^{h_1}, g_5 = Z^{h_2}, g_6 = Z^{h_3}\).
+\(v(P) = (x\,|\,z)\) codes \(I, X, Z, Y\) as \((0|0), (1|0), (0|1), (1|1)\); \(\omega((x|z), (x'|z')) = x\cdot z' + z\cdot x'\),
+and \(PQ = (-1)^{\omega}QP\). A syndrome bit is 1 when the error anticommutes with that generator. The optional
+referee blocks run with <code>uv run python</code> from the course directory.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Which groups fix something">P1</a></li>
+<li><a class="medium" href="#p2" title="Proof: the dimension, two ways">P2</a></li>
+<li><a class="medium" href="#p3" title="Steane from Hamming">P3</a></li>
+<li><a class="routine" href="#p4" title="Reading Steane's syndromes">P4</a></li>
+<li><a class="hard" href="#p5" title="Proof: 2(n − r) logical operators">P5</a></li>
+<li><a class="medium" href="#p6" title="Shor's code as a stabiliser code">P6</a></li>
+<li><a class="medium" href="#p7" title="Proof: the CSS construction">P7</a></li>
+<li><a class="routine" href="#p8" title="The five-qubit code is perfect">P8</a></li>
+<li><a class="routine" href="#p9" title="The quantum Hamming bound in numbers">P9</a></li>
+<li><a class="medium" href="#p10" title="Gottesman–Knill by hand">P10</a></li>
+<li><a class="hard" href="#p11" title="Proof: Gottesman–Knill">P11</a></li>
+<li><a class="routine" href="#p12" title="T is not Clifford">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Stabiliser groups</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Which groups fix something <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the two conditions on a stabiliser group, products of Pauli strings, the dimension count, dependent generators</p>
+<div class="statement">
+<ol>
+<li>Prove that a subgroup \(S\subseteq\mathcal P_n\) fixes only the zero vector if it contains \(-I\), or if it contains two anticommuting elements. Prove that if it fixes a nonzero vector, every element of \(S\) is \(\pm\) a Pauli string.</li>
+<li>For each list, decide whether it generates a stabiliser group. If it does, give the number \(r\) of independent generators, \(\dim V_S\), and a basis of \(V_S\).
+<ol>
+<li>\(\langle XX, ZZ\rangle\) on two qubits;</li>
+<li>\(\langle XX, ZI\rangle\);</li>
+<li>\(\langle ZZI, IZZ, ZIZ\rangle\);</li>
+<li>\(\langle XX, ZZ, YY\rangle\);</li>
+<li>\(\langle XX, ZZ, -YY\rangle\).</li>
+</ol></li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is three short proofs, each by taking a nonzero fixed vector and deriving a contradiction or a
+constraint. Part 2 is five verdicts; for the yes cases the answer is a number and one or two vectors.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For each list, check every pair for commutation by counting positions where the letters are different and
+neither is \(I\). Then look for products: a generator that is a product of the others adds nothing, and a product
+that equals \(-I\) kills everything. Remember \(XZ = -iY\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of (d): \(XX\cdot ZZ = (XZ)\otimes(XZ) = (-iY)\otimes(-iY) = -YY\), so \(XX\cdot ZZ\cdot YY = -YY\cdot YY\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A nonzero fixed vector forces \(-I\notin S\) and commutativity; conversely, once those hold the
+dimension is \(2^{n-r}\), so the work is in finding \(r\) honestly — dependent generators and hidden \(-I\)'s are the traps.</p>
+<p><strong>1.</strong> Let \(\psi\ne0\) be fixed by all of \(S\). If \(-I\in S\), then \(\psi = -I\psi = -\psi\), so \(\psi = 0\):
+contradiction. If \(g, h\in S\) with \(gh = -hg\), then \(\psi = gh\psi = -hg\psi = -\psi\): contradiction. Every element of
+\(\mathcal P_n\) is \(i^cP\) for a string \(P\); if \(c\) is odd then \((i^cP)^2 = i^{2c}P^2 = -I\in S\), excluded. So \(c\) is even and the
+element is \(\pm P\), Hermitian.</p>
+<p><strong>2.</strong></p>
+<ol>
+<li>\(XX\) and \(ZZ\): two positions with \(X\) against \(Z\), so they commute. Neither is \(\pm I\) or the other, so \(r = 2\)
+and \(\dim V_S = 2^{2-2} = 1\). \(ZZ\) fixes \(\ket{00}, \ket{11}\); \(XX\) swaps them; so \(V_S\) is spanned by
+\(\tfrac1{\sqrt2}(\ket{00} + \ket{11})\), the Bell state, normalised \(\tfrac12 + \tfrac12 = 1\).</li>
+<li>\(XX\) against \(ZI\): one position, so they anticommute. Not a stabiliser group; \(V_S = \{0\}\).</li>
+<li>All three are \(Z\)-type, so commute; but \(ZZI\cdot IZZ = ZIZ\), so the third is dependent. \(r = 2\), \(\dim = 2^{3-2} = 2\),
+basis \(\ket{000}, \ket{111}\). Writing three generators would wrongly suggest \(2^{3-3} = 1\).</li>
+<li>Pairs: \(XX, YY\) differ in two positions, commute; \(ZZ, YY\) likewise. But \(XX\cdot ZZ = (-iY)\otimes(-iY) = -YY\), so
+\(XX\cdot ZZ\cdot YY = -YY^2 = -I\in S\). Not a stabiliser group; \(V_S = \{0\}\). Directly: \(YY\ket{00} = (i)(i)\ket{11} = -\ket{11}\)
+and \(YY\ket{11} = (-i)(-i)\ket{00} = -\ket{00}\), so the Bell state has \(YY = -1\), and nothing has \(XX = ZZ = YY = +1\).</li>
+<li>\(-YY = XX\cdot ZZ\) is already in \(\langle XX, ZZ\rangle\): the same group as (a). \(r = 2\), \(\dim = 1\), the same Bell
+state; and indeed \(-YY\) fixes it, by the computation in (d).</li>
+</ol>
+<p><strong>Check.</strong> (a) and (e) agree, as they must, since they are the same group. In (d) and (e) the only
+difference is one sign — signs of generators matter, which is why the tableau of section 5 keeps them.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import gates
+import numpy as np
+XX, ZZ, YY = (gates.pauli(w) for w in ("XX", "ZZ", "YY"))
+print(np.allclose(XX @ ZZ @ YY, -np.eye(4)))   # True: -I lies in &lt;XX, ZZ, YY&gt;
+P = (np.eye(4) + XX) @ (np.eye(4) + ZZ) / 4
+print(np.trace(P).real)                        # 1.0: &lt;XX, ZZ&gt; fixes one state</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Proof: the dimension, two ways <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the projector expansion, traces of Pauli strings, non-degeneracy of \(\omega\), an induction on generators</p>
+<div class="statement">
+<p>Let \(S = \langle g_1, \dots, g_r\rangle\subseteq\mathcal P_n\) be a stabiliser group with independent generators.</p>
+<ol>
+<li>Prove \(\dim V_S = 2^{n-r}\) by showing \(P_S = \prod_j\tfrac{I + g_j}2 = 2^{-r}\sum_{g\in S}g\) and taking traces.</li>
+<li>Give a second proof. Show that there is a Pauli \(E\) that anticommutes with \(g_r\) and commutes with \(g_1, \dots, g_{r-1}\).
+Use it to show that, inside \(V_{S'}\) for \(S' = \langle g_1, \dots, g_{r-1}\rangle\), the \(+1\) and \(-1\) eigenspaces of \(g_r\) have
+equal dimension, and conclude by induction.</li>
+<li>Check on \(S = \langle XXXX, ZZZZ\rangle\): give \(\dim V_S\) and an orthonormal basis.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are proofs ending in the same formula; part 3 is a number and four vectors. The first proof is
+in the deck — reproduce it with every step justified. The second is new: it trades traces for a unitary map
+between two subspaces.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For the existence of \(E\): you want a vector \(u\in\mathbb F_2^{2n}\) with \(\omega(v(g_j), u) = 0\) for \(j\lt r\) and
+\(\omega(v(g_r), u) = 1\). That is a linear system \(GJu = e_r\). Why does it have a solution?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: the map \(u\mapsto GJu\) from \(\mathbb F_2^{2n}\) to \(\mathbb F_2^r\) has rank \(r\), because \(G\) has
+rank \(r\) (independence) and \(J\) is invertible; so it is onto, and some \(u\) maps to \((0, \dots, 0, 1)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Either count with traces — only the identity has nonzero trace — or find a symmetry that swaps
+the two halves of the space a new generator splits.</p>
+<p><strong>1.</strong> Each \(Q_j = \tfrac{I + g_j}2\) is an orthogonal projector (\(g_j\) Hermitian, \(g_j^2 = I\), so \(Q_j^2 = Q_j = Q_j^\dagger\))
+onto the \(+1\) eigenspace of \(g_j\). They commute, so their product is an orthogonal projector onto the intersection of
+their ranges, which is \(V_S\). Expanding, \(P_S = 2^{-r}\sum_{T\subseteq\{1..r\}}\prod_{j\in T}g_j\). If two subsets \(T\ne T'\) gave
+the same product, then \(\prod_{j\in T\triangle T'}g_j = I\) (commute, and \(g_j^2 = I\)), making some \(g_j\) a product of others —
+excluded. So the \(2^r\) products are the distinct elements of \(S\). Every \(g\in S\) other than \(I\) is \(\pm\) a string
+\(P\ne I^{\otimes n}\) (it is \(\pm\) a string by P1, and \(-I\notin S\)), and \(\operatorname{tr}P = \prod_j\operatorname{tr}P_j = 0\) since some factor is
+\(X\), \(Y\) or \(Z\). So \(\operatorname{tr}P_S = 2^{-r}\cdot2^n\), and the trace of a projector is its rank.</p>
+<p><strong>2.</strong> <em>Existence of \(E\).</em> \(G\) (rows \(v(g_j)\)) has rank \(r\); \(J\) is invertible; so \(GJ\) has rank \(r\) and
+\(u\mapsto GJu\) maps onto \(\mathbb F_2^r\). Choose \(u\) with \(GJu = e_r\) and let \(E\) be the Pauli string with \(v(E) = u\). Its
+commutation bits with the generators are the entries of \(GJu\): it commutes with \(g_1..g_{r-1}\) and anticommutes with
+\(g_r\).</p>
+<p><em>Halving.</em> \(g_r\) commutes with \(S'\), so it maps \(V_{S'}\) into itself; it is Hermitian with eigenvalues \(\pm1\) there, so
+\(V_{S'} = V_+\oplus V_-\), with \(V_+ = V_S\). \(E\) commutes with \(S'\), so \(E\) maps \(V_{S'}\) into itself. If \(\psi\in V_+\) then
+\(g_rE\psi = -Eg_r\psi = -E\psi\), so \(E V_+\subseteq V_-\), and likewise \(EV_-\subseteq V_+\). \(E\) is unitary, hence injective, so
+\(\dim V_+\le\dim V_-\le\dim V_+\): equal. Thus \(\dim V_S = \tfrac12\dim V_{S'}\). Induction on \(r\) from \(\dim V_{\{I\}} = 2^n\)
+gives \(2^{n-r}\). (Each \(\langle g_1, \dots, g_j\rangle\) is again a stabiliser group with independent generators, so the step applies at every stage.)</p>
+<p><strong>3.</strong> \(XXXX\) and \(ZZZZ\) differ in four positions: commute. Independent; \(-I\notin S = \{IIII, XXXX, ZZZZ, YYYY\}\)
+(\(XXXX\cdot ZZZZ = (-iY)^{\otimes4} = YYYY\)). So \(\dim V_S = 2^{4-2} = 4\). \(ZZZZ = +1\) means even weight; \(XXXX = +1\) means
+symmetric under complementing every bit. Basis, each normalised \(\tfrac12 + \tfrac12 = 1\):
+\[\tfrac1{\sqrt2}(\ket{0000} + \ket{1111}),\ \tfrac1{\sqrt2}(\ket{0011} + \ket{1100}),\ \tfrac1{\sqrt2}(\ket{0101} + \ket{1010}),\ \tfrac1{\sqrt2}(\ket{0110} + \ket{1001}).\]
+They have disjoint supports, so they are orthonormal, and the eight even-weight strings are all used.</p>
+<p><strong>Check.</strong> Trace: \(\tfrac14\operatorname{tr}(IIII + XXXX + ZZZZ + YYYY) = 16/4 = 4\) ✓. For the second proof on this example:
+\(E = IIIX\) anticommutes with \(ZZZZ\) and commutes with \(XXXX\), and maps \(\ket{0000} + \ket{1111}\) (\(ZZZZ = +1\)) to
+\(\ket{0001} + \ket{1110}\) (\(ZZZZ = -1\)), as it should.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import gates
+import numpy as np
+P = np.eye(16)
+for g in ["XXXX", "ZZZZ"]:
+    P = P @ (np.eye(16) + gates.pauli(g)) / 2
+print(np.trace(P).real)                        # 4.0 = 2^(4-2)</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Steane's code</h2>
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Steane from Hamming <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: reading a parity-check matrix twice, commutation from \(MM^{\mathsf T} = 0\), the normaliser, a transversal gate</p>
+<div class="statement">
+<ol>
+<li>From \(M\), write Steane's six generators as Pauli strings on qubits 1–7, and prove that they commute and are independent using only \(MM^{\mathsf T} = 0\) over \(\mathbb F_2\) and \(\operatorname{rank}M = 3\).</li>
+<li>Show that \(\bar X = X^{\otimes7}\) and \(\bar Z = Z^{\otimes7}\) lie in \(N(S)\setminus\langle S, iI\rangle\) and anticommute. Find a weight-3 operator that acts on the code as \(\bar X\), and one that acts as \(\bar Z\), naming the stabiliser that relates each to its weight-7 form.</li>
+<li>Prove that \(H^{\otimes7}\) maps \(V_S\) onto itself and conjugates \(\bar X\) to \(\bar Z\) and back.</li>
+<li>With \(\ket{0_L} = \ket{0 + C_2}\) and \(\ket{1_L} = \ket{1111111 + C_2}\) (\(C_2\) the simplex code), compute \(H^{\otimes7}\ket{0_L}\) and \(H^{\otimes7}\ket{1_L}\), and conclude that \(H^{\otimes7}\) is exactly the logical Hadamard on the code.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Six strings; two short proofs; two weight-3 strings; a conjugation argument; then two explicit superpositions of
+sixteen basis states each.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(X^h\) and \(Z^{h'}\) anticommute exactly at the positions where both \(h\) and \(h'\) are 1, so the sign is
+\((-1)^{h\cdot h'}\). For part 2, \(N(S)\) is described by "\(a, b\in\) Hamming"; for part 4, use
+\(\sum_{y\in C_2}(-1)^{y\cdot w} = |C_2|\) if \(w\in C_2^\perp\) and 0 otherwise.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: \(H^{\otimes7}\ket{0_L} = \tfrac1{\sqrt8}\sum_{y\in C_2}2^{-7/2}\sum_{w\in\mathbb F_2^7}(-1)^{y\cdot w}\ket w\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Every claim reduces to a fact about \(M\): its rows are mutually orthogonal (the simplex code is
+inside its dual, Hamming), and \(1111111\) is a Hamming word outside the simplex code.</p>
+<p><strong>1.</strong> \(g_1 = IIIXXXX\), \(g_2 = IXXIIXX\), \(g_3 = XIXIXIX\), \(g_4 = IIIZZZZ\), \(g_5 = IZZIIZZ\), \(g_6 = ZIZIZIZ\). Two
+\(X\)-type (or two \(Z\)-type) strings never anticommute. \(X^h\) against \(Z^{h'}\): \(\omega = h\cdot h'\), which is the \((h, h')\) entry of
+\(MM^{\mathsf T}\), zero. Independence: the check matrix is \(\begin{pmatrix}M &amp; 0\\0 &amp; M\end{pmatrix}\), of rank \(3 + 3 = 6\).</p>
+<p><strong>2.</strong> \(v(\bar X) = (1111111\,|\,0)\). Against \(g_4, g_5, g_6\): \(\omega = h_i\cdot1111111 = |h_i| \bmod 2 = 4 \bmod 2 = 0\). It commutes with the
+\(X\)-type ones trivially. So \(\bar X\in N(S)\); likewise \(\bar Z\). Elements of \(S\) are \(X^aZ^b\) with \(a, b\) in the simplex code
+(row space of \(M\)), whose words have weight 0 or 4; \(1111111\) has weight 7, so \(\bar X, \bar Z\notin\langle S, iI\rangle\). They overlap
+in 7 positions, odd: anticommute. Weight 3: \(\bar Xg_1 = X^{1111111 + 0001111} = X^{1110000} = X_1X_2X_3\), and \(\bar Zg_4 = Z_1Z_2Z_3\).
+Since \(g_1, g_4\) act as \(I\) on the code, these act as \(\bar X\), \(\bar Z\).</p>
+<p><strong>3.</strong> \(HXH = Z\), \(HZH = X\) qubit by qubit, so \(H^{\otimes7}X^hH^{\otimes7} = Z^h\): conjugation swaps \(g_1\leftrightarrow g_4\),
+\(g_2\leftrightarrow g_5\), \(g_3\leftrightarrow g_6\). If \(\psi\in V_S\) and \(g\in S\), then
+\(gH^{\otimes7}\psi = H^{\otimes7}(H^{\otimes7}gH^{\otimes7})\psi = H^{\otimes7}\psi\), since \(H^{\otimes7}gH^{\otimes7}\in S\). So \(H^{\otimes7}V_S\subseteq V_S\), and
+equality holds because \(H^{\otimes7}\) is invertible. And \(X^{\otimes7}\leftrightarrow Z^{\otimes7}\).</p>
+<p><strong>4.</strong> With \(H^{\otimes7}\ket u = 2^{-7/2}\sum_w(-1)^{u\cdot w}\ket w\):
+\[H^{\otimes7}\ket{0_L} = \frac{1}{\sqrt8\,\sqrt{128}}\sum_w\Big(\sum_{y\in C_2}(-1)^{y\cdot w}\Big)\ket w = \frac{8}{\sqrt{1024}}\sum_{w\in C_2^\perp}\ket w = \frac14\sum_{w\in\mathrm{Ham}}\ket w.\]
+The inner sum is 8 on \(C_2^\perp\) = Hamming and 0 elsewhere (a nonzero linear functional on \(C_2\) is 1 on exactly half of it).
+Hamming is the disjoint union of \(C_2\) and \(1111111 + C_2\), so \(\tfrac14\sum_{\mathrm{Ham}}\ket w = \tfrac{\sqrt8}4(\ket{0_L} + \ket{1_L}) = \tfrac1{\sqrt2}(\ket{0_L} + \ket{1_L})\).
+For \(\ket{1_L}\), the extra factor is \((-1)^{1111111\cdot w} = (-1)^{|w|}\): \(+1\) on the even-weight words (those of \(\ket{0_L}\), weights 0, 4)
+and \(-1\) on the odd ones (weights 3, 7): \(H^{\otimes7}\ket{1_L} = \tfrac1{\sqrt2}(\ket{0_L} - \ket{1_L})\). That is the Hadamard matrix in the
+basis \(\ket{0_L}, \ket{1_L}\), with no extra phase.</p>
+<p><strong>Check.</strong> Normalisation: sixteen amplitudes \(\tfrac14\), \(16\cdot\tfrac1{16} = 1\) ✓. Applying \(H^{\otimes7}\) twice gives the identity, and
+the logical Hadamard squared is the identity ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import gates, linalg
+import numpy as np
+gens = ["IIIXXXX", "IXXIIXX", "XIXIXIX", "IIIZZZZ", "IZZIIZZ", "ZIZIZIZ"]
+G = [gates.pauli(g) for g in gens]
+print(all(np.allclose(a @ b, b @ a) for a in G for b in G))   # True
+P = np.eye(128)
+for g in G:
+    P = P @ (np.eye(128) + g) / 2
+print(np.trace(P).real)                                       # 2.0
+H7 = linalg.kron(*[gates.H] * 7)
+print(np.allclose(H7 @ P @ H7, P))                            # True
+print(np.allclose(H7 @ gates.pauli("XXXXXXX") @ H7, gates.pauli("ZZZZZZZ")))  # True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Reading Steane's syndromes <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: syndromes as \(M\) times a vector, a lookup decoder, logical failure, a failure probability</p>
+<div class="statement">
+<ol>
+<li>Give the six-bit syndromes \((g_1g_2g_3\,|\,g_4g_5g_6)\) of \(X_6\), \(Z_3\) and \(Y_7\).</li>
+<li>Show that the 21 single-qubit Paulis have 21 distinct nonzero syndromes. How many of the \(2^6\) syndromes does the decoder "undo the unique weight-one error with this syndrome" ever use?</li>
+<li>The error \(X_1X_2\) occurs. What does that decoder do, and what is left on the code?</li>
+<li>Suppose each qubit suffers an \(X\) independently with probability \(p\), and nothing else. Count, for each weight \(w\), how many \(X\)-error patterns the decoder turns into a logical error, and give the logical failure probability exactly and at \(p = 10^{-3}\). Some weight-3 patterns are harmless: which, and why? For which \(p\) does encoding help?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1–3 are bit strings and one Pauli; part 4 is a polynomial in \(p\), a number, and a threshold.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The \(X\)-type checks read the \(Z\) part of the error, the \(Z\)-type checks its \(X\) part, each as \(M\) times that part.
+For part 4, the decoder adds one bit to make the pattern a Hamming codeword; the result fails exactly when that
+codeword is outside the simplex code, i.e. has weight 3 or 7.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: the Hamming code is perfect (every 7-bit word is within distance 1 of exactly one codeword), and its
+weights are 0 (once), 3 (seven times), 4 (seven times), 7 (once); so a pattern \(e\) fails iff its nearest codeword has weight 3 or 7.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Syndromes are columns of \(M\); the decoder is Hamming's classical decoder run twice; and a residual
+error is harmless exactly when it lands in the simplex code.</p>
+<p><strong>1.</strong> \(X_6\): \(Z\)-checks read column 6 \(= 110\); \(X\)-checks read nothing: \((000\,|\,110)\). \(Z_3\): \((011\,|\,000)\).
+\(Y_7\): both parts at 7 \(= 111\): \((111\,|\,111)\).</p>
+<p><strong>2.</strong> \(X_j\mapsto(000\,|\,\mathrm{bin}\,j)\), \(Z_j\mapsto(\mathrm{bin}\,j\,|\,000)\), \(Y_j\mapsto(\mathrm{bin}\,j\,|\,\mathrm{bin}\,j)\). The columns
+\(\mathrm{bin}\,j\) are the seven distinct nonzero 3-bit strings, so the three families are disjoint and internally distinct: 21
+distinct nonzero syndromes. With \(0\) for "no error", the decoder uses 22 of the 64.</p>
+<p><strong>3.</strong> \(X_1X_2\) has syndrome \((000\,|\,001 + 010) = (000\,|\,011)\), the syndrome of \(X_3\). The decoder applies \(X_3\),
+leaving \(X_1X_2X_3 = \bar Xg_1\): a logical \(X\), undetected. Two errors beat a distance-3 code.</p>
+<p><strong>4.</strong> Let \(e\) be the \(X\)-pattern. The decoder flips the bit at position \(Me\) (if nonzero), producing the unique Hamming
+codeword \(c\) within distance 1 of \(e\); the residual \(X^c\) is harmless iff \(c\in\) simplex (weights 0, 4), and a logical \(\bar X\)
+iff \(c\) has weight 3 or 7. By weight of \(e\):</p>
+<ul>
+<li>\(w = 0, 1\): \(c = 0\). No failures.</li>
+<li>\(w = 2\): \(c\) is at distance 1, so has weight 1 or 3; only 3 exists. All \(\binom72 = 21\) fail.</li>
+<li>\(w = 3\): the 7 codewords of weight 3 have syndrome 0 and stay: fail. The other 28 are at distance 1 from a codeword of
+weight 2 or 4, hence 4 — in the simplex code: harmless. The decoder "completes" them to a stabiliser.</li>
+<li>\(w = 4\): 7 are simplex words (harmless); the other 28 sit next to a weight-3 or weight-5 codeword, hence 3: fail.</li>
+<li>\(w = 5\): next to weight 4 or 6, hence 4: no failures. \(w = 6\): next to weight 7: all 7 fail. \(w = 7\): \(c = 1111111\): fails.</li>
+</ul>
+<p>So \[P_{\rm fail} = 21p^2(1-p)^5 + 7p^3(1-p)^4 + 28p^4(1-p)^3 + 7p^6(1-p) + p^7 = 21p^2 - 98p^3 + 210p^4 - 252p^5 + 168p^6 - 48p^7.\]
+At \(p = 10^{-3}\): \(P_{\rm fail} = 2.090\times10^{-5}\), about 48 times better than an unencoded qubit's \(10^{-3}\). Encoding helps
+when \(P_{\rm fail}(p)\lt p\). In the physical range \(0\lt p\le\tfrac12\) (a flip more likely than not would just be relabelled) that
+holds exactly for \(0\lt p\lt0.0646\) (solved numerically; the curves meet again at \(p = \tfrac12\), where both are \(\tfrac12\)).</p>
+<p><strong>Check.</strong> Counts: \(21 + 7 + 28 + 7 + 1 = 64\) failing patterns out of 128, and at \(p = \tfrac12\) every pattern is equally
+likely, so \(P_{\rm fail} = 64/128 = \tfrac12\) ✓ — the polynomial gives \(0.5\) there too. For comparison, unit 22's bit-flip code
+gives \(3p^2 - 2p^3 = 3.0\times10^{-6}\) at the same \(p\): against bit flips alone it is better, using fewer qubits; Steane's buys
+protection against \(Z\) and \(Y\) as well.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import gates
+import numpy as np
+gens = ["IIIXXXX", "IXXIIXX", "XIXIXIX", "IIIZZZZ", "IZZIIZZ", "ZIZIZIZ"]
+def syndrome(word):
+    E = gates.pauli(word)
+    return "".join("1" if np.allclose(gates.pauli(g) @ E, -E @ gates.pauli(g)) else "0"
+                   for g in gens)
+print(syndrome("IIIIIXI"), syndrome("IIZIIII"), syndrome("IIIIIIY"))   # 000110 011000 111111</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Logical operators and distance</h2>
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Proof: 2(n − r) logical operators <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: symplectic complements over \(\mathbb F_2\), quotient spaces, a symplectic basis, the trace argument for scalars</p>
+<div class="statement">
+<p>Let \(S\) be a stabiliser group on \(n\) qubits with \(r\) independent generators, \(k = n - r\).</p>
+<ol>
+<li>Prove \(v(N(S)) = v(S)^\omega\) and \(\dim v(S)^\omega = 2n - r\).</li>
+<li>Prove that \(\omega\) induces a well-defined, non-degenerate form on the quotient \(v(N(S))/v(S)\), of dimension \(2k\).</li>
+<li>Prove that a non-degenerate alternating form on \(\mathbb F_2^{2k}\) has a basis \(a_1, b_1, \dots, a_k, b_k\) with \(\omega(a_i, b_i) = 1\) and all other pairs 0. Conclude that there are logical operators \(\bar X_i, \bar Z_i\) with the commutation relations of \(k\) qubits.</li>
+<li>Prove that \(P\in N(S)\) acts on \(V_S\) as a scalar iff \(P\in\langle S, iI\rangle\).</li>
+<li>For \(S = \langle XXXX, ZZZZ\rangle\), find \(\bar X_1, \bar Z_1, \bar X_2, \bar Z_2\), each of weight 2, and verify all their commutation relations.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four proofs and an example. The tools are: \(PQ = (-1)^\omega QP\); "\(\dim W^\beta = m - \dim W\)" for a symmetric non-degenerate
+form (in the deck); induction on \(k\); and the expansion \(P_S = 2^{-r}\sum_{g\in S}g\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 2, the kernel of the induced form is \((v(S)^\omega)^\omega/v(S)\), and \((W^\omega)^\omega = W\). For part 3, pick
+\(a_1\ne0\), find \(b_1\) with \(\omega(a_1, b_1) = 1\), and split off \(\mathrm{span}(a_1, b_1)\). For part 4, take traces of \(PP_S = cP_S\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: let \(W = \{u : \omega(u, a_1) = \omega(u, b_1) = 0\}\); these are two independent linear conditions, so
+\(\dim W = 2k - 2\), and \(W\cap\mathrm{span}(a_1, b_1) = \{0\}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Everything is linear algebra for the form \(\omega\): the normaliser is a complement, the logicals are a
+quotient, and a non-degenerate alternating form always looks like \(k\) copies of one qubit's \(X\), \(Z\).</p>
+<p><strong>1.</strong> \(P\in N(S)\) iff \(P\) commutes with every \(g\in S\) iff \(\omega(v(g), v(P)) = 0\) for all \(g\) iff \(v(P)\in v(S)^\omega\). And
+\(v(S)\) has dimension \(r\) (independence), \(\omega\) is symmetric and non-degenerate on \(\mathbb F_2^{2n}\) (Gram matrix \(J\)), so
+\(\dim v(S)^\omega = 2n - r\).</p>
+<p><strong>2.</strong> \(v(S)\subseteq v(S)^\omega\) (abelian). Define \(\bar\omega([u], [w]) = \omega(u, w)\) for \(u, w\in v(S)^\omega\); changing \(u\) by
+\(s\in v(S)\) changes \(\omega\) by \(\omega(s, w) = 0\) since \(w\in v(S)^\omega\); same for \(w\). Well defined. If \(\bar\omega([u], \cdot) = 0\), then \(u\) is
+\(\omega\)-orthogonal to all of \(v(S)^\omega\), so \(u\in(v(S)^\omega)^\omega = v(S)\), i.e. \([u] = 0\). Non-degenerate. Dimension
+\((2n - r) - r = 2k\).</p>
+<p><strong>3.</strong> Induction on \(k\); \(k = 0\) is empty. Take \(a_1\ne0\); non-degeneracy gives \(b_1\) with \(\omega(a_1, b_1) = 1\) (and
+\(b_1\ne a_1\) since \(\omega(a_1, a_1) = 0\)). Let \(W\) be as in rung 3. The two functionals \(\omega(\cdot, a_1)\), \(\omega(\cdot, b_1)\) are
+independent (they differ on \(a_1\) and \(b_1\)), so \(\dim W = 2k - 2\). If \(u = \alpha a_1 + \beta b_1\in W\), then \(\omega(u, b_1) = \alpha = 0\)
+and \(\omega(u, a_1) = \beta = 0\), so the sum \(\mathrm{span}(a_1, b_1) + W\) is direct and, by dimension, is everything. \(\omega\) is
+non-degenerate on \(W\): if \(w\in W\) is orthogonal to \(W\), it is also orthogonal to \(a_1, b_1\), hence to everything, so \(w = 0\).
+Apply induction to \(W\). Then pick Paulis \(\bar X_i, \bar Z_i\) with \(v\) in the cosets \(a_i, b_i\): \(\bar X_i\bar Z_i = -\bar Z_i\bar X_i\), all
+other pairs commute.</p>
+<p><strong>4.</strong> If \(P = i^cg\), \(g\in S\), it acts as \(i^c\). Conversely suppose \(PP_S = cP_S\). \(P\) is unitary and \(P_S\ne0\), so
+\(c\ne0\), and \(\operatorname{tr}(PP_S) = c2^k\ne0\). But \(\operatorname{tr}(PP_S) = 2^{-r}\sum_{g\in S}\operatorname{tr}(Pg)\), and \(Pg\in\mathcal P_n\) has trace 0
+unless \(Pg\) is a multiple of \(I\). So for some \(g\), \(Pg = i^{c'}I\), giving \(P = i^{c'}g\in\langle S, iI\rangle\).</p>
+<p><strong>5.</strong> \(\bar X_1 = XXII\), \(\bar Z_1 = ZIZI\), \(\bar X_2 = XIXI\), \(\bar Z_2 = ZZII\). Each against \(XXXX\) and \(ZZZZ\): every
+\(X\)-type string commutes with \(XXXX\); \(XXII\) and \(XIXI\) each meet \(ZZZZ\) in two places, commute; similarly for the \(Z\)-type
+ones against \(XXXX\). Pairs: \(\bar X_1, \bar Z_1\) meet at qubit 0 only (\(X\) vs \(Z\)): anticommute ✓. \(\bar X_2, \bar Z_2\) meet at qubit 0
+only: anticommute ✓. \(\bar X_1, \bar Z_2\) at qubits 0, 1: commute ✓. \(\bar X_2, \bar Z_1\) at qubits 0, 2: commute ✓. Same-type pairs
+commute ✓. None is in \(S = \{IIII, XXXX, ZZZZ, YYYY\}\) up to phase.</p>
+<p><strong>Check.</strong> Count: \(2k = 2(4 - 2) = 4\) ✓. Steane: \(2(7 - 6) = 2\), the pair \(\bar X, \bar Z\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Shor's code as a stabiliser code <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: generators of a concatenated code, distance by hand, degeneracy in the formalism</p>
+<div class="statement">
+<p>Shor's nine-qubit code (unit 22) has \(\ket{0_L} = \tfrac1{2\sqrt2}(\ket{000} + \ket{111})^{\otimes3}\) and
+\(\ket{1_L} = \tfrac1{2\sqrt2}(\ket{000} - \ket{111})^{\otimes3}\), qubits 0–8, blocks \(\{0,1,2\}, \{3,4,5\}, \{6,7,8\}\).</p>
+<ol>
+<li>Give eight independent commuting generators fixing both code states, and check \(k = 1\).</li>
+<li>Show \(Z_0Z_3Z_6\) and \(X_0X_1X_2\) are logical operators that anticommute. Which acts as \(\bar X\)?</li>
+<li>Prove the distance is 3: no Pauli of weight \(\le2\) lies in \(N(S)\setminus\langle S, iI\rangle\).</li>
+<li>Of the 27 single-qubit Paulis, which share syndromes? How many distinct syndromes are there, and why does the code still correct all 27?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A list of eight strings; two short checks; a proof by cases on the \(X\) and \(Z\) parts of a light Pauli; a count.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Inside a block, \(ZZ\) checks compare neighbours; between blocks, a weight-6 \(X\) string compares the signs of two blocks.
+For part 3, split \(E\) into its \(X\) part \(e\) and \(Z\) part \(f\): which \(e\) commute with all the \(ZZ\)'s, and which \(f\) with
+both \(X^{\otimes6}\)'s?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(Z_iZ_{i+1}\) anticommutes with \(E\) iff exactly one of \(e_i, e_{i+1}\) is 1, so in each block \(e\) is \(000\)
+or \(111\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Inner bit-flip codes give \(ZZ\) checks, the outer phase-flip code gives \(X^{\otimes6}\) checks; the
+\(ZZ\)'s inside a block are also what make the code degenerate.</p>
+<p><strong>1.</strong> \(Z_0Z_1, Z_1Z_2, Z_3Z_4, Z_4Z_5, Z_6Z_7, Z_7Z_8\), \(X_0X_1X_2X_3X_4X_5\), \(X_3X_4X_5X_6X_7X_8\). Each \(ZZ\) meets each \(X^{\otimes6}\)
+in 0 or 2 places: commute. Independent: the six \(ZZ\)'s are independent (each block's two are, and blocks are disjoint),
+and the two \(X\) strings are independent of each other and of the \(Z\)-type ones. \(r = 8\), \(k = 9 - 8 = 1\). Each \(Z_iZ_{i+1}\) fixes
+\(\ket{000}\) and \(\ket{111}\); \(X_0\cdots X_5\) swaps \(\ket{000}\leftrightarrow\ket{111}\) in blocks 1 and 2, which multiplies \((\ket{000}\pm\ket{111})\)
+by \(\pm1\) in each, and the two signs cancel. So both code states are fixed; with \(\dim = 2\), \(V_S = \mathrm{span}\{\ket{0_L}, \ket{1_L}\}\).</p>
+<p><strong>2.</strong> \(Z_0Z_3Z_6\) meets \(X_0\cdots X_5\) at 0, 3 and \(X_3\cdots X_8\) at 3, 6: commutes; it commutes with all \(Z\)'s. \(X_0X_1X_2\)
+meets \(Z_0Z_1\) and \(Z_1Z_2\) twice each. They meet once (qubit 0): anticommute. \(Z_0\) turns \(\ket{000}+\ket{111}\) into
+\(\ket{000}-\ket{111}\), so \(Z_0Z_3Z_6\) swaps \(\ket{0_L}\leftrightarrow\ket{1_L}\): it is \(\bar X\). \(X_0X_1X_2\) fixes \(\ket{000}+\ket{111}\) and negates
+\(\ket{000}-\ket{111}\): it is \(\bar Z\). Neither is in \(\langle S, iI\rangle\), since each acts non-trivially.</p>
+<p><strong>3.</strong> Let \(E\in N(S)\) have weight \(\le2\), with \(X\) part \(e\) and \(Z\) part \(f\). By rung 3, \(e\) is \(000\) or \(111\) on each
+block; \(111\) needs three positions, so \(e = 0\) and \(E = \pm Z^f\). \(Z^f\) commutes with \(X_0\cdots X_5\) iff \(f\) has even weight on blocks
+1 and 2 together, and with \(X_3\cdots X_8\) iff even on blocks 2 and 3. Writing \(f_b\) for the parity of \(f\) on block \(b\):
+\(f_1 = f_2 = f_3\). All three odd needs weight \(\ge3\); so all are even, and in each block \(f\) is \(000\) or a pair, which is a product
+of that block's \(ZZ\) generators (e.g. \(Z_0Z_2 = Z_0Z_1\cdot Z_1Z_2\)). So \(E\in\langle S, iI\rangle\). Hence \(d\ge3\), and \(Z_0Z_3Z_6\) gives \(d = 3\).</p>
+<p><strong>4.</strong> \(X_q\): the two \(ZZ\) checks of its block give \(10, 11, 01\) for its three positions — 9 distinct syndromes.
+\(Z_q\): only the \(X^{\otimes6}\) checks see it, giving \(10, 11, 01\) for blocks 1, 2, 3 — so the three \(Z\)'s in a block share a
+syndrome. \(Y_q\): both parts, 9 distinct. Total \(9 + 3 + 9 = 21\) distinct syndromes. Errors sharing one, e.g. \(Z_0\) and
+\(Z_1\), differ by \(Z_0Z_1\in S\): Knill–Laflamme's case (ii). Correcting \(Z_1\) by \(Z_0\) leaves a stabiliser, which does nothing.
+That is degeneracy, harmless.</p>
+<p><strong>Check.</strong> The same structure on Steane gives 21 distinct syndromes for 21 errors: non-degenerate. Shor's code gets
+the same 21 from 27 errors by not needing to tell some apart.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import gates
+import numpy as np
+gens = ["ZZIIIIIII", "IZZIIIIII", "IIIZZIIII", "IIIIZZIII", "IIIIIIZZI", "IIIIIIIZZ",
+        "XXXXXXIII", "IIIXXXXXX"]
+P = np.eye(512)
+for g in gens:
+    P = P @ (np.eye(512) + gates.pauli(g)) / 2
+print(np.trace(P).real)                                                          # 2.0
+print(np.allclose(gates.pauli("ZIIIIIIII") @ P, gates.pauli("IZIIIIIII") @ P))   # True: degenerate</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">CSS codes and the counting bound</h2>
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Proof: the CSS construction <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the CSS construction, why nesting is needed, coset states, the parameters of a small CSS code</p>
+<div class="statement">
+<p>Let \(C_2\subseteq C_1\subseteq\mathbb F_2^n\) be linear codes of dimensions \(k_2\lt k_1\), \(M_1\) a parity-check matrix of \(C_1\) and \(G_2\) a
+generator matrix of \(C_2\).</p>
+<ol>
+<li>Prove that the generators \(Z^h\) (rows \(h\) of \(M_1\)) and \(X^g\) (rows \(g\) of \(G_2\)) commute, are independent, and fix every coset state \(\ket{x + C_2}\), \(x\in C_1\). Conclude \(V_S = \mathrm{CSS}(C_1, C_2)\), of dimension \(2^{k_1 - k_2}\).</li>
+<li>Show that if \(C_2\not\subseteq C_1\), some \(X\)-type generator anticommutes with some \(Z\)-type one.</li>
+<li>Take \(C_1\) the even-weight code of length 4 and \(C_2 = \{0000, 1111\}\). Give the generators, the four coset states, and the parameters \([[n, k, d]]\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the deck's theorem with every step; part 2 a one-line converse; part 3 a small explicit code ending in three numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(X^g\) and \(Z^h\) commute iff \(g\cdot h = 0\). Rows of \(M_1\) are orthogonal to everything in \(C_1 = \ker M_1\). For part 2: if
+every row of \(G_2\) were in \(C_1\), then \(C_2\) would be.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(C_1 = \ker(1\,1\,1\,1)\), so \(M_1 = (1\,1\,1\,1)\) and \(G_2 = (1\,1\,1\,1)\): generators \(ZZZZ\) and \(XXXX\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Commutation is exactly the nesting; the dimension count and the fixed coset states then force equality.</p>
+<p><strong>1.</strong> \(\omega((g|0), (0|h)) = g\cdot h\). Since \(g\in C_2\subseteq C_1 = \ker M_1\), \(M_1g = 0\), i.e. \(h\cdot g = 0\) for every row \(h\). Same-type
+pairs commute trivially. Independence: \(M_1\) has full row rank \(n - k_1\) (rank–nullity on \(\ker M_1 = C_1\)), \(G_2\) has rank \(k_2\),
+and they occupy disjoint halves of the check matrix, so \(r = n - k_1 + k_2\). \(-I\notin S\): every element is \(X^aZ^b\) with
+\(a\in C_2\), \(b\in C_1^\perp\), and such products multiply with sign \((-1)^{b\cdot a'} = +1\). So \(\dim V_S = 2^{n - r} = 2^{k_1 - k_2}\).
+Coset states: \(Z^h\ket{x + y} = (-1)^{h\cdot(x+y)}\ket{x + y} = \ket{x + y}\) since \(x + y\in C_1\); \(X^g\) adds \(g\in C_2\) to every term,
+permuting the sum. The \(2^{k_1 - k_2}\) orthonormal coset states lie in \(V_S\), which has that dimension: they span it.</p>
+<p><strong>2.</strong> If every row of \(G_2\) lay in \(C_1\), so would their span \(C_2\). So some row \(g\notin C_1\), i.e. \(M_1g\ne0\): some row \(h\) has
+\(h\cdot g = 1\), and \(X^g\), \(Z^h\) anticommute.</p>
+<p><strong>3.</strong> Generators \(ZZZZ\), \(XXXX\). \(k = 3 - 1 = 2\). Coset states of \(\{0000, 1111\}\) in the eight even-weight words:
+\(\tfrac1{\sqrt2}(\ket{0000}+\ket{1111})\), \(\tfrac1{\sqrt2}(\ket{0011}+\ket{1100})\), \(\tfrac1{\sqrt2}(\ket{0101}+\ket{1010})\), \(\tfrac1{\sqrt2}(\ket{0110}+\ket{1001})\).
+Distance: \(C_1\) has distance 2 and \(C_2^\perp = \{v : v\cdot1111 = 0\}\) is again the even-weight code, distance 2; so \(d\ge2\),
+and \(X^{1100}\) (\(1100\in C_1\setminus C_2\)) is a logical operator of weight 2. \([[4, 2, 2]]\): it detects any single error but corrects
+none (\(2t + 1\le2\) forces \(t = 0\)).</p>
+<p><strong>Check.</strong> P2 found the same four states from the stabiliser side ✓. Steane is the case \(C_1 = \) Hamming, \(C_2 = \) simplex
+\(= C_1^\perp\): \(k = 4 - 3 = 1\), and since \(C_2^\perp = C_1\), \(G_2\) and \(M_1\) can both be \(M\) — the \(X\)- and \(Z\)-checks are the same
+pattern, which is what made transversal \(H\) work in P3.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> The five-qubit code is perfect <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: commutation by counting, a syndrome table, the quantum Hamming bound with equality, logical operators</p>
+<div class="statement">
+<p>\(g_1 = XZZXI\), \(g_2 = IXZZX\), \(g_3 = XIXZZ\), \(g_4 = ZXIXZ\), qubits 0–4.</p>
+<ol>
+<li>Check all six pairs commute, and that the generators are independent.</li>
+<li>Tabulate the syndromes \((g_1g_2g_3g_4)\) of the 15 single-qubit Paulis and check they are distinct and nonzero.</li>
+<li>Verify \(2^k\sum_{j\le1}\binom5j3^j = 2^5\).</li>
+<li>Show \(XXXXX\) and \(ZZZZZ\) are logical and anticommute, and find a weight-3 operator acting as \(XXXXX\) on the code.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Six counts, a table of fifteen 4-bit strings, an arithmetic identity, and one product of two strings.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For a single-qubit error \(P\) on qubit \(q\), bit \(j\) of its syndrome is 1 iff \(g_j\) has a non-\(I\) letter at \(q\) different from \(P\).
+Read down column \(q\) of the generators.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: column 0 of the generators reads \(X, I, X, Z\); so \(X_0\mapsto0001\), \(Z_0\mapsto1010\), \(Y_0\mapsto1011\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Every syndrome is used exactly once, which is what "perfect" means.</p>
+<p><strong>1.</strong> Positions with different non-\(I\) letters: \((g_1, g_2)\): qubits 1, 3. \((g_1, g_3)\): 2, 3. \((g_1, g_4)\): 0, 1.
+\((g_2, g_3)\): 2, 4. \((g_2, g_4)\): 3, 4. \((g_3, g_4)\): 0, 3. All even: commute. Independent: in symplectic form the four
+vectors are \((10010|01100), (01001|00110), (10100|00011), (01010|10001)\); the \(x\) parts \(10010, 01001, 10100, 01010\) are already
+independent. Eliminate: the first and third are the only ones with a 1 in position 0, and their sum is \(00110\); the second
+and fourth are the only ones with a 1 in position 1 among the rest, and their sum is \(00011\); and \(10010, 01001, 00110, 00011\)
+are visibly independent (each has a leading 1 the later ones lack). So \(r = 4\), \(k = 1\).</p>
+<p><strong>2.</strong> Columns of the generators: qubit 0: \(X, I, X, Z\); qubit 1: \(Z, X, I, X\); qubit 2: \(Z, Z, X, I\); qubit 3: \(X, Z, Z, X\);
+qubit 4: \(I, X, Z, Z\). So</p>
+<table>
+<thead><tr><th>qubit</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td></tr></thead>
+<tbody>
+<tr><th>\(X\)</th><td>0001</td><td>1000</td><td>1100</td><td>0110</td><td>0011</td></tr>
+<tr><th>\(Z\)</th><td>1010</td><td>0101</td><td>0010</td><td>1001</td><td>0100</td></tr>
+<tr><th>\(Y\)</th><td>1011</td><td>1101</td><td>1110</td><td>1111</td><td>0111</td></tr>
+</tbody>
+</table>
+<p>Fifteen distinct nonzero strings — every nonzero element of \(\mathbb F_2^4\) once (\(Y\)'s row is the sum of the other two, as it
+must be).</p>
+<p><strong>3.</strong> \(2\cdot(1 + 5\cdot3) = 2\cdot16 = 32 = 2^5\) ✓.</p>
+<p><strong>4.</strong> \(XXXXX\) against each generator: anticommutes at the generator's two \(Z\) positions: commute. \(ZZZZZ\): at its two \(X\)
+positions: commute. They meet in 5 places, odd: anticommute; neither is in \(\langle S, iI\rangle\) (an element acting as a scalar
+commutes with every logical). Weight 3: \(XXXXX\cdot g_1 = (XX)(XZ)(XZ)(XX)(XI) = I(-iY)(-iY)IX = -IYYIX\).</p>
+<p><strong>Check.</strong> Distinct syndromes for all 16 errors of weight \(\le1\) mean every product of two of them has nonzero syndrome,
+so \(d\ge3\); \(IYYIX\) gives \(d = 3\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import gates
+import numpy as np
+gens = ["XZZXI", "IXZZX", "XIXZZ", "ZXIXZ"]
+def syndrome(word):
+    E = gates.pauli(word)
+    return "".join("1" if np.allclose(gates.pauli(g) @ E, -E @ gates.pauli(g)) else "0"
+                   for g in gens)
+errors = ["I" * q + L + "I" * (4 - q) for q in range(5) for L in "XYZ"]
+found = {syndrome(w) for w in errors}
+print(len(found), "0000" in found)                  # 15 False: all distinct, all nonzero
+print(syndrome("XXXXX"), syndrome("ZZZZZ"))         # 0000 0000: logical operators</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> The quantum Hamming bound in numbers <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: counting Pauli errors, evaluating the bound, which lengths allow a perfect code</p>
+<div class="statement">
+<ol>
+<li>Evaluate both sides of \(2^k\sum_{j=0}^t\binom nj3^j\le2^n\) for \((n, k, t) = (7, 1, 1)\) and \((5, 1, 1)\). What fraction of Steane's Hilbert space do the error subspaces fill?</li>
+<li>Find the smallest \(n\) allowed by the bound for \(k = 1, t = 1\) and for \(k = 1, t = 2\).</li>
+<li>For \(t = 1\), show that equality forces \(1 + 3n\) to be a power of 2, and list the first three lengths \(n\ge2\) at which a perfect non-degenerate single-error-correcting code is arithmetically possible, with their \(k\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>All numbers. The only idea is that \(\binom nj3^j\) counts Paulis of weight exactly \(j\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 2, try \(n = 4, 5\) for \(t = 1\), and \(n = 9, 10\) for \(t = 2\). For part 3, when is \(2^m - 1\) divisible by 3?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: equality is \(2^k(1 + 3n) = 2^n\), so \(1 + 3n = 2^{n-k}\); and \(2^m\equiv(-1)^m \pmod 3\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Each correctable error needs its own \(2^k\)-dimensional room; count rooms.</p>
+<p><strong>1.</strong> \((7, 1, 1)\): \(2(1 + 21) = 44\le128\); fraction \(44/128 = 0.344\). \((5, 1, 1)\): \(2(1 + 15) = 32 = 32\): equality.</p>
+<p><strong>2.</strong> \(t = 1\): \(n = 4\) gives \(2(1 + 12) = 26\gt16\); \(n = 5\) gives \(32\le32\). Smallest \(n = 5\). \(t = 2\): \(n = 9\) gives
+\(2(1 + 27 + 324) = 704\gt512\); \(n = 10\) gives \(2(1 + 30 + 405) = 872\le1024\). Smallest \(n = 10\).</p>
+<p><strong>3.</strong> \(1 + 3n = 2^{n - k}\). Since \(2^m\equiv(-1)^m\pmod3\), \(2^m - 1\) is divisible by 3 iff \(m\) is even, \(m = 2s\), giving
+\(n = (4^s - 1)/3\): \(1, 5, 21, 85, \dots\), with \(k = n - 2s\). \(n = 1\) gives \(k = -1\), impossible. So \(n = 5\) (\(k = 1\)), \(n = 21\)
+(\(k = 15\)), \(n = 85\) (\(k = 77\)). The bound only says these are not ruled out; the first is the five-qubit code.</p>
+<p><strong>Check.</strong> \(n = 21\): \(2^{15}(1 + 63) = 2^{15}\cdot2^6 = 2^{21}\) ✓. The bound covers non-degenerate codes only; for all codes,
+the quantum Singleton bound \(n - k\ge2(d - 1)\) (cited in the deck) also gives \(n\ge5\) for \(k = 1, d = 3\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Gottesman–Knill</h2>
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Gottesman–Knill by hand <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: tableau updates with signs, the two measurement cases, checking against a statevector</p>
+<div class="statement">
+<p>On three qubits starting in \(\ket{000}\), apply \(H_0\), \(\mathrm{CNOT}_{01}\), \(S_1\), \(H_1\), \(\mathrm{CNOT}_{12}\).</p>
+<ol>
+<li>Track the three stabiliser generators, with signs, after each gate.</li>
+<li>Compute the final statevector directly and check it is fixed by your three generators.</li>
+<li>Give the outcome distribution of measuring each of \(X_0Y_1X_2\), \(Y_0Z_2\), \(X_0\), \(Z_0\) on the final state.</li>
+<li>\(X_0\) is measured and gives \(+1\). Write the new generators and the new state.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three signed strings at each of five times; a vector with four nonzero amplitudes; four distributions, each certain or fair;
+three new strings.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(S\colon X\mapsto Y\); \(H\colon Y\mapsto-Y\); CNOT with control \(a\): \(X_a\mapsto X_aX_b\), \(Z_b\mapsto Z_aZ_b\), so \(Y_a = iX_aZ_a\mapsto Y_aX_b\).
+For a measurement, first ask which generators anticommute with it; if none, write it as a product of generators and track
+the sign.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First lines: after \(H_0\), \(\mathrm{CNOT}_{01}\): \(+XXI, +ZZI, +IIZ\); after \(S_1\): \(+XYI, +ZZI, +IIZ\); after \(H_1\): \(-XYI, +ZXI, +IIZ\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Conjugate the generators gate by gate, keeping signs; then every measurement is a commutation check.</p>
+<p><strong>1.</strong></p>
+<table>
+<thead><tr><th>after</th><th>row 1</th><th>row 2</th><th>row 3</th></tr></thead>
+<tbody>
+<tr><td>start</td><td>\(+ZII\)</td><td>\(+IZI\)</td><td>\(+IIZ\)</td></tr>
+<tr><td>\(H_0\)</td><td>\(+XII\)</td><td>\(+IZI\)</td><td>\(+IIZ\)</td></tr>
+<tr><td>\(\mathrm{CNOT}_{01}\)</td><td>\(+XXI\)</td><td>\(+ZZI\)</td><td>\(+IIZ\)</td></tr>
+<tr><td>\(S_1\)</td><td>\(+XYI\)</td><td>\(+ZZI\)</td><td>\(+IIZ\)</td></tr>
+<tr><td>\(H_1\)</td><td>\(-XYI\)</td><td>\(+ZXI\)</td><td>\(+IIZ\)</td></tr>
+<tr><td>\(\mathrm{CNOT}_{12}\)</td><td>\(-XYX\)</td><td>\(+ZXX\)</td><td>\(+IZZ\)</td></tr>
+</tbody>
+</table>
+<p>The sign appears at \(H_1\), from \(HYH = -Y\). At the last CNOT, \(Y_1\mapsto Y_1X_2\) and \(X_1\mapsto X_1X_2\) (control 1), and \(Z_2\mapsto Z_1Z_2\). By the bit
+rule, row 1 has \(x_1 = z_1 = 1\), \(z_2 = 0\): sign term \(x_1z_2(\cdots) = 0\), unchanged ✓.</p>
+<p><strong>2.</strong> \(\ket{000}\to\tfrac1{\sqrt2}(\ket{000}+\ket{100})\to\tfrac1{\sqrt2}(\ket{000}+\ket{110})\to\tfrac1{\sqrt2}(\ket{000}+i\ket{110})\)
+\(\to\tfrac12(\ket{000}+\ket{010}+i\ket{100}-i\ket{110})\to\psi = \tfrac12(\ket{000}+\ket{011}+i\ket{100}-i\ket{111})\). Normalised: \(4\cdot\tfrac14 = 1\) ✓.
+\(IZZ\): every term has bits 1, 2 equal ✓. \(ZXX\): swaps \(000\leftrightarrow011\) and \(100\leftrightarrow111\), with sign \(-1\) on the last two:
+\(\tfrac12(\ket{011}+\ket{000}-i\ket{111}+i\ket{100}) = \psi\) ✓. \(-XYX\): using \(Y\ket0 = i\ket1\), \(Y\ket1 = -i\ket0\), \(XYX\) sends
+\(\ket{000}\mapsto i\ket{111}\), \(\ket{011}\mapsto-i\ket{100}\), \(\ket{100}\mapsto i\ket{011}\), \(\ket{111}\mapsto-i\ket{000}\); so
+\(XYX\psi = \tfrac12(i\ket{111} - i\ket{100} - \ket{011} - \ket{000}) = -\psi\) ✓.</p>
+<p><strong>3.</strong></p>
+<ul>
+<li>\(X_0Y_1X_2\): \(-XYX\) is a generator, so the outcome is \(-1\) with certainty.</li>
+<li>\(Y_0Z_2\): commutes with all three (check: against \(-XYX\), qubit 0 \(Y/X\) anti, qubit 2 \(Z/X\) anti: even). As a product:
+\((-XYX)(ZXX) = -(XZ)\otimes(YX)\otimes(XX) = -(-iY)(-iZ)I = +YZI\), and \(YZI\cdot IZZ = YIZ\). Outcome \(+1\) with certainty.</li>
+<li>\(X_0\): commutes with \(-XYX\), \(IZZ\), anticommutes with \(ZXX\): \(\pm1\) with probability \(\tfrac12\) each.</li>
+<li>\(Z_0\): anticommutes with \(-XYX\): fair coin. Directly, \(\Pr(Z_0 = +1) = |\tfrac12|^2 + |\tfrac12|^2 = \tfrac12\) ✓.</li>
+</ul>
+<p><strong>4.</strong> Replace the anticommuting row \(ZXX\) by \(+X_0\); the others commute with \(X_0\) and stay: \(\{-XYX, +XII, +IZZ\}\),
+equivalently \(\{+XII, -IYX, +IZZ\}\) (multiply the first by the second). The state is \(\tfrac{I + X_0}{2}\psi\), normalised:
+\(\ket+\otimes\tfrac12\big((1+i)\ket{00} + (1-i)\ket{11}\big)\). Check: its norm squared before normalising was \(\tfrac12\), the
+probability ✓; and \(Y_1X_2\) sends \((1+i)\ket{00} + (1-i)\ket{11}\) to \((1+i)i\ket{11} + (1-i)(-i)\ket{00} = -\big((1+i)\ket{00} + (1-i)\ket{11}\big)\), so
+\(-IYX\) fixes it ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit, gates
+psi = Circuit(3).h(0).cx(0, 1).s(1).h(1).cx(1, 2).run()
+for w in ["XYX", "ZXX", "IZZ", "YIZ"]:
+    print(w, round(psi.expectation(gates.pauli(w)).real, 6))   # -1, 1, 1, 1
+print(psi.probabilities([0]))                                   # [0.5 0.5]: Z_0 is a fair coin
+print(round(psi.expectation(gates.X, 0).real, 6))              # 0.0: so is X_0</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Proof: Gottesman–Knill <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: conjugating a stabiliser, the measurement theorem in both cases, the CNOT sign rule, a running-time bound</p>
+<div class="statement">
+<ol>
+<li>Prove: if \(\psi\) is the stabiliser state of \(\langle g_1, \dots, g_n\rangle\) and \(U\) is Clifford, \(U\psi\) is the stabiliser state of \(\langle Ug_1U^\dagger, \dots, Ug_nU^\dagger\rangle\).</li>
+<li>Prove the measurement theorem: for a Hermitian Pauli \(P\), (a) if \(P\) commutes with all \(g_j\) the outcome is certain; (b) if it anticommutes with \(g_1\), each outcome has probability \(\tfrac12\), and after outcome \(\lambda\) the state is the stabiliser state of \(\lambda P\) together with \(g_j\) (for \(g_j\) commuting with \(P\)) and \(g_1g_j\) (for \(g_j\), \(j\ge2\), anticommuting).</li>
+<li>Derive the CNOT sign rule \(r\mathrel{\oplus}= x_az_b(x_b\oplus z_a\oplus1)\).</li>
+<li>Conclude the theorem with a running time, and compare storage at \(n = 1000\): tableau bits against complex amplitudes.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four proofs and two numbers. The heart is part 2(b): a probability from an expectation value, and a check that a list
+of \(n\) operators is again a valid stabiliser.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>2(a): an isotropic subspace of dimension \(n\) equals its own \(\omega\)-complement. 2(b): compute \(\bra\psi P\ket\psi\) by inserting
+\(g_1\). Part 3: write a two-qubit letter string as \(i^{x_az_a + x_bz_b}X_a^{x_a}Z_a^{z_a}X_b^{x_b}Z_b^{z_b}\) and conjugate.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of 2(b): \(\bra\psi P\ket\psi = \bra\psi Pg_1\ket\psi = -\bra\psi g_1P\ket\psi = -\bra\psi P\ket\psi\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A stabiliser state is a list of Paulis; Clifford gates map lists to lists; measurements either confirm an
+element of the list or replace one.</p>
+<p><strong>1.</strong> \((Ug_jU^\dagger)U\psi = Ug_j\psi = U\psi\). Conjugation \(g\mapsto UgU^\dagger\) is a group isomorphism onto its image, so the
+images commute, are independent, and exclude \(-I\) (\(UgU^\dagger = -I\) iff \(g = -I\)); they are Pauli strings with signs because \(U\)
+is Clifford. \(n\) independent generators fix a one-dimensional space, which contains \(U\psi\).</p>
+<p><strong>2(a).</strong> \(v(S)\) is isotropic of dimension \(n\); \(v(S)^\omega\) has dimension \(2n - n = n\) and contains it; so they are
+equal. \(P\) commuting with all \(g_j\) means \(v(P)\in v(S)^\omega = v(S)\): \(P = cg\) with \(g\in S\). Both Hermitian, so \(c = \pm1\), and
+\(P\psi = c\psi\): outcome \(c\), probability 1, state unchanged.</p>
+<p><strong>2(b).</strong> Rung 3 gives \(\bra\psi P\ket\psi = 0\), using \(g_1\psi = \psi\) and \(\bra\psi g_1 = \bra\psi\). Then
+\(\Pr(\lambda) = \bra\psi\tfrac{I + \lambda P}{2}\ket\psi = \tfrac12\). The Lüders state is \(\psi_\lambda\propto(I + \lambda P)\psi\), which is nonzero:
+\(\|(I + \lambda P)\psi\|^2 = 2 + 2\lambda\bra\psi P\ket\psi = 2\). It is fixed by \(\lambda P\) (as
+\(\lambda P(I + \lambda P) = I + \lambda P\)) and by every \(h\in S\) commuting with \(P\). The listed elements commute with \(P\): \(g_j\) by
+assumption, and \(g_1g_j\) because both factors anticommute with \(P\). They commute with each other (all in \(S\), or \(\lambda P\)
+against elements commuting with \(P\)). Independence: \(v(g_2), \dots, v(g_n)\) and \(v(g_1)\) are independent, so the \(n - 1\) vectors
+\(v(g_j)\) or \(v(g_1) + v(g_j)\), \(j\ge2\), are independent (a dependence among them would express \(v(g_1)\), or 0, as a combination
+of \(v(g_2), \dots, v(g_n)\) — impossible); and \(v(P)\) is not in their span, since everything in it commutes with \(g_1\) and \(P\) does not.
+A nonzero common fixed vector \(\psi_\lambda\) rules out \(-I\). So \(\psi_\lambda\) is their stabiliser state.</p>
+<p><strong>3.</strong> CNOT conjugation: \(X_a\mapsto X_aX_b\), \(Z_a\mapsto Z_a\), \(X_b\mapsto X_b\), \(Z_b\mapsto Z_aZ_b\). Then
+\(i^{x_az_a + x_bz_b}X_a^{x_a}Z_a^{z_a}X_b^{x_b}Z_b^{z_b}\mapsto i^{x_az_a + x_bz_b}X_a^{x_a}Z_a^{z_a\oplus z_b}X_b^{x_a\oplus x_b}Z_b^{z_b}\) (moving factors on
+different qubits past each other costs nothing). The new letters' own prefactor is \(i^{x_a(z_a\oplus z_b) + (x_a\oplus x_b)z_b}\), so the
+sign is \(i^e\), \(e = x_az_a + x_bz_b - x_a(z_a\oplus z_b) - (x_a\oplus x_b)z_b\). If \(x_a = 0\): \(e = x_bz_b - x_bz_b = 0\). If \(z_b = 0\):
+\(e = x_az_a - x_az_a = 0\). If \(x_a = z_b = 1\): \((z_a, x_b) = (0,0)\) gives \(e = -2\); \((0,1)\): \(0\); \((1,0)\): \(0\); \((1,1)\): \(2\). So the
+sign flips exactly when \(x_a = z_b = 1\) and \(x_b = z_a\), i.e. \(x_az_b(x_b\oplus z_a\oplus1) = 1\).</p>
+<p><strong>4.</strong> Initialise \(Z_0, \dots, Z_{n-1}\): \(O(n^2)\) bits. Each gate: two columns and a sign per row, \(O(n)\). Each measurement:
+commutation checks \(O(n^2)\); case (a) elimination \(O(n^3)\); case (b) up to \(n\) row products \(O(n^2)\) and a fair coin. Total
+\(O(nm + qn^3)\), exact in distribution. At \(n = 1000\): \(2n^2 + n = 2\,001\,000\) bits, against \(2^{1000}\approx1.07\times10^{301}\)
+amplitudes.</p>
+<p><strong>Check.</strong> Part 3 on \(X_aZ_b\): \(x_a = z_b = 1\), \(x_b = z_a = 0\), sign flips; letters become \(Y_aY_b\); and directly
+\(X_aX_bZ_aZ_b = (X_aZ_a)(X_bZ_b) = (-iY_a)(-iY_b) = -Y_aY_b\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> T is not Clifford <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: conjugating by \(T\), one-qubit stabiliser states, why a biased coin breaks the tableau</p>
+<div class="statement">
+<ol>
+<li>Compute \(TXT^\dagger\) and \(TZT^\dagger\) for \(T = \mathrm{diag}(1, e^{i\pi/4})\), and show \(T\notin\mathcal C_1\).</li>
+<li>List the one-qubit stabiliser states and show \(T\ket+\) is not one of them.</li>
+<li>Compute the probability that measuring \(X\) on \(T\ket+\) gives \(+1\). Explain why this number alone proves no tableau can describe \(T\ket+\).</li>
+<li>The operator \(A = (X + Y)/\sqrt2\) fixes \(T\ket+\). Show that \(A\) neither commutes nor anticommutes with \(X\), and say which step of the measurement theorem this breaks.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two \(2\times2\) matrices, a list of six states, one probability, and one pair of products.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A one-qubit stabiliser group has one generator, \(\pm X\), \(\pm Y\) or \(\pm Z\). On a stabiliser state every Pauli measurement is certain
+or fair.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \((TXT^\dagger)_{01} = 1\cdot1\cdot\overline{e^{i\pi/4}} = e^{-i\pi/4}\) and \((TXT^\dagger)_{10} = e^{i\pi/4}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(T\) rotates by \(45^\circ\), halfway between the axes the Clifford group permutes.</p>
+<p><strong>1.</strong> \(TXT^\dagger = \begin{pmatrix}0 &amp; e^{-i\pi/4}\\e^{i\pi/4} &amp; 0\end{pmatrix} = \cos\tfrac\pi4X + \sin\tfrac\pi4Y = \tfrac{X + Y}{\sqrt2}\), since
+\(\cos\theta X + \sin\theta Y = \begin{pmatrix}0 &amp; e^{-i\theta}\\e^{i\theta} &amp; 0\end{pmatrix}\). \(TZT^\dagger = Z\) (both diagonal). \(\tfrac{X+Y}{\sqrt2}\) is not a
+phase times a single Pauli (its expansion in the basis \(I, X, Y, Z\) has two nonzero coefficients), so \(T\notin\mathcal C_1\).</p>
+<p><strong>2.</strong> Generators \(\pm X, \pm Y, \pm Z\) fix \(\ket\pm\), \(\ket{\pm i}\), \(\ket0\), \(\ket1\): six states, Bloch vectors \(\pm\hat x, \pm\hat y, \pm\hat z\).
+\(T\ket+ = \tfrac1{\sqrt2}(\ket0 + e^{i\pi/4}\ket1)\), normalised, Bloch vector \((\cos45^\circ, \sin45^\circ, 0) = (0.7071, 0.7071, 0)\): not one of
+the six.</p>
+<p><strong>3.</strong> \(\bra{T+}X\ket{T+} = \cos\tfrac\pi4 = 0.7071\), so \(\Pr(+1) = \tfrac{1 + 0.7071}{2} = 0.8536 = \cos^2\tfrac\pi8\). On a stabiliser
+state every Pauli outcome has probability 0, \(\tfrac12\) or 1 (measurement theorem). \(0.8536\) is none of these, so \(T\ket+\) is not
+a stabiliser state, and no tableau describes it.</p>
+<p><strong>4.</strong> \(XA = \tfrac1{\sqrt2}(I + iZ)\), \(AX = \tfrac1{\sqrt2}(I - iZ)\): neither equal nor opposite. The measurement theorem's case split
+— "commutes with every generator, or anticommutes with one" — and the computation \(\bra\psi P\ket\psi = -\bra\psi P\ket\psi\) both
+rely on \(PQ = \pm QP\), which holds only for Paulis.</p>
+<p><strong>Check.</strong> \(A\) is Hermitian with \(A^2 = \tfrac12(X^2 + XY + YX + Y^2) = I\) since \(XY + YX = 0\) ✓, and
+\(A\,T\ket+ = TXT^\dagger T\ket+ = TX\ket+ = T\ket+\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit, gates
+import numpy as np
+T = gates.T
+print(np.allclose(T @ gates.X @ T.conj().T, (gates.X + gates.Y) / np.sqrt(2)))   # True
+psi = Circuit(1).h(0).t(0).run()
+ex = psi.expectation(gates.X).real
+print(round(ex, 4), round((1 + ex) / 2, 4))                                      # 0.7071 0.8536</code></pre>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 23</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

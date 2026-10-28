@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>18 · Problems — Lower bounds: what quantum computers provably cannot do</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="d">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part D · unit 18 · problems</p>
+<h1>Lower bounds: what quantum computers provably cannot do</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u18">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> You prove \(\Omega(\sqrt N)\) for search by the hybrid argument — every line, from the query
+magnitudes to \(T\ge\sqrt N/6\) — and exactly \(N/2\) for parity by the polynomial method: the lower bound from symmetrisation and
+the \(N\) sign changes, the upper bound from Deutsch's algorithm on pairs. For \(N = 2^{20}\) that is at least \(171\) queries for
+search and exactly \(524\,288\) for parity.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five and a half hours. Work them on paper first. P3 and P6 are the checkpoint's two computations; P4 is
+its symmetrisation proof.</p>
+<p>Conventions, as in the deck. The input is \(x = x_0x_1\cdots x_{N-1}\in\{0, 1\}^N\), with \(|x|\) its number of ones and \(e_w\) the
+input whose only \(1\) is at \(w\). It is reached through the bit oracle \(O_x\ket i\ket b = \ket i\ket{b\oplus x_i}\) or the phase oracle
+\(O_x^\pm\ket i = (-1)^{x_i}\ket i\); each call is one query, and both are \(I\) when \(x = 0^N\). An algorithm computes \(f\) with bounded
+error if it accepts with probability within \(\tfrac13\) of \(f(x)\) on every allowed \(x\). \(Q(f)\) and \(Q_E(f)\) are the bounded-error and
+exact quantum query complexities; \(D(f)\) and \(R(f)\) the deterministic and bounded-error randomised ones (unit 13). \(\deg f\) is the
+degree of \(f\)'s multilinear polynomial and \(\widetilde{\deg}(f)\) the least degree of a real polynomial within \(\tfrac13\) of \(f\) on
+the whole cube. Grover's success after \(k\) iterations with one of \(N\) marked is \(\sin^2((2k + 1)\theta)\), \(\sin\theta = N^{-1/2}\)
+(unit 17); for \(N = 2^{20}\), \(\theta = \arcsin2^{-10} = 9.7656\times10^{-4}\).</p>
+<p>Two results are cited and may be used: \(\widetilde{\deg}(\mathrm{OR}_N)\ge c\sqrt N\) for an absolute constant \(c \gt 0\) (Nisan and
+Szegedy 1994; Paturi 1992), and \(D(f) = O(Q(f)^4)\) for total \(f\) (Aaronson, Ben-David, Kothari, Rao and Tal 2021).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Degree of AND, OR and majority">P1</a></li>
+<li><a class="medium" href="#p2" title="Grover on four items, as a polynomial">P2</a></li>
+<li><a class="medium" href="#p3" title="Parity takes exactly N/2">P3</a></li>
+<li><a class="medium" href="#p4" title="Proof: symmetrisation">P4</a></li>
+<li><a class="routine" href="#p5" title="Grover against the hybrid bound">P5</a></li>
+<li><a class="medium" href="#p6" title="BBBV with explicit constants">P6</a></li>
+<li><a class="medium" href="#p7" title="Grover is optimal twice">P7</a></li>
+<li><a class="hard" href="#p8" title="Proof: exact OR needs all N queries">P8</a></li>
+<li><a class="medium" href="#p9" title="Promises matter">P9</a></li>
+<li><a class="routine" href="#p10" title="Total functions">P10</a></li>
+<li><a class="hard" href="#p11" title="Random oracles">P11</a></li>
+<li><a class="medium" href="#p12" title="Element distinctness">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Polynomials and degree</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Degree of AND, OR and majority <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the multilinear representation, its top coefficient, the exact-query corollary \(Q_E\ge\tfrac12\deg\)</p>
+<div class="statement">
+<p>Let \(\mathrm{AND}_N(x) = x_0x_1\cdots x_{N-1}\), \(\mathrm{OR}_N\) as in the deck, and \(\mathrm{MAJ}_N(x) = 1\) iff \(|x| \gt N/2\).</p>
+<ol>
+<li>Show that the coefficient of \(x_0x_1\cdots x_{N-1}\) in the multilinear polynomial of any \(f\) is
+\(c_{\rm top} = \sum_{a\in\{0,1\}^N}(-1)^{N-|a|}f(a)\).</li>
+<li>Compute \(c_{\rm top}\) for \(\mathrm{AND}_N\) and \(\mathrm{OR}_N\), and show that for \(\mathrm{MAJ}_N\) it is
+\(\pm\binom{N-1}{\lfloor N/2\rfloor}\). Tabulate \(c_{\rm top}(\mathrm{MAJ}_N)\) for \(N = 1, \dots, 6\). Conclude that all three have degree \(N\).</li>
+<li>What does the polynomial method then say about exact quantum algorithms for each, and how does it compare with \(D = N\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a sum over the cube; part 2 is three numbers or formulas, each of which must be shown nonzero; part 3 is a lower bound
+on \(Q_E\). The existence half of the deck's theorem on multilinear polynomials is the only tool part 1 needs.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In \(\sum_af(a)\prod_{a_i = 1}x_i\prod_{a_i = 0}(1 - x_i)\), each product contributes to the top monomial exactly once, and each
+factor \((1 - x_i)\) contributes \(-x_i\) to it. For majority group the inputs by \(|a| = k\): there are \(\binom Nk\) of them, and you
+need a partial alternating sum of binomial coefficients.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(c_{\rm top} = \sum_af(a)(-1)^{\#\{i : a_i = 0\}}\). For majority, with \(m = \lfloor N/2\rfloor + 1\),
+\(c_{\rm top} = (-1)^N\sum_{k=m}^N(-1)^k\binom Nk\); prove \(\sum_{k=0}^j(-1)^k\binom Nk = (-1)^j\binom{N-1}j\) by induction on \(j\) with
+Pascal's rule.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The multilinear polynomial is written down explicitly by the existence formula, so its top coefficient can be
+read off; showing it is nonzero shows the degree is \(N\).</p>
+<p><strong>1.</strong> Expanding \(\prod_{a_i = 1}x_i\prod_{a_i = 0}(1 - x_i)\), the monomial \(x_0\cdots x_{N-1}\) arises only by
+taking \(-x_i\) from every factor \((1 - x_i)\), with coefficient \((-1)^{N - |a|}\). Summing over \(a\) with weights \(f(a)\) gives
+\(c_{\rm top}\). By uniqueness this is the coefficient in \(f\)'s polynomial.</p>
+<p><strong>2.</strong> <b>AND:</b> only \(a = 1^N\) has \(f(a) = 1\), and \(|a| = N\): \(c_{\rm top} = 1\). <b>OR:</b> every \(a\) but \(0^N\)
+contributes, so \(c_{\rm top} = \sum_a(-1)^{N-|a|} - (-1)^N\). The full sum is \(\prod_{i}(1 - 1) = 0\) for \(N\ge1\), so
+\(c_{\rm top} = (-1)^{N+1}\). <b>MAJ:</b> \(c_{\rm top} = \sum_{k\ge m}(-1)^{N-k}\binom Nk = (-1)^N\sum_{k=m}^N(-1)^k\binom Nk\),
+\(m = \lfloor N/2\rfloor + 1\). The identity: for \(j = 0\) both sides are \(1\); and
+\[ (-1)^j\tbinom{N-1}j + (-1)^{j+1}\tbinom N{j+1} = (-1)^{j+1}\Big[\tbinom N{j+1} - \tbinom{N-1}j\Big] = (-1)^{j+1}\tbinom{N-1}{j+1}. \]
+The full alternating sum is \(0\), so \(\sum_{k=m}^N(-1)^k\binom Nk = -(-1)^{m-1}\binom{N-1}{m-1}\), and
+\[ c_{\rm top}(\mathrm{MAJ}_N) = (-1)^{N+m}\binom{N-1}{\lfloor N/2\rfloor}\ne0 . \]</p>
+<table>
+<thead><tr><th>\(N\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr></thead>
+<tbody><tr><td>\(c_{\rm top}(\mathrm{MAJ}_N)\)</td><td>1</td><td>1</td><td>−2</td><td>−3</td><td>6</td><td>10</td></tr></tbody>
+</table>
+<p>All three coefficients are nonzero, so all three functions have degree \(N\).</p>
+<p><strong>3.</strong> \(Q_E\ge\tfrac12\deg = N/2\) for each, against \(D = N\) (an adversary answering \(0\), or \(1\) for AND, keeps the
+answer open until the last bit; for majority it answers so that exactly \(\lfloor N/2\rfloor\) of the first \(N - 1\) bits read are ones,
+and then the last bit decides). For OR and AND the truth is \(Q_E = N\): P8 sharpens the argument. For majority even bounded error
+needs order \(N\): \(\widetilde{\deg}(\mathrm{MAJ}_N) = \Theta(N)\) (Paturi 1992, cited).</p>
+<p><strong>Check.</strong> \(N = 3\): \(\mathrm{MAJ}_3 = x_0x_1 + x_0x_2 + x_1x_2 - 2x_0x_1x_2\). At \(110\) it gives \(1\); at \(111\),
+\(3 - 2 = 1\); at \(100\), \(0\) ✓. Top coefficient \(-2\), as tabulated ✓. And \(\mathrm{MAJ}_2 = \mathrm{AND}_2 = x_0x_1\), top
+coefficient \(1\) in both columns ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Grover on four items, as a polynomial <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the degree lemma on a real algorithm, normalisation as a polynomial identity, why OR needs a polynomial right at every layer</p>
+<div class="statement">
+<p>Take \(N = 4\) and an <b>arbitrary</b> input \(x\in\{0, 1\}^4\), with any number \(k = |x|\) of ones. The algorithm prepares
+\(\ket s = \tfrac12\sum_i\ket i\), applies \(O_x^\pm\) once, then the diffusion \(D = 2\ket s\!\bra s - I\), measures the index to get \(j\),
+queries \(x_j\), and accepts iff \(x_j = 1\).</p>
+<ol>
+<li>Show that before the measurement the amplitude of \(\ket j\) is \(\beta_j = \tfrac12(1 - k + 2x_j)\), a polynomial of degree \(1\) in
+\(x\). Check that \(\sum_j\beta_j^2 = 1\) as a polynomial identity in \(k\).</li>
+<li>Show that the acceptance probability is \(p(x) = \tfrac14k(3 - k)^2\), and reconcile its degree with the polynomial method.</li>
+<li>Evaluate \(p\) at \(k = 0, \dots, 4\). For which inputs is this a good algorithm for \(\mathrm{OR}_4\)? Check your values against unit
+17's \(\sin^2 3\theta\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four degree-one polynomials, then a one-variable polynomial in \(k\), then five numbers. Everything depends on \(x\) only through
+\(x_j\) and \(k\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>After the oracle the amplitude of \(\ket i\) is \(a_i = \tfrac12(1 - 2x_i)\). The diffusion sends each amplitude \(a_i\) to
+\(2\bar a - a_i\), where \(\bar a\) is the mean of the four — that is what \(2\ket s\!\bra s - I\) does.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\bar a = \tfrac14\sum_i\tfrac12(1 - 2x_i) = \tfrac18(4 - 2k) = \tfrac{2 - k}4\), so
+\(\beta_j = \tfrac{2 - k}2 - \tfrac{1 - 2x_j}2\). For part 2 only the \(k\) marked \(j\) accept, each with \(\beta_j^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One query, so the amplitudes have degree \(1\); the verification query is a second, so the acceptance
+probability may have degree up to \(4\). Writing them out shows what they do on inputs Grover was not tuned for.</p>
+<p><strong>1.</strong> \(\big(2\ket s\!\bra s - I\big)\sum_ia_i\ket i = \sum_i(2\bar a - a_i)\ket i\), since \(\bra s\sum_ia_i\ket i =
+\tfrac12\sum_ia_i = 2\bar a\), and \(2\ket s\cdot2\bar a\) has every amplitude \(2\cdot2\bar a\cdot\tfrac12 = 2\bar a\). With \(\bar a = (2 - k)/4\):
+\[ \beta_j = \frac{2 - k}2 - \frac{1 - 2x_j}2 = \frac{1 - k + 2x_j}2 , \]
+degree \(1\), as \(k = x_0 + x_1 + x_2 + x_3\) is. Marked positions have \(\beta = (3 - k)/2\), unmarked \((1 - k)/2\), so
+\[ \sum_j\beta_j^2 = \tfrac14\big[k(3 - k)^2 + (4 - k)(1 - k)^2\big] = \tfrac14\big[(9k - 6k^2 + k^3) + (4 - 9k + 6k^2 - k^3)\big] = 1 . \]
+Normalised for every \(k\) ✓.</p>
+<p><strong>2.</strong> The measurement gives \(j\) with probability \(\beta_j^2\), and the check accepts iff \(x_j = 1\):
+\[ p(x) = \sum_jx_j\beta_j^2 = k\cdot\frac{(3 - k)^2}4 . \]
+As a polynomial in \(x\) (substituting \(k = \sum_ix_i\) and multilinearising) it has degree at most \(3\), within the bound \(2T = 4\) for
+\(T = 2\) queries ✓.</p>
+<p><strong>3.</strong></p>
+<table>
+<thead><tr><th>\(k\)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th></tr></thead>
+<tbody><tr><td>\(p\)</td><td>0</td><td>1</td><td>½</td><td>0</td><td>1</td></tr></tbody>
+</table>
+<p>A good OR algorithm only under the promise \(k\le1\) — exactly the promise Grover's fixed iteration count assumes. At \(k = 2\) it is a
+coin; at \(k = 3\) it is <b>always</b> wrong. An algorithm for OR on every input needs an acceptance polynomial in \([\tfrac23, 1]\) at
+every \(k\ge1\); this one dips to \(0\), which is unit 17's overshoot.</p>
+<p><strong>Check</strong> against unit 17, \(\sin\theta = \sqrt{k/4}\), success \(\sin^23\theta\): \(k = 1\), \(\theta = \pi/6\), \(1\) ✓;
+\(k = 2\), \(\theta = \pi/4\), \(\sin^2\tfrac{3\pi}4 = \tfrac12\) ✓; \(k = 3\), \(\theta = \pi/3\), \(\sin^2\pi = 0\) ✓; \(k = 4\),
+\(\theta = \pi/2\), \(\sin^2\tfrac{3\pi}2 = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+R0 = np.diag([1, -1, -1, -1])                         # 2|00⟩⟨00| − I on the index
+for x in [(0, 0, 0, 0), (0, 1, 0, 0), (1, 1, 0, 0), (1, 1, 1, 0), (1, 1, 1, 1)]:
+    O = np.diag([(-1) ** b for b in x])               # the phase oracle
+    c = Circuit(2).h(0).h(1).gate(O, 0, 1).h(0).h(1).gate(R0, 0, 1).h(0).h(1)
+    p = c.run().probabilities()
+    k = sum(x)
+    print(x, p.round(4), round(float(np.dot(x, p)), 4), k * (3 - k) ** 2 / 4)
+# (0, 0, 0, 0) [0.25 0.25 0.25 0.25] 0.0 0.0
+# (0, 1, 0, 0) [0. 1. 0. 0.] 1.0 1.0
+# (1, 1, 0, 0) [0.25 0.25 0.25 0.25] 0.5 0.5
+# (1, 1, 1, 0) [0. 0. 0. 1.] 0.0 0.0
+# (1, 1, 1, 1) [0.25 0.25 0.25 0.25] 1.0 1.0</code></pre>
+<p>The diffusion is built as \(H^{\otimes2}(2\ket{00}\!\bra{00} - I)H^{\otimes2}\), unit 17's construction. Each row's third column is
+\(\sum_jx_j\beta_j^2\), and the fourth is the formula.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Parity takes exactly N/2 <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Deutsch's algorithm on pairs, symmetrisation with sign changes, the two bounds meeting, a number</p>
+<div class="statement">
+<ol>
+<li>Describe Deutsch's algorithm on pairs and prove that it computes \(\mathrm{PARITY}_N\) exactly with \(\lceil N/2\rceil\) queries.</li>
+<li>Prove that every algorithm computing \(\mathrm{PARITY}_N\) with error at most \(\tfrac13\) makes at least \(N/2\) queries.</li>
+<li>For \(N = 2^{20}\) and for \(N = 5\), give the quantum query count and the classical one, deterministic and randomised.</li>
+<li>The hybrid argument proves \(T\ge\sqrt N/6\) for parity too. Why can it not prove more, as used in the deck?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two inequalities that meet: an algorithm (upper bound) and a degree argument (lower bound). Then two pairs of numbers, and one
+sentence about which inputs the hybrid argument compares.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Upper: put the index in an equal superposition of the two positions of one pair, the target in \(\ket-\), query once, and apply
+\(H\) to the low index qubit. Lower: take a polynomial of degree \(\le2T\) within \(\tfrac13\) of parity, symmetrise it, and look at the
+sign of \(q(k) - \tfrac12\) at each integer.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the lower bound: let \(p\) have degree \(\le2T\) with \(|p - \mathrm{PARITY}_N|\le\tfrac13\); its symmetrisation \(q\)
+has \(\deg q\le2T\), \(q(k) - \tfrac12\le-\tfrac16\) for even \(k\) and \(\ge\tfrac16\) for odd \(k\), \(k = 0, \dots, N\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Deutsch's algorithm reads the parity of two bits with one query; the polynomial method says nothing reads
+more than two bits' worth of parity per query, because parity's approximate degree is full.</p>
+<p><strong>1. Upper bound.</strong> For the pair \((x_{2p}, x_{2p+1})\): prepare the index in \(\tfrac1{\sqrt2}(\ket{2p} + \ket{2p+1})\) — the
+high index qubits hold \(p\), the lowest is put in \(\ket+\) — and the target in \(\ket-\). One query, by kickback, gives
+\[ \tfrac1{\sqrt2}\big((-1)^{x_{2p}}\ket{2p} + (-1)^{x_{2p+1}}\ket{2p+1}\big)\ket- = (-1)^{x_{2p}}\ket p\otimes\tfrac1{\sqrt2}\big(\ket0 + (-1)^{x_{2p}\oplus x_{2p+1}}\ket1\big)\otimes\ket- , \]
+and \(H\) on the lowest index qubit leaves \(\pm\ket p\ket{x_{2p}\oplus x_{2p+1}}\ket-\): it reads \(x_{2p}\oplus x_{2p+1}\) with certainty.
+Doing this for the \(\lfloor N/2\rfloor\) pairs, plus one classical query to the last bit when \(N\) is odd, and XOR-ing the answers gives
+\(\mathrm{PARITY}_N\) exactly with \(\lceil N/2\rceil\) queries.</p>
+<p><strong>2. Lower bound.</strong> A \(T\)-query algorithm with error \(\le\tfrac13\) accepts with a polynomial \(p\) of degree \(\le2T\) within
+\(\tfrac13\) of parity (the polynomial method). Symmetrise it: \(q\) has \(\deg q\le\deg p\le2T\), and \(q(k)\) is the average of \(p\) over the
+layer \(|x| = k\), on which parity equals \(k\bmod2\). So \(q(k) - \tfrac12\le-\tfrac16\) at even \(k\) and \(\ge\tfrac16\) at odd \(k\). Between
+each \(k\) and \(k + 1\), \(k = 0, \dots, N - 1\), the continuous \(q - \tfrac12\) changes sign, so it has a root there: \(N\) distinct roots.
+It is not the zero polynomial (it is \(\le-\tfrac16\) at \(0\)), so \(\deg q\ge N\). Hence \(2T\ge N\), \(T\ge N/2\), and since \(T\) is an
+integer, \(T\ge\lceil N/2\rceil\). With part 1: \(Q_E(\mathrm{PARITY}_N) = Q(\mathrm{PARITY}_N) = \lceil N/2\rceil\).</p>
+<p><strong>3. Numbers.</strong></p>
+<table>
+<thead><tr><th></th><th>quantum</th><th>deterministic</th><th>randomised, error ⅓</th></tr></thead>
+<tbody>
+<tr><td>\(N = 2^{20}\)</td><td>524 288</td><td>1 048 576</td><td>1 048 576</td></tr>
+<tr><td>\(N = 5\)</td><td>3</td><td>5</td><td>5</td></tr>
+</tbody>
+</table>
+<p>Classically every bit must be read even with coins: a tree of depth below \(N\) leaves a bit unread on every path, and on uniform
+\(x\) that makes its answer a fair coin, so by unit 13's averaging some input is answered correctly with probability at most \(\tfrac12\).</p>
+<p><strong>4.</strong> The hybrid argument compares only \(0^N\) with each \(e_w\), and its conclusion, \(T\ge\sqrt N/6\), holds for any
+function with \(f(0^N)\ne f(e_w)\) for every \(w\) — OR and parity alike. It never looks at inputs with two or more ones, which is where
+parity and OR differ, so it cannot tell them apart. The polynomial method sees every layer.</p>
+<p><strong>Check.</strong> \(N = 2\): \(\lceil2/2\rceil = 1\), unit 13's Deutsch ✓. \(N = 4\), \(x = 1011\): the deck's worked example reads
+\(1\) and \(0\), XOR \(1\), and \(x\) has three ones ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from itertools import product
+from qclib import Circuit
+
+def pair(x, p):                                    # Deutsch on (x[2p], x[2p+1]): P(qubit 1 reads 1)
+    c = Circuit(3)
+    if p:
+        c.x(0)
+    c.x(2).h(2).h(1).oracle(lambda i: x[i], [0, 1], [2]).h(1)
+    return c.run().probabilities([1])[1]
+
+print([round(float(pair((1, 0, 1, 1), p)), 6) for p in (0, 1)])
+print(all(round(pair(x, 0)) ^ round(pair(x, 1)) == sum(x) % 2
+          and min(pair(x, p), 1 - pair(x, p)) &lt; 1e-12 for p in (0, 1)
+          for x in product((0, 1), repeat=4)))
+# [1.0, 0.0]
+# True</code></pre>
+<p>All sixteen inputs: each run's reading is certain, and the XOR of the two is the parity.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Proof: symmetrisation <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Minsky–Papert theorem in full, counting permutations, a check on small cases</p>
+<div class="statement">
+<p>Let \(p = \sum_{|S|\le d}c_Sx_S\) be multilinear of degree \(d\) on \(\{0, 1\}^N\), \((\pi x)_i = x_{\pi(i)}\) for a permutation \(\pi\) of the
+positions, and \(p^{\rm sym}(x) = \frac1{N!}\sum_\pi p(\pi x)\).</p>
+<ol>
+<li>Show \(x_S(\pi x) = x_{\pi(S)}\), and deduce that \(p^{\rm sym} = \sum_{j\le d}a_jV_j\) with \(V_j = \sum_{|S| = j}x_S\) and
+\(a_j = \binom Nj^{-1}\sum_{|S| = j}c_S\).</li>
+<li>Show that \(V_j(x) = \binom{|x|}j\) on the cube, so \(p^{\rm sym}(x) = q(|x|)\) with \(q(k) = \sum_ja_j\binom kj\) of degree \(\le d\).</li>
+<li>Show that \(q(k)\) is the average of \(p\) over the layer \(\{x : |x| = k\}\).</li>
+<li>Check on \(N = 3\): \(p = x_0x_1\), and \(p = x_0 - x_1\). Can symmetrisation lower the degree?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A proof in four counting steps; the only facts needed are what a permutation does to a set of positions and how many permutations
+send one set to another.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For a fixed \(j\)-element set \(S\) and a fixed \(j\)-element set \(S'\), count the permutations \(\pi\) with \(\pi(S) = S'\): choose
+the bijection \(S\to S'\) and the bijection between the complements. For part 2, \(x_S(x) = 1\) iff every position in \(S\) holds a one.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\#\{\pi : \pi(S) = S'\} = j!\,(N - j)!\), the same for every \(S'\) of size \(j\); so
+\(\frac1{N!}\sum_\pi x_{\pi(S)} = \frac{j!(N-j)!}{N!}V_j = \binom Nj^{-1}V_j\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Averaging over all relabellings makes each coefficient the average of the coefficients of its size, and a
+symmetric multilinear polynomial is a combination of the elementary symmetric ones, which on the cube are binomial coefficients of
+\(|x|\).</p>
+<p><strong>1.</strong> \(x_S(\pi x) = \prod_{i\in S}(\pi x)_i = \prod_{i\in S}x_{\pi(i)} = \prod_{l\in\pi(S)}x_l = x_{\pi(S)}\). So
+\(p(\pi x) = \sum_Sc_Sx_{\pi(S)}\) and
+\[ p^{\rm sym} = \sum_Sc_S\cdot\frac1{N!}\sum_\pi x_{\pi(S)} . \]
+For \(|S| = j\) and any \(S'\) with \(|S'| = j\), the permutations with \(\pi(S) = S'\) are a bijection \(S\to S'\) together with a bijection
+of the complements: \(j!(N - j)!\) of them, independent of \(S'\). So \(\frac1{N!}\sum_\pi x_{\pi(S)} = \frac{j!(N-j)!}{N!}V_j =
+\binom Nj^{-1}V_j\), and collecting by size gives \(a_j = \binom Nj^{-1}\sum_{|S| = j}c_S\). Only \(j\le d\) occur.</p>
+<p><strong>2.</strong> On the cube \(x_S(x) = 1\) iff \(S\) lies inside the set of positions of the ones, which has \(|x|\) elements; so
+\(V_j(x)\) counts the \(j\)-subsets of a \(|x|\)-set: \(\binom{|x|}j = |x|(|x| - 1)\cdots(|x| - j + 1)/j!\), a polynomial of degree \(j\) in
+\(|x|\). Hence \(q(k) = \sum_{j\le d}a_j\binom kj\) has degree \(\le d\).</p>
+<p><strong>3.</strong> Fix \(x\) with \(|x| = k\). As \(\pi\) runs over all permutations, \(\pi x\) runs over the layer, hitting each \(y\) with
+\(|y| = k\) the same number of times, \(k!(N - k)!\) (the same count as in part 1, applied to the set of ones). So
+\(\frac1{N!}\sum_\pi p(\pi x)\) is the plain average of \(p\) over the \(\binom Nk\) points of the layer.</p>
+<p><strong>4. Checks.</strong> \(p = x_0x_1\): \(a_2 = \tfrac13(1 + 0 + 0) = \tfrac13\), so \(q(k) = \tfrac13\binom k2 = k(k - 1)/6\). At \(k = 2\) the
+layer is \(110, 101, 011\), where \(p = 1, 0, 0\), average \(\tfrac13\); and \(q(2) = \tfrac13\) ✓. At \(k = 3\): \(p = 1\), \(q(3) = 1\) ✓.
+\(p = x_0 - x_1\): \(a_1 = \tfrac13(1 - 1 + 0) = 0\), so \(q = 0\). Degree \(1\) went to degree \(0\): symmetrisation can <b>lower</b> the
+degree, never raise it — which is the direction the lower bounds need.</p>
+</div></details>
+</section>
+
+<h2 class="group">The hybrid argument</h2>
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Grover against the hybrid bound <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: query magnitudes of a real algorithm, the hybrid bound against the truth, a trigonometric inequality, numbers</p>
+<div class="statement">
+<ol>
+<li>For Grover's algorithm on \(N\) items with \(T\) iterations, show that on the empty oracle every \(\ket{\psi_t}\) equals \(\ket s\), and
+that \(q_w = T/N\) for every \(w\).</li>
+<li>Show that the hybrid bound is \(2T/\sqrt N\) and that the true distance \(\lVert\ket{\psi_T^w} - \ket{\psi_T}\rVert\) is \(2\sin T\theta\).
+Prove \(|\sin T\theta|\le T\sin\theta\) for every integer \(T\ge0\), so the theorem holds here by trigonometry alone.</li>
+<li>For \(N = 2^{20}\) compute both at \(T = 804\) and at \(T = 1608\), and their ratios. Why does the bound get worse?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A state, a number per position, two formulas in \(T\), an inequality, and four numbers. All of it lives in unit 17's plane.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>On the empty oracle each iteration is \(D\) alone, and \(D\ket s = \ket s\). On the marked oracle the state after \(T\) iterations is at
+angle \((2T + 1)\theta\) from \(\ket{w^\perp}\), and \(\ket s\) at angle \(\theta\): two unit vectors at angle \(\phi\) are \(2\sin(\phi/2)\)
+apart.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the inequality: \(|\sin(T + 1)\theta| = |\sin T\theta\cos\theta + \cos T\theta\sin\theta|\le|\sin T\theta| + \sin\theta\), then
+induction from \(T = 0\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Grover is the algorithm for which every step of the hybrid argument is as tight as it can be except the triangle
+inequality, so it shows exactly what the argument loses.</p>
+<p><strong>1.</strong> \(\ket{\psi_0} = H^{\otimes n}\ket{0^n} = \ket s\). With \(x = 0^N\) the oracle is \(I\), so each iteration is
+\(D = 2\ket s\!\bra s - I\), and \(D\ket s = 2\ket s - \ket s = \ket s\). So \(\ket{\psi_t} = \ket s\) for all \(t\), \(\lVert P_w\ket s\rVert^2 =
+1/N\), and \(q_w = T/N\) for every \(w\): the query magnitudes are exactly even.</p>
+<p><strong>2.</strong> The bound: \(2\sum_t\lVert P_w\ket s\rVert = 2T/\sqrt N\) (and Cauchy–Schwarz is an equality, all terms being equal).
+The truth: \(\ket{\psi_T} = \ket s\) at angle \(\theta\), \(\ket{\psi_T^w} = G^T\ket s\) at angle \((2T + 1)\theta\), so the angle between them is
+\(2T\theta\) and the distance \(\sqrt{2 - 2\cos2T\theta} = 2\sin T\theta\) (for \(0\le T\theta\le\pi\)). The inequality: \(T = 0\) is
+\(0\le0\); and if \(|\sin T\theta|\le T\sin\theta\) then \(|\sin(T + 1)\theta|\le|\sin T\theta||\cos\theta| + |\cos T\theta|\sin\theta\le
+T\sin\theta + \sin\theta\). With \(\sin\theta = 1/\sqrt N\): \(2\sin T\theta\le2T/\sqrt N\) ✓.</p>
+<p><strong>3.</strong> \(\theta = \arcsin2^{-10} = 9.7656\times10^{-4}\).</p>
+<table>
+<thead><tr><th>\(T\)</th><th>bound \(2T/1024\)</th><th>truth \(2\sin T\theta\)</th><th>ratio</th></tr></thead>
+<tbody>
+<tr><td>804</td><td>1.5703</td><td>1.4139</td><td>0.900</td></tr>
+<tr><td>1608</td><td>3.1406</td><td>2.0000</td><td>0.637</td></tr>
+</tbody>
+</table>
+<p>At \(T = 1608\) the two final states are nearly antipodal (\(2\sin(1608\theta) = 1.9999998\)), the most two unit vectors can be apart,
+while the perturbations keep adding length \(2/\sqrt N\) each. The bound is the length of a path; the truth is a chord of a circle, and the
+longer the path the more it bends.</p>
+<p><strong>Check.</strong> \(T = 1\): bound \(2/\sqrt N\), truth \(2\sin\theta = 2/\sqrt N\) — equal ✓. And the final success at \(T = 1608\)
+is \(\sin^2(3217\theta) = 8.9\times10^{-11}\) (unit 17's overshoot), consistent with the states being far apart in the other direction.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+N, w = 64, 42
+s = np.full(N, N ** -0.5)
+D = 2 * np.outer(s, s) - np.eye(N)                 # the diffusion 2|s⟩⟨s| − I
+O = np.diag([-1 if i == w else 1 for i in range(N)])
+c = Circuit(6)
+for q in range(6):
+    c.h(q)
+psi = c.run()                                       # |s⟩, also every empty-oracle state
+for T in range(1, 7):
+    c.gate(O, *range(6)).gate(D, *range(6))
+    d = np.linalg.norm(c.run().vector - psi.vector)
+    print(T, round(float(d), 4), 2 * T / 8)
+# 1 0.25 0.25
+# 2 0.4961 0.5
+# 3 0.7344 0.75
+# 4 0.9612 1.0
+# 5 1.1729 1.25
+# 6 1.3662 1.5</code></pre>
+<p>\(N = 64\), the deck's polygon: distance against bound for one to six iterations, equal at \(T = 1\) and drifting apart after.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> BBBV with explicit constants <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the whole hybrid argument, the lemma on close states, an explicit constant, numbers against Grover</p>
+<div class="statement">
+<p>Suppose a \(T\)-query algorithm accepts \(0^N\) with probability at most \(\tfrac13\) and every \(e_w\) with probability at least \(\tfrac23\).</p>
+<ol>
+<li>Using \(|p - p'|\le\varepsilon\) for states at distance \(\varepsilon\), prove \(T\ge\sqrt N/6\).</li>
+<li>Using the sharp form \(|p - p'|\le\varepsilon\sqrt{1 - \varepsilon^2/4}\), prove \(T\ge c\sqrt N\) with
+\(c = \tfrac12\sqrt{2 - 4\sqrt2/3}\), and evaluate \(c\).</li>
+<li>For \(N = 2^{20}\), evaluate both bounds and compare with Grover: \(804\) iterations for near-certainty, and the least \(k\) with
+\(\sin^2((2k + 1)\theta)\ge\tfrac23\), plus one checking query.</li>
+<li>With only \(T = 100\) queries at \(N = 2^{20}\), suppose an algorithm errs with probability at most \(\delta\) on \(0^N\) and on
+every \(e_w\). How small can \(\delta\) be? Give the lower bound the sharp lemma implies.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two inequalities of the form \(T\ge c\sqrt N\), four integers for part 3, and one error probability. The chain is: query magnitudes,
+a lightly queried \(w\), the hybrid bound, Cauchy–Schwarz, the lemma.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Pick \(w\) with \(q_w\le T/N\). Then the final states are within \(\varepsilon\le2T/\sqrt N\), and the acceptance probabilities differ by
+at least \(\tfrac13\). For part 2, \(g(\varepsilon) = \varepsilon\sqrt{1 - \varepsilon^2/4}\) is increasing on \([0, \sqrt2]\); solve
+\(g(\varepsilon) = \tfrac13\) as a quadratic in \(\varepsilon^2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\varepsilon^2(1 - \varepsilon^2/4) = \tfrac19\) gives \(\varepsilon^4 - 4\varepsilon^2 + \tfrac49 = 0\), so
+\(\varepsilon^2 = 2 - \sqrt{4 - 4/9} = 2 - 2\sqrt{8/9}\). For part 4, error \(\delta\) on both inputs forces
+\(p(e_w) - p(0^N)\ge1 - 2\delta\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The algorithm must move its final state by a constant when one bit is flipped; the hybrid argument says it can
+move it by at most \(2T/\sqrt N\) for the least-watched bit.</p>
+<p><strong>1.</strong> Run on \(0^N\) with states \(\ket{\psi_t}\); the query magnitudes \(q_w = \sum_{t\lt T}\lVert P_w\ket{\psi_t}\rVert^2\) sum to
+\(T\), so some \(w\) has \(q_w\le T/N\). The hybrid argument and Cauchy–Schwarz give
+\(\varepsilon := \lVert\ket{\psi_T^w} - \ket{\psi_T}\rVert\le2\sum_t\lVert P_w\ket{\psi_t}\rVert\le2\sqrt{Tq_w}\le2T/\sqrt N\). The acceptance
+probabilities differ by at least \(\tfrac23 - \tfrac13 = \tfrac13\), and by at most \(\varepsilon\). So \(\tfrac13\le2T/\sqrt N\): \(T\ge\sqrt N/6\).</p>
+<p><strong>2.</strong> Now \(\tfrac13\le g(\varepsilon)\). Since \(g\) increases on \([0, \sqrt2]\) (its square \(\varepsilon^2 - \varepsilon^4/4\) has
+derivative \(2\varepsilon - \varepsilon^3\ge0\) there), and \(g(\varepsilon_*) = \tfrac13\) at \(\varepsilon_*^2 = 2 - 2\sqrt{8/9} = 2 -
+4\sqrt2/3 = 0.11438\), we need \(\varepsilon\ge\varepsilon_* = 0.33820\) (or \(\varepsilon\gt\sqrt2\), which is larger still). So
+\(2T/\sqrt N\ge\varepsilon_*\) and
+\[ T\ge\tfrac12\varepsilon_*\sqrt N = c\sqrt N,\qquad c = \tfrac12\sqrt{2 - 4\sqrt2/3} = 0.16910 . \]
+Against part 1's \(\tfrac16 = 0.16667\): a 1.5% improvement.</p>
+<p><strong>3.</strong> \(\sqrt N = 1024\). Part 1: \(T\ge170.67\), so \(T\ge171\). Part 2: \(T\ge173.16\), so \(T\ge174\). Grover: \(k = 488\) gives
+\(\sin^2(977\theta) = 0.6655\lt\tfrac23\) and \(k = 489\) gives \(\sin^2(979\theta) = 0.6674\ge\tfrac23\); with the check, \(490\) queries, which
+accept \(0^N\) with probability \(0\) and every \(e_w\) with \(0.6674\). Near-certainty takes \(804\) (success \(0.99999976\)). So the true
+query count for this task lies between \(174\) and \(490\), a factor \(2.8\).</p>
+<p><strong>4.</strong> With \(T = 100\) the distance is \(\varepsilon\le200/1024 = 0.19531\), and \(g\) is increasing there, so the acceptance
+probabilities differ by at most \(g(0.19531) = 0.19438\). Error \(\le\delta\) on both inputs needs \(p(e_w) - p(0^N)\ge1 - 2\delta\), so
+\(1 - 2\delta\le0.19438\) and \(\delta\ge0.4028\): a hundred queries leave an algorithm barely better than a coin on some marked input.</p>
+<p><strong>Check.</strong> \(c\) from the extreme configuration on the deck's lemma slide: two real unit vectors at angles \(\alpha, \beta\) from the
+accept axis with \(\alpha + \beta = \pi/2\) and \(\sin(\beta - \alpha) = \tfrac13\) have \(p = \tfrac23\), \(p' = \tfrac13\) and distance
+\(2\sin\tfrac{\beta - \alpha}2 = 2\sin(0.16991) = 0.33820\) ✓. Dimensions: \(T\) and \(\sqrt N\) are both counts ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Optimality, exactness, promises</h2>
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Grover is optimal twice <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the polynomial method's corollary, turning an algorithm into a polynomial, the Markov sketch, numbers against the hybrid bound</p>
+<div class="statement">
+<ol>
+<li>From the cited \(\widetilde{\deg}(\mathrm{OR}_N)\ge c\sqrt N\), derive \(Q(\mathrm{OR}_N)\ge\tfrac c2\sqrt N\).</li>
+<li>Conversely, from unit 17's algorithm with random iteration counts (expected \(O(\sqrt{N/M})\) queries when \(M\ge1\) items are
+marked), show \(\widetilde{\deg}(\mathrm{OR}_N) = O(\sqrt N)\).</li>
+<li>The deck computed \(\widetilde{\deg}(\mathrm{OR}_{64}) = 6\) and \(\widetilde{\deg}(\mathrm{OR}_{1024}) = 22\). What lower bounds on
+\(Q\) do these give, and how do they compare with the hybrid argument's two bounds at the same \(N\)?</li>
+<li>Show that if the symmetrised \(q\) stayed in \([-\tfrac13, \tfrac43]\) on the whole interval \([0, N]\), the Markov brothers' inequality
+would force \(\deg q\ge\sqrt{N/5}\). Evaluate for \(N = 64\) and \(1024\) and compare with the computed degrees.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two one-line implications, a table of four lower bounds, and a calculus estimate. In part 2 the object to produce is a fixed-\(T\)
+bounded-error algorithm, from an algorithm whose running time is random.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 2: stop the random-count algorithm after a fixed budget and use Markov's inequality on its running time; an algorithm that
+checks its candidates never accepts \(0^N\). Part 4: rescale \([0, N]\) to \([-1, 1]\) and centre the band, so that \(|r|\le1\), then apply
+\(|r'|\le d^2\) at a point where the mean value theorem gives \(q'\ge\tfrac13\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 4: put \(t = 2k/N - 1\) and \(r(t) = \tfrac65\big(q(k) - \tfrac12\big)\), so \(|r|\le1\) on \([-1, 1]\) and
+\(q'(k) = \tfrac56\cdot\tfrac2N\,r'(t)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The polynomial method runs both ways: an algorithm gives a polynomial, so a lower bound on degree is a lower bound
+on queries, and a good algorithm is a good polynomial.</p>
+<p><strong>1.</strong> \(Q(f)\ge\tfrac12\widetilde{\deg}(f)\) for every \(f\), so \(Q(\mathrm{OR}_N)\ge\tfrac c2\sqrt N\): Grover's \(O(\sqrt N)\) is optimal up
+to a constant, a second proof independent of the hybrid argument.</p>
+<p><strong>2.</strong> Let the random-count algorithm use at most \(C\sqrt N\) queries in expectation whenever \(M\ge1\) (since
+\(\sqrt{N/M}\le\sqrt N\)). Run it, checking each candidate with one query, but stop after \(3C\sqrt N\) queries, answering "nothing marked" if no
+candidate was marked. On \(0^N\) it never finds a marked candidate, so it answers correctly with certainty. If \(M\ge1\), it fails only if
+its running time exceeds \(3C\sqrt N\), which by Markov's inequality has probability at most \(\tfrac13\). So \(Q(\mathrm{OR}_N)\le3C\sqrt N\),
+and by the polynomial method its acceptance probability is a polynomial of degree \(\le6C\sqrt N\) within \(\tfrac13\) of OR:
+\(\widetilde{\deg}(\mathrm{OR}_N) = O(\sqrt N)\).</p>
+<p><strong>3.</strong></p>
+<table>
+<thead><tr><th>\(N\)</th><th>degree: \(\lceil\widetilde{\deg}/2\rceil\)</th><th>hybrid, \(\sqrt N/6\)</th><th>hybrid, \(0.1691\sqrt N\)</th></tr></thead>
+<tbody>
+<tr><td>64</td><td>3</td><td>1.33, so 2</td><td>1.35, so 2</td></tr>
+<tr><td>1024</td><td>11</td><td>5.33, so 6</td><td>5.41, so 6</td></tr>
+</tbody>
+</table>
+<p>At these sizes the polynomial method's bound is the larger, by about a factor two — but its constant had to be computed, one \(N\) at a
+time, by a linear programme; the hybrid argument's comes in closed form for every \(N\).</p>
+<p><strong>4.</strong> By the mean value theorem some \(\xi\in(0, 1)\) has \(q'(\xi) = q(1) - q(0)\ge\tfrac23 - \tfrac13 = \tfrac13\). With
+\(r\) as in the last rung, \(|r|\le1\) on \([-1, 1]\), so Markov gives \(|r'|\le d^2\) and \(|q'| = \tfrac5{3N}|r'|\le\tfrac{5d^2}{3N}\). Hence
+\(\tfrac13\le\tfrac{5d^2}{3N}\), i.e. \(d^2\ge N/5\). For \(N = 64\): \(d\ge3.58\), so \(d\ge4\), against the computed \(6\) ✓. For \(N = 1024\):
+\(d\ge14.3\), so \(d\ge15\), against \(22\) ✓. The sketch is consistent with the computations; what it lacks is the cited step that the
+band at the integers forces a band on the interval.</p>
+<p><strong>Check.</strong> The bounds are consistent with the algorithms at \(N = 64\). Under the promise of at most one marked item, unit
+17's six iterations plus a check use \(7\) queries, against the hybrid bound of \(2\), which holds under that promise ✓. The degree bound of
+\(3\) is for OR on <b>every</b> input, where unit 17's fixed count fails (P2 shows the overshoot), so the two are not compared directly.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Proof: exact OR needs all N queries <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: amplitudes as polynomials rather than probabilities, uniqueness of the multilinear representation, the limits of the argument</p>
+<div class="statement">
+<p>P1 gave \(Q_E(\mathrm{OR}_N)\ge N/2\). Prove that in fact \(Q_E(\mathrm{OR}_N) = N\):</p>
+<ol>
+<li>For an exact \(T\)-query algorithm, show that every <b>rejecting</b> amplitude \(\alpha_j(x)\) vanishes at every \(x\ne0^N\).</li>
+<li>Show that a multilinear polynomial vanishing at every \(x\ne0^N\) is \(c\prod_i(1 - x_i)\) for a constant \(c\).</li>
+<li>Conclude \(T\ge N\), and that quantum computing gives no saving at all for exact OR. Do the same for AND.</li>
+<li>Why does the same argument not give \(N\) for parity? Use the rejecting amplitude of Deutsch's algorithm from the deck.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The improvement comes from looking at <b>amplitudes</b>, of degree \(T\), instead of the acceptance probability, of degree \(2T\). The
+answer to part 2 is a one-line application of uniqueness.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>On \(x\ne0^N\) the algorithm accepts with probability \(1\), so the rejecting part of the final state has norm \(0\). On \(0^N\) it rejects
+with probability \(1\), so some rejecting amplitude is nonzero there. A function on the cube that is \(0\) except at one point has a
+multilinear polynomial you can write down.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(1 - p(x) = \sum_{j\ \rm rejecting}|\alpha_j(x)|^2 = 0\) for \(x\ne0^N\), so each \(\alpha_j(x) = 0\) there; and the
+function \(c\cdot[x = 0^N]\) has the multilinear polynomial \(c\prod_i(1 - x_i)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Exactness pins every rejecting amplitude down at all but one input, and the only polynomial that vanishes
+everywhere but at \(0^N\) has full degree.</p>
+<p><strong>1.</strong> Exactness: \(p(x) = 1\) for \(x\ne0^N\). Then \(\sum_{j\ \rm rejecting}|\alpha_j(x)|^2 = 1 - p(x) = 0\), a sum of
+nonnegative terms, so each \(\alpha_j(x) = 0\).</p>
+<p><strong>2.</strong> Let \(r\) be multilinear (complex coefficients allowed) with \(r(x) = 0\) for all \(x\ne0^N\), and \(c = r(0^N)\). The
+function \(x\mapsto c\,[x = 0^N]\) is represented by \(c\prod_i(1 - x_i)\), which is \(c\) at \(0^N\) and \(0\) elsewhere. By uniqueness of the
+multilinear representation (applied to real and imaginary parts), \(r = c\prod_i(1 - x_i)\).</p>
+<p><strong>3.</strong> By the degree lemma each \(\alpha_j\) is multilinear of degree \(\le T\). On \(0^N\) the algorithm rejects with certainty,
+so \(\sum_j|\alpha_j(0^N)|^2 = 1\) and some \(c_j = \alpha_j(0^N)\ne0\). That \(\alpha_j = c_j\prod_i(1 - x_i)\) has degree \(N\), so \(T\ge N\). Reading
+all \(N\) bits classically is exact, so \(Q_E(\mathrm{OR}_N) = D(\mathrm{OR}_N) = N\). For AND, swap the roles: accepting amplitudes vanish at every
+\(x\ne1^N\), and the polynomial is \(c\prod_ix_i\), again degree \(N\).</p>
+<p><strong>4.</strong> For parity the rejecting amplitudes must vanish on the odd-weight inputs only, and that does not force degree \(N\).
+Deutsch's algorithm (the deck's worked example) has rejecting amplitude \(\beta_{0,0} = (1 - x_0 - x_1)/\sqrt2\): degree \(1\), zero at \(01\) and
+\(10\), and nonzero at \(00\) and \(11\). A degree-one polynomial can vanish on a whole layer; it cannot vanish on everything but one point.</p>
+<p><strong>Check.</strong> \(N = 1\): OR is the identity, \(Q_E = 1\) — one query, \(\prod(1 - x_0)\) has degree \(1\) ✓. \(N = 2\): the bound says
+\(2\), while P1's degree argument said only \(1\); the classical algorithm with \(2\) queries is optimal even quantumly ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Promises matter <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the polynomial method on a promise problem, a reduction between approximate degrees, why exponential gaps need promises</p>
+<div class="statement">
+<p>\(N = 2^n\). Deutsch–Jozsa (unit 13) is promised \(|x|\in\{0, N/2, N\}\) and must say "constant" (\(|x|\in\{0, N\}\)) or "balanced".</p>
+<ol>
+<li>Show that its one-query acceptance probability (output \(0^n\)) is \((1 - 2|x|/N)^2\), a polynomial of degree \(2\) in \(x\) that is
+exactly right on the promise. Evaluate it at \(|x| = N/4\).</li>
+<li>Let \(\mathrm{CONST}_N(x) = 1\) iff \(x\in\{0^N, 1^N\}\), a total function agreeing with Deutsch–Jozsa on the promise. Show
+\(\widetilde{\deg}(\mathrm{CONST}_N)\ge\widetilde{\deg}(\mathrm{OR}_{N-1})\), and conclude \(Q(\mathrm{CONST}_N) = \Omega(\sqrt N)\).</li>
+<li>For \(N = 64\), using \(\widetilde{\deg}(\mathrm{OR}_{63}) = 6\) (computed by the deck's linear programme), give the lower bound on
+\(Q(\mathrm{CONST}_{64})\), and set it against Deutsch–Jozsa's one query.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A degree-two polynomial in \(|x|\), then an inequality between two approximate degrees proved by substituting into a polynomial,
+then a number.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1 is unit 13's amplitude \(2^{-n}\sum_i(-1)^{x_i}\). Part 2: from an approximation \(p\) of \(\mathrm{CONST}_N\), build one of
+\(\mathrm{OR}_{N-1}\) by fixing one input bit so that \(1^N\) can no longer occur, and complementing.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: for \(y\in\{0, 1\}^{N-1}\) put \(r(y) = 1 - p(y_0, \dots, y_{N-2}, 0)\); then \(\deg r\le\deg p\), and check \(r\) at
+\(y = 0^{N-1}\) and at \(y\ne0^{N-1}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> On three layers a parabola is enough; on the whole cube, telling "constant" from "almost constant" is search in
+disguise.</p>
+<p><strong>1.</strong> After \(H^{\otimes n}\), \(O_x^\pm\) and \(H^{\otimes n}\) the amplitude of \(\ket{0^n}\) is \(2^{-n}\sum_i(-1)^{x_i} =
+\frac{(N - |x|) - |x|}N = 1 - \frac{2|x|}N\), and \(|x| = \sum_ix_i\) is linear, so the probability \((1 - 2|x|/N)^2\) has degree \(2 = 2T\) ✓. On the
+promise: \(|x| = 0\) or \(N\) gives \(1\), \(|x| = N/2\) gives \(0\) — exactly right. At \(|x| = N/4\): \((1 - \tfrac12)^2 = \tfrac14\), neither
+answer.</p>
+<p><strong>2.</strong> Let \(p\) approximate \(\mathrm{CONST}_N\) within \(\tfrac13\), and \(r(y) = 1 - p(y, 0)\) for \(y\in\{0, 1\}^{N-1}\). Fixing a
+variable to \(0\) and subtracting from \(1\) do not raise the degree. If \(y = 0^{N-1}\) then \((y, 0) = 0^N\) is constant, \(p\ge\tfrac23\), so
+\(r\le\tfrac13\). If \(y\ne0^{N-1}\) then \((y, 0)\) has a one and a zero, is not constant, \(p\le\tfrac13\), so \(r\ge\tfrac23\). Both within
+\(\tfrac13\) of \(\mathrm{OR}_{N-1}\) (and \(r\le\tfrac43\), \(r\ge-\tfrac13\) likewise). Hence \(\widetilde{\deg}(\mathrm{OR}_{N-1})\le\deg r\le\deg p\),
+and taking the best \(p\), \(\widetilde{\deg}(\mathrm{CONST}_N)\ge\widetilde{\deg}(\mathrm{OR}_{N-1})\ge c\sqrt{N - 1}\). So
+\(Q(\mathrm{CONST}_N)\ge\tfrac c2\sqrt{N - 1} = \Omega(\sqrt N)\).</p>
+<p><strong>3.</strong> \(Q(\mathrm{CONST}_{64})\ge\tfrac12\cdot6 = 3\), against one query under the promise. For large \(N\) the gap is
+\(\Omega(\sqrt N)\) against \(1\) — and deterministically, unit 13's \(N/2 + 1\). The promise is what removes the hard inputs, those with a single
+odd bit out.</p>
+<p><strong>Check.</strong> The linear programme applied directly to \(\mathrm{CONST}_{64}\) (symmetric, with \(q(0) = q(64) = 1\) and \(q = 0\) between)
+also gives approximate degree \(6\), equal to the bound from \(\mathrm{OR}_{63}\) ✓. And part 1's polynomial lies in \([0, 1]\) for every \(x\), as an
+acceptance probability must ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">What this says</h2>
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Total functions <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: using a cited theorem correctly, what "exponential" means for query complexity, where promises enter</p>
+<div class="statement">
+<p>Take as given (cited): there is a constant \(C\) with \(D(f)\le C\,Q(f)^4\) for every total \(f:\{0, 1\}^N\to\{0, 1\}\).</p>
+<ol>
+<li>Show that a family of total functions with \(D(f_N) = N\) has \(Q(f_N)\ge(N/C)^{1/4}\).</li>
+<li>Show no such family has \(Q(f_N) = O(\log N)\). Compare \(N^{1/4}\) and \(\log_2N\) at \(N = 2^{20}\), \(2^{40}\), \(2^{64}\).</li>
+<li>Check the theorem on OR and parity.</li>
+<li>Deutsch–Jozsa has \(D = N/2 + 1\) and \(Q_E = 1\). Why is it not a counterexample?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A rearrangement, a limit, a table of three rows, two checks, and one word: <i>total</i>.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>If \(Q(f_N)\le K\log_2N\), substitute into the cited bound and compare the growth of \(N\) with that of \((\log N)^4\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(N = D(f_N)\le C\,Q(f_N)^4\le CK^4(\log_2N)^4\), which fails for large \(N\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A fourth-power relation allows a polynomial gap and forbids an exponential one; only a promise escapes it.</p>
+<p><strong>1.</strong> \(N = D(f_N)\le C\,Q(f_N)^4\), so \(Q(f_N)\ge(N/C)^{1/4}\).</p>
+<p><strong>2.</strong> If \(Q(f_N)\le K\log_2N\) for all large \(N\), then \(N\le CK^4(\log_2N)^4\), which is false for large \(N\) since
+\((\log_2N)^4/N\to0\). So \(Q(f_N)\) grows at least like a fixed power of \(N\), never like a power of \(\log N\).</p>
+<table>
+<thead><tr><th>\(N\)</th><th>\(N^{1/4}\)</th><th>\(\log_2N\)</th></tr></thead>
+<tbody>
+<tr><td>\(2^{20}\)</td><td>32</td><td>20</td></tr>
+<tr><td>\(2^{40}\)</td><td>1024</td><td>40</td></tr>
+<tr><td>\(2^{64}\)</td><td>65 536</td><td>64</td></tr>
+</tbody>
+</table>
+<p>At \(N = 2^{20}\) the two are close, and the unknown constant \(C\) matters; the statement is asymptotic, and by \(2^{64}\) the gap is a factor of a
+thousand.</p>
+<p><strong>3.</strong> OR: \(D = N\), \(Q = \Theta(\sqrt N)\), so \(D = \Theta(Q^2)\le CQ^4\) ✓. Parity: \(D = N\), \(Q = \lceil N/2\rceil\), \(D\le2Q\) ✓. Both
+far inside the bound.</p>
+<p><strong>4.</strong> Deutsch–Jozsa is not total: it is defined only on the three promised layers. The theorem says nothing about it. Any
+total function agreeing with it on the promise decides Deutsch–Jozsa, so has \(D\ge N/2 + 1\), and the theorem then forces
+\(Q\ge((N/2 + 1)/C)^{1/4}\); P9's \(\mathrm{CONST}_N\) in fact has \(Q = \Omega(\sqrt N)\).
+The same holds for every exponential speed-up in this course: a promise on the input is what buys it.</p>
+<p><strong>Check.</strong> \(N = 1\): every total \(f\) has \(D\le1\) and \(Q\ge0\); the bound \(D\le CQ^4\) needs \(Q\ge1\) whenever \(D = 1\), and
+indeed a non-constant function of one bit needs one query ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Random oracles <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the averaged hybrid bound, Markov's inequality, conditioning and independence, an oracle separation</p>
+<div class="statement">
+<p>Let \(A\) contain each string \(y\in\{0, 1\}^*\) independently with probability \(2^{-|y|}\), and
+\(L_A = \{1^n : A\text{ contains a string of length }n\}\). Sketch a proof that with probability \(1\), \(L_A\in\mathsf{NP}^A\) and
+\(L_A\notin\mathsf{BQP}^A\). In particular:</p>
+<ol>
+<li>Show \(\frac1N\sum_w\lVert\ket{\psi_T^w} - \ket{\psi_T}\rVert\le2T/\sqrt N\), with \(N = 2^n\) the number of strings of length \(n\).</li>
+<li>Show that if a machine \(M\) is right on 'no string of length \(n\)' it is wrong on '\(\{w\}\)' for all but a fraction \(6T/\sqrt N\) of the \(w\).</li>
+<li>Compute the probabilities that \(A\) has \(0\) and exactly \(1\) string of length \(20\), and their limit.</li>
+<li>Combine across lengths and machines.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A probability-one statement about a random oracle: show that a fixed machine fails with probability \(1\), then use that there are
+countably many machines. The hybrid argument supplies the per-length failure, independence across lengths the rest.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Average the hybrid bound over \(w\) instead of picking the least-watched \(w\): Cauchy–Schwarz over \(w\) gives
+\(\sum_w\lVert P_w\ket{\psi_t}\rVert\le\sqrt N\). For independence, pick lengths so far apart that the machine on \(1^{n_j}\) cannot reach length
+\(n_{j+1}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\sum_w\lVert\ket{\psi_T^w} - \ket{\psi_T}\rVert\le2\sum_t\sum_w\lVert P_w\ket{\psi_t}\rVert\le2T\sqrt N\), with the states those of
+\(M\) on \(1^n\) and \(A\) fixed away from length \(n\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> At each length the oracle is, with constant probability, either empty or a single needle in \(2^n\) places; a
+polynomial-time machine cannot tell which, by the hybrid argument averaged over where the needle is.</p>
+<p><strong>In \(\mathsf{NP}^A\).</strong> On \(1^n\), guess \(y\) of length \(n\) and query \(A(y)\): polynomial time, one query, accepts iff some
+witness exists.</p>
+<p><strong>1.</strong> Fix the oracle off length \(n\). Run \(M\) on \(1^n\) with no string at length \(n\) (states \(\ket{\psi_t}\)), and with only
+\(w\) there (states \(\ket{\psi_t^w}\)); the two oracles differ only on the string \(w\), so the hybrid argument applies with \(P_w\) the
+projection onto query string \(w\). For each \(t\), Cauchy–Schwarz over the \(N\) strings gives
+\(\sum_w\lVert P_w\ket{\psi_t}\rVert\le\sqrt N\big(\sum_w\lVert P_w\ket{\psi_t}\rVert^2\big)^{1/2}\le\sqrt N\). Summing the hybrid bound,
+\(\sum_w\lVert\ket{\psi_T^w} - \ket{\psi_T}\rVert\le2T\sqrt N\); divide by \(N\).</p>
+<p><strong>2.</strong> If \(M\) accepts 'none' with probability \(\le\tfrac13\), being right on '\(\{w\}\)' needs acceptance \(\ge\tfrac23\), hence
+distance \(\ge\tfrac13\) by the lemma on close states. By Markov's inequality the fraction of \(w\) with distance \(\ge\tfrac13\) is at most
+\(3\cdot2T/\sqrt N = 6T/\sqrt N\).</p>
+<p><strong>3.</strong> Given everything off length \(n\), the number of strings of length \(n\) in \(A\) is binomial with \(2^n\) trials of
+probability \(2^{-n}\): \(\Pr[0] = (1 - 2^{-n})^{2^n}\), \(\Pr[1] = (1 - 2^{-n})^{2^n - 1}\). At \(n = 20\) both are \(0.36788\) (to five places;
+they differ in the seventh), and both tend to \(1/e = 0.367879\). Given exactly one, it is uniform over the \(2^n\) strings.</p>
+<p><strong>4.</strong> So, whatever happens off length \(n\): if \(M\) is wrong on 'none', it fails with probability \(\ge\Pr[0]\approx0.37\); if
+right, it fails on '\(\{w\}\)' for at least a fraction \(1 - 6T/\sqrt N\) of the \(w\), so with probability \(\ge\Pr[1](1 - 6T/\sqrt N)\). With
+\(T\le\mathrm{poly}(n)\) and \(\sqrt N = 2^{n/2}\), this is \(\ge0.3\) for all large \(n\). Choose \(n_1\lt n_2\lt\cdots\) with \(n_{j+1}\) longer than any
+string \(M\) can query on \(1^{n_j}\) (its running time bounds that). The event 'right at \(1^{n_j}\)' depends only on lengths below \(n_{j+1}\); so,
+conditioning on all lengths except \(n_k\), the chance of being right at \(1^{n_k}\) is \(\le0.7\) whatever the earlier events, and
+\(\Pr[\text{right at }1^{n_1}, \dots, 1^{n_k}]\le0.7^k\to0\). So \(M\) fails to decide \(L_A\) with probability \(1\). There are countably many
+polynomial-time quantum machines (uniform circuit families are described by finite programs), and a countable union of null events is null:
+with probability \(1\) no \(\mathsf{BQP}^A\) machine decides \(L_A\).</p>
+<p><strong>Check.</strong> The bound in part 2 is meaningful only while \(6T\lt\sqrt N\): at \(n = 20\) that is \(T\lt171\), the same threshold as the
+deck's \(\sqrt N/6\) — the averaged and the least-watched versions of the argument give the same constant ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Element distinctness <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a query reduction and its cost in queries, the classical bound, cited results in their place, numbers</p>
+<div class="statement">
+<p>Element distinctness: given \(y = (y_0, \dots, y_{M-1})\) with entries in \(\{0, \dots, M - 1\}\), queried by
+\(\ket i\ket b\mapsto\ket i\ket{b\oplus y_i}\) on a register \(b\), decide whether all entries differ. Its quantum query complexity is
+\(\Theta(M^{2/3})\) (Ambainis 2004; Aaronson and Shi 2004, with the case of range as small as \(M\) completed by Ambainis 2005; cited).</p>
+<ol>
+<li>From \(x\in\{0, 1\}^N\) define \(y\in\{0, \dots, N\}^{N+1}\) by \(y_i = i + 1\) if \(x_i = 0\), \(y_i = 0\) if \(x_i = 1\) (\(i\lt N\)), and
+\(y_N = 0\). Show that \(y\) has distinct entries iff \(\mathrm{OR}_N(x) = 0\), and that one query to \(y\) costs two queries to \(x\).</li>
+<li>Deduce \(Q(\mathrm{ED}_{N+1})\ge\sqrt N/12\) from the deck's theorem, and \(R(\mathrm{ED}_{N+1})\ge N/3\) classically.</li>
+<li>For a million entries compare: the cited quantum count \(M^{2/3}\), Grover's \(\sqrt M\), the classical \(M\), and part 2's bound.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A reduction: an algorithm for element distinctness becomes one for OR, at a stated cost per query. Then two lower bounds by
+substitution, and four numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The only possible repeated value is \(0\), and \(y_N = 0\) always. To answer a query to \(y_i\) reversibly, fetch \(x_i\) into a fresh qubit,
+use it to write \(y_i\), and then clear the qubit — unit 10's garbage must not be left behind.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: the entries \(y_i = i + 1\) for \(x_i = 0\) are distinct and nonzero, so a repeat can only be two zeros, and
+\(y_N = 0\) is one of them; so \(y\) has a repeat iff some \(x_i = 1\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Search hides inside element distinctness as one planted collision, so element distinctness is at least as hard as
+search — but the reduction cannot see the extra difficulty that makes the truth \(M^{2/3}\).</p>
+<p><strong>1.</strong> If \(x = 0^N\), \(y = (1, 2, \dots, N, 0)\): all distinct. If \(x_i = 1\), then \(y_i = 0 = y_N\): a repeat. Conversely the nonzero
+entries are distinct, so a repeat needs a second zero, i.e. some \(x_i = 1\). So \(\mathrm{ED}(y) = 1 - \mathrm{OR}_N(x)\). To apply
+\(\ket i\ket b\mapsto\ket i\ket{b\oplus y_i}\): for \(i\lt N\), query \(x_i\) into a fresh qubit \(a\) (one query), XOR \(i + 1\) into \(b\) controlled
+on \(a = 0\), then query again to return \(a\) to \(0\) (a second query). For \(i = N\), which is not a position of \(x\), pass the oracle any fixed
+position, say \(0\), and skip the write — controlling it on \(i\lt N\) as well, a classical test on the index that costs no query; the
+second query still clears \(a\). Leaving \(a\) holding \(x_i\) would entangle garbage with the index and spoil interference (unit 10), so the second query is
+needed. Two queries to \(x\) per query to \(y\).</p>
+<p><strong>2.</strong> A \(T\)-query bounded-error algorithm for \(\mathrm{ED}_{N+1}\), with its answer negated, computes \(\mathrm{OR}_N\) with \(2T\)
+queries and the same error; it is even correct under the promise "at most one \(1\)". The deck's theorem gives \(2T\ge\sqrt N/6\), so
+\(T\ge\sqrt N/12\). Classically no uncomputation is needed — one query to \(x_i\) gives \(y_i\) — so \(R(\mathrm{ED}_{N+1})\ge R(\mathrm{OR}_N)\ge N/3\), the
+deck overview's classical bound.</p>
+<p><strong>3.</strong> \(M = 10^6\):</p>
+<table>
+<thead><tr><th>quantity</th><th>value</th></tr></thead>
+<tbody>
+<tr><td>cited quantum, \(M^{2/3}\)</td><td>\(10^4\)</td></tr>
+<tr><td>Grover's scale, \(\sqrt M\)</td><td>\(10^3\)</td></tr>
+<tr><td>classical, \(M\)</td><td>\(10^6\)</td></tr>
+<tr><td>part 2's bound, \(\sqrt{M - 1}/12\)</td><td>83.3, so 84</td></tr>
+</tbody>
+</table>
+<p>Order constants aside, the truth sits a hundred times below the classical cost and ten times above Grover's: a polynomial speed-up of
+exponent \(\tfrac23\), between the square root and none. The reduction proves only \(\sqrt M\); Aaronson and Shi applied the polynomial method
+to the collision problem — one-to-one against two-to-one — and reached \(M^{2/3}\) by a further reduction from it.</p>
+<p><strong>Check.</strong> \(N = 1\): \(y = (1, 0)\) if \(x_0 = 0\), distinct; \(y = (0, 0)\) if \(x_0 = 1\), a repeat ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 18</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

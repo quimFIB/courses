@@ -1,0 +1,1680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>21 · Open systems: measurements and channels in full generality</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="e">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="plus"><span class="ref-name">the running example: a qubit in $\ket+$ left alone in a noisy device</span>$\ket+ = \tfrac1{\sqrt2}(\ket0 + \ket1)$, $\ \tfrac12 + \tfrac12 = 1$, Bloch vector $(1, 0, 0)$ at $t = 0$. <span class="ref-note">Under amplitude damping for time $t$: $\rho(t) = \tfrac12\begin{pmatrix}1 + \gamma &amp; e^{-t/2T_1}\\ e^{-t/2T_1} &amp; 1 - \gamma\end{pmatrix}$ with $\gamma = 1 - e^{-t/T_1}$, Bloch vector $(e^{-t/2T_1}, 0, \gamma)$: shrinking and sliding toward $\ket0$. No processing of the qubit alone can undo it</span></template>
+  <template data-ref="test"><span class="ref-name">the unambiguous test for $\ket0$ versus $\ket+$</span>$E_+ = c\ket1\!\bra1$, $\ E_0 = c\ket-\!\bra-$, $\ E_? = I - E_+ - E_0$, with $c = \tfrac{\sqrt2}{1 + \sqrt2} = 2 - \sqrt2 \approx 0.586$. <span class="ref-note">Never wrong; succeeds with probability $c/2 = 1 - \tfrac1{\sqrt2} \approx 0.293$ on either state and says "don't know" with probability $\tfrac1{\sqrt2} \approx 0.707$</span></template>
+  <template data-ref="pm"><span class="ref-name">$\ket+$ and $\ket-$ in the device</span>Bloch vectors $(\pm1, 0, 0)$, trace distance $1$ at $t = 0$. <span class="ref-note">Under depolarising noise of strength $p$: $(\pm(1 - p), 0, 0)$, distance $1 - p$. Under amplitude damping for time $t$: $(\pm e^{-t/2T_1}, 0, \gamma)$, distance $e^{-t/2T_1}$ — falling, and never to rise again</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part E · noise and error correction · spine</p>
+  <div class="unit-no">21</div>
+  <h1>Open systems: measurements and channels in full generality</h1>
+  <p class="lede">A real qubit leaks energy and loses phase, and the best measurements are not projections. Both have a general form — POVMs and completely positive maps — and both turn out to be nothing more than unitaries and projections on a larger space; with them come the noise models of Part E, the bound $T_2 \le 2T_1$, and the inequality that no processing makes two states easier to tell apart.</p>
+  <p class="meta"><span>needs 04</span><span>~3 h slides + 5 h problems</span><span>problems: <code>./qc problems 21</code></span></p>
+  <aside class="notes">
+    <p>Every unit so far has let a closed system evolve by a unitary and measured it with projectors. Unit 04 already
+    found that a subsystem has a density operator rather than a vector; this unit asks the matching questions about
+    processes. What happens to a qubit that is not isolated — whose surroundings take energy and phase from it — and
+    what is the most general thing an experimenter can do to learn about it? The answers are generalised
+    measurements (POVMs) and channels (completely positive trace-preserving maps), and the main theorems of the unit
+    say that neither is new physics: each is a unitary and a projective measurement on the system together with
+    something else, followed by forgetting the something else.</p>
+    <p>This is the root of Part E. Unit 22 builds codes against exactly the channels written down here; unit 25
+    meets amplitude damping again as the gate error of a transmon; unit 26 quotes $T_1$ and $T_2$ for real devices.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through it: a qubit prepared in $\ket+$ and left alone in a noisy device, introduced on the
+    next slide. Proofs are on the slides when they are one line and in these notes under <b>Full proof</b> when they
+    are not; anything imported is labelled <i>cited</i>, with where its proof is. Used from earlier units: unit 00's
+    adjoint, spectral theorem and functional calculus (square roots of positive operators, $e^{iH}$); unit 01's
+    projective measurements; unit 02's Pauli matrices, Bloch sphere, rotating frame and spin echo; unit 03's tensor
+    product and Bell states; and unit 04 throughout — positive operators, density operators, the Bloch ball, the
+    partial trace, purification, the Schrödinger–HJW theorem, isometries, non-selective measurement and the trine.
+    Every number on the slides was computed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · overview</p>
+  <h2>A qubit in $\ket+$, left alone</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="plus">$\ket+$ in a noisy device</span></span>
+        <p class="small">At $t = 0$ a qubit in a real device is prepared in</p>
+        $$\ket+ = \tfrac1{\sqrt2}\big(\ket0 + \ket1\big), \qquad \tfrac12 + \tfrac12 = 1,$$
+        <p class="small">and nothing is done to it. The device is cold but not isolated: its surroundings can take the qubit's energy and jostle its phase. <b>What is its state at time $t$ — and could anything done to the qubit afterwards recover $\ket+$?</b></p>
+      </div>
+      <p class="small">No unitary can be the answer: as section 4 computes, the state becomes <b>mixed</b>, and a unitary takes pure states to pure states. The unit builds the maps that can — and proves the answer to the second question is no.</p>
+    </div>
+    <div>
+      <p class="small"><b>The plan.</b> <b>1</b> generalised measurement: a three-outcome test on the qubit · <b>2</b> channels: the device as a map, and why it must be <i>completely</i> positive · <b>3</b> Kraus and Stinespring: the device as an environment qubit, then discarded · <b>4</b> $T_1$ and $T_2$: $\ket+$'s Bloch vector shrinking toward $\ket0$ · <b>5</b> distinguishability: $\ket+$ and $\ket-$ drifting together, for good.</p>
+      <div class="box warn"><span class="label">deliberately left out</span>
+        <p class="small">Master equations and open-systems physics: the Lindblad equation is named once, not derived. Channel capacities: not in this course. Codes: unit 22. The hardware behind the numbers: units 25 and 26.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="POVM">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="test">the unambiguous test</span> is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the running example is.</b> Section 1 asks a measurement question about the qubit — is it in $\ket0$ or
+    in $\ket+$? — and answers it with a three-outcome test that is never wrong (<i>Worked: a test that is never
+    wrong</i>), then dilates it. Section 2 treats the device as a map on density operators and shows why it must be
+    completely positive: the qubit might be entangled with another one. Section 3 models amplitude damping as the
+    qubit handing its energy to one environment qubit, then forgetting that qubit (<i>Worked: amplitude damping from
+    one environment qubit</i>). Section 4 follows $\ket+$ for time $t$ (<i>Worked: $\ket+$ under amplitude damping</i>)
+    and draws its path through the Bloch ball. Section 5 follows $\ket+$ and $\ket-$ together and proves their
+    distance can only fall; <i>What the device took</i> closes the example.</p>
+    <p><b>Conventions.</b> As fixed in AUTHORING and units 00–04: $\braket{u|v}$ is conjugate-linear in the first
+    slot; $\ket0 = (1, 0)$, $\ket1 = (0, 1)$, $\ket\pm = (\ket0 \pm \ket1)/\sqrt2$; in $\ket{ab}$ the left symbol is qubit 0
+    and the most significant. $X, Y, Z$ are the Pauli matrices, and a qubit state is $\rho = \tfrac12(I + r\cdot\sigma)$ with
+    Bloch vector $r$, $|r| \le 1$ (unit 04). $L(H)$ is the space of all linear operators on $H$. Throughout, the
+    qubit's own steady precession is removed by working in unit 02's rotating frame, so a noiseless qubit left alone
+    stays where it is.</p>
+    <p><b>The referee.</b> The course directory holds an optional NumPy simulator for checking hand calculations;
+    nothing in this deck needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Generalised measurement</h2>
+  <p>A question about the qubit that no projective measurement answers well, the measurements that do, and the proof that they are projections in disguise.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · generalised measurement</p>
+  <h2>A question with three answers</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>The task.</b> A source hands you one qubit, prepared in $\ket0$ or in $\ket+$, you are not told which. You may answer "$0$", "$+$" or "don't know" — but you must <b>never be wrong</b>. How often can you give a definite answer?</p>
+      <p class="small"><b>What a projective measurement can do.</b> On a qubit, a non-trivial projective measurement is a basis $\{\ket n, \ket{n^\perp}\}$ (unit 01): two outcomes, never three.</p>
+      <ul class="small">
+        <li>An outcome may only say "$+$" if it never fires on $\ket0$: its vector is $\perp\ket0$, so it is $\ket1$.</li>
+        <li>It may only say "$0$" if it is $\perp\ket+$: so it is $\ket-$.</li>
+        <li>$\ket1$ and $\ket-$ are not orthogonal — $\braket{1|-} = -\tfrac1{\sqrt2}$ — so no basis holds both.</li>
+      </ul>
+      <p class="small">So a basis builds in at most one answer. With $\{\ket0, \ket1\}$ — "$+$" on outcome $1$, "don't know" on $0$ — it identifies $\ket+$ half the time and $\ket0$ never.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 280" width="360" role="img" aria-label="the real plane with ket 0 along the horizontal axis and ket plus at 45 degrees, both drawn solid; ket 1 is vertical, perpendicular to ket 0, and ket minus at minus 45 degrees, perpendicular to ket plus, both dashed; an arc between ket 1 and ket minus is marked 135 degrees, not 90">
+        <line x1="20" y1="150" x2="250" y2="150" class="rule" stroke-width="1"/>
+        <line x1="100" y1="20" x2="100" y2="270" class="rule" stroke-width="1"/>
+        <line x1="100" y1="150" x2="210" y2="150" class="unit" stroke-width="3"/>
+        <polygon points="214,150 204,145 204,155" class="fill-unit"/>
+        <line x1="100" y1="150" x2="177.8" y2="72.2" class="alt" stroke-width="3"/>
+        <polygon points="180.6,69.4 170.7,72.9 177.1,79.3" class="fill-alt"/>
+        <line x1="100" y1="150" x2="100" y2="40" class="unit" stroke-width="2" stroke-dasharray="6 4"/>
+        <line x1="100" y1="150" x2="177.8" y2="227.8" class="alt" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="218" y="168" font-size="15" class="unit">|0⟩</text>
+        <text x="184" y="66" font-size="15" class="alt">|+⟩</text>
+        <text x="108" y="38" font-size="15" class="unit">|1⟩</text>
+        <text x="184" y="246" font-size="15" class="alt">|−⟩</text>
+        <path d="M 100,118 A 32 32 0 0 1 122.6,172.6" fill="none" class="warn" stroke-width="1.8"/>
+        <text x="132" y="122" font-size="13" class="warn halo">135°</text>
+        <text x="8" y="250" font-size="12" class="soft">solid: the two states</text>
+        <text x="8" y="266" font-size="12" class="soft">dashed: rules one out</text>
+      </svg>
+      <p class="cap">$\ket1$ never fires on $\ket0$; $\ket-$ never fires on $\ket+$. They are $135^\circ$ apart, not $90^\circ$, so no basis contains both.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this question.</b> It is the cleanest case of a measurement that wants more outcomes than the
+    dimension. Unit 05 (not on this unit's path — you may or may not have taken it) proved that two non-orthogonal
+    states cannot be told apart perfectly, and promised this version — never wrong, sometimes silent — for the unit in
+    which POVMs exist. Nothing from unit 05 is used here; the problem is set up from scratch.</p>
+    <p><b>Each step.</b> "Never wrong" means: the outcome labelled "$+$" has probability zero on $\ket0$. For a basis vector
+    $\ket n$ that is $|\braket{n|0}|^2 = 0$, so $\ket n \perp \ket0$, and in $\mathbb C^2$ the only unit vectors orthogonal to $\ket0$ are
+    $e^{i\alpha}\ket1$. Likewise "$0$" forces $e^{i\beta}\ket-$. A basis has exactly two orthogonal vectors, and
+    $|\braket{1|-}|^2 = \tfrac12 \ne 0$, so at most one of the two definite answers can be built in. With $\{\ket0, \ket1\}$, outcome $1$ has
+    probability $|\braket{1|+}|^2 = \tfrac12$ on $\ket+$ and $0$ on $\ket0$; with $\{\ket+, \ket-\}$ it is the mirror image. Averaged over a fair
+    coin choosing the state, either basis succeeds with probability $\tfrac14$.</p>
+    <p><b>The angle in the figure.</b> In the real plane $\ket1$ points at $90^\circ$ and $\ket-$ at $-45^\circ$: $135^\circ$ apart as directions.
+    As rays (states up to sign) that is $45^\circ$, and $\cos45^\circ = \tfrac1{\sqrt2} = |\braket{1|-}|$ — non-orthogonal either way.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · generalised measurement</p>
+  <h2>POVMs: the measurements a larger system induces</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">POVM</span> (positive-operator-valued measure)</span>
+        <p class="small">Operators $E_1, \dots, E_M$ on $H$, the <span class="term">effects</span>, with</p>
+        $$E_m \ge 0, \qquad \sum_m E_m = I,$$
+        <p class="small">and outcome $m$ has probability $\Pr(m) = \operatorname{tr}(E_m\rho)$.</p>
+        <p class="small"><b>A distribution:</b> $\operatorname{tr}(E_m\rho) \ge 0$ (next line), and $\sum_m\operatorname{tr}(E_m\rho) = \operatorname{tr}\rho = 1$ ✓. $M$ may exceed $\dim H$.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma: $A, B \ge 0 \Rightarrow \operatorname{tr}(AB) \ge 0$</span>
+        <p class="small">$\operatorname{tr}(AB) = \operatorname{tr}(\sqrt B A\sqrt B)$, and $\braket{v|\sqrt BA\sqrt B|v} = \braket{\sqrt Bv|A|\sqrt Bv} \ge 0$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>Projective measurements are the case</b> $E_m = P_m$, projectors.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 150" width="320" role="img" aria-label="a circuit: the top wire carries rho, the bottom wire a helper prepared in ket a; both enter one tall box labelled projective measurement P m on system and helper, from which a double line carries the outcome m">
+          <text x="10" y="45" font-size="15">ρ</text>
+          <text x="6" y="115" font-size="15">|a⟩</text>
+          <line x1="40" y1="40" x2="120" y2="40" class="ink" stroke-width="1.6"/>
+          <line x1="40" y1="110" x2="120" y2="110" class="ink" stroke-width="1.6"/>
+          <rect x="120" y="20" width="110" height="110" rx="4" class="fill-ground unit" stroke-width="1.8"/>
+          <text x="175" y="66" font-size="13" text-anchor="middle">measure</text>
+          <text x="175" y="84" font-size="13" text-anchor="middle">{Pₘ} on</text>
+          <text x="175" y="102" font-size="13" text-anchor="middle">both</text>
+          <line x1="230" y1="73" x2="290" y2="73" class="ink" stroke-width="1.2"/>
+          <line x1="230" y1="77" x2="290" y2="77" class="ink" stroke-width="1.2"/>
+          <text x="298" y="80" font-size="15">m</text>
+          <text x="80" y="144" font-size="11" class="soft" text-anchor="middle">helper, prepared</text>
+        </svg>
+        <p class="cap">Prepare a helper, measure the pair projectively: the qubit alone sees a POVM.</p>
+      </div>
+      <div class="box thm"><span class="label">why POVMs are forced</span>
+        <p class="small">Measuring $\{P_m\}$ on $\rho\otimes\ket a\!\bra a$ gives $\Pr(m) = \operatorname{tr}(E_m\rho)$ with</p>
+        $$E_m = (I\otimes\bra a)\,P_m\,(I\otimes\ket a),$$
+        <p class="small">and $\{E_m\}$ is a POVM: $\braket{v|E_m|v} = \braket{v\otimes a|P_m|v\otimes a} \ge 0$, $\ \sum_mE_m = (I\otimes\bra a)(I\otimes\ket a) = I$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that a helper gives a POVM</h4>
+    <p>Write $W = I\otimes\ket a\colon H \to H\otimes K$, $v \mapsto v\otimes a$, with adjoint $W^\dagger = I\otimes\bra a$ (unit 04's maps). Then
+    $W^\dagger W = \braket{a|a}I = I$, so $W$ is an isometry, and $\rho\otimes\ket a\!\bra a = W\rho W^\dagger$ — check on $\rho = \ket v\!\bra v$:
+    $W\ket v\!\bra vW^\dagger = \ket{v\otimes a}\!\bra{v\otimes a}$ ✓, then extend linearly. Unit 01's Born rule for the pair, in unit 04's
+    density-operator form, gives $\Pr(m) = \operatorname{tr}(P_mW\rho W^\dagger) = \operatorname{tr}(W^\dagger P_mW\rho)$, by cyclicity of the trace across maps between
+    different spaces. So $E_m = W^\dagger P_mW$. Positivity: $\braket{v|W^\dagger P_mWv} = \lVert P_mWv\rVert^2 \ge 0$. Sum:
+    $\sum_mW^\dagger P_mW = W^\dagger IW = I$.</p>
+    <p><b>The lemma, in full.</b> $\sqrt B$ is unit 00's functional calculus: $B = \sum\mu_k\ket{f_k}\!\bra{f_k}$ with $\mu_k \ge 0$ gives
+    $\sqrt B = \sum\sqrt{\mu_k}\ket{f_k}\!\bra{f_k}$, Hermitian with $(\sqrt B)^2 = B$. Then $\operatorname{tr}(AB) = \operatorname{tr}(A\sqrt B\sqrt B) = \operatorname{tr}(\sqrt BA\sqrt B)$ by
+    cyclicity, and $\sqrt BA\sqrt B \ge 0$ has non-negative eigenvalues, so non-negative trace.</p>
+    <p><b>The definition is the experiment.</b> The point of the theorem is that POVMs are not an extra postulate. They
+    are what unit 01's projective measurements look like when part of the measured system is a prepared helper that
+    nobody asks about. Every POVM arises this way — that is Naimark's theorem, two slides on. The name is measure
+    theory's: $m \mapsto E_m$ is a measure on the outcomes taking values in positive operators, as a projective
+    measurement is one taking values in projectors.</p>
+    <p><b>Outcomes and states after.</b> A POVM fixes the outcome probabilities and nothing else; what the state becomes
+    depends on how the POVM is realised. The non-selective version $\rho \mapsto \sum_m\sqrt{E_m}\rho\sqrt{E_m}$ is one realisation; the
+    problem sheet's measurement problem treats it as a channel.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · generalised measurement · example</p>
+  <h2>Worked: a test that is never wrong</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="test">the unambiguous test</span> for $\ket0$ versus $\ket+$, with $c = \tfrac{\sqrt2}{1 + \sqrt2} = 2 - \sqrt2 \approx 0.5858$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The effects.</b> "$+$" must vanish on $\ket0$, "$0$" on $\ket+$:</p>
+      $$E_+ = c\ket1\!\bra1, \qquad E_0 = c\ket-\!\bra-,$$
+      <p class="small">and $E_? = I - E_+ - E_0$.</p>
+      <p class="small"><b>2. Matrices.</b> $\ket-\!\bra- = \tfrac12\begin{pmatrix}1&amp;-1\\-1&amp;1\end{pmatrix}$, so</p>
+      $$E_? = \begin{pmatrix}1 - \frac c2 &amp; \frac c2\\[2pt] \frac c2 &amp; 1 - \frac{3c}2\end{pmatrix}$$
+      <p class="small">$\approx (0.7071, 0.2929;\ 0.2929, 0.1213)$ by rows.</p>
+      <p class="small"><b>3. Positive?</b> $E_+, E_0 \ge 0$ as multiples of projectors. $E_?$: trace $2 - 2c = 2\sqrt2 - 2 \approx 0.828 \gt 0$, and</p>
+      $$\det E_? = 1 - 2c + \tfrac{c^2}2 = 0,$$
+      <p class="small">since $c^2 - 4c + 2 = 0$ at $c = 2 - \sqrt2$. Eigenvalues $0$ and $2\sqrt2 - 2$: $\ E_? \ge 0$ ✓, on the edge.</p>
+    </div>
+    <div>
+      <p class="small"><b>4. On $\ket0$.</b> $\Pr(+) = c|\braket{1|0}|^2 = 0$; $\ \Pr(0) = c|\braket{-|0}|^2 = \tfrac c2$; $\ \Pr(?) = 1 - \tfrac c2$.</p>
+      <p class="small"><b>5. On $\ket+$.</b> $\Pr(0) = c|\braket{-|+}|^2 = 0$; $\ \Pr(+) = c|\braket{1|+}|^2 = \tfrac c2$; $\ \Pr(?) = 1 - \tfrac c2$.</p>
+      <p class="small"><b>6. Numbers.</b> $\tfrac c2 = 1 - \tfrac1{\sqrt2} \approx 0.2929$ and $1 - \tfrac c2 = \tfrac1{\sqrt2} \approx 0.7071$. Each row: $0 + 0.2929 + 0.7071 = 1$ ✓.</p>
+      <div class="box good"><span class="label">never wrong, right $29.3\%$ of the time</span>
+        <p class="small">Three outcomes on a qubit, and both definite answers built in: <span class="term">unambiguous discrimination</span>. The best basis managed $\tfrac14$ on average; this manages $1 - \tfrac1{\sqrt2} \approx 0.293$ on <b>each</b> state. Optimal: problem P1.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $c$ is what it is.</b> Make $c$ as large as possible subject to $E_? \ge 0$. The matrix
+    $\ket1\!\bra1 + \ket-\!\bra-$ has eigenvalues $1 \pm |\braket{1|-}| = 1 \pm \tfrac1{\sqrt2}$ (for two unit vectors $u, w$, $\ket u\!\bra u + \ket w\!\bra w$ has
+    trace $2$ and determinant $1 - |\braket{u|w}|^2$). So $E_? = I - c(\ket1\!\bra1 + \ket-\!\bra-) \ge 0$ iff $c(1 + \tfrac1{\sqrt2}) \le 1$, i.e.
+    $c \le \tfrac{\sqrt2}{\sqrt2 + 1} = \sqrt2(\sqrt2 - 1) = 2 - \sqrt2$. At the largest $c$, $E_?$ has a zero eigenvalue, which is step 3.</p>
+    <p><b>Step 3's algebra.</b> $(1 - \tfrac c2)(1 - \tfrac{3c}2) = 1 - 2c + \tfrac{3c^2}4$; subtract $\tfrac{c^2}4$. With $c = 2 - \sqrt2$:
+    $c^2 = 6 - 4\sqrt2$, so $c^2 - 4c + 2 = 6 - 4\sqrt2 - 8 + 4\sqrt2 + 2 = 0$ ✓. The eigenvector of $E_?$ with eigenvalue $2\sqrt2 - 2$ is
+    $(\cos\tfrac\pi8, \sin\tfrac\pi8)$, halfway between $\ket0$ and $\ket+$: the "don't know" outcome looks along the bisector of the two
+    states, which is where they are least distinguishable.</p>
+    <p><b>Step 4 and 5.</b> $\braket{-|0} = \tfrac1{\sqrt2}$ and $\braket{1|+} = \tfrac1{\sqrt2}$, both with squared modulus $\tfrac12$. The symmetry between the two
+    rows is not luck: the reflection swapping $\ket0 \leftrightarrow \ket+$ (the Hadamard $H$) also swaps $\ket1 \leftrightarrow \ket-$ up to sign.</p>
+    <p><b>The experiment.</b> This measurement has been done with single photons, the qubit being a polarisation and
+    the third outcome a third output path of an interferometer (B. Huttner et al., <i>Phys. Rev. A</i> 54, 3783 (1996),
+    cited). How a third path appears from a two-dimensional system is the content of Naimark's theorem: the photon's
+    two polarisations are embedded in a three-dimensional space of paths and the measurement there is projective.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · generalised measurement</p>
+  <h2>Naimark's dilation: every POVM is a projection on a larger space</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Naimark's dilation</span></span>
+        <p class="small">For a POVM $\{E_m\}_{m=1}^M$ on $H$, the map $V\colon H \to H\otimes\mathbb C^M$,</p>
+        $$V\ket\psi = \sum_m\sqrt{E_m}\,\ket\psi\otimes\ket m,$$
+        <p class="small">is an isometry, and with $P_m = I\otimes\ket m\!\bra m$,</p>
+        $$\operatorname{tr}\big(P_m\,V\rho V^\dagger\big) = \operatorname{tr}(E_m\rho).$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$V^\dagger V = \sum_{m,m'}\sqrt{E_{m'}}\sqrt{E_m}\braket{m'|m} = \sum_mE_m = I$. And $(I\otimes\bra m)V = \sqrt{E_m}$, so $\operatorname{tr}(P_mV\rho V^\dagger) = \operatorname{tr}(\sqrt{E_m}\rho\sqrt{E_m}) = \operatorname{tr}(E_m\rho)$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 160" width="340" role="img" aria-label="a circuit: the top wire carries psi, the bottom wire an ancilla of dimension M prepared in ket 0; both enter a box labelled U spanning the two wires; afterwards the bottom wire enters a meter whose double line carries the outcome m, while the top wire continues">
+          <text x="10" y="48" font-size="15">|ψ⟩</text>
+          <text x="6" y="118" font-size="15">|0⟩</text>
+          <line x1="44" y1="42" x2="320" y2="42" class="ink" stroke-width="1.6"/>
+          <line x1="44" y1="112" x2="224" y2="112" class="ink" stroke-width="1.6"/>
+          <rect x="100" y="22" width="60" height="110" rx="4" class="fill-ground unit" stroke-width="1.8"/>
+          <text x="130" y="84" font-size="17" text-anchor="middle">U</text>
+          <rect x="224" y="96" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/>
+          <path d="M 230 122 A 11 11 0 0 1 252 122" fill="none" class="ink" stroke-width="1.3"/>
+          <line x1="241" y1="122" x2="250" y2="103" class="ink" stroke-width="1.3"/>
+          <line x1="258" y1="110" x2="300" y2="110" class="ink" stroke-width="1.2"/>
+          <line x1="258" y1="114" x2="300" y2="114" class="ink" stroke-width="1.2"/>
+          <text x="308" y="118" font-size="15">m</text>
+          <text x="70" y="150" font-size="11" class="soft" text-anchor="middle">ancilla ℂᴹ</text>
+          <text x="196" y="30" font-size="11" class="soft" text-anchor="middle">system</text>
+        </svg>
+        <p class="cap">Ancilla in $\ket0$, one unitary, a basis measurement on the ancilla: the system sees $\{E_m\}$.</p>
+      </div>
+      <div class="box good"><span class="label">from an isometry to a unitary</span>
+        <p class="small">Choose any unitary $U$ on $H\otimes\mathbb C^M$ with $U(\ket\psi\otimes\ket0) = V\ket\psi$ — one exists because $V$ preserves inner products (notes). Then the circuit is: attach $\ket0$, apply $U$, measure the ancilla in its basis.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>$V$ is an isometry.</b> $V = \sum_m\sqrt{E_m}\otimes\ket m$ as a map $H \to H\otimes\mathbb C^M$, with adjoint $V^\dagger = \sum_{m'}\sqrt{E_{m'}}\otimes\bra{m'}$
+    (each $\sqrt{E_m}$ is Hermitian). The product picks out $m = m'$ by orthonormality. The square roots exist and are positive
+    by unit 00's functional calculus, since $E_m \ge 0$.</p>
+    <p><b>The probabilities.</b> $(I\otimes\bra m)(\sqrt{E_{m'}}\ket\psi\otimes\ket{m'}) = \delta_{mm'}\sqrt{E_m}\ket\psi$, so $(I\otimes\bra m)V = \sqrt{E_m}$; and
+    $P_m = (I\otimes\ket m)(I\otimes\bra m)$. Then $\operatorname{tr}(P_mV\rho V^\dagger) = \operatorname{tr}\big((I\otimes\bra m)V\rho V^\dagger(I\otimes\ket m)\big) = \operatorname{tr}(\sqrt{E_m}\rho\sqrt{E_m})$, and
+    cyclicity turns this into $\operatorname{tr}(E_m\rho)$. The $P_m$ are orthogonal projectors summing to $I\otimes I$: a projective measurement of the
+    ancilla alone.</p>
+    <p><b>Extending $V$ to a unitary.</b> Let $d = \dim H$ and $\{\ket i\}$ a basis of $H$. The $d$ vectors $V\ket i$ are orthonormal in
+    $H\otimes\mathbb C^M$ (dimension $dM$). Extend them to an orthonormal basis by Gram–Schmidt, and define $U$ by sending
+    $\ket i\otimes\ket0 \mapsto V\ket i$ and the remaining $d(M - 1)$ basis vectors $\ket i\otimes\ket m$, $m \ne 0$, onto the added vectors in any
+    order. $U$ takes an orthonormal basis to an orthonormal basis, so it is unitary (here the ancilla's basis is
+    labelled $0, \dots, M-1$, and outcome $m$ means ancilla vector $\ket m$). So Naimark's theorem says: <b>a POVM is a
+    unitary on system plus ancilla followed by a projective measurement</b> — the converse of <i>POVMs: the measurements a larger system induces</i>.</p>
+    <p><b>History.</b> M. A. Naimark (1940) proved the dilation for operator-valued measures in general Hilbert space;
+    the finite-dimensional statement used here is its simplest case. Physicists rediscovered it in the 1970s and often
+    call the construction an "ancilla-assisted" measurement.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · generalised measurement</p>
+  <h2>Rank-one effects: a qubit inside a qutrit</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">a smaller dilation</span>
+        <p class="small">If every effect has rank one, $E_m = \ket{w_m}\!\bra{w_m}$ with $w_m$ <b>not</b> normalised, then</p>
+        $$V = \sum_m\ket m\!\bra{w_m}\colon H \to \mathbb C^M$$
+        <p class="small">is an isometry, and measuring $\mathbb C^M$ in its basis gives $|\braket{m|V\psi}|^2 = |\braket{w_m|\psi}|^2 = \braket{\psi|E_m|\psi}$.</p>
+        <p class="small"><b>Proof.</b> $V^\dagger V = \sum_m\ket{w_m}\!\bra{w_m} = \sum_mE_m = I$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>The running example.</b> <span class="ref" data-ref="test">The unambiguous test</span> has three rank-one effects:</p>
+      $$w_+ = \sqrt c\,\ket1, \quad w_0 = \sqrt c\,\ket-, \quad w_? = \sqrt{2\sqrt2 - 2}\,\ket{\tfrac\pi8},$$
+      <p class="small">with $\ket{\tfrac\pi8} = \cos\tfrac\pi8\ket0 + \sin\tfrac\pi8\ket1$,</p>
+      <p class="small">so it is a qubit placed isometrically inside $\mathbb C^3$ and measured in the qutrit's basis. Writing $V$ out as a $3\times2$ matrix and completing it to a unitary on $\mathbb C^3$ is problem P2.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 280 280" width="300" role="img" aria-label="three perpendicular axes labelled ket 0, ket 1, ket 2 of a three-dimensional space; a tilted shaded plane through the origin is labelled V of the qubit; each axis is dropped perpendicularly onto the plane, giving three shorter arrows in the plane labelled w plus, w zero and w question mark">
+        <polygon points="40,200 150,240 250,120 140,80" class="fill-soft"/>
+        <polygon points="40,200 150,240 250,120 140,80" fill="none" class="alt" stroke-width="1.5"/>
+        <line x1="145" y1="160" x2="145" y2="30" class="ink" stroke-width="1.6"/>
+        <line x1="145" y1="160" x2="40" y2="250" class="ink" stroke-width="1.6"/>
+        <line x1="145" y1="160" x2="265" y2="215" class="ink" stroke-width="1.6"/>
+        <text x="150" y="28" font-size="13" class="mono">|2⟩</text>
+        <text x="22" y="266" font-size="13" class="mono">|0⟩</text>
+        <text x="250" y="236" font-size="13" class="mono">|1⟩</text>
+        <line x1="145" y1="160" x2="168" y2="110" class="unit" stroke-width="3"/>
+        <line x1="145" y1="160" x2="78" y2="196" class="unit" stroke-width="3"/>
+        <line x1="145" y1="160" x2="222" y2="178" class="unit" stroke-width="3"/>
+        <line x1="145" y1="40" x2="168" y2="110" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="52" y1="240" x2="78" y2="196" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="255" y1="210" x2="222" y2="178" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="176" y="112" font-size="13" class="unit halo">w?</text>
+        <text x="66" y="186" font-size="13" class="unit halo">w₊</text>
+        <text x="214" y="168" font-size="13" class="unit halo">w₀</text>
+        <text x="230" y="112" font-size="12" class="alt">V(ℂ²)</text>
+      </svg>
+      <p class="cap">The qubit as a plane $V(\mathbb C^2)$ inside $\mathbb C^3$ (drawn real). Projecting the three basis vectors onto the plane gives the $w_m$: the effects are shadows of an orthonormal basis.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the shadows.</b> Identify $H$ with the plane $V(H) \subset \mathbb C^M$ via the isometry. The orthogonal projector onto that plane is
+    $VV^\dagger$, and the projection of $\ket m$ is $VV^\dagger\ket m = V\ket{w_m}$ — that is, $w_m$ seen inside the plane. So the effects are the
+    compressions $V^\dagger\ket m\!\bra mV$ of the rank-one projectors of a basis of the bigger space, and their vectors are the
+    shadows of the basis vectors. The figure is schematic: which axis is labelled which is a matter of the order of
+    outcomes, and the lengths of the shadows are $\lVert w_m\rVert = \sqrt{\operatorname{tr}E_m}$.</p>
+    <p><b>The running example's vectors.</b> $E_+ = c\ket1\!\bra1 = \ket{\sqrt c\,1}\!\bra{\sqrt c\,1}$ and likewise $E_0$. For $E_?$: worked example step 3 found
+    eigenvalues $0$ and $2\sqrt2 - 2$; the eigenvector for $2\sqrt2 - 2$ is $(\cos\tfrac\pi8, \sin\tfrac\pi8)$ (check: $E_?$ applied to it gives
+    $2\sqrt2 - 2 \approx 0.8284$ times it — $0.7071\cdot0.9239 + 0.2929\cdot0.3827 = 0.7654 = 0.8284\cdot0.9239$ ✓). So $E_? = \ket{w_?}\!\bra{w_?}$
+    with $w_?$ as on the slide. Lengths squared: $c + c + (2\sqrt2 - 2) = 4 - 2\sqrt2 + 2\sqrt2 - 2 = 2 = \operatorname{tr}I$ ✓ — the traces of the
+    effects sum to the dimension.</p>
+    <p><b>Dimension count.</b> The general construction would use $H\otimes\mathbb C^3$, dimension $6$; rank one lets $\mathbb C^3$ do. In the
+    photon experiment in the notes to <i>Worked: a test that is never wrong</i> the three dimensions are three output ports.</p>
+    <p>Problem P3 does the same for unit 04's trine, whose effects $\tfrac23\ket{t_k}\!\bra{t_k}$ are also rank one.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Channels</h2>
+  <p>The device as a map on density operators, the condition every such map must meet once entanglement is allowed, and a matrix that tests it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · channels</p>
+  <h2>The device as a map on states</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The setting.</b> Whatever happens to <span class="ref" data-ref="plus">the qubit in the device</span> between $0$ and $t$, it turns each input state $\rho$ into an output state $\Phi(\rho)$. What must $\Phi$ satisfy?</p>
+      <div class="box thm"><span class="label">it must be linear</span>
+        <p class="small">Prepare $\rho_1$ or $\rho_2$ by a coin with weights $q_1, q_2$, then run the device. The output is $\Phi(\rho_k)$ with probability $q_k$, so</p>
+        $$\Phi(q_1\rho_1 + q_2\rho_2) = q_1\Phi(\rho_1) + q_2\Phi(\rho_2),$$
+        <p class="small">and a map affine on density operators extends uniquely to a linear map on $L(H)$ (notes).</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label">two properties a state map needs</span>
+        <p class="small">A linear $\Phi\colon L(H) \to L(H')$ is <span class="term">positive</span> if $X \ge 0 \Rightarrow \Phi(X) \ge 0$, and <span class="term">trace-preserving</span> if $\operatorname{tr}\Phi(X) = \operatorname{tr}X$ for all $X$. Together: density operators go to density operators.</p>
+      </div>
+      <p class="small"><b>Examples</b>, each checked:</p>
+      <ul class="small">
+        <li><b>A unitary</b>, $\rho \mapsto U\rho U^\dagger$: unit 04.</li>
+        <li><b>A non-selective measurement</b>, $\rho \mapsto \sum_\lambda P_\lambda\rho P_\lambda$: unit 04; trace $\sum\operatorname{tr}(P_\lambda\rho) = 1$.</li>
+        <li><b>Discarding a part</b>, $\rho_{AB} \mapsto \operatorname{tr}_B\rho_{AB}$: unit 04's reduced states are states.</li>
+        <li><b>Resetting</b>, $\rho \mapsto (\operatorname{tr}\rho)\ket0\!\bra0$: positive, trace-preserving, and it destroys everything.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that a convex-linear map is linear</h4>
+    <p>Suppose $\Phi$ is defined on density operators and respects mixtures. Every Hermitian $X$ is a difference of two
+    positive operators (split its spectral decomposition into positive and negative eigenvalues), so
+    $X = a\rho_1 - b\rho_2$ with $a, b \ge 0$ and $\rho_1, \rho_2$ density operators. Define $\Phi(X) = a\Phi(\rho_1) - b\Phi(\rho_2)$. This does not depend on
+    the decomposition: if $a\rho_1 - b\rho_2 = a'\rho_1' - b'\rho_2'$, then $a\rho_1 + b'\rho_2' = a'\rho_1' + b\rho_2$; both sides have trace $a + b' = a' + b$, and
+    dividing by it gives two equal mixtures, to which $\Phi$ assigns equal values; rearranging gives the claim. This
+    extended $\Phi$ is real-linear on Hermitian operators, and every operator is $X = H_1 + iH_2$ with $H_1, H_2$ Hermitian, so
+    $\Phi(X) = \Phi(H_1) + i\Phi(H_2)$ extends it complex-linearly, uniquely. So "linear map on operators" loses nothing.</p>
+    <p><b>The physics in the first argument.</b> The device cannot know which way the coin fell; it acts on each run
+    as it would without the coin. That is the whole input. It is the same argument as unit 04's for why the density
+    operator, not the ensemble, is the state.</p>
+    <p><b>Checks on the examples.</b> Positivity of $U\rho U^\dagger$ and of $P_\lambda\rho P_\lambda$: $\braket{v|B\rho B^\dagger|v} = \braket{B^\dagger v|\rho|B^\dagger v} \ge 0$ for any $B$.
+    Resetting: $\operatorname{tr}\rho \ge 0$ for $\rho \ge 0$, and $\operatorname{tr}((\operatorname{tr}X)\ket0\!\bra0) = \operatorname{tr}X$. The partial trace: unit 04 showed $\operatorname{tr}_B\rho \ge 0$ by pairing
+    with $\ket v\!\bra v\otimes I$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · channels</p>
+  <h2>The qubit may have a partner</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 500 170" width="500" role="img" aria-label="two wires joined at the left by a bracket labelled Phi plus: the top wire, a reference qubit held by Alice, passes untouched; the bottom wire, the device qubit, passes through a box labelled Phi. At the right a bracket joins them, labelled id tensor Phi of the Bell state, which must be a state">
+          <path d="M 70 30 Q 58 30 58 45 L 58 70 Q 58 80 48 80 Q 58 80 58 90 L 58 115 Q 58 130 70 130" fill="none" class="ink" stroke-width="1.4"/>
+          <text x="10" y="86" font-size="14" class="unit">|Φ⁺⟩</text>
+          <line x1="72" y1="40" x2="380" y2="40" class="ink" stroke-width="1.6"/>
+          <line x1="72" y1="120" x2="380" y2="120" class="ink" stroke-width="1.6"/>
+          <rect x="196" y="98" width="56" height="44" rx="4" class="fill-ground warn" stroke-width="1.8"/>
+          <text x="224" y="126" font-size="17" text-anchor="middle">Φ</text>
+          <text x="224" y="30" font-size="12" class="soft" text-anchor="middle">reference: untouched</text>
+          <text x="224" y="162" font-size="12" class="soft" text-anchor="middle">the device qubit</text>
+          <path d="M 382 30 Q 394 30 394 45 L 394 70 Q 394 80 404 80 Q 394 80 394 90 L 394 115 Q 394 130 382 130" fill="none" class="ink" stroke-width="1.4"/>
+          <text x="410" y="76" font-size="13">(id ⊗ Φ)</text>
+          <text x="410" y="94" font-size="13">must be ≥ 0</text>
+        </svg>
+        <p class="cap">The device acts on its own qubit. If that qubit is half of $\ket{\Phi^+}$, the pair's output must still be a state.</p>
+      </div>
+      <p class="small"><b>Why this is not optional.</b> Nothing stops the qubit in the device from being entangled with another one outside it — the partner of a Bell pair (unit 03), or any qubit it touched earlier. The device acts as $\mathrm{id}\otimes\Phi$ on the pair, and that must send states to states too.</p>
+    </div>
+    <div>
+      <div class="box def"><span class="label"><span class="term">completely positive</span>; a <span class="term">channel</span></span>
+        <p class="small">$\Phi$ is <b>completely positive</b> (CP) if $\mathrm{id}_k\otimes\Phi$ is positive on $L(\mathbb C^k\otimes H)$ for every $k \ge 1$.</p>
+        <p class="small">A <b>channel</b> is a linear map that is completely positive and trace-preserving: <b>CPTP</b>.</p>
+      </div>
+      <p class="small">$\mathrm{id}_k\otimes\Phi$ is defined on products by $A\otimes B \mapsto A\otimes\Phi(B)$, extended linearly; it is trace-preserving when $\Phi$ is.</p>
+      <div class="box warn"><span class="label">is it automatic?</span>
+        <p class="small">It would be, if positivity of $\Phi$ implied positivity of $\mathrm{id}\otimes\Phi$. It does not — the next two slides.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The definition, unpacked.</b> $L(\mathbb C^k\otimes H) = L(\mathbb C^k)\otimes L(H)$: every operator on the pair is a sum $\sum_jA_j\otimes B_j$
+    (unit 03's Kronecker products span), and $\mathrm{id}_k\otimes\Phi$ sends it to $\sum_jA_j\otimes\Phi(B_j)$ — well defined by the universal property of
+    the tensor product, since $(A, B) \mapsto A\otimes\Phi(B)$ is bilinear. In matrix terms: write the operator as a $k\times k$ block
+    matrix with blocks $X_{ij} \in L(H)$; then $\mathrm{id}_k\otimes\Phi$ applies $\Phi$ to each block. Trace-preserving: $\operatorname{tr}(A\otimes\Phi(B)) =
+    \operatorname{tr}A\operatorname{tr}\Phi(B) = \operatorname{tr}A\operatorname{tr}B$.</p>
+    <p><b>Why every $k$.</b> The partner can be any system. A qubit that has interacted with a register of $n$ qubits may
+    be entangled with all of them at once, so $k = 2^n$ must be allowed. Choi's theorem, at the end of this section, will
+    show that for $\Phi$ on $\mathbb C^d$ the single case $k = d$ already implies all the others.</p>
+    <p><b>The physics.</b> Nothing about the device changes when its qubit happens to be entangled: the device does not
+    know. That is why the same $\Phi$, tensored with the identity, must describe what happens to the pair. A map that
+    sends some entangled state to a non-positive operator would predict negative probabilities for a measurement on
+    the pair — not merely an unusual state, but no state at all.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · channels</p>
+  <h2>The transpose is positive: a mirror of the Bloch ball</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">transpose map</span> $T(X) = X^{\mathsf T}$ is positive and trace-preserving</span>
+        <p class="small">In a fixed basis. If $\rho \ge 0$ then $\rho^{\mathsf T} = \bar\rho$ (entrywise conjugate, as $\rho = \rho^\dagger$), and</p>
+        $$\braket{v|\bar\rho|v} = \overline{\braket{\bar v|\rho|\bar v}} \ge 0 ;$$
+        <p class="small">the diagonal is unchanged, so the trace is. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>On the Bloch ball.</b> $X^{\mathsf T} = X$, $Z^{\mathsf T} = Z$, $Y^{\mathsf T} = -Y$, so</p>
+      $$T\big(\tfrac12(I + xX + yY + zZ)\big) = \tfrac12(I + xX - yY + zZ):$$
+      <p class="small">$(x, y, z) \mapsto (x, -y, z)$, the <b>reflection</b> in the $xz$ plane. Every state goes to a state; the running example's $\ket+$, at $(1, 0, 0)$, is untouched.</p>
+      <p class="small">A reflection reverses orientation. Unit 02 showed that unitaries act on the ball by <b>rotations</b>, which do not.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 300" width="320" role="img" aria-label="the equatorial disc of the Bloch ball seen from above, x to the right and y up; a curved arrow in the upper half turns anticlockwise; its mirror image in the lower half, across the x axis, turns clockwise; the point ket plus on the positive x axis is fixed">
+        <circle cx="150" cy="150" r="115" class="fill-soft"/>
+        <circle cx="150" cy="150" r="115" fill="none" class="rule" stroke-width="1.5"/>
+        <line x1="25" y1="150" x2="278" y2="150" class="warn" stroke-width="1.8" stroke-dasharray="7 4"/>
+        <line x1="150" y1="30" x2="150" y2="270" class="rule" stroke-width="1"/>
+        <text x="282" y="146" font-size="12" class="mono soft">x</text>
+        <text x="156" y="28" font-size="12" class="mono soft">y</text>
+        <path d="M 210,120 A 66 66 0 0 0 100,95" fill="none" class="unit" stroke-width="3"/>
+        <polygon points="96,99 101,87 108,99" class="fill-unit"/>
+        <path d="M 210,180 A 66 66 0 0 1 100,205" fill="none" class="alt" stroke-width="3"/>
+        <polygon points="96,201 101,213 108,201" class="fill-alt"/>
+        <circle cx="210" cy="120" r="5" class="fill-unit"/>
+        <circle cx="210" cy="180" r="5" class="fill-alt"/>
+        <circle cx="265" cy="150" r="6" class="fill-ink"/>
+        <text x="256" y="172" font-size="13" class="halo">|+⟩</text>
+        <text x="150" y="80" font-size="12" class="unit halo" text-anchor="middle">before</text>
+        <text x="150" y="232" font-size="12" class="alt halo" text-anchor="middle">after T</text>
+        <text x="38" y="140" font-size="11" class="warn halo">mirror</text>
+      </svg>
+      <p class="cap">The transpose on the equatorial disc: $y \mapsto -y$. An anticlockwise turn becomes a clockwise one — no rotation does that.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof, step by step.</b> For Hermitian $\rho$, $\rho^{\mathsf T}_{ij} = \rho_{ji} = \overline{\rho_{ij}}$, so $\rho^{\mathsf T} = \bar\rho$. For a vector $v$ with entries
+    $v_i$, $\braket{v|\bar\rho|v} = \sum_{ij}\bar v_i\overline{\rho_{ij}}v_j = \overline{\sum_{ij}v_i\rho_{ij}\bar v_j} = \overline{\braket{\bar v|\rho|\bar v}}$, the conjugate of a non-negative real
+    number, hence non-negative. "Transpose" depends on the basis; every basis gives a positive map, and they differ
+    by unitary conjugations.</p>
+    <p><b>The Pauli transposes.</b> $Y = \begin{pmatrix}0 &amp; -i\\ i &amp; 0\end{pmatrix}$, so $Y^{\mathsf T} = \begin{pmatrix}0 &amp; i\\ -i &amp; 0\end{pmatrix} = -Y$; $X$ and $Z$ are real symmetric.
+    Linearity of $T$ then gives the reflection.</p>
+    <p><b>Why a reflection is suspicious.</b> Unit 02 proved that conjugation by a unitary acts on Bloch vectors through
+    $SO(3)$: rotations, determinant $+1$. A reflection has determinant $-1$ and is not of that form. That alone shows the
+    transpose is not a unitary; the next slide shows something much stronger — it is not anything a device could do.
+    The map $r \mapsto -r$, the point reflection (sometimes called the universal NOT), fails in the same way: problem P9
+    finds it at the end of the depolarising family.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · channels · example</p>
+  <h2>Worked: the transpose is not completely positive</h2>
+  <div class="box ex"><span class="label">apply $T$ to the device qubit of $\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{00} + \ket{11})$, every entry shown</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The input.</b> $\ket{\Phi^+}\!\bra{\Phi^+} = \tfrac12\sum_{i,j\in\{0,1\}}\ket{ii}\!\bra{jj} = \tfrac12\sum_{i,j}\ket i\!\bra j\otimes\ket i\!\bra j$, trace $\tfrac12 + \tfrac12 = 1$.</p>
+      <p class="small"><b>2. Apply $\mathrm{id}\otimes T$.</b> $(\ket i\!\bra j)^{\mathsf T} = \ket j\!\bra i$, so the output is</p>
+      $$\tfrac12\sum_{i,j}\ket i\!\bra j\otimes\ket j\!\bra i = \tfrac12\,\mathrm{SWAP},$$
+      <p class="small">where $\mathrm{SWAP}\ket{ab} = \ket{ba}$.</p>
+      <p class="small"><b>3. Its spectrum.</b> $\mathrm{SWAP}$ fixes $\ket{00}, \ket{11}$ and $\ket{01} + \ket{10}$, and negates</p>
+      $$\ket{\Psi^-} = \tfrac1{\sqrt2}\big(\ket{01} - \ket{10}\big), \qquad \tfrac12 + \tfrac12 = 1 .$$
+      <p class="small">So the output has eigenvalues $\tfrac12, \tfrac12, \tfrac12, -\tfrac12$ — trace $1$, but <b>not positive</b>: $\braket{\Psi^-|\tfrac12\mathrm{SWAP}|\Psi^-} = -\tfrac12$.</p>
+    </div>
+    <div>
+      <p class="small"><b>4. As matrices</b>, order $00, 01, 10, 11$. In, and out:</p>
+      $$\tfrac12\begin{pmatrix}1&amp;0&amp;0&amp;1\\0&amp;0&amp;0&amp;0\\0&amp;0&amp;0&amp;0\\1&amp;0&amp;0&amp;1\end{pmatrix} \;\longmapsto\; \tfrac12\begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;0&amp;1&amp;0\\0&amp;1&amp;0&amp;0\\0&amp;0&amp;0&amp;1\end{pmatrix}$$
+      <p class="small">The corner entries $(00, 11)$, $(11, 00)$ move to $(01, 10)$, $(10, 01)$.</p>
+      <div class="box good"><span class="label">positive, trace-preserving, and impossible</span>
+        <p class="small">A "probability" $-\tfrac12$ for the projector $\ket{\Psi^-}\!\bra{\Psi^-}$ on the pair. No device does $T$ to a qubit. By symmetry $T\otimes\mathrm{id}$ gives the same $\tfrac12\mathrm{SWAP}$.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1.</b> $\ket{\Phi^+} = \tfrac1{\sqrt2}\sum_i\ket i\otimes\ket i$, so $\ket{\Phi^+}\!\bra{\Phi^+} = \tfrac12\sum_{i,j}(\ket i\otimes\ket i)(\bra j\otimes\bra j) = \tfrac12\sum_{i,j}\ket i\!\bra j\otimes\ket i\!\bra j$
+    by the Kronecker rule $(a\otimes b)(c\otimes d)^\dagger = \ket a\!\bra c\otimes\ket b\!\bra d$. The four terms put $\tfrac12$ at positions $(00, 00)$, $(00, 11)$, $(11, 00)$,
+    $(11, 11)$ — the left matrix.</p>
+    <p><b>Step 2.</b> $\mathrm{id}\otimes T$ transposes the second factor of each term. Applied to $\ket{ab}$, the term
+    $\ket i\!\bra j\otimes\ket j\!\bra i$ gives $\braket{j|a}\braket{i|b}\ket{ij}$, nonzero only for $j = a$, $i = b$, when it is $\ket{ba}$. Summing over $i, j$:
+    $\ket{ab} \mapsto \ket{ba}$. That is $\mathrm{SWAP}$. The right matrix has $\tfrac12$ at $(00, 00)$, $(01, 10)$, $(10, 01)$, $(11, 11)$ ✓.</p>
+    <p><b>Step 3.</b> $\mathrm{SWAP}^2 = I$, so its eigenvalues are $\pm1$; $\mathrm{SWAP}(\ket{01} - \ket{10}) = \ket{10} - \ket{01}$, eigenvalue $-1$; the other three
+    listed vectors are fixed and with $\ket{\Psi^-}$ form an orthogonal basis. $\ket{\Psi^-}$ is unit 03's singlet. Directly:
+    $\tfrac12\mathrm{SWAP}\ket{\Psi^-} = -\tfrac12\ket{\Psi^-}$, and $\braket{\Psi^-|\Psi^-} = 1$.</p>
+    <p><b>Why the partner matters.</b> On a product input $\sigma\otimes\tau$, $\mathrm{id}\otimes T$ gives $\sigma\otimes\tau^{\mathsf T} \ge 0$: positivity of $T$ is enough.
+    The failure needs entanglement. That is the content of "complete": a map can look like a state map on the qubit and
+    still predict nonsense for the qubit's entangled partner.</p>
+    <p><b>Where this goes.</b> The partial transpose as a <i>test</i> for entanglement of mixed states (Peres, 1996; Horodecki,
+    1996) grows from exactly this computation: if $\rho_{AB}$ is separable, $(\mathrm{id}\otimes T)\rho_{AB} \ge 0$. It is beyond this course.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · channels</p>
+  <h2>The Choi matrix: a map as one operator</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Choi matrix</span> of $\Phi\colon L(\mathbb C^d) \to L(\mathbb C^{d'})$</span>
+        $$J(\Phi) = \sum_{i,j=1}^d\ket i\!\bra j\otimes\Phi\big(\ket i\!\bra j\big),$$
+        <p class="small">an operator on $\mathbb C^d\otimes\mathbb C^{d'}$: a $d\times d$ block matrix whose $(i, j)$ block is $\Phi(\ket i\!\bra j)$. It determines $\Phi$: the $\ket i\!\bra j$ are a basis of $L(\mathbb C^d)$.</p>
+      </div>
+      <p class="small"><b>What it is.</b> With $\ket{\Phi^+_d} = \tfrac1{\sqrt d}\sum_i\ket{ii}$, the computation of the last slide gives</p>
+      $$J(\Phi) = d\,(\mathrm{id}\otimes\Phi)\big(\ket{\Phi^+_d}\!\bra{\Phi^+_d}\big):$$
+      <p class="small">the map applied to half of a maximally entangled pair.</p>
+    </div>
+    <div>
+      <p class="small"><b>Two checks.</b></p>
+      <ul class="small">
+        <li><b>Identity:</b> $J(\mathrm{id}) = \sum_{ij}\ket i\!\bra j\otimes\ket i\!\bra j = d\ket{\Phi^+_d}\!\bra{\Phi^+_d}$, eigenvalues $d, 0, \dots, 0$: positive ✓.</li>
+        <li><b>Transpose, $d = 2$:</b> $J(T) = \mathrm{SWAP}$, eigenvalues $1, 1, 1, -1$: not positive.</li>
+      </ul>
+      <div class="box warn"><span class="label">conventions differ</span>
+        <p class="small">This course: $\Phi$ on the <b>second</b> factor, and <b>no</b> $1/d$. Then the transpose's Choi matrix has least eigenvalue $-1$. Normalised by $1/d$ (so that $J$ is a state when $\Phi$ is a channel) it is $-\tfrac12$, the worked example's number. Some books put $\Phi$ on the first factor; every theorem below survives with the factors swapped.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The identity $J = d(\mathrm{id}\otimes\Phi)(\ket{\Phi^+_d}\!\bra{\Phi^+_d})$.</b> As in the worked example, $\ket{\Phi^+_d}\!\bra{\Phi^+_d} = \tfrac1d\sum_{ij}\ket i\!\bra j\otimes\ket i\!\bra j$;
+    apply $\mathrm{id}\otimes\Phi$ term by term. For $d = 2$ the state is the running Bell state $\ket{\Phi^+}$.</p>
+    <p><b>Recovering $\Phi$ from $J$.</b> $\Phi(\ket i\!\bra j) = (\bra i\otimes I)J(\ket j\otimes I)$, the $(i, j)$ block, and every $X = \sum_{ij}X_{ij}\ket i\!\bra j$, so
+    $\Phi(X) = \sum_{ij}X_{ij}(\bra i\otimes I)J(\ket j\otimes I)$. A compact form, checked on $X = \ket a\!\bra b$: $\Phi(X) = \operatorname{tr}_1\big((X^{\mathsf T}\otimes I)J\big)$.
+    So $\Phi \mapsto J(\Phi)$ is a linear bijection between maps $L(\mathbb C^d) \to L(\mathbb C^{d'})$ and operators on $\mathbb C^d\otimes\mathbb C^{d'}$ — the
+    Choi–Jamiołkowski isomorphism (Jamiołkowski 1972, Choi 1975).</p>
+    <p><b>The identity's spectrum.</b> $d\ket{\Phi^+_d}\!\bra{\Phi^+_d}$ is $d$ times a rank-one projector: eigenvalue $d$ on $\ket{\Phi^+_d}$, and $0$ on its orthogonal
+    complement.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · channels</p>
+  <h2>Choi's theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Choi's theorem</span></span>
+        <p class="small">For linear $\Phi\colon L(\mathbb C^d) \to L(\mathbb C^{d'})$:</p>
+        <ol class="small">
+          <li>$\Phi$ is completely positive $\iff$ $J(\Phi) \ge 0$;</li>
+          <li>$\Phi$ is trace-preserving $\iff$ $\operatorname{tr}_2J(\Phi) = I_d$, the partial trace over the output.</li>
+        </ol>
+        <p class="small">So one $dd'\times dd'$ eigenvalue computation decides complete positivity, for every partner at once.</p>
+      </div>
+      <div class="box proof"><span class="label">proof of 2, and of 1 ($\Rightarrow$)</span>
+        <p class="small">$\operatorname{tr}_2J = \sum_{ij}\ket i\!\bra j\operatorname{tr}\Phi(\ket i\!\bra j)$, which is $\sum_{ij}\ket i\!\bra j\,\delta_{ij} = I$ iff $\operatorname{tr}\Phi = \operatorname{tr}$ on a basis. And if $\Phi$ is CP, $J = d(\mathrm{id}_d\otimes\Phi)(\text{a state}) \ge 0$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof of 1 ($\Leftarrow$)</span>
+        <p class="small"><b>Diagonalise.</b> $J \ge 0$, so $J = \sum_k\ket{a_k}\!\bra{a_k}$ with $\ket{a_k} = \sqrt{\lambda_k}\ket{e_k}$.</p>
+        <p class="small"><b>Unfold each vector into a map.</b> Define $A_k\colon\mathbb C^d \to \mathbb C^{d'}$ by $A_k\ket i = (\bra i\otimes I)\ket{a_k}$, so $\ket{a_k} = \sum_i\ket i\otimes A_k\ket i$.</p>
+        <p class="small"><b>Read off the blocks.</b></p>
+        $$J = \sum_{i,j}\ket i\!\bra j\otimes\sum_kA_k\ket i\!\bra jA_k^\dagger,$$
+        <p class="small">so $\Phi(\ket i\!\bra j) = \sum_kA_k\ket i\!\bra jA_k^\dagger$ and, by linearity, $\Phi(X) = \sum_kA_kXA_k^\dagger$.</p>
+        <p class="small"><b>That form is CP:</b> $(\mathrm{id}\otimes\Phi)(Y) = \sum_k(I\otimes A_k)Y(I\otimes A_k)^\dagger \ge 0$ for $Y \ge 0$. $\blacksquare$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Part 2.</b> The partial trace over the second factor of $\ket i\!\bra j\otimes B$ is $(\operatorname{tr}B)\ket i\!\bra j$ (unit 04's product rule), so
+    $\operatorname{tr}_2J = \sum_{ij}\operatorname{tr}\Phi(\ket i\!\bra j)\ket i\!\bra j$. If $\Phi$ preserves trace, $\operatorname{tr}\Phi(\ket i\!\bra j) = \operatorname{tr}\ket i\!\bra j = \delta_{ij}$, giving $I$. Conversely
+    $\operatorname{tr}_2J = I$ says $\operatorname{tr}\Phi(\ket i\!\bra j) = \delta_{ij} = \operatorname{tr}\ket i\!\bra j$ for every basis element, and both sides are linear in $X$.</p>
+    <p><b>Part 1, $\Rightarrow$.</b> $\ket{\Phi^+_d}\!\bra{\Phi^+_d} \ge 0$ on $\mathbb C^d\otimes\mathbb C^d$, and CP with $k = d$ makes $(\mathrm{id}_d\otimes\Phi)$ of it positive; times $d \gt 0$.</p>
+    <p><b>Part 1, $\Leftarrow$, every step.</b> (i) The spectral theorem (unit 00) gives $J = \sum_k\lambda_k\ket{e_k}\!\bra{e_k}$ with orthonormal $e_k$ and,
+    because $J \ge 0$, $\lambda_k \ge 0$ (unit 04); put $a_k = \sqrt{\lambda_k}e_k$. (ii) Every vector of $\mathbb C^d\otimes\mathbb C^{d'}$ is uniquely
+    $\sum_i\ket i\otimes v_i$ with $v_i \in \mathbb C^{d'}$ (unit 03's basis of the tensor product); set $A_k\ket i = v_i$. So "unfolding" is the linear bijection
+    between vectors of $\mathbb C^d\otimes\mathbb C^{d'}$ and $d'\times d$ matrices — the $d'\times d$ matrix whose $i$-th column is $v_i$. (iii)
+    $\ket{a_k}\!\bra{a_k} = \sum_{ij}(\ket i\otimes A_k\ket i)(\bra j\otimes\bra jA_k^\dagger) = \sum_{ij}\ket i\!\bra j\otimes A_k\ket i\!\bra jA_k^\dagger$. Summing over $k$ and comparing
+    the $(i, j)$ blocks with the definition of $J$ gives $\Phi(\ket i\!\bra j) = \sum_kA_k\ket i\!\bra jA_k^\dagger$; both sides are linear in $\ket i\!\bra j$, so
+    the formula holds for every $X$. (iv) For any $k'$ and $Y \ge 0$ on $\mathbb C^{k'}\otimes\mathbb C^d$, check on products that
+    $(\mathrm{id}\otimes\Phi)(S\otimes R) = S\otimes\sum_kA_kRA_k^\dagger = \sum_k(I\otimes A_k)(S\otimes R)(I\otimes A_k^\dagger)$, so by linearity
+    $(\mathrm{id}\otimes\Phi)(Y) = \sum_k(I\otimes A_k)Y(I\otimes A_k)^\dagger$, a sum of operators $BYB^\dagger \ge 0$.</p>
+    <p><b>What the proof also proved.</b> Steps (i)–(iii) produced a <i>Kraus representation</i> for any CP map, and (iv)
+    showed that $k' = d$ suffices: $d$-positivity implies complete positivity. The next section states this as a theorem.</p>
+    <p><b>Check on the transpose.</b> $J(T) = \mathrm{SWAP}$ is not $\ge 0$, so by part 1, $T$ is not CP, matching the worked example;
+    $\operatorname{tr}_2\mathrm{SWAP} = I$, so by part 2 it is trace-preserving, matching the positivity slide. History: M.-D. Choi,
+    <i>Linear Algebra Appl.</i> 10, 285 (1975).</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Kraus and Stinespring</h2>
+  <p>Every channel as a list of operators, all such lists for one channel, and every channel as a unitary with an environment that is then forgotten.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · Kraus and Stinespring</p>
+  <h2>The Kraus representation</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Kraus representation</span></span>
+        <p class="small">$\Phi\colon L(\mathbb C^d) \to L(\mathbb C^{d'})$ is a channel if and only if there are operators $A_1, \dots, A_r\colon\mathbb C^d \to \mathbb C^{d'}$, its <span class="term">Kraus operators</span>, with</p>
+        $$\Phi(\rho) = \sum_kA_k\,\rho\,A_k^\dagger, \qquad \sum_kA_k^\dagger A_k = I_d .$$
+        <p class="small">One can always take $r = \operatorname{rank}J(\Phi) \le dd'$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">CP gives the form, by the proof of Choi's theorem; that form is CP, by its last line. Trace: $\operatorname{tr}\Phi(\rho) = \operatorname{tr}\big(\sum_kA_k^\dagger A_k\,\rho\big)$ for all $\rho$, which equals $\operatorname{tr}\rho$ for all $\rho$ iff $\sum A_k^\dagger A_k = I$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Checks on known channels.</b></p>
+      <ul class="small">
+        <li><b>A unitary:</b> one Kraus operator, $U$; $\ U^\dagger U = I$ ✓.</li>
+        <li><b>Non-selective measurement:</b> $A_\lambda = P_\lambda$; $\ \sum P_\lambda^\dagger P_\lambda = \sum P_\lambda = I$ ✓.</li>
+        <li><b>Reset to $\ket0$:</b> $A_i = \ket0\!\bra i$; $\ \sum_i\ket i\!\braket{0|0}\!\bra i = I$ ✓, and $\sum_i\ket0\!\bra i\rho\ket i\!\bra0 = (\operatorname{tr}\rho)\ket0\!\bra0$ ✓.</li>
+        <li><b>A POVM, measured and forgotten:</b> $A_m = \sqrt{E_m}$; $\ \sum E_m = I$ ✓.</li>
+      </ul>
+      <div class="box warn"><span class="label">read it as a story, carefully</span>
+        <p class="small">"With probability $\operatorname{tr}(A_k\rho A_k^\dagger)$ the operator $A_k$ happened" is one way to realise $\Phi$ — but, as with unit 04's ensembles, the operators are not unique, and only $\Phi$ is physical. Next slide.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Only if.</b> A channel is CP, so by Choi's theorem $J(\Phi) \ge 0$, and steps (i)–(iii) of that proof produce
+    $A_k$ with $\Phi(X) = \sum_kA_kXA_k^\dagger$, one for each nonzero eigenvalue of $J$: $r = \operatorname{rank}J \le dd'$. Trace-preserving means
+    $\operatorname{tr}\sum_kA_kXA_k^\dagger = \operatorname{tr}\big((\sum_kA_k^\dagger A_k)X\big) = \operatorname{tr}X$ for every $X$ (cyclicity). Put $M = \sum_kA_k^\dagger A_k - I$: then $\operatorname{tr}(MX) = 0$ for
+    all $X$, and unit 04's non-degeneracy of the trace pairing gives $M = 0$.</p>
+    <p><b>If.</b> Step (iv) of Choi's proof shows the form is CP; the trace computation runs backwards.</p>
+    <p><b>The story, and why it is only a story.</b> Given $\rho$, the operators $A_k\rho A_k^\dagger/\operatorname{tr}(A_k\rho A_k^\dagger)$ are density operators
+    and the weights $\operatorname{tr}(A_k\rho A_k^\dagger)$ sum to $\operatorname{tr}\rho = 1$, so $\Phi(\rho)$ is the mixture "$A_k$ was applied, with that probability". Stinespring's
+    theorem, two slides on, makes this literal: the $k$ is what a measurement of the environment in one particular basis
+    would report. Another basis reports another Kraus family for the same channel.</p>
+    <p><b>History.</b> K. Kraus, <i>States, Effects, and Operations</i> (Springer, 1983), collecting work from 1971; Sudarshan,
+    Mathews and Rau had the same form in 1961. "Operator-sum representation" is another name for it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · Kraus and Stinespring</p>
+  <h2>Two Kraus families, one channel: HJW for the Choi matrix</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">unitary freedom</span> of Kraus operators</span>
+        <p class="small">$\{A_k\}_{k=1}^m$ and $\{B_l\}_{l=1}^n$, $m \ge n$, give the same map iff $A_k = \sum_lu_{kl}B_l$ for an $m\times n$ matrix $u$ with $u^\dagger u = I$ (unitary after padding $\{B_l\}$ with zeros).</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Unfold: $\ket{a_k} = \sum_i\ket i\otimes A_k\ket i$, likewise $\ket{b_l}$. The maps agree iff their Choi matrices agree:</p>
+        $$\sum_k\ket{a_k}\!\bra{a_k} = \sum_l\ket{b_l}\!\bra{b_l}.$$
+        <p class="small">By unit 04's Schrödinger–HJW theorem, iff $\ket{a_k} = \sum_lu_{kl}\ket{b_l}$; unfolding is linear and invertible, so iff $A_k = \sum_lu_{kl}B_l$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">check: dephasing two ways</span>
+        <p class="small"><b>Story 1:</b> a fair coin decides whether $Z$ hits: $B_0 = \tfrac1{\sqrt2}I$, $B_1 = \tfrac1{\sqrt2}Z$.</p>
+        <p class="small"><b>Story 2:</b> the qubit is measured in $z$ and nobody looks: $A_0 = \ket0\!\bra0$, $A_1 = \ket1\!\bra1$.</p>
+        <p class="small">With $u = H = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix}$, unitary:</p>
+        $$\begin{aligned}\tfrac1{\sqrt2}(B_0 + B_1) &amp;= \tfrac12(I + Z) = \ket0\!\bra0,\\ \tfrac1{\sqrt2}(B_0 - B_1) &amp;= \tfrac12(I - Z) = \ket1\!\bra1 .\end{aligned}$$
+        <p class="small">Same channel: both delete the off-diagonal entries ✓. A random kick and an unread measurement are one process. General phase flip: problem P7.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Same map iff same Choi matrix.</b> $J$ determines $\Phi$ (blocks are $\Phi(\ket i\!\bra j)$), and conversely. For a Kraus map, step (iii)
+    of Choi's proof read backwards gives $J = \sum_k\ket{a_k}\!\bra{a_k}$ with $a_k$ the unfolded $A_k$.</p>
+    <p><b>Using HJW.</b> Unit 04 stated it for ensembles: $\{p_i, \psi_i\}$ and $\{q_j, \varphi_j\}$ give the same density operator iff
+    $\sqrt{p_i}\ket{\psi_i} = \sum_ju_{ij}\sqrt{q_j}\ket{\varphi_j}$ with $u^\dagger u = I$. Here, if $\Phi$ is trace-preserving, $\operatorname{tr}J = \sum_k\braket{a_k|a_k} = \operatorname{tr}\sum_kA_k^\dagger A_k = d$, so
+    $J/d$ is a density operator, and $\{p_k = \lVert a_k\rVert^2/d,\ \psi_k = a_k/\lVert a_k\rVert\}$ is an ensemble for it with $\sqrt{p_k}\ket{\psi_k} = \ket{a_k}/\sqrt d$.
+    Applying HJW and multiplying by $\sqrt d$ gives the claim. A zero Kraus operator is an ensemble member of weight zero,
+    which unit 04's proof (through purifications) allows. For a CP map that is not trace-preserving, divide by $\operatorname{tr}J$
+    instead (if $J = 0$ there is nothing to prove).</p>
+    <p><b>Unfolding is linear.</b> $A \mapsto \sum_i\ket i\otimes A\ket i$ is linear in $A$, and invertible (Choi's proof, step (ii)). So
+    $\ket{a_k} = \sum_lu_{kl}\ket{b_l}$ iff $A_k = \sum_lu_{kl}B_l$.</p>
+    <p><b>The example.</b> Story 1: $\tfrac12\rho + \tfrac12Z\rho Z$; conjugating by $Z$ negates the off-diagonal entries, so the average kills
+    them. Story 2: $\sum P_\lambda\rho P_\lambda$ keeps the diagonal. Both are unit 04's non-selective $z$ measurement. The relation is
+    $A_k = \sum_lu_{kl}B_l$ with $u = H$, $H^\dagger H = I$. Physically: you cannot tell, from the qubit, whether something
+    measured it or something randomly flipped its phase. Only the channel is in the qubit's statistics.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · Kraus and Stinespring</p>
+  <h2>Stinespring: every channel is a unitary with an environment</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Stinespring dilation</span>, finite dimension</span>
+        <p class="small">$\Phi$ is a channel $L(\mathbb C^d) \to L(\mathbb C^{d'})$ iff there is an isometry $V\colon\mathbb C^d \to \mathbb C^{d'}\otimes E$ with</p>
+        $$\Phi(\rho) = \operatorname{tr}_E\big(V\rho V^\dagger\big).$$
+        <p class="small">From Kraus operators: $E = \mathbb C^r$ and $V\ket\psi = \sum_kA_k\ket\psi\otimes\ket k$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$V^\dagger V = \sum_kA_k^\dagger A_k = I$. Unit 04's formula $\operatorname{tr}_EX = \sum_k(I\otimes\bra k)X(I\otimes\ket k)$ and $(I\otimes\bra k)V = A_k$ give $\operatorname{tr}_E(V\rho V^\dagger) = \sum_kA_k\rho A_k^\dagger$. Conversely, $A_k := (I\otimes\bra k)V$ are Kraus operators for $\operatorname{tr}_E(V\cdot V^\dagger)$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 170" width="360" role="img" aria-label="a circuit: the top wire carries rho into a tall box U; the bottom wire, the environment, starts in ket 0 and enters the same box; after the box the top wire carries Phi of rho out, and the environment wire ends in a discard symbol labelled trace over E">
+          <text x="12" y="48" font-size="15">ρ</text>
+          <text x="6" y="122" font-size="15">|0⟩</text>
+          <line x1="40" y1="42" x2="300" y2="42" class="ink" stroke-width="1.6"/>
+          <line x1="40" y1="116" x2="236" y2="116" class="ink" stroke-width="1.6"/>
+          <rect x="110" y="22" width="64" height="114" rx="4" class="fill-ground unit" stroke-width="1.8"/>
+          <text x="142" y="86" font-size="17" text-anchor="middle">U</text>
+          <line x1="236" y1="100" x2="236" y2="132" class="warn" stroke-width="2.2"/>
+          <line x1="244" y1="106" x2="244" y2="126" class="warn" stroke-width="2.2"/>
+          <line x1="252" y1="111" x2="252" y2="121" class="warn" stroke-width="2.2"/>
+          <text x="306" y="48" font-size="15">Φ(ρ)</text>
+          <text x="262" y="122" font-size="13" class="warn">discard</text>
+          <text x="70" y="156" font-size="11" class="soft" text-anchor="middle">environment E</text>
+          <text x="236" y="30" font-size="11" class="soft" text-anchor="middle">system</text>
+        </svg>
+        <p class="cap">Attach an environment in $\ket0$, apply one unitary, throw the environment away: every channel, and nothing else.</p>
+      </div>
+      <p class="small"><b>With a unitary.</b> Extend $V$ to $U$ on $\mathbb C^d\otimes E$ with $U(\ket\psi\otimes\ket0) = V\ket\psi$ (when $d' = d$), as for Naimark. So unit 01's unitary evolution and unit 04's partial trace of what you do not hold already contain every channel.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>From Kraus to Stinespring.</b> $V = \sum_kA_k\otimes\ket k$, so $V^\dagger = \sum_{k'}A_{k'}^\dagger\otimes\bra{k'}$ and $V^\dagger V = \sum_{kk'}A_{k'}^\dagger A_k\braket{k'|k} =
+    \sum_kA_k^\dagger A_k = I$: an isometry. $(I\otimes\bra k)V\ket\psi = A_k\ket\psi$. Then
+    $\operatorname{tr}_E(V\rho V^\dagger) = \sum_k(I\otimes\bra k)V\rho V^\dagger(I\otimes\ket k) = \sum_kA_k\rho A_k^\dagger$, using unit 04's basis formula for the partial trace.</p>
+    <p><b>From Stinespring to a channel.</b> Given any isometry $V$ into $\mathbb C^{d'}\otimes E$ and an orthonormal basis $\{\ket k\}$ of $E$, put
+    $A_k = (I\otimes\bra k)V$. The same formula gives $\operatorname{tr}_E(V\rho V^\dagger) = \sum_kA_k\rho A_k^\dagger$, and
+    $\sum_kA_k^\dagger A_k = V^\dagger\big(\sum_kI\otimes\ket k\!\bra k\big)V = V^\dagger V = I$. So it is a channel by the Kraus theorem. A different basis of $E$
+    gives a different Kraus family, related by the unitary change of basis — the last slide's freedom, seen from the
+    environment.</p>
+    <p><b>The unitary.</b> When $d' = d$, identify $\mathbb C^d$ with $\mathbb C^d\otimes\ket0 \subset \mathbb C^d\otimes E$; $V$ maps an orthonormal basis $\ket i\otimes\ket0$ to
+    orthonormal vectors, and Gram–Schmidt extends this to a unitary exactly as in the Naimark notes. ($d' \ne d$ needs
+    input and output spaces of equal total dimension; pad the environment.)</p>
+    <p><b>The physics.</b> This is the honest description of a noisy qubit: the qubit and its surroundings together
+    evolve unitarily, by unit 01's postulate; the surroundings are not measured or even accessible; so the qubit's
+    state is the partial trace, by unit 04. A channel is a unitary on a system too large to keep track of.</p>
+    <p><b>History.</b> W. F. Stinespring, <i>Proc. Amer. Math. Soc.</i> 6, 211 (1955), for completely positive maps on
+    C*-algebras; the finite-dimensional case on this slide is the one quantum information uses.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · Kraus and Stinespring</p>
+  <h2>Amplitude damping: a qubit hands its energy to its surroundings</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>The physics, from nothing.</b> The two states of a physical qubit usually have different energies — unit 02's proton has a lower energy along the field than against it. Call the lower one $\ket0$ (the <i>ground</i> state) and the higher one $\ket1$ (<i>excited</i>). Energy is conserved, so the qubit can drop from $\ket1$ to $\ket0$ only by giving one quantum of energy to something else: a stray photon, a vibration of the chip. A cold environment has none to give back.</p>
+      <p class="small"><b>The model.</b> One environment qubit $E$ in its ground state $\ket0_E$ stands for the surroundings. The interaction moves the excitation between the two, conserving the number of excitations:</p>
+      $$U\ket{00} = \ket{00}, \qquad U\ket{10} = \sqrt{1 - \gamma}\,\ket{10} + \sqrt\gamma\,\ket{01},$$
+      <p class="small">system first. $U$ rotates the plane of $\ket{10}, \ket{01}$ by $\theta$ with $\sin^2\theta = \gamma$ — a <span class="term">partial swap</span> — and fixes $\ket{00}$, $\ket{11}$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 270" width="300" role="img" aria-label="two energy-level diagrams side by side, system and environment, each with a lower line labelled 0 and an upper line labelled 1. Before: a dot on the system's upper level. After: the dot is split, a share square root of 1 minus gamma still on the system's upper level and a share square root of gamma on the environment's upper level, with a curved arrow from system to environment">
+        <text x="150" y="22" font-size="13" text-anchor="middle" class="soft">before</text>
+        <line x1="30" y1="100" x2="110" y2="100" class="ink" stroke-width="2"/>
+        <line x1="30" y1="50" x2="110" y2="50" class="ink" stroke-width="2"/>
+        <line x1="190" y1="100" x2="270" y2="100" class="ink" stroke-width="2"/>
+        <line x1="190" y1="50" x2="270" y2="50" class="ink" stroke-width="2"/>
+        <circle cx="70" cy="50" r="8" class="fill-unit"/>
+        <circle cx="230" cy="100" r="8" class="fill-alt"/>
+        <text x="70" y="120" font-size="12" text-anchor="middle">system</text>
+        <text x="230" y="120" font-size="12" text-anchor="middle">environment</text>
+        <text x="20" y="54" font-size="12" class="mono" text-anchor="end">1</text>
+        <text x="20" y="104" font-size="12" class="mono" text-anchor="end">0</text>
+        <line x1="10" y1="138" x2="290" y2="138" class="rule" stroke-width="0.8"/>
+        <text x="150" y="160" font-size="13" text-anchor="middle" class="soft">after U</text>
+        <line x1="30" y1="240" x2="110" y2="240" class="ink" stroke-width="2"/>
+        <line x1="30" y1="190" x2="110" y2="190" class="ink" stroke-width="2"/>
+        <line x1="190" y1="240" x2="270" y2="240" class="ink" stroke-width="2"/>
+        <line x1="190" y1="190" x2="270" y2="190" class="ink" stroke-width="2"/>
+        <circle cx="70" cy="190" r="8" class="fill-unit"/>
+        <circle cx="230" cy="190" r="8" class="fill-unit"/>
+        <path d="M 84 180 Q 150 150 216 180" fill="none" class="unit" stroke-width="1.8"/>
+        <polygon points="218,182 208,182 214,173" class="fill-unit"/>
+        <text x="70" y="216" font-size="12" text-anchor="middle" class="halo">√(1−γ)</text>
+        <text x="230" y="216" font-size="12" text-anchor="middle" class="halo">√γ</text>
+        <text x="150" y="264" font-size="11" text-anchor="middle" class="soft">amplitudes of |10⟩ and |01⟩</text>
+      </svg>
+      <p class="cap">The excitation leaks into the environment with amplitude $\sqrt\gamma$. Only the qubit is kept.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why $\ket0$ is ground.</b> Unit 02's proton in a field $B_0$ along $z$ has $H = -\tfrac{\gamma_p\hbar}{2}B_0Z$ (with $\gamma_p$ the proton's
+    gyromagnetic ratio, renamed here to keep $\gamma$ free), so $\ket0$ has energy $-\tfrac12\gamma_p\hbar B_0$ and $\ket1$ has $+\tfrac12\gamma_p\hbar B_0$:
+    $\ket0$ is lower. Superconducting and atomic qubits are labelled the same way by convention: $\ket0$ is the lower
+    level.</p>
+    <p><b>$U$ in full.</b> On the basis $\ket{00}, \ket{01}, \ket{10}, \ket{11}$ it is the identity on $\ket{00}$ and $\ket{11}$, and on the plane of $\ket{01}, \ket{10}$
+    the rotation $\ket{10} \mapsto \cos\theta\ket{10} + \sin\theta\ket{01}$, $\ket{01} \mapsto -\sin\theta\ket{10} + \cos\theta\ket{01}$, with $\cos\theta = \sqrt{1 - \gamma}$, $\sin\theta = \sqrt\gamma$.
+    A rotation matrix is orthogonal, so $U$ is unitary ✓. At $\theta = \tfrac\pi2$ it is the swap up to a sign on $\ket{01}$: the excitation
+    moves over entirely. Each of the four basis states keeps its number of $1$s — the excitation number — which is
+    energy conservation when the two qubits have equal level spacings.</p>
+    <p><b>Where such a $U$ comes from.</b> An interaction Hamiltonian $\tfrac g2(XX + YY)$ — which, as problem P8 shows, is
+    $g(\ket{01}\!\bra{10} + \ket{10}\!\bra{01})$ — run for time $\tau$ acts on that plane as $e^{-ig\tau X}$, with $X$ swapping $\ket{01}$ and $\ket{10}$, a rotation with complex phases; the
+    real version on this slide differs only by phases on the environment, which the partial trace does not see.</p>
+    <p><b>One environment qubit is a cartoon.</b> A real environment has a continuum of modes, and an excitation that
+    leaks into it does not come back. One fresh environment qubit per short time step, discarded each time, models
+    exactly that; section 4 shows the steps compose into $\gamma = 1 - e^{-t/T_1}$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · Kraus and Stinespring · example</p>
+  <h2>Worked: amplitude damping from one environment qubit</h2>
+  <div class="box ex"><span class="label">from the partial swap to the <span class="term">amplitude damping</span> channel: Kraus operators, then the Choi matrix; $s = \sqrt{1 - \gamma}$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The isometry.</b> $V\ket\psi = U(\ket\psi\otimes\ket0_E)$:</p>
+      $$V\ket0 = \ket{00}, \qquad V\ket1 = s\ket{10} + \sqrt\gamma\,\ket{01}.$$
+      <p class="small"><b>2. Kraus operators</b> $A_k = (I\otimes\bra k)V$:</p>
+      <p class="small">$A_0$: $\ket0 \mapsto \ket0$, $\ket1 \mapsto s\ket1$. $\ A_1$: $\ket0 \mapsto 0$, $\ket1 \mapsto \sqrt\gamma\ket0$. So $A_1 = \sqrt\gamma\ket0\!\bra1$ and</p>
+      $$A_0 = \begin{pmatrix}1&amp;0\\0&amp;s\end{pmatrix}, \qquad A_1 = \begin{pmatrix}0&amp;\sqrt\gamma\\0&amp;0\end{pmatrix}.$$
+      <p class="small"><b>3. Trace-preserving.</b> $A_0^\dagger A_0 + A_1^\dagger A_1 = \mathrm{diag}(1, 1 - \gamma) + \mathrm{diag}(0, \gamma) = I$ ✓.</p>
+      <p class="small"><b>4. Known case.</b> On $\ket1\!\bra1$: $(1 - \gamma)\ket1\!\bra1 + \gamma\ket0\!\bra0$ — decayed with probability $\gamma$ ✓. $\ket0\!\bra0$ is fixed ✓.</p>
+    </div>
+    <div>
+      <p class="small"><b>5. Unfold</b> $\ket{a_k} = \sum_i\ket i\otimes A_k\ket i$:</p>
+      $$\ket{a_0} = \ket{00} + s\ket{11}, \qquad \ket{a_1} = \sqrt\gamma\,\ket{10}.$$
+      <p class="small"><b>6. The Choi matrix</b> $J = \ket{a_0}\!\bra{a_0} + \ket{a_1}\!\bra{a_1}$, order $00, 01, 10, 11$:</p>
+      $$J = \begin{pmatrix}1&amp;0&amp;0&amp;s\\0&amp;0&amp;0&amp;0\\0&amp;0&amp;\gamma&amp;0\\s&amp;0&amp;0&amp;1 - \gamma\end{pmatrix}.$$
+      <p class="small"><b>7. Positive.</b> The $\{00, 11\}$ block $\begin{pmatrix}1&amp;s\\s&amp;s^2\end{pmatrix}$ has eigenvalues $0$ and $1 + s^2 = 2 - \gamma$; the rest gives $0$, $\gamma$. All $\ge 0$ ✓; trace $2 = d$ ✓.</p>
+      <p class="small"><b>8. Trace-preserving, again.</b> $\operatorname{tr}_2J$: $(0,0)$ entry $1 + 0$, $(1,1)$ entry $\gamma + (1 - \gamma)$, off-diagonal $0$: $I$ ✓. At $\gamma = \tfrac12$ the eigenvalues are $1.5, 0.5, 0, 0$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Steps 1–2.</b> $(I\otimes\bra0)$ keeps the part of $V\ket\psi$ with the environment in $\ket0$; $(I\otimes\bra1)$ the part with it in $\ket1$.
+    From $V\ket1 = \sqrt{1 - \gamma}\ket1\otimes\ket0 + \sqrt\gamma\ket0\otimes\ket1$: $A_0\ket1 = \sqrt{1 - \gamma}\ket1$ and $A_1\ket1 = \sqrt\gamma\ket0$. From $V\ket0 = \ket0\otimes\ket0$: $A_0\ket0 = \ket0$,
+    $A_1\ket0 = 0$. The columns of each matrix are the images of $\ket0$ and $\ket1$.</p>
+    <p><b>Reading the Kraus operators.</b> $A_1$ is the jump: it takes $\ket1$ to $\ket0$ and kills $\ket0$, and it "happened" when the
+    environment ends up excited. $A_0$ is the no-jump branch, and it is <i>not</i> the identity: if no excitation was
+    emitted, the qubit's weight on $\ket1$ is reduced, because not having emitted is evidence for having been in $\ket0$.
+    That is how a qubit's state changes even in the runs where "nothing happened".</p>
+    <p><b>Step 6.</b> $\ket{a_0}\!\bra{a_0}$ has entries $1$ at $(00, 00)$, $s$ at $(00, 11)$ and $(11, 00)$, $s^2 = 1 - \gamma$ at $(11, 11)$;
+    $\ket{a_1}\!\bra{a_1}$ has $\gamma$ at $(10, 10)$. Check against the definition: the $(1,1)$ block (rows and columns $10, 11$) should be
+    $\Phi(\ket1\!\bra1) = \mathrm{diag}(\gamma, 1 - \gamma)$ ✓; the $(0,1)$ block should be $\Phi(\ket0\!\bra1) = A_0\ket0\!\bra1A_0^\dagger + A_1\ket0\!\bra1A_1^\dagger =
+    s\ket0\!\bra1$, which puts $s$ at $(00, 11)$ ✓.</p>
+    <p><b>Step 7.</b> The $2\times2$ block has trace $1 + s^2$ and determinant $s^2 - s^2 = 0$, so eigenvalues $1 + s^2$ and $0$. The other two
+    diagonal entries, $0$ and $\gamma$, are eigenvalues because their rows and columns are otherwise zero. Rank $2$:
+    two Kraus operators are the fewest possible, matching the representation theorem.</p>
+    <p><b>Positivity forces a bound.</b> Replace the off-diagonal $s$ by any $a$. The block $\begin{pmatrix}1&amp;a\\a&amp;1 - \gamma\end{pmatrix}$ is positive iff
+    $a^2 \le 1 - \gamma$. So complete positivity caps how much coherence a channel that decays populations by $\gamma$ may
+    keep: at most $\sqrt{1 - \gamma}$. Section 4 turns this into $T_2 \le 2T_1$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>$T_1$ and $T_2$</h2>
+  <p>The noise models of Part E as Kraus families, what each does to the Bloch ball, the two clocks every real qubit carries, and why one can never run more than twice as slow as the other.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · T₁ and T₂</p>
+  <h2>The standard noise models</h2>
+  <table class="dense">
+    <thead><tr><th>channel</th><th>$\Phi(\rho)$</th><th>Kraus operators</th><th>$\sum A_k^\dagger A_k$</th><th>Bloch vector $(x, y, z) \mapsto$</th></tr></thead>
+    <tbody>
+      <tr><td><span class="term">bit flip</span></td><td>$(1 - p)\rho + pX\rho X$</td><td>$\sqrt{1 - p}\,I,\ \sqrt p\,X$</td><td>$(1 - p + p)I$ ✓</td><td>$(x,\ (1 - 2p)y,\ (1 - 2p)z)$</td></tr>
+      <tr><td><span class="term">phase flip</span></td><td>$(1 - p)\rho + pZ\rho Z$</td><td>$\sqrt{1 - p}\,I,\ \sqrt p\,Z$</td><td>$I$ ✓</td><td>$((1 - 2p)x,\ (1 - 2p)y,\ z)$</td></tr>
+      <tr><td><span class="term">depolarising</span></td><td>$(1 - p)\rho + p\,\tfrac I2$</td><td>$\sqrt{1 - \tfrac{3p}4}\,I,\ \tfrac{\sqrt p}2X,\ \tfrac{\sqrt p}2Y,\ \tfrac{\sqrt p}2Z$</td><td>$(1 - \tfrac{3p}4 + \tfrac{3p}4)I$ ✓</td><td>$(1 - p)(x, y, z)$</td></tr>
+      <tr><td>amplitude damping</td><td>$A_0\rho A_0^\dagger + A_1\rho A_1^\dagger$</td><td>$\mathrm{diag}(1, \sqrt{1 - \gamma}),\ \sqrt\gamma\ket0\!\bra1$</td><td>$I$ ✓ (worked)</td><td>$(\sqrt{1 - \gamma}\,x,\ \sqrt{1 - \gamma}\,y,\ \gamma + (1 - \gamma)z)$</td></tr>
+      <tr><td><span class="term">pure dephasing</span></td><td>diagonal kept, off-diagonal $\times\sqrt{1 - \lambda}$</td><td>$\mathrm{diag}(1, \sqrt{1 - \lambda}),\ \mathrm{diag}(0, \sqrt\lambda)$</td><td>$\mathrm{diag}(1, 1 - \lambda + \lambda)$ ✓</td><td>$(\sqrt{1 - \lambda}\,x,\ \sqrt{1 - \lambda}\,y,\ z)$</td></tr>
+    </tbody>
+  </table>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The one fact behind the Pauli rows.</b> Conjugating by a Pauli keeps its own axis and negates the other two: $X\sigma_jX = \pm\sigma_j$ with $+$ only for $j = x$. So $X\rho X$ has Bloch vector $(x, -y, -z)$, and mixing with weight $p$ gives the first row.</p>
+    </div>
+    <div>
+      <p class="small"><b>Depolarising.</b> $\tfrac I2 = \tfrac14(\rho + X\rho X + Y\rho Y + Z\rho Z)$ for every $\rho$ — the four Bloch vectors $(x,y,z), (x,-y,-z), (-x,y,-z), (-x,-y,z)$ average to $0$ — which turns $(1 - p)\rho + p\tfrac I2$ into the Kraus form shown. Problem P9 finds its full range.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Checking each Bloch row.</b> Write $\rho = \tfrac12(I + xX + yY + zZ)$, and use unit 02's $\sigma_j\sigma_k\sigma_j = -\sigma_k$ for $j \ne k$ (they
+    anticommute) and $\sigma_j\sigma_j\sigma_j = \sigma_j$. Bit flip: $X\rho X = \tfrac12(I + xX - yY - zZ)$, so $(1 - p)\rho + pX\rho X$ has coefficients
+    $x$, $(1 - 2p)y$, $(1 - 2p)z$ ✓. Phase flip: the same with $Z$. Depolarising: by linearity, $(1 - p)r + p\cdot0$. Amplitude damping:
+    $A_0\rho A_0^\dagger + A_1\rho A_1^\dagger$ has diagonal $\rho_{00} + \gamma\rho_{11}$, $(1 - \gamma)\rho_{11}$ and off-diagonal $\sqrt{1 - \gamma}\rho_{01}$; with
+    $\rho_{00} = \tfrac{1 + z}2$, $\rho_{11} = \tfrac{1 - z}2$, $\rho_{01} = \tfrac{x - iy}2$, the new $z$ is $\rho_{00}' - \rho_{11}' = \gamma + (1 - \gamma)z$ and the new $x - iy$ is
+    $\sqrt{1 - \gamma}(x - iy)$ ✓. Pure dephasing: $A_0\rho A_0^\dagger + A_1\rho A_1^\dagger$ has diagonal $\rho_{00}$, $(1 - \lambda)\rho_{11} + \lambda\rho_{11}$, off-diagonal
+    $\sqrt{1 - \lambda}\rho_{01}$ ✓.</p>
+    <p><b>The depolarising identity.</b> Both sides are linear in $\rho$ and have trace $\operatorname{tr}\rho$; their Bloch vectors are $0$ and the average
+    of the four listed, $\tfrac14(x + x - x - x, \dots) = 0$. Then $(1 - p)\rho + \tfrac p4(\rho + X\rho X + Y\rho Y + Z\rho Z) = (1 - \tfrac{3p}4)\rho + \tfrac p4(X\rho X + Y\rho Y + Z\rho Z)$,
+    whose Kraus operators are those in the table. This needs $1 - \tfrac{3p}4 \ge 0$; for $0 \le p \le 1$ it holds.</p>
+    <p><b>A convention to watch.</b> Some texts write the depolarising channel as
+    $(1 - q)\rho + \tfrac q3(X\rho X + Y\rho Y + Z\rho Z)$, with $q$ the probability that some Pauli error occurred. It is this table's channel with
+    $q = \tfrac{3p}4$; the Bloch ball shrinks by $1 - \tfrac{4q}3$. Nielsen and Chuang use this table's $p$.</p>
+    <p><b>Pure dephasing and phase flip are one family.</b> Phase flip multiplies the off-diagonal by $1 - 2p$, pure dephasing
+    by $\sqrt{1 - \lambda}$; for $1 - 2p = \sqrt{1 - \lambda}$ they are the same channel, with different Kraus operators — problem P7.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · T₁ and T₂</p>
+  <h2>What the channels do to the Bloch ball</h2>
+  <div class="fig">
+    <svg viewBox="0 0 720 270" width="760" role="img" aria-label="three panels, each the xz cross-section of the Bloch ball as a dashed circle with the image of the ball drawn solid. Left, bit flip with p one quarter: an ellipse full width along x and half height along z. Middle, depolarising with p 0.4: a concentric circle of radius 0.6. Right, amplitude damping with gamma one half: an ellipse of half-width 0.71 and half-height 0.5 centred halfway up, touching the north pole ket 0">
+      <g>
+        <circle cx="120" cy="130" r="90" fill="none" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <ellipse cx="120" cy="130" rx="90" ry="45" class="fill-soft"/>
+        <ellipse cx="120" cy="130" rx="90" ry="45" fill="none" class="unit" stroke-width="2.5"/>
+        <line x1="20" y1="130" x2="220" y2="130" class="rule" stroke-width="1"/>
+        <line x1="120" y1="30" x2="120" y2="230" class="rule" stroke-width="1"/>
+        <text x="224" y="134" font-size="12" class="mono soft">x</text>
+        <text x="126" y="30" font-size="12" class="mono soft">z</text>
+        <text x="120" y="256" font-size="13" text-anchor="middle">bit flip, p = ¼</text>
+        <text x="120" y="22" font-size="11" text-anchor="middle" class="soft">z, y scaled by ½</text>
+      </g>
+      <g>
+        <circle cx="360" cy="130" r="90" fill="none" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <circle cx="360" cy="130" r="54" class="fill-soft"/>
+        <circle cx="360" cy="130" r="54" fill="none" class="unit" stroke-width="2.5"/>
+        <line x1="260" y1="130" x2="460" y2="130" class="rule" stroke-width="1"/>
+        <line x1="360" y1="30" x2="360" y2="230" class="rule" stroke-width="1"/>
+        <text x="464" y="134" font-size="12" class="mono soft">x</text>
+        <text x="366" y="30" font-size="12" class="mono soft">z</text>
+        <text x="360" y="256" font-size="13" text-anchor="middle">depolarising, p = 0.4</text>
+        <text x="360" y="22" font-size="11" text-anchor="middle" class="soft">every axis scaled by 0.6</text>
+      </g>
+      <g>
+        <circle cx="600" cy="130" r="90" fill="none" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <ellipse cx="600" cy="85" rx="63.6" ry="45" class="fill-soft"/>
+        <ellipse cx="600" cy="85" rx="63.6" ry="45" fill="none" class="unit" stroke-width="2.5"/>
+        <line x1="500" y1="130" x2="700" y2="130" class="rule" stroke-width="1"/>
+        <line x1="600" y1="30" x2="600" y2="230" class="rule" stroke-width="1"/>
+        <circle cx="600" cy="40" r="5" class="fill-ink"/>
+        <text x="610" y="36" font-size="12" class="halo">|0⟩ fixed</text>
+        <circle cx="600" cy="85" r="3.5" class="fill-unit"/>
+        <text x="704" y="134" font-size="12" class="mono soft">x</text>
+        <text x="600" y="256" font-size="13" text-anchor="middle">amplitude damping, γ = ½</text>
+        <text x="600" y="22" font-size="11" text-anchor="middle" class="soft">x, y × 0.71; z ↦ ½ + ½z</text>
+      </g>
+    </svg>
+    <p class="cap">$xz$ cross-sections: the dashed circle is the ball before, the solid shape its image. Bit flip squashes toward the $x$ axis, depolarising shrinks uniformly, amplitude damping shrinks and slides toward $\ket0$.</p>
+  </div>
+  <div class="cols">
+    <div><p class="small"><b>Every channel is affine on the ball:</b> $r \mapsto Mr + c$, since the Bloch vector is linear in $\rho$ and $\operatorname{tr}\rho = 1$. A sphere goes to an ellipsoid. Phase flip and pure dephasing are bit flip's picture turned to the $z$ axis.</p></div>
+    <div><p class="small"><b><span class="ref" data-ref="plus">$\ket+$</span>, at $(1, 0, 0)$:</b> fixed by bit flip; pulled to $(1 - p, 0, 0)$ by depolarising; to $(\sqrt{1 - \gamma}, 0, \gamma)$ by amplitude damping — no longer on the sphere, so mixed.</p></div>
+  </div>
+  <aside class="notes">
+    <p><b>The shapes, from the table.</b> Bit flip, $p = \tfrac14$: $(x, y, z) \mapsto (x, \tfrac12y, \tfrac12z)$, so the unit circle in the $xz$ plane goes to the
+    ellipse with semi-axes $1$ along $x$ and $\tfrac12$ along $z$. Depolarising, $p = 0.4$: radius $0.6$. Amplitude damping, $\gamma = \tfrac12$:
+    $x \mapsto \sqrt{\tfrac12}\,x \approx 0.7071x$ and $z \mapsto \tfrac12 + \tfrac12z$, so the circle goes to the ellipse with centre $(0, \tfrac12)$, semi-axes
+    $0.7071$ along $x$ and $\tfrac12$ along $z$; its top is at $z = 1$, the point $\ket0$, which the channel fixes. The drawing's scale is
+    $90$ pixels per unit: $45$, $54$, $63.6$ and $45$ are those semi-axes.</p>
+    <p><b>Affine, proved.</b> $r_k(\Phi(\rho)) = \operatorname{tr}(\sigma_k\Phi(\rho))$ is a linear function of $\rho$, and $\rho = \tfrac12(I + r\cdot\sigma)$ is affine in $r$;
+    a composition of a linear and an affine map is affine. The constant $c = r(\Phi(I/2))$ is where the centre goes: $0$ for the
+    three Pauli channels (they are <i>unital</i>, $\Phi(I) = I$), and $(0, 0, \gamma)$ for amplitude damping, the only one in the table that
+    is not.</p>
+    <p><b>Not every ellipsoid is allowed.</b> Positivity only asks that the image lie inside the ball; complete positivity asks
+    more. The transpose's image is the whole ball, reflected, and it is not a channel. Which ellipsoids are images of
+    channels was worked out by Ruskai, Szarek and Werner (2002, cited); the bound on <i>$T_2 \le 2T_1$</i>, at the end of this section, is one
+    instance.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · T₁ and T₂</p>
+  <h2>Two clocks on a real qubit</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 500 240" width="560" role="img" aria-label="a plot against time in units of T1 from 0 to 4; three decaying curves starting at 1: the excited-state probability e to the minus t over T1; the coherence with T2 equal to 2 T1, decaying more slowly; and the coherence with T2 equal to two thirds T1, decaying faster">
+          <line x1="60" y1="200" x2="470" y2="200" class="ink" stroke-width="1.4"/>
+          <line x1="60" y1="200" x2="60" y2="30" class="ink" stroke-width="1.4"/>
+          <polyline points="60,40.0 80,69.0 100,92.7 120,112.2 140,128.1 160,141.1 180,151.8 200,160.5 220,167.7 240,173.6 260,178.3 280,182.3 300,185.5 320,188.1 340,190.3 360,192.0 380,193.5 400,194.7 420,195.6 440,196.4 460,197.1" fill="none" class="unit" stroke-width="2.5"/>
+          <polyline points="60,40.0 80,55.2 100,69.0 120,81.5 140,92.7 160,103.0 180,112.2 200,120.5 220,128.1 240,134.9 260,141.1 280,146.7 300,151.8 320,156.4 340,160.5 360,164.3 380,167.7 400,170.8 420,173.6 440,176.1 460,178.3" fill="none" class="alt" stroke-width="2.5"/>
+          <polyline points="60,40.0 80,81.5 100,112.2 120,134.9 140,151.8 160,164.3 180,173.6 200,180.4 220,185.5 240,189.2 260,192.0 280,194.1 300,195.6 320,196.8 340,197.6 360,198.2 380,198.7 400,199.0 420,199.3 440,199.5 460,199.6" fill="none" class="alt" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="52" y="44" font-size="12" text-anchor="end" class="mono">1</text>
+          <text x="52" y="204" font-size="12" text-anchor="end" class="mono">0</text>
+          <text x="160" y="218" font-size="12" text-anchor="middle" class="mono">1</text>
+          <text x="260" y="218" font-size="12" text-anchor="middle" class="mono">2</text>
+          <text x="460" y="218" font-size="12" text-anchor="middle" class="mono">4</text>
+          <text x="265" y="236" font-size="12" text-anchor="middle">t / T₁</text>
+          <line x1="160" y1="200" x2="160" y2="205" class="ink" stroke-width="1.2"/>
+          <line x1="260" y1="200" x2="260" y2="205" class="ink" stroke-width="1.2"/>
+          <text x="232" y="96" font-size="12" class="alt halo">coherence, T₂ = 2T₁</text>
+          <text x="150" y="134" font-size="12" class="unit halo">Pr(1)</text>
+          <text x="96" y="170" font-size="12" class="alt halo">T₂ = ⅔T₁</text>
+        </svg>
+        <p class="cap">$\Pr(1)$: an excited qubit's chance of still being excited. The other two: a superposition's coherence $2|\rho_{01}|$, with no pure dephasing (solid) and with $T_\varphi = T_1$ (dashed).</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>$T_1$, <span class="term" data-term="energy relaxation time">energy relaxation</span>.</b> Prepare $\ket1$ (unit 02's $\pi$-pulse), wait $t$, measure in $z$. The fraction still in $\ket1$ falls as</p>
+      $$\Pr(1) = e^{-t/T_1}.$$
+      <p class="small"><b>$T_2$, <span class="term" data-term="coherence time">dephasing</span>.</b> Prepare $\ket+$, wait $t$, measure along $x$. The environment nudges the qubit's frequency up and down at random; its phase wanders, and the off-diagonal entry decays:</p>
+      $$|\rho_{01}(t)| = \tfrac12e^{-t/T_2}.$$
+      <p class="small"><b>Sizes</b>, as orders of magnitude: superconducting qubits, $T_1$ and $T_2$ tens to hundreds of microseconds; trapped ions, $T_2$ of seconds. The machines are unit 26's.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The physics, from nothing.</b> $T_1$ — the "longitudinal" or energy-relaxation time — is
+    the time scale on which an excited qubit gives its energy away, as on <i>Amplitude damping: a qubit hands its
+    energy to its surroundings</i>. $T_2$ — the "transverse" or coherence time — is the time scale
+    on which a superposition forgets its relative phase. Its cause, beyond energy loss, is that the qubit's frequency
+    $\omega_0$ (the energy gap, unit 02) depends on its surroundings — a stray field, a fluctuating charge — and those
+    fluctuate. In the rotating frame a qubit whose frequency is off by $\delta$ turns as $R_z(-\delta t)$ (unit 02's drift).
+    If $\delta$ were constant, unit 02's spin echo would undo it. If it changes during the wait, no echo can, and averaging
+    $R_z(\varphi)\rho R_z(\varphi)^\dagger$ over a random accumulated angle $\varphi$ multiplies $\rho_{01}$ by the average of $e^{-i\varphi}$, which has modulus less
+    than one: that is the pure dephasing channel. This is the part unit 02 left for here.</p>
+    <p><b>The measurements.</b> "Measure along $x$" after the wait is, in practice, a $\pi/2$-pulse followed by a $z$
+    measurement (a Ramsey experiment, after Norman Ramsey); the probability of $+$ is $\tfrac12(1 + x) = \tfrac12 + \mathrm{Re}\,\rho_{01}$, so it
+    reads off the coherence. The names $T_1$, $T_2$ and the exponential laws are Felix Bloch's, from his 1946 equations for
+    nuclear magnetisation (<i>Phys. Rev.</i> 70, 460), where $T_1$ governs the component along the field and $T_2$ the
+    components across it.</p>
+    <p><b>The curves.</b> All exact: $e^{-t/T_1}$; $e^{-t/2T_1}$; and $e^{-3t/2T_1}$, which is $1/T_2 = 1/(2T_1) + 1/T_\varphi$ with $T_\varphi = T_1$, giving
+    $T_2 = \tfrac23T_1$ — the formula on <i>$T_2 \le 2T_1$</i>. The numbers for devices are orders of magnitude only, on purpose; unit
+    26 reports what has been measured on which machine.</p>
+    <p><b>In continuous time.</b> These decays are the solutions of the Lindblad (Gorini–Kossakowski–Sudarshan–Lindblad)
+    master equation, with jump operator $\ket0\!\bra1/\sqrt{T_1}$ for relaxation and $Z/\sqrt{2T_\varphi}$ for pure dephasing; it is named here
+    and not derived, since the channels at fixed $t$ are all this course needs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · T₁ and T₂</p>
+  <h2>Why the decay is exponential</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">amplitude damping composes</span>
+        <p class="small">Damping by $\gamma_1$ then by $\gamma_2$ is damping by $\gamma$ with</p>
+        $$1 - \gamma = (1 - \gamma_1)(1 - \gamma_2).$$
+      </div>
+      <div class="box proof"><span class="label">proof, on Bloch vectors</span>
+        <p class="small">$x \mapsto \sqrt{1 - \gamma_1}\sqrt{1 - \gamma_2}\,x$, and $z \mapsto \gamma_2 + (1 - \gamma_2)\big(\gamma_1 + (1 - \gamma_1)z\big) = 1 - (1 - \gamma_1)(1 - \gamma_2) + (1 - \gamma_1)(1 - \gamma_2)z$; likewise $y$. That is the table's row with $1 - \gamma$ as stated, and a channel is fixed by its action on Bloch vectors. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Memoryless decay.</b> If the environment keeps no memory — the excitation, once emitted, never returns — then waiting $s$ then $t$ is the same channel as waiting $s + t$. With $f(t) = 1 - \gamma(t)$:</p>
+      $$f(s + t) = f(s)f(t), \qquad f(0) = 1,$$
+      <p class="small">whose continuous solutions with $0 \lt f \le 1$ are $f(t) = e^{-t/T_1}$ for a constant $T_1$. So $\gamma(t) = 1 - e^{-t/T_1}$, and from $\ket1$:</p>
+      $$\Pr(1) = \braket{1|\Phi_t(\ket1\!\bra1)|1} = 1 - \gamma = e^{-t/T_1}\ \checkmark$$
+      <p class="small">— the $T_1$ law, from the composition rule. The same argument for pure dephasing gives $\sqrt{1 - \lambda(t)} = e^{-t/T_\varphi}$, defining the <span class="term">pure dephasing time</span> $T_\varphi$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the functional equation</h4>
+    <p>Let $g = \ln f$, defined since $f \gt 0$; it is continuous, with $g(s + t) = g(s) + g(t)$. Then $g(n t) = ng(t)$ for natural $n$; so
+    $g(1/n) = g(1)/n$ and $g(q) = qg(1)$ for positive rationals $q$; by continuity $g(t) = tg(1)$ for all $t \ge 0$. Write $g(1) = -1/T_1$; since
+    $f \le 1$, $g(1) \le 0$, so $T_1 \gt 0$ (or $T_1 = \infty$, no decay). Hence $f(t) = e^{-t/T_1}$.</p>
+    <p><b>Why the Bloch action fixes the channel.</b> $\Phi$ is linear on the span of the density operators, which is all of
+    $L(\mathbb C^2)$, and on density operators it is determined by where each Bloch vector goes. Two channels with the same
+    affine map on the ball agree on every density operator, hence everywhere.</p>
+    <p><b>Pure dephasing.</b> Composing two dephasings multiplies the off-diagonal factors: $\sqrt{1 - \lambda} = \sqrt{1 - \lambda_1}\sqrt{1 - \lambda_2}$, and
+    the same equation gives $e^{-t/T_\varphi}$.</p>
+    <p><b>When is the environment memoryless?</b> When it is large and quickly forgets: an emitted photon flies away. The
+    composition property then holds to excellent accuracy over times long compared with the environment's own
+    correlation time. When it fails (a "non-Markovian" environment, for instance one other defect that can hand the
+    energy back) the decay is not exponential, and the Lindblad description fails with it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · T₁ and T₂ · example</p>
+  <h2>Worked: $\ket+$ under amplitude damping</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="plus">the running example</span> at time $t$, with $\gamma = 1 - e^{-t/T_1}$ and $s = \sqrt{1 - \gamma} = e^{-t/2T_1}$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. Input.</b> $\rho(0) = \ket+\!\bra+ = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}$, trace $1$.</p>
+      <p class="small"><b>2. The two branches.</b></p>
+      $$A_0\rho A_0^\dagger = \tfrac12\begin{pmatrix}1&amp;s\\s&amp;s^2\end{pmatrix}, \quad A_1\rho A_1^\dagger = \tfrac12\begin{pmatrix}\gamma&amp;0\\0&amp;0\end{pmatrix}.$$
+      <p class="small"><b>3. Sum</b>, using $s^2 = 1 - \gamma$:</p>
+      $$\rho(t) = \tfrac12\begin{pmatrix}1 + \gamma &amp; e^{-t/2T_1}\\ e^{-t/2T_1} &amp; 1 - \gamma\end{pmatrix},$$
+      <p class="small">trace $\tfrac{1 + \gamma}2 + \tfrac{1 - \gamma}2 = 1$ ✓.</p>
+      <p class="small"><b>4. Positive.</b> $\det\rho(t) = \tfrac14\big(1 - \gamma^2 - (1 - \gamma)\big) = \tfrac14\gamma(1 - \gamma) \ge 0$ and trace $1 \gt 0$: both eigenvalues $\ge 0$ ✓.</p>
+    </div>
+    <div>
+      <p class="small"><b>5. Bloch vector</b> ($x = 2\,\mathrm{Re}\,\rho_{01}$, $z = \rho_{00} - \rho_{11}$):</p>
+      $$r(t) = \big(e^{-t/2T_1},\ 0,\ 1 - e^{-t/T_1}\big).$$
+      <p class="small"><b>6. Coherence.</b> $|\rho_{01}(t)| = \tfrac12e^{-t/2T_1}$: with nothing but energy loss, $T_2 = 2T_1$.</p>
+      <p class="small"><b>7. Numbers at $t = T_1$.</b> $r = (0.6065, 0, 0.6321)$, $|r| = 0.8760$, purity $\tfrac12(1 + |r|^2) = 0.8837$, eigenvalues $0.9380$, $0.0620$.</p>
+      <p class="small"><b>8. Limits.</b> $t = 0$: $\gamma = 0$, $r = (1, 0, 0)$, $\ket+$ ✓. $t \to \infty$: $r \to (0, 0, 1)$, the ground state $\ket0$ ✓.</p>
+      <div class="box good"><span class="label">pure to mixed to pure</span>
+        <p class="small">$|r|^2 = 1 - \gamma + \gamma^2$ is least at $\gamma = \tfrac12$ ($t = T_1\ln2$), where $|r| = \tfrac{\sqrt3}2 \approx 0.866$. No unitary passes through mixed states.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2.</b> $A_0\rho A_0^\dagger$ with $A_0 = \mathrm{diag}(1, s)$ multiplies entry $(i, j)$ by $s^{i+j}$: $\rho_{00}$ by $1$, $\rho_{01}$ and $\rho_{10}$ by $s$, $\rho_{11}$ by $s^2$.
+    $A_1\rho A_1^\dagger = \gamma\ket0\!\bra1\rho\ket1\!\bra0 = \gamma\rho_{11}\ket0\!\bra0$, and $\rho_{11} = \tfrac12$.</p>
+    <p><b>Step 4.</b> A $2\times2$ Hermitian matrix with non-negative determinant and positive trace has two eigenvalues of
+    the same sign (product $\ge 0$) summing to something positive, so both $\ge 0$. The determinant is $\tfrac14\big((1 + \gamma)(1 - \gamma) - s^2\big)$
+    and $s^2 = 1 - \gamma$. It vanishes only at $\gamma = 0$ and $\gamma = 1$: the state is mixed for every $0 \lt t \lt \infty$.</p>
+    <p><b>Step 5.</b> From unit 04, $\rho = \tfrac12\begin{pmatrix}1 + z &amp; x - iy\\ x + iy &amp; 1 - z\end{pmatrix}$; here $\rho_{01}$ is real, so $y = 0$ and $x = 2\cdot\tfrac12e^{-t/2T_1}$.
+    It agrees with the table's row for amplitude damping applied to $(1, 0, 0)$ ✓.</p>
+    <p><b>Step 7, computed.</b> $e^{-1/2} = 0.60653$, $1 - e^{-1} = 0.63212$; $|r|^2 = 0.36788 + 0.39958 = 0.76746$, $|r| = 0.87605$;
+    eigenvalues $\tfrac12(1 \pm |r|) = 0.93803, 0.06197$, summing to $1$ ✓, and $\tfrac12(1 + |r|^2) = 0.88373$ ✓.</p>
+    <p><b>The non-monotone purity.</b> The state is pulled toward the centre by the loss of coherence and toward the pole
+    $\ket0$ by the decay. Early on the first wins; later the second does, and the state becomes purer again — but it is
+    becoming $\ket0$, not $\ket+$. Purity is not a measure of how much of the input survives. Section 5's trace distance is
+    one.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · T₁ and T₂</p>
+  <h2>The path through the ball</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small"><b>No pure dephasing.</b> $x = e^{-t/2T_1}$ and $z = 1 - e^{-t/T_1} = 1 - x^2$: <span class="ref" data-ref="plus">$\ket+$</span> travels the <b>parabola</b> $z = 1 - x^2$ from $(1, 0)$ to $\ket0$ at $(0, 1)$, inside the ball.</p>
+      <p class="small"><b>With pure dephasing</b> at rate $1/T_\varphi$, $x$ decays faster, $e^{-t/2T_1}e^{-t/T_\varphi}$, while $z$ is unchanged: the path bends inward. Drawn for $T_\varphi = T_1$.</p>
+      <p class="small"><b>Marks</b> at $t = 0, \tfrac12T_1, T_1, 2T_1$. At $t = T_1$ the outer path is at $(0.607, 0.632)$, the inner at $(0.223, 0.632)$.</p>
+      <p class="small muted">The ball's outline is unit 04's pure states; every point strictly inside is mixed.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 300" width="360" role="img" aria-label="the xz cross-section of the Bloch ball, x to the right and z up; two curves start at ket plus on the right of the equator and end at ket 0 at the top: the outer one, a parabola, is amplitude damping alone; the inner one, bending closer to the z axis, has pure dephasing added; four marks on each at t equal 0, half T1, T1 and 2 T1">
+        <circle cx="150" cy="150" r="120" class="fill-soft"/>
+        <circle cx="150" cy="150" r="120" fill="none" class="rule" stroke-width="1.5"/>
+        <line x1="22" y1="150" x2="282" y2="150" class="rule" stroke-width="1"/>
+        <line x1="150" y1="22" x2="150" y2="282" class="rule" stroke-width="1"/>
+        <text x="284" y="146" font-size="12" class="mono soft">x</text>
+        <text x="156" y="22" font-size="12" class="mono soft">z</text>
+        <polyline points="270.0,150.0 255.9,123.5 243.5,102.8 232.5,86.7 222.8,74.1 214.2,64.4 206.7,56.8 200.0,50.9 194.1,46.2 184.4,39.9 176.8,36.0 166.2,32.2 159.9,30.8 153.6,30.1" fill="none" class="unit" stroke-width="3"/>
+        <polyline points="270.0,150.0 232.5,123.5 206.7,102.8 189.0,86.7 176.8,74.1 168.4,64.4 162.6,56.8 158.7,50.9 156.0,46.2 152.8,39.9 151.3,36.0 150.3,32.2 150.1,30.8 150.0,30.1" fill="none" class="alt" stroke-width="2.5" stroke-dasharray="6 4"/>
+        <circle cx="243.5" cy="102.8" r="4" class="fill-unit"/>
+        <circle cx="222.8" cy="74.1" r="4" class="fill-unit"/>
+        <circle cx="194.1" cy="46.2" r="4" class="fill-unit"/>
+        <circle cx="206.7" cy="102.8" r="4" class="fill-alt"/>
+        <circle cx="176.8" cy="74.1" r="4" class="fill-alt"/>
+        <circle cx="156.0" cy="46.2" r="4" class="fill-alt"/>
+        <circle cx="270" cy="150" r="6" class="fill-ink"/>
+        <circle cx="150" cy="30" r="6" class="fill-ink"/>
+        <text x="258" y="174" font-size="14" class="halo">|+⟩</text>
+        <text x="122" y="22" font-size="14" class="halo">|0⟩</text>
+        <text x="252" y="104" font-size="12" class="unit halo">½T₁</text>
+        <text x="230" y="72" font-size="12" class="unit halo">T₁</text>
+        <text x="200" y="40" font-size="12" class="unit halo">2T₁</text>
+        <text x="60" y="210" font-size="12" class="unit">T₂ = 2T₁</text>
+        <text x="60" y="228" font-size="12" class="alt">Tφ = T₁: T₂ = ⅔T₁</text>
+      </svg>
+      <p class="cap">$\ket+$ in the $xz$ disc. Solid: amplitude damping alone, $z = 1 - x^2$. Dashed: with pure dephasing, $T_\varphi = T_1$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The curves, computed.</b> Outer: $(e^{-t/2T_1}, 1 - e^{-t/T_1})$, so $x^2 = e^{-t/T_1} = 1 - z$. Inner: $(e^{-3t/2T_1}, 1 - e^{-t/T_1})$, so $x = (1 - z)^{3/2}$.
+    The marks: $t = \tfrac12T_1$ at $(0.7788, 0.3935)$ and $(0.4724, 0.3935)$; $t = T_1$ at $(0.6065, 0.6321)$ and $(0.2231, 0.6321)$; $t = 2T_1$ at
+    $(0.3679, 0.8647)$ and $(0.0498, 0.8647)$. Both curves stay inside the disc, as they must: for the outer, $x^2 + z^2 = 1 - z + z^2 \lt 1$ for
+    $0 \lt z \lt 1$.</p>
+    <p><b>Why dephasing only moves $x$.</b> Pure dephasing keeps the diagonal of $\rho$ — the populations, so $z$ — and scales
+    the off-diagonal, so $x$ and $y$. It also commutes with amplitude damping: each multiplies the off-diagonal entry by
+    a number, and dephasing leaves the diagonal alone, so in either order the result is
+    $(e^{-t/2T_1}e^{-t/T_\varphi}x, \dots, \gamma + (1 - \gamma)z)$. The order of the two noises does not matter.</p>
+    <p><b>What the picture is for.</b> It is the answer to the overview's first question, "what is it at $t$?": a point
+    moving along a curve from the equator to the north pole. The second question, "could anything recover it?", is
+    section 5's.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · T₁ and T₂</p>
+  <h2>$T_2 \le 2T_1$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem, within the model</span>
+        <p class="small">If the qubit's noise over time $t$ is amplitude damping with $\gamma = 1 - e^{-t/T_1}$ composed with pure dephasing with $\sqrt{1 - \lambda} = e^{-t/T_\varphi}$, then the coherence decays as $e^{-t/T_2}$ with</p>
+        $$\frac1{T_2} = \frac1{2T_1} + \frac1{T_\varphi}, \qquad\text{so}\qquad T_2 \le 2T_1,$$
+        <p class="small">with equality iff there is no pure dephasing ($T_\varphi = \infty$).</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Each channel multiplies $\rho_{01}$ by a number — $e^{-t/2T_1}$ (the worked example) and $e^{-t/T_\varphi}$ — so together by $e^{-t/2T_1 - t/T_\varphi}$. Since $1/T_\varphi \ge 0$, $1/T_2 \ge 1/2T_1$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">the same bound, from complete positivity</span>
+        <p class="small">Any qubit channel fixing $\ket0$ that damps the population by $\gamma$ and multiplies $\rho_{01}$ by $a$ has a Choi matrix containing the block</p>
+        $$\begin{pmatrix}1 &amp; a\\ \bar a &amp; 1 - \gamma\end{pmatrix} \ge 0 \iff |a|^2 \le 1 - \gamma .$$
+        <p class="small">With $|a| = e^{-t/T_2}$, $1 - \gamma = e^{-t/T_1}$: $\ e^{-2t/T_2} \le e^{-t/T_1}$, i.e. $T_2 \le 2T_1$.</p>
+      </div>
+      <p class="small"><b>Check.</b> $T_1 = 100\ \mu$s, no pure dephasing: $T_2 = 200\ \mu$s, and <span class="ref" data-ref="plus">$\ket+$</span>'s coherence at $t = 100\ \mu$s is $e^{-1/2} = 0.607$ of its start, the worked example's $x$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, and what "within the model" means</h4>
+    <p>The model: over a wait of length $t$ the qubit undergoes the channel $\mathcal D_t\circ\mathcal A_t$, with $\mathcal A_t$ amplitude damping
+    with $\gamma(t) = 1 - e^{-t/T_1}$ and $\mathcal D_t$ pure dephasing with off-diagonal factor $e^{-t/T_\varphi}$ — both memoryless, as on
+    <i>Why the decay is exponential</i>. $\mathcal A_t$ multiplies $\rho_{01}$ by $\sqrt{1 - \gamma} = e^{-t/2T_1}$ (the table, or the worked example's step 2)
+    and $\mathcal D_t$ by $e^{-t/T_\varphi}$; the populations change only under $\mathcal A_t$. So $\rho_{01}(t) = \rho_{01}(0)e^{-t(1/2T_1 + 1/T_\varphi)}$, which defines
+    $1/T_2$ as stated.</p>
+    <p><b>The Choi argument in full.</b> Let $\Phi$ be any channel with $\Phi(\ket0\!\bra0) = \ket0\!\bra0$, $\Phi(\ket1\!\bra1) = \gamma\ket0\!\bra0 + (1 - \gamma)\ket1\!\bra1$
+    and $\Phi(\ket0\!\bra1) = a\ket0\!\bra1$ (so $\Phi(\ket1\!\bra0) = \bar a\ket1\!\bra0$, as $\Phi$ preserves adjoints). Its Choi matrix has, in the order
+    $00, 01, 10, 11$: $1$ at $(00, 00)$, $a$ at $(00, 11)$, $\bar a$ at $(11, 00)$, $\gamma$ at $(10, 10)$, $1 - \gamma$ at $(11, 11)$, zeros elsewhere.
+    By Choi's theorem it is positive, and a principal submatrix of a positive matrix is positive (restrict the quadratic
+    form), so the $\{00, 11\}$ block is; its determinant $1 - \gamma - |a|^2 \ge 0$. This version does not assume the noise is a
+    composition of two named channels: <b>complete positivity alone</b> caps the coherence at the square root of the
+    surviving population. Problem P10 does both proofs and a number.</p>
+    <p><b>Why "2".</b> Populations are quadratic in amplitudes, coherences linear: losing amplitude at rate $1/2T_1$ loses
+    population at rate $1/T_1$. Measured superconducting qubits often sit near the bound; when $T_2$ is far below $2T_1$, pure
+    dephasing — usually low-frequency noise — dominates, and echo sequences (unit 02) can recover part of it.</p>
+    <p><b>Beyond the model.</b> Experimentalists also quote $T_2^*$ (free decay, including static frequency spread that an echo
+    would undo) and $T_2$ from an echo; the bound $T_2 \le 2T_1$ holds for the channel at each $t$, whatever the name.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Distinguishability</h2>
+  <p>How well one measurement tells two states apart, the distance that answers it exactly, and the theorem that no channel ever increases it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">21 · distinguishability</p>
+  <h2>Trace distance</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label"><span class="term">trace norm</span> and <span class="term">trace distance</span></span>
+        <p class="small">For any operator $A$, $\lVert A\rVert_1 = \operatorname{tr}\sqrt{A^\dagger A}$ = the sum of its singular values; for Hermitian $A$, $\sum_i|\lambda_i|$. For states,</p>
+        $$D(\rho, \sigma) = \tfrac12\lVert\rho - \sigma\rVert_1 .$$
+      </div>
+      <p class="small"><b>Facts</b>, each one line:</p>
+      <ul class="small">
+        <li>$0 \le D \le 1$: $\lVert\rho - \sigma\rVert_1 \le \lVert\rho\rVert_1 + \lVert\sigma\rVert_1 = 2$ (a norm; notes).</li>
+        <li>Unitarily invariant: $U\rho U^\dagger - U\sigma U^\dagger$ has the eigenvalues of $\rho - \sigma$.</li>
+        <li><b>Pure states:</b> $D = \sqrt{1 - |\braket{\psi|\varphi}|^2}$ (notes).</li>
+        <li><b>Qubits:</b> $\rho - \sigma = \tfrac12(r - s)\cdot\sigma$ has eigenvalues $\pm\tfrac12|r - s|$, so</li>
+      </ul>
+      $$D(\rho, \sigma) = \tfrac12\,|r - s| :$$
+      <p class="small">half the Euclidean distance in the Bloch ball.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 280 280" width="300" role="img" aria-label="the xz cross-section of the Bloch ball with two antipodal points, ket plus on the right and ket minus on the left, joined by a diameter labelled length 2, D equals 1; and two interior points closer together, joined by a short chord labelled D equals half the length">
+        <circle cx="140" cy="140" r="110" class="fill-soft"/>
+        <circle cx="140" cy="140" r="110" fill="none" class="rule" stroke-width="1.5"/>
+        <line x1="30" y1="140" x2="250" y2="140" class="unit" stroke-width="2.5"/>
+        <circle cx="250" cy="140" r="6" class="fill-unit"/>
+        <circle cx="30" cy="140" r="6" class="fill-unit"/>
+        <text x="236" y="164" font-size="14" class="unit halo">|+⟩</text>
+        <text x="20" y="164" font-size="14" class="unit halo">|−⟩</text>
+        <text x="140" y="132" font-size="12" text-anchor="middle" class="unit halo">|r − s| = 2: D = 1</text>
+        <line x1="102" y1="80" x2="190" y2="70" class="alt" stroke-width="2.5"/>
+        <circle cx="102" cy="80" r="5" class="fill-alt"/>
+        <circle cx="190" cy="70" r="5" class="fill-alt"/>
+        <text x="94" y="70" font-size="13" class="alt halo" text-anchor="end">σ</text>
+        <text x="198" y="64" font-size="13" class="alt halo">ρ</text>
+        <text x="146" y="104" font-size="12" text-anchor="middle" class="alt halo">D = ½ |r − s|</text>
+        <text x="146" y="22" font-size="12" class="mono soft">z</text>
+        <text x="256" y="128" font-size="12" class="mono soft">x</text>
+      </svg>
+      <p class="cap">For a qubit, trace distance is half the straight-line distance between Bloch vectors. <span class="ref" data-ref="pm">$\ket+$ and $\ket-$</span> are at the maximum, $1$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The trace norm.</b> $\sqrt{A^\dagger A}$ is unit 00's square root of the positive operator $A^\dagger A$; its eigenvalues are the singular
+    values of $A$ (unit 03's complex SVD), so $\lVert A\rVert_1$ is their sum. For Hermitian $A$ with eigenvalues $\lambda_i$, $A^\dagger A = A^2$ has
+    eigenvalues $\lambda_i^2$ and $\sqrt{A^2}$ has $|\lambda_i|$. That it is a norm — the triangle inequality in particular — follows from
+    $\lVert A\rVert_1 = \max_{U\text{ unitary}}|\operatorname{tr}(UA)|$ (von Neumann's trace inequality, cited; Bhatia, <i>Matrix Analysis</i>, IV.2). This
+    unit uses the triangle inequality only for the bound $D \le 1$, which the Helstrom theorem on the next slide also
+    gives directly: $\tfrac12(1 + D)$ is a probability.</p>
+    <p><b>Pure states.</b> $\Delta = \ket\psi\!\bra\psi - \ket\varphi\!\bra\varphi$ has rank at most $2$ and trace $0$, so its nonzero eigenvalues are $\pm\mu$. Then
+    $\operatorname{tr}\Delta^2 = 2\mu^2$, and $\operatorname{tr}\Delta^2 = 1 + 1 - 2|\braket{\psi|\varphi}|^2$. So $\mu = \sqrt{1 - |\braket{\psi|\varphi}|^2}$ and $D = \tfrac12(2\mu) = \mu$. Orthogonal: $D = 1$;
+    equal: $0$. For $\ket0$ and $\ket+$, $|\braket{0|+}|^2 = \tfrac12$ and $D = \tfrac1{\sqrt2} \approx 0.7071$.</p>
+    <p><b>Qubits.</b> $\rho - \sigma = \tfrac12(I + r\cdot\sigma) - \tfrac12(I + s\cdot\sigma) = \tfrac12(r - s)\cdot\sigma$, and unit 04 showed $(v\cdot\sigma)$ has eigenvalues $\pm|v|$.
+    So $\lVert\rho - \sigma\rVert_1 = |r - s|$. Check with $\ket0, \ket+$: Bloch vectors $(0, 0, 1)$ and $(1, 0, 0)$ at distance $\sqrt2$; half is $\tfrac1{\sqrt2}$,
+    matching the pure-state formula ✓.</p>
+    <p><b>The overloaded $\sigma$.</b> $\sigma$ is the second state; $\sigma$ with a dot is unit 02's Pauli vector $(X, Y, Z)$. The context always
+    says which.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · distinguishability</p>
+  <h2>What trace distance means: the best one-shot guess</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Helstrom bound</span>, for mixed states</span>
+        <p class="small">A fair coin prepares $\rho$ or $\sigma$; you get one copy, may use any POVM, and must guess which. The best success probability is exactly</p>
+        $$P_{\text{succ}} = \tfrac12\big(1 + D(\rho, \sigma)\big).$$
+      </div>
+      <p class="small"><b>Two outcomes suffice.</b> Any POVM $\{F_m\}$ plus a guessing rule ("say $\rho$ on outcome $m$ with probability $q_m$") is the two-outcome POVM $E = \sum_mq_mF_m$, $I - E$, with $0 \le E \le I$. Then</p>
+      $$\begin{aligned}P_{\text{succ}} &amp;= \tfrac12\operatorname{tr}(E\rho) + \tfrac12\operatorname{tr}\big((I - E)\sigma\big)\\ &amp;= \tfrac12 + \tfrac12\operatorname{tr}\big(E(\rho - \sigma)\big).\end{aligned}$$
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof: maximise $\operatorname{tr}(E\Delta)$ over $0 \le E \le I$</span>
+        <p class="small">Split $\Delta = \rho - \sigma = \Delta_+ - \Delta_-$ by the signs of its eigenvalues; $\Delta_\pm \ge 0$, and $\operatorname{tr}\Delta = 0$ gives $\operatorname{tr}\Delta_+ = \operatorname{tr}\Delta_- = \tfrac12\lVert\Delta\rVert_1$. By the lemma $\operatorname{tr}(AB) \ge 0$ for $A, B \ge 0$:</p>
+        $$\operatorname{tr}(E\Delta) \le \operatorname{tr}(E\Delta_+) \le \operatorname{tr}(\Delta_+) = D,$$
+        <p class="small">with equality for $E = P_+$, the projector onto the positive eigenvectors. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>Checks.</b> $\rho = \sigma$: $\tfrac12$, a coin ✓. Orthogonal pure states: $1$ ✓. $\ket0$ versus $\ket+$: $\tfrac12(1 + \tfrac1{\sqrt2}) \approx 0.854$ — but wrong $14.6\%$ of the time, where <span class="ref" data-ref="test">the unambiguous test</span> is never wrong and succeeds $29.3\%$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>The reduction.</b> A strategy is a POVM $\{F_m\}$ and, for each outcome, a probability $q_m \in [0, 1]$ of guessing $\rho$.
+    The probability of guessing $\rho$ when the state is $\tau$ is $\sum_mq_m\operatorname{tr}(F_m\tau) = \operatorname{tr}(E\tau)$. $E \ge 0$ as a non-negative combination of
+    positive operators, and $I - E = \sum_m(1 - q_m)F_m \ge 0$. With prior $\tfrac12$ each, success is
+    $\tfrac12\operatorname{tr}(E\rho) + \tfrac12(1 - \operatorname{tr}(E\sigma))$.</p>
+    <p><b>The two inequalities.</b> $\operatorname{tr}(E\Delta) = \operatorname{tr}(E\Delta_+) - \operatorname{tr}(E\Delta_-)$ and $\operatorname{tr}(E\Delta_-) \ge 0$ (lemma, $E, \Delta_- \ge 0$). Then
+    $\operatorname{tr}(\Delta_+) - \operatorname{tr}(E\Delta_+) = \operatorname{tr}((I - E)\Delta_+) \ge 0$ (lemma, $I - E, \Delta_+ \ge 0$). Equality: $P_+$ satisfies $P_+\Delta_- = 0$ and $P_+\Delta_+ = \Delta_+$,
+    because $\Delta_\pm$ live on orthogonal eigenspaces. So $\max\operatorname{tr}(E\Delta) = \operatorname{tr}\Delta_+ = \tfrac12\lVert\Delta\rVert_1 = D$, and $P_{\text{succ}} = \tfrac12 + \tfrac12D$. The optimal
+    measurement is projective: guess $\rho$ on the positive part of $\rho - \sigma$.</p>
+    <p><b>The $\ket0$, $\ket+$ numbers.</b> $D = \tfrac1{\sqrt2}$, so $P_{\text{succ}} = \tfrac12 + \tfrac1{2\sqrt2} = 0.8536$ and error $0.1464$ — the same numbers as
+    $\cos^2\tfrac\pi8$, $\sin^2\tfrac\pi8$. The two tasks are different questions: minimum error always answers and is sometimes wrong;
+    unambiguous never errs and is often silent. Neither dominates.</p>
+    <p><b>Unit 05.</b> If you took it, its Helstrom bound for two pure states, $\tfrac12(1 + \sqrt{1 - |\braket{\psi|\varphi}|^2})$, is this theorem
+    with the pure-state formula for $D$ substituted. The theorem is C. W. Helstrom's, <i>Quantum Detection and Estimation
+    Theory</i> (Academic Press, 1976), with Holevo's work of the early 1970s.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · distinguishability</p>
+  <h2>No channel makes two states easier to tell apart</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">contractivity</span> of trace distance</span>
+        <p class="small">For every channel $\Phi$ and states $\rho, \sigma$,</p>
+        $$D\big(\Phi(\rho), \Phi(\sigma)\big) \le D(\rho, \sigma).$$
+      </div>
+      <div class="box def"><span class="label">the <span class="term">adjoint map</span> $\Phi^\dagger$</span>
+        <p class="small">For $\Phi(\rho) = \sum_kA_k\rho A_k^\dagger$ put $\Phi^\dagger(E) = \sum_kA_k^\dagger EA_k$. Cyclicity gives $\operatorname{tr}\big(E\,\Phi(\rho)\big) = \operatorname{tr}\big(\Phi^\dagger(E)\,\rho\big)$: measuring $E$ after $\Phi$ is measuring $\Phi^\dagger(E)$ before it.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof: a measurement after $\Phi$ is a measurement before it</span>
+        <p class="small">Take the best two-outcome test $\{E, I - E\}$ for $\Phi(\rho)$ versus $\Phi(\sigma)$. Then $\{\Phi^\dagger(E), I - \Phi^\dagger(E)\}$ is a test before $\Phi$:</p>
+        <ul class="small">
+          <li>$\Phi^\dagger(E) = \sum A_k^\dagger EA_k \ge 0$;</li>
+          <li>$I - \Phi^\dagger(E) = \Phi^\dagger(I - E) \ge 0$, using $\Phi^\dagger(I) = \sum A_k^\dagger A_k = I$;</li>
+        </ul>
+        <p class="small">and it succeeds with the same probability. By Helstrom, $\tfrac12(1 + D_{\text{after}}) \le \tfrac12(1 + D_{\text{before}})$. $\blacksquare$</p>
+      </div>
+      <div class="box good"><span class="label">so</span>
+        <p class="small">Anything done to the outputs could have been done to the inputs. No processing — unitary, measurement, any channel — ever recovers distinguishability that a channel removed.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, with the steps</h4>
+    <p><b>The adjoint.</b> $\operatorname{tr}(E\,A_k\rho A_k^\dagger) = \operatorname{tr}(A_k^\dagger EA_k\,\rho)$ by cyclicity; sum over $k$. $\Phi^\dagger$ is the adjoint of $\Phi$ for unit 04's
+    Hilbert–Schmidt inner product: $\langle E, \Phi(\rho)\rangle = \langle\Phi^\dagger(E), \rho\rangle$ for Hermitian $E$. It does not depend on the Kraus family,
+    since the left side does not. It is the <i>Heisenberg picture</i>: evolve the measurement instead of the state.</p>
+    <p><b>Positivity.</b> $\braket{v|A_k^\dagger EA_k|v} = \braket{A_kv|E|A_kv} \ge 0$. And $\Phi^\dagger$ is linear, so $\Phi^\dagger(I) - \Phi^\dagger(E) = \Phi^\dagger(I - E)$, positive as
+    $I - E \ge 0$.</p>
+    <p><b>Same success probability.</b> $\tfrac12\operatorname{tr}(\Phi^\dagger(E)\rho) + \tfrac12\operatorname{tr}((I - \Phi^\dagger(E))\sigma) = \tfrac12\operatorname{tr}(E\Phi(\rho)) + \tfrac12\operatorname{tr}((I - E)\Phi(\sigma))$. The
+    left is the success of a legitimate test on $\rho$ versus $\sigma$, so it is at most $\tfrac12(1 + D(\rho, \sigma))$; the right, for the optimal
+    $E$, equals $\tfrac12(1 + D(\Phi(\rho), \Phi(\sigma)))$.</p>
+    <p><b>What it used.</b> Only that $\Phi^\dagger$ is positive and unital — true for every positive trace-preserving map, so even the
+    transpose contracts trace distance (it is an isometry of the ball, so $D$ is unchanged). Contractivity is not what
+    singles out complete positivity; the partner is.</p>
+    <p><b>Equality cases.</b> A unitary channel preserves $D$ (it is invertible by another channel, so both inequalities
+    hold). Any channel with a channel inverse preserves $D$. A channel that loses distinguishability has no inverse
+    that is a channel — this is the precise sense in which the device's damage cannot be undone.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · distinguishability · example</p>
+  <h2>Worked: $\ket+$ and $\ket-$ under depolarising noise</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label"><span class="ref" data-ref="pm">$\ket+$ and $\ket-$</span>, depolarising of strength $p$, $0 \le p \le 1$</span>
+      <p class="small"><b>1. Before.</b> $\ket\pm\!\bra\pm = \tfrac12\begin{pmatrix}1&amp;\pm1\\ \pm1&amp;1\end{pmatrix}$; difference $\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix} = X$, eigenvalues $\pm1$; $\lVert X\rVert_1 = 2$, $D = 1$ ✓ (orthogonal).</p>
+      <p class="small"><b>2. After.</b> $\rho_\pm = (1 - p)\ket\pm\!\bra\pm + p\tfrac I2 = \tfrac12\begin{pmatrix}1 &amp; \pm(1 - p)\\ \pm(1 - p) &amp; 1\end{pmatrix}$.</p>
+      <p class="small"><b>3. Check they are states.</b> Trace $\tfrac12 + \tfrac12 = 1$; eigenvalues $\tfrac12(1 \pm (1 - p)) = 1 - \tfrac p2,\ \tfrac p2 \ge 0$ ✓.</p>
+      <p class="small"><b>4. Difference.</b> $\rho_+ - \rho_- = (1 - p)X$, eigenvalues $\pm(1 - p)$:</p>
+      $$D(\rho_+, \rho_-) = \tfrac12\cdot2(1 - p) = 1 - p \le 1\ \checkmark$$
+      <p class="small"><b>5. By Bloch vectors.</b> $(\pm(1 - p), 0, 0)$, distance $2(1 - p)$, half is $1 - p$ ✓.</p>
+      <p class="small"><b>6. Meaning.</b> Best guess succeeds with $\tfrac12(2 - p) = 1 - \tfrac p2$: at $p = 0.1$, $0.95$. And $p = 1$: $D = 0$, both are $I/2$, a coin.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 280 230" width="290" role="img" aria-label="the equator of the Bloch ball as a horizontal diameter from ket minus on the left to ket plus on the right; after depolarising noise the two points move inward symmetrically to plus and minus 1 minus p; the gap between them is labelled 2 times 1 minus p">
+        <circle cx="140" cy="115" r="110" class="fill-soft"/>
+        <circle cx="140" cy="115" r="110" fill="none" class="rule" stroke-width="1.5"/>
+        <circle cx="140" cy="115" r="66" fill="none" class="unit" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="30" y1="115" x2="250" y2="115" class="rule" stroke-width="1"/>
+        <circle cx="250" cy="115" r="6" class="fill-ink"/>
+        <circle cx="30" cy="115" r="6" class="fill-ink"/>
+        <line x1="244" y1="115" x2="212" y2="115" class="alt" stroke-width="2"/>
+        <polygon points="206,115 214,111 214,119" class="fill-alt"/>
+        <line x1="36" y1="115" x2="68" y2="115" class="alt" stroke-width="2"/>
+        <polygon points="74,115 66,111 66,119" class="fill-alt"/>
+        <circle cx="206" cy="115" r="6" class="fill-alt"/>
+        <circle cx="74" cy="115" r="6" class="fill-alt"/>
+        <text x="250" y="140" font-size="13" text-anchor="middle" class="halo">|+⟩</text>
+        <text x="30" y="140" font-size="13" text-anchor="middle" class="halo">|−⟩</text>
+        <text x="206" y="98" font-size="12" text-anchor="middle" class="alt halo">ρ₊</text>
+        <text x="74" y="98" font-size="12" text-anchor="middle" class="alt halo">ρ₋</text>
+        <text x="140" y="150" font-size="12" text-anchor="middle" class="alt halo">gap 2(1 − p)</text>
+        <text x="140" y="200" font-size="11" text-anchor="middle" class="soft">dashed: the shrunken ball, p = 0.4</text>
+      </svg>
+      <p class="cap">Depolarising shrinks the whole ball by $1 - p$; the two states move inward together and their distance shrinks by the same factor.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1.</b> $\ket+\!\bra+ - \ket-\!\bra- = \tfrac12\begin{pmatrix}0 &amp; 2\\ 2 &amp; 0\end{pmatrix} = X$. $X$ has eigenvalues $\pm1$ with eigenvectors $\ket\pm$, so $\lVert X\rVert_1 = |1| + |-1| = 2$.</p>
+    <p><b>Step 2.</b> $(1 - p)\cdot\tfrac12\begin{pmatrix}1&amp;\pm1\\\pm1&amp;1\end{pmatrix} + \tfrac p2\begin{pmatrix}1&amp;0\\0&amp;1\end{pmatrix}$: diagonal $\tfrac{1 - p}2 + \tfrac p2 = \tfrac12$, off-diagonal $\pm\tfrac{1 - p}2$.</p>
+    <p><b>Step 3.</b> A matrix $\tfrac12\begin{pmatrix}1&amp;c\\c&amp;1\end{pmatrix}$ has eigenvalues $\tfrac12(1 \pm c)$ (eigenvectors $\ket\pm$).</p>
+    <p><b>Step 4.</b> The $\tfrac p2I$ parts cancel in the difference — noise that is the same for both inputs carries no information
+    about which input it was. The same holds for any channel of the form $\rho \mapsto (1 - p)\rho + p\tau$ with a fixed $\tau$: it scales
+    every trace distance by exactly $1 - p$.</p>
+    <p><b>Contractivity, seen.</b> $1 - p \le 1$, as the theorem demands. Depolarising is the case where the inequality is a
+    plain multiplication. Under amplitude damping, next slide, it is not multiplication by a constant on all pairs, but
+    on $\ket\pm$ it is $e^{-t/2T_1}$.</p>
+    <p><b>Check of step 6.</b> $p = 0.1$: $D = 0.9$, $P_{\text{succ}} = \tfrac12(1.9) = 0.95$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · distinguishability</p>
+  <h2>$\ket+$ and $\ket-$ in the device</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small"><b>Amplitude damping on both.</b> By the table, $\ket\pm$ at $(\pm1, 0, 0)$ go to</p>
+      $$r_\pm(t) = \big(\pm e^{-t/2T_1},\ 0,\ 1 - e^{-t/T_1}\big):$$
+      <p class="small">the same height, mirror images. So</p>
+      $$D(t) = \tfrac12|r_+ - r_-| = e^{-t/2T_1},$$
+      <p class="small">and with pure dephasing as well, $D(t) = e^{-t/T_2}$: <b>the distance decays at the rate $1/T_2$.</b></p>
+      <p class="small"><b>Numbers</b>, $T_1 = 100\ \mu$s, $T_\varphi = \infty$: $D = 0.607$ at $100\ \mu$s; $D = \tfrac12$ at $t = 2T_1\ln2 \approx 139\ \mu$s.</p>
+      <p class="small"><b>Contractivity says more</b> than that $D(t)$ falls: for $s \lt t$, the noise from $s$ to $t$ is a channel applied to the states at $s$, so $D(t) \le D(s)$ — and no channel applied at time $t$ brings it back above $D(t)$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 300" width="350" role="img" aria-label="the xz disc of the Bloch ball; two mirror-image curves start at ket plus on the right and ket minus on the left of the equator and rise to meet at ket 0 at the top; horizontal chords join them at t equal half T1, T1 and 2 T1, getting shorter">
+        <circle cx="150" cy="150" r="120" class="fill-soft"/>
+        <circle cx="150" cy="150" r="120" fill="none" class="rule" stroke-width="1.5"/>
+        <line x1="22" y1="150" x2="282" y2="150" class="rule" stroke-width="1"/>
+        <line x1="150" y1="22" x2="150" y2="282" class="rule" stroke-width="1"/>
+        <polyline points="270.0,150.0 255.9,123.5 243.5,102.8 232.5,86.7 222.8,74.1 214.2,64.4 206.7,56.8 200.0,50.9 194.1,46.2 184.4,39.9 176.8,36.0 166.2,32.2 159.9,30.8 153.6,30.1" fill="none" class="unit" stroke-width="3"/>
+        <polyline points="30.0,150.0 44.1,123.5 56.5,102.8 67.5,86.7 77.2,74.1 85.8,64.4 93.3,56.8 100.0,50.9 105.9,46.2 115.6,39.9 123.2,36.0 133.8,32.2 140.1,30.8 146.4,30.1" fill="none" class="alt" stroke-width="3"/>
+        <line x1="30" y1="150" x2="270" y2="150" class="warn" stroke-width="2"/>
+        <line x1="56.5" y1="102.8" x2="243.5" y2="102.8" class="warn" stroke-width="2"/>
+        <line x1="77.2" y1="74.1" x2="222.8" y2="74.1" class="warn" stroke-width="2"/>
+        <line x1="105.9" y1="46.2" x2="194.1" y2="46.2" class="warn" stroke-width="2"/>
+        <circle cx="270" cy="150" r="6" class="fill-unit"/>
+        <circle cx="30" cy="150" r="6" class="fill-alt"/>
+        <circle cx="150" cy="30" r="6" class="fill-ink"/>
+        <text x="256" y="174" font-size="14" class="unit halo">|+⟩</text>
+        <text x="20" y="174" font-size="14" class="alt halo">|−⟩</text>
+        <text x="160" y="22" font-size="14" class="halo">|0⟩</text>
+        <text x="150" y="166" font-size="12" text-anchor="middle" class="warn halo">D = 1</text>
+        <text x="150" y="98" font-size="12" text-anchor="middle" class="warn halo">0.78</text>
+        <text x="150" y="70" font-size="12" text-anchor="middle" class="warn halo">0.61</text>
+        <text x="206" y="42" font-size="12" class="warn halo">0.37</text>
+      </svg>
+      <p class="cap">Both states climb toward $\ket0$. The chord between them, $2D$, shrinks: $D = 1, 0.78, 0.61, 0.37$ at $t = 0, \tfrac12T_1, T_1, 2T_1$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The computation.</b> The amplitude-damping row sends $(x, y, z) \mapsto (\sqrt{1 - \gamma}x, \sqrt{1 - \gamma}y, \gamma + (1 - \gamma)z)$, so $(\pm1, 0, 0) \mapsto
+    (\pm\sqrt{1 - \gamma}, 0, \gamma)$; $|r_+ - r_-| = 2\sqrt{1 - \gamma} = 2e^{-t/2T_1}$. Adding pure dephasing multiplies the $x$ coordinates by $e^{-t/T_\varphi}$ and
+    leaves $z$ equal for both, so $D = e^{-t/2T_1 - t/T_\varphi} = e^{-t/T_2}$.</p>
+    <p><b>The numbers.</b> $e^{-1/4} = 0.7788$, $e^{-1/2} = 0.6065$, $e^{-1} = 0.3679$. $D = \tfrac12$ when $t/2T_1 = \ln2$, $t = 2\ln2\cdot100\ \mu\text{s} = 138.6\ \mu$s.</p>
+    <p><b>What $D(t)$ means operationally.</b> Someone prepared $\ket+$ or $\ket-$ — one bit — and the device held it for time $t$.
+    The best guess of the bit from the qubit is right with probability $\tfrac12(1 + e^{-t/T_2})$. That is the device's memory of
+    the bit, and it is set by $T_2$, not $T_1$: the information was in the phase.</p>
+    <p><b>The semigroup and the "no recovery" claim.</b> Under the memoryless model, the channel to time $t$ is the channel
+    from $s$ to $t$ applied after the one to time $s$ (<i>Why the decay is exponential</i>). Contractivity applied to that
+    middle channel gives $D(t) \le D(s)$. Applied to any recovery channel $\mathcal R$ at time $t$: $D(\mathcal R(\rho_+(t)), \mathcal R(\rho_-(t))) \le D(t)$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · distinguishability</p>
+  <h2>Fidelity, the other yardstick</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">fidelity</span></span>
+        $$F(\rho, \sigma) = \big\lVert\sqrt\rho\sqrt\sigma\big\rVert_1 = \operatorname{tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho},$$
+        <p class="small">a number in $[0, 1]$.</p>
+        <p class="small"><b>Pure states:</b> $\sqrt{\ket\psi\!\bra\psi} = \ket\psi\!\bra\psi$, so $\sqrt\rho\,\sigma\sqrt\rho = |\braket{\psi|\varphi}|^2\ket\psi\!\bra\psi$ and $F = |\braket{\psi|\varphi}|$. One pure: $F = \sqrt{\braket{\psi|\sigma|\psi}}$.</p>
+      </div>
+      <div class="box thm"><span class="label"><span class="term">Uhlmann's theorem</span> (cited)</span>
+        <p class="small">$F(\rho, \sigma) = \max|\braket{\Psi|\Phi}|$ over purifications $\ket\Psi$ of $\rho$ and $\ket\Phi$ of $\sigma$ on a common space. Uhlmann 1976; proved in Nielsen and Chuang, Theorem 9.4.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Fuchs–van de Graaf inequalities</span> (cited)</span>
+        $$1 - F \;\le\; D \;\le\; \sqrt{1 - F^2},$$
+        <p class="small">for $F = F(\rho, \sigma)$ and $D = D(\rho, \sigma)$.</p>
+        <p class="small">Fuchs and van de Graaf 1999; Nielsen and Chuang §9.2.3. For pure states the right side is an equality — the pure-state formula for $D$.</p>
+      </div>
+      <p class="small"><b>The running example</b> at $t = T_1$, against $\ket+$: $F = \sqrt{\braket{+|\rho(T_1)|+}} = \sqrt{\tfrac12(1 + e^{-1/2})} = 0.8963$, and $D = \tfrac12|r(T_1) - (1, 0, 0)| = 0.3723$:</p>
+      $$0.1037 \le 0.3723 \le 0.4435\ \checkmark$$
+      <div class="box warn"><span class="label">a convention</span>
+        <p class="small">Many authors call $F^2$ the fidelity; check which before comparing numbers. This deck's $F$ is Nielsen and Chuang's.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The pure-state computation.</b> $\ket\psi\!\bra\psi$ is a projector, so it is its own square root. Then
+    $\ket\psi\!\bra\psi\,\ket\varphi\!\bra\varphi\,\ket\psi\!\bra\psi = |\braket{\psi|\varphi}|^2\ket\psi\!\bra\psi$, whose square root is $|\braket{\psi|\varphi}|\ket\psi\!\bra\psi$, trace $|\braket{\psi|\varphi}|$. If only $\rho$ is pure,
+    $\sqrt\rho\sigma\sqrt\rho = \braket{\psi|\sigma|\psi}\ket\psi\!\bra\psi$, giving $\sqrt{\braket{\psi|\sigma|\psi}}$. That $F \le 1$ in general follows from Uhlmann (an inner
+    product of unit vectors).</p>
+    <p><b>The running example's numbers.</b> $\braket{+|\rho|+} = \tfrac12(1 + x)$ (unit 04's $\tfrac12(1 + r\cdot n)$ with $n = (1, 0, 0)$), and
+    $x = e^{-1/2} = 0.60653$: $F = \sqrt{0.80327} = 0.89625$. $r(T_1) - (1, 0, 0) = (-0.39347, 0, 0.63212)$, length $0.74457$, $D = 0.37229$. Then
+    $1 - F = 0.10375$ and $\sqrt{1 - F^2} = \sqrt{0.19673} = 0.44354$.</p>
+    <p><b>Fidelity does not decrease under channels.</b> $F(\Phi(\rho), \Phi(\sigma)) \ge F(\rho, \sigma)$: take Uhlmann's optimal purifications,
+    apply a Stinespring unitary to them with a fresh environment, and note the results purify $\Phi(\rho)$ and $\Phi(\sigma)$
+    with the same inner product. Problem P12 does it in full. It is contractivity again, in the other direction,
+    because fidelity measures closeness rather than distance.</p>
+    <p><b>Why two yardsticks.</b> $D$ has the one-shot operational meaning; $F$ is easier to compute for pure states and
+    behaves well under purification and tensor products. Units 22–24 quote both, and the inequalities convert one
+    into the other.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">21 · the close</p>
+  <h2>What the device took</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="plus">the running example</span>, answered</span>
+        <p class="small"><b>What is it at $t$?</b> $\rho(t) = \tfrac12\begin{pmatrix}1 + \gamma &amp; e^{-t/T_2}\\ e^{-t/T_2} &amp; 1 - \gamma\end{pmatrix}$, $\gamma = 1 - e^{-t/T_1}$: a point sliding through the Bloch ball toward $\ket0$, with $T_2 \le 2T_1$.</p>
+        <p class="small"><b>Could anything recover it?</b> No. Whatever is done to the qubit afterwards is a channel $\mathcal R$ — a unitary, a measurement, an ancilla and a unitary and a discard — and $D(\mathcal R(\rho_+(t)), \mathcal R(\rho_-(t))) \le e^{-t/T_2}$. A recovered $\ket\pm$ would have $D = 1$.</p>
+      </div>
+      <p class="small"><b>What unit 22 does instead.</b> It never lets the information sit in one qubit. A logical qubit is spread over several, so a channel acting on <b>one</b> of them leaves the encoded states as distinguishable as before — nothing to recover, only an error to locate and undo. Contractivity is not beaten; it is respected, by keeping the noise away from where the information is.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 240" width="380" role="img" aria-label="a plot of D against time in units of T1 from 0 to 4, a decreasing exponential starting at 1; at t equal 2 a dashed line rising back toward 1 is crossed out and labelled no channel does this">
+        <line x1="40" y1="180" x2="290" y2="180" class="ink" stroke-width="1.4"/>
+        <line x1="40" y1="180" x2="40" y2="30" class="ink" stroke-width="1.4"/>
+        <polyline points="40,40.0 52.5,53.3 65,65.4 77.5,76.3 90,86.2 102.5,95.1 115,103.2 127.5,110.5 140,117.1 152.5,123.1 165,128.5 177.5,133.4 190,137.8 202.5,141.8 215,145.5 227.5,148.8 240,151.7 252.5,154.4 265,156.9 277.5,159.1 290,161.1" fill="none" class="unit" stroke-width="2.5"/>
+        <path d="M 165,128.5 Q 195,72 232,58" fill="none" class="warn" stroke-width="2" stroke-dasharray="6 4"/>
+        <line x1="184" y1="70" x2="210" y2="96" class="warn" stroke-width="2.5"/>
+        <line x1="210" y1="70" x2="184" y2="96" class="warn" stroke-width="2.5"/>
+        <text x="290" y="26" font-size="12" text-anchor="end" class="warn halo">no channel does this</text>
+        <text x="34" y="44" font-size="12" text-anchor="end" class="mono">1</text>
+        <text x="34" y="184" font-size="12" text-anchor="end" class="mono">0</text>
+        <line x1="165" y1="180" x2="165" y2="185" class="ink" stroke-width="1.2"/>
+        <line x1="290" y1="180" x2="290" y2="185" class="ink" stroke-width="1.2"/>
+        <text x="165" y="198" font-size="12" text-anchor="middle" class="mono">2</text>
+        <text x="290" y="198" font-size="12" text-anchor="middle" class="mono">4</text>
+        <text x="228" y="216" font-size="12" text-anchor="middle">t / T₁</text>
+        <text x="96" y="120" font-size="12" class="unit halo">D(t)</text>
+      </svg>
+      <p class="cap">$D(t) = e^{-t/2T_1}$ for $\ket\pm$ under amplitude damping. It can stay level (a unitary) or fall; it cannot rise.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The sense of "no".</b> The claim is about any procedure acting on the qubit alone, after the noise, with no
+    access to the environment. If the environment could be captured and brought back, the joint evolution is unitary
+    and could be undone — the information is not destroyed, only moved where it cannot be reached. Stinespring's
+    picture makes this exact: the channel is a unitary followed by forgetting.</p>
+    <p><b>The curve.</b> $e^{-t/2T_1}$ from $t = 0$ to $4T_1$ (the $T_\varphi = \infty$ case). The dashed rising curve is drawn only to be ruled
+    out: any recovery map at $t = 2T_1$ keeps $D \le e^{-1} = 0.368$.</p>
+    <p><b>Why codes are not a contradiction.</b> In unit 22, a code space $C$ is chosen so that the noise channel restricted to
+    $C$ (for the errors the code is designed for) has a channel inverse on its image. Channels with channel inverses
+    preserve trace distance, so the encoded states never lose distinguishability in the first place. The cost is
+    redundancy: more physical qubits per logical one, and noise weak enough that two errors before the next correction
+    are rare. Units 22–24 make all three precise.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · summary</p>
+  <h2>What this unit bought, and where it stops</h2>
+  <div class="cols">
+    <div class="box good"><span class="label">the toolkit</span>
+      <ul class="small">
+        <li><b>POVMs</b> $\{E_m \ge 0,\ \sum E_m = I\}$, forced by helpers; <b>Naimark</b>: $V\psi = \sum_m\sqrt{E_m}\psi\otimes\ket m$, an isometry, then a projection.</li>
+        <li><b>Channels</b>: CPTP; positive is not enough — $(\mathrm{id}\otimes T)\ket{\Phi^+}\!\bra{\Phi^+} = \tfrac12\mathrm{SWAP}$, eigenvalue $-\tfrac12$.</li>
+        <li><b>Choi</b>: CP iff $J(\Phi) \ge 0$; TP iff $\operatorname{tr}_2J = I$. <b>Kraus</b>: $\sum A_k\rho A_k^\dagger$, $\sum A_k^\dagger A_k = I$, unique up to an isometry. <b>Stinespring</b>: $\operatorname{tr}_E(V\rho V^\dagger)$.</li>
+        <li><b>Noise models</b>: bit flip, phase flip, depolarising, amplitude damping, pure dephasing; their Bloch-ball actions.</li>
+        <li><b>$T_1$, $T_2$</b>: $\gamma = 1 - e^{-t/T_1}$; $1/T_2 = 1/2T_1 + 1/T_\varphi$; $T_2 \le 2T_1$, also from Choi.</li>
+        <li><b>Trace distance</b>: Helstrom $\tfrac12(1 + D)$; contracts under every channel. <b>Fidelity</b>, Uhlmann and Fuchs–van de Graaf, cited.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Nielsen and Chuang, §2.2.6 (POVMs), §8.2–8.3 (operations, Kraus, the noise models) and §9.2 (trace distance and fidelity); their $p$ for depolarising is this deck's. Watrous, <i>The Theory of Quantum Information</i>, chapter 2 (Choi, Kraus, Stinespring, in full generality) and §3.1 (Helstrom–Holevo). Preskill, <i>Physics 219</i> notes, chapter 3 — stop before the master equation sections unless you want the Lindblad derivation this unit names.</p>
+      <h3>Next</h3>
+      <p class="small"><b>22</b> the first codes, and the Knill–Laflamme conditions: a code that corrects $X$, $Y$, $Z$ on any one qubit corrects every single-qubit channel of this unit. <b>25</b> amplitude damping as the gate error of a transmon.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, on purpose.</b> Master equations and their derivation (Born–Markov, the Lindblad form): named
+    once. Channel capacities (classical, quantum, private): not in the curriculum. Infinite-dimensional systems, where
+    Stinespring and Naimark need operator algebras. Entanglement-breaking and degradable channels, and diamond norm
+    distances between channels — unit 24 quotes error rates without them.</p>
+    <p><b>Reading notes.</b> Nielsen and Chuang's Theorem 8.2 is this unit's unitary freedom; their proof of the Kraus
+    representation goes through the "system–environment" model rather than Choi, so the two proofs complement each
+    other. Watrous puts $\Phi$ on the <i>first</i> factor, $J(\Phi) = \sum_{ab}\Phi(\ket a\!\bra b)\otimes\ket a\!\bra b$, and so writes the
+    trace-preserving condition as a partial trace over the first factor; swap the factors and every statement here carries over. Nielsen and Chuang's fidelity is this
+    deck's $F$, not its square.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">21 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>prove Choi's theorem — $\Phi$ is completely positive iff $J(\Phi) \ge 0$, trace-preserving iff $\operatorname{tr}_2J = I$ — building the Kraus operators from the eigenvectors of $J$;</li>
+      <li>show the transpose is positive but not completely positive: $(\mathrm{id}\otimes T)(\ket{\Phi^+}\!\bra{\Phi^+}) = \tfrac12\mathrm{SWAP}$, with eigenvalue $-\tfrac12$ on $\ket{\Psi^-}$;</li>
+      <li>derive $T_2 \le 2T_1$ from amplitude damping's coherence factor $e^{-t/2T_1}$ and $1/T_2 = 1/2T_1 + 1/T_\varphi$ — and for $T_1 = 100\ \mu$s, $T_\varphi = 150\ \mu$s, get $T_2 \approx 85.7\ \mu$s.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A Choi proof with only one direction, or no source for the Kraus operators; a transpose argument on a product state, where nothing goes wrong; a coherence decaying as $e^{-t/T_1}$ — amplitudes decay at half the rate of probabilities.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./qc problems 21</code>. When the checkpoint is true: <code>./qc done 21</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the third part with numbers before opening the sheet: $1/T_2 = 1/200 + 1/150 = 7/600$ per microsecond, so
+    $T_2 = 600/7 = 85.71\ \mu$s — less than $2T_1 = 200\ \mu$s, as it must be, and less than $T_\varphi$ too.</p>
+    <p>Then the transpose applied to Bob's half of $\ket{\Psi^-}$ instead of $\ket{\Phi^+}$. You should find
+    $\tfrac12(\ket{01}\!\bra{01} + \ket{10}\!\bra{10} - \ket{00}\!\bra{11} - \ket{11}\!\bra{00})$, with eigenvalue $-\tfrac12$ again — now on $\ket{\Phi^+}$. Problems P5 and P6
+    do the general case properly.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

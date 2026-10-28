@@ -1,0 +1,139 @@
+#+title: Glossary — unit 14
+#+startup: content latexpreview
+#+options: ^:{}
+
+The terms this unit introduces, in the order the deck meets them. The slides
+stay the definition of record; each entry names the slide it comes from, so a
+term can be looked up here and read properly there.
+
+Running example: \(n = 3\) with hidden string \(s = 110\), and the function
+\(000, 110\mapsto101\); \(001, 111\mapsto010\); \(010, 100\mapsto000\);
+\(011, 101\mapsto110\) — four pairs \(\{x, x\oplus s\}\), four distinct
+values. One run of Simon's circuit gives sixteen amplitudes \(\pm\frac14\) and
+an outcome uniform on \(s^\perp = \{000, 001, 110, 111\}\); the samples \(001\)
+and \(110\) give \(s = 110\) by elimination; two runs suffice with probability
+\(\frac38\), and \(\frac{10}3\) runs are needed on average. Classically, the
+queries \(000, 001, 010, 100\) collide at the fourth and also give \(s = 110\);
+at \(n = 100\) a randomised algorithm needs at least \(1.3\times10^{15}\)
+queries for success \(\frac23\), against about \(101\) quantum runs.
+
+* The problem
+
+- Simon's problem :: Given oracle access to \(f:\{0,1\}^n\to\{0,1\}^n\),
+  promised that for some \(s\ne0^n\), \(f(x) = f(x')\) iff \(x'\in\{x, x\oplus
+  s\}\): find \(s\). Simon (1994); his original version decides one-to-one
+  against two-to-one. /Slide: Simon's problem./
+- hidden XOR-period :: The string \(s\) of Simon's problem: \(f(x) = f(x\oplus
+  s)\) for every \(x\), and there are no other coincidences of values. The
+  analogue, for the group \((\{0,1\}^n, \oplus)\), of a period \(r\) with
+  \(f(x) = f(x + r)\). /Slide: Simon's problem./
+- two-to-one :: A function every value of which has exactly two preimages.
+  Under Simon's promise the preimage pairs are \(\{x, x\oplus s\}\), the
+  \(2^{n-1}\) cosets of the subgroup \(\{0, s\}\). /Slide: Simon's problem./
+- exponential separation :: A family of problems whose quantum query complexity
+  is polynomial in \(n\) and whose randomised (bounded-error) query complexity
+  is at least \(2^{cn}\) for some \(c > 0\). Simon's problem is the first, with
+  \(O(n)\) against \(\Omega(2^{n/2})\). /Slide: Unit 13's scorecard, and the
+  target./
+
+* One run of the circuit
+
+- Simon's algorithm :: One run: \(H^{\otimes n}\) on register 1 of
+  \(\ket{0^n}\ket{0^n}\), one query \(U_f\), \(H^{\otimes n}\) on register 1,
+  measure register 1. Each run returns \(y\) uniform on \(s^\perp = \{y : y\cdot
+  s = 0\}\); about \(n\) runs and Gaussian elimination over \(\mathbb F_2\) give
+  \(s\). /Slide: The circuit./
+- coset state :: \(\frac1{\sqrt2}(\ket{x_v} + \ket{x_v\oplus s})\), the state
+  register 1 is left in when register 2 is measured with outcome \(v\) after the
+  query. \(H^{\otimes n}\) sends it to \(2^{-(n-1)/2}\sum_{y\cdot s =
+  0}(-1)^{x_v\cdot y}\ket y\): the unknown \(x_v\) becomes a sign, and the
+  outcome distribution is the same for every \(v\). /Slide: Measure the second
+  register first: the coset state./
+
+* Linear algebra over \(\mathbb F_2\)
+
+- field with two elements :: \(\mathbb F_2 = \mathbb Z/2\mathbb Z = \{0, 1\}\)
+  with addition XOR and multiplication AND. Every theorem of linear algebra
+  whose proof uses only the field axioms (dimension, rank–nullity, elimination)
+  holds over it; anything using positivity (Gram–Schmidt, \(y\cdot y > 0\)) does
+  not. /Slide: The field with two elements./
+- orthogonal complement :: For a subspace \(W\subseteq\mathbb F_2^n\),
+  \(W^\perp = \{y : y\cdot w = 0 \text{ for all } w\in W\}\). It has dimension
+  \(n - \dim W\) and \((W^\perp)^\perp = W\), by rank–nullity; so
+  \(\dim s^\perp = n - 1\) and \((s^\perp)^\perp = \{0, s\}\). /Slide:
+  Orthogonal complements over \(\mathbb F_2\)./
+- self-orthogonal vector :: A nonzero \(y\) with \(y\cdot y = 0\), i.e. one with
+  an even number of 1s. Impossible over \(\mathbb R\), common over \(\mathbb
+  F_2\): \(s = 110\) lies in its own \(s^\perp\). Harmless for Simon's
+  algorithm, which never needs \(W\cap W^\perp = \{0\}\). /Slide: Orthogonal
+  complements over \(\mathbb F_2\)./
+- rank :: The dimension of the span of the samples collected. All samples lie in
+  the \((n-1)\)-dimensional \(s^\perp\); at rank \(n - 1\) the equations \(y_j\cdot
+  t = 0\) have exactly the solutions \(t\in\{0, s\}\). /Slide: \(n - 1\)
+  independent samples pin down \(s\)./
+- Gaussian elimination :: Here, done as samples arrive: reduce each new sample by
+  XORing in the held rows in order of pivot column; discard it if it becomes
+  \(0\) (dependent), keep it otherwise. At rank \(n - 1\) set the one pivot-free
+  bit to 1 and back-substitute. \(O(n^2)\) bit operations per sample, \(O(n^3)\)
+  in all. /Slide: Gaussian elimination over \(\mathbb F_2\)./
+- pivot :: The leftmost 1 of a row in echelon form. Rows are kept with distinct
+  pivot columns, each row zero to the left of its pivot. /Slide: Gaussian
+  elimination over \(\mathbb F_2\)./
+
+* How many runs
+
+- Weierstrass product inequality :: \(\prod_k(1 - a_k)\ge1 - \sum_ka_k\) for
+  \(a_k\in[0, 1]\), proved by induction. It bounds the tail
+  \(\prod_{k>m}(1 - 2^{-k})\ge1 - 2^{-m}\), so \(P_m(1 - 2^{-m})\le
+  \prod_{k\ge1}(1 - 2^{-k})\le P_m\), and the limit is \(0.2888\) to four
+  places. /Slide: The tail, and why the limit is 0.2888./
+- geometric waiting time :: The number of independent trials, each succeeding
+  with probability \(q\), up to and including the first success; its mean is
+  \(1/q\). Stage \(j\) of Simon's algorithm (rank \(j\) to \(j + 1\)) has \(q_j =
+  1 - 2^{j-(n-1)}\), and the stages' means sum to fewer than \(n + 1\). /Slide:
+  Expected runs: fewer than \(n + 1\)./
+- Las Vegas algorithm :: A randomised algorithm that is always right and whose
+  running time is random — here, running Simon's circuit until the samples reach
+  rank \(n - 1\). Cutting it off at a fixed budget, accepting a small failure
+  probability, gives a Monte Carlo (bounded-error) algorithm. /Slide: The quantum
+  upper bound./
+
+* The classical lower bound
+
+- collision :: Two queries \(x\ne x'\) with \(f(x) = f(x')\). Under Simon's
+  promise it gives \(s = x\oplus x'\); without one, a classical algorithm's
+  answers are just distinct values. /Slide: What a classical algorithm sees./
+- transcript :: The record of a query algorithm's run: its queries and the
+  answers, in order. A deterministic algorithm's next query and its output are
+  functions of the transcript so far. /Slide: What a classical algorithm sees./
+- Yao's principle :: Here only its easy direction: if a randomised algorithm
+  succeeds with probability \(\ge\frac23\) on every input, then against any
+  input distribution some deterministic algorithm with the same number of
+  queries succeeds with probability \(\ge\frac23\). An exchange of two finite
+  sums. Yao (1977). /Slide: From randomised to deterministic: averaging./
+- lazy sampling :: Choosing a random function's value only when it is first
+  queried. For a uniform Simon function with period \(s\), a new query's answer
+  repeats an earlier one if the query is an earlier query \(\oplus\, s\), and is
+  otherwise uniform over the values not yet returned. /Slide: A random Simon
+  function, sampled lazily./
+- free oracle :: An oracle answering every new query with a fresh uniform value
+  not yet returned — a uniformly random one-to-one function, which ignores
+  \(s\). Coupled to the real oracle through the same fresh values, it agrees with
+  it until the first collision. /Slide: A random Simon function, sampled
+  lazily./
+- collision bound :: With \(s\) uniform on the nonzero strings and \(f\) uniform
+  with period \(s\), a deterministic \(q\)-query algorithm finds a collision
+  with probability at most \(\binom q2/(2^n - 1)\) and outputs \(s\) with
+  probability at most \((\binom q2 + 1)/(2^n - 1)\). Hence randomised query
+  complexity \(\Omega(2^{n/2})\): at least \(1.3\times10^{15}\) queries at \(n =
+  100\) for success \(\frac23\). /Slide: The collision bound./
+- birthday bound :: Among \(q\) queries there are \(\binom q2\approx q^2/2\)
+  pairs, each colliding with probability about \(2^{-n}\), so collisions become
+  likely only near \(q\approx2^{n/2}\) — the square root behind both the lower
+  bound and the matching \(O(2^{n/2})\) classical algorithm. /Slide:
+  \(\Omega(2^{n/2})\), and a matching upper bound./
+- oracle separation :: A proof that two kinds of machine differ when both are
+  given the same black box. Simon's problem separates polynomial-time quantum
+  from randomised computation relative to its oracle; it says nothing about
+  functions given as explicit circuits, which a classical algorithm may read.
+  /Slide: What has been separated, and what has not./

@@ -1,0 +1,1680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>25 · The physical qubit: driving a transmon, and the third level that will not stay empty</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="e">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="pulse"><span class="ref-name">the running example: a 10 ns Gaussian π-pulse on a three-level transmon</span>Levels $0$, $\hbar\omega$, $\hbar(2\omega + \alpha)$ with $\omega/2\pi = 5$ GHz, $\alpha/2\pi = -250$ MHz. Envelope $\Omega_x(t) = A\big[e^{-(t - 5)^2/2\sigma^2} - e^{-2}\big]$ on $0 \le t \le 10$ ns, $\sigma = 2.5$ ns, area $\pi$, so $A = 0.679$ rad/ns and the peak is $\Omega/2\pi = 93.4$ MHz. <span class="ref-note">Started in $\ket0$, it ends with $P_0 = 0.0253$, $P_1 = 0.9744$, $P_2 = 3.0\times10^{-4}$; $\ $sum $1$. The question: flip $\ket0$ to $\ket1$ — what goes wrong?</span></template>
+  <template data-ref="ladder"><span class="ref-name">section 1: the ladder</span>$H_0 = \hbar\omega\,n + \tfrac{\hbar\alpha}{2}\,n(n - 1)$ on $\mathrm{span}\{\ket0, \ket1, \ket2\}$, with $n = b^\dagger b = \mathrm{diag}(0, 1, 2)$. <span class="ref-note">$b\ket1 = \ket0$, $b\ket2 = \sqrt2\ket1$: the drive $\propto b + b^\dagger$ couples $\ket1 \leftrightarrow \ket2$ more strongly than $\ket0 \leftrightarrow \ket1$, by $\sqrt2$. Transitions at $5.00$ and $4.75$ GHz</span></template>
+  <template data-ref="frame"><span class="ref-name">section 2: the rotating frame</span>$\tilde H/\hbar = \alpha\ket2\!\bra2 + \tfrac{\Omega_x(t)}{2}(b + b^\dagger) + \tfrac{\Omega_y(t)}{2}(ib^\dagger - ib)$, after the rotating-wave approximation. <span class="ref-note">On $\ket0, \ket1$ it is $\tfrac12(\Omega_xX + \Omega_yY)$, unit 02's Rabi drive; $\ket2$ sits at $\alpha$, detuned from the drive by $\alpha$</span></template>
+  <template data-ref="leak"><span class="ref-name">section 3: leakage</span>$P_2 = 3.0\times10^{-4}$ at the end of the 10 ns pulse, after rising to $5.3\%$ mid-pulse. At 4 ns a quarter leaks. <span class="ref-note">The leading term: $P_2 \approx \dot\Omega_x(T)^2/2\alpha^4 = 4.4\times10^{-4}$, from the kink where the pulse switches off; for 4, 6, 8, 10, 20 ns: $0.25$, $0.047$, $1.9\times10^{-3}$, $3.0\times10^{-4}$, $2.7\times10^{-5}$</span></template>
+  <template data-ref="drag"><span class="ref-name">section 4: DRAG and the Stark shift</span>$\Omega_y = -\lambda\dot\Omega_x/\alpha$. At $\lambda = 1$: leakage $3.9\times10^{-6}$, but $1 - P_1 = 2.8\%$. <span class="ref-note">The drive raises the qubit frequency by $\Omega_x^2/2|\alpha|$, $17.5$ MHz at the peak. A detuning $c\,\Omega_x^2/\alpha$ and a search over $(\lambda, c)$: best near $(0.71, -0.22)$, leakage $1.4\times10^{-5}$, $1 - P_1 = 1.4\times10^{-5}$</span></template>
+  <template data-ref="t1"><span class="ref-name">section 5: T₁</span>Average infidelity $t/3T_1$: $3.3\times10^{-5}$ for 10 ns and $6.7\times10^{-5}$ for 20 ns, at $T_1 = 100\ \mu$s. <span class="ref-note">Against the uncorrected pulse's control error of $1.7\times10^{-2}$ (10 ns), $T_1$ is negligible; against the searched pulse's $1.4\times10^{-5}$, it dominates</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part E · noise and error correction · branch</p>
+  <div class="unit-no">25</div>
+  <h1>The physical qubit: driving a transmon, and the third level that will not stay empty</h1>
+  <p class="lede">Every earlier unit took a qubit to be $\mathbb C^2$. A superconducting qubit is the bottom of a ladder of levels, and the pulse that flips it also pushes on the rung above. This unit drives one, computes what leaks and what misses, corrects both, and weighs the remainder against $T_1$.</p>
+  <p class="meta"><span>needs 21, 02</span><span>~2½ h slides + 5 h problems</span><span>problems: <code>./qc problems 25</code></span></p>
+  <aside class="notes">
+    <p>Unit 24 ended with an assumption: every physical operation fails with probability about $p = 10^{-3}$. This
+    unit is where that number comes from for one kind of hardware. It is a branch: no later spine unit depends on
+    it, and unit 26 (hardware) can be read without it.</p>
+    <h4>How to read this deck</h4>
+    <p>One pulse runs through it: a 10 ns Gaussian $\pi$-pulse on a three-level transmon with anharmonicity
+    $\alpha/2\pi = -250$ MHz. Section 1 builds the model; section 2 puts it in the rotating frame and proves the
+    piecewise-constant evolution converges (unit 02 promised that proof); section 3 computes the leakage; section 4
+    corrects it, finds the error it did not fix, and corrects that; section 5 adds $T_1$; the close weighs the three.</p>
+    <p>Proofs are on the slides when they are one line, and in these notes under <b>Full proof</b> when they are
+    not; anything imported is labelled <i>cited</i>, with where it is proved. Every number was computed for this
+    deck, by the piecewise-constant evolution of section 2 with steps checked for convergence.</p>
+    <p><b>Tools used, and where they were taught.</b> Unit 00: complex inner-product spaces, Hermitian and unitary
+    operators, the operator norm, $e^{iH}$ unitary for Hermitian $H$. Unit 01: Stone's theorem (evolution
+    $e^{-iHt}$ for a fixed $H$), expectation values. Unit 02: the Bloch sphere, $R_{\mathbf n}(\theta)$, the
+    rotating frame, the rotating-wave approximation, Rabi oscillation, the $\pi$-pulse, the Bloch–Siegert shift.
+    Unit 04: density operators and Bloch vectors $\rho = \tfrac12(I + \mathbf r\cdot\boldsymbol\sigma)$. Unit 21:
+    amplitude damping, $\gamma = 1 - e^{-t/T_1}$, its action on Bloch vectors, and fidelity. New here:
+    time-dependent Hamiltonians, the three-level model, leakage, DRAG, the AC Stark shift and the average gate
+    fidelity.</p>
+    <p><b>The physics is taken from nothing.</b> No electronics or superconductivity is assumed. Where the deck
+    says "a circuit behaves as an oscillator", it describes what the circuit does and cites where the derivation
+    lives; it does not quantise a circuit, which needs infinite-dimensional quantum mechanics.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · overview</p>
+  <h2>One pulse, three levels, three errors</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="pulse">a 10 ns Gaussian π-pulse</span></span>
+        <p class="small">A transmon with levels $0$, $\hbar\omega$, $\hbar(2\omega + \alpha)$: $\omega/2\pi = 5$ GHz, $\alpha/2\pi = -250$ MHz. A microwave pulse at $\omega$, Gaussian envelope, area $\pi$, lasting 10 ns. <b>Flip $\ket0$ to $\ket1$. What goes wrong?</b></p>
+        <p class="small"><b>1.</b> <span class="ref" data-ref="leak">Leakage</span>: $3.0\times10^{-4}$ ends in $\ket2$.<br>
+        <b>2.</b> <span class="ref" data-ref="drag">A miss</span>: the drive shifts the qubit's own frequency, and $2.6\%$ never arrives in $\ket1$.<br>
+        <b>3.</b> <span class="ref" data-ref="t1">Decay</span>: $T_1$ costs $t/3T_1$ on average.</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> the model: a ladder, not a qubit · <b>2</b> the rotating frame, and time-dependent evolution · <b>3</b> leakage · <b>4</b> DRAG and the Stark shift · <b>5</b> $T_1$ as a gate error · <b>close</b> which error dominates.</p>
+      <p class="small muted">A <span class="term" data-term="transmon">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="pulse">the pulse</span> is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 240" width="546" role="img" aria-label="left: three energy levels, ket 0 at the bottom, ket 1 above it by omega, ket 2 above that by omega plus alpha, slightly less; a dashed line shows where an evenly spaced third level would be. A solid arrow from 0 to 1 is the qubit transition, a thinner arrow from 1 to 2 the leakage transition with coupling root 2. Right: a bell-shaped pulse envelope over 10 nanoseconds">
+        <line x1="30" y1="200" x2="170" y2="200" class="ink" stroke-width="2.5"/>
+        <line x1="30" y1="120" x2="170" y2="120" class="ink" stroke-width="2.5"/>
+        <line x1="30" y1="50" x2="170" y2="50" class="ink" stroke-width="2.5"/>
+        <line x1="30" y1="40" x2="170" y2="40" class="rule" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="176" y="204" font-size="13">|0⟩</text>
+        <text x="176" y="124" font-size="13">|1⟩</text>
+        <text x="176" y="56" font-size="13">|2⟩</text>
+        <text x="176" y="38" font-size="10" class="soft">2ω</text>
+        <line x1="70" y1="198" x2="70" y2="130" class="unit" stroke-width="3"/>
+        <polygon points="70,122 64,134 76,134" class="fill-unit"/>
+        <line x1="120" y1="118" x2="120" y2="60" class="warn" stroke-width="2"/>
+        <polygon points="120,52 115,63 125,63" class="fill-warn"/>
+        <text x="40" y="165" font-size="12" class="halo">ω</text>
+        <text x="128" y="92" font-size="12" class="halo">ω + α</text>
+        <text x="78" y="170" font-size="11" class="soft">×1</text>
+        <text x="128" y="108" font-size="11" class="soft">×√2</text>
+        <text x="40" y="228" font-size="11" class="soft">5.00 GHz, then 4.75 GHz</text>
+        <line x1="250" y1="150" x2="405" y2="150" class="rule" stroke-width="1.2"/>
+        <path d="M250.0,150.0 L253.8,146.4 L260.6,138.4 L270.4,123.8 L280.2,106.0 L299.7,67.6 L306.5,56.6 L311.8,49.9 L316.3,45.7 L319.3,43.8 L324.6,42.4 L328.4,42.9 L333.7,45.7 L338.2,49.9 L343.5,56.6 L350.3,67.6 L369.8,106.0 L379.6,123.8 L389.4,138.4 L396.2,146.4 L400.0,150.0" fill="none" class="unit" stroke-width="2.2"/>
+        <text x="250" y="168" font-size="11" class="soft">0</text>
+        <text x="388" y="168" font-size="11" class="soft">10 ns</text>
+        <text x="256" y="32" font-size="12">envelope Ωₓ(t), area π</text>
+        <text x="262" y="196" font-size="11" class="soft">peak Ω/2π = 93.4 MHz</text>
+      </svg>
+      <p class="cap">The qubit is the bottom two rungs. The drive pushes on the next rung too — harder, by $\sqrt2$ — and that rung is detuned by only $\alpha$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where each part of the running example is done.</b> The model is <i>The transmon's ladder</i> and <i>The
+    drive, and the √2</i>. The rotating frame is <i>Worked: the transmon in the rotating frame</i>. The pulse's
+    populations are <i>Worked: the 10 ns pulse, to the end</i>, with the trace through the pulse after it. The leakage
+    formula is <i>Leakage comes from the switch-off</i>. DRAG is <i>DRAG, derived</i>; the miss is <i>Why the π-pulse
+    misses</i>; the repair is <i>Two knobs, one search</i>. $T_1$ is <i>Worked: t/3T₁ for amplitude damping</i>. The
+    close is <i>Which error dominates</i>.</p>
+    <p><b>Why this example.</b> A Gaussian $\pi$-pulse is the simplest pulse anyone uses on a transmon, and 10 ns is
+    short enough that all three errors show: it sits where leakage is falling fast with duration, where the Stark
+    shift is a few per cent, and where $T_1$ is small but not zero. Ten nanoseconds is at the fast end of what
+    devices use (10–50 ns is typical), on purpose.</p>
+    <p><b>The referee.</b> The problem sheet's referee checks evolve these pulses step by step with
+    <code>qclib.linalg.exp_hermitian</code>; nothing in the deck needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>A ladder, not a qubit</h2>
+  <p>A superconducting qubit is an electrical oscillator whose levels are almost, but not quite, evenly spaced. The qubit is the bottom two; nothing but the unevenness keeps the third away.</p>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the model</p>
+  <h2>An oscillator on a chip</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>From nothing.</b> A <b>capacitor</b> is two metal plates close together; charge $\pm Q$ on them stores energy $Q^2/2C$. A <b>coil</b> (inductor) resists changes of current $I$, storing $\tfrac12 LI^2$. Join them in a loop and the charge sloshes back and forth: the <span class="term">LC oscillator</span>, angular frequency $\omega = 1/\sqrt{LC}$, exactly a mass on a spring.</p>
+      <p class="small"><b>Superconductivity.</b> Some metals, aluminium among them, lose all electrical resistance below a critical temperature (1.2 K for aluminium). An oscillator made of them rings without losing energy to heat — the property a qubit needs.</p>
+      <p class="small"><b>The transmon</b> replaces the coil by a <span class="term">Josephson junction</span>: two superconductors separated by an insulating layer a few atoms thick. It behaves as a coil whose inductance depends on the current through it: a <b>nonlinear</b> oscillator. On a chip it is two metal pads about half a millimetre across, joined by the junction, cooled to about 10 mK (unit 26 says why).</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 300" width="390" role="img" aria-label="top: an LC circuit, a capacitor of two parallel plates joined in a loop to a coil, with a curved arrow showing charge flowing back and forth. Bottom: a transmon, two rectangular metal pads joined by a thin bridge marked with a cross, the Josephson junction">
+        <line x1="60" y1="40" x2="240" y2="40" class="ink" stroke-width="2"/>
+        <line x1="60" y1="140" x2="240" y2="140" class="ink" stroke-width="2"/>
+        <line x1="60" y1="40" x2="60" y2="80" class="ink" stroke-width="2"/>
+        <line x1="60" y1="100" x2="60" y2="140" class="ink" stroke-width="2"/>
+        <line x1="38" y1="80" x2="82" y2="80" class="ink" stroke-width="4"/>
+        <line x1="38" y1="100" x2="82" y2="100" class="ink" stroke-width="4"/>
+        <path d="M240,40 L240,62 C255,62 255,74 240,74 C255,74 255,86 240,86 C255,86 255,98 240,98 C255,98 255,110 240,110 L240,140" fill="none" class="ink" stroke-width="2"/>
+        <text x="18" y="94" font-size="13">C</text>
+        <text x="258" y="94" font-size="13">L</text>
+        <path d="M110,70 C140,58 160,58 190,70" fill="none" class="accent" stroke-width="2"/>
+        <polygon points="194,72 182,72 188,63" class="fill-accent"/>
+        <path d="M190,110 C160,122 140,122 110,110" fill="none" class="accent" stroke-width="2"/>
+        <polygon points="106,108 118,108 112,117" class="fill-accent"/>
+        <text x="150" y="96" font-size="12" text-anchor="middle" class="soft">charge sloshes, ω = 1/√(LC)</text>
+        <rect x="40" y="200" width="90" height="60" rx="4" class="ink fill-soft" stroke-width="1.5"/>
+        <rect x="170" y="200" width="90" height="60" rx="4" class="ink fill-soft" stroke-width="1.5"/>
+        <line x1="130" y1="230" x2="170" y2="230" class="ink" stroke-width="2"/>
+        <line x1="143" y1="221" x2="157" y2="239" class="warn" stroke-width="2.5"/>
+        <line x1="157" y1="221" x2="143" y2="239" class="warn" stroke-width="2.5"/>
+        <text x="150" y="285" font-size="12" text-anchor="middle">transmon: pads + junction ×</text>
+        <text x="150" y="192" font-size="11" text-anchor="middle" class="soft">≈ 0.5 mm</text>
+      </svg>
+      <p class="cap">Above, the LC oscillator. Below, a transmon: the pads are the capacitor, the junction (×) a nonlinear coil.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The analogy, exactly.</b> In the LC loop, Kirchhoff's rule says the voltages round the loop sum to zero:
+    $Q/C + L\,\dot I = 0$ with $I = \dot Q$, so $\ddot Q = -Q/LC$. That is a mass on a spring, $\ddot x = -(k/m)x$, with
+    charge in place of position, $L$ in place of mass and $1/C$ in place of stiffness. The energy
+    $Q^2/2C + \tfrac12L\dot Q^2$ is the spring's potential plus kinetic energy. All of this is classical electricity, and
+    nothing in the rest of the deck depends on it beyond the word "oscillator".</p>
+    <p><b>Why a junction.</b> A Josephson junction carries a current $I_c\sin\varphi$, where $\varphi$ is a phase
+    difference between the two superconductors (Josephson, 1962). Expanded for small $\varphi$, $\sin\varphi \approx
+    \varphi - \varphi^3/6$: a linear coil plus a correction. The correction is what makes the energy levels unevenly
+    spaced. The derivation of the levels from this is circuit quantisation, and it is not done here (next slide).</p>
+    <p><b>The numbers.</b> A transition at 5 GHz is microwave radiation, the band domestic Wi-Fi uses; its wavelength
+    is $c/f = 6.0$ cm, much larger than the half-millimetre device, which is why it can be treated as a circuit rather
+    than an antenna. One quantum is $hf = 3.31\times10^{-24}$ J, or $20.7\ \mu$eV; dividing by Boltzmann's constant gives
+    $0.24$ K. At room temperature thermal agitation would excite it constantly; at 10 mK it essentially never does.
+    Unit 26 makes that quantitative.</p>
+    <p><b>History.</b> Superconductivity was discovered by Kamerlingh Onnes in 1911. Superconducting qubits began with
+    the Cooper-pair box (Nakamura, Pashkin and Tsai, 1999); the transmon, a Cooper-pair box with a large shunting
+    capacitor that makes it insensitive to stray charge, is Koch et al. 2007. It is the qubit in most superconducting
+    machines today.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the model</p>
+  <h2>The transmon's ladder</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the three-level model, ħ restored</span>
+        <p class="small">On $\mathrm{span}\{\ket0, \ket1, \ket2\} \cong \mathbb C^3$, with $n = \mathrm{diag}(0, 1, 2)$,</p>
+        $$H_0 = \hbar\omega\,n + \frac{\hbar\alpha}{2}\,n(n - 1),$$
+        <p class="small">levels $0$, $\hbar\omega$, $\hbar(2\omega + \alpha)$. The <span class="term">anharmonicity</span> $\alpha$ is how much the second gap falls short of the first.</p>
+      </div>
+      <div class="box thm"><span class="label">the ladder (cited)</span>
+        <p class="small">A transmon's levels are those of an oscillator corrected to $E_n \approx \hbar\omega n + \tfrac{\hbar\alpha}{2}n(n - 1)$, with $\alpha \lt 0$ and $|\alpha| \ll \omega$. Koch et al., <i>Phys. Rev. A</i> 76, 042319 (2007), §II.</p>
+      </div>
+      <p class="small"><b>Typical:</b> $\omega/2\pi \approx 5$ GHz, $\alpha/2\pi \approx -250$ MHz. Transitions $\omega_{n,n+1} = \omega + n\alpha$: $5.00$, $4.75$, $4.50$ GHz.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 320 270" width="416" role="img" aria-label="two ladders of four levels side by side. Left, the harmonic oscillator: evenly spaced, every gap omega. Right, the transmon: each gap smaller than the one below by alpha, gaps labelled 5.00, 4.75 and 4.50 gigahertz">
+        <text x="80" y="20" font-size="12" text-anchor="middle">harmonic</text>
+        <text x="230" y="20" font-size="12" text-anchor="middle">transmon</text>
+        <line x1="30" y1="240" x2="130" y2="240" class="ink" stroke-width="2"/>
+        <line x1="30" y1="175" x2="130" y2="175" class="ink" stroke-width="2"/>
+        <line x1="30" y1="110" x2="130" y2="110" class="ink" stroke-width="2"/>
+        <line x1="30" y1="45" x2="130" y2="45" class="ink" stroke-width="2"/>
+        <text x="136" y="244" font-size="11" class="soft">0</text>
+        <text x="136" y="179" font-size="11" class="soft">1</text>
+        <text x="136" y="114" font-size="11" class="soft">2</text>
+        <text x="136" y="49" font-size="11" class="soft">3</text>
+        <line x1="180" y1="240" x2="280" y2="240" class="ink" stroke-width="2"/>
+        <line x1="180" y1="175" x2="280" y2="175" class="ink" stroke-width="2"/>
+        <line x1="180" y1="113" x2="280" y2="113" class="ink" stroke-width="2"/>
+        <line x1="180" y1="55" x2="280" y2="55" class="ink" stroke-width="2"/>
+        <line x1="180" y1="110" x2="280" y2="110" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="180" y1="45" x2="280" y2="45" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="286" y="244" font-size="11" class="soft">|0⟩</text>
+        <text x="286" y="179" font-size="11" class="soft">|1⟩</text>
+        <text x="286" y="117" font-size="11" class="soft">|2⟩</text>
+        <text x="286" y="59" font-size="11" class="soft">|3⟩</text>
+        <text x="230" y="212" font-size="11" text-anchor="middle" class="halo">5.00 GHz</text>
+        <text x="230" y="149" font-size="11" text-anchor="middle" class="halo">4.75 GHz</text>
+        <text x="230" y="89" font-size="11" text-anchor="middle" class="halo">4.50 GHz</text>
+        <text x="80" y="212" font-size="11" text-anchor="middle" class="halo">ω</text>
+        <text x="80" y="147" font-size="11" text-anchor="middle" class="halo">ω</text>
+        <text x="80" y="82" font-size="11" text-anchor="middle" class="halo">ω</text>
+        <text x="160" y="266" font-size="11" text-anchor="middle" class="soft">dashed: where the harmonic level would be (to scale)</text>
+      </svg>
+      <p class="cap">Evenly spaced, one frequency drives every rung. The transmon's gaps shrink by $|\alpha|$ per rung, so a drive at $5.00$ GHz is off-resonant for the next — by only $250$ MHz.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What is cited and why.</b> Getting these levels means writing the circuit's energy as a function of a charge
+    and a phase, promoting them to operators on $L^2$ of a circle, and solving the resulting eigenvalue problem
+    (Mathieu's equation, in the transmon's case). That needs infinite-dimensional quantum mechanics, which this course
+    deliberately excludes (unit 01's notes). So the ladder is taken as given; everything after it is three-dimensional
+    linear algebra. Koch et al. find, in the transmon regime $E_J \gg E_C$, $\hbar\omega \approx \sqrt{8E_JE_C} - E_C$ and
+    $\hbar\alpha \approx -E_C$, where $E_J$ and $E_C$ are the junction and charging energies; the anharmonicity is set
+    by the size of the pads.</p>
+    <p><b>Optional cross-reference.</b> Mechanics to Relativity's unit 21b solves the harmonic oscillator by ladder
+    operators: levels $\hbar\omega(n + \tfrac12)$, evenly spaced, with $a\ket n = \sqrt n\ket{n - 1}$. The transmon is
+    that ladder, bent. (The constant $\tfrac12\hbar\omega$ is dropped here: a constant added to a Hamiltonian is a
+    global phase.) Note that unit 19 of that course uses the opposite inner-product convention to this one.</p>
+    <p><b>Check the model.</b> $H_0$ is diagonal and real, so Hermitian ✓. $E_0 = 0$; $E_1 = \hbar\omega$;
+    $E_2 = 2\hbar\omega + \tfrac{\hbar\alpha}2\cdot2 = \hbar(2\omega + \alpha)$ ✓; $E_3 = \hbar(3\omega + 3\alpha)$, so the gaps are
+    $\omega$, $\omega + \alpha$, $\omega + 2\alpha$ ✓. Dimensions: $\hbar$ times an angular frequency is an energy ✓.</p>
+    <p><b>Why stop at three levels.</b> Leakage first reaches $\ket2$; $\ket3$ is reached only through $\ket2$ and is
+    detuned by a further $2\alpha$. The truncation is checked at the end of section 3, and it matters more than one
+    might hope for the 10 ns pulse.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the model</p>
+  <h2>The drive, and the √2</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">truncated lowering operator</span></span>
+        <p class="small">$b = \left(\begin{smallmatrix}0 &amp; 1 &amp; 0\\ 0 &amp; 0 &amp; \sqrt2\\ 0 &amp; 0 &amp; 0\end{smallmatrix}\right)$: $\ b\ket1 = \ket0$, $b\ket2 = \sqrt2\ket1$, $b\ket0 = 0$.</p>
+        <p class="small">Check: $b^\dagger b = \mathrm{diag}(0, 1, 2) = n$ ✓ — the oscillator's $b\ket k = \sqrt k\ket{k - 1}$, cut at $k = 2$.</p>
+      </div>
+      <div class="box def"><span class="label">the drive (cited form)</span>
+        <p class="small">A microwave voltage on the pads couples through $b + b^\dagger$:</p>
+        $$H_d = \hbar\,(\Omega_x\cos\omega t + \Omega_y\sin\omega t)(b + b^\dagger),$$
+        <p class="small">with slowly varying real <span class="term" data-term="quadrature">envelopes</span> $\Omega_x$ (in-phase) and $\Omega_y$ (quadrature). Koch et al. (2007), §III.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="15 5 260 255" width="468" role="img" aria-label="three levels; the drive operator b plus b dagger connects ket 0 and ket 1 with matrix element 1 and ket 1 and ket 2 with matrix element root 2, and has no element between ket 0 and ket 2">
+        <line x1="40" y1="225" x2="200" y2="225" class="ink" stroke-width="2.5"/>
+        <line x1="40" y1="135" x2="200" y2="135" class="ink" stroke-width="2.5"/>
+        <line x1="40" y1="55" x2="200" y2="55" class="ink" stroke-width="2.5"/>
+        <text x="208" y="229" font-size="13">|0⟩</text>
+        <text x="208" y="139" font-size="13">|1⟩</text>
+        <text x="208" y="59" font-size="13">|2⟩</text>
+        <line x1="90" y1="222" x2="90" y2="146" class="unit" stroke-width="2.5"/>
+        <polygon points="90,138 84,150 96,150" class="fill-unit"/>
+        <polygon points="90,222 84,210 96,210" class="fill-unit"/>
+        <line x1="150" y1="132" x2="150" y2="66" class="warn" stroke-width="4"/>
+        <polygon points="150,58 143,72 157,72" class="fill-warn"/>
+        <polygon points="150,132 143,118 157,118" class="fill-warn"/>
+        <text x="100" y="186" font-size="13" class="halo">1</text>
+        <text x="160" y="100" font-size="13" class="halo">√2</text>
+        <text x="26" y="20" font-size="12">⟨j|(b + b†)|k⟩:</text>
+        <text x="30" y="252" font-size="11" class="soft">no 0–2 element: |2⟩ is reached only via |1⟩</text>
+      </svg>
+      <p class="cap">The matrix elements of $b + b^\dagger$. The leakage transition is driven $\sqrt2$ times harder than the qubit transition.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where $b + b^\dagger$ comes from.</b> The microwave line is coupled to the transmon through a small
+    capacitor, so the drive adds a term proportional to the applied voltage times the transmon's charge operator.
+    In the transmon regime the charge operator's matrix elements are, to leading order, those of an oscillator's
+    $b + b^\dagger$: $\sqrt{k+1}$ between $\ket k$ and $\ket{k + 1}$, zero between levels two apart (Koch et al.,
+    §III, cited). Corrections of relative order $|\alpha|/\omega$ are neglected. The overall constant is absorbed into
+    $\Omega_x$ and $\Omega_y$, which is why they are called <i>Rabi frequencies</i>: the next section shows $\Omega_x$
+    is unit 02's $\Omega$ on the bottom two levels.</p>
+    <p><b>Check.</b> $b^\dagger$ is the transpose of $b$ (real entries), with $b^\dagger\ket0 = \ket1$ and
+    $b^\dagger\ket1 = \sqrt2\ket2$. Then $b^\dagger b\ket1 = b^\dagger\ket0 = \ket1$ and $b^\dagger b\ket2 =
+    b^\dagger\sqrt2\ket1 = 2\ket2$ ✓. $b + b^\dagger$ is real symmetric, hence Hermitian, as a term in a Hamiltonian
+    must be ✓. Its eigenvalues are $0, \pm\sqrt3$ (characteristic polynomial $-\lambda^3 + 3\lambda$), so
+    $\lVert b + b^\dagger\rVert = \sqrt3$, a number section 2 uses.</p>
+    <p><b>A trap.</b> For the untruncated oscillator, $[b, b^\dagger] = I$. For the truncated $b$ it fails:
+    $[b, b^\dagger] = \mathrm{diag}(1, 1, -2)$. Nothing below uses the commutator, but formulas from oscillator
+    texts that do should not be copied over.</p>
+    <p><b>"In-phase" and "quadrature".</b> Two signals at the same frequency a quarter-period apart, $\cos\omega t$
+    and $\sin\omega t$, are the two quadratures; any signal near $\omega$ is a combination
+    $\Omega_x\cos\omega t + \Omega_y\sin\omega t = \Omega\cos(\omega t - \varphi)$ with $\Omega_x = \Omega\cos\varphi$,
+    $\Omega_y = \Omega\sin\varphi$. Microwave electronics generates the two envelopes separately and mixes them up to
+    5 GHz. Section 4 uses $\Omega_y$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>The rotating frame</h2>
+  <p>The drive oscillates five billion times a second. Turn with it, and what is left changes slowly — once the fast terms are dropped, with their price named. First: what evolution under a changing Hamiltonian even is.</p>
+</section>
+
+<section>
+  <p class="eyebrow">25 · time dependence</p>
+  <h2>A Hamiltonian that changes in time</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 01's Stone theorem gives $e^{-iHt}$ for a <b>fixed</b> $H$. A pulse makes $H$ change. Over a short step in which $H$ barely moves, the evolution should be $e^{-iH(t)\Delta t}$; in the limit, a differential equation.</p>
+      <div class="box def"><span class="label">evolution under a <span class="term">time-dependent Hamiltonian</span></span>
+        <p class="small">For continuous Hermitian $H(t)$, the <span class="term">propagator</span> $U(t, s)$ is the solution of</p>
+        $$i\,\partial_tU(t, s) = H(t)\,U(t, s),\qquad U(s, s) = I,$$
+        <p class="small">and the state evolves as $\ket{\psi(t)} = U(t, s)\ket{\psi(s)}$. With $\hbar = 1$ from here on: $H$ in rad/ns, $t$ in ns.</p>
+      </div>
+      <p class="small"><b>Unitary:</b> $\partial_t(U^\dagger U) = (-iHU)^\dagger U + U^\dagger(-iHU) = iU^\dagger HU - iU^\dagger HU = 0$ ✓. <b>Composes:</b> $U(t, r)U(r, s) = U(t, s)$, by uniqueness.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 215" width="494" role="img" aria-label="the 10 nanosecond Gaussian envelope as a smooth bell curve, with a staircase of ten constant steps overlaid, each step taking the curve's value at the step's midpoint">
+        <line x1="40" y1="185" x2="370" y2="185" class="ink" stroke-width="1.2"/>
+        <line x1="40" y1="15" x2="40" y2="185" class="ink" stroke-width="1.2"/>
+        <path d="M40.0,173.9 L73.0,173.9 L73.0,142.4 L106.0,142.4 L106.0,101.3 L139.0,101.3 L139.0,60.7 L172.0,60.7 L172.0,35.0 L238.0,35.0 L238.0,60.7 L271.0,60.7 L271.0,101.3 L304.0,101.3 L304.0,142.4 L337.0,142.4 L337.0,173.9 L370.0,173.9" fill="none" class="accent" stroke-width="2"/>
+        <path d="M40.0,185.0 L49.9,178.7 L61.0,170.4 L73.1,159.6 L85.3,147.1 L102.9,126.5 L144.8,72.9 L157.0,59.1 L164.7,51.4 L173.5,43.9 L184.6,36.8 L193.4,33.2 L203.3,31.5 L210.0,31.8 L214.4,32.6 L225.4,36.8 L236.5,43.9 L245.3,51.4 L253.0,59.1 L265.2,72.9 L307.1,126.5 L324.7,147.1 L336.9,159.6 L349.0,170.4 L360.1,178.7 L370.0,185.0" fill="none" class="unit" stroke-width="2.2"/>
+        <text x="40" y="203" font-size="11" class="soft" text-anchor="middle">0</text>
+        <text x="205" y="203" font-size="11" class="soft" text-anchor="middle">5</text>
+        <text x="372" y="203" font-size="11" class="soft" text-anchor="end">10 ns</text>
+        <text x="34" y="136" font-size="11" class="soft" text-anchor="end">0.2</text>
+        <text x="34" y="84" font-size="11" class="soft" text-anchor="end">0.4</text>
+        <text x="34" y="32" font-size="11" class="soft" text-anchor="end">0.6</text>
+        <text x="250" y="24" font-size="12" class="alt">Ωₓ(t), rad/ns</text>
+        <text x="52" y="28" font-size="12" class="soft">steps held at</text>
+        <text x="52" y="42" font-size="12" class="soft">midpoint values</text>
+      </svg>
+      <p class="cap">The <span class="ref" data-ref="pulse">running pulse</span>'s envelope, and a ten-step staircase. Each step is a fixed Hamiltonian, evolved exactly by unit 01; the next slide bounds the error.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Existence and uniqueness (cited).</b> $i\partial_tU = H(t)U$ is a linear ODE on the finite-dimensional space of
+    matrices with continuous coefficients, so it has exactly one solution on all of $[s, T]$ (the Picard–Lindelöf theorem
+    for linear systems; e.g. Hirsch, Smale and Devaney, <i>Differential Equations, Dynamical Systems</i>, ch. 17). The
+    columns of $U(t, s)$ are the solutions started from the basis vectors.</p>
+    <p><b>Composition.</b> Fix $r$. Both $t \mapsto U(t, r)U(r, s)$ and $t \mapsto U(t, s)$ solve the equation and agree at
+    $t = r$, so they agree everywhere. This is what lets the next slide split the evolution into steps.</p>
+    <p><b>Is this a new postulate?</b> Unit 01's evolution postulate concerned a closed system whose surroundings do not
+    change, and Stone's theorem turned it into $e^{-iHt}$. A driven system is not closed — the microwave source is outside
+    it — and the time-dependent equation is the natural extension: for a fixed $H$ it reduces to unit 01's, and over a
+    short step it is unit 01's to first order. The next slide makes "to first order" precise. Unit 02's notes promised
+    exactly this justification.</p>
+    <p><b>The figure.</b> The envelope is the running example's,
+    $\Omega_x(t) = 0.679\big[e^{-(t-5)^2/12.5} - e^{-2}\big]$ rad/ns; the staircase holds it at $t = 0.5, 1.5, \dots, 9.5$ ns.
+    The deck's numbers use 500 to 8000 steps, not 10.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · time dependence</p>
+  <h2>Short constant steps converge</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma: two evolutions</span>
+        <p class="small">If $iU' = HU$, $iW' = KW$, $U(0) = W(0) = I$:</p>
+        $$\lVert U(t) - W(t)\rVert \le \int_0^t \lVert H(s) - K(s)\rVert\,ds .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$(W^\dagger U)' = iW^\dagger KU - iW^\dagger HU = -iW^\dagger(H - K)U$. Integrate; $W$, $U$ unitary have norm 1; and $\lVert U - W\rVert = \lVert W^\dagger U - I\rVert$. ∎</p>
+      </div>
+      <div class="box thm"><span class="label">theorem: <span class="term">piecewise-constant evolution</span></span>
+        <p class="small">Let $M = \max\lVert H'(t)\rVert$, $\Delta t = T/N$, $t_k = (k - \tfrac12)\Delta t$. Then</p>
+        $$\Big\lVert U(T, 0) - \prod_{k = N}^{1} e^{-iH(t_k)\Delta t}\Big\rVert \le \frac{MT\,\Delta t}{4}.$$
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Split $U(T, 0) = U_N\cdots U_1$ into steps. On step $k$, the lemma with $K = H(t_k)$ gives $\lVert U_k - e^{-iH(t_k)\Delta t}\rVert \le \int M|t - t_k|\,dt = M\Delta t^2/4$. For unitaries, $\lVert A_N\cdots A_1 - B_N\cdots B_1\rVert \le \sum\lVert A_k - B_k\rVert$ (telescope). $N$ steps: $NM\Delta t^2/4$. ∎</p>
+      </div>
+      <p class="small"><b><span class="ref" data-ref="pulse">The pulse</span>:</b> $M = \tfrac{\sqrt3}{2}\max|\Omega_x'| = 0.143$ rad/ns²; at $N = 4000$ the bound is $8.9\times10^{-4}$.</p>
+      <div class="box warn"><span class="label">honest, not sharp</span>
+        <p class="small">Midpoints do far better: 500 and 8000 steps agree on $P_2$ to $5\times10^{-8}$. The deck's numbers rest on that check, not on the bound.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the lemma.</b> $(W^\dagger)' = (W')^\dagger = (-iKW)^\dagger = iW^\dagger K$, using $K^\dagger = K$. So
+    $(W^\dagger U)' = iW^\dagger KU + W^\dagger(-iHU) = -iW^\dagger(H - K)U$. Integrating from $0$, where $W^\dagger U = I$:
+    $W^\dagger(t)U(t) - I = -i\int_0^tW^\dagger(H - K)U\,ds$. The operator norm satisfies $\lVert AB\rVert \le \lVert A\rVert\lVert B\rVert$
+    (unit 00) and $\lVert\int F\rVert \le \int\lVert F\rVert$, and a unitary has norm 1. Finally $U - W = W(W^\dagger U - I)$, and
+    multiplying by a unitary does not change the norm.</p>
+    <p><b>The step estimate.</b> On step $k$, $t \in [t_k - \Delta t/2, t_k + \Delta t/2]$, and by the mean value
+    inequality $\lVert H(t) - H(t_k)\rVert \le M|t - t_k|$. Then $\int|t - t_k|\,dt = 2\int_0^{\Delta t/2}u\,du = \Delta t^2/4$. The lemma
+    applies to a step starting at time $t_k - \Delta t/2$ by shifting the clock.</p>
+    <p><b>The telescope.</b> $A_N\cdots A_1 - B_N\cdots B_1 = \sum_k A_N\cdots A_{k+1}(A_k - B_k)B_{k-1}\cdots B_1$ — expand and
+    watch adjacent terms cancel — and each product of unitaries has norm 1.</p>
+    <p><b>Consequences.</b> The error falls like $1/N$, so the product converges to $U(T, 0)$: this is the
+    <span class="term">time-ordered product</span>, often written $\mathcal T\exp\big(-i\int H\big)$, defined as the limit.
+    The order matters — later times stand to the left — because $H(t)$ at different times need not commute. When they do
+    commute (all $H(t)$ multiples of one matrix), the product is $e^{-i\int H}$ exactly; the slide <i>On two levels:
+    unit 02's drive</i> uses that.</p>
+    <p><b>Why midpoints beat the bound.</b> The midpoint rule's first-order errors cancel between the two halves of each
+    step, so its true error is $O(\Delta t^2)$ — the same reason the midpoint rule for integrals is second order. That
+    improvement is not proved here; the deck relies on the convergence check instead. Unit 19's Trotter bounds are the
+    same kind of estimate for a sum of non-commuting terms (unit 19 is not needed here).</p>
+    <p><b>Numbers.</b> $\max|\Omega_x'|$ for a Gaussian of width $\sigma$ is $A/(\sigma\sqrt e)$, at $t = T/2 \pm \sigma$:
+    $0.6788/(2.5\times1.6487) = 0.1647$ rad/ns². $\tfrac{\sqrt3}{2}\times0.1647 = 0.1426$. With $T = 10$, $\Delta t = 0.0025$:
+    $0.1426\times10\times0.0025/4 = 8.9\times10^{-4}$. Problem P3 asks for the $N$ that guarantees $10^{-6}$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the rotating frame</p>
+  <h2>Turning with the drive</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">rotating frame</span></span>
+        <p class="small">For Hermitian $G$, put $\ket{\tilde\psi} = e^{iGt}\ket\psi$. If $i\partial_t\ket\psi = H(t)\ket\psi$, then</p>
+        $$i\,\partial_t\ket{\tilde\psi} = \tilde H(t)\ket{\tilde\psi},$$
+        $$\tilde H = e^{iGt}He^{-iGt} - G .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$i\partial_t\big(e^{iGt}\psi\big) = i(iG)e^{iGt}\psi + e^{iGt}H\psi = \big(-G + e^{iGt}He^{-iGt}\big)e^{iGt}\psi$. ∎</p>
+      </div>
+      <p class="small">The $-G$ is the price of differentiating a changing basis. Here $G = \omega n$, so $e^{i\omega nt} = \mathrm{diag}(1, e^{i\omega t}, e^{2i\omega t})$: diagonal, so <b>populations are the same in both frames</b>. On two levels it is unit 02's $R_z(-\omega t)^\dagger$, up to global phase.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 330 260" width="429" role="img" aria-label="left, the lab frame: levels at 0, omega and 2 omega plus alpha. Right, the frame rotating at omega: omega n is subtracted, leaving ket 0 and ket 1 both at zero and ket 2 at alpha, slightly below them since alpha is negative">
+        <text x="80" y="18" font-size="12" text-anchor="middle">lab: H₀</text>
+        <text x="250" y="18" font-size="12" text-anchor="middle">rotating: H₀ − ωn</text>
+        <line x1="30" y1="235" x2="130" y2="235" class="ink" stroke-width="2.5"/>
+        <line x1="30" y1="140" x2="130" y2="140" class="ink" stroke-width="2.5"/>
+        <line x1="30" y1="55" x2="130" y2="55" class="ink" stroke-width="2.5"/>
+        <text x="80" y="230" font-size="11" text-anchor="middle" class="soft">|0⟩: 0</text>
+        <text x="80" y="135" font-size="11" text-anchor="middle" class="soft">|1⟩: ω</text>
+        <text x="80" y="50" font-size="11" class="soft" text-anchor="middle">|2⟩: 2ω + α</text>
+        <line x1="200" y1="140" x2="300" y2="140" class="ink" stroke-width="2.5"/>
+        <line x1="200" y1="146" x2="300" y2="146" class="ink" stroke-width="2.5"/>
+        <line x1="200" y1="172" x2="300" y2="172" class="warn" stroke-width="2.5"/>
+        <text x="250" y="133" font-size="11" text-anchor="middle" class="soft">|0⟩, |1⟩: 0</text>
+        <text x="250" y="190" font-size="11" text-anchor="middle" class="soft">|2⟩: α</text>
+        <line x1="140" y1="235" x2="195" y2="146" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="140" y1="140" x2="195" y2="140" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="140" y1="55" x2="195" y2="172" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="165" y="252" font-size="11" text-anchor="middle" class="soft">subtract 0, ω, 2ω</text>
+      </svg>
+      <p class="cap">Subtracting $\omega n$ puts $\ket0$ and $\ket1$ level with each other: the drive is on resonance. $\ket2$ is left at $\alpha$, the leakage transition's detuning.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every step.</b> The product rule gives $\partial_t(e^{iGt}\ket\psi) = iGe^{iGt}\ket\psi + e^{iGt}\partial_t\ket\psi$, and
+    $\partial_t\ket\psi = -iH\ket\psi$. Multiply by $i$: $-Ge^{iGt}\ket\psi + e^{iGt}H\ket\psi$. Insert $I = e^{-iGt}e^{iGt}$ after $H$ to get the
+    slide. $G$ commutes with $e^{iGt}$, which was used in writing $Ge^{iGt}$. The new Hamiltonian is Hermitian: conjugating by a unitary
+    preserves Hermiticity, and $G$ is Hermitian.</p>
+    <p><b>Populations.</b> $\braket{k|\tilde\psi} = e^{i\omega kt}\braket{k|\psi}$, so $|\braket{k|\tilde\psi}|^2 = |\braket{k|\psi}|^2$: the probability of
+    finding level $k$ is the same in both frames at every instant. So the rotating frame may be used to compute every
+    population in this deck. Phases between levels are not the same: the lab state's relative phases turn at $\omega$.</p>
+    <p><b>Comparison with unit 02.</b> There, $\tilde\psi = V^\dagger\psi$ with $V = R_z(-\omega t) = \mathrm{diag}(e^{i\omega t/2}, e^{-i\omega t/2})$. Then
+    $V^\dagger = e^{-i\omega t/2}\mathrm{diag}(1, e^{i\omega t})$, which is this slide's $e^{i\omega nt}$ restricted to two levels, times a global phase.
+    The theorem here is unit 02's derivation done once in general; unit 02's $-i\hbar V^\dagger\dot V$ is this $-G$.</p>
+    <p><b>The figure.</b> Gaps drawn to scale within each column only: in the lab $\omega$ is twenty times $|\alpha|$, so a
+    true-scale drawing would show $\ket2$ indistinguishable from $2\omega$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the rotating frame · example</p>
+  <h2>Worked: the transmon in the rotating frame</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="ladder">the three-level transmon</span> under the drive, every term; $G = \omega n$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The bare part.</b> $n$ commutes with $e^{i\omega nt}$, so $H_0$ is unchanged, and</p>
+      $$H_0 - \omega n = \tfrac\alpha2 n(n - 1) = \alpha\ket2\!\bra2 .$$
+      <p class="small"><b>2. The ladder.</b> On $\ket k$: $e^{i\omega nt}be^{-i\omega nt}\ket k = e^{-i\omega kt}\sqrt k\,e^{i\omega(k-1)t}\ket{k-1}$, so</p>
+      $$e^{i\omega nt}\,b\,e^{-i\omega nt} = e^{-i\omega t}b,$$
+      <p class="small">and its adjoint: $b^\dagger \mapsto e^{i\omega t}b^\dagger$.</p>
+      <p class="small"><b>3. The products.</b> $\cos\omega t\,e^{\mp i\omega t} = \tfrac12(1 + e^{\mp2i\omega t})$; $\ \sin\omega t\,e^{-i\omega t} = \tfrac1{2i}(1 - e^{-2i\omega t})$; $\ \sin\omega t\,e^{i\omega t} = \tfrac1{2i}(e^{2i\omega t} - 1)$.</p>
+    </div>
+    <div>
+      <p class="small"><b>4. Collect.</b> Exactly,</p>
+      $$\begin{aligned}\tilde H &amp;= \alpha\ket2\!\bra2 + \tfrac{\Omega_x}{2}(b + b^\dagger) + \tfrac{\Omega_y}{2}(ib^\dagger - ib)\\ &amp;\quad + \tfrac{\Omega_x}{2}\big(e^{-2i\omega t}b + e^{2i\omega t}b^\dagger\big)\\ &amp;\quad + \tfrac{\Omega_y}{2}\big(ie^{-2i\omega t}b - ie^{2i\omega t}b^\dagger\big).\end{aligned}$$
+      <p class="small">The $\Omega_y$ term: $\tfrac{1}{2i}(b - b^\dagger) = \tfrac12(ib^\dagger - ib)$.</p>
+      <p class="small"><b>5. Check.</b> Hermitian: $(ib^\dagger - ib)^\dagger = -ib + ib^\dagger$ ✓, and $(ie^{-2i\omega t}b)^\dagger = -ie^{2i\omega t}b^\dagger$ ✓. With $\Omega_x = \Omega_y = 0$: $\alpha\ket2\!\bra2$, the bare levels in the turning frame ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 2 in full.</b> $e^{-i\omega nt}\ket k = e^{-i\omega kt}\ket k$; then $b$ gives $\sqrt k\,e^{-i\omega kt}\ket{k - 1}$; then $e^{i\omega nt}$ multiplies
+    by $e^{i\omega(k-1)t}$. Net factor $e^{-i\omega t}$ for every $k$, including $k = 0$ where both sides vanish. Taking adjoints gives the
+    $b^\dagger$ line: $(e^{-i\omega t}b)^\dagger = e^{i\omega t}b^\dagger$.</p>
+    <p><b>Step 4 in full.</b> The drive in the rotating frame is
+    $(\Omega_x\cos\omega t + \Omega_y\sin\omega t)(e^{-i\omega t}b + e^{i\omega t}b^\dagger)$. The $\Omega_x$ part:
+    $\tfrac{\Omega_x}2\big[(1 + e^{-2i\omega t})b + (1 + e^{2i\omega t})b^\dagger\big]$. The $\Omega_y$ part:
+    $\tfrac{\Omega_y}{2i}\big[(1 - e^{-2i\omega t})b + (e^{2i\omega t} - 1)b^\dagger\big] = \tfrac{\Omega_y}{2i}(b - b^\dagger) + \tfrac{\Omega_y}{2i}(-e^{-2i\omega t}b + e^{2i\omega t}b^\dagger)$,
+    and $\tfrac1{2i} = -\tfrac i2$ turns these into $\tfrac{\Omega_y}2(ib^\dagger - ib)$ and $\tfrac{\Omega_y}2(ie^{-2i\omega t}b - ie^{2i\omega t}b^\dagger)$.</p>
+    <p><b>What has been assumed.</b> Nothing yet: this $\tilde H$ is exact for the three-level model with the drive as
+    written. The next slide makes the one approximation.</p>
+    <p><b>A sign convention.</b> Writing the drive as $\Omega\cos(\omega t - \varphi)$ makes $\Omega_y = \Omega\sin\varphi$ and gives the
+    $+\Omega_y Y/2$ on the qubit that the next slides show. Writing $\cos(\omega t + \varphi)$ instead flips the sign of $\Omega_y$
+    throughout. DRAG's sign in section 4 is stated for this deck's convention.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the rotating frame</p>
+  <h2>The rotating-wave approximation, with three levels</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">rotating-wave approximation</span></span>
+        <p class="small">Drop the terms in $e^{\pm2i\omega t}$. Justified when</p>
+        $$|\Omega_x|,\ |\Omega_y|,\ |\alpha| \ll \omega ,$$
+        <p class="small">with envelopes varying slowly on the scale $1/\omega$: unit 02's condition, now with $\alpha$ in it.</p>
+      </div>
+      <div class="box good"><span class="label">the model from here on</span>
+        $$\begin{aligned}\tilde H(t) = \alpha\ket2\!\bra2 &amp;+ \tfrac{\Omega_x(t)}{2}(b + b^\dagger)\\ &amp;+ \tfrac{\Omega_y(t)}{2}(ib^\dagger - ib).\end{aligned}$$
+      </div>
+      <p class="small"><b>Its price</b> is unit 02's <span class="term">Bloch–Siegert shift</span>, $\approx\Omega^2/4\omega$ (cited there). At <span class="ref" data-ref="pulse">the pulse</span>'s peak: $2\pi\times0.44$ MHz, forty times smaller than the shift section 4 finds.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 330 230" width="429" role="img" aria-label="a logarithmic axis of angular frequency in radians per nanosecond from 0.1 to 100, with bars: the peak Rabi frequency 0.59, the anharmonicity magnitude 1.57, and twice the qubit frequency 62.8, the rate at which the dropped terms turn">
+        <line x1="40" y1="190" x2="310" y2="190" class="ink" stroke-width="1.2"/>
+        <line x1="40" y1="186" x2="40" y2="194" class="ink" stroke-width="1.2"/>
+        <line x1="130" y1="186" x2="130" y2="194" class="ink" stroke-width="1.2"/>
+        <line x1="220" y1="186" x2="220" y2="194" class="ink" stroke-width="1.2"/>
+        <line x1="310" y1="186" x2="310" y2="194" class="ink" stroke-width="1.2"/>
+        <text x="40" y="208" font-size="11" text-anchor="middle" class="soft">0.1</text>
+        <text x="130" y="208" font-size="11" text-anchor="middle" class="soft">1</text>
+        <text x="220" y="208" font-size="11" text-anchor="middle" class="soft">10</text>
+        <text x="310" y="208" font-size="11" text-anchor="middle" class="soft">100</text>
+        <text x="175" y="225" font-size="11" text-anchor="middle" class="soft">rad/ns, logarithmic</text>
+        <rect x="40" y="40" width="69.2" height="22" class="fill-unit"/>
+        <rect x="40" y="90" width="107.7" height="22" class="fill-warn"/>
+        <rect x="40" y="140" width="251.8" height="22" class="fill-soft"/>
+        <text x="115" y="56" font-size="12">peak Ω = 0.59</text>
+        <text x="153" y="106" font-size="12">|α| = 1.57</text>
+        <text x="46" y="156" font-size="12">2ω = 62.8: the dropped terms' rate</text>
+      </svg>
+      <p class="cap">Kept terms change on the scale $1/\Omega$ and $1/|\alpha|$; dropped ones turn forty to a hundred times faster and average away.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why it works, and what is not proved.</b> Over one period $\pi/\omega = 0.1$ ns of the dropped terms, the state
+    barely moves (it changes on the scale $1/\Omega \approx 1.7$ ns), so each dropped term's push averages to nearly zero.
+    Making that quantitative is averaging theory; the first correction is the Bloch–Siegert shift, cited in unit 02 (Bloch
+    and Siegert 1940; Shirley 1965) and checked numerically there. It is not proved here either.</p>
+    <p><b>The numbers.</b> $\omega = 2\pi\times5 = 31.42$ rad/ns, so $2\omega = 62.83$. Peak $\Omega = 0.587$ rad/ns: $\Omega/\omega = 0.019$.
+    $|\alpha| = 2\pi\times0.25 = 1.571$: $|\alpha|/\omega = 0.050$. Bloch–Siegert: $0.587^2/(4\times31.42) = 2.74\times10^{-3}$ rad/ns, i.e.
+    $2\pi\times0.44$ MHz. Section 4's Stark shift at the peak is $0.110$ rad/ns; the ratio is $0.025$, one fortieth. In the bar
+    chart the bar lengths are $90\log_{10}(\text{rate}/0.1)$ pixels.</p>
+    <p><b>The third level changes nothing here.</b> The counter-rotating terms contain $b$ and $b^\dagger$ only, so they connect
+    the same pairs as the kept terms; $b + b^\dagger$ has no $\ket0$–$\ket2$ element, rotating or not. The condition gains $|\alpha|$
+    because $\tilde H$ now contains $\alpha$, and the averaging needs every rate in $\tilde H$ small against $2\omega$.</p>
+    <p><b>A warning about two drives.</b> If two transmons at different frequencies share a line, a drive at one
+    frequency has terms rotating at the difference frequency in the other's frame, which may not be fast. That is
+    crosstalk, and it is outside this unit.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the rotating frame · example</p>
+  <h2>Worked: the √2, and the detuning α</h2>
+  <div class="box ex"><span class="label">the matrix of <span class="ref" data-ref="frame">the rotating-frame Hamiltonian</span>, and what it says</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The entries.</b> $\braket{1|b^\dagger|0} = 1$, $\braket{2|b^\dagger|1} = \sqrt2$, so $\braket{1|\tilde H|0} = \tfrac12(\Omega_x + i\Omega_y)$ and $\braket{2|\tilde H|1} = \tfrac{\sqrt2}{2}(\Omega_x + i\Omega_y)$:</p>
+      $$\tilde H = \begin{pmatrix}0 &amp; \frac{\Omega_x - i\Omega_y}{2} &amp; 0\\ \frac{\Omega_x + i\Omega_y}{2} &amp; 0 &amp; \frac{\Omega_x - i\Omega_y}{\sqrt2}\\ 0 &amp; \frac{\Omega_x + i\Omega_y}{\sqrt2} &amp; \alpha\end{pmatrix}.$$
+      <p class="small">Hermitian: each entry below the diagonal is the conjugate of the one above ✓.</p>
+    </div>
+    <div>
+      <p class="small"><b>2. Read it.</b> $\ket0$ and $\ket1$: equal diagonal entries — <b>resonant</b>, coupling $\Omega/2$. $\ket1$ and $\ket2$: diagonal entries differ by $\alpha$ — <b>detuned by $\alpha$</b>, coupling $\sqrt2\,\Omega/2$.</p>
+      <p class="small"><b>3. How close is close?</b> At <span class="ref" data-ref="pulse">the pulse</span>'s peak, $\Omega = 0.587$ rad/ns against $|\alpha| = 1.571$: a ratio $2.68$. Held at that strength, unit 02's Rabi formula with Rabi frequency $\sqrt2\,\Omega$ and detuning $\alpha$ would cycle up to</p>
+      $$\frac{2\Omega^2}{2\Omega^2 + \alpha^2} = \frac{0.689}{0.689 + 2.467} = 0.218$$
+      <p class="small">of $\ket1$ into $\ket2$ and back. <b>Check</b>: $\Omega \to 0$ gives $0$; $\alpha \to 0$ gives $1$, full transfer ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 1 in full.</b> $(b + b^\dagger)$ has $1$ in the $(0,1)$ and $(1,0)$ places and $\sqrt2$ in $(1,2)$ and $(2,1)$.
+    $(ib^\dagger - ib)$ has $\braket{1|ib^\dagger|0} = i$, $\braket{0|{-ib}|1} = -i$, $\braket{2|ib^\dagger|1} = i\sqrt2$, $\braket{1|{-ib}|2} = -i\sqrt2$. Multiply
+    by $\Omega_x/2$ and $\Omega_y/2$ and add; $\alpha\ket2\!\bra2$ supplies the corner.</p>
+    <p><b>Step 3: which formula.</b> Restricted to $\ket1, \ket2$ and with $\Omega_y = 0$, the block is
+    $\begin{pmatrix}0 &amp; \Omega/\sqrt2\\ \Omega/\sqrt2 &amp; \alpha\end{pmatrix} = \tfrac\alpha2I - \tfrac12\big(\alpha Z' - \sqrt2\Omega X'\big)$, with $X'$, $Z'$ the Paulis on that pair.
+    Up to the constant this is unit 02's $-\tfrac12(\Delta Z + \Omega X)$ with $\Delta = \alpha$ and Rabi frequency $\sqrt2\Omega$ (the sign of the
+    $X'$ term is a phase convention and does not affect populations). Unit 02's peak transfer is $\Omega_{\rm R}^2/(\Omega_{\rm R}^2 + \Delta^2)$.
+    Numbers: $2\times0.5869^2 = 0.6890$, $1.5708^2 = 2.4674$, ratio $0.2183$.</p>
+    <p><b>Why the pulse does far better than 22%.</b> The pulse is not held at its peak; it rises and falls smoothly, and a
+    slowly changing drive lets the state follow the eigenvectors of $\tilde H(t)$ and come back. Section 3 shows $5.3\%$ in $\ket2$
+    mid-pulse and $3.0\times10^{-4}$ at the end. How much comes back depends on how smooth the switch-off is: that is the whole of
+    section 3.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the rotating frame</p>
+  <h2>On two levels: unit 02's drive</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Restrict to $\ket0, \ket1$.</b> $b \mapsto \ket0\!\bra1$, so $b + b^\dagger \mapsto X$ and $ib^\dagger - ib \mapsto \begin{pmatrix}0 &amp; -i\\ i &amp; 0\end{pmatrix} = Y$:</p>
+      $$\tilde H_{\rm qubit} = \tfrac12\big(\Omega_x X + \Omega_y Y\big).$$
+      <div class="box thm"><span class="label">the area theorem</span>
+        <p class="small">If $\Omega_y = 0$, then $U(T, 0) = R_x(\theta)$ with <span class="term">pulse area</span> $\theta = \int_0^T\Omega_x\,dt$, whatever the envelope's shape.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\tfrac{d}{dt}e^{-i\Theta(t)X/2} = -\tfrac i2\Omega_x(t)Xe^{-i\Theta(t)X/2}$ for $\Theta(t) = \int_0^t\Omega_x$; uniqueness. ∎</p>
+      </div>
+      <p class="small">A <b>$\pi$-pulse</b> has area $\pi$: $R_x(\pi) = -iX$, so $\ket0 \mapsto -i\ket1$. On two levels it is perfect.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 290" width="390" role="img" aria-label="the Bloch sphere with z up, y to the right and x toward the viewer; the state starts at the north pole, turns about the x axis through minus y at the left on the equator, and ends at the south pole, ket 1">
+        <circle cx="150" cy="145" r="105" fill="none" class="ink" stroke-width="1.5"/>
+        <ellipse cx="150" cy="145" rx="105" ry="30" fill="none" class="rule" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <line x1="150" y1="145" x2="150" y2="30" class="ink" stroke-width="1"/>
+        <line x1="150" y1="145" x2="268" y2="145" class="ink" stroke-width="1"/>
+        <line x1="150" y1="145" x2="95" y2="200" class="ink" stroke-width="1"/>
+        <text x="156" y="28" font-size="12">z</text>
+        <text x="272" y="149" font-size="12">y</text>
+        <text x="82" y="214" font-size="12">x</text>
+        <path d="M150,40 A105,105 0 0 0 150,250" fill="none" class="unit" stroke-width="3"/>
+        <polygon points="150,250 142,238 156,240" class="fill-unit"/>
+        <circle cx="150" cy="40" r="5" class="fill-ink"/>
+        <circle cx="45" cy="145" r="4.5" class="fill-unit"/>
+        <circle cx="150" cy="250" r="5" class="fill-unit"/>
+        <text x="160" y="52" font-size="12" class="halo">|0⟩</text>
+        <text x="8" y="132" font-size="11" class="halo">θ = π/2</text>
+        <text x="160" y="268" font-size="12" class="halo">|1⟩, θ = π</text>
+        <path d="M110,186 A14,6 0 1 0 88,190" fill="none" class="accent" stroke-width="1.5"/>
+        <text x="4" y="284" font-size="11" class="soft">turn about x by θ(t)</text>
+      </svg>
+      <p class="cap">On two levels the $\pi$-pulse carries $\ket0$ down the $yz$ great circle to $\ket1$, through $-\hat y$ at area $\pi/2$ — for any envelope of area $\pi$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The restriction.</b> $P = \ket0\!\bra0 + \ket1\!\bra1$. $PbP = \ket0\!\bra1$ (the $\sqrt2$ entry is cut off), so $P(b + b^\dagger)P = \ket0\!\bra1 + \ket1\!\bra0 = X$,
+    and $P(ib^\dagger - ib)P = i\ket1\!\bra0 - i\ket0\!\bra1$, whose matrix has $-i$ top right and $i$ bottom left: $Y$. And $P\ket2\!\bra2P = 0$.
+    So "two levels" means: pretend $\ket2$ is not there.</p>
+    <p><b>Full proof of the area theorem.</b> Unit 00's functional calculus gives $e^{-i\Theta X/2} = \cos\tfrac\Theta2I - i\sin\tfrac\Theta2X$; differentiate in
+    $t$ using $\Theta' = \Omega_x$: $\tfrac{\Omega_x}{2}(-\sin\tfrac\Theta2I - i\cos\tfrac\Theta2X) = -\tfrac i2\Omega_xX(\cos\tfrac\Theta2I - i\sin\tfrac\Theta2X)$ ✓. It equals $I$ at $t = 0$,
+    so by uniqueness it is the propagator. The point is that $H(t)$ at different times commute, being multiples of one matrix.
+    With $\Omega_y \ne 0$ and a varying ratio, they do not, and no such formula holds.</p>
+    <p><b>A sign, compared with unit 02.</b> Unit 02's proton had $\tilde H = -\tfrac\hbar2\Omega X$ on resonance, a turn $R_x(-\Omega t)$, and its
+    $\pi$-pulse was $iX$. This drive's sign gives $R_x(+\theta)$ and $-iX$. Both are $X$ up to global phase; the direction of turning
+    is a convention of how the drive is written (<i>Worked: the transmon in the rotating frame</i>, notes).</p>
+    <p><b>Check.</b> $R_x(\pi)\ket0 = -iX\ket0 = -i\ket1$: normalised, $|{-i}|^2 = 1$. At $\theta = \pi/2$: $R_x(\tfrac\pi2)\ket0 = \tfrac1{\sqrt2}(\ket0 - i\ket1)$, Bloch
+    vector $-\hat y$, as drawn: turning $\hat z$ by $+\tfrac\pi2$ about $\hat x$ gives $\hat z\cos\tfrac\pi2 + (\hat x\times\hat z)\sin\tfrac\pi2 = -\hat y$ ✓.</p>
+    <p><b>So the question of this deck is sharp.</b> On two levels, every envelope of area $\pi$ is perfect and the pulse's shape
+    is irrelevant. Every error in sections 3 and 4 comes from $\ket2$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the rotating frame</p>
+  <h2>A harmonic oscillator cannot be a qubit</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Set $\alpha = 0$</b> and $\Omega_y = 0$: $\tilde H = \tfrac{\Omega_x(t)}{2}M$ with $M = b + b^\dagger$. All instants commute, so $U = e^{-i\theta M/2}$. $M$'s eigenvalues are $0, \pm\sqrt3$, so $M^3 = 3M$, and</p>
+      $$e^{-ixM} = I - i\frac{\sin\sqrt3x}{\sqrt3}M + \frac{\cos\sqrt3x - 1}{3}M^2 .$$
+      <p class="small">With $M\ket0 = \ket1$, $M^2\ket0 = \ket0 + \sqrt2\ket2$, $x = \theta/2$, $s = \sqrt3\theta/2$:</p>
+      $$P_0 = \Big(\tfrac{2 + \cos s}{3}\Big)^2,\quad P_1 = \tfrac{\sin^2s}{3},\quad P_2 = \tfrac{2(1 - \cos s)^2}{9}.$$
+      <div class="box warn"><span class="label">P₁ ≤ ⅓, for every pulse</span>
+        <p class="small">At area $\pi$: $P_0 = 0.131$, $P_1 = 0.056$, $P_2 = 0.813$; sum $1.000$ ✓. Evenly spaced levels are all driven at once, and the population climbs the ladder.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 225" width="494" role="img" aria-label="populations of levels 0, 1 and 2 against pulse area from 0 to 2 pi for a three-level oscillator with no anharmonicity. Level 1 never rises above one third; level 2 reaches about 0.81 near area pi">
+        <line x1="50" y1="195" x2="370" y2="195" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="15" x2="50" y2="195" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="135" x2="370" y2="135" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="210" y1="15" x2="210" y2="195" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M50.0,15.0 L54.3,15.3 L59.6,16.6 L69.3,21.3 L77.8,27.9 L87.5,37.8 L98.2,51.0 L105.7,61.4 L131.3,99.4 L146.3,120.3 L157.0,133.5 L170.9,148.0 L181.6,156.9 L190.2,162.6 L196.6,166.1 L208.4,170.9 L218.0,173.4 L224.4,174.4 L239.4,174.9 L248.0,174.0 L259.8,171.3 L268.3,168.2 L276.9,164.0 L285.5,158.6 L291.9,153.8 L306.9,139.8 L320.8,123.4 L335.8,102.9 L370.0,52.8" fill="none" class="ink" stroke-width="2"/>
+        <path d="M50.0,195.0 L56.4,194.3 L61.8,192.6 L67.1,190.1 L72.5,186.7 L84.2,176.9 L106.7,154.5 L117.4,145.2 L122.8,141.4 L128.1,138.5 L132.4,136.7 L138.8,135.2 L143.1,135.0 L148.5,135.6 L156.0,138.1 L162.4,141.7 L168.8,146.3 L175.2,151.8 L199.8,176.2 L210.5,185.4 L218.0,190.3 L222.3,192.4 L226.6,193.9 L231.9,194.9 L238.4,194.8 L244.8,193.3 L250.1,191.0 L256.6,187.1 L267.3,178.5 L290.8,155.1 L300.4,146.5 L311.1,139.3 L318.6,136.2 L326.1,135.0 L331.5,135.3 L336.8,136.6 L342.2,138.8 L348.6,142.6 L357.2,149.3 L370.0,161.6" fill="none" class="unit" stroke-width="2.4"/>
+        <path d="M50.0,195.0 L80.0,194.4 L93.9,192.2 L101.4,189.9 L107.8,187.1 L115.3,182.7 L122.8,176.9 L130.3,169.7 L136.7,162.4 L148.5,146.3 L162.4,123.9 L189.1,77.5 L203.0,56.9 L210.5,48.1 L219.1,40.6 L226.6,36.5 L234.1,35.0 L237.3,35.1 L241.6,36.1 L248.0,39.0 L254.4,43.7 L261.9,51.3 L270.5,62.3 L278.0,73.6 L314.3,135.9 L329.3,157.9 L340.0,170.5 L350.7,180.2 L360.4,186.4 L370.0,190.5" fill="none" class="warn" stroke-width="2.4"/>
+        <text x="50" y="212" font-size="11" text-anchor="middle" class="soft">0</text>
+        <text x="210" y="212" font-size="11" text-anchor="middle" class="soft">π</text>
+        <text x="370" y="212" font-size="11" text-anchor="middle" class="soft">2π</text>
+        <text x="290" y="222" font-size="11" class="soft">area θ</text>
+        <text x="44" y="19" font-size="11" text-anchor="end" class="soft">1</text>
+        <text x="44" y="139" font-size="11" text-anchor="end" class="soft">⅓</text>
+        <text x="98" y="40" font-size="12" class="halo">P₀</text>
+        <text x="132" y="128" font-size="12" class="alt halo">P₁</text>
+        <text x="236" y="28" font-size="12" class="halo">P₂</text>
+      </svg>
+      <p class="cap">$\alpha = 0$: the qubit level $\ket1$ never holds more than a third. The anharmonicity is what makes a qubit.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> $M = \begin{pmatrix}0 &amp; 1 &amp; 0\\ 1 &amp; 0 &amp; \sqrt2\\ 0 &amp; \sqrt2 &amp; 0\end{pmatrix}$ has characteristic polynomial $-\lambda^3 + 3\lambda$, so by Cayley–Hamilton
+    $M^3 = 3M$. Hence $M^{2k+1} = 3^kM$ and $M^{2k} = 3^{k-1}M^2$ for $k \ge 1$, and summing the exponential series in odd and even
+    parts gives the formula (the odd part is $-i\sum(-1)^kx^{2k+1}3^k/(2k+1)!\,M = -i\tfrac{\sin\sqrt3x}{\sqrt3}M$; the even part similarly with
+    cosine). $M^2\ket0 = M\ket1 = \ket0 + \sqrt2\ket2$. So the amplitudes are $\tfrac{2 + \cos s}{3}$, $-i\tfrac{\sin s}{\sqrt3}$, $\sqrt2\tfrac{\cos s - 1}{3}$.
+    Normalisation: $\tfrac{(2 + c)^2 + 3(1 - c^2) + 2(1 - c)^2}{9} = \tfrac{4 + 4c + c^2 + 3 - 3c^2 + 2 - 4c + 2c^2}{9} = 1$ ✓.</p>
+    <p><b>The numbers.</b> $s = \sqrt3\pi/2 = 2.7207$; $\cos s = -0.9127$, $\sin s = 0.4086$: $P_0 = (1.0873/3)^2 = 0.1314$,
+    $P_1 = 0.1670/3 = 0.0556$, $P_2 = 2(1.9127)^2/9 = 0.8130$.</p>
+    <p><b>The whole oscillator.</b> With all levels kept (computed with 40), a resonant pulse of area $\pi$ leaves the populations
+    $0.085$, $0.209$, $0.258$, … — a Poisson distribution with mean $(\theta/2)^2 = 2.47$, the signature of a coherent state (cited:
+    e.g. Gerry and Knight, <i>Introductory Quantum Optics</i>, ch. 3). Truncation changes the numbers; the conclusion, that no pulse
+    isolates $\ket1$, is the same.</p>
+    <p><b>Why the transmon works.</b> With $\alpha \ne 0$, $\ket2$ is off-resonant, and a weak enough drive barely reaches it. "Weak
+    enough" means $\Omega \ll |\alpha|$, i.e. slow: the rest of the deck is about the cost of being fast.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Leakage</h2>
+  <p>Drive the running pulse through three levels and follow every population. Most of what climbs to $\ket2$ comes back; what stays is set by how the pulse switches off.</p>
+</section>
+
+<section>
+  <p class="eyebrow">25 · leakage</p>
+  <h2>The Gaussian π-pulse</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">Gaussian pulse</span> of duration T</span>
+        <p class="small">$\sigma = T/4$, and on $0 \le t \le T$</p>
+        $$\Omega_x(t) = A\Big[e^{-(t - T/2)^2/2\sigma^2} - e^{-2}\Big],$$
+        <p class="small">with $\Omega_y = 0$,</p>
+        <p class="small">offset by $e^{-2}$ (the Gaussian's value at the ends) so that it starts and ends at zero. $A$ is fixed by area $\pi$:</p>
+        $$A = \frac{\pi}{\sigma\sqrt{2\pi}\,\mathrm{erf}(\sqrt2) - Te^{-2}} .$$
+      </div>
+      <p class="small"><b>For <span class="ref" data-ref="pulse">T = 10 ns</span>:</b> $\sigma\sqrt{2\pi}\,\mathrm{erf}\sqrt2 = 5.9815$ and $Te^{-2} = 1.3534$, so $A = \pi/4.6281 = 0.679$ rad/ns. Peak $A(1 - e^{-2}) = 0.587$ rad/ns $= 2\pi\times93.4$ MHz.</p>
+      <p class="small"><b>The kink:</b> the envelope is continuous but its slope jumps, from $0$ to $\Omega_x'(0) = 2Ae^{-2}/\sigma = 0.0735$ rad/ns², at each end. Remember it.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 230" width="494" role="img" aria-label="three Gaussian envelopes in megahertz against time: 4 nanoseconds peaking at 234 megahertz, 10 nanoseconds peaking at 93, and 20 nanoseconds peaking at 47; all have area pi, so shorter pulses are taller">
+        <line x1="50" y1="195" x2="370" y2="195" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="15" x2="50" y2="195" class="ink" stroke-width="1.2"/>
+        <path d="M50.0,195.0 L53.9,179.9 L58.4,156.0 L69.9,74.9 L74.4,47.4 L78.6,31.1 L80.2,28.0 L81.5,26.9 L82.5,26.9 L83.8,28.0 L85.4,31.1 L89.6,47.4 L94.1,74.9 L105.6,156.0 L110.1,179.9 L114.0,195.0" fill="none" class="warn" stroke-width="2.2"/>
+        <path d="M50.0,195.0 L60.5,188.4 L70.1,180.2 L80.6,169.3 L99.8,147.0 L110.3,136.6 L115.1,132.9 L119.9,130.2 L124.0,128.6 L129.6,127.7 L134.4,128.2 L139.2,129.8 L144.9,132.9 L149.7,136.6 L160.2,147.0 L179.4,169.3 L189.9,180.2 L199.5,188.4 L210.0,195.0" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M50.0,195.0 L66.1,192.6 L88.6,188.0 L106.3,183.5 L151.3,170.5 L170.6,165.8 L193.1,162.2 L206.0,161.4 L223.7,161.9 L244.6,164.8 L268.7,170.5 L313.7,183.5 L331.4,188.0 L353.9,192.6 L370.0,195.0" fill="none" class="accent" stroke-width="2.2"/>
+        <text x="50" y="212" font-size="11" text-anchor="middle" class="soft">0</text>
+        <text x="130" y="212" font-size="11" text-anchor="middle" class="soft">5</text>
+        <text x="210" y="212" font-size="11" text-anchor="middle" class="soft">10</text>
+        <text x="290" y="212" font-size="11" text-anchor="middle" class="soft">15</text>
+        <text x="374" y="212" font-size="11" text-anchor="end" class="soft">20 ns</text>
+        <text x="44" y="163" font-size="11" text-anchor="end" class="soft">50</text>
+        <text x="44" y="91" font-size="11" text-anchor="end" class="soft">150</text>
+        <text x="44" y="19" font-size="11" text-anchor="end" class="soft">250</text>
+        <text x="92" y="22" font-size="12" class="halo">4 ns: 234 MHz</text>
+        <text x="150" y="122" font-size="12" class="halo">10 ns: 93 MHz</text>
+        <text x="240" y="155" font-size="12" class="halo">20 ns: 47 MHz</text>
+        <text x="60" y="228" font-size="11" class="soft">Ωₓ/2π in MHz; all three have area π</text>
+      </svg>
+      <p class="cap">Area $\pi$ at every duration, so $A \propto 1/T$: halve the time, double the drive. Faster is stronger, and stronger reaches $\ket2$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The area integral.</b> $\int_0^Te^{-(t - T/2)^2/2\sigma^2}dt = \sigma\sqrt{2\pi}\,\mathrm{erf}\big(\tfrac{T/2}{\sigma\sqrt2}\big)$, and with $T/2 = 2\sigma$ the
+    argument is $\sqrt2$: $\mathrm{erf}\sqrt2 = 0.95450$. For $\sigma = 2.5$: $2.5\times2.50663\times0.95450 = 5.9815$. The offset removes
+    $T e^{-2} = 10\times0.135335 = 1.3534$. So $A = 3.14159/4.6281 = 0.67881$ rad/ns. Since every time scales with $T$,
+    $AT = 6.788$ is the same for every duration: $A = 1.697$ rad/ns at 4 ns, $0.339$ at 20 ns.</p>
+    <p><b>Why offset.</b> A Gaussian never reaches zero. A pulse must start and stop, so either it jumps (a discontinuity in
+    $\Omega_x$ itself, which leaks badly) or it is shifted down to vanish at the ends, leaving the kink in the slope. Real pulses use
+    the shifted form or a smoother one (a cosine ramp, or a Gaussian with flat derivative at the ends); section 3 shows why the
+    smoothness at the ends is what matters.</p>
+    <p><b>The kink's size.</b> $\Omega_x'(t) = -A\tfrac{t - T/2}{\sigma^2}e^{-(t - T/2)^2/2\sigma^2}$. At $t = 0$: $A\tfrac{2\sigma}{\sigma^2}e^{-2} = 2Ae^{-2}/\sigma
+    = 2\times0.6788\times0.13534/2.5 = 0.0735$ rad/ns²; at $t = T$ the same with a minus sign.</p>
+    <p><b><span class="term">Leakage</span></b> is the population outside the qubit subspace at the end of a gate — here $P_2$. It is
+    worse than a qubit error of the same size: unit 22's codes measure Paulis on the qubit subspace, and a qubit in $\ket2$ is
+    outside every code's view.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · leakage · example</p>
+  <h2>Worked: the 10 ns pulse, to the end</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="pulse">the running pulse</span> from $\ket0$, through three levels</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The model.</b> <span class="ref" data-ref="frame">$\tilde H(t)$</span> with $\Omega_y = 0$:</p>
+      $$\tilde H(t) = \begin{pmatrix}0 &amp; \Omega_x/2 &amp; 0\\ \Omega_x/2 &amp; 0 &amp; \Omega_x/\sqrt2\\ 0 &amp; \Omega_x/\sqrt2 &amp; \alpha\end{pmatrix},$$
+      <p class="small">$\alpha = -1.5708$ rad/ns.</p>
+      <p class="small"><b>2. The method.</b> $N = 4000$ midpoint steps of $\Delta t = 2.5$ ps. Each $e^{-i\tilde H(t_k)\Delta t}$ by the spectral theorem (unit 00): diagonalise the real symmetric $3\times3$, exponentiate the eigenvalues.</p>
+      <p class="small"><b>3. The step check.</b> $N = 500$ and $N = 8000$ give $P_2 = 2.9947$ and $2.9953\times10^{-4}$: converged to the digits quoted.</p>
+    </div>
+    <div>
+      <p class="small"><b>4. The result.</b></p>
+      $$P_0 = 0.02534,\quad P_1 = 0.97436,$$
+      $$P_2 = 3.0\times10^{-4}.$$
+      <p class="small">Sum: $0.025338 + 0.974362 + 0.000300 = 1.000000$ ✓ — the product of unitaries is unitary.</p>
+      <p class="small"><b>5. Read it.</b> Two levels promised $P_1 = 1$ (the area theorem). Three levels give a <b>miss</b> $1 - P_1 = 2.6\%$, of which $2.53\%$ never left $\ket0$ and $0.03\%$ <b>leaked</b>.</p>
+      <p class="small"><b>6. Check</b> a known case: the same code with $\ket2$ removed returns $1 - P_1 \approx 10^{-12}$, the area theorem to rounding ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this is legitimate.</b> The theorem <i>Short constant steps converge</i> guarantees the product tends to the true
+    propagator. Its bound for $N = 4000$ is $8.9\times10^{-4}$ in operator norm, which by itself would not justify four digits; the
+    step check does. Populations change by less than $2\times\lVert\delta U\rVert$ when $U$ changes by $\delta U$ (the difference of
+    $|a|^2$ and $|b|^2$ is at most $(|a| + |b|)|a - b|$), so agreement between 500 and 8000 steps to $3\times10^{-7}$ means the
+    quoted digits are not artefacts of the step.</p>
+    <p><b>Full precision.</b> $N = 4000$: $P_0 = 0.0253383$, $P_1 = 0.9743622$, $P_2 = 2.99527\times10^{-4}$; $1 - P_1 = 0.0256378$.
+    The curriculum rounds the miss to $2.6\%$.</p>
+    <p><b>What the miss is not.</b> It is not mainly leakage — leakage is a hundred times smaller. It is population that
+    stayed in $\ket0$: the rotation did not reach the pole. Section 4 finds why (the drive shifts the qubit's frequency) and fixes it.
+    The two-level comparison in step 6 shows the miss is entirely the third level's doing.</p>
+    <p><b>Exponentiating a $3\times3$.</b> $\tilde H(t_k)$ is real symmetric; its eigenvalues $\lambda_j$ and orthonormal eigenvectors
+    $v_j$ give $e^{-i\tilde H\Delta t} = \sum_je^{-i\lambda_j\Delta t}v_jv_j^\dagger$. This is unit 00's functional calculus.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · leakage</p>
+  <h2>Through the pulse</h2>
+  <div class="cols wide-left">
+    <div class="fig">
+      <svg viewBox="0 0 390 310" width="572" role="img" aria-label="top panel: populations of ket 0 falling from 1 and ket 1 rising to about 0.97 over the 10 nanosecond pulse. Bottom panel, logarithmic: the population of ket 2 rising to about 5 percent near the middle of the pulse and falling to 3 times ten to the minus 4 at the end">
+        <line x1="50" y1="150" x2="350" y2="150" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="20" x2="50" y2="150" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="20" x2="350" y2="20" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M50.0,20.0 L86.0,20.1 L107.0,21.1 L125.0,23.9 L140.0,28.8 L149.0,33.3 L155.0,37.1 L168.5,47.9 L183.5,63.3 L212.0,97.1 L224.0,110.3 L236.0,121.6 L245.0,128.5 L252.5,133.2 L266.0,139.4 L276.5,142.5 L284.0,144.0 L293.0,145.2 L309.5,146.3 L350.0,146.7" fill="none" class="ink" stroke-width="2"/>
+        <path d="M50.0,150.0 L86.0,149.9 L107.0,148.9 L125.0,146.2 L140.0,141.4 L147.5,137.9 L155.0,133.5 L162.5,128.3 L171.5,121.0 L189.5,103.5 L228.5,62.1 L245.0,47.6 L258.5,38.4 L267.5,33.8 L275.0,30.7 L285.5,27.6 L293.0,26.1 L303.5,24.7 L317.0,23.8 L350.0,23.3" fill="none" class="unit" stroke-width="2.4"/>
+        <text x="44" y="24" font-size="11" text-anchor="end" class="soft">1</text>
+        <text x="44" y="89" font-size="11" text-anchor="end" class="soft">0.5</text>
+        <text x="44" y="154" font-size="11" text-anchor="end" class="soft">0</text>
+        <text x="96" y="40" font-size="12" class="halo">P₀</text>
+        <text x="300" y="44" font-size="12" class="alt halo">P₁ → 0.974</text>
+        <line x1="50" y1="280" x2="350" y2="280" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="190" x2="50" y2="280" class="ink" stroke-width="1.2"/>
+        <line x1="50" y1="226" x2="350" y2="226" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M51.5,280.0 L87.5,280.0 L89.0,279.2 L99.5,262.9 L110.0,249.8 L122.0,237.5 L137.0,225.1 L152.0,215.3 L170.0,206.4 L186.5,200.6 L195.5,198.3 L206.0,196.4 L225.5,194.9 L242.0,195.6 L260.0,198.2 L275.0,201.9 L290.0,206.9 L302.0,211.9 L315.5,218.7 L339.5,232.7 L345.5,234.9 L350.0,235.4" fill="none" class="warn" stroke-width="2.4"/>
+        <text x="44" y="194" font-size="11" text-anchor="end" class="soft">10⁻¹</text>
+        <text x="44" y="230" font-size="11" text-anchor="end" class="soft">10⁻³</text>
+        <text x="44" y="266" font-size="11" text-anchor="end" class="soft">10⁻⁵</text>
+        <text x="220" y="188" font-size="12" class="halo">P₂: 5.3% at 5.9 ns</text>
+        <text x="282" y="252" font-size="12" class="halo">3.0×10⁻⁴</text>
+        <text x="50" y="298" font-size="11" text-anchor="middle" class="soft">0</text>
+        <text x="200" y="298" font-size="11" text-anchor="middle" class="soft">5</text>
+        <text x="350" y="298" font-size="11" text-anchor="middle" class="soft">10 ns</text>
+      </svg>
+      <p class="cap">Top: $P_0$ and $P_1$, linear. Bottom: $P_2$, logarithmic. $\ket2$ fills to $5.3\%$ and almost all of it comes back.</p>
+    </div>
+    <div>
+      <p class="small"><b>What the picture says.</b> While the drive is on, the state is not in $\mathrm{span}\{\ket0, \ket1\}$: the drive mixes in $\ket2$, by an amount of order $(\Omega/\alpha)^2$. As the drive falls, the mixing undoes itself — almost.</p>
+      <p class="small"><b>Leakage is what fails to come back</b>: $3.0\times10^{-4}$ out of a peak of $5.3\times10^{-2}$, one part in 180.</p>
+      <p class="small"><b>And the miss:</b> $P_1$ stops at $0.974$, not $1$. That is not leakage. It is the subject of section 4.</p>
+      <div class="box good"><span class="label">normalised throughout</span>
+        <p class="small">At every step, $P_0 + P_1 + P_2 = 1$ to $10^{-12}$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The trace.</b> Computed with 200 midpoint steps, recording $|\braket{k|\tilde\psi}|^2$ after each; at 200 steps the final
+    $P_2$ is $2.992\times10^{-4}$, within $0.1\%$ of the converged value, which is all a picture needs. The peak $P_2 = 0.0532$ comes at
+    $t \approx 5.9$ ns, after the envelope's peak at 5 ns, because $\ket2$ is reached through $\ket1$, which fills during the pulse.</p>
+    <p><b>Why "comes back".</b> If the drive were frozen at a value $\Omega$, $\tilde H$ would have eigenvectors that are
+    mixtures of $\ket0$, $\ket1$, $\ket2$, with weight on $\ket2$ of order $\Omega^2/\alpha^2$ in the two that start in the qubit subspace.
+    A slowly changing drive carries the state along with those eigenvectors, and when the drive returns to zero they return to
+    $\ket0$, $\ket1$, $\ket2$. That is the adiabatic theorem, named here and not proved; the next two slides do not need it. They compute
+    what fails to come back exactly.</p>
+    <p><b>Two levels for comparison.</b> With $\ket2$ removed, $P_1$ rises to exactly $1$ along $\sin^2(\Theta(t)/2)$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · leakage</p>
+  <h2>Leakage is a Fourier coefficient</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Write $\ket{\tilde\psi} = c_0\ket0 + c_1\ket1 + c_2\ket2$. The third row of <span class="ref" data-ref="frame">$\tilde H$</span> is exactly</p>
+      $$i\dot c_2 = \alpha\,c_2 + g(t)\,c_1,\qquad g = \tfrac{1}{\sqrt2}(\Omega_x + i\Omega_y),$$
+      <p class="small">since $\ket2$ couples only to $\ket1$.</p>
+      <div class="box thm"><span class="label">theorem: the leakage amplitude</span>
+        <p class="small">If $c_2(0) = 0$, then exactly</p>
+        $$c_2(T) = -i\,e^{-i\alpha T}\int_0^T e^{i\alpha t}\,g(t)\,c_1(t)\,dt .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\tfrac{d}{dt}\big(e^{i\alpha t}c_2\big) = e^{i\alpha t}(\dot c_2 + i\alpha c_2) = -ie^{i\alpha t}gc_1$. Integrate from $0$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Read it.</b> The leakage amplitude is $\int e^{i\alpha t}f\,dt$, the <b>Fourier transform</b> of $f = gc_1$ evaluated at the frequency $\alpha$. A function that varies slowly compared with $1/|\alpha|$ has a small Fourier transform at $\alpha$: the oscillating factor cancels it against itself.</p>
+      <p class="small"><b>So leakage is about smoothness.</b> Where $f$ is smooth, its contributions cancel. Where it is not — and <span class="ref" data-ref="pulse">the pulse</span>'s envelope has a kink at each end — they do not.</p>
+      <div class="box warn"><span class="label">exact, but not closed</span>
+        <p class="small">$c_1(t)$ is not known in closed form; the formula is exact given it. The next slide estimates it by integrating by parts, which needs only $c_1$'s size at the ends.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The third row.</b> $\tilde H$'s third row is $\big(0,\ \tfrac{\Omega_x + i\Omega_y}{\sqrt2},\ \alpha\big)$ (<i>Worked: the √2, and the detuning α</i>),
+    and $i\dot{\mathbf c} = \tilde H\mathbf c$ gives $i\dot c_2 = \tfrac{\Omega_x + i\Omega_y}{\sqrt2}c_1 + \alpha c_2$. No approximation beyond the rotating-wave
+    approximation and the three-level truncation, both already made.</p>
+    <p><b>The proof in full.</b> $\dot c_2 = -i\alpha c_2 - igc_1$, so $\dot c_2 + i\alpha c_2 = -igc_1$. Multiply by $e^{i\alpha t}$, which turns the left side into
+    $\tfrac{d}{dt}(e^{i\alpha t}c_2)$. Integrate over $[0, T]$ with $c_2(0) = 0$ and multiply by $e^{-i\alpha T}$. This is the variation-of-constants
+    formula for a first-order linear ODE.</p>
+    <p><b>Why it matters.</b> It turns "how much leaks" into a question about one function's frequency content. Every
+    rule of thumb about leakage — smooth pulses, long pulses, spectral width against anharmonicity — is a statement about Fourier
+    transforms, and this formula is where they come from. It is also the starting point of DRAG in section 4: choose $\Omega_y$ so that
+    the leading term of the integral vanishes.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · leakage</p>
+  <h2>Leakage comes from the switch-off</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Integrate by parts twice</b> ($\Omega_y = 0$, $f = \Omega_xc_1/\sqrt2$). $f(0) = f(T) = 0$, since the envelope vanishes at both ends, so</p>
+      $$\int_0^T\!e^{i\alpha t}f\,dt = \frac{\big[e^{i\alpha t}f'\big]_0^T}{\alpha^2} - \frac{1}{\alpha^2}\int_0^T\!e^{i\alpha t}f''dt .$$
+      <p class="small">The last integral is smaller by another factor $1/\alpha$. And $f'(0) = 0$, since $c_1(0) = 0$. At the end, $f'(T) = \Omega_x'(T)c_1(T)/\sqrt2$ with $|c_1(T)| \approx 1$:</p>
+      <div class="box thm"><span class="label">leakage, to leading order in 1/α</span>
+        $$P_2 \approx \frac{\Omega_x'(T)^2}{2\alpha^4}.$$
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>For <span class="ref" data-ref="pulse">the pulse</span>:</b> $\Omega_x'(T) = -0.0735$ rad/ns², $\alpha^4 = 6.088$: $P_2 \approx 4.4\times10^{-4}$, against the exact $3.0\times10^{-4}$.</p>
+      <p class="small"><b>Check that it is the leading term:</b> keep the pulse, scale $\alpha$ up.</p>
+      <table class="dense">
+        <thead><tr><th>$\alpha/\alpha_0$</th><th>exact $P_2$</th><th>formula</th><th>ratio</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>$3.00\times10^{-4}$</td><td>$4.44\times10^{-4}$</td><td>0.68</td></tr>
+          <tr><td>2</td><td>$2.70\times10^{-5}$</td><td>$2.77\times10^{-5}$</td><td>0.97</td></tr>
+          <tr><td>4</td><td>$1.72\times10^{-6}$</td><td>$1.73\times10^{-6}$</td><td>0.994</td></tr>
+          <tr><td>8</td><td>$1.08\times10^{-7}$</td><td>$1.08\times10^{-7}$</td><td>0.998</td></tr>
+        </tbody>
+      </table>
+      <p class="small">The ratio tends to $1$ ✓. At the real $\alpha$, $\Omega/|\alpha| = 0.37$ is not small, and the next order costs a third.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full derivation.</b> First integration by parts: $\int e^{i\alpha t}f = \big[\tfrac{e^{i\alpha t}}{i\alpha}f\big]_0^T - \tfrac1{i\alpha}\int e^{i\alpha t}f'$; the bracket
+    vanishes because $\Omega_x(0) = \Omega_x(T) = 0$. Second: $-\tfrac{1}{i\alpha}\int e^{i\alpha t}f' = -\tfrac1{i\alpha}\Big(\big[\tfrac{e^{i\alpha t}}{i\alpha}f'\big]_0^T - \tfrac1{i\alpha}\int e^{i\alpha t}f''\Big)
+    = \tfrac{1}{\alpha^2}\big[e^{i\alpha t}f'\big]_0^T - \tfrac1{\alpha^2}\int e^{i\alpha t}f''$, using $(i\alpha)^2 = -\alpha^2$. A third integration by parts shows the remaining
+    integral is $O(1/\alpha)$ times boundary values of $f''$ plus a yet smaller integral, so it is of higher order provided $f$ is smooth
+    inside $(0, T)$. Then $f' = (\Omega_x'c_1 + \Omega_x\dot c_1)/\sqrt2$, and at $t = 0$ both terms vanish ($c_1(0) = 0$, $\Omega_x(0) = 0$); at $t = T$
+    only $\Omega_x'(T)c_1(T)/\sqrt2$ survives. So $|c_2(T)| \approx |\Omega_x'(T)||c_1(T)|/(\sqrt2\,\alpha^2)$.</p>
+    <p><b>What "leading order" means here.</b> An asymptotic statement as $|\alpha|T \to \infty$ with the pulse's shape fixed: the
+    error is a higher power of $1/(\alpha T)$. The table tests exactly that, and the ratio approaches $1$ as $\alpha$ grows. It does not
+    claim the formula is accurate at the real $\alpha$, where it overestimates by half.</p>
+    <p><b>The bulk is exponentially small.</b> Away from the ends the envelope is a Gaussian, whose Fourier transform at $\alpha$ is
+    of order $e^{-\alpha^2\sigma^2/2} = e^{-7.7} = 4.5\times10^{-4}$ in amplitude, $2\times10^{-7}$ in probability, for $\sigma = 2.5$ ns. So nearly all
+    the leakage of the 10 ns pulse comes from the kink at the switch-off. A pulse whose slope also vanishes at the ends would leak
+    at a higher order in $1/\alpha$.</p>
+    <p><b>Numbers.</b> $0.07349^2 = 5.401\times10^{-3}$; $1.5708^4 = 6.0881$; $5.401\times10^{-3}/(2\times6.0881) = 4.436\times10^{-4}$. The table was computed by
+    the piecewise-constant evolution with $4000k$ steps for $\alpha = k\alpha_0$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · leakage</p>
+  <h2>Leakage against duration</h2>
+  <div class="cols wide-left">
+    <div class="fig">
+      <svg viewBox="0 0 400 240" width="580" role="img" aria-label="leakage against pulse duration from 3 to 40 nanoseconds, both axes logarithmic. Exact leakage falls from about 0.4 at 3 nanoseconds through 0.25 at 4, 0.047 at 6, 1.9 times ten to the minus 3 at 8, a wiggle near 9 to 11 nanoseconds, 3 times ten to the minus 4 at 10, 2.7 times ten to the minus 5 at 20, to below ten to the minus 5 at 40. A dashed straight line, the leading-order formula, joins the exact curve for long pulses">
+        <line x1="60" y1="215" x2="390" y2="215" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="15" x2="60" y2="215" class="ink" stroke-width="1.2"/>
+        <path d="M60.0,51.0 L390.0,179.6" fill="none" class="accent" stroke-width="1.6" stroke-dasharray="6 4"/>
+        <path d="M60.0,25.6 L88.4,30.3 L111.7,36.2 L131.3,43.7 L142.9,49.7 L153.5,56.6 L163.3,64.6 L172.4,74.1 L176.7,79.6 L185.0,92.6 L196.4,117.7 L200.0,123.6 L203.5,123.8 L210.2,117.8 L216.5,114.4 L219.6,113.9 L225.5,114.7 L231.2,117.2 L241.8,123.4 L246.8,125.7 L262.9,130.3 L288.3,139.7 L304.8,146.8 L315.3,150.3 L324.9,154.5 L390.0,179.7" fill="none" class="warn" stroke-width="2.4"/>
+        <circle cx="96.7" cy="32.1" r="4" class="fill-warn"/>
+        <circle cx="148.3" cy="53.0" r="4" class="fill-warn"/>
+        <circle cx="185.0" cy="92.6" r="4" class="fill-warn"/>
+        <circle cx="213.4" cy="115.7" r="5" class="fill-unit"/>
+        <circle cx="301.7" cy="145.5" r="4" class="fill-warn"/>
+        <text x="102" y="28" font-size="11" class="halo">4 ns: 0.25</text>
+        <text x="154" y="50" font-size="11" class="halo">6 ns: 0.047</text>
+        <text x="190" y="88" font-size="11" class="halo">8 ns: 1.9×10⁻³</text>
+        <text x="218" y="135" font-size="11" class="halo">10 ns: 3.0×10⁻⁴</text>
+        <text x="296" y="165" font-size="11" class="halo">20 ns: 2.7×10⁻⁵</text>
+        <text x="96.7" y="231" font-size="11" text-anchor="middle" class="soft">4</text>
+        <text x="148.3" y="231" font-size="11" text-anchor="middle" class="soft">6</text>
+        <text x="213.4" y="231" font-size="11" text-anchor="middle" class="soft">10</text>
+        <text x="301.7" y="231" font-size="11" text-anchor="middle" class="soft">20</text>
+        <text x="394" y="231" font-size="11" text-anchor="end" class="soft">40 ns</text>
+        <text x="54" y="19" font-size="11" text-anchor="end" class="soft">1</text>
+        <text x="54" y="76" font-size="11" text-anchor="end" class="soft">10⁻²</text>
+        <text x="54" y="133" font-size="11" text-anchor="end" class="soft">10⁻⁴</text>
+        <text x="54" y="190" font-size="11" text-anchor="end" class="soft">10⁻⁶</text>
+        <text x="300" y="104" font-size="11" class="soft">dashed: Ωₓ′(T)²/2α⁴</text>
+      </svg>
+      <p class="cap">$P_2$ for Gaussian $\pi$-pulses of every duration from 3 to 40 ns (log–log). Long pulses follow the leading-order line, $\propto T^{-4}$; short ones leave it.</p>
+    </div>
+    <div>
+      <p class="small"><b>Long pulses.</b> $\Omega_x'(T) = 2Ae^{-2}/\sigma \propto 1/T^2$, so $P_2 \propto 1/(\alpha^4T^4)$: doubling 20 ns to 40 ns divides leakage by $15.7$, against the predicted $16$ ✓.</p>
+      <p class="small"><b>Short pulses.</b> At 4 ns the peak drive is $2\pi\times234$ MHz, comparable with $|\alpha|/2\pi = 250$ MHz. Perturbation theory is meaningless: <b>a quarter of the population leaks</b> ($0.252$).</p>
+      <p class="small"><b>In between</b>, near 9–11 ns, the curve wiggles: the next-order terms oscillate with $\alpha T$ and interfere with the leading one.</p>
+      <div class="box good"><span class="label">the trade-off</span>
+        <p class="small">Fast gates leak; slow gates decay (section 5). For an unshaped pulse, 10 ns is already on the steep part.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> Computed for every $T$ from 3 to 40 ns in steps of 0.25 ns, with $\max(600, 60T)$ midpoint steps. At the
+    marked durations: $0.2519$ (4 ns), $0.04685$ (6), $1.919\times10^{-3}$ (8), $2.995\times10^{-4}$ (10), $2.698\times10^{-5}$ (20), and
+    $1.722\times10^{-6}$ (40). Ratio $2.698\times10^{-5}/1.722\times10^{-6} = 15.67$. Between 9 and 11 ns: $1.58\times10^{-4}$ at 9.0, a minimum
+    of $1.55\times10^{-4}$ near 9.25, then $3.44\times10^{-4}$ at 10.5 — the running example sits near a local bump, not a trough.</p>
+    <p><b>The leading-order line</b> is $\Omega_x'(T)^2/2\alpha^4$ with $\Omega_x'(T) = 2Ae^{-2}/\sigma$, $A = 6.788/T$, $\sigma = T/4$: that is
+    $\Omega_x'(T) = 7.349/T^2$ rad/ns² ($T$ in ns), and $P_2 \approx 4.44/T^4$. At 20 ns: $2.77\times10^{-5}$ against the exact $2.70\times10^{-5}$.</p>
+    <p><b>A warning about reading the plot.</b> The wiggle means that tuning a duration to a minimum of leakage is
+    possible, but fragile: a different $\alpha$ moves the minima. Section 4's correction removes the leading term for every duration
+    at once, which is why it is used instead.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · leakage</p>
+  <h2>The spectral picture, and a check on the model</h2>
+  <div class="cols">
+    <div class="fig">
+      <svg viewBox="0 0 400 235" width="520" role="img" aria-label="the power spectrum of the 4 and 10 nanosecond envelopes against detuning from the qubit frequency, 0 to 500 megahertz, logarithmic vertical axis. The 4 nanosecond spectrum is broad, about 0.19 at 250 megahertz where the leakage transition sits; the 10 nanosecond spectrum falls to about 5 times ten to the minus 5 there, with side lobes from the kinks at the ends">
+        <line x1="55" y1="205" x2="385" y2="205" class="ink" stroke-width="1.2"/>
+        <line x1="55" y1="15" x2="55" y2="205" class="ink" stroke-width="1.2"/>
+        <line x1="220" y1="15" x2="220" y2="205" class="warn" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <path d="M55.0,15.0 L95.5,15.9 L128.6,18.1 L165.0,22.1 L201.4,28.0 L237.0,36.0 L258.5,42.2 L285.8,52.1 L307.3,62.3 L321.3,70.8 L335.4,81.9 L345.3,92.8 L350.3,100.2 L353.6,106.5 L356.9,114.7 L359.4,123.4 L361.8,137.4 L363.5,157.1 L364.3,187.8 L366.0,152.2 L367.6,136.7 L369.3,128.2 L372.6,118.3 L375.9,112.1 L380.0,107.0 L385.0,102.9" fill="none" class="accent" stroke-width="2"/>
+        <path d="M55.0,15.0 L68.2,15.6 L83.9,18.0 L97.2,21.5 L112.1,27.3 L127.0,35.5 L136.9,42.6 L146.8,51.6 L155.1,61.2 L160.9,69.7 L166.7,80.8 L170.0,89.3 L173.3,100.9 L176.6,121.7 L179.1,170.3 L179.9,139.5 L180.7,128.2 L183.2,112.8 L185.7,105.4 L187.3,102.3 L190.6,98.4 L193.9,96.4 L197.3,95.7 L200.6,95.9 L203.9,97.1 L206.4,98.4 L211.3,102.6 L215.5,108.0 L218.8,114.2 L222.1,123.4 L223.7,130.2 L226.2,147.7 L227.9,189.2 L229.5,154.9 L230.3,145.5 L232.8,130.6 L235.3,122.7 L238.6,116.0 L242.7,110.9 L248.5,107.0 L253.5,105.6 L257.6,105.5 L263.4,106.8 L267.6,108.8 L270.9,111.1 L275.0,115.0 L278.3,119.2 L281.6,124.9 L285.8,135.7 L289.1,151.8 L290.7,169.8 L291.5,193.3 L292.4,191.2 L293.2,169.4 L294.0,159.2 L295.7,147.5 L299.0,135.3 L300.6,131.5 L303.9,126.0 L308.9,120.9 L312.2,118.8 L315.5,117.5 L319.7,116.8 L323.8,116.9 L329.6,118.5 L333.7,120.7 L337.9,124.0 L342.8,129.7 L347.0,136.9 L350.3,145.6 L351.9,152.0 L354.4,168.0 L356.9,205.0 L358.5,170.4 L361.0,154.1 L363.5,145.5 L367.6,137.0 L371.8,131.9 L374.2,129.8 L378.4,127.4 L385.0,125.8" fill="none" class="unit" stroke-width="2"/>
+        <circle cx="220" cy="31.9" r="4" class="fill-accent"/>
+        <circle cx="220" cy="117.2" r="4" class="fill-unit"/>
+        <text x="55" y="221" font-size="11" text-anchor="middle" class="soft">0</text>
+        <text x="121" y="221" font-size="11" text-anchor="middle" class="soft">100</text>
+        <text x="220" y="221" font-size="11" text-anchor="middle" class="soft">250</text>
+        <text x="390" y="221" font-size="11" text-anchor="end" class="soft">500 MHz</text>
+        <text x="49" y="19" font-size="11" text-anchor="end" class="soft">1</text>
+        <text x="49" y="114" font-size="11" text-anchor="end" class="soft">10⁻⁴</text>
+        <text x="49" y="209" font-size="11" text-anchor="end" class="soft">10⁻⁸</text>
+        <text x="228" y="28" font-size="11" class="halo">4 ns: 0.19</text>
+        <text x="228" y="88" font-size="11" class="halo">10 ns: 5.0×10⁻⁵</text>
+        <text x="224" y="200" font-size="11" class="halo">|α|/2π</text>
+        <text x="120" y="233" font-size="11" class="soft">|detuning from ω|/2π</text>
+      </svg>
+      <p class="cap">$\big|\int\Omega_xe^{i\Delta t}dt\big|^2/\pi^2$: how much drive each pulse puts at detuning $\Delta$. The 4 ns pulse is broad enough to drive the leakage transition directly.</p>
+    </div>
+    <div>
+      <p class="small"><b>The rule of thumb</b>, from the Fourier formula: a pulse of width $\sigma$ has spectral width about $1/\sigma$. It leaks badly when $1/\sigma$ reaches $|\alpha|$ — at 4 ns, $1/\sigma = 1$ rad/ns against $|\alpha| = 1.57$ — and gently otherwise, through its tails.</p>
+      <div class="box warn"><span class="label">is three levels enough?</span>
+        <p class="small">Add $\ket3$ (coupling $\sqrt3$, at $3\alpha$). At 20 ns the leakage barely moves: $2.70 \to 2.71\times10^{-5}$. At 10 ns it moves a lot: $3.0\times10^{-4} \to 8.4\times10^{-5}$, while $1 - P_1$ goes from $2.56\%$ to $2.69\%$.</p>
+        <p class="small">So the running example's $3.0\times10^{-4}$ is the three-level model's number. The trends and the miss survive; at 10 ns the leakage itself is uncertain by a factor of about $3.5$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What the figure is, and is not.</b> It is the squared Fourier transform of the envelope alone, normalised to $1$ at
+    $\Delta = 0$ (where it is the area, $\pi$). The exact leakage amplitude is the transform of $gc_1$, not of $\Omega_x$, so the
+    figure is a picture of the mechanism, not the computation. At $|\Delta|/2\pi = 250$ MHz it gives $0.194$ (4 ns) and
+    $4.97\times10^{-5}$ (10 ns). The deep notches are zeros of the transform; the side lobes beyond them, falling only as a power of $\Delta$,
+    are the kinks' doing — a Gaussian without kinks would fall as $e^{-\Delta^2\sigma^2/2}$.</p>
+    <p><b>The truncation check in full.</b> The four-level model has $H_0/\hbar - \omega n = \mathrm{diag}(0, 0, \alpha, 3\alpha)$ and
+    $b\ket3 = \sqrt3\ket2$. At 10 ns: $P_2 + P_3 = 8.41\times10^{-5}$ ($P_3 = 1.9\times10^{-9}$), and $1 - P_1 = 0.02692$. Five levels change these by
+    less than 1%. At 20 ns: $2.709\times10^{-5}$; at 40 ns: $1.7221\times10^{-6}$ against $1.7219\times10^{-6}$. So the fourth level matters only
+    where $\Omega/|\alpha|$ is not small: it shifts $\ket2$ by an amount of order $\Omega^2/\alpha$ (the next section's mechanism, one rung up),
+    changing the interference that sets the leakage.</p>
+    <p><b>What else the model leaves out</b>, named not developed: the transmon's real matrix elements differ from $\sqrt k$ by
+    corrections of order $|\alpha|/\omega$; the higher levels' anharmonicity is not exactly constant; and the pulse a device emits is
+    distorted by the wiring on its way to the chip. Calibration on the device, not this model, fixes the final numbers. What the
+    model is for is the mechanism and the order of magnitude.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>DRAG, and the Stark shift</h2>
+  <p>Leakage is a Fourier coefficient; a second quadrature can cancel its leading term. It does — and the $2.6\%$ miss barely moves, because the miss was never leakage. It is the drive shifting the qubit's own frequency.</p>
+</section>
+
+<section>
+  <p class="eyebrow">25 · DRAG</p>
+  <h2>DRAG, derived</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Add a quadrature</b> $\Omega_y$, small (of order $1/\alpha$). It enters $g = (\Omega_x + i\Omega_y)/\sqrt2$, so the leakage integral gains $\int e^{i\alpha t}\,i\Omega_yc_1/\sqrt2$. One integration by parts:</p>
+      $$\int_0^Te^{i\alpha t}\frac{i\Omega_yc_1}{\sqrt2}dt = \frac1\alpha\Big[e^{i\alpha t}\frac{\Omega_yc_1}{\sqrt2}\Big]_0^T + O(\alpha^{-3}).$$
+      <p class="small">With the $\Omega_x$ term of the last section, the leading boundary term at $T$ is</p>
+      $$\frac{e^{i\alpha T}c_1(T)}{\sqrt2\,\alpha^2}\big(\Omega_x'(T) + \alpha\,\Omega_y(T)\big).$$
+      <div class="box thm"><span class="label"><span class="term">DRAG</span> (Motzoi, Gambetta, Rebentrost and Wilhelm, 2009)</span>
+        $$\Omega_y(t) = -\lambda\,\frac{\Omega_x'(t)}{\alpha},\qquad \lambda = 1$$
+        <p class="small">cancels the leading leakage for <b>every</b> envelope vanishing at its ends: the term becomes $(1 - \lambda)\,\Omega_x'(T)$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 370 230" width="481" role="img" aria-label="the in-phase envelope, a Gaussian peaking at 93 megahertz, and the DRAG quadrature, proportional to its derivative: positive on the rising half up to about 17 megahertz, negative on the falling half, crossing zero at the peak">
+          <line x1="50" y1="167" x2="350" y2="167" class="rule" stroke-width="1"/>
+          <line x1="50" y1="15" x2="50" y2="205" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="205" x2="350" y2="205" class="ink" stroke-width="1.2"/>
+          <path d="M50.0,167.0 L59.0,161.2 L71.1,151.8 L80.1,143.5 L89.1,134.2 L107.2,112.9 L145.3,63.3 L152.3,55.0 L162.4,44.4 L171.4,36.5 L182.4,29.4 L190.5,26.3 L198.5,25.0 L207.5,25.8 L217.6,29.4 L226.6,35.0 L235.6,42.5 L245.7,52.8 L254.7,63.3 L292.8,112.9 L310.9,134.2 L319.9,143.5 L328.9,151.8 L341.0,161.2 L350.0,167.0" fill="none" class="unit" stroke-width="2.4"/>
+          <path d="M50.0,155.7 L91.1,145.8 L107.2,142.9 L115.2,142.0 L126.3,141.6 L134.3,142.0 L143.3,143.2 L159.4,147.4 L174.4,153.5 L188.5,160.6 L214.5,175.0 L234.6,184.4 L244.6,187.9 L252.7,190.0 L265.7,192.0 L279.8,192.3 L296.8,190.5 L312.9,187.3 L350.0,178.3" fill="none" class="accent" stroke-width="2.2"/>
+          <text x="44" y="171" font-size="11" text-anchor="end" class="soft">0</text>
+          <text x="44" y="95" font-size="11" text-anchor="end" class="soft">50</text>
+          <text x="44" y="19" font-size="11" text-anchor="end" class="soft">100</text>
+          <text x="50" y="221" font-size="11" text-anchor="middle" class="soft">0</text>
+          <text x="200" y="221" font-size="11" text-anchor="middle" class="soft">5</text>
+          <text x="350" y="221" font-size="11" text-anchor="middle" class="soft">10 ns</text>
+          <text x="214" y="22" font-size="12" class="halo">Ωₓ/2π</text>
+          <text x="96" y="132" font-size="12" class="halo">Ω<tspan baseline-shift="sub" font-size="9">y</tspan>/2π, λ = 1</text>
+          <text x="8" y="10" font-size="11" class="soft">MHz</text>
+        </svg>
+        <p class="cap"><span class="ref" data-ref="drag">The running pulse with DRAG</span>: the quadrature is the envelope's slope over $|\alpha|$, peaking at $2\pi\times16.7$ MHz.</p>
+      </div>
+      <div class="box warn"><span class="label">the sign, for α &lt; 0</span>
+        <p class="small">$\Omega_y = +\Omega_x'/|\alpha|$: positive while the pulse rises. Papers differ by signs and factors of 2 in how they write the drive and $\alpha$; this is the sign for this deck's $\tilde H$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full derivation.</b> From <i>Leakage is a Fourier coefficient</i>, $c_2(T) = -ie^{-i\alpha T}\int_0^Te^{i\alpha t}gc_1\,dt$ with $g = (\Omega_x + i\Omega_y)/\sqrt2$.
+    Split $gc_1 = f_x + f_y$, $f_x = \Omega_xc_1/\sqrt2$ and $f_y = i\Omega_yc_1/\sqrt2$. The previous slide gave
+    $\int e^{i\alpha t}f_x = \tfrac1{\alpha^2}[e^{i\alpha t}f_x']_0^T + O(\alpha^{-3})$. For $f_y$, one integration by parts:
+    $\int e^{i\alpha t}f_y = [\tfrac{e^{i\alpha t}}{i\alpha}f_y]_0^T - \tfrac1{i\alpha}\int e^{i\alpha t}f_y'$, and since $f_y = O(1/\alpha)$ the last term is $O(\alpha^{-3})$.
+    The bracket is $\tfrac1\alpha[e^{i\alpha t}\Omega_yc_1/\sqrt2]_0^T$. At $t = 0$ everything vanishes because $c_1(0) = 0$. At $t = T$, $f_x'(T) =
+    \Omega_x'(T)c_1(T)/\sqrt2$. Adding: $\tfrac{e^{i\alpha T}c_1(T)}{\sqrt2\alpha^2}\big(\Omega_x'(T) + \alpha\Omega_y(T)\big)$, and with $\Omega_y = -\lambda\Omega_x'/\alpha$ the bracket is
+    $(1 - \lambda)\Omega_x'(T)$. So at $\lambda = 1$ the $O(\alpha^{-2})$ amplitude is gone, and leakage starts at a higher order.</p>
+    <p><b>The frame-change view</b> (Motzoi et al.'s own). Change basis by $e^{S(t)}$ with
+    $S = \tfrac{\Omega_x}{\sqrt2\alpha}(\ket2\!\bra1 - \ket1\!\bra2)$, anti-Hermitian, small, and zero at both ends of the pulse (so populations at the
+    end are unchanged). To first order the new Hamiltonian is $\tilde H + [S, \tilde H] + i\dot S$. The commutator with $\alpha\ket2\!\bra2$ cancels
+    the $\Omega_x$ part of the $\ket1$–$\ket2$ coupling; but differentiating the moving frame adds
+    $i\dot S = \tfrac{\Omega_x'}{\sqrt2\alpha}(i\ket2\!\bra1 - i\ket1\!\bra2)$, a new coupling of exactly the form of the $\Omega_y$ term's $\ket1$–$\ket2$ part,
+    $\tfrac{\Omega_y}{\sqrt2}(i\ket2\!\bra1 - i\ket1\!\bra2)$. The two cancel iff $\Omega_y = -\Omega_x'/\alpha$: in that frame $\ket2$ is decoupled to first order, and
+    since the frame is the identity at the ends, nothing leaks at that order. The integration-by-parts argument above is the same
+    expansion in $1/\alpha$, done on the amplitude.</p>
+    <p><b>Numbers.</b> $\max|\Omega_x'| = 0.1647$ rad/ns², so $\max|\Omega_y| = 0.1647/1.5708 = 0.1048$ rad/ns $= 2\pi\times16.7$ MHz. At the ends,
+    $|\Omega_y| = 0.0735/1.5708 = 0.0468$ rad/ns: the quadrature switches on and off with a jump, which is harmless at this order.</p>
+    <p><b>Citation.</b> F. Motzoi, J. M. Gambetta, P. Rebentrost and F. K. Wilhelm, "Simple pulses for elimination of leakage
+    in weakly nonlinear qubits", <i>Phys. Rev. Lett.</i> 103, 110501 (2009). DRAG stands for Derivative Removal by Adiabatic Gate.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · DRAG</p>
+  <h2>DRAG fixes the leakage, not the miss</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b><span class="ref" data-ref="drag">The running pulse</span> with λ = 1</b>, by the same piecewise-constant evolution:</p>
+      <table class="dense">
+        <thead><tr><th></th><th>$P_2$</th><th>$1 - P_1$</th></tr></thead>
+        <tbody>
+          <tr><td>Gaussian</td><td>$3.0\times10^{-4}$</td><td>$2.56\%$</td></tr>
+          <tr><td>DRAG, $\lambda = 1$</td><td>$3.9\times10^{-6}$</td><td>$2.81\%$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Leakage falls 76-fold, as derived. The miss does not fall at all — it <b>grows</b> a little.</p>
+      <p class="small"><b>Scan λ</b> (right): leakage is least near $\lambda = 1.11$ (the first-order answer, $1$, corrected by higher orders); the miss is least near $\lambda = 0.49$. The two minima are far apart.</p>
+      <div class="box warn"><span class="label">two different errors</span>
+        <p class="small">The miss was never leakage: at $\lambda = 0$, $2.53\%$ of the $2.56\%$ sat in $\ket0$. Something else turns the rotation off course.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 230" width="520" role="img" aria-label="leakage and miss of the 10 nanosecond pulse against the DRAG coefficient lambda from 0 to 1.5, logarithmic vertical axis. Leakage falls from 3 times ten to the minus 4 to a sharp minimum near lambda 1.1. The miss falls from 2.6 percent to a sharp minimum near lambda one half, then rises past 2.8 percent at lambda 1">
+        <line x1="60" y1="205" x2="380" y2="205" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="15" x2="60" y2="205" class="ink" stroke-width="1.2"/>
+        <line x1="273.3" y1="15" x2="273.3" y2="205" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M60.0,83.5 L100.0,86.9 L132.0,90.4 L158.7,94.1 L180.0,97.7 L204.0,102.8 L217.3,106.3 L233.3,111.4 L246.7,116.9 L260.0,124.0 L268.0,129.8 L276.0,137.4 L281.3,144.3 L286.7,154.0 L289.3,160.9 L292.0,170.3 L294.7,183.6 L297.3,189.6 L302.7,164.9 L305.3,156.9 L310.7,146.1 L313.3,142.0 L318.7,135.5 L324.0,130.5 L332.0,124.4 L345.3,116.8 L361.3,110.1 L380.0,104.1" fill="none" class="warn" stroke-width="2.4"/>
+        <path d="M60.0,31.0 L78.7,35.6 L92.0,39.5 L108.0,45.2 L118.7,49.9 L134.7,59.1 L142.7,65.1 L158.7,78.7 L161.3,80.0 L164.0,80.3 L166.7,79.7 L169.3,78.3 L188.0,62.5 L201.3,53.8 L209.3,49.7 L222.7,44.0 L241.3,37.8 L270.7,30.5 L297.3,25.4 L329.3,20.5 L380.0,14.5" fill="none" class="unit" stroke-width="2.4"/>
+        <circle cx="273.3" cy="134.5" r="4" class="fill-warn"/>
+        <circle cx="273.3" cy="30.0" r="4" class="fill-unit"/>
+        <text x="60" y="221" font-size="11" text-anchor="middle" class="soft">0</text>
+        <text x="166.7" y="221" font-size="11" text-anchor="middle" class="soft">0.5</text>
+        <text x="273.3" y="221" font-size="11" text-anchor="middle" class="soft">1</text>
+        <text x="380" y="221" font-size="11" text-anchor="middle" class="soft">1.5</text>
+        <text x="220" y="221" font-size="11" class="soft">λ</text>
+        <text x="54" y="19" font-size="11" text-anchor="end" class="soft">10⁻¹</text>
+        <text x="54" y="73" font-size="11" text-anchor="end" class="soft">10⁻³</text>
+        <text x="54" y="128" font-size="11" text-anchor="end" class="soft">10⁻⁵</text>
+        <text x="54" y="182" font-size="11" text-anchor="end" class="soft">10⁻⁷</text>
+        <text x="96" y="30" font-size="12" class="alt halo">miss 1 − P₁</text>
+        <text x="96" y="104" font-size="12" class="halo">leakage P₂</text>
+        <text x="268" y="122" font-size="11" class="halo" text-anchor="end">3.9×10⁻⁶ at λ = 1</text>
+      </svg>
+      <p class="cap">The 10 ns pulse against the DRAG coefficient. The value that kills leakage is not the value that aims the rotation.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Numbers.</b> $\lambda = 1$: $P_2 = 3.947\times10^{-6}$, $1 - P_1 = 0.028127$. Ratio of leakages $2.995\times10^{-4}/3.947\times10^{-6} = 75.9$. The
+    scan used 121 values of $\lambda$ with 800 steps each; a one-dimensional minimisation of $P_2$ alone gives $\lambda = 1.109$ with
+    $P_2 = 3.3\times10^{-8}$. The miss's minimum on the scan is at $\lambda = 0.4875$, $1 - P_1 = 3.9\times10^{-4}$.</p>
+    <p><b>Why the leakage minimum is sharp.</b> The leakage amplitude is, to leading order, proportional to $(1 - \lambda)$ plus a
+    small higher-order part; it passes through zero (or nearly) as $\lambda$ varies, and its square has a deep, narrow dip on a log
+    scale. The miss behaves the same way about its own zero, which the slide <i>Why the π-pulse misses</i> predicts at $\lambda + c = \tfrac12$.</p>
+    <p><b>A fourth level moves the leakage optimum.</b> With $\ket3$ included, $\lambda = 1$ leaves $1.5\times10^{-5}$ in $\ket2$ and $\ket3$ together,
+    and the leakage-minimising $\lambda$ shifts (the warn box on <i>The spectral picture, and a check on the model</i>). The first-order derivation
+    knows nothing of $\ket3$; at 10 ns, with $\Omega/|\alpha| = 0.37$, higher orders matter.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the Stark shift</p>
+  <h2>The drive moves the qubit</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Freeze the drive</b> at $\Omega$ and look at $\ket1$, $\ket2$: the block $\begin{pmatrix}0 &amp; \Omega/\sqrt2\\ \Omega/\sqrt2 &amp; \alpha\end{pmatrix}$, eigenvalues $\tfrac12\big(\alpha \pm \sqrt{\alpha^2 + 2\Omega^2}\big)$. The one that starts at $0$ (for $\alpha \lt 0$, the $+$ root) is</p>
+      $$\begin{aligned}E_1(\Omega) &amp;= \tfrac{|\alpha|}{2}\Big(\sqrt{1 + 2\Omega^2/\alpha^2} - 1\Big)\\ &amp;= \frac{\Omega^2}{2|\alpha|} + O\big(\Omega^4/|\alpha|^3\big).\end{aligned}$$
+      <div class="box thm"><span class="label">the <span class="term">AC Stark shift</span></span>
+        <p class="small">$\ket0$ is not coupled to $\ket2$, so it does not move. The qubit's frequency rises by</p>
+        $$\delta_S(t) = \frac{\Omega_x(t)^2}{2|\alpha|} = -\frac{\Omega_x(t)^2}{2\alpha}.$$
+      </div>
+      <p class="small">Levels repel: $\ket2$, below $\ket1$ in this frame, pushes it up. At <span class="ref" data-ref="drag">the pulse</span>'s peak: $2\pi\times17.5$ MHz, $19\%$ of $\Omega$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 240" width="494" role="img" aria-label="the two eigenvalues of the one-two block against drive strength Omega from 0 to 1 radian per nanosecond: the upper starts at 0 and rises slowly, the lower starts at alpha minus 1.57 and falls; a dashed curve, Omega squared over 2 absolute alpha, follows the upper one. At the pulse's peak Omega 0.587 the upper level has risen by 0.10">
+        <line x1="60" y1="215" x2="360" y2="215" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="15" x2="60" y2="215" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="50.7" x2="360" y2="50.7" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="60" y1="162.9" x2="360" y2="162.9" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="236.1" y1="15" x2="236.1" y2="215" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M60.0,50.7 L97.7,50.4 L133.9,49.4 L200.2,46.0 L277.1,39.9 L360.0,31.3" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M60.0,50.7 L97.7,50.4 L138.4,49.2 L212.3,44.9 L284.6,38.0 L360.0,28.0" fill="none" class="accent" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <path d="M60.0,162.9 L117.3,163.7 L185.1,166.7 L231.9,169.9 L280.1,174.0 L360.0,182.3" fill="none" class="warn" stroke-width="2.6"/>
+        <text x="54" y="55" font-size="11" text-anchor="end" class="soft">0</text>
+        <text x="54" y="167" font-size="11" text-anchor="end" class="soft">α</text>
+        <text x="60" y="231" font-size="11" text-anchor="middle" class="soft">0</text>
+        <text x="210" y="231" font-size="11" text-anchor="middle" class="soft">0.5</text>
+        <text x="360" y="231" font-size="11" text-anchor="middle" class="soft">1</text>
+        <text x="300" y="231" font-size="11" class="soft">Ω, rad/ns</text>
+        <text x="242" y="94" font-size="11" class="halo">peak of the pulse</text>
+        <text x="80" y="38" font-size="12" class="alt halo">|1⟩ pushed up</text>
+        <text x="80" y="155" font-size="12" class="halo">|2⟩ pushed down</text>
+        <text x="270" y="22" font-size="11" class="soft">dashed: Ω²/2|α|</text>
+      </svg>
+      <p class="cap">Eigenvalues of the $\ket1$–$\ket2$ block as the drive grows. The qubit level climbs by $\Omega^2/2|\alpha|$; the drive, fixed at $\omega$, is left below resonance.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The eigenvalues.</b> The block's trace is $\alpha$ and determinant $-\Omega^2/2$, so its eigenvalues solve $\lambda^2 - \alpha\lambda - \Omega^2/2 = 0$:
+    $\lambda = \tfrac12(\alpha \pm \sqrt{\alpha^2 + 2\Omega^2})$. For $\alpha \lt 0$, $\sqrt{\alpha^2 + 2\Omega^2} = |\alpha|\sqrt{1 + 2\Omega^2/\alpha^2}$, and the $+$ root is
+    $\tfrac12(\alpha + |\alpha|\sqrt{\cdots}) = \tfrac{|\alpha|}2(\sqrt{\cdots} - 1)$, using $\alpha = -|\alpha|$. Then $\sqrt{1 + u} = 1 + u/2 - u^2/8 + \dots$ with $u = 2\Omega^2/\alpha^2$ gives
+    $\tfrac{|\alpha|}2\big(\tfrac{\Omega^2}{\alpha^2} - \tfrac{\Omega^4}{2\alpha^4}\big) + \dots = \Omega^2/2|\alpha| - \Omega^4/4|\alpha|^3 + \dots$. At $\Omega = 0.5869$: exact $0.1029$ rad/ns, second order $0.1097$, fourth order $0.1020$. Check $\Omega = 0$: $0$ ✓.</p>
+    <p><b>Why freezing the drive is fair, and what it hides.</b> The drive changes on the scale of nanoseconds; the $\ket1$–$\ket2$
+    mixing responds on the scale $1/|\alpha| = 0.64$ ns. That separation is what makes the frozen-drive picture the leading order.
+    The honest statement is an <span class="term">effective Hamiltonian</span> on the qubit: change basis by the $e^{S}$ of the last slide's
+    notes, and to order $1/\alpha$ the qubit block of the new Hamiltonian is</p>
+    <p>$$\tfrac12\Omega_xX + \tfrac12\Omega_yY - \tfrac{\Omega_x^2}{2\alpha}\ket1\!\bra1 .$$</p>
+    <p><b>Full proof of that block.</b> With $V_{\rm od} = \tfrac{\Omega_x}{\sqrt2}(\ket2\!\bra1 + \ket1\!\bra2)$ and $S = \tfrac{\Omega_x}{\sqrt2\alpha}(\ket2\!\bra1 - \ket1\!\bra2)$, the
+    second-order terms of $e^S\tilde He^{-S}$ that survive are $\tfrac12[S, V_{\rm od}] + [S, V_{\rm q}]$, where $V_{\rm q}$ is the qubit coupling. Using
+    $[\ket2\!\bra1 - \ket1\!\bra2,\ \ket2\!\bra1 + \ket1\!\bra2] = 2(\ket2\!\bra2 - \ket1\!\bra1)$: $\tfrac12[S, V_{\rm od}] = \tfrac{\Omega_x^2}{2\alpha}(\ket2\!\bra2 - \ket1\!\bra1)$ — the shift of
+    $\ket1$ by $-\Omega_x^2/2\alpha$ and of $\ket2$ by the opposite. $[S, V_{\rm q}]$ couples $\ket0$ to $\ket2$ only (a two-photon term, detuned by $\alpha$),
+    which touches the qubit block at the next order. The $i\dot S$ term couples $\ket1$ to $\ket2$ only. So the qubit block is as written.</p>
+    <p><b>Name and history.</b> "AC Stark shift": Johannes Stark found in 1913 that a static electric field shifts atomic spectral
+    lines; an oscillating field near a transition does too, and the shift's sign depends on which side of the transition the drive sits.
+    In atomic physics it is also called the light shift (Autler and Townes, 1955).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the Stark shift</p>
+  <h2>Why the π-pulse misses</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The qubit model to order 1/α</b>, with a detuning knob $c$ (next slide) added as $c\,\tfrac{\Omega_x^2}{\alpha}\,n$:</p>
+      $$\tilde H_{\rm q} = \tfrac12\Omega_xX + \underbrace{\tfrac12\Omega_yY + \big(c - \tfrac12\big)\tfrac{\Omega_x^2}{\alpha}\ket1\!\bra1}_{H_{\rm err}}$$
+      <p class="small">with $\Omega_y = -\lambda\Omega_x'/\alpha$.</p>
+      <div class="box thm"><span class="label">theorem: the first-order miss</span>
+        <p class="small">For a symmetric envelope of area $\pi$, with $\Theta(t) = \int_0^t\Omega_x$ and $I_s = \int_0^T\Omega_x^2\sin\Theta\,dt$,</p>
+        $$1 - P_1 \approx \kappa^2,\qquad \kappa = \big(\lambda + c - \tfrac12\big)\frac{I_s}{2\alpha}.$$
+      </div>
+      <p class="small"><b>Proof idea:</b> in the frame turning with $R_x(\Theta)$, the error generator is $K = \int R_x(\Theta)^\dagger H_{\rm err}R_x(\Theta)\,dt$; both parts integrate (by parts) to multiples of $I_sY$, with total coefficient $-\kappa$. Full proof in the notes.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 270" width="377" role="img" aria-label="the Bloch sphere: the ideal pi-pulse path goes from the north pole down the great circle to the south pole; the actual path, its axis tilted by the Stark shift, ends 18 degrees short of the south pole">
+          <circle cx="150" cy="135" r="105" fill="none" class="ink" stroke-width="1.5"/>
+          <ellipse cx="150" cy="135" rx="105" ry="30" fill="none" class="rule" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <path d="M150,30 A105,105 0 0 0 150,240" fill="none" class="rule" stroke-width="2" stroke-dasharray="5 4"/>
+          <path d="M150,30 C 95,40 62,90 60,140 C 60,190 85,222 118,232" fill="none" class="warn" stroke-width="3"/>
+          <polygon points="118,232 104,232 110,222" class="fill-warn"/>
+          <circle cx="150" cy="30" r="5" class="fill-ink"/>
+          <circle cx="150" cy="240" r="5" class="fill-unit"/>
+          <text x="160" y="28" font-size="12" class="halo">|0⟩</text>
+          <text x="162" y="258" font-size="12" class="halo">|1⟩, the target</text>
+          <text x="0" y="268" font-size="11" class="halo">misses by 2|κ| = 18°</text>
+          <text x="184" y="120" font-size="11" class="soft">dashed: two levels</text>
+          <text x="184" y="136" font-size="11" class="soft">solid: Stark-shifted</text>
+        </svg>
+        <p class="cap">The Stark shift tilts the rotation axis while the pulse is on: the state ends $2|\kappa|$ from the pole, and $\sin^2\kappa$ stays behind.</p>
+      </div>
+      <p class="small"><b>Check, 10 ns:</b> $I_s = 1.013$ rad/ns, so at $\lambda = c = 0$, $|\kappa| = 1.013/(4\times1.571) = 0.161$: $\sin^2\kappa = 2.58\%$, exact $2.56\%$ ✓. At $\lambda = 1$, $|\lambda - \tfrac12|$ is the same: $2.58\%$ again, exact $2.81\%$ — DRAG cannot help the miss.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> (i) <i>The frame.</i> Write $U(t) = R_x(\Theta(t))V(t)$. Then $iV' = H_I(t)V$ with $H_I = R_x(\Theta)^\dagger H_{\rm err}R_x(\Theta)$
+    (the rotating-frame theorem, with the time-dependent change of basis $R_x(\Theta)^\dagger$ in place of $e^{iGt}$; the frame term cancels
+    $\tfrac12\Omega_xX$). (ii) <i>First order.</i> $V(T) - I = -i\int H_IV$, and by the lemma <i>two evolutions</i>, $\lVert V - I\rVert \le \int\lVert H_I\rVert$; so
+    $\lVert V(T) - (I - iK)\rVert \le \int\lVert H_I(t)\rVert\int_0^t\lVert H_I\rVert \le \tfrac12\big(\int\lVert H_{\rm err}\rVert\big)^2$, with $K = \int H_I$. (iii) <i>Conjugation.</i>
+    $R_x(\Theta)^\dagger YR_x(\Theta) = \cos\Theta\,Y - \sin\Theta\,Z$ and $R_x(\Theta)^\dagger ZR_x(\Theta) = \cos\Theta\,Z + \sin\Theta\,Y$ (from $ZX = iY$, $YX = -iZ$). Write
+    $\ket1\!\bra1 = \tfrac12(I - Z)$ and drop $I$ (global phase); put $\delta = (c - \tfrac12)\Omega_x^2/\alpha$. Then
+    $K = \int\big[\tfrac{\Omega_y}2(\cos\Theta\,Y - \sin\Theta\,Z) - \tfrac\delta2(\cos\Theta\,Z + \sin\Theta\,Y)\big]dt$. (iv) <i>By parts.</i> With $\Theta' = \Omega_x$ and
+    $\Omega_x(0) = \Omega_x(T) = 0$: $\int\Omega_x'\cos\Theta = \int\Omega_x^2\sin\Theta = I_s$ and $\int\Omega_x'\sin\Theta = -\int\Omega_x^2\cos\Theta = -I_c$. So
+    $K = -\tfrac{\lambda + c - 1/2}{2\alpha}(I_sY + I_cZ)$. (v) <i>Symmetry.</i> For an envelope symmetric about $T/2$ with area $\pi$, $\Theta(T - t) = \pi - \Theta(t)$, so
+    $\cos\Theta$ is odd about the midpoint and $I_c = 0$. (vi) <i>The miss.</i> $K = -\kappa Y$, and $R_x(\pi)e^{i\kappa Y}\ket0 = R_x(\pi)(\cos\kappa\ket0 - \sin\kappa\ket1) = -i(\cos\kappa\ket1 - \sin\kappa\ket0)$,
+    so $P_0 = \sin^2\kappa$. (Using $e^{-iK}$ in place of $I - iK$ changes nothing at this order.) ∎</p>
+    <p><b>What the theorem says.</b> The Stark shift and the DRAG quadrature both produce the <i>same</i> first-order error, a turn
+    about $Y$ of size proportional to $I_s/\alpha$, with coefficients $-\tfrac12$ (the shift) and $\lambda$ (DRAG), plus $c$ from the detuning. So
+    the miss vanishes on the line $\lambda + c = \tfrac12$, and DRAG at $\lambda = 1$ overshoots by exactly as much as no DRAG undershoots.</p>
+    <p><b>Numbers.</b> $I_s = 1.01297$ rad/ns for the 10 ns pulse (computed by quadrature). $I_s \propto 1/T$ for a fixed shape, so
+    $\kappa = 1.612/T$ at $\lambda = c = 0$ ($T$ in ns): the miss falls as $2.6/T^2$. At 20 ns, $\sin^2(0.0806) = 0.648\%$ against the exact $0.649\%$; at 40 ns,
+    $0.1624\%$ against $0.1624\%$. The theorem gets better as the pulse gets longer, as a first-order statement in $\Omega/\alpha$ should.</p>
+    <p><b>The figure</b> is schematic: the tilted path is drawn, not computed; the 18° is $2\times0.161$ rad $= 18.5^\circ$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the Stark shift</p>
+  <h2>Two knobs, one search</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The detuning knob.</b> Add $c\,\tfrac{\Omega_x(t)^2}{\alpha}\,n$ to $\tilde H$: drive at $\omega - c\,\Omega_x^2/\alpha$, following the pulse. At $c = \tfrac12$ the drive tracks the Stark-shifted qubit exactly.</p>
+      <p class="small"><b>First order says</b>: miss $\propto(\lambda + c - \tfrac12)^2$, leakage $\propto(1 - \lambda)^2$, so $(\lambda, c) = (1, -\tfrac12)$ kills both. <b>The numbers disagree.</b> Score $P_2 + (1 - P_1)$, which counts leakage twice, on purpose:</p>
+      <table class="dense">
+        <thead><tr><th>$(\lambda, c)$</th><th>$P_2$</th><th>$1 - P_1$</th><th>score</th></tr></thead>
+        <tbody>
+          <tr><td>$(0, 0)$</td><td>$3.0\times10^{-4}$</td><td>$2.6\times10^{-2}$</td><td>$2.6\times10^{-2}$</td></tr>
+          <tr><td>$(1, 0)$</td><td>$3.9\times10^{-6}$</td><td>$2.8\times10^{-2}$</td><td>$2.8\times10^{-2}$</td></tr>
+          <tr><td>$(1, -0.47)$</td><td>$1.4\times10^{-4}$</td><td>$1.1\times10^{-3}$</td><td>$1.3\times10^{-3}$</td></tr>
+          <tr><td>$(0.5, -0.03)$</td><td>$9.3\times10^{-5}$</td><td>$3.3\times10^{-4}$</td><td>$4.3\times10^{-4}$</td></tr>
+          <tr><td>$(0.71, -0.22)$</td><td>$1.4\times10^{-5}$</td><td>$1.4\times10^{-5}$</td><td>$2.8\times10^{-5}$</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 260" width="481" role="img" aria-label="the plane of DRAG coefficient lambda, 0 to 1.2, against detuning coefficient c, minus 0.6 to 0.4, with contours of the score at ten to the minus 2, minus 3 and minus 4. The contours are long valleys along the line lambda plus c equals one half; the ten to the minus 4 contour is a small loop around lambda 0.71, c minus 0.22, the best point. The leakage-only point lambda 1, c 0 lies outside the ten to the minus 2 contour">
+          <line x1="60" y1="235" x2="380" y2="235" class="ink" stroke-width="1.2"/>
+          <line x1="60" y1="15" x2="60" y2="235" class="ink" stroke-width="1.2"/>
+          <line x1="86.7" y1="15" x2="353.3" y2="235" class="rule" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <path d="M278.5,235.0 L234.9,204.2 L189.4,169.0 L133.3,122.5 L60.0,58.6 M151.5,15.0 L226.7,70.5 L298.2,125.0 L346.6,164.6 L380.0,194.6" fill="none" class="accent" stroke-width="1.4"/>
+          <path d="M313.3,204.8 L306.7,203.8 L300.0,201.6 L293.3,198.7 L280.0,191.6 L253.3,174.2 L229.0,155.8 L203.1,133.8 L175.9,107.4 L164.4,94.2 L161.2,89.8 L158.5,85.4 L157.5,81.0 L160.0,78.9 L166.7,80.2 L173.3,83.0 L186.4,89.8 L200.0,97.8 L220.0,110.7 L240.0,124.7 L263.9,142.6 L290.0,164.6 L303.4,177.8 L311.0,186.6 L316.6,195.4 L317.9,199.8 L315.2,204.2 L313.3,204.8" fill="none" class="unit" stroke-width="1.8"/>
+          <path d="M266.7,165.9 L260.0,163.6 L246.7,154.9 L236.8,147.0 L232.3,142.6 L229.2,138.2 L233.3,135.8 L240.0,139.5 L250.8,147.0 L261.2,155.8 L265.0,160.2 L268.0,164.6 L266.7,165.9" fill="none" class="good" stroke-width="2.2"/>
+          <circle cx="60" cy="103" r="4.5" class="fill-ink"/>
+          <circle cx="326.7" cy="103" r="4.5" class="fill-warn"/>
+          <circle cx="326.7" cy="206.4" r="4" class="fill-ink"/>
+          <circle cx="193.3" cy="109.6" r="4" class="fill-ink"/>
+          <circle cx="248.3" cy="150.5" r="5" class="fill-good"/>
+          <text x="66" y="99" font-size="11" class="halo">plain</text>
+          <text x="304" y="96" font-size="11" class="halo">DRAG</text>
+          <text x="200" y="104" font-size="11" class="halo">(½, −0.03)</text>
+          <text x="278" y="222" font-size="11" class="halo">(1, −0.47)</text>
+          <text x="256" y="186" font-size="11" class="halo">best</text>
+          <text x="96" y="30" font-size="11" class="soft">λ + c = ½</text>
+          <text x="60" y="251" font-size="11" text-anchor="middle" class="soft">0</text>
+          <text x="193.3" y="251" font-size="11" text-anchor="middle" class="soft">0.5</text>
+          <text x="326.7" y="251" font-size="11" text-anchor="middle" class="soft">1</text>
+          <text x="370" y="251" font-size="11" text-anchor="middle" class="soft">λ</text>
+          <text x="54" y="107" font-size="11" text-anchor="end" class="soft">0</text>
+          <text x="54" y="19" font-size="11" text-anchor="end" class="soft">0.4</text>
+          <text x="54" y="239" font-size="11" text-anchor="end" class="soft">−0.6</text>
+          <text x="22" y="140" font-size="11" class="soft">c</text>
+        </svg>
+        <p class="cap">Score contours $10^{-2}$, $10^{-3}$, $10^{-4}$ over $(\lambda, c)$ for the 10 ns pulse. The valley runs along first order's line; its floor is not at $\lambda = 1$.</p>
+      </div>
+      <div class="box good"><span class="label">the lesson (Gambetta, Motzoi, Merkel and Wilhelm, 2011, cited)</span>
+        <p class="small">The correction that minimises leakage is not the one that minimises gate error. Here: $\lambda \approx 1.1$ for leakage alone, $\lambda \approx 0.7$ with a detuning for the gate.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>How the search was done.</b> A grid of $(\lambda, c)$ in steps of $0.025$ and $0.02$ (about 2500 pulses, 300 steps each) for the
+    contours; then a Nelder–Mead minimisation of the score from $(0.7, -0.21)$ with 600 steps, confirmed with 3000: optimum
+    $(\lambda, c) = (0.706, -0.216)$, $P_2 = 1.39\times10^{-5}$, $1 - P_1 = 1.40\times10^{-5}$. One-dimensional searches: at $\lambda = 0.5$ the best $c$ is $-0.03$
+    (score $4.28\times10^{-4}$); at $\lambda = 1$ it is $-0.47$ (score $1.28\times10^{-3}$); at $\lambda = 0$ it is $0.45$ (score $2.85\times10^{-3}$). Every
+    one-dimensional optimum has $\lambda + c$ within $0.05$ of $\tfrac12$, as the first-order theorem predicts.</p>
+    <p><b>Why first order's $(1, -\tfrac12)$ loses.</b> The detuning term $c\,\Omega_x^2n/\alpha$ shifts $\ket2$ by $2c\,\Omega_x^2/\alpha$ as well as $\ket1$,
+    changing the leakage transition's detuning by a few per cent of $\alpha$ during the pulse — a second-order effect the derivation of
+    DRAG did not include. At $c = -0.47$ it raises the leakage from $4\times10^{-6}$ to $1.4\times10^{-4}$, and the residual miss is $1.1\times10^{-3}$.
+    At $\Omega/|\alpha| = 0.37$ second order is not negligible, and the honest procedure is the one used here and on real devices:
+    take the first-order form, then tune its coefficients.</p>
+    <p><b>Why count leakage twice.</b> $1 - P_1$ already includes $P_2$; adding $P_2$ again weights leaked population double. That is a
+    choice, made because leakage is the worse error: a leaked qubit is invisible to unit 22's codes and can disturb its neighbours. The
+    curriculum's "about $4\times10^{-4}$ together" is the $(0.5, -0.03)$ row. With the score replaced by $1 - P_1$ alone, the optimum moves only
+    slightly.</p>
+    <p><b>How a detuning is applied.</b> Driving at $\omega + \Delta_d(t)$ and computing in the frame of the actual drive adds $-\Delta_d n$ to
+    $\tilde H$; so the term $c\,\Omega_x^2n/\alpha$ is $\Delta_d = -c\,\Omega_x^2/\alpha$. Electronically it is a phase ramp on the envelopes. At $c = \tfrac12$,
+    $\Delta_d = \Omega_x^2/2|\alpha| = \delta_S$: following the shifted qubit.</p>
+    <p><b>Citation.</b> J. M. Gambetta, F. Motzoi, S. T. Merkel and F. K. Wilhelm, "Analytic control methods for high-fidelity unitary
+    operations in a weakly nonlinear oscillator", <i>Phys. Rev. A</i> 83, 012308 (2011): the general first-order and higher-order solutions,
+    and the trade-off between leakage and phase errors.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>T₁ as a gate error</h2>
+  <p>A gate takes time, and while it runs the qubit relaxes. To compare that with the control errors, both need one yardstick: the fidelity averaged over every input.</p>
+</section>
+
+<section>
+  <p class="eyebrow">25 · T₁</p>
+  <h2>One number for a gate</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">average gate fidelity</span></span>
+        <p class="small">Of a channel $\Phi$ meant to implement $U$, over the uniform (rotation-invariant) measure on the Bloch sphere:</p>
+        $$F_{\rm avg} = \int\braket{\psi|U^\dagger\,\Phi\big(\ket\psi\!\bra\psi\big)\,U|\psi}\,d\psi .$$
+        <p class="small">$1 - F_{\rm avg}$ is the <b>average infidelity</b>. Checks: $\Phi = U\cdot U^\dagger$ gives $1$; $\Phi(\rho) = I/2$ gives $\tfrac12$.</p>
+      </div>
+      <div class="box warn"><span class="label">a convention</span>
+        <p class="small">$\braket{\psi|\rho|\psi}$ is unit 21's $F(\psi, \rho)^2$, not $F$. Gate fidelities are always quoted this way.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma: the <span class="term">six-state average</span></span>
+        <p class="small">A polynomial of degree $\le 2$ in the Bloch vector $\mathbf r$ has the same average over the sphere as over $\pm\hat x, \pm\hat y, \pm\hat z$. The integrand above is one.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 280 250" width="351" role="img" aria-label="the Bloch sphere with the six points plus and minus x, y and z marked, the corners of an octahedron inscribed in it">
+          <circle cx="140" cy="125" r="100" fill="none" class="ink" stroke-width="1.5"/>
+          <ellipse cx="140" cy="125" rx="100" ry="30" fill="none" class="rule" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <polygon points="140,25 240,125 140,225 40,125" fill="none" class="accent" stroke-width="1.2"/>
+          <line x1="140" y1="25" x2="95" y2="152" class="accent" stroke-width="1.2"/>
+          <line x1="140" y1="225" x2="95" y2="152" class="accent" stroke-width="1.2"/>
+          <line x1="40" y1="125" x2="95" y2="152" class="accent" stroke-width="1.2"/>
+          <line x1="240" y1="125" x2="95" y2="152" class="accent" stroke-width="1.2"/>
+          <circle cx="140" cy="25" r="5" class="fill-unit"/>
+          <circle cx="140" cy="225" r="5" class="fill-unit"/>
+          <circle cx="240" cy="125" r="5" class="fill-unit"/>
+          <circle cx="40" cy="125" r="5" class="fill-unit"/>
+          <circle cx="95" cy="152" r="5" class="fill-unit"/>
+          <circle cx="185" cy="98" r="5" class="fill-unit"/>
+          <text x="150" y="22" font-size="12" class="halo">+z = |0⟩</text>
+          <text x="150" y="240" font-size="12" class="halo">−z = |1⟩</text>
+          <text x="246" y="120" font-size="12" class="halo">+y</text>
+          <text x="14" y="120" font-size="12" class="halo">−y</text>
+          <text x="70" y="172" font-size="12" class="halo">+x</text>
+          <text x="192" y="94" font-size="12" class="halo">−x</text>
+        </svg>
+        <p class="cap">Six inputs suffice: the axis states, corners of an octahedron.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Check monomials. $1$: both $1$. $r_i$ and $r_ir_j$ ($i \ne j$): both $0$, by $r_i \mapsto -r_i$. $r_i^2$: both $\tfrac13$ — six points by counting, sphere since the three averages are equal and sum to $\langle|\mathbf r|^2\rangle = 1$. The integrand is linear in $\ket\psi\!\bra\psi = \tfrac12(I + \mathbf r\cdot\boldsymbol\sigma)$ twice. ∎</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The measure.</b> "Uniform" means normalised surface area on the unit sphere of Bloch vectors. It is invariant under
+    rotations, and unit 02 showed every qubit unitary acts on Bloch vectors as a rotation; so averaging over $\psi$ or over $V\psi$
+    gives the same answer for any unitary $V$. That invariance is used on the slide <i>Damping during the gate, not after it</i>.</p>
+    <p><b>The lemma in full.</b> On the sphere, the map $r_i \mapsto -r_i$ (a reflection) preserves the measure, so $\langle r_i\rangle = -\langle r_i\rangle = 0$
+    and, for $i \ne j$, $\langle r_ir_j\rangle = 0$. Permuting coordinates preserves it too, so $\langle r_1^2\rangle = \langle r_2^2\rangle = \langle r_3^2\rangle$, and their sum is $1$. On the
+    six points: $r_1^2 = 1$ at $\pm\hat x$ and $0$ at the other four, average $\tfrac26 = \tfrac13$; each $r_i$ and $r_ir_j$ averages to $0$ by the $\pm$ pairing. A
+    polynomial of degree $\le 2$ is a combination of these monomials, and both averages are linear. (The six points in fact match
+    the sphere up to degree 3 — they form a <i>spherical 3-design</i> — but degree 2 is all that is needed.)</p>
+    <p><b>Why the integrand has degree 2.</b> $\braket{\psi|U^\dagger\Phi(\ket\psi\!\bra\psi)U|\psi} = \operatorname{tr}\big(U\ket\psi\!\bra\psi U^\dagger\,\Phi(\ket\psi\!\bra\psi)\big)$, linear in
+    $\ket\psi\!\bra\psi$ in each slot, and $\ket\psi\!\bra\psi$ is affine in $\mathbf r$ (unit 04). For a leaking three-level evolution $W$, the same holds with
+    $\Phi(\ket\psi\!\bra\psi) = W\ket\psi\!\bra\psi W^\dagger$ on $\mathbb C^3$ and $U\ket\psi$ embedded in $\mathbb C^3$: the close of the deck uses this for the pulses.</p>
+    <p><b>Another route (cited).</b> For a qubit, $F_{\rm avg} = (2F_e + 1)/3$, where $F_e$ is the entanglement fidelity: the overlap of the
+    maximally entangled state with itself after $\Phi$ acts on one half (M. Horodecki, P. Horodecki and R. Horodecki, <i>Phys. Rev. A</i>
+    60, 1888, 1999; M. A. Nielsen, <i>Phys. Lett. A</i> 303, 249, 2002). The six-state lemma makes it unnecessary here; problem P11 compares
+    the two.</p>
+    <p><b>The checks.</b> For $\Phi = U\cdot U^\dagger$ the integrand is $|\braket{\psi|\psi}|^2 = 1$. For $\Phi(\rho) = I/2$ it is $\braket{\psi'|\tfrac I2|\psi'} = \tfrac12$ for every
+    $\psi$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · T₁ · example</p>
+  <h2>Worked: t/3T₁ for amplitude damping</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="t1">the gate's decay</span>: unit 21's amplitude damping for time $t$, $\gamma = 1 - e^{-t/T_1}$, $s = \sqrt{1 - \gamma}$, against $U = I$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1. The channel on Bloch vectors</b> (unit 21): $(x, y, z) \mapsto (sx,\ sy,\ \gamma + (1 - \gamma)z)$.</p>
+      <p class="small"><b>2. The fidelity</b> of a pure input $\mathbf r$ with its output $\mathbf r'$ is $\operatorname{tr}\rho\rho' = \tfrac12(1 + \mathbf r\cdot\mathbf r')$ (unit 04).</p>
+      <p class="small"><b>3. Six inputs.</b> $\pm\hat x$, $\pm\hat y$: $\mathbf r\cdot\mathbf r' = s$, fidelity $\tfrac12(1 + s)$, four times. $+\hat z$: fixed, fidelity $1$. $-\hat z \mapsto (0, 0, 2\gamma - 1)$: $\mathbf r\cdot\mathbf r' = 1 - 2\gamma$, fidelity $1 - \gamma$.</p>
+      <p class="small"><b>4. Average:</b> $\tfrac16\big[2(1 + s) + 1 + 1 - \gamma\big] = \tfrac{4 + 2s - \gamma}{6}$, so exactly</p>
+      $$1 - F_{\rm avg} = \frac{1 - s}{3} + \frac\gamma6 .$$
+    </div>
+    <div>
+      <p class="small"><b>5. Short times.</b> $s = 1 - \tfrac\gamma2 + O(\gamma^2)$ and $\gamma = \tfrac{t}{T_1} + O(t^2)$:</p>
+      $$1 - F_{\rm avg} = \frac\gamma6 + \frac\gamma6 + O(\gamma^2) = \frac{t}{3T_1} + O(t^2).$$
+      <p class="small"><b>6. Numbers.</b> $t = 20$ ns, $T_1 = 100\ \mu$s: $\gamma = 1.9998\times10^{-4}$, exact $6.6662\times10^{-5}$; $\ t/3T_1 = 6.6667\times10^{-5}$ ✓. For 10 ns: $3.3\times10^{-5}$.</p>
+      <p class="small"><b>7. Checks.</b> $t = 0$: $\gamma = 0$, $s = 1$, infidelity $0$ ✓. $t \to \infty$: $\gamma = 1$, $s = 0$: $\tfrac13 + \tfrac16 = \tfrac12$ — every input ends in $\ket0$, and $\braket{\psi|0}\!\braket{0|\psi}$ averages to $\tfrac12$ ✓. Dimensions: $t/T_1$ is a pure number ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 3 in full.</b> $+\hat x = (1, 0, 0) \mapsto (s, 0, \gamma)$, dot product $s$; likewise $-\hat x \mapsto (-s, 0, \gamma)$, dot product $s$; $\pm\hat y$ the same.
+    $+\hat z \mapsto (0, 0, \gamma + 1 - \gamma) = (0, 0, 1)$. $-\hat z \mapsto (0, 0, \gamma - (1 - \gamma)) = (0, 0, 2\gamma - 1)$, dot product with $(0, 0, -1)$: $1 - 2\gamma$, so
+    fidelity $\tfrac12(2 - 2\gamma) = 1 - \gamma$ — the chance that $\ket1$ has not decayed, unit 21's $e^{-t/T_1}$, as it must be.</p>
+    <p><b>Step 5 in full.</b> $\sqrt{1 - \gamma} = 1 - \tfrac\gamma2 - \tfrac{\gamma^2}8 - \dots$, so $\tfrac{1 - s}3 = \tfrac\gamma6 + \tfrac{\gamma^2}{24} + \dots$, and the infidelity is
+    $\tfrac\gamma3 + \tfrac{\gamma^2}{24} + \dots$. With $\gamma = \tfrac t{T_1} - \tfrac{t^2}{2T_1^2} + \dots$: $\tfrac{t}{3T_1} - \tfrac{t^2}{8T_1^2} + \dots$. At $t/T_1 = 2\times10^{-4}$ the
+    correction is $5\times10^{-9}$, which is the difference between the two numbers in step 6.</p>
+    <p><b>Where the third comes from.</b> Two thirds of the inputs (the equator, $\pm\hat x, \pm\hat y$) lose coherence at rate $\tfrac{1}{2T_1}$ in
+    amplitude, costing $\tfrac{\gamma}{4}$ each in fidelity; one sixth ($-\hat z$) loses its excitation at rate $\tfrac1{T_1}$, costing $\gamma$; one sixth ($+\hat z$)
+    loses nothing. $\tfrac46\cdot\tfrac\gamma4 + \tfrac16\gamma = \tfrac\gamma3$.</p>
+    <p><b>Pure dephasing</b> ($T_\varphi$, unit 21) would add its own contribution, of the same form with $T_\varphi$ in place of $T_1$; this deck
+    counts $T_1$ alone, as the curriculum does.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · T₁</p>
+  <h2>Damping during the gate, not after it</h2>
+  <div class="cols">
+    <div>
+      <p class="small">The qubit decays <b>while</b> the pulse turns it, not after. Does the answer change? Not to first order.</p>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">A gate of duration $t$, any unitary, with amplitude damping at rate $1/T_1$ acting throughout, has average infidelity $\dfrac{t}{3T_1} + O\big(t^2/T_1^2\big)$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, in three facts</span>
+        <p class="small"><b>(a)</b> $F_{\rm avg}$ is linear in $\Phi$. <b>(b)</b> $F_{\rm avg}(V^\dagger\Phi V) = F_{\rm avg}(\Phi)$ for unitary $V$: substitute $\varphi = V\psi$, the measure being rotation-invariant. <b>(c)</b> Slice the gate; move each slice's damping to the start by conjugating with the unitary before it. Each conjugated slice costs $\gamma_k/3$ by (b) and the worked example; to first order the costs add, by (a). $\sum\gamma_k = t/T_1 + O(t^2)$. ∎</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 330 260" width="416" role="img" aria-label="the xz cross-section of the Bloch ball: the unit circle with the four axis points plus and minus x and plus and minus z, and their images under amplitude damping with gamma exaggerated to 0.3. The image is an ellipse shifted up toward ket 0: plus z stays put, minus z moves up to minus 0.4, plus and minus x move in to 0.84 and up to 0.3">
+        <circle cx="165" cy="130" r="100" fill="none" class="rule" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <ellipse cx="165" cy="100" rx="83.7" ry="70" fill="none" class="warn" stroke-width="2.2"/>
+        <line x1="50" y1="130" x2="280" y2="130" class="ink" stroke-width="1"/>
+        <line x1="165" y1="20" x2="165" y2="245" class="ink" stroke-width="1"/>
+        <circle cx="165" cy="30" r="5" class="fill-unit"/>
+        <circle cx="165" cy="230" r="4.5" class="fill-ink"/>
+        <circle cx="265" cy="130" r="4.5" class="fill-ink"/>
+        <circle cx="65" cy="130" r="4.5" class="fill-ink"/>
+        <circle cx="165" cy="170" r="5" class="fill-warn"/>
+        <circle cx="248.7" cy="100" r="5" class="fill-warn"/>
+        <circle cx="81.3" cy="100" r="5" class="fill-warn"/>
+        <line x1="165" y1="226" x2="165" y2="178" class="warn" stroke-width="1.6"/>
+        <line x1="263" y1="127" x2="252" y2="106" class="warn" stroke-width="1.6"/>
+        <line x1="67" y1="127" x2="78" y2="106" class="warn" stroke-width="1.6"/>
+        <text x="174" y="26" font-size="12" class="halo">|0⟩, fixed</text>
+        <text x="174" y="242" font-size="12" class="halo">|1⟩</text>
+        <text x="174" y="186" font-size="12" class="halo">2γ − 1</text>
+        <text x="270" y="146" font-size="12" class="halo">x</text>
+        <text x="236" y="88" font-size="11" class="halo">(s, γ)</text>
+        <text x="40" y="256" font-size="11" class="soft">γ exaggerated to 0.3 for visibility</text>
+      </svg>
+      <p class="cap">Amplitude damping on the $xz$ cross-section, $\gamma = 0.3$: the ball shrinks toward $\ket0$. Four of the six inputs are drawn; $\pm\hat y$ move like $\pm\hat x$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Divide $[0, t]$ into $N$ slices. On slice $k$ the gate applies a unitary $U_k$ and damping applies $D_k$ with
+    $\gamma_k = 1 - e^{-\Delta t/T_1}$; in the limit the order within a slice does not matter at first order. The whole process is
+    $D_NU_N\cdots D_1U_1$. With $W_k = U_k\cdots U_1$, rewrite it as $W_N\circ(W_N^\dagger D_NW_N)\circ\cdots\circ(W_1^\dagger D_1W_1)$, where $W^\dagger DW$ means the channel
+    $\rho \mapsto W^\dagger D(W\rho W^\dagger)W$. The ideal gate is $W_N$, so the infidelity against it is that of the composition $\Psi$ of the conjugated
+    slices against the identity. Each slice is $\mathrm{id} + E_k$ with $\lVert E_k(\rho)\rVert_1 \le 2\gamma_k$ for states, so
+    $\Psi = \mathrm{id} + \sum_kE_k + R$ with $\lVert R(\rho)\rVert_1 \le (1 + 2\gamma)^N - 1 - 2N\gamma = O\big((t/T_1)^2\big)$ (uniform $\gamma_k = \gamma$, $N\gamma \approx t/T_1$).
+    By linearity (a), $1 - F_{\rm avg}(\Psi) = \sum_k\big(1 - F_{\rm avg}(\mathrm{id} + E_k)\big) + O\big((t/T_1)^2\big)$, and by (b) each term is the worked example's
+    $\gamma_k/3 + O(\gamma_k^2)$. Summing, $\tfrac13\sum\gamma_k + O(N\gamma^2) + O((t/T_1)^2) = \tfrac{t}{3T_1} + O(t^2/T_1^2)$.</p>
+    <p><b>Fact (b) in full.</b> $F_{\rm avg}(V^\dagger\Phi V) = \int\braket{\psi|V^\dagger\Phi(V\ket\psi\!\bra\psi V^\dagger)V|\psi}d\psi = \int\braket{\varphi|\Phi(\ket\varphi\!\bra\varphi)|\varphi}d\varphi$ with
+    $\varphi = V\psi$, because $\psi \mapsto V\psi$ is a rotation of the Bloch sphere and preserves the uniform measure.</p>
+    <p><b>What this licenses.</b> The control errors (sections 3–4) and the decay can be computed separately and added, at first order
+    in each: the closing comparison does exactly that. When both are small — $10^{-5}$ to $10^{-2}$ here — the cross terms are smaller
+    still.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">close</p>
+  <h2>Which error dominates</h2>
+  <p>Three errors, one yardstick, every duration from 4 to 100 ns. The answer depends on whether the pulse has been corrected.</p>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the close</p>
+  <h2>Three errors against gate time</h2>
+  <div class="cols wide-left">
+    <div class="fig">
+      <svg viewBox="0 0 400 250" width="580" role="img" aria-label="average infidelity against gate time from 4 to 100 nanoseconds, both axes logarithmic. The uncorrected Gaussian's control error falls from about 0.3 to 2 times ten to the minus 4, as one over T squared for long pulses. Its leakage falls faster. The searched pulse's control error is far lower, about ten to the minus 5 at 10 nanoseconds and below ten to the minus 7 by 50. The T1 line rises from 1.3 times ten to the minus 5 to 3.3 times ten to the minus 4. The T1 line crosses the uncorrected control error near 80 nanoseconds and the searched pulse's near 9 nanoseconds">
+        <line x1="60" y1="225" x2="390" y2="225" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="15" x2="60" y2="225" class="ink" stroke-width="1.2"/>
+        <line x1="153.9" y1="15" x2="153.9" y2="225" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M60.0,29.3 L82.9,35.7 L101.6,43.1 L117.4,50.4 L131.1,55.9 L143.1,59.2 L390.0,113.7" fill="none" class="unit" stroke-width="2.6"/>
+        <path d="M60.0,30.7 L77.6,36.6 L87.9,41.4 L97.2,46.8 L109.8,56.7 L121.0,69.3 L127.8,80.0 L131.1,86.3 L140.2,109.4 L143.1,114.8 L145.9,115.0 L151.3,109.5 L156.5,106.3 L161.4,106.0 L163.7,106.6 L168.3,108.9 L180.8,116.7 L193.8,120.9 L217.0,130.8 L227.5,136.1 L234.8,138.8 L245.8,144.1 L390.0,208.0" fill="none" class="warn" stroke-width="1.8" stroke-dasharray="6 4"/>
+        <path d="M101.6,68.3 L117.4,80.8 L131.1,99.8 L143.1,132.5 L153.9,142.5 L172.6,135.6 L202.1,153.6 L214.2,158.1 L225.0,163.5 L353.4,220.4" fill="none" class="good" stroke-width="2.6"/>
+        <path d="M60.0,143.0 L390.0,106.3" fill="none" class="accent" stroke-width="2.6"/>
+        <circle cx="367.1" cy="108.8" r="5" class="fill-ink"/>
+        <circle cx="143.1" cy="133.7" r="5" class="fill-ink"/>
+        <text x="66" y="241" font-size="11" class="soft">4</text>
+        <text x="153.9" y="241" font-size="11" text-anchor="middle" class="soft">10</text>
+        <text x="225" y="241" font-size="11" text-anchor="middle" class="soft">20</text>
+        <text x="318.9" y="241" font-size="11" text-anchor="middle" class="soft">50</text>
+        <text x="396" y="241" font-size="11" text-anchor="end" class="soft">100 ns</text>
+        <text x="54" y="19" font-size="11" text-anchor="end" class="soft">1</text>
+        <text x="54" y="71" font-size="11" text-anchor="end" class="soft">10⁻²</text>
+        <text x="54" y="124" font-size="11" text-anchor="end" class="soft">10⁻⁴</text>
+        <text x="54" y="176" font-size="11" text-anchor="end" class="soft">10⁻⁶</text>
+        <text x="54" y="229" font-size="11" text-anchor="end" class="soft">10⁻⁸</text>
+        <text x="236" y="72" font-size="12" class="halo">Gaussian: control</text>
+        <text x="255" y="178" font-size="12" class="halo">Gaussian: leakage</text>
+        <text x="236" y="210" font-size="12" class="halo">searched pulse</text>
+        <text x="268" y="140" font-size="12" class="alt halo">T₁ = 100 µs</text>
+        <text x="340" y="96" font-size="11" class="halo">80 ns</text>
+        <text x="100" y="150" font-size="11" class="halo">9 ns</text>
+      </svg>
+      <p class="cap">Average infidelity of the $\pi$-pulse, three-level model, against duration. Dots: where $t/3T_1$ crosses each control error.</p>
+    </div>
+    <div>
+      <p class="small"><b>Uncorrected</b>, the control error is the Stark miss, a $Y$-turn by $2\kappa$: by the six-state lemma, $1 - F_{\rm avg} = \tfrac23\sin^2\kappa \approx \tfrac23(1.61/T)^2$, with $T$ in ns. Against $T/3T_1$:</p>
+      $$T^3 = 2T_1(1.61)^2 \ \Rightarrow\ T \approx 80\ \text{ns}.$$
+      <p class="small">Below 80 ns the Stark shift dominates $T_1$. Leakage is far below the Stark miss from 8 ns up, but stays above $T_1$ until about 17 ns.</p>
+      <p class="small"><b>Searched</b> $(\lambda, c)$, re-optimised at each duration: control error $1.4\times10^{-5}$ at 10 ns, $2.2\times10^{-6}$ at 20 ns. $T_1$ overtakes it at about 9 ns.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>How each curve was computed.</b> For each duration, the three-level piecewise-constant evolution with $\max(600, 60T)$ steps.
+    "Control": $1 - F_{\rm avg}$ of the computed $3\times3$ unitary $W$ against $R_x(\pi)$, by the six-state lemma — the average of $|\braket{U\psi|W\psi}|^2$ over
+    the six axis states, with $U\ket\psi$ embedded in $\mathbb C^3$ (leakage counts against it). "Leakage": $P_2$ from $\ket0$, the Gaussian. "Searched": $(\lambda, c)$
+    re-minimised for the score $P_2 + (1 - P_1)$ at each duration from 6 to 70 ns (it settles at $\lambda \approx 0.73$, $c \approx -0.23$ beyond 14 ns),
+    then $1 - F_{\rm avg}$ computed. $T_1$: the exact $\tfrac{1 - s}3 + \tfrac\gamma6$.</p>
+    <p><b>The two-thirds.</b> To first order the uncorrected pulse is $R_x(\pi)e^{i\kappa Y}$. By fact (b) its average infidelity is that of $e^{i\kappa Y}$ against $I$:
+    the six-state average gives $1$ for $\pm\hat y$ (unmoved) and $\cos^2\kappa$ for the other four, so $1 - F_{\rm avg} = \tfrac46\sin^2\kappa$. At 10 ns: $\tfrac23\times0.02577 = 0.0172$,
+    computed $0.0172$ ✓. At 100 ns: $\tfrac23(0.01612)^2 = 1.73\times10^{-4}$, computed $1.73\times10^{-4}$ ✓.</p>
+    <p><b>The crossover.</b> $\tfrac23(1.612/T)^2 = T/(3\times10^5)$ gives $T^3 = 2\times10^5\times2.599 = 5.20\times10^5$, $T = 80.4$ ns; the computed curves cross between 80
+    and 90 ns ($2.71$ against $2.67\times10^{-4}$ at 80 ns). For the searched pulse: $3.33\times10^{-5}$ against $3.00\times10^{-5}$ at 9 ns, $1.39\times10^{-5}$ against
+    $3.33\times10^{-5}$ at 10 ns. The searched curve is not monotone near 10–12 ns, for the reason the leakage curve wiggles. The Gaussian's leakage crosses
+    $T_1$ between 16 and 17 ns: $6.6$ against $5.3\times10^{-5}$ at 16 ns, $5.3$ against $5.7\times10^{-5}$ at 17 ns.</p>
+    <p><b>DRAG alone</b> ($\lambda = 1$, $c = 0$) is not drawn: from 8 ns up its control error is within 15% of the uncorrected one
+    ($1.88$ against $1.72\times10^{-2}$ at 10 ns), as <i>Why the π-pulse misses</i> predicts; only below 8 ns, where leakage is a large part of
+    the error, does it help.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · the close</p>
+  <h2>The verdict</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b><span class="ref" data-ref="pulse">The running pulse</span>, 10 ns</b>, average infidelity:</p>
+      <table class="dense">
+        <thead><tr><th>pulse</th><th>control</th><th>of which leakage</th><th>$T_1$</th></tr></thead>
+        <tbody>
+          <tr><td>Gaussian</td><td>$1.7\times10^{-2}$</td><td>$3.0\times10^{-4}$</td><td>$3.3\times10^{-5}$</td></tr>
+          <tr><td>DRAG, $\lambda = 1$</td><td>$1.9\times10^{-2}$</td><td>$3.9\times10^{-6}$</td><td>$3.3\times10^{-5}$</td></tr>
+          <tr><td>searched</td><td>$1.4\times10^{-5}$</td><td>$1.4\times10^{-5}$</td><td>$3.3\times10^{-5}$</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">which dominates</span>
+        <p class="small"><b>Uncorrected, or with DRAG alone: the Stark shift</b>, by a factor of about 60 over leakage and 500 over $T_1$. With both knobs tuned the order reverses, and at 20 ns it is robust: control $2.2\times10^{-6}$, $T_1$ $6.7\times10^{-5}$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">where the model stops</span>
+        <p class="small">At 10 ns the searched control error is model-dependent: a fourth level makes it $9.0\times10^{-5}$, above $T_1$. At 20 ns three and four levels agree. Fast gates are where control, not $T_1$, sets the floor.</p>
+      </div>
+      <p class="small"><b>Back to unit 24.</b> Its $p = 10^{-3}$ is an assumption about every operation. An uncorrected 10 ns pulse misses it by a factor of 17; a calibrated one beats it by a factor of 20 or more, before two-qubit gates and measurement, which unit 26 surveys.</p>
+      <p class="small"><b>Not covered</b>, named: pure dephasing ($T_\varphi$), two-qubit gates, measurement, crosstalk, and drift in $\omega$ and $\alpha$ that calibration must follow.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers.</b> Gaussian: $1 - F_{\rm avg} = 0.01719$, $P_2 = 2.995\times10^{-4}$. DRAG: $0.01875$, $3.95\times10^{-6}$. Searched $(0.706, -0.216)$:
+    $1.39\times10^{-5}$, with $P_2 = 1.39\times10^{-5}$ — about the whole of it. Ratios for the Gaussian: $0.0172/3.0\times10^{-4} = 57$ over leakage,
+    $0.0172/3.33\times10^{-5} = 516$ over $T_1$. At 20 ns: Gaussian $4.34\times10^{-3}$, searched $2.19\times10^{-6}$ (four levels: $4.40\times10^{-3}$ and $2.13\times10^{-6}$),
+    $T_1$ $6.67\times10^{-5}$. At 10 ns with four levels the search gives $(\lambda, c) = (0.65, -0.15)$ and $1 - F_{\rm avg} = 9.0\times10^{-5}$.</p>
+    <p><b>"Of which leakage".</b> The control column is $1 - F_{\rm avg}$ against $R_x(\pi)$, leakage included; the leakage column is $P_2$ from $\ket0$. They are
+    not to be added.</p>
+    <p><b>The checkpoint's question</b> is about the running pulse: of leakage ($3.0\times10^{-4}$), the Stark-shift miss ($2.6\%$, or $1.7\times10^{-2}$ averaged)
+    and $T_1$ ($3.3\times10^{-5}$), the Stark shift dominates. DRAG removes the smallest of the three control problems first; the large one needs the
+    detuning, or a smaller $\lambda$, or both.</p>
+    <p><b>Unit 24's number.</b> $10^{-3}/0.0172 = 0.058$, so the uncorrected pulse is about 17 times worse than $p$; $10^{-3}/(1.4\times10^{-5} + 3.3\times10^{-5}) = 21$.
+    Measured single- and two-qubit error rates on real devices are unit 26's subject, with citations; this unit makes no claim about
+    any particular device.</p>
+    <p><b>Reading.</b> Koch et al. (2007), §§II–III, for the transmon's ladder and coupling, skipping the charge-dispersion analysis on a
+    first reading; Motzoi et al. (2009), two pages; Gambetta et al. (2011), §§II–IV. P. Krantz et al., "A quantum engineer's guide to
+    superconducting qubits", <i>Appl. Phys. Rev.</i> 6, 021318 (2019), §IV on single-qubit gates, is the most readable survey; its
+    sections on circuit quantisation assume the infinite-dimensional mechanics this course leaves out, and can be skipped.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">25 · checkpoint</p>
+  <h2>Checkpoint</h2>
+  <div class="box good"><span class="label">you can now</span>
+    <p>Derive the rotating-frame Hamiltonian of a driven three-level transmon under the rotating-wave approximation,
+    $\tilde H = \alpha\ket2\!\bra2 + \tfrac{\Omega_x}{2}(b + b^\dagger) + \tfrac{\Omega_y}{2}(ib^\dagger - ib)$; compute the $3.0\times10^{-4}$ leakage of a 10 ns
+    Gaussian $\pi$-pulse at $\alpha/2\pi = -250$ MHz, and what the derivative correction does to it ($3.9\times10^{-6}$, while the miss rises to
+    $2.8\%$); and say which of leakage, Stark shift and $T_1$ dominates the gate error — the Stark shift, then leakage, then $T_1$ ($t/3T_1 = 3.3\times10^{-5}$).</p>
+  </div>
+  <p class="small">Problems: <code>./qc problems 25</code>. When the claim is true: <code>./qc done 25</code>.</p>
+  <aside class="notes">
+    <p><b>How to test yourself.</b> On paper: write $\tilde H$ from $H_0 + H_d$, every term, and name the dropped ones (problem P1). With
+    a short loop of your own: evolve the 10 ns pulse in 4000 steps and get $P_2 = 3.0\times10^{-4}$ (P6); add $\Omega_y = -\Omega_x'/\alpha$ and get
+    $3.9\times10^{-6}$ and $1 - P_1 = 2.8\%$ (P8). Then the ranking, with $t/3T_1$ proved (P11) and the crossover found (P12). If any number disagrees,
+    the usual culprits are the sign of $\Omega_y$, a factor of $2\pi$ between MHz and rad/ns, and forgetting the $e^{-2}$ offset in the envelope.</p>
+    <p><b>Where this leads.</b> Unit 26 asks what hardware exists and what it has shown, and quotes measured $T_1$, gate errors and
+    leakage for real machines. The capstone runs Shor on 21 under a noise model whose rate this unit has given a physical meaning.</p>
+  </aside>
+</section>
+
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

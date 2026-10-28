@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>17 · Problems — Grover: search as a rotation in a plane</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="d">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part D · unit 17 · problems</p>
+<h1>Grover: search as a rotation in a plane</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u17">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the two-reflection rotation picture — the plane spanned by
+\(\ket s\) and \(\ket m\) is invariant, \(O_f\) and \(D\) are reflections in it about \(\ket{m^\perp}\) and \(\ket s\), and two reflections make a
+rotation by twice the angle between their axes, so \(G\) rotates by \(2\theta\) with \(\sin\theta = \sqrt{M/N}\) and \(P_k = \sin^2((2k + 1)\theta)\) —
+and you produce, for a million-item search with one marked item, \(\theta = \arcsin2^{-10}\), the count \(k^* = 804\) and the success
+probability \(\sin^2(1609\theta) = 0.99999976\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about four and a half hours. Work them on paper first. P2 is the checkpoint's computation; the rotation picture
+it rests on is the deck's, and P3, P4, P8 and P9 are proofs built on it.</p>
+<p>Conventions, as in the deck. \(N = 2^n\) items, \(M\) of them marked (\(f = 1\)), \(0 \lt M \lt N\) unless a problem says otherwise. The
+phase oracle is \(O_f\ket x = (-1)^{f(x)}\ket x\); the uniform superposition is \(\ket s = H^{\otimes n}\ket{0^n}\); the diffusion operator is
+\(D = 2\ket s\!\bra s - I\); one Grover iteration is \(G = D\,O_f\). The marked and unmarked superpositions are \(\ket m\) and \(\ket{m^\perp}\),
+and the Grover angle \(\theta\in(0, \frac\pi2)\) has \(\sin\theta = \sqrt{M/N}\), so that \(\ket s = \sin\theta\ket m + \cos\theta\ket{m^\perp}\) and, after
+\(k\) iterations, a marked item is measured with probability \(P_k = \sin^2((2k + 1)\theta)\). The optimal count is \(k^* = \lfloor\pi/4\theta\rfloor\).
+Qubit 0 is the leftmost symbol of a ket, the most significant bit of an index and the top wire.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it. The referee has no Grover iteration built in —
+the blocks build one from a phase oracle written as a diagonal matrix, Hadamards, \(X\) gates and a multiply-controlled \(Z\), which
+together give \(-D\); the global sign does not change any probability.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Eight items, by hand">P1</a></li>
+<li><a class="routine" href="#p2" title="A million items">P2</a></li>
+<li><a class="hard" href="#p3" title="Proof: when certainty is possible">P3</a></li>
+<li><a class="medium" href="#p4" title="Proof: overshoot is periodic">P4</a></li>
+<li><a class="medium" href="#p5" title="Many marked items">P5</a></li>
+<li><a class="routine" href="#p6" title="Grover is not a sorting oracle">P6</a></li>
+<li><a class="medium" href="#p7" title="The diffusion operator as a circuit">P7</a></li>
+<li><a class="medium" href="#p8" title="Proof: the quarter lemma">P8</a></li>
+<li><a class="hard" href="#p9" title="Proof: amplitude amplification">P9</a></li>
+<li><a class="routine" href="#p10" title="AES-128">P10</a></li>
+<li><a class="medium" href="#p11" title="What Grover does to 3-SAT">P11</a></li>
+<li><a class="medium" href="#p12" title="How precisely counting must measure">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The rotation, computed</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Eight items, by hand <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: inversion about the mean, normalisation, the rotation formula as a check, the optimal count on a small case</p>
+<div class="statement">
+<p>Take \(n = 3\), \(N = 8\), with the single marked item \(5 = \ket{101}\).</p>
+<ol>
+<li>Write the eight amplitudes after one Grover iteration and after two, using inversion about the mean. Check that each state is normalised.</li>
+<li>Check both marked-item probabilities against \(P_k = \sin^2((2k + 1)\theta)\).</li>
+<li>What is \(k^*\)? Is it the best \(k\)? What is \(P_3\), and why is it so much smaller?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer to part 1 is a list of eight numbers, but only two distinct values: one for item 5 and one shared by the seven others.
+Work in units of \(1/\sqrt8\) to keep the fractions small.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Inversion about the mean: after \(O_f\) flips the sign of item 5, compute the mean \(\bar a\) of the eight amplitudes; then each
+amplitude \(a\) becomes \(2\bar a - a\). Repeat for the second iteration, starting from the first one's output.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Start: all amplitudes \(1\) (in units of \(1/\sqrt8\)). After \(O_f\): seven \(1\)'s and one \(-1\). Mean \(\bar a = (7 - 1)/8 = \frac34\). So the
+unmarked amplitudes become \(2\cdot\frac34 - 1 = \frac12\), and the marked one…</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Inversion about the mean, twice, in units of \(1/\sqrt8\); then the same numbers from the rotation formula with
+\(\sin\theta = 1/\sqrt8\).</p>
+<p><strong>1. One iteration.</strong> After \(O_f\): seven amplitudes \(1\), one \(-1\); mean \(\frac34\). Unmarked: \(2\cdot\frac34 - 1 = \frac12\). Marked:
+\(2\cdot\frac34 + 1 = \frac52\). So \(G\ket s = \frac1{\sqrt8}\big(\frac12, \frac12, \frac12, \frac12, \frac12, \frac52, \frac12, \frac12\big)\). Norm:
+\(\frac18\big(7\cdot\frac14 + \frac{25}4\big) = \frac18\cdot\frac{32}4 = 1\) ✓. Marked probability \(\frac{25}{32} = 0.78125\).</p>
+<p><strong>Two iterations.</strong> After \(O_f\): seven \(\frac12\)'s and \(-\frac52\); mean \(\big(\frac72 - \frac52\big)/8 = \frac18\). Unmarked: \(2\cdot\frac18 - \frac12 =
+-\frac14\). Marked: \(2\cdot\frac18 + \frac52 = \frac{11}4\). So \(G^2\ket s = \frac1{\sqrt8}\big(-\frac14, \dots, -\frac14, \frac{11}4, -\frac14, -\frac14\big)\). Norm:
+\(\frac18\big(7\cdot\frac1{16} + \frac{121}{16}\big) = \frac18\cdot\frac{128}{16} = 1\) ✓. Marked probability \(\frac{121}{128} = 0.9453125\).</p>
+<p><strong>2. The formula.</strong> \(\sin\theta = 1/\sqrt8\), so \(\sin^2\theta = \frac18\) and \(\theta = 0.361367\) rad. With \(s = \sin^2\theta\),
+\(\sin^23\theta = s(3 - 4s)^2 = \frac18\cdot\big(\frac52\big)^2 = \frac{25}{32}\) ✓. For \(k = 2\), \(\sin5\theta = 5\sin\theta - 20\sin^3\theta + 16\sin^5\theta\), so
+\(\sin5\theta = \frac1{\sqrt8}\big(5 - \frac{20}8 + \frac{16}{64}\big) = \frac1{\sqrt8}\cdot\frac{11}4\) and \(\sin^25\theta = \frac{121}{128}\) ✓ — the marked amplitude itself,
+as it must be when \(M = 1\).</p>
+<p><strong>3. The count.</strong> \(\pi/4\theta = 2.173\), so \(k^* = 2\), and \(P_2 = 0.9453\) is the largest: \(P_1 = 0.7813\) and
+\(P_3 = \sin^2(7\theta) = \sin^2(2.5296) = 0.3301\). At \(k = 3\) the angle \(7\theta = 2.53\) rad is well past \(\frac\pi2 = 1.571\): the state has rotated
+beyond \(\ket m\), the overshoot of the deck's section 4.</p>
+<p><strong>Check.</strong> The guarantee \(P_{k^*}\ge1 - \frac18 = 0.875\) holds: \(0.945\ge0.875\) ✓. And \(k = 0\) gives \(\frac18\), a random guess ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+
+n, marked = 3, 5                       # eight items, item 101 marked
+oracle = np.diag([(-1) ** (x == marked) for x in range(2**n)])
+
+def grover(k):
+    c = Circuit(n)
+    for q in range(n): c.h(q)
+    for _ in range(k):
+        c.gate(oracle, 0, 1, 2, name="oracle")
+        for q in range(n): c.h(q).x(q)
+        c.controlled(gates.Z, [0, 1], [2])   # with the X's and H's: -D
+        for q in range(n): c.x(q).h(q)
+    return c.run()
+
+for k in (1, 2):
+    psi = grover(k).vector * np.sqrt(8)        # amplitudes in units of 1/sqrt 8
+    print(k, np.round(psi.real, 4), round(grover(k).probabilities()[marked], 7))
+# 1 [-0.5 -0.5 -0.5 -0.5 -0.5 -2.5 -0.5 -0.5] 0.78125
+# 2 [-0.25 -0.25 -0.25 -0.25 -0.25  2.75 -0.25 -0.25] 0.9453125</code></pre>
+<p>The amplitudes at \(k = 1\) all carry an extra sign: the circuit is \(-D\), so \(k\) iterations differ from \(G^k\) by \((-1)^k\), a global phase.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> A million items <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the checkpoint's computation — the Grover angle, the optimal count, and a success probability close to 1 computed without losing its digits</p>
+<div class="statement">
+<p>Take \(N = 2^{20}\) and \(M = 1\).</p>
+<ol>
+<li>Find \(\theta\) to seven significant figures and the optimal iteration count \(k^*\).</li>
+<li>Show that the success probability \(P_{k^*}\) exceeds \(0.9999997\), and give the failure probability to two significant figures.</li>
+<li>Compare with the guarantee \(1 - M/N\), and with \(\frac\pi4\sqrt N\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answers are an angle in radians, an integer, and a probability within \(10^{-6}\) of 1. A calculator that shows ten digits is
+enough, but only if the last part is computed as a small number rather than as 1 minus something.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(k^* = \lfloor\pi/4\theta\rfloor\). For the probability, find how far \((2k^* + 1)\theta\) is from \(\frac\pi2\): call it \(\varepsilon\). Then \(P_{k^*} =
+\sin^2(\frac\pi2 + \varepsilon) = \cos^2\varepsilon\), and the failure is \(\sin^2\varepsilon\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(\theta = \arcsin(2^{-10})\), and since \(\arcsin x = x + x^3/6 + \cdots\), \(\theta = 2^{-10} + 1.6\times10^{-10} = 9.765627\times10^{-4}\). Then
+\(\pi/4\theta = \dots\)</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The state lands at angle \((2k^* + 1)\theta\), within \(\theta\) of \(\frac\pi2\); everything follows from how far within.</p>
+<p><strong>1.</strong> \(\theta = \arcsin(2^{-10}) = 9.765627\times10^{-4}\) rad (it exceeds \(2^{-10} = 9.765625\times10^{-4}\) by \(2^{-30}/6 = 1.55\times10^{-10}\)).
+\(\pi/4\theta = 804.2476\), so \(k^* = 804\). The other recipe, the nearest integer to \(\pi/4\theta - \frac12 = 803.7476\), also gives 804.</p>
+<p><strong>2.</strong> \((2k^* + 1)\theta = 1609\theta = 1.5712893\) rad, and \(\frac\pi2 = 1.5707963\), so \(\varepsilon = 4.930\times10^{-4}\) rad. The failure
+probability is \(\sin^2\varepsilon = 2.430\times10^{-7}\) (to this accuracy \(\sin\varepsilon = \varepsilon\), and \(\varepsilon^2 = 2.430\times10^{-7}\)). So
+\[P_{804} = 1 - 2.43\times10^{-7} = 0.99999976 \gt 0.9999997.\]</p>
+<p><strong>3.</strong> The guarantee is \(1 - 2^{-20} = 0.99999905\); the actual failure \(2.4\times10^{-7}\) is a quarter of the guaranteed
+\(9.5\times10^{-7}\), because \(\varepsilon\approx\theta/2\) rather than \(\theta\). And \(\frac\pi4\sqrt N = \frac\pi4\cdot1024 = 804.25\): the bound \(k^*\le\frac\pi4\sqrt{N/M}\)
+holds with room to spare of a quarter of an iteration.</p>
+<p><strong>Check.</strong> The neighbours are worse: \(k = 803\) lands at \(\varepsilon - 2\theta = -1.460\times10^{-3}\), failure \(2.13\times10^{-6}\); \(k = 805\) at
+\(\varepsilon + 2\theta = 2.446\times10^{-3}\), failure \(5.98\times10^{-6}\). And \(\varepsilon \lt \theta\), as the theorem promises ✓.</p>
+<p><strong>A trap.</strong> Computing \(\sin^2(1.5712893)\) directly on a calculator and reading off "1.0000000" loses every digit that matters.
+Write it as \(\cos^2\varepsilon\) first.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> When certainty is possible <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the rotation picture as an exact equation, a little algebraic number theory (proved here), reading the answer back as a list of cases</p>
+<div class="statement">
+<ol>
+<li>For \(M = 1\), find every \(N\) for which <b>one</b> iteration finds the marked item with certainty.</li>
+<li>Prove that if \(\varphi\) is a rational multiple of \(\pi\) and \(\cos\varphi\) is rational, then \(\cos\varphi\in\{0, \pm\frac12, \pm1\}\). (Use
+\(c_j = 2\cos(j\varphi)\), the identity \(c_{j+1} = c_1c_j - c_{j-1}\), and the fact that a rational root of a monic polynomial with integer
+coefficients is an integer.)</li>
+<li>Find every pair \((N, M)\) with \(1\le M\le N\) for which <b>some</b> iteration count \(k\ge0\) gives success probability exactly 1.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Certainty means \(\sin^2((2k + 1)\theta) = 1\): an equation for \(\theta\). Part 3's answer is a short list of ratios \(M/N\), each with the
+\(k\) that works.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: \(3\theta\) must be an odd multiple of \(\frac\pi2\). Part 2: show by induction that \(c_j = P_j(c_1)\) for a monic integer polynomial
+\(P_j\) of degree \(j\); if \(\varphi = 2\pi p/q\) then \(c_q = 2\). Part 3: certainty forces \(\theta\) to be a rational multiple of \(\pi\), and
+\(\cos2\theta = 1 - 2M/N\) is rational.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 3 begins: \(\sin^2((2k + 1)\theta) = 1\) iff \((2k + 1)\theta = (2j + 1)\frac\pi2\) for some integer \(j\), so \(2\theta = \frac{2j + 1}{2k + 1}\pi\), a rational
+multiple of \(\pi\) with \(\cos2\theta = 1 - \frac{2M}N\in\mathbb Q\). By part 2…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Exact certainty is an exact equation for \(\theta\); since \(\cos2\theta\) is rational and \(\theta\) must be a rational multiple of
+\(\pi\), a classical fact about rational cosines leaves only a handful of possibilities, which are then checked one by one.</p>
+<p><strong>1.</strong> \(P_1 = \sin^2 3\theta = 1\) iff \(3\theta\in\{\frac\pi2, \frac{3\pi}2\}\) (as \(0 \lt \theta\le\frac\pi2\), \(0 \lt 3\theta\le\frac{3\pi}2\)). So \(\theta = \frac\pi6\), i.e.
+\(\sin^2\theta = \frac1N = \frac14\) and \(N = 4\); or \(\theta = \frac\pi2\), i.e. \(N = M = 1\), the degenerate one-item "search". So \(N = 4\).</p>
+<p><strong>2. Rational cosines.</strong> Put \(c_j = 2\cos(j\varphi)\). From \(\cos(A + B) + \cos(A - B) = 2\cos A\cos B\) with \(A = j\varphi\), \(B = \varphi\):
+\(c_{j+1} + c_{j-1} = c_1c_j\). With \(c_0 = 2\), \(c_1 = x\), induction gives \(c_j = P_j(x)\) with \(P_0 = 2\), \(P_1 = x\), \(P_{j+1} = xP_j - P_{j-1}\):
+\(P_j\) has integer coefficients and, for \(j\ge1\), leading term \(x^j\) (true for \(j = 1\), and \(xP_j\) has leading term \(x^{j+1}\) while \(P_{j-1}\) has
+lower degree). Let \(\varphi = 2\pi p/q\) with \(q\ge1\). Then \(c_q = 2\cos(2\pi p) = 2\), so \(x = 2\cos\varphi\) is a root of \(P_q(x) - 2\), monic of degree \(q\)
+with integer coefficients. If \(x\) is rational, write \(x = a/b\) in lowest terms; multiplying \(P_q(a/b) = 2\) by \(b^q\) shows \(b\) divides \(a^q\), so
+\(b = 1\): \(x\) is an integer. As \(|x|\le2\), \(x\in\{0, \pm1, \pm2\}\) and \(\cos\varphi\in\{0, \pm\frac12, \pm1\}\). \(\blacksquare\)</p>
+<p><strong>3.</strong> Certainty at some \(k\) means \((2k + 1)\theta = (2j + 1)\frac\pi2\), so \(2\theta = \frac{2j + 1}{2k + 1}\pi\) is a rational multiple of \(\pi\), and
+\(\cos2\theta = 1 - 2\sin^2\theta = 1 - 2M/N\) is rational. By part 2, \(1 - 2M/N\in\{0, \pm\frac12, \pm1\}\), i.e. \(M/N\in\{\frac12, \frac14, \frac34, 1\}\) (the value
+\(0\) is excluded by \(M\ge1\)). Check each:</p>
+<ul>
+<li>\(M/N = \frac14\): \(\theta = \frac\pi6\), and \((2k + 1)\frac\pi6\) is an odd multiple of \(\frac\pi2\) iff \(2k + 1\) is an odd multiple of 3, i.e. \(k = 1, 4, 7,
+\dots\). <b>Certain.</b></li>
+<li>\(M/N = \frac12\): \(\theta = \frac\pi4\), and \((2k + 1)\frac\pi4 = (2j + 1)\frac\pi2\) needs \(2k + 1 = 2(2j + 1)\), odd equal to even: never. In fact
+\(P_k = \sin^2((2k + 1)\frac\pi4) = \frac12\) for every \(k\) (problem P6).</li>
+<li>\(M/N = \frac34\): \(\theta = \frac\pi3\), and \((2k + 1)\frac\pi3 = (2j + 1)\frac\pi2\) needs \(2(2k + 1) = 3(2j + 1)\), even equal to odd: never. Here \(P_k\) cycles
+through \(\frac34, 0, \frac34\).</li>
+<li>\(M/N = 1\): \(\theta = \frac\pi2\), certain for every \(k\) — every item is marked.</li>
+</ul>
+<p>So, apart from the trivial \(M = N\), <b>exact certainty is possible exactly when \(M = N/4\)</b> (so \(4\mid N\)), at \(k\equiv1 \pmod 3\).</p>
+<p><strong>Check.</strong> \(N = 4\), \(M = 1\) is the deck's four-item example, certain at \(k = 1\) ✓. \(N = 8\), \(M = 2\) should also be certain at \(k = 1\): \(\sin^2\theta =
+\frac14\), \(\sin^23\theta = \frac14(3 - 1)^2 = 1\) ✓. And a case that is not: \(N = 64\), \(M = 1\) peaks at \(0.9966\), not 1 ✓.</p>
+<p><strong>A remark.</strong> The restriction comes from using \(-1\) as the phase in both reflections. With other phases one can reach certainty
+for every \((N, M)\) with \(M\) known (Høyer 2000; Long 2001, cited in the deck's summary notes); that algorithm is not this one.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+
+n = 3
+marked = [2, 6]                          # N = 8, M = 2: M/N = 1/4
+oracle = np.diag([(-1) ** (x in marked) for x in range(8)])
+c = Circuit(n)
+for q in range(n): c.h(q)
+c.gate(oracle, 0, 1, 2, name="oracle")
+for q in range(n): c.h(q).x(q)
+c.controlled(gates.Z, [0, 1], [2])
+for q in range(n): c.x(q).h(q)
+p = c.run().probabilities()
+print(np.round(p, 10), round(p[marked].sum(), 10))
+# [0.  0.  0.5 0.  0.  0.  0.5 0. ] 1.0</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Overshoot is periodic <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the success probability as a sinusoid, its period in iterations, a derivative bound for how nearly the integer samples repeat</p>
+<div class="statement">
+<ol>
+<li>Prove that \(P_k = \sin^2((2k + 1)\theta)\), read as a function of real \(k\), is periodic with period \(T = \pi/2\theta\), and that no smaller positive
+number is a period.</li>
+<li>On the integers it is periodic only in an approximate sense. Prove that if \(n\) is the integer nearest to \(T\), then \(|P_{k + n} - P_k|\le\theta\) for
+every \(k\).</li>
+<li>For \(N = 2^{20}\), \(M = 1\): give \(T\), find \(P_{1608}\), and check part 2 at \(k = 804\) using \(P_{2412} = 0.99999978\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is about the function \(\sin^2\) and a linear change of variable. Part 2 is a mean-value-theorem bound. Part 3 is a period of
+about 1600 iterations and a probability that is tiny.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(P_k = \frac12 - \frac12\cos((4k + 2)\theta)\). For part 2, \(P_{k+n} - P_k = P_{k+n} - P_{k+T}\) since \(T\) is a period, and \(|n - T|\le\frac12\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(\frac{dP}{dk} = \frac12\cdot4\theta\sin((4k + 2)\theta) = 2\theta\sin((4k + 2)\theta)\), so \(\big|\frac{dP}{dk}\big|\le2\theta\) and, by the mean value theorem…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The angle grows by \(2\theta\) per iteration and \(\sin^2\) repeats every \(\pi\); integer steps cannot hit \(\pi/2\theta\) exactly, but
+they miss it by at most half a step, and \(P\) cannot change much over half a step.</p>
+<p><strong>1.</strong> \(P_k = \frac12 - \frac12\cos((4k + 2)\theta)\). Replacing \(k\) by \(k + T\) adds \((4T)\theta = 2\pi\) to the argument of the cosine, so \(P\) is
+unchanged. A period \(T'\) of \(k\mapsto\cos((4k + 2)\theta)\) must make \(4T'\theta\) a multiple of \(2\pi\), since \(\cos\) has least period \(2\pi\); the least positive
+choice is \(4T'\theta = 2\pi\), i.e. \(T' = T\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(|n - T|\le\frac12\). Then \(P_{k+n} - P_k = P_{k+n} - P_{k+T}\), and by the mean value theorem this is \(\frac{dP}{dk}(\xi)\cdot(n - T)\) for some
+\(\xi\) between \(k + n\) and \(k + T\). With \(\big|\frac{dP}{dk}\big| = |2\theta\sin((4k + 2)\theta)|\le2\theta\): \(\ |P_{k+n} - P_k|\le2\theta\cdot\frac12 = \theta\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(T = \pi/2\theta = 1608.495\) iterations, so \(n = 1608\) and \(|n - T| = 0.495\). \(P_{1608} = \sin^2(3217\theta)\), and \(3217\theta = \pi +
+9.41\times10^{-6}\), so \(P_{1608} = \sin^2(9.41\times10^{-6}) = 8.85\times10^{-11}\) — ten thousand times worse than a random guess, \(2^{-20} = 9.5\times10^{-7}\).
+Part 2 at \(k = 804\): \(|P_{2412} - P_{804}| = |0.99999978 - 0.99999976| = 1.8\times10^{-8}\), well inside the bound \(2\theta\cdot0.495 = 9.7\times10^{-4}\) ✓.</p>
+<p><strong>Check.</strong> At \(k = 0\) and \(k = 1608\): \(|P_{1608} - P_0| = |8.85\times10^{-11} - 9.54\times10^{-7}| = 9.5\times10^{-7}\le\theta\) ✓. In the plane, the
+period is half a turn: after \(T\) iterations the state has turned by \(2\theta T = \pi\), from \(\ket s\) to \(-\ket s\), which has the same measurement
+statistics.</p>
+<p><strong>A trap.</strong> Reading the period as \(\pi/\theta\) — a full turn of the state. A full turn is a period too, but not the least one: \(\sin^2\) does
+not see the sign of the state.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Many marked items <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the triple-angle formula as a one-iteration success probability, the regime where iterating hurts, comparing strategies by their query count</p>
+<div class="statement">
+<ol>
+<li>Let \(M = N/4\). Write the amplitudes after one iteration, marked and unmarked, and show the success probability is exactly 1.</li>
+<li>Prove that for \(M \gt N/2\) one iteration gives a success probability strictly below \(M/N\).</li>
+<li>For \(M = \frac34N\), compare three strategies, each allowed two queries: (a) guess one item uniformly at random and check it, twice;
+(b) one Grover iteration, then check the outcome; (c) add one qubit, doubling the items to \(2N\) of which the same \(M\) are marked,
+then one iteration and a check. Which would you use when most items are marked?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer comes from one formula: after one iteration the success probability is \(s(3 - 4s)^2\), where \(s\) is the fraction of
+marked items in the space being searched.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 1, use inversion about the mean in units of \(1/\sqrt N\): after \(O_f\) the mean is \((N - 2M)/N\). For part 2, compare
+\((3 - 4s)^2\) with 1. For part 3(c), the marked fraction becomes \(s/2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 1: with \(M = N/4\) the mean after \(O_f\) is \(\frac{N - N/2}N = \frac12\); the unmarked amplitudes become \(2\cdot\frac12 - 1 = 0\) and the marked ones…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One iteration maps the marked fraction \(s = M/N\) to the success probability \(s(3 - 4s)^2\), from \(\sin3\theta = 3\sin\theta - 4\sin^3\theta\).
+It is 1 at \(s = \frac14\), equals \(s\) at \(s = \frac12\), and is below \(s\) beyond.</p>
+<p><strong>1.</strong> In units of \(1/\sqrt N\), after \(O_f\) the amplitudes are \(1\) (unmarked, \(3N/4\) of them) and \(-1\) (marked, \(N/4\)). Mean
+\(\frac{3N/4 - N/4}N = \frac12\). After \(D\): unmarked \(2\cdot\frac12 - 1 = 0\), marked \(2\cdot\frac12 + 1 = 2\). So each marked item has amplitude \(2/\sqrt N\), and
+the success probability is \(\frac N4\cdot\frac4N = 1\) ✓, with the unmarked items at exactly zero. (From the formula: \(\frac14(3 - 1)^2 = 1\).)</p>
+<p><strong>2.</strong> \(P_1 = s(3 - 4s)^2\) and, for \(s \gt 0\), \(P_1 \lt s\iff(3 - 4s)^2 \lt 1\iff-1 \lt 3 - 4s \lt 1\iff\frac12 \lt s \lt 1\). So every \(M\) with
+\(N/2 \lt M \lt N\) makes one iteration worse than not iterating. \(\blacksquare\) In the plane: \(\theta \gt \frac\pi4\), and turning by \(2\theta \gt \frac\pi2\) carries the
+state past \(\ket m\).</p>
+<p><strong>3.</strong> With \(s = \frac34\):</p>
+<ul>
+<li>(a) Two independent guesses: fail only if both are unmarked, \(\big(\frac14\big)^2\): success \(1 - \frac1{16} = 0.9375\).</li>
+<li>(b) One iteration: \(\frac34(3 - 3)^2 = 0\). The check then always fails. Success \(0\).</li>
+<li>(c) Doubled space, \(s' = \frac38\): one iteration gives \(\frac38\big(3 - \frac32\big)^2 = \frac38\cdot\frac94 = \frac{27}{32} = 0.84375\).</li>
+</ul>
+<p>So when most items are marked, <b>guess</b>: classical sampling already succeeds with probability above \(\frac12\) per query, and nothing
+quantum is needed. The doubling trick is worth knowing as a uniform method — it puts \(s'\le\frac12\), where iterating never hurts — but at
+\(s = \frac34\) it loses to two guesses, and for \(s \gt (3 - \sqrt2)/2 = 0.793\) even one doubled iteration does worse than one plain guess, since
+\(\frac s2(3 - 2s)^2 \lt s\iff(3 - 2s)^2 \lt 2\).</p>
+<p><strong>Check.</strong> Part 1 is the deck's four-item example when \(N = 4\) ✓; part 3(b) is P3's case \(M/N = \frac34\), where \(P_k\) cycles
+\(\frac34, 0, \frac34\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Grover is not a sorting oracle <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: inversion about the mean when the mean is zero, the rotation at θ = π/4, what "no speedup" looks like</p>
+<div class="statement">
+<p>Half the items are marked: \(M = N/2\).</p>
+<ol>
+<li>Show that a uniformly random guess succeeds with probability \(\frac12\).</li>
+<li>Show, using inversion about the mean, that after one Grover iteration the success probability is exactly \(\frac12\) again — and that this
+holds after every number of iterations.</li>
+<li>Explain the same fact in the plane.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to every part is \(\frac12\); the problem is to see why the algorithm cannot move.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>After \(O_f\) acts on \(\ket s\), half the amplitudes are \(+N^{-1/2}\) and half are \(-N^{-1/2}\). What is their mean, and what does \(D\) do to a state
+whose mean amplitude is zero?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>If \(\bar a = 0\) then \(D\ket\psi = \sum_x(2\cdot0 - a_x)\ket x = -\ket\psi\). So \(G\ket s = -O_f\ket s\), which has the same probabilities as…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> With half the items marked the oracle makes the mean amplitude exactly zero, and reflecting through zero only negates
+the state.</p>
+<p><strong>1.</strong> \(M/N = \frac12\).</p>
+<p><strong>2.</strong> \(O_f\ket s\) has \(N/2\) amplitudes \(N^{-1/2}\) and \(N/2\) amplitudes \(-N^{-1/2}\): mean 0. So \(D\,O_f\ket s = -O_f\ket s\), whose amplitudes have
+the same moduli as those of \(\ket s\): success probability \(\frac N2\cdot\frac1N = \frac12\). For every \(k\): by the rotation formula with \(\theta = \frac\pi4\) (since
+\(\sin^2\theta = \frac12\)), \(P_k = \sin^2((2k + 1)\frac\pi4)\), and \((2k + 1)\frac\pi4\) is an odd multiple of \(\frac\pi4\), where \(\sin^2 = \frac12\). So \(P_k = \frac12\) for
+all \(k\).</p>
+<p><strong>3.</strong> In the plane \(\ket s\) is at \(45^\circ\), on the diagonal between \(\ket{m^\perp}\) and \(\ket m\). Each iteration turns it by \(2\theta = 90^\circ\):
+\(45^\circ\to135^\circ\to225^\circ\to\cdots\), always on a diagonal, always with equal weight on marked and unmarked. A rotation by a quarter turn
+cannot improve on a diagonal.</p>
+<p><strong>Check.</strong> One iteration's formula: \(s(3 - 4s)^2 = \frac12(3 - 2)^2 = \frac12\) ✓. The title's point: the algorithm does not rank or sort the
+items; it can only rotate the marked fraction, and at \(M/N = \frac12\) rotation buys nothing over a coin.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+
+n = 3
+marked = [x for x in range(8) if x &gt;= 4]          # f(x) = x0: half the items
+oracle = np.diag([(-1) ** (x in marked) for x in range(8)])
+
+c = Circuit(n)
+for q in range(n): c.h(q)
+for k in range(4):
+    print(k, round(c.run().probabilities()[marked].sum(), 10))
+    c.gate(oracle, 0, 1, 2, name="oracle")
+    for q in range(n): c.h(q).x(q)
+    c.controlled(gates.Z, [0, 1], [2])
+    for q in range(n): c.x(q).h(q)
+# 0 0.5
+# 1 0.5
+# 2 0.5
+# 3 0.5</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">The circuit, and unknown counts</h2>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The diffusion operator as a circuit <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the identity \(D = H^{\otimes n}(2\ket{0^n}\!\bra{0^n} - I)H^{\otimes n}\), unit 10's multiply-controlled gate with work qubits, gate counting, a global phase that is harmless</p>
+<div class="statement">
+<ol>
+<li>Prove that \(-D = H^{\otimes n}X^{\otimes n}\,C^{n-1}(Z)\,X^{\otimes n}H^{\otimes n}\).</li>
+<li>Using unit 10's construction of \(C^k(U)\) from \(2(k - 1)\) Toffolis and one \(C(U)\) with \(k - 1\) work qubits, and its 15-gate Toffoli (6 CNOTs,
+2 \(H\), 7 \(T\) or \(T^\dagger\)), count the one- and two-qubit gates in this circuit for general \(n\ge3\), with \(CZ\) written as \(H\cdot\mathrm{CNOT}\cdot H\) on the
+target. How many work qubits does it borrow?</li>
+<li>Evaluate for the running example, \(n = 20\), and give the total diffusion cost of the 804 iterations.</li>
+<li>Why may the overall sign be ignored here?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 2's answer is a linear function of \(n\). List the layers left to right and count each.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1 in two steps: \(H^{\otimes n}\ket{0^n} = \ket s\) and \((H^{\otimes n})^2 = I\) turn \(2\ket s\!\bra s - I\) into \(H^{\otimes n}(2\ket{0^n}\!\bra{0^n} - I)H^{\otimes n}\);
+then \(C^{n-1}(Z) = I - 2\ket{1^n}\!\bra{1^n}\). For part 2, \(C^{n-1}(Z)\) has \(k = n - 1\) controls.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Layers: \(n\) Hadamards, \(n\) \(X\)'s, then \(C^{n-1}(Z)\) = \(2(n - 2)\) Toffolis and one \(CZ\), then \(n\) \(X\)'s and \(n\) Hadamards. So the count is
+\(4n + 15\cdot2(n - 2) + \dots\)</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Conjugating by \(H^{\otimes n}\) moves the reflection from \(\ket s\) to \(\ket{0^n}\); conjugating by \(X^{\otimes n}\) moves it to \(\ket{1^n}\),
+where a multiply-controlled \(Z\) does it; unit 10 prices that gate.</p>
+<p><strong>1.</strong> \(C^{n-1}(Z)\) applies \(Z\) to the last qubit when all others are 1, so it negates \(\ket{1^n}\) and fixes every other basis state:
+\(C^{n-1}(Z) = I - 2\ket{1^n}\!\bra{1^n}\). Since \(X^{\otimes n}\ket{1^n} = \ket{0^n}\) and \(X^{\otimes n}\) is its own inverse, \(X^{\otimes n}C^{n-1}(Z)X^{\otimes n} = I - 2\ket{0^n}\!\bra{0^n}\).
+Since \(H^{\otimes n}\) is Hermitian with \(H^{\otimes n}\ket{0^n} = \ket s\), \(\ H^{\otimes n}(I - 2\ket{0^n}\!\bra{0^n})H^{\otimes n} = I - 2\ket s\!\bra s = -D\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(k = n - 1\) controls, so \(2(n - 2)\) Toffolis, one \(CZ\) and \(n - 2\) work qubits. Gates:</p>
+<ul>
+<li>Hadamards and \(X\)'s around the middle: \(4n\).</li>
+<li>Toffolis: \(2(n - 2)\times15 = 30n - 60\).</li>
+<li>\(CZ\) as \(H\cdot\mathrm{CNOT}\cdot H\): \(3\).</li>
+</ul>
+<p>Total \(4n + 30n - 60 + 3 = 34n - 57\) one- and two-qubit gates, with \(n - 2\) work qubits returned clean.</p>
+<p><strong>3.</strong> \(n = 20\): \(34\cdot20 - 57 = 623\) gates and 18 work qubits per diffusion, of which \(36\times7 = 252\) are \(T\) or \(T^\dagger\). Over 804
+iterations: \(804\times623 = 500{,}892\) gates, besides the 804 oracle calls. Linear in \(n\), and almost certainly cheaper than the oracle.</p>
+<p><strong>4.</strong> The circuit gives \(-D\), so each iteration is \(-G\) and \(k\) iterations give \((-1)^kG^k\ket s\): a global phase, invisible to the final
+measurement (unit 01). Under a control — as in quantum counting — the sign would become a relative phase and would have to be repaired,
+for instance with a \(Z\) on the control qubit.</p>
+<p><strong>Check.</strong> \(n = 3\): \(34\cdot3 - 57 = 45\): 12 one-qubit gates around 2 Toffolis (30) and a \(CZ\) (3) ✓. \(n = 4\): \(79\), from 16 \(H\)/\(X\), 4 Toffolis and one
+\(CZ\) — the referee block's gate list, with its Toffolis and \(CZ\) unexpanded.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, linalg
+
+n = 4                                  # search qubits 0-3; work qubits 4, 5
+c = Circuit(n + n - 2)
+for q in range(n): c.h(q).x(q)
+c.ccx(0, 1, 4).ccx(2, 4, 5)            # work qubit 5 holds q0 q1 q2
+c.cz(5, 3)                             # C(Z) from the last work qubit
+c.ccx(2, 4, 5).ccx(0, 1, 4)            # uncompute
+for q in range(n): c.x(q).h(q)
+
+U = c.unitary()[::4, ::4]              # work qubits in and out at |00>
+s = np.full(2**n, 2**(-n / 2))
+D = 2 * np.outer(s, s) - np.eye(2**n)
+print(linalg.is_unitary(U), linalg.equal_up_to_phase(U, D), np.allclose(U, -D))
+print(c.counts())
+# True True True
+# Counter({'h': 8, 'x': 8, 'ccx': 4, 'cz': 1})</code></pre>
+<p>The block of the unitary with the work qubits at \(\ket{00}\) on both sides is itself unitary, so the work qubits always come back clean, and it
+equals \(-D\) exactly.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> The quarter lemma <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: averaging \(\sin^2\) over a random iteration count, a telescoping trigonometric sum, the size of the range needed when \(M\) is unknown</p>
+<div class="statement">
+<ol>
+<li>Prove: if \(0 \lt M \lt N\) and \(k\) is uniform on \(\{0, 1, \dots, m - 1\}\), the average success probability is
+\[\bar P_m = \frac12 - \frac{\sin4m\theta}{4m\sin2\theta},\]
+and hence \(\bar P_m\ge\frac14\) whenever \(m\ge1/\sin2\theta\).</li>
+<li>Show that \(1/\sin2\theta\le\sqrt{N/M}\) whenever \(M\le\frac34N\).</li>
+<li>Evaluate \(1/\sin2\theta\) for \(N = 2^{20}\), \(M = 1\), and check the formula at \(m = 1\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an average of \(m\) values of \(\sin^2\); turn \(\sin^2\) into a cosine, and the problem becomes summing \(\cos\) over an
+arithmetic progression of angles.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\sin^2x = \frac12(1 - \cos2x)\). With \(\alpha = 2\theta\) you need \(\sum_{k=0}^{m-1}\cos((2k + 1)\alpha)\). Multiply each term by \(2\sin\alpha\) and use a
+product-to-sum formula: the sum telescopes.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(2\sin\alpha\cos((2k + 1)\alpha) = \sin((2k + 2)\alpha) - \sin(2k\alpha)\), so summing over \(k = 0, \dots, m - 1\) leaves…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The average of a sinusoid over many samples is its midline, \(\frac12\), plus a correction that a telescoping sum computes
+exactly and that shrinks like \(1/m\).</p>
+<p><strong>1.</strong> \(\bar P_m = \frac1m\sum_{k=0}^{m-1}\sin^2((2k + 1)\theta) = \frac12 - \frac1{2m}\sum_{k=0}^{m-1}\cos((2k + 1)\alpha)\), with \(\alpha = 2\theta\). By
+\(2\sin A\cos B = \sin(B + A) - \sin(B - A)\), \(\ 2\sin\alpha\cos((2k + 1)\alpha) = \sin((2k + 2)\alpha) - \sin(2k\alpha)\). Summing, all intermediate terms cancel:
+\[2\sin\alpha\sum_{k=0}^{m-1}\cos((2k + 1)\alpha) = \sin(2m\alpha) - \sin0 = \sin4m\theta.\]
+Since \(0 \lt \theta \lt \frac\pi2\), \(\sin\alpha = \sin2\theta \gt 0\), so the sum is \(\sin4m\theta/(2\sin2\theta)\) and
+\(\bar P_m = \frac12 - \frac{\sin4m\theta}{4m\sin2\theta}\). As \(|\sin4m\theta|\le1\), \(\ \bar P_m\ge\frac12 - \frac1{4m\sin2\theta}\ge\frac12 - \frac14 = \frac14\) when
+\(m\sin2\theta\ge1\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\sin2\theta = 2\sin\theta\cos\theta = 2\sqrt{\frac MN}\sqrt{\frac{N - M}N} = \frac{2\sqrt{M(N - M)}}N\). If \(M\le\frac34N\) then \(N - M\ge\frac N4\), so
+\(\sin2\theta\ge\frac{2\sqrt{MN/4}}N = \sqrt{\frac MN}\), i.e. \(1/\sin2\theta\le\sqrt{N/M}\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(1/\sin2\theta = N/(2\sqrt{N - 1}) = 2^{20}/(2\sqrt{1048575}) = 512.0002\) — just over half of \(\sqrt{N/M} = 1024\). So once the random range
+reaches 513, each attempt succeeds with probability at least \(\frac14\); at \(m = 513\) the exact average is \(0.2735\). At \(m = 1\), \(k = 0\) always and
+the formula gives \(\frac12 - \frac{\sin4\theta}{4\sin2\theta} = \frac12 - \frac{2\sin2\theta\cos2\theta}{4\sin2\theta} = \frac12 - \frac{\cos2\theta}2 = \sin^2\theta = \frac MN\) ✓, a single
+random guess.</p>
+<p><strong>Check.</strong> A large-\(m\) limit: the correction is at most \(1/(4m\sin2\theta)\to0\), so \(\bar P_m\to\frac12\) — the average of \(\sin^2\) over a
+whole number of periods ✓. The deck's figure of \(\bar P_m\) against \(m\) shows exactly this damped approach to \(\frac12\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Amplitude amplification <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the rotation theorem with \(\ket s\) replaced by \(A\ket0\), reflections built from an algorithm and its inverse, the count for a given success probability</p>
+<div class="statement">
+<p>Let \(A\) be a unitary on a register, \(\Pi\) a projection (the "good" outputs), and suppose \(p = \|\Pi A\ket0\|^2\) lies in \((0, 1)\). Let
+\(S_\chi = I - 2\Pi\), \(S_0 = I - 2\ket0\!\bra0\) and \(Q = -AS_0A^{-1}S_\chi\).</p>
+<ol>
+<li>Define \(\ket{\psi_g}\), \(\ket{\psi_b}\) and \(\theta\) with \(A\ket0 = \sin\theta\ket{\psi_g} + \cos\theta\ket{\psi_b}\), and prove that \(Q\) maps their span to itself and acts
+there as the rotation by \(2\theta\).</li>
+<li>Deduce that \(Q^kA\ket0\) is good with probability \(\sin^2((2k + 1)\theta)\), and that \(k^* = \lfloor\pi/4\theta\rfloor\le\pi/(4\sqrt p)\) rounds give success at least \(1 - p\).</li>
+<li>A sampler succeeds with probability \(p = 1/1000\). How many rounds, how many runs of \(A\) or \(A^{-1}\), and what success probability?
+Compare with the same number of independent classical runs.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the deck's two-reflection theorem in disguise: identify which two vectors play \(\ket{m^\perp}\) and \(\ket s\). Part 3 is three
+numbers.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Show that \(-AS_0A^{-1} = 2\ket\psi\!\bra\psi - I\) with \(\ket\psi = A\ket0\) — the reflection about \(A\ket0\) — and that \(S_\chi\) restricted to the span is the
+reflection about \(\ket{\psi_b}\). Then the composition of reflections about axes at angles \(0\) and \(\theta\) is the rotation by \(2\theta\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(\ket{\psi_g} = \Pi A\ket0/\|\Pi A\ket0\|\) and \(\ket{\psi_b} = (I - \Pi)A\ket0/\|(I - \Pi)A\ket0\|\); then \(\sin\theta = \|\Pi A\ket0\| = \sqrt p\). And
+\(-AS_0A^{-1} = -A(I - 2\ket0\!\bra0)A^\dagger = \dots\)</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Grover's proof used two facts only: the oracle is a reflection that keeps the bad direction, and the diffusion is the
+reflection about the start vector. Here \(S_\chi\) and \(-AS_0A^{-1}\) are exactly those two reflections, with \(A\ket0\) as the start vector.</p>
+<p><strong>1.</strong> Put \(\ket\psi = A\ket0\), \(\ket{\psi_g} = \Pi\ket\psi/\|\Pi\ket\psi\|\), \(\ket{\psi_b} = (I - \Pi)\ket\psi/\|(I - \Pi)\ket\psi\|\); both norms are positive
+since \(0 \lt p \lt 1\). They are orthonormal: \(\braket{\psi_g|\psi_b}\) is a multiple of \(\bra\psi\Pi(I - \Pi)\ket\psi = 0\). And \(\ket\psi = \Pi\ket\psi + (I - \Pi)\ket\psi
+= \sin\theta\ket{\psi_g} + \cos\theta\ket{\psi_b}\) with \(\sin\theta = \|\Pi\ket\psi\| = \sqrt p\), \(\cos\theta = \sqrt{1 - p}\), \(\theta\in(0, \frac\pi2)\). Normalised: \(p + (1 - p) = 1\) ✓.</p>
+<p>\(S_\chi\ket{\psi_g} = \ket{\psi_g} - 2\Pi\ket{\psi_g} = -\ket{\psi_g}\) and \(S_\chi\ket{\psi_b} = \ket{\psi_b}\) (as \(\Pi\ket{\psi_b} = 0\)): on the span \(V\) of the two,
+\(S_\chi\) is the reflection about \(\ket{\psi_b}\). Next, \(A^{-1} = A^\dagger\), so \(-AS_0A^{-1} = -AA^\dagger + 2A\ket0\!\bra0A^\dagger = 2\ket\psi\!\bra\psi - I\), and for
+\(\ket v\in V\), \((2\ket\psi\!\bra\psi - I)\ket v = 2\braket{\psi|v}\ket\psi - \ket v\in V\): on \(V\) it is the reflection about \(\ket\psi\). In the real basis
+\((\ket{\psi_b}, \ket{\psi_g})\) both are real reflections about the lines at angles \(0\) and \(\theta\); by the composition of reflections (the deck's
+worked example), \(Q = (2\ket\psi\!\bra\psi - I)S_\chi\) is the rotation by \(2(\theta - 0) = 2\theta\) on \(V\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\ket\psi\) is at angle \(\theta\), so \(Q^k\ket\psi\) is at \((2k + 1)\theta\): \(Q^k\ket\psi = \cos((2k + 1)\theta)\ket{\psi_b} + \sin((2k + 1)\theta)\ket{\psi_g}\),
+and \(\|\Pi Q^k\ket\psi\|^2 = \sin^2((2k + 1)\theta)\). The deck's optimal-count theorem used only this formula, so \(k^* = \lfloor\pi/4\theta\rfloor\) gives at least
+\(\cos^2\theta = 1 - p\), and \(\theta\ge\sin\theta = \sqrt p\) gives \(k^*\le\pi/(4\sqrt p)\). Each round runs \(A^{-1}\) and \(A\) once, plus one \(S_\chi\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(\theta = \arcsin\sqrt{0.001} = 0.0316280\) rad; \(\pi/4\theta = 24.83\), so \(k^* = 24\) rounds. Runs of \(A\) or \(A^{-1}\): \(1 + 2\cdot24 = 49\).
+Success: \(\sin^2(49\theta) = \sin^2(1.549774) = 0.99956\). Classically, 49 independent runs succeed with probability \(1 - 0.999^{49} = 0.0478\); reaching the
+same \(0.99956\) would take about \(\ln(0.00044)/\ln(0.999)\approx7700\) runs.</p>
+<p><strong>Check.</strong> \(A = H^{\otimes n}\), \(\Pi\) onto the marked basis states, is Grover: \(A\ket0 = \ket s\), \(S_\chi = O_f\), and \(-AS_0A^{-1} = D\) ✓. And
+\(k^* = 24\le\pi/(4\sqrt{0.001}) = 24.84\) ✓; \(1 - p = 0.999\le0.99956\) ✓.</p>
+<p><strong>A trap.</strong> \(A\) must be a unitary — no measurement inside it — so that \(A^{-1}\) exists. A classical randomised sampler qualifies
+once its coins are qubits put through \(H\) and its steps are made reversible (unit 10); its garbage need not be cleaned, since \(A^{-1}\)
+undoes it.</p>
+</div></details>
+</section>
+
+<h2 class="group">What the speedup buys</h2>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> AES-128 <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the iteration count at cryptographic sizes, converting a sequential count to time, why parallel Grover gains only \(\sqrt P\)</p>
+<div class="statement">
+<p>An attacker knows two plaintext–ciphertext pairs for AES with a 128-bit key — enough, as the deck's notes explain, for the key to be,
+almost surely, the only one consistent with both — and runs Grover's search for the key, \(M = 1\).</p>
+<ol>
+<li>How many Grover iterations? At a hypothetical \(10^9\) iterations per second, one after another, how many years? (A year is
+\(365.25\) days.)</li>
+<li>With \(P = 10^6\) machines, each searching \(1/P\) of the keys with its own Grover search, how long does it take, and how many
+iterations are done in total? Explain why the speedup is \(\sqrt P\) and not \(P\).</li>
+<li>Repeat part 1 for AES-256, and compare with a classical search of AES-128.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>All answers are \(\frac\pi4\sqrt{\text{items}}\) for the right number of items, converted to seconds and then years.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: \(N = 2^{128}\), so \(\frac\pi4\sqrt N = \frac\pi4\cdot2^{64}\). Part 2: each machine has \(N/P\) items and needs \(\frac\pi4\sqrt{N/P}\) iterations, which
+it must do in sequence.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(2^{64} = 1.845\times10^{19}\), so \(\frac\pi4\cdot2^{64} = 1.449\times10^{19}\) iterations, i.e. \(1.449\times10^{10}\) s at \(10^9\) per second; a year is
+\(3.156\times10^7\) s, so…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Grover's count is a number of <b>sequential</b> steps: each iteration acts on the previous one's output. Spreading the work
+over machines shrinks each machine's search space, but only under a square root.</p>
+<p><strong>1.</strong> \(\frac\pi4\cdot2^{64} = 1.449\times10^{19}\) iterations. At \(10^9\) per second: \(1.449\times10^{10}\) s \(= 1.449\times10^{10}/(3.156\times10^7) = 459\) years.</p>
+<p><strong>2.</strong> Each machine searches \(2^{128}/10^6\) keys: \(\frac\pi4\sqrt{2^{128}/10^6} = 1.449\times10^{19}/10^3 = 1.449\times10^{16}\) iterations,
+\(0.459\) years, about 168 days. Total iterations \(10^6\times1.449\times10^{16} = 1.449\times10^{22}\): a thousand times the single-machine count. The time
+fell by \(\sqrt{10^6} = 1000\), not \(10^6\), because each machine's count is the square root of its share, \(\sqrt{N/P} = \sqrt N/\sqrt P\). Zalka (1999,
+cited in the deck) proved that no parallel quantum algorithm does better: with \(P\) queries per round, order \(\sqrt{N/P}\) rounds are needed.
+Classical search, by contrast, divides perfectly: \(P\) machines take \(1/P\) of the time.</p>
+<p><strong>3.</strong> AES-256: \(\frac\pi4\cdot2^{128} = 2.67\times10^{38}\) iterations, \(8.47\times10^{21}\) years at \(10^9\) per second. A classical search of AES-128
+takes \(2^{127} = 1.70\times10^{38}\) trials on average — the same order. Doubling the key length restores the classical margin against Grover.</p>
+<p><strong>Check.</strong> Dimensions: iterations divided by iterations per second is seconds ✓. With \(P = 1\), part 2 is part 1 ✓. And the ratio
+of the two times, \(459/0.459 = 1000 = \sqrt{10^6}\) ✓.</p>
+<p><strong>What the count hides.</strong> Each iteration evaluates AES reversibly twice (compute and uncompute, unit 10) on an error-corrected
+machine; \(10^9\) iterations per second is generous by many orders of magnitude, so 459 years is a lower bound of a very optimistic kind.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> What Grover does to 3-SAT <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: comparing exponential bases, amplitude amplification of a classical algorithm, not overselling a quadratic speedup</p>
+<div class="statement">
+<p>Schöning's random walk (cited in the deck) is a randomised algorithm whose single run takes polynomial time and finds a satisfying
+assignment of a satisfiable 3-CNF formula on \(n\) variables with probability at least \((3/4)^n\), up to a polynomial factor that this problem
+ignores throughout.</p>
+<ol>
+<li>For \(n = 100\), give the number of queries for: brute force classically (worst case, \(2^n\)); Grover over all assignments with one
+satisfying assignment; Schöning repeated classically until success is likely, \((4/3)^n\); Schöning amplified by amplitude
+amplification.</li>
+<li>Show that Schöning's classical walk beats Grover-over-brute-force for all large \(n\), and find (ignoring polynomial factors) from which
+\(n\) on.</li>
+<li>Does any of this put 3-SAT in quantum polynomial time? Say why not in one sentence.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer is of the form \(c\cdot b^n\); compare the bases first, then the constants.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Grover over \(2^n\) assignments: \(\frac\pi42^{n/2} = \frac\pi4(\sqrt2)^n\). Amplified Schöning: a sampler with \(p = (3/4)^n\) needs about \(1/\sqrt p =
+(4/3)^{n/2}\) runs. Compare \(\sqrt2 = 1.414\) with \(\frac43 = 1.333\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 2: \((4/3)^n \lt \frac\pi4(\sqrt2)^n\iff\big(\frac4{3\sqrt2}\big)^n \lt \frac\pi4\), and \(\frac4{3\sqrt2} = 0.9428\). Take logarithms…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A square root helps most when applied to the best classical algorithm, not to the worst; and the square root of an
+exponential is still an exponential.</p>
+<p><strong>1.</strong> \(n = 100\):</p>
+<ul>
+<li>Brute force: \(2^{100} = 1.27\times10^{30}\).</li>
+<li>Grover over all assignments: \(\frac\pi4\cdot2^{50} = 8.8\times10^{14}\).</li>
+<li>Schöning, classical: \((4/3)^{100} = 3.1\times10^{12}\).</li>
+<li>Schöning, amplified: \((4/3)^{50} = 1.8\times10^6\) runs, each polynomial-time.</li>
+</ul>
+<p><strong>2.</strong> \((4/3)^n \lt \frac\pi4\,2^{n/2}\iff(0.9428)^n \lt 0.7854\iff n \gt \ln0.7854/\ln0.9428 = 4.10\). So, ignoring polynomial factors, the classical
+walk wins from \(n = 5\) on; asymptotically because \(\frac43 \lt \sqrt2\), whatever the constants.</p>
+<p><strong>3.</strong> No: every count above is exponential in \(n\), and unit 18 proves that no black-box quantum algorithm searches \(N\) items in fewer
+than order \(\sqrt N\) queries, so a speedup from search alone is at most quadratic.</p>
+<p><strong>Check.</strong> Amplified Schöning is the square root of classical Schöning: \(\sqrt{3.1\times10^{12}} = 1.8\times10^6\) ✓. And Grover over brute force is
+(up to \(\frac\pi4\)) the square root of brute force: \(\sqrt{1.27\times10^{30}} = 1.1\times10^{15}\), times \(0.785\), is \(8.8\times10^{14}\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> How precisely counting must measure <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: eigenvalues of a plane rotation, expanding \(\ket s\) in eigenvectors, propagating an angle error into a count error</p>
+<div class="statement">
+<ol>
+<li>Show that on the Grover plane, \(\ket{g_\pm} = \frac1{\sqrt2}(\ket{m^\perp}\mp i\ket m)\) are eigenvectors of \(G\) with eigenvalues \(e^{\pm2i\theta}\), and expand \(\ket s\) in
+them.</li>
+<li>Suppose an estimate \(\tilde\theta = \theta + \delta\) is obtained and \(\tilde M = N\sin^2\tilde\theta\) is reported. Prove
+\(|\tilde M - M|\le2\sqrt{M(N - M)}\,|\delta| + N\delta^2\).</li>
+<li>Take \(N = 2^{20}\), \(M = 1000\), and the target \(|\tilde M - M|\le0.1M\). How small must \(|\delta|\) be? Taking as given (unit 15) that phase
+estimation to accuracy \(\delta\) needs about \(\pi/\delta\) applications of controlled-\(G\), roughly how many queries is that, and how does it compare
+with \(\sqrt{N/M}/\varepsilon\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a \(2\times2\) eigenvalue computation; part 2 is an inequality about \(\sin^2\); part 3 solves a quadratic in \(|\delta|\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: apply the rotation matrix to \((1, \mp i)\). Part 2: \(\sin^2a - \sin^2b = \sin(a + b)\sin(a - b)\), so \(\tilde M - M = N\sin(2\theta + \delta)\sin\delta\); bound
+\(|\sin(2\theta + \delta)|\le\sin2\theta + |\delta|\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 3: \(\sqrt{M(N - M)} = \sqrt{1000\times1{,}047{,}576} = 32{,}366\), so you need \(2\cdot32{,}366\,|\delta| + 1{,}048{,}576\,\delta^2\le100\)…</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The Grover rotation's eigenphases are \(\pm2\theta\), so measuring an eigenphase measures \(\theta\); the count \(M = N\sin^2\theta\)
+inherits the angle's error multiplied by \(dM/d\theta = N\sin2\theta\).</p>
+<p><strong>1.</strong> In the basis \((\ket{m^\perp}, \ket m)\), \(G = \begin{pmatrix}\cos2\theta &amp; -\sin2\theta\\ \sin2\theta &amp; \cos2\theta\end{pmatrix}\). On \((1, -i)\):
+\((\cos2\theta + i\sin2\theta,\ \sin2\theta - i\cos2\theta) = e^{2i\theta}(1, -i)\), since \(-ie^{2i\theta} = \sin2\theta - i\cos2\theta\). So \(G\ket{g_+} = e^{2i\theta}\ket{g_+}\);
+likewise \((1, i)\) gives \(e^{-2i\theta}\). The two are orthonormal: the bra of \(\ket{g_+}\) is \(\frac1{\sqrt2}(\bra{m^\perp} + i\bra m)\), so
+\(\braket{g_+|g_-} = \frac12(1 + i\cdot i) = 0\) ✓, and each has norm \(\frac12(1 + 1) = 1\) ✓. Then \(\braket{g_\pm|s} = \frac1{\sqrt2}(\cos\theta\pm i\sin\theta) = e^{\pm i\theta}/\sqrt2\), so
+\[\ket s = \tfrac1{\sqrt2}\big(e^{i\theta}\ket{g_+} + e^{-i\theta}\ket{g_-}\big),\qquad\tfrac12 + \tfrac12 = 1\ \checkmark.\]</p>
+<p><strong>2.</strong> \(\tilde M - M = N(\sin^2(\theta + \delta) - \sin^2\theta) = N\sin(2\theta + \delta)\sin\delta\), by \(\sin^2a - \sin^2b = \sin(a + b)\sin(a - b)\). Now
+\(|\sin(2\theta + \delta)|\le|\sin2\theta\cos\delta| + |\cos2\theta\sin\delta|\le\sin2\theta + |\delta|\) and \(|\sin\delta|\le|\delta|\). So \(|\tilde M - M|\le
+N\sin2\theta\,|\delta| + N\delta^2\), and \(N\sin2\theta = 2\sqrt{M(N - M)}\) (P8). \(\blacksquare\)</p>
+<p><strong>3.</strong> Need \(64{,}733\,|\delta| + 1{,}048{,}576\,\delta^2\le100\). The positive root of the quadratic is \(|\delta| = 1.508\times10^{-3}\) rad. Then
+\(\pi/\delta\approx2083\) applications of controlled-\(G\), each one query: about 2100 queries. Compare \(\sqrt{N/M}/\varepsilon = 32.4/0.1 = 324\): the count is a
+constant multiple (about 6.4) of it, as the cited \(O(\sqrt{N/M}/\varepsilon)\) says.</p>
+<p><strong>Check.</strong> For \(M\ll N\), \(2\sqrt{M(N - M)}\approx2\sqrt{MN}\), so the leading term gives \(|\delta|\approx\varepsilon M/(2\sqrt{MN}) = \frac\varepsilon2\sqrt{M/N} =
+0.05\times0.0309 = 1.54\times10^{-3}\), close to the exact \(1.508\times10^{-3}\) ✓. And \(\theta = \arcsin\sqrt{1000/2^{20}} = 0.0309\): a 5 per cent error in \(\theta\)
+makes a 10 per cent error in \(M\approx N\theta^2\), as it should.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 17</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

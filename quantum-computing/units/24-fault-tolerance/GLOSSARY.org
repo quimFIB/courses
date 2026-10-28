@@ -1,0 +1,158 @@
+#+title: Glossary — unit 24
+#+startup: content latexpreview
+#+options: ^:{}
+
+The terms this unit introduces, in the order the deck meets them. The slides
+stay the definition of record; each entry names the slide it comes from, so a
+term can be looked up here and read properly there.
+
+Running example: one logical qubit, with every physical operation failing
+with probability \(p = 10^{-3}\) and a target of \(10^{-12}\) logical error
+per code cycle. A naive syndrome circuit turns one fault into a logical error,
+so \(p_L \sim p\). Concatenated Steane codes in the simplified model give
+\(p_k \le 10^{-2}(p/10^{-2})^{2^k}\): \(10^{-4}, 10^{-6}, 10^{-10},
+10^{-18}\), so four levels and \(7^4 = 2401\) data qubits. The surface code
+with \(p_L \approx 0.1(p/10^{-2})^{(d+1)/2}\) needs \(d = 21\) (\(d = 19\)
+gives \(10^{-11}\)), and \(2\cdot21^2 - 1 = 881\) physical qubits. A \(T\)
+gate on it needs a magic state distilled twice by 15-to-1:
+\(3.5\times10^{-8}\), then \(1.5\times10^{-21}\), from 225 raw states. At the
+measured \(\Lambda = 2.14\) instead of 10, the same target would need
+\(d = 63\) and 7937 qubits.
+
+* Correction circuits are faulty too
+
+- fault location :: A place in a circuit where something can go wrong: a
+  preparation, a gate, an idle wait, or a measurement. In the noise model of
+  this unit each fails independently with probability at most \(p\). /Slide:
+  What a fault is./
+- stochastic Pauli noise :: The noise model: a failed operation is followed
+  by an arbitrary Pauli on its qubits, a failed measurement reports the wrong
+  bit, and failures at different locations are independent. Enough by the
+  discretisation of errors (unit 22); the depolarising channel, Kraus
+  operators \(\sqrt{1-p}\,I\) and \(\sqrt{p/3}\,X, Y, Z\), is an instance,
+  with \(p\) the probability of some Pauli (unit 21's strength
+  \(\frac43p\)).
+- code cycle :: One round of syndrome measurement on every check, with its
+  correction. Logical error rates are quoted per cycle.
+- error propagation :: An error \(E\) before a gate \(U\) equals the error
+  \(UEU^\dagger\) after it. Through a CNOT, \(X\) on the control becomes
+  \(X\otimes X\) and \(Z\) on the target becomes \(Z\otimes Z\); \(X\) on the
+  target and \(Z\) on the control stay put; \(Y\otimes I \mapsto Y\otimes X\),
+  \(I\otimes Y\mapsto Z\otimes Y\). /Slide: Worked: a CNOT moves errors./
+- fault-tolerant gadget :: An encoded operation built so that one fault
+  anywhere inside it causes at most one error in each output block. With a
+  distance-3 code, a computation made of them fails only when two faults
+  coincide. /Slide: Fault-tolerant gadgets, and transversal gates./
+- transversal gate :: A gate applied qubit by qubit across a block, or
+  between two blocks on qubit \(i\) of each for every \(i\). Automatically
+  fault-tolerant. On Steane's code \(H^{\otimes7}\), \((S^\dagger)^{\otimes7}\)
+  and \(\mathrm{CNOT}^{\otimes7}\) are logical \(H\), \(S\) and CNOT, so every
+  logical Clifford is transversal; \(T^{\otimes7}\) leaves the code space.
+- cat-state extraction :: Shor's fault-tolerant syndrome measurement (1996):
+  each data qubit of a check gets its own ancilla qubit, the ancillas start in
+  \(\frac1{\sqrt8}\sum_{e\ \mathrm{even}}\ket e\), and the parity of their
+  outcomes is the syndrome bit. A fault on one ancilla reaches one data qubit
+  only. The ancilla state must be verified before use. /Slide: Extracting a
+  syndrome without spreading errors./
+- Steane's method :: Fault-tolerant syndrome extraction (1997) with a whole
+  encoded block as the ancilla, coupled by a transversal CNOT and read out
+  qubit by qubit; one classical decoding gives every syndrome bit.
+
+* Concatenation, and the threshold
+
+- concatenation :: Encoding each qubit of a code in the code again, \(k\)
+  times. A level-\(k\) Steane block holds one logical qubit in \(7^k\)
+  physical ones; a level-\(k\) gadget is the level-1 gadget built from
+  level-\((k-1)\) gadgets. /Slide: Codes inside codes./
+- malignant pair :: A pair of faults that actually causes a logical failure.
+  Counting only these, instead of all \(\binom A2\) pairs, gives a larger
+  proved threshold. /Slide notes: The simplified model./
+- threshold theorem :: In the simplified model, \(p_1 \le \binom A2 p^2 =
+  cp^2\) by the union bound and \(p_k \le (cp)^{2^k}/c = p_{\rm
+  th}(p/p_{\rm th})^{2^k}\) by induction, with \(p_{\rm th} = 1/c\): doubly
+  exponential suppression below threshold, at polylogarithmic cost
+  \(O(\log^{\log_2 G}(1/\varepsilon))\). The full theorem (Aharonov–Ben-Or,
+  Kitaev, Knill–Laflamme–Zurek; Aliferis–Gottesman–Preskill) is cited, with
+  its hypotheses: local weakly correlated noise, fresh ancillas, parallel
+  operations, fast reliable classical computation. /Slide: Worked: k levels
+  of concatenation./
+
+* The surface code
+
+- surface code :: A stabiliser code on a planar grid whose checks act on
+  neighbouring qubits only and whose distance grows with its size (Kitaev;
+  Bravyi–Kitaev; Dennis–Kitaev–Landahl–Preskill). Threshold near 1 per cent
+  under circuit-level noise. /Slide: The chip is flat./
+- rotated layout :: The surface code with \(d^2\) data qubits on a square
+  grid, weight-4 \(X\)- and \(Z\)-type checks on alternate faces, and weight-2
+  half-faces on the boundary (\(Z\) on top and bottom, \(X\) on left and
+  right): \(d^2 - 1\) checks, \(2d^2 - 1\) qubits in all. Logical \(X\) is
+  \(X\) on a row, logical \(Z\) is \(Z\) on a column, and the distance is
+  \(d\). /Slide: The rotated surface code, drawn at d = 3./
+- measurement qubit :: The ancilla in each face of the surface code, coupled
+  by CNOTs to the face's corners and measured every cycle; \(d^2 - 1\) of
+  them.
+- hook error :: A fault on a measurement qubit partway through its four
+  CNOTs, copied onto two data qubits. Harmless to the distance if the CNOT
+  order places the pair across the logical string it could shorten. /Slide:
+  Measuring a face with its neighbours./
+- detection event :: A check whose outcome differs from its previous round.
+  A chain of errors lights the checks at its two ends; a measurement error
+  lights one check in two consecutive rounds. /Slide: Decoding: pairing up
+  the alarms./
+- minimum-weight matching :: The standard surface-code decoder: pair the
+  detection events (or join them to the boundary) by the fewest errors, the
+  likeliest explanation under independent noise; Edmonds' algorithm (1965),
+  applied by Dennis et al. (2002). Named, not developed.
+- logical error heuristic :: \(p_L \approx A(p/p_{\rm th})^{(d+1)/2}\) per
+  cycle, a fit to simulations of the surface code (Fowler et al. 2012), used
+  with \(A = 0.1\) and \(p_{\rm th} = 10^{-2}\). Each step of 2 in \(d\)
+  divides \(p_L\) by \(p_{\rm th}/p\). At \(p = 10^{-3}\), \(d = 21\) gives
+  \(10^{-12}\). /Slide: The threshold, and a heuristic below it./
+
+* The T gate
+
+- Eastin–Knill theorem :: No code that detects every single-qubit error has
+  a universal set of transversal logical gates (Eastin and Knill, 2009,
+  cited): the transversal logical gates form a finite group. /Slide:
+  Eastin–Knill: no code has it all./
+- code switching :: Moving an encoded state between two codes with
+  complementary transversal gates, such as Steane's (transversal \(H\)) and
+  the 15-qubit Reed–Muller code (transversal \(T\)). The switch is not
+  transversal. Named, not developed.
+- magic state :: \(\ket A = T\ket+ = \frac1{\sqrt2}(\ket0 +
+  e^{i\pi/4}\ket1)\), Bloch vector \((\frac1{\sqrt2}, \frac1{\sqrt2}, 0)\),
+  not a stabiliser state. Made unprotected, purified by distillation, and
+  consumed by a Clifford circuit to apply \(T\). /Slide: The magic state./
+- gate teleportation :: Applying a gate by consuming a state: CNOT from the
+  data into \(\ket A\), measure the magic qubit in \(Z\), apply \(S\) if the
+  outcome is 1; the data qubit leaves as \(T\ket\psi\) up to global phase,
+  each outcome with probability \(\frac12\). /Slide: Worked: teleporting a T
+  gate./
+- Pauli frame :: Pauli corrections recorded classically instead of applied,
+  pushed through later Clifford gates and used to reinterpret measurement
+  outcomes. Through \(T\) a frame \(X\) becomes \(e^{-i\pi/4}SX\), a Clifford
+  correction. /Slide: Why the correction is cheap: the Pauli frame./
+- magic-state distillation :: Bravyi and Kitaev's 15-to-1 protocol (2005,
+  cited): 15 copies of \(\ket A\) with error \(p\) give one with error about
+  \(35p^3\), using Clifford operations and measurements. From \(10^{-3}\):
+  \(3.5\times10^{-8}\) after one round, \(1.5\times10^{-21}\) after two, at
+  225 raw states per output. It helps only below \(p = 1/\sqrt{35} =
+  0.169\). /Slide: Worked: distillation, once and twice./
+- distillation factory :: A region of a fault-tolerant machine that only
+  distils magic states, sized by the circuit's T-count. A rotation of about
+  110 \(T\) gates costs \(24\,750\) raw states at two rounds. /Slide:
+  Factories, and what a rotation costs./
+
+* The experiment
+
+- suppression factor :: \(\Lambda = \varepsilon_d/\varepsilon_{d+2}\), the
+  factor by which the logical error per cycle falls when the distance grows
+  by 2; \(p_{\rm th}/p\) in the heuristic. Google Quantum AI (2024) reported
+  \(\Lambda = 2.14 \pm 0.02\) and \(0.143\%\) per cycle at \(d = 7\). /Slide:
+  Below threshold, measured./
+- below threshold :: Operationally, \(\Lambda > 1\): a larger code gives a
+  smaller logical error rate at the same physical error rate.
+- break-even :: A logical qubit that stores information longer than the best
+  physical qubit of the same device; passed by the distance-7 memory, by a
+  factor \(2.4 \pm 0.3\).

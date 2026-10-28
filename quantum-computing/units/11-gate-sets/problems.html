@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 · Problems — Finite gate sets: density, Solovay–Kitaev, and why the T gate is the expensive one</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="c">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part C · unit 11 · problems</p>
+<h1>Finite gate sets: density, Solovay–Kitaev, and why the T gate is the expensive one</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u11">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the error-accumulation bound
+\(\lVert U_n\cdots U_1 - V_n\cdots V_1\rVert\le\sum_i\lVert U_i - V_i\rVert\) and the density of \(\langle H, T\rangle\) in \(SU(2)\) up to
+phase — the angle of \(T\cdot HTH\), its irrationality, and two axes generating everything — and you carry a
+whole-circuit error budget, \(10^9\) gates at 1 per cent, down to \(10^{-11}\) per gate and about 110 \(T\) gates per
+rotation.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the <strong>first</strong> slot; \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\); qubit 0 is the leftmost symbol and the control of \(\mathrm{CNOT}\). \(R_{\mathbf n}(\theta) =
+e^{-i\theta\,\mathbf n\cdot\boldsymbol\sigma/2} = \cos\frac\theta2 I - i\sin\frac\theta2\,\mathbf n\cdot\boldsymbol\sigma\); \(H = \frac1{\sqrt2}(X + Z)\), \(S = \mathrm{diag}(1, i)\),
+\(T = \mathrm{diag}(1, \omega)\) with \(\omega = e^{i\pi/4} = \frac{1 + i}{\sqrt2}\), so \(T = e^{i\pi/8}R_z(\frac\pi4)\). Throughout, \(c = \cos\frac\pi8\) and
+\(s = \sin\frac\pi8\).</p>
+<p>The operator norm is \(\lVert A\rVert = \max_{\lVert v\rVert = 1}\lVert Av\rVert\), and the distance up to phase is
+\(d(U, V) = \min_\alpha\lVert U - e^{i\alpha}V\rVert\). From the deck: \(T\cdot HTH = e^{i\pi/4}R_{\mathbf n}(\theta)\) with \(\cos\frac\theta2 = c^2\),
+\(\theta = 0.3489\pi\), \(\mathbf n = (c, s, c)/\sqrt{1 + c^2}\). Logarithms are base 2 unless written \(\ln\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="The budget">P1</a></li>
+<li><a class="routine" href="#p2" title="Operator norms by hand">P2</a></li>
+<li><a class="medium" href="#p3" title="Probabilities from distance">P3</a></li>
+<li><a class="routine" href="#p4" title="The bound is tight up to constants">P4</a></li>
+<li><a class="medium" href="#p5" title="A third irrational rotation">P5</a></li>
+<li><a class="medium" href="#p6" title="Density of powers">P6</a></li>
+<li><a class="medium" href="#p7" title="Clifford gates map Paulis to Paulis">P7</a></li>
+<li><a class="medium" href="#p8" title="The single-qubit Clifford group has 24 elements">P8</a></li>
+<li><a class="medium" href="#p9" title="Exact synthesis, a first look">P9</a></li>
+<li><a class="routine" href="#p10" title="Solovay–Kitaev's exponent">P10</a></li>
+<li><a class="hard" href="#p11" title="The commutator step">P11</a></li>
+<li><a class="hard" href="#p12" title="How bad would naive search be?">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Distance and budgets</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> The budget <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: errors add, splitting a budget, the logarithmic price of accuracy; ends in a number</p>
+<div class="statement">
+<p>A circuit of \(N = 10^9\) gates must come out within \(d(U, V)\le10^{-2}\) of the ideal unitary.</p>
+<ol>
+<li>Spread the budget evenly over all \(N\) gates. What accuracy must each gate meet?</li>
+<li>One of the gates is \(R_z(\theta)\), approximated by a \(z\)-rotation \(R_z(\theta')\). How close must \(\theta'\) be to
+\(\theta\)?</li>
+<li>Take the T-count of an \(\varepsilon\)-approximation of a \(z\)-rotation to be \(3\log_2(1/\varepsilon)\) (Ross–Selinger's leading
+term). What is the T-count of that one rotation?</li>
+<li>Now suppose only \(R = 10^8\) of the gates are arbitrary rotations, and the rest are Clifford + \(T\) gates
+used exactly. Spread the budget over the rotations only, and redo parts 1 and 3. What is the T-count the
+rotations contribute in total?</li>
+<li>By how much does the per-rotation T-count change when the total budget is tightened by a factor of 10?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer is a <strong>number</strong>: an accuracy, an angle, a count. The only theorem needed is that errors
+add; the rest is arithmetic with logarithms.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>If every gate is within \(\varepsilon\) up to phase, the whole circuit is within \(N\varepsilon\). For part 2 use
+\(\lVert R_z(\theta) - R_z(\theta')\rVert = 2\sin\frac{|\theta - \theta'|}4\). For part 3, \(\log_2(10^k) = k\log_210\) with \(\log_210 = 3.3219\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(N\varepsilon\le10^{-2}\) gives \(\varepsilon = 10^{-2}/10^9 = 10^{-11}\), and then
+\(3\log_2(10^{11}) = 33\log_210\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Errors add along a circuit, so a total budget divides among the gates; the cost of
+accuracy is logarithmic, so the division hardly matters.</p>
+<p><strong>1.</strong> If \(d(U_i, V_i)\le\varepsilon\) for every gate, then choosing the minimising phases and applying the
+theorem that errors add, \(d(U, V)\le\sum_i d(U_i, V_i)\le N\varepsilon\). So \(\varepsilon = 10^{-2}/10^9 = \mathbf{10^{-11}}\) suffices.</p>
+<p><strong>2.</strong> \(\lVert R_z(\theta) - R_z(\theta')\rVert = \lVert R_z(\theta - \theta') - I\rVert = 2\sin\frac{|\theta - \theta'|}4\le10^{-11}\) iff
+\(|\theta - \theta'|\le4\arcsin(5\times10^{-12})\), which is \(2\times10^{-11}\) rad to within one part in \(10^{22}\). (Up to phase changes
+nothing here: \(d(R_z(x), I) = 2\sin\frac{|x|}4\) for \(|x|\le\pi\), the identity's own phase being the best.) Eleven significant figures.</p>
+<p><strong>3.</strong> \(3\log_2(10^{11}) = 33\times3.32193 = 109.62\), so about <strong>110 \(T\) gates</strong>.</p>
+<p><strong>4.</strong> Exact gates contribute zero error, so the \(R\) rotations may share all of it: \(\varepsilon = 10^{-2}/10^8 =
+10^{-10}\), and \(3\log_2(10^{10}) = 30\times3.32193 = 99.66\), about <strong>100</strong> each. In total \(10^8\times99.66 = 9.97\times10^9\),
+about \(\mathbf{10^{10}}\) \(T\) gates. With the even split of part 1 it would have been \(10^8\times109.6 = 1.10\times10^{10}\): ten per cent
+more, for being careless with the budget.</p>
+<p><strong>5.</strong> Tightening by 10 multiplies \(1/\varepsilon\) by 10 and adds \(3\log_210 = 9.97\), about <strong>10 \(T\) gates per
+rotation</strong>, whatever the starting point.</p>
+<p><strong>Check.</strong> One gate, \(N = 1\): the budget is the whole \(10^{-2}\), and the price \(3\log_2(100) = 19.9\) — a rotation to
+two decimal places costs about 20 \(T\) gates. And \(10^9\times10^{-11} = 10^{-2}\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Operator norms by hand <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the operator norm, its formula for normal operators, distance up to phase, idle qubits</p>
+<div class="statement">
+<ol>
+<li>Prove that \(\lVert A\rVert = \max_i|\lambda_i|\) for a normal \(A\) with eigenvalues \(\lambda_i\). Give a \(2\times2\) matrix for which the
+formula fails.</li>
+<li>Show \(\lVert R_{\mathbf n}(\theta) - I\rVert = 2\sin\frac\theta4\) for \(0\le\theta\le2\pi\).</li>
+<li>Compute \(\lVert T - R_z(\frac\pi4)\rVert\) and \(d(T, R_z(\frac\pi4))\).</li>
+<li>Compute \(\lVert S - T\rVert\) and \(d(S, T)\).</li>
+<li>Show that \(\lVert A\otimes I\rVert = \lVert A\rVert\) for every square \(A\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 5 are short proofs; parts 2–4 are numbers. Every operator in parts 2–4 is <strong>diagonal</strong>
+in some orthonormal basis, so its norm is its largest entry in modulus there.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: expand a unit vector in an orthonormal eigenbasis (unit 00's spectral theorem). Part 5: use
+\(\lVert A\rVert^2 = \max_{\lVert v\rVert = 1}\braket{v|A^\dagger A|v}\), the largest eigenvalue of \(A^\dagger A\). Parts 3–4: \(|e^{ia} - e^{ib}| = 2|\sin\frac{a - b}2|\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(T - R_z(\frac\pi4) = \mathrm{diag}(1 - e^{-i\pi/8},\ e^{i\pi/4} - e^{i\pi/8})\). For the distance up to phase,
+\(T = e^{i\pi/8}R_z(\frac\pi4)\) exactly.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> For a normal operator, the norm is read off the spectrum; everything here is normal
+except the counterexample, and part 5 reduces the general case to a Hermitian one.</p>
+<p><strong>1.</strong> By the spectral theorem \(A = \sum_i\lambda_i\ket{e_i}\!\bra{e_i}\) with \(\{e_i\}\) orthonormal. For \(v = \sum_ic_ie_i\) with
+\(\sum|c_i|^2 = 1\), \(\lVert Av\rVert^2 = \sum_i|\lambda_i|^2|c_i|^2\le\max_i|\lambda_i|^2\), with equality at the eigenvector of the largest \(|\lambda_i|\).
+Counterexample: \(N = \begin{pmatrix}0&amp;1\\0&amp;0\end{pmatrix}\) has both eigenvalues \(0\) but \(N\ket1 = \ket0\), so \(\lVert N\rVert = 1\). It is not normal:
+\(N^\dagger N = \mathrm{diag}(0, 1)\ne NN^\dagger = \mathrm{diag}(1, 0)\).</p>
+<p><strong>2.</strong> \(R_{\mathbf n}(\theta) - I\) is a function of the Hermitian \(\mathbf n\cdot\boldsymbol\sigma\) (eigenvalues \(\pm1\)), so normal with eigenvalues
+\(e^{\mp i\theta/2} - 1\). Their modulus is \(|e^{i\theta/2} - 1| = 2|\sin\frac\theta4| = 2\sin\frac\theta4\) on \([0, 2\pi]\).</p>
+<p><strong>3.</strong> \(\lVert T - R_z(\frac\pi4)\rVert = \max(|1 - e^{-i\pi/8}|, |e^{i\pi/8}(e^{i\pi/8} - 1)|) = 2\sin\frac\pi{16} = \mathbf{0.3902}\). But
+\(T = e^{i\pi/8}R_z(\frac\pi4)\), so \(d(T, R_z(\frac\pi4)) = \mathbf 0\).</p>
+<p><strong>4.</strong> \(S - T = \mathrm{diag}(0, i - \omega)\) and \(|e^{i\pi/2} - e^{i\pi/4}| = 2\sin\frac\pi8 = \mathbf{0.7654}\). Up to phase,
+\(S - e^{i\alpha}T = \mathrm{diag}(1 - e^{i\alpha},\ e^{i\pi/2} - e^{i(\alpha + \pi/4)})\), whose entries have moduli \(2|\sin\frac\alpha2|\) and
+\(2|\sin\frac{\alpha - \pi/4}2|\). The larger is smallest when they are equal, at \(\alpha = \frac\pi8\), giving \(d(S, T) = 2\sin\frac\pi{16} = \mathbf{0.3902}\).
+Sensibly: \(S = T\cdot T\), so \(d(S, T) = d(T, I)\), and \(T\) is a turn by \(\frac\pi4\).</p>
+<p><strong>5.</strong> For any \(A\), \(\lVert Av\rVert^2 = \braket{v|A^\dagger A|v}\), and by part 1 applied to the Hermitian \(A^\dagger A\) (eigenvalues
+\(\ge0\)), \(\lVert A\rVert^2 = \lambda_{\max}(A^\dagger A)\). Now \((A\otimes I)^\dagger(A\otimes I) = A^\dagger A\otimes I\), whose eigenvectors \(e\otimes f\) have the
+eigenvalues of \(A^\dagger A\), each repeated. So the largest eigenvalue is the same, and \(\lVert A\otimes I\rVert = \lVert A\rVert\).</p>
+<p><strong>Check.</strong> Part 2 at \(\theta = \frac\pi4\) gives \(2\sin\frac\pi{16} = 0.390\), the same number as part 3: \(T\) and \(R_z(\frac\pi4)\) differ
+by the phase \(e^{i\pi/8}\), and \(\lVert e^{i\pi/8}I - I\rVert = 2\sin\frac\pi{16}\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+print(round(linalg.op_norm(gates.T - gates.rz(np.pi / 4)), 4))           # 0.3902
+print(linalg.equal_up_to_phase(gates.T, gates.rz(np.pi / 4)))            # True
+print(round(linalg.op_norm(gates.S - gates.T), 4))                       # 0.7654
+print(round(min(linalg.op_norm(gates.S - np.exp(1j * a) * gates.T)
+                for a in np.linspace(0, 2 * np.pi, 100001)), 4))         # 0.3902
+A = np.array([[1, 2], [0, 1j]])
+print(np.isclose(linalg.op_norm(np.kron(A, gates.I)), linalg.op_norm(A)))  # True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Probabilities from distance <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a proof from Cauchy–Schwarz; what the operator norm means operationally; a case where the bound is nearly attained</p>
+<div class="statement">
+<p>Let \(U, V\) be unitary, \(\psi\) a unit vector, \(\{P_i\}\) a projective measurement (orthogonal projections with
+\(\sum_iP_i = I\)), \(p_i = \lVert P_iU\psi\rVert^2\) and \(q_i = \lVert P_iV\psi\rVert^2\).</p>
+<ol>
+<li>Prove \(|p_i - q_i|\le2\lVert U - V\rVert\) for each \(i\).</li>
+<li>Prove the stronger \(\sum_i|p_i - q_i|\le2\lVert U - V\rVert\), so the total variation distance
+\(\frac12\sum_i|p_i - q_i|\) is at most \(\lVert U - V\rVert\).</li>
+<li>Take \(U = I\), \(V = R_y(0.1)\), \(\psi = \ket0\), and measure in the basis \(\{\ket+, \ket-\}\). Compute the total variation
+distance and \(\lVert U - V\rVert\), and compare.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two inequalities and a number. Set \(a = U\psi\), \(b = V\psi\): everything is about two unit vectors with
+\(\lVert a - b\rVert\le\lVert U - V\rVert\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: write \(p_i - q_i\) as \(\braket{a|P_i|a - b} + \braket{a - b|P_i|b}\). Part 2: write instead
+\(p_i - q_i = (x_i - y_i)(x_i + y_i)\) with \(x_i = \lVert P_ia\rVert\), \(y_i = \lVert P_ib\rVert\), and use Cauchy–Schwarz on the sum over \(i\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\sum_i|p_i - q_i|\le\sum_i\lVert P_i(a - b)\rVert\,(x_i + y_i)\le\big(\sum_i\lVert P_i(a - b)\rVert^2\big)^{1/2}\big(\sum_i(x_i + y_i)^2\big)^{1/2}\).
+Now \(\sum_i\lVert P_iv\rVert^2 = \lVert v\rVert^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A distance between unitaries bounds the distance between output vectors, and that in
+turn bounds every difference of probabilities — one outcome at a time by Cauchy–Schwarz, and all together
+by Cauchy–Schwarz on the sum.</p>
+<p><strong>1.</strong> \(\lVert a - b\rVert = \lVert(U - V)\psi\rVert\le\lVert U - V\rVert\). Since \(P_i\) is Hermitian with \(P_i^2 = P_i\), \(p_i = \braket{a|P_i|a}\), and</p>
+\[ \braket{a|P_i|a - b} + \braket{a - b|P_i|b} = \braket{a|P_i|a} - \braket{a|P_i|b} + \braket{a|P_i|b} - \braket{b|P_i|b} = p_i - q_i . \]
+<p>Each term has modulus at most \(\lVert a\rVert\,\lVert P_i\rVert\,\lVert a - b\rVert\le\lVert a - b\rVert\) (Cauchy–Schwarz, \(\lVert P_i\rVert\le1\)). So
+\(|p_i - q_i|\le2\lVert a - b\rVert\le2\lVert U - V\rVert\).</p>
+<p><strong>2.</strong> With \(x_i, y_i\) as in the hint, \(p_i - q_i = x_i^2 - y_i^2 = (x_i - y_i)(x_i + y_i)\), and
+\(|x_i - y_i|\le\lVert P_ia - P_ib\rVert\) by the triangle inequality. Cauchy–Schwarz in \(\mathbb R^k\):</p>
+\[ \sum_i|p_i - q_i|\le\Big(\sum_i\lVert P_i(a - b)\rVert^2\Big)^{1/2}\Big(\sum_i(x_i + y_i)^2\Big)^{1/2}. \]
+<p>The \(P_i\) are orthogonal projections summing to \(I\), so \(\sum_i\lVert P_iv\rVert^2 = \sum_i\braket{v|P_i|v} = \lVert v\rVert^2\): the first factor
+is \(\lVert a - b\rVert\). For the second, Minkowski's inequality gives
+\(\big(\sum(x_i + y_i)^2\big)^{1/2}\le\big(\sum x_i^2\big)^{1/2} + \big(\sum y_i^2\big)^{1/2} = \lVert a\rVert + \lVert b\rVert = 2\). So
+\(\sum_i|p_i - q_i|\le2\lVert a - b\rVert\le2\lVert U - V\rVert\).</p>
+<p><strong>3.</strong> \(a = \ket0\), \(b = R_y(0.1)\ket0 = \cos0.05\ket0 + \sin0.05\ket1\). Then \(p_+ = \frac12\) and
+\(q_+ = \frac12(\cos0.05 + \sin0.05)^2 = \frac12(1 + \sin0.1)\), so \(|p_+ - q_+| = \frac12\sin0.1 = 0.04992\), and the same for \(-\). Total
+variation \(= \frac12(0.04992 + 0.04992) = \mathbf{0.04992}\). And \(\lVert I - R_y(0.1)\rVert = 2\sin0.025 = \mathbf{0.04999}\). The bound is attained to
+within 0.16 per cent.</p>
+<p><strong>Check.</strong> Distributions: \(p_+ + p_- = 1\) and \(q_\pm = \frac12(1\pm\sin0.1)\) also sum to one ✓. For small \(\delta\), \(\frac12\sin\delta\approx\frac\delta2\)
+and \(2\sin\frac\delta4\approx\frac\delta2\): the bound is sharp to first order, so the constant in part 2 cannot be improved.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates
+d = 0.1
+a = np.array([1, 0])                                   # U = I on |0>
+b = gates.ry(d) @ a                                    # V = R_y(d) on |0>
+plus = np.array([1, 1]) / np.sqrt(2)
+p, q = abs(plus @ a) ** 2, abs(plus @ b) ** 2
+print(round(abs(p - q), 5), round(2 * np.sin(d / 4), 5))   # 0.04992 0.04999</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> The bound is tight up to constants <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: when errors align, the error-accumulation bound is nearly attained; ends in a number</p>
+<div class="statement">
+<p>Take \(U_1 = \dots = U_n = R_z(\delta)\) and \(V_1 = \dots = V_n = I\).</p>
+<ol>
+<li>Compute both sides of \(\lVert U_n\cdots U_1 - V_n\cdots V_1\rVert\le\sum_i\lVert U_i - V_i\rVert\) exactly.</li>
+<li>Evaluate both for \(n = 1000\), \(\delta = 10^{-3}\).</li>
+<li>Prove that whenever \(n\delta\le2\pi\), the left side is at least \(\frac2\pi\) times the right side.</li>
+<li>For which \(n\delta\) is the left side zero? What does that say about the bound for large \(n\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Both sides are closed-form functions of \(n\) and \(\delta\), each a chord of the unit circle.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(R_z(\delta)^n = R_z(n\delta)\), and \(\lVert R_z(x) - I\rVert = 2\sin\frac x4\) for \(0\le x\le2\pi\). For part 3, \(\sin x\le x\) and, for
+\(0\le x\le\frac\pi2\), \(\sin x\ge\frac2\pi x\) (the sine lies above its chord there).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: left \(= 2\sin\frac{n\delta}4\), right \(= 2n\sin\frac\delta4\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Rotations about one axis compose by adding angles, so every gate's error points the same
+way and nothing cancels: the worst case for the bound.</p>
+<p><strong>1.</strong> Left: \(\lVert R_z(n\delta) - I\rVert = 2\sin\frac{n\delta}4\) (for \(n\delta\le2\pi\)). Right: \(n\lVert R_z(\delta) - I\rVert = 2n\sin\frac\delta4\).</p>
+<p><strong>2.</strong> \(2\sin0.25 = \mathbf{0.4948}\) against \(2000\sin(2.5\times10^{-4}) = \mathbf{0.5000}\). The bound is off by 1 per cent.</p>
+<p><strong>3.</strong> With \(x = n\delta/4\le\frac\pi2\): left \(= 2\sin x\ge2\cdot\frac2\pi x = \frac2\pi\cdot\frac{n\delta}2\), and right \(= 2n\sin\frac\delta4\le2n\frac\delta4 = \frac{n\delta}2\).
+So left \(\ge\frac2\pi\times\) right. The error-accumulation bound is tight to within a factor \(\frac\pi2\) as long as the total angle
+stays below a full turn: linear growth in \(n\) is the truth, not an artefact of the telescoping.</p>
+<p><strong>4.</strong> The left side is \(\lVert R_z(n\delta) - I\rVert\), zero exactly when \(R_z(n\delta) = I\), i.e. \(n\delta\in4\pi\mathbb Z\). (At \(n\delta = 2\pi\),
+\(R_z(2\pi) = -I\), which is zero only up to phase.) Errors that go all the way round cancel; the bound, which only
+adds, cannot see that. So for large \(n\delta\) the bound can be arbitrarily loose — but a budget has to hold in the
+worst case, and part 3 shows the worst case is linear.</p>
+<p><strong>Check.</strong> \(n = 1\): both sides are \(2\sin\frac\delta4\) ✓. Small \(\delta\) at fixed \(n\delta\to0\): both \(\approx\frac{n\delta}2\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+n, d = 1000, 1e-3
+U = np.linalg.matrix_power(gates.rz(d), n)
+print(round(linalg.op_norm(U - gates.I), 4))              # 0.4948
+print(round(n * linalg.op_norm(gates.rz(d) - gates.I), 4))  # 0.5</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Density</h2>
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> A third irrational rotation <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: multiplying rotation operators in the Pauli algebra, reading off angle and axis, reusing the irrationality proof</p>
+<div class="statement">
+<ol>
+<li>Show that \(T\cdot HT^\dagger H = R_z(\frac\pi4)R_x(-\frac\pi4)\) exactly — no phase.</li>
+<li>Multiply out to find its rotation angle \(\theta'\) and axis \(\mathbf n'\).</li>
+<li>Show \(\theta' = \theta\), so \(\theta'/\pi\) is irrational by the deck's proof, with nothing new to do.</li>
+<li>Find the angle between \(\mathbf n'\) and the deck's \(\mathbf n\). Conclude that \(T\cdot HTH\) and \(T\cdot HT^\dagger H\) alone already give
+two non-parallel irrational rotations.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a rotation operator: a half-angle cosine and a unit axis. Follow the deck's worked example
+on \(T\cdot HTH\), with one sign changed.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(T^\dagger = e^{-i\pi/8}R_z(-\frac\pi4)\) and \(HR_z(\varphi)H = R_x(\varphi)\), so \(HT^\dagger H = e^{-i\pi/8}R_x(-\frac\pi4)\); the phases of \(T\) and
+\(HT^\dagger H\) cancel. Then use \(ZX = iY\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(R_z(\frac\pi4)R_x(-\frac\pi4) = (c - isZ)(c + isX) = c^2 + iscX - iscZ + s^2ZX\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Write each gate as a phase times a rotation, cancel the phases, and multiply two rotations
+by quarter-turn-halves in the Pauli algebra.</p>
+<p><strong>1.</strong> \(T = e^{i\pi/8}R_z(\frac\pi4)\) and \(T^\dagger = e^{-i\pi/8}R_z(-\frac\pi4)\). Conjugation by \(H\) swaps \(x\) and \(z\), so
+\(HT^\dagger H = e^{-i\pi/8}R_x(-\frac\pi4)\), and \(T\cdot HT^\dagger H = e^{i\pi/8}e^{-i\pi/8}R_z(\frac\pi4)R_x(-\frac\pi4) = R_z(\frac\pi4)R_x(-\frac\pi4)\). As a check,
+\(\det(T\cdot HT^\dagger H) = \det T\,\det T^\dagger(\det H)^2 = 1\), as an element of \(SU(2)\) must have.</p>
+<p><strong>2.</strong> \((c - isZ)(c + isX) = c^2 + iscX - iscZ + s^2ZX\), and \(ZX = iY\), so</p>
+\[ T\cdot HT^\dagger H = c^2 - i\big(-scX - s^2Y + scZ\big). \]
+<p>So \(\cos\frac{\theta'}2 = c^2\) and \(\sin\frac{\theta'}2\,\mathbf n' = s(-c, -s, c)\), giving \(\mathbf n' = (-c, -s, c)/\sqrt{1 + c^2} = (-0.679, -0.281, 0.679)\).</p>
+<p><strong>3.</strong> \(\cos\frac{\theta'}2 = c^2 = \cos\frac\theta2\) with both half-angles in \([0, \pi]\), so \(\theta' = \theta\). The irrationality proof used only
+\(2\cos\frac\theta2 = 1 + \frac{\sqrt2}2\), which is unchanged.</p>
+<p><strong>4.</strong> \(\mathbf n\cdot\mathbf n' = \frac{(c, s, c)\cdot(-c, -s, c)}{1 + c^2} = \frac{-s^2}{1 + c^2} = -\frac{0.14645}{1.85355} = -0.0790\), so the angle is \(\mathbf{94.53^\circ}\).
+Not parallel; by the deck's lemma, rotations about \(\mathbf n\) and \(\mathbf n'\) generate \(SU(2)\), and by density of powers both
+families are in the closure of \(\langle\tilde H, \tilde T\rangle\). This pair is almost perpendicular, which is why it needs no doubling.</p>
+<p><strong>Check.</strong> Normalisation: \(c^4 + s^2(c^2 + s^2 + c^2) = (c^2 + s^2)^2 = 1\) ✓. Unitarity: a product of unitaries ✓. And the trace,
+\(2c^2 = 1.7071 = 1 + \frac{\sqrt2}2\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+c, s = np.cos(np.pi / 8), np.sin(np.pi / 8)
+V = gates.T @ gates.H @ gates.Tdg @ gates.H
+print(np.allclose(V, gates.rz(np.pi / 4) @ gates.rx(-np.pi / 4)))   # True
+print(round(np.trace(V).real / 2, 4), round(c**2, 4))                # 0.8536 0.8536
+n1 = np.array([c, s, c]) / np.sqrt(1 + c**2)
+n3 = np.array([-c, -s, c]) / np.sqrt(1 + c**2)
+print(np.allclose(V, gates.rotation(n3, 2 * np.arccos(c**2))))      # True
+print(round(np.degrees(np.arccos(n1 @ n3)), 2))                      # 94.53</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Density of powers <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the pigeonhole principle, density on a circle; a number; why density is not efficiency</p>
+<div class="statement">
+<ol>
+<li>Prove: if \(\alpha/\pi\) is irrational, the multiples \(k\alpha\), \(k = 0, 1, 2, \dots\), are dense modulo \(2\pi\).</li>
+<li>The powers of \(T\cdot HTH\) turn the Bloch sphere by \(\theta = 62.80^\circ\) each. Find every \(k\le30\) for which \(k\theta\) is within
+\(20^\circ\) of a whole number of turns, and the least \(k\ge1\) for which it is within \(5^\circ\).</li>
+<li>Explain why part 1 gives no useful bound on the number of powers needed to land within \(\varepsilon\) of a given
+rotation.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an existence proof in three moves: the multiples are distinct, two are close, and multiples of
+their difference march round. Part 2 is a short table.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Divide the circle into \(N\) arcs of length \(2\pi/N\) and place \(N + 1\) points. For part 2, \(6\theta = 376.80^\circ\): from there,
+add or subtract multiples of \(6\theta\) and \(\theta\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: if \(j\alpha\equiv k\alpha\pmod{2\pi}\) with \(j\ne k\), then \(\alpha/\pi = 2m/(k - j)\) for some integer \(m\) — rational.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Pigeonhole forces two multiples close together; their difference is a small nonzero step,
+and stepping repeatedly visits every arc.</p>
+<p><strong>1.</strong> <em>Distinct:</em> as in rung 3, a repeat would make \(\alpha/\pi\) rational. <em>Close:</em> fix \(N\) and split
+\(\mathbb R/2\pi\mathbb Z\) into \(N\) half-open arcs of length \(2\pi/N\). The \(N + 1\) distinct points \(0, \alpha, \dots, N\alpha\) cannot all lie in different arcs,
+so two, \(j\alpha\) and \(k\alpha\) with \(j\lt k\), share one. Let \(\beta\in(-\pi, \pi]\) represent \((k - j)\alpha\); then \(0\lt|\beta|\lt2\pi/N\).
+<em>March:</em> \(0, \beta, 2\beta, \dots, M\beta\) with \(M = \lfloor2\pi/|\beta|\rfloor\) go once round the circle in steps shorter than \(2\pi/N\), so
+every arc of length \(2\pi/N\) contains one; and \(m\beta\) is the multiple \(m(k - j)\alpha\) of \(\alpha\). As \(N\) is arbitrary, the multiples are
+dense. \(\square\)</p>
+<p><strong>2.</strong> With \(\theta = 62.7994^\circ\), reduce \(k\theta\) to \((-180^\circ, 180^\circ]\):</p>
+<ul>
+<li>\(k = 5\): \(314.00^\circ\to-46.00^\circ\); \(\ k = 6\): \(376.80^\circ\to\mathbf{+16.80^\circ}\);</li>
+<li>\(k = 17\): \(1067.59^\circ = 3\times360^\circ - 12.41^\circ\to\mathbf{-12.41^\circ}\);</li>
+<li>\(k = 23 = 6 + 17\): \(16.80^\circ - 12.41^\circ = \mathbf{+4.39^\circ}\).</li>
+</ul>
+<p>Within \(20^\circ\) for \(k\le30\): \(k = 6, 17, 23\). The least within \(5^\circ\) is \(\mathbf{k = 23}\). (Each new best return is a sum of
+earlier ones, as in a continued fraction: the next, \(k = 63\), gives \(-3.64^\circ\).)</p>
+<p><strong>3.</strong> The proof finds a small step \(\beta\) but says nothing about how small, nor how many steps of it are needed:
+\(M\) can be as large as \(2\pi/|\beta|\), and \(k - j\) can be as large as \(N\). To be within \(\varepsilon\) one needs at least about \(2\pi/\varepsilon\)
+distinct points on the circle, so of order \(1/\varepsilon\) powers — about \(10^{11}\) at the deck's \(10^{-11}\), each costing two \(T\) gates. Density
+is reachability; Solovay–Kitaev and exact synthesis are what make it cheap.</p>
+<p><strong>Check.</strong> \(23\theta = 1444.39^\circ = 4\times360^\circ + 4.39^\circ\) ✓, and \(23\times31.40^\circ = 722.19^\circ\), so the half-angle used in \(SU(2)\)
+returns within \(2.19^\circ\) at the same \(k\), as on the deck's pigeonhole slide ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+theta = 2 * np.degrees(np.arccos(np.cos(np.pi / 8) ** 2))   # degrees
+for k in range(1, 31):
+    r = (k * theta + 180) % 360 - 180                        # k*theta mod 360, in (-180, 180]
+    if abs(r) &lt; 20:
+        print(k, round(r, 2))
+# 6 16.8 / 17 -12.41 / 23 4.39</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">The Clifford group</h2>
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Clifford gates map Paulis to Paulis <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: conjugation as a group automorphism, checking generators, the Pauli algebra; a proof</p>
+<div class="statement">
+<ol>
+<li>Prove that a unitary \(U\) on \(n\) qubits normalises the Pauli group \(\mathcal P_n\) as soon as \(UX_jU^\dagger\) and \(UZ_jU^\dagger\) lie in
+\(\mathcal P_n\) for every qubit \(j\).</li>
+<li>Show that \(H\) and \(S\) (on one qubit) and CNOT (on two) are Clifford, by computing the images of the
+generators.</li>
+<li>Show that \(T\) is not Clifford. Is \(T^2\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a short group-theory argument; parts 2–3 are tables of matrix products. Use only the Pauli
+algebra (\(XY = iZ\) and cyclic, anticommutation) and \(\ket{a, b}\mapsto\ket{a, a\oplus b}\) for CNOT.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(c_U(P) = UPU^\dagger\) is a homomorphism: \(c_U(PQ) = c_U(P)c_U(Q)\). Every element of \(\mathcal P_n\) is a product of \(X_j\)s, \(Z_j\)s and
+\(iI\). For CNOT, compute \(\mathrm{CNOT}\,P\,\mathrm{CNOT}\) on a basis state \(\ket{a, b}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(UPQU^\dagger = UPU^\dagger\,UQU^\dagger\), so \(\{P : UPU^\dagger\in\mathcal P_n\}\) is closed under products and contains the
+generators.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Conjugation respects products, so it is enough to follow the generators; then
+\(H\), \(S\) and CNOT turn out to permute Paulis up to sign, and \(T\) produces a superposition of two.</p>
+<p><strong>1.</strong> The set \(K = \{P\in\mathcal P_n : UPU^\dagger\in\mathcal P_n\}\) is closed under products, since \(UPQU^\dagger = (UPU^\dagger)(UQU^\dagger)\) and
+\(\mathcal P_n\) is a group. It contains every \(X_j\), \(Z_j\) by hypothesis, and \(iI\) since \(U(iI)U^\dagger = iI\). These generate \(\mathcal P_n\): an element
+is \(i^k\) times a tensor product of letters, \(Y = iXZ\), and letters on different qubits are products of \(X_j, Z_j\). So
+\(K = \mathcal P_n\), i.e. \(U\mathcal P_nU^\dagger\subseteq\mathcal P_n\). Conjugation is injective and \(\mathcal P_n\) is finite, so the inclusion is an equality.</p>
+<p><strong>2.</strong> \(H\): \(HXH = Z\), \(HZH = X\) (the deck's worked example: \((X + Z)X(X + Z) = 2Z\)). \(S\): \(SXS^\dagger = Y\) by multiplying
+the matrices, and \(SZS^\dagger = Z\) as both are diagonal. CNOT, on \(\ket{a, b}\):</p>
+<ul>
+<li>\(X\otimes I\): \(\ket{a, b}\to\ket{a, a\oplus b}\to\ket{a\oplus1, a\oplus b}\to\ket{a\oplus1, b\oplus1}\), so the image is \(X\otimes X\);</li>
+<li>\(I\otimes X\): the two additions to \(b\) commute, so the image is \(I\otimes X\);</li>
+<li>\(Z\otimes I\): the phase \((-1)^a\) is untouched by CNOT, so the image is \(Z\otimes I\);</li>
+<li>\(I\otimes Z\): the phase is taken when the target holds \(a\oplus b\): \((-1)^{a\oplus b} = (-1)^a(-1)^b\), so the image is \(Z\otimes Z\).</li>
+</ul>
+<p>All in \(\mathcal P_2\), so CNOT is Clifford by part 1.</p>
+<p><strong>3.</strong> \(TXT^\dagger = \begin{pmatrix}0&amp;\bar\omega\\ \omega&amp;0\end{pmatrix} = \frac1{\sqrt2}(X + Y)\), whose coordinates in the basis \(\{I, X, Y, Z\}\) are
+\((0, \frac1{\sqrt2}, \frac1{\sqrt2}, 0)\): two nonzero, so it is not a multiple of a single Pauli. \(T\) is not Clifford. But \(T^2 = S\) is.
+So the Clifford group is not closed under square roots, and \(T\), a square root of the Clifford gate \(S\), lies just
+outside it.</p>
+<p><strong>Check.</strong> Conjugation preserves commutation relations. \(X\otimes I\) and \(I\otimes Z\) commute, and so do their images
+\(X\otimes X\) and \(Z\otimes Z\) (two anticommuting pairs). \(X\) and \(Z\) anticommute, and so do \(HXH = Z\) and \(HZH = X\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+P = gates.pauli
+def is_pauli(M):
+    return any(linalg.equal_up_to_phase(M, P(w)) for w in
+               [a + b for a in "IXYZ" for b in "IXYZ"])
+C = gates.CNOT
+for g in ["XI", "IX", "ZI", "IZ"]:
+    print(g, is_pauli(C @ P(g) @ C))                      # True x4
+T1 = np.kron(gates.T, gates.I)
+print(is_pauli(T1 @ P("XI") @ linalg.dagger(T1)))         # False</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> The single-qubit Clifford group has 24 elements <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: counting by where generators go, orbit–stabiliser, the rotation group of the cube</p>
+<div class="statement">
+<ol>
+<li>Show that up to phase there are at most 24 one-qubit Clifford unitaries, by counting where \(X\) and \(Z\) can go.</li>
+<li>Show that \(\langle H, S\rangle\) contains at least 24 up to phase.</li>
+<li>Classify \(H\), \(S\), \(Z\), \(SH\) and \(HSH\) by the type of cube axis they turn about (face, vertex or edge) and the
+angle, and check the census \(1 + 9 + 8 + 6 = 24\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A count from above and one from below. Work on the Bloch sphere: by unit 02, \(U(\mathbf r\cdot\boldsymbol\sigma)U^\dagger = (\Phi(U)\mathbf r)\cdot\boldsymbol\sigma\), and
+\(\Phi(U)\) determines \(U\) up to sign.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The image of \(X\) is Hermitian, squares to \(I\) and is traceless: one of \(\pm X, \pm Y, \pm Z\). The image of \(Z\) must also
+anticommute with it. For part 2, find the orbit of \(+z\) under \(\Phi(H), \Phi(S)\), and its stabiliser.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\Phi(U)e_x\in\{\pm e_x, \pm e_y, \pm e_z\}\) (6 choices), \(\Phi(U)e_z\perp\Phi(U)e_x\) among the same six (4 choices), and
+\(\Phi(U)e_y = \Phi(U)e_z\times\Phi(U)e_x\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A Clifford gate is a rotation of the Bloch sphere that permutes the six points \(\pm x, \pm y, \pm z\); such
+rotations are counted by where two axes go.</p>
+<p><strong>1.</strong> \(UXU^\dagger\in\mathcal P_1\) is Hermitian, squares to \(I\), and has trace \(0\): among \(i^kP\) that leaves \(\pm X, \pm Y, \pm Z\)
+(\(\pm iP\) is not Hermitian, \(\pm I\) has trace \(\pm2\)). Same for \(UZU^\dagger\). So \(\Phi(U)\) sends \(e_x\) and \(e_z\) to two of the six points, and
+since \(\Phi(U)\) is a rotation they are perpendicular and \(\Phi(U)e_y = \Phi(U)(e_z\times e_x) = \Phi(U)e_z\times\Phi(U)e_x\). Choices: \(6\times4 = 24\)
+rotations. \(\Phi(U) = \Phi(U')\) forces \(U' = \pm e^{i\alpha}U\) (unit 02's kernel, after removing determinants), so at most 24 Cliffords up
+to phase.</p>
+<p><strong>2.</strong> \(\Phi(H)\) swaps \(e_x\leftrightarrow e_z\) and sends \(e_y\to-e_y\); \(\Phi(S)\) sends \(e_x\to e_y\to-e_x\), fixing \(e_z\). Orbit of \(e_z\):
+\(e_z\xrightarrow{H}e_x\xrightarrow{S}e_y\xrightarrow{S}-e_x\xrightarrow{H}-e_z\), and \(e_y\xrightarrow{S^2}-e_y\): all six. The stabiliser of \(e_z\) contains \(\Phi(S)^k\), \(k = 0, 1, 2, 3\),
+four distinct rotations. Orbit–stabiliser: \(|\Phi(\langle H, S\rangle)|\ge6\times4 = 24\). With part 1, exactly 24.</p>
+<p><strong>3.</strong></p>
+<ul>
+<li>\(S\): a quarter-turn about \(z\) — a <strong>face</strong> axis, \(90^\circ\).</li>
+<li>\(Z = S^2\): a half-turn about \(z\) — face, \(180^\circ\).</li>
+<li>\(HSH\): conjugating by \(H\) moves \(S\)'s axis from \(z\) to \(x\) — face, \(90^\circ\) about \(x\).</li>
+<li>\(H\): a half-turn about \((x + z)/\sqrt2\), the midpoint direction of an edge — <strong>edge</strong>, \(180^\circ\).</li>
+<li>\(SH\): \(\Phi(SH) = \Phi(S)\Phi(H)\), applying \(\Phi(H)\) first: \(e_x\to e_z\to e_z\), \(\ e_z\to e_x\to e_y\), \(\ e_y\to-e_y\to e_x\). So
+\(x\to z\to y\to x\), a cyclic permutation of the axes, fixing the diagonal through \(\pm(1, 1, 1)\): a third of a turn about a
+<strong>vertex</strong> axis.</li>
+</ul>
+<p>Census: identity \(1\); face axes \(3\), each with turns of \(90^\circ, 180^\circ, 270^\circ\): \(9\); vertex diagonals \(4\), turns of
+\(120^\circ, 240^\circ\): \(8\); edge axes \(6\), half-turns: \(6\). \(1 + 9 + 8 + 6 = 24\) ✓.</p>
+<p><strong>Check.</strong> \(\Phi(SH)^3 = I\): following \(x\to z\to y\to x\) three times returns every axis ✓. And \(SH\) on matrices:
+\(\mathrm{tr}(SH) = \frac{1 - i}{\sqrt2} = e^{-i\pi/4}\), \(\det(SH) = -i\); dividing by \(\sqrt{\det} = e^{-i\pi/4}\) gives an \(SU(2)\) element of trace \(1 = 2\cos\frac{\vartheta}2\), so
+\(\vartheta = \frac{2\pi}3\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates
+def key(U):                       # U up to phase, as a hashable tuple
+    k = np.flatnonzero(np.abs(U.ravel()) &gt; 1e-9)[0]
+    V = U * abs(U.ravel()[k]) / U.ravel()[k]
+    return tuple(np.round(V.ravel(), 6))
+group, frontier = {key(gates.I): gates.I}, [gates.I]
+while frontier:
+    new = []
+    for U in frontier:
+        for g in (gates.H, gates.S):
+            V = g @ U
+            if key(V) not in group:
+                group[key(V)] = V
+                new.append(V)
+    frontier = new
+print(len(group))                                          # 24
+print(key(gates.T) in group)                               # False</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Synthesis</h2>
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Exact synthesis, a first look <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the ring of Clifford + T entries; proving a gate is not exactly synthesisable; a proof</p>
+<div class="statement">
+<ol>
+<li>Show that every entry of every Clifford + \(T\) circuit lies in \(\mathbb Z[\frac1{\sqrt2}, i]\), and write out \(HT\).</li>
+<li>Show that every element of \(\mathbb Z[\frac1{\sqrt2}, i]\) has the form \(a + b\sqrt2 + ci + di\sqrt2\) with \(a, b, c, d\in\mathbb Q\), that these
+numbers form a field \(\mathbb Q(\sqrt2, i)\) closed under complex conjugation, and that its real elements are \(\mathbb Q(\sqrt2)\).</li>
+<li>Prove that no \(e^{i\alpha}R_z(\frac\pi{16})\) has all its entries in \(\mathbb Z[\frac1{\sqrt2}, i]\). So \(R_z(\frac\pi{16})\) can only be
+approximated.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1–2 are closure arguments; part 3 is a proof by contradiction that ends in "\(\sqrt{2 + \sqrt2}\) is not of the form
+\(a + b\sqrt2\)".</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>If the entries were in the ring, the ratio of the two diagonal entries, \(e^{i\pi/16}\), would be in the field. Then
+take real parts, and use \(\cos\frac\pi8 = 2\cos^2\frac\pi{16} - 1\) and \(\cos\frac\pi8 = \frac12\sqrt{2 + \sqrt2}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the last step: suppose \((a + b\sqrt2)^2 = 2 + \sqrt2\) with \(a, b\in\mathbb Q\); comparing coefficients (as \(\sqrt2\) is irrational),
+\(a^2 + 2b^2 = 2\) and \(2ab = 1\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Clifford + \(T\) can only produce numbers from one ring; \(e^{i\pi/16}\) needs a square root that the
+ring's field does not contain.</p>
+<p><strong>1.</strong> Entries: \(H\) has \(\pm\frac1{\sqrt2}\); \(S\) has \(0, 1, i\); \(T\) has \(0, 1, \omega = \frac1{\sqrt2} + i\frac1{\sqrt2}\); CNOT has \(0, 1\). Tensoring
+with \(I\) and multiplying matrices only add and multiply entries, and a ring is closed under both. \(HT = \frac1{\sqrt2}\begin{pmatrix}1&amp;\omega\\1&amp;-\omega\end{pmatrix}\),
+with entries \(\frac1{\sqrt2}\) and \(\pm\frac{\omega}{\sqrt2} = \pm\frac{1 + i}2\), in the ring.</p>
+<p><strong>2.</strong> A ring element is a sum of integer multiples of \(2^{-j/2}i^k\), and \(2^{-j/2} = 2^{-j}\sqrt2^{\,j}\) is a rational number or a
+rational multiple of \(\sqrt2\); so the form holds. Let \(F = \{u + vi : u, v\in\mathbb Q(\sqrt2)\}\). \(\mathbb Q(\sqrt2)\) is a field:
+\(\frac1{a + b\sqrt2} = \frac{a - b\sqrt2}{a^2 - 2b^2}\), and \(a^2\ne2b^2\) unless \(a = b = 0\), since \(\sqrt2\) is irrational. Then \(F\) is a field:
+\(\frac1{u + vi} = \frac{u - vi}{u^2 + v^2}\), with \(u^2 + v^2\in\mathbb Q(\sqrt2)\) nonzero for real \(u, v\) not both zero. Conjugation sends
+\(u + vi\) to \(u - vi\in F\). And \(u + vi\) is real iff \(v = 0\), so \(F\cap\mathbb R = \mathbb Q(\sqrt2)\).</p>
+<p><strong>3.</strong> Suppose \(e^{i\alpha}R_z(\frac\pi{16}) = \mathrm{diag}(e^{i(\alpha - \pi/32)}, e^{i(\alpha + \pi/32)})\) had both entries in the ring. They are
+nonzero, so their ratio \(\zeta = e^{i\pi/16}\) lies in \(F\), hence so does \(\bar\zeta\), and \(\cos\frac\pi{16} = \frac12(\zeta + \bar\zeta)\in F\cap\mathbb R = \mathbb Q(\sqrt2)\).
+Then \(\cos\frac\pi8 = 2\cos^2\frac\pi{16} - 1\in\mathbb Q(\sqrt2)\), so \(\sqrt{2 + \sqrt2} = 2\cos\frac\pi8 = a + b\sqrt2\) for rational \(a, b\). Squaring and
+comparing coefficients: \(a^2 + 2b^2 = 2\), \(2ab = 1\). Substituting \(a = \frac1{2b}\): \(\frac1{4b^2} + 2b^2 = 2\), i.e. \(8b^4 - 8b^2 + 1 = 0\), so
+\(b^2 = \frac{2\pm\sqrt2}4\) — irrational, while \(b\) is rational. Contradiction. \(\square\)</p>
+<p><strong>Check.</strong> The same argument must <em>fail</em> for \(R_z(\frac\pi4)\), which is \(T\) up to phase: there the ratio is \(e^{i\pi/4} = \omega\in F\), and
+indeed \(e^{i\pi/8}R_z(\frac\pi4) = T\) has entries in the ring ✓. And numerically \(2\cos\frac\pi8 = 1.8478 = \sqrt{3.4142} = \sqrt{2 + \sqrt2}\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Solovay–Kitaev's exponent <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: solving a recursion; where c = log 5 / log(3/2) comes from; ends in a number</p>
+<div class="statement">
+<p>The recursion gives \(\varepsilon_k\le C\varepsilon_{k-1}^{3/2}\) and \(l_k = 5l_{k-1}\), with base accuracy \(\varepsilon_0\lt1/C^2\) and base length \(l_0\).</p>
+<ol>
+<li>Show that \(\eta_k = C^2\varepsilon_k\) satisfies \(\eta_k\le\eta_0^{(3/2)^k}\).</li>
+<li>Deduce that reaching accuracy \(\varepsilon\) needs length \(O(\log^c(1/\varepsilon))\) with \(c = \log5/\log\frac32\), and evaluate \(c\).</li>
+<li>Only three of the five sub-words are computed; the other two are inverses. Find the exponent of the running time.</li>
+<li>With \(C = 10\) and \(\varepsilon_0 = 10^{-3}\), how many levels reach \(10^{-11}\), and what is the length in units of \(l_0\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Accuracy improves doubly exponentially in \(k\), length grows singly exponentially. Eliminate \(k\) between them.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(C^2\cdot C\varepsilon^{3/2} = (C^2\varepsilon)^{3/2}\). For part 2, solve \(\eta_0^{(3/2)^k}\le C^2\varepsilon\) for \((3/2)^k\), and write \(5^k = \big((3/2)^k\big)^{\log5/\log(3/2)}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\eta_k = C^2\varepsilon_k\le C^3\varepsilon_{k-1}^{3/2} = (C^2\varepsilon_{k-1})^{3/2} = \eta_{k-1}^{3/2}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Rescale so the recursion is a pure power, iterate, and trade the number of levels for the
+accuracy.</p>
+<p><strong>1.</strong> As in rung 3, \(\eta_k\le\eta_{k-1}^{3/2}\). Since \(0\lt\eta_0\lt1\), induction gives \(\eta_k\le\eta_0^{(3/2)^k}\).</p>
+<p><strong>2.</strong> \(\varepsilon_k\le\varepsilon\) holds once \(\eta_0^{(3/2)^k}\le C^2\varepsilon\), i.e. \((3/2)^k\ge L(\varepsilon) := \frac{\ln(1/(C^2\varepsilon))}{\ln(1/\eta_0)}\). Take the least such \(k\); once \(L(\varepsilon)\gt1\) this \(k\) is at least 1 and
+\((3/2)^{k-1}\lt L(\varepsilon)\), so \((3/2)^k\lt\frac32L(\varepsilon)\), and the length is</p>
+\[ l_k = l_0\,5^k = l_0\big((3/2)^k\big)^{\log5/\log(3/2)}\lt l_0\big(\tfrac32L(\varepsilon)\big)^{c} = O\big(\log^c(1/\varepsilon)\big), \]
+<p>with \(c = \frac{\ln5}{\ln1.5} = \frac{1.6094}{0.4055} = \mathbf{3.969}\).</p>
+<p><strong>3.</strong> Each level makes three recursive calls (for \(U_{k-1}\), \(\tilde V\), \(\tilde W\)); the matrices of \(\tilde V^\dagger\), \(\tilde W^\dagger\) are just
+adjoints, and the balanced decomposition is a constant amount of \(2\times2\) arithmetic. Counting calls, the time is \(\propto3^k = \big((3/2)^k\big)^{\log3/\log(3/2)}\), exponent \(\frac{\ln3}{\ln1.5} = \mathbf{2.710}\), Dawson and Nielsen's
+\(O(\log^{2.71}(1/\varepsilon))\).</p>
+<p><strong>4.</strong> \(\eta_0 = 100\times10^{-3} = 0.1\), and \(\varepsilon_k = 0.1^{(1.5)^k}/100\). Need \(0.1^{(1.5)^k}\le10^{-9}\), i.e. \((1.5)^k\ge9\), i.e.
+\(k\ge\ln9/\ln1.5 = 5.42\): <strong>six levels</strong>, reaching \(0.1^{11.39}/100 = 4.1\times10^{-14}\); level 5 gives only \(2.5\times10^{-10}\). Length
+\(5^6l_0 = \mathbf{15\,625\,l_0}\).</p>
+<p><strong>Check.</strong> \(k = 0\): \(\varepsilon_0 = 0.1/100 = 10^{-3}\) ✓. The exponent is independent of \(C\), \(\varepsilon_0\) and \(l_0\), which enter only the
+constant ✓. Against the deck's \(\approx110\) \(T\) gates, \(15\,625\,l_0\) with \(l_0\approx30\) is about \(4.7\times10^5\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+print(round(np.log(5) / np.log(1.5), 3), round(np.log(3) / np.log(1.5), 3))   # 3.969 2.71
+eta, k = 0.1, 0
+while eta / 100 &gt; 1e-11:
+    eta, k = eta ** 1.5, k + 1
+print(k, 5 ** k, f"{eta / 100:.1e}")                      # 6 15625 4.1e-14</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> The commutator step <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the Pauli product formula, group commutators of rotations, the error-squaring bound</p>
+<div class="statement">
+<p>Let \(V = R_x(\varphi)\), \(W = R_y(\varphi)\), \(s = \sin\frac\varphi2\), \(c_\varphi = \cos\frac\varphi2\).</p>
+<ol>
+<li>Show that \(VWV^\dagger W^\dagger = R_{\mathbf k}(\vartheta)\) with \(\cos\frac\vartheta2 = \cos\varphi + \frac12\sin^2\varphi\),
+\(\sin\frac\vartheta2 = 2s^2c_\varphi\sqrt{1 + s^2}\) and \(\mathbf k = (s, -s, c_\varphi)/\sqrt{1 + s^2}\).</li>
+<li>Show \(\vartheta = \varphi^2 + O(\varphi^4)\).</li>
+<li>Prove the error-squaring bound: if \(V, W, \tilde V, \tilde W\) are unitary, \(\lVert V - I\rVert, \lVert W - I\rVert\le r\) and
+\(\lVert\tilde V - V\rVert, \lVert\tilde W - W\rVert\le\delta\), then \(\lVert\tilde V\tilde W\tilde V^\dagger\tilde W^\dagger - VWV^\dagger W^\dagger\rVert\le4r\delta + 4r^2\delta + 2\delta^2\).</li>
+<li>At \(\varphi = 0.14154\), compute \(\lVert VWV^\dagger W^\dagger - I\rVert\) and \(\lVert V - I\rVert\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a product of four \(SU(2)\) elements written as \(a_0 - i\mathbf a\cdot\boldsymbol\sigma\); multiply in pairs. Part 3 is
+bookkeeping with the triangle inequality and unitary invariance.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The product rule: \((a_0 - i\mathbf a\cdot\boldsymbol\sigma)(b_0 - i\mathbf b\cdot\boldsymbol\sigma) = (a_0b_0 - \mathbf a\cdot\mathbf b) - i(a_0\mathbf b + b_0\mathbf a + \mathbf a\times\mathbf b)\cdot\boldsymbol\sigma\), from
+\((\mathbf a\cdot\boldsymbol\sigma)(\mathbf b\cdot\boldsymbol\sigma) = \mathbf a\cdot\mathbf b\,I + i(\mathbf a\times\mathbf b)\cdot\boldsymbol\sigma\). For part 3, \(VWV^\dagger W^\dagger - I = (VW - WV)V^\dagger W^\dagger\) and \(VW - WV = [V - I, W - I]\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(VW = c_\varphi^2 - i(sc_\varphi, sc_\varphi, s^2)\cdot\boldsymbol\sigma\) and \(V^\dagger W^\dagger = c_\varphi^2 - i(-sc_\varphi, -sc_\varphi, s^2)\cdot\boldsymbol\sigma\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Multiply out in the Pauli algebra; then, for the error, notice that the commutator only
+sees the <em>commutator</em> of \(V - I\) and \(W - I\), which is second order, so errors in \(V\) are multiplied by \(r\).</p>
+<p><strong>1.</strong> \(V = c_\varphi - isX\), \(W = c_\varphi - isY\). Then \(VW = c_\varphi^2 - isc_\varphi(X + Y) - s^2XY\) with \(XY = iZ\), giving rung 3's
+first product; \(V^\dagger W^\dagger = (c_\varphi + isX)(c_\varphi + isY) = c_\varphi^2 + isc_\varphi(X + Y) - is^2Z\), the second. With \(\mathbf a = (sc_\varphi, sc_\varphi, s^2)\),
+\(\mathbf b = (-sc_\varphi, -sc_\varphi, s^2)\), \(a_0 = b_0 = c_\varphi^2\):</p>
+<ul>
+<li>\(a_0b_0 - \mathbf a\cdot\mathbf b = c_\varphi^4 + 2s^2c_\varphi^2 - s^4 = (c_\varphi^2 - s^2)(c_\varphi^2 + s^2) + 2s^2c_\varphi^2 = \cos\varphi + \frac12\sin^2\varphi\);</li>
+<li>\(a_0\mathbf b + b_0\mathbf a = c_\varphi^2(0, 0, 2s^2)\);</li>
+<li>\(\mathbf a\times\mathbf b = (sc_\varphi s^2 + s^2sc_\varphi,\ -s^2sc_\varphi - sc_\varphi s^2,\ -s^2c_\varphi^2 + s^2c_\varphi^2) = (2s^3c_\varphi, -2s^3c_\varphi, 0)\).</li>
+</ul>
+<p>So the vector part is \(2s^2c_\varphi(s, -s, c_\varphi)\), of length \(2s^2c_\varphi\sqrt{2s^2 + c_\varphi^2} = 2s^2c_\varphi\sqrt{1 + s^2}\). That is \(\sin\frac\vartheta2\,\mathbf k\) with
+the stated \(\vartheta\) and \(\mathbf k\).</p>
+<p><strong>2.</strong> \(\cos\varphi + \frac12\sin^2\varphi = 1 - \frac{\varphi^2}2 + \frac{\varphi^4}{24} + \frac12\big(\varphi^2 - \frac{\varphi^4}3\big) + O(\varphi^6) = 1 - \frac{\varphi^4}8 + O(\varphi^6)\), and
+\(\cos\frac\vartheta2 = 1 - \frac{\vartheta^2}8 + O(\vartheta^4)\). So \(\vartheta^2 = \varphi^4 + O(\varphi^6)\) and \(\vartheta = \varphi^2 + O(\varphi^4)\).</p>
+<p><strong>3.</strong> Put \(a = V - I\), \(b = W - I\), \(D = \tilde V - V\), \(E = \tilde W - W\). Then \(f = VWV^\dagger W^\dagger = I + [a, b]V^\dagger W^\dagger\) (since
+\(VW - WV = ab - ba\)), and likewise \(\tilde f = I + [a + D, b + E]\tilde V^\dagger\tilde W^\dagger\). Expanding by bilinearity,</p>
+\[ \tilde f - f = \big([D, b] + [a, E] + [D, E]\big)\tilde V^\dagger\tilde W^\dagger + [a, b]\big(\tilde V^\dagger\tilde W^\dagger - V^\dagger W^\dagger\big). \]
+<p>With \(\lVert[P, Q]\rVert\le2\lVert P\rVert\lVert Q\rVert\) and unitary invariance, the first term is at most \(2\delta r + 2r\delta + 2\delta^2\). In the second,
+\(\lVert[a, b]\rVert\le2r^2\) and, since errors add, \(\lVert\tilde V^\dagger\tilde W^\dagger - V^\dagger W^\dagger\rVert\le\lVert\tilde V^\dagger - V^\dagger\rVert + \lVert\tilde W^\dagger - W^\dagger\rVert\le2\delta\). Total:
+\(4r\delta + 4r^2\delta + 2\delta^2\). \(\square\)</p>
+<p><strong>4.</strong> \(\cos\varphi + \frac12\sin^2\varphi = 0.9999500\), so \(\frac\vartheta2 = 0.0100\), \(\vartheta = 0.0200\), and \(\lVert R_{\mathbf k}(\vartheta) - I\rVert = 2\sin\frac\vartheta4 = \mathbf{0.0100}\).
+And \(\lVert V - I\rVert = 2\sin\frac\varphi4 = \mathbf{0.0708}\): seven times larger, about \(\sqrt{0.0100/2}\) — the balanced commutator of the deck's
+worked example.</p>
+<p><strong>Check.</strong> \(\cos^2\frac\vartheta2 + \sin^2\frac\vartheta2\) must be \(1\): \((\cos\varphi + \frac12\sin^2\varphi)^2 + 4s^4c_\varphi^2(1 + s^2)\); at \(\varphi = \frac\pi2\) this is
+\(\frac14 + 4\cdot\frac14\cdot\frac12\cdot\frac32 = \frac14 + \frac34 = 1\) ✓. And \(\varphi = 0\) gives \(\vartheta = 0\), \(V = W = I\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+dg = linalg.dagger
+phi = 0.14154
+V, W = gates.rx(phi), gates.ry(phi)
+C = V @ W @ dg(V) @ dg(W)
+print(round(np.trace(C).real / 2, 6), round(np.cos(phi) + np.sin(phi)**2 / 2, 6))  # 0.99995 0.99995
+print(round(linalg.op_norm(C - gates.I), 4), round(linalg.op_norm(V - gates.I), 4))  # 0.01 0.0708
+rng = np.random.default_rng(1)
+eps = 1e-3
+r, d = np.sqrt(eps), eps
+V, W = gates.rx(2.0 * r), gates.ry(2.0 * r)               # ||V - I|| = 2 sin(r/2), just under r
+Vt = gates.rotation(rng.normal(size=3), 2 * d) @ V          # within d of V
+Wt = gates.rotation(rng.normal(size=3), 2 * d) @ W
+err = linalg.op_norm(Vt @ Wt @ dg(Vt) @ dg(Wt) - V @ W @ dg(V) @ dg(W))
+print(err &lt;= 4*r*d + 4*r*r*d + 2*d*d, f"{err:.1e}", f"{10 * eps**1.5:.1e}")  # True 6.4e-05 3.2e-04</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> How bad would naive search be? <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: SU(2) as the three-sphere, covering by balls, a counting lower bound; ends in a number</p>
+<div class="statement">
+<ol>
+<li>Show that \(U = a_0I - i\mathbf a\cdot\boldsymbol\sigma\) with \((a_0, \mathbf a)\in\mathbb R^4\), \(a_0^2 + |\mathbf a|^2 = 1\), parametrises \(SU(2)\), and that for two such,
+\(\lVert U - V\rVert\) is the Euclidean distance between their points of the unit sphere \(S^3\subset\mathbb R^4\).</li>
+<li>There are at most \(2^{L+1}\) words of length at most \(L\) in \(H\) and \(T\). Each gives two points \(\pm\tilde W\) of \(SU(2)\). Suppose every
+\(U\in SU(2)\) is within \(\varepsilon\) of one of these points. Using \(\mathrm{vol}(S^3) = 2\pi^2\) and, for small \(\varepsilon\), volume \(\frac43\pi\varepsilon^3\) for
+each ball, show \(L\ge3\log_2(1/\varepsilon) + \log_2\frac{3\pi}4 - 1\).</li>
+<li>Evaluate at \(\varepsilon = 10^{-11}\), and compare with Ross–Selinger's \(3\log_2(1/\varepsilon)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A norm identity, then a volume inequality, then a logarithm. The \(3\) is the dimension of \(S^3\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For real \((c_0, \mathbf c)\), \((c_0I - i\mathbf c\cdot\boldsymbol\sigma)^\dagger(c_0I - i\mathbf c\cdot\boldsymbol\sigma) = (c_0^2 + |\mathbf c|^2)I\), by \((\mathbf c\cdot\boldsymbol\sigma)^2 = |\mathbf c|^2I\). Apply it to the
+difference \(U - V\). For part 2, the balls must cover \(S^3\), so their volumes add up to at least its volume.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(2\cdot2^{L+1}\cdot\frac43\pi\varepsilon^3\ge2\pi^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(SU(2)\) is a round three-sphere in the operator norm, so \(\varepsilon\)-balls have volume \(\propto\varepsilon^3\), and covering
+needs \(\propto\varepsilon^{-3}\) of them; a doubling word count then needs \(3\log_2(1/\varepsilon)\) letters.</p>
+<p><strong>1.</strong> Unit 02: every element of \(SU(2)\) is \(\cos\frac\vartheta2 I - i\sin\frac\vartheta2\,\mathbf k\cdot\boldsymbol\sigma\), i.e. \(a_0 = \cos\frac\vartheta2\), \(\mathbf a = \sin\frac\vartheta2\mathbf k\), and
+conversely any unit \((a_0, \mathbf a)\) gives such a rotation. \(U - V = (a_0 - b_0)I - i(\mathbf a - \mathbf b)\cdot\boldsymbol\sigma\), and for real \((c_0, \mathbf c)\),</p>
+\[ (c_0I + i\mathbf c\cdot\boldsymbol\sigma)(c_0I - i\mathbf c\cdot\boldsymbol\sigma) = c_0^2 + (\mathbf c\cdot\boldsymbol\sigma)^2 = (c_0^2 + |\mathbf c|^2)I . \]
+<p>So \(\lVert(U - V)v\rVert^2 = (c_0^2 + |\mathbf c|^2)\lVert v\rVert^2\) for every \(v\), and \(\lVert U - V\rVert = \sqrt{(a_0 - b_0)^2 + |\mathbf a - \mathbf b|^2}\): the Euclidean distance in \(\mathbb R^4\).</p>
+<p><strong>2.</strong> The points of \(S^3\) within \(\varepsilon\) of a given point form a cap. Its volume is \(\frac43\pi\varepsilon^3\) to leading order,
+and never more: a flat ball of radius \(\varepsilon\) has that volume, and the cap is slightly smaller because the sphere curves away
+(exactly, \(4\pi\int_0^\rho\sin^2t\,dt\) with \(\varepsilon = 2\sin\frac\rho2\); comparing derivatives in \(\rho\), \(\sin^2\rho = 4\sin^2\frac\rho2\cos^2\frac\rho2\le4\sin^2\frac\rho2\cos\frac\rho2\),
+which is the derivative of \(\frac{8}{3}\sin^3\frac\rho2 = \frac13\varepsilon^3\)). At most \(2\cdot2^{L+1}\) caps cover \(S^3\), and covering sets have
+volumes adding up to at least the whole, so</p>
+\[ 2^{L+2}\cdot\tfrac43\pi\varepsilon^3\ge2\pi^2\quad\Longrightarrow\quad2^{L+1}\ge\frac{3\pi}4\varepsilon^{-3}\quad\Longrightarrow\quad L\ge3\log_2\frac1\varepsilon + \log_2\frac{3\pi}4 - 1 . \]
+<p><strong>3.</strong> \(3\log_2(10^{11}) = 109.62\), \(\log_2\frac{3\pi}4 = 1.236\), so \(L\ge109.62 + 1.24 - 1 = \mathbf{109.86}\): the words of length at most 109 cannot
+cover \(SU(2)\) to within \(10^{-11}\), so some rotation needs a word of at least 110 letters. Ross–Selinger's T-count is
+\(3\log_2(1/\varepsilon) = 109.6\) plus lower-order terms: the same leading term. (Strictly, the bound here counts letters, the
+\(T\)s and \(H\)s together; the Matsumoto–Amano normal form, cited in the deck, gives at most a constant times \(2^n\) operators of T-count \(n\),
+and the same argument gives T-count \(\ge3\log_2(1/\varepsilon) - O(1)\).)</p>
+<p><strong>Check.</strong> Dimensions: \(S^3\) is three-dimensional, and halving \(\varepsilon\) multiplies the needed count by \(2^3 = 8\), i.e. three more
+letters ✓. At \(\varepsilon = 10^{-3}\): \(L\ge29.9 + 0.24 = 30.1\), the deck's base-table length ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+def su2(q):                       # unit quaternion (a0, a) -> a0 I - i a.sigma
+    return q[0] * gates.I - 1j * (q[1] * gates.X + q[2] * gates.Y + q[3] * gates.Z)
+rng = np.random.default_rng(0)
+q1, q2 = (v / np.linalg.norm(v) for v in rng.normal(size=(2, 4)))
+print(np.isclose(linalg.op_norm(su2(q1) - su2(q2)), np.linalg.norm(q1 - q2)))  # True
+eps = 1e-11
+print(round(3 * np.log2(1 / eps) + np.log2(3 * np.pi / 4) - 1, 2))             # 109.86</code></pre>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 11</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>
