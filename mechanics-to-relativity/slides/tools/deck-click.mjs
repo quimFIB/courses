@@ -56,8 +56,18 @@ report.unresolved = await ev(`(async () => {
 })()`);
 report.termsChecked = await ev("document.querySelectorAll('.reveal .term').length");
 
-// One slide link, from a term whose entry lives on a different slide.
+// One slide link, from a term whose entry lives on a different slide. Titles are compared
+// as deck.js compares them (titleKey, on source text): the maths in a rendered title, and in
+// the popover's rendered link, is put back from KaTeX's TeX annotation first, so a title with
+// maths in it matches its glossary link.
 report.jump = await ev(`(async () => {
+  const key = (t) => t.toLowerCase().replace(/\\\\[a-z]+/g, '').replace(/[^0-9a-z]/g, '');
+  const src = (h) => {
+    if (!h) return '';
+    const c = h.cloneNode(true);
+    c.querySelectorAll('.katex').forEach((k) => k.replaceWith('$' + (k.querySelector('annotation')?.textContent ?? '') + '$'));
+    return c.textContent;
+  };
   const slides = Reveal.getSlides();
   for (let i = 0; i < slides.length; i++) {
     Reveal.slide(i);
@@ -65,13 +75,13 @@ report.jump = await ev(`(async () => {
       t.click();
       await new Promise((r) => setTimeout(r, 20));
       const go = document.querySelector('.gl-pop .gl-go');
-      const want = go && go.textContent.replace(/^slide: /, '').replace(/ →$/, '');
-      const here = slides[i].querySelector('h2')?.textContent;
-      if (go && want !== here) {
+      const want = go && src(go).replace(/^slide: /, '').replace(/ →$/, '');
+      const here = src(slides[i].querySelector('h2'));
+      if (go && key(want) !== key(here)) {
         go.click();
         await new Promise((r) => setTimeout(r, 100));
-        const got = Reveal.getCurrentSlide().querySelector('h2')?.textContent;
-        return { from: here, want, got, ok: got === want };
+        const got = src(Reveal.getCurrentSlide().querySelector('h2'));
+        return { from: here, want, got, ok: key(got) === key(want) };
       }
       document.body.click();
     }

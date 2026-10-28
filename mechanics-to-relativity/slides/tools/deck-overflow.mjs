@@ -62,6 +62,10 @@ const report = await ev(`(async () => { const problems = [];
     section.querySelectorAll(".katex-display").forEach((el) => { if (el.scrollWidth > el.clientWidth + 1) problems.push("slide " + i + ": equation " + el.scrollWidth + " in " + el.clientWidth); });
     section.querySelectorAll(".cols > *, pre, table").forEach((el) => { if (el.scrollWidth > el.clientWidth + 4 && !el.closest(".katex-display")) problems.push("slide " + i + ": " + el.tagName.toLowerCase() + " " + el.scrollWidth + " in " + el.clientWidth); });
     if (!section.classList.contains("divider") && section.scrollHeight > Reveal.getConfig().height + 1) problems.push("slide " + i + ": content " + section.scrollHeight + "px tall (frame " + Reveal.getConfig().height + ")");
+    // Maths KaTeX could not parse, and delimiters it never saw (notes are rendered too).
+    section.querySelectorAll(".katex-error").forEach((el) => problems.push("slide " + i + ": KaTeX error in " + JSON.stringify((el.getAttribute("title") || el.textContent).slice(0, 80))));
+    const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT, { acceptNode: (n) => n.parentElement.closest(".katex, script, code, pre") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    for (let n; (n = walker.nextNode());) if (/\\$|\\\\\\(|\\\\\\[/.test(n.nodeValue)) { problems.push("slide " + i + ": unrendered maths near " + JSON.stringify(n.nodeValue.trim().slice(0, 60))); break; }
   }
   return problems.length ? problems.join("\\n") : "no overflow"; })()`);
 if (typeof report !== "string") die(`the check returned ${JSON.stringify(report)} instead of a report — nothing was measured`);
