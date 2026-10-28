@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 · Problems — One qubit: the Bloch sphere, and the group that rotates it twice</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="a">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part A · unit 02 · problems</p>
+<h1>One qubit: the Bloch sphere, and the group that rotates it twice</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u02">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, given any \(2\times2\) unitary you
+produce its rotation axis and angle on the Bloch sphere and its ZYZ decomposition
+\(e^{i\alpha}R_z(\beta)R_y(\gamma)R_z(\delta)\); and you prove that \(\Phi: SU(2)\to SO(3)\) is surjective with
+kernel \(\{\pm I\}\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Eleven problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the <strong>first</strong> slot;
+\(\ket0 = (1, 0)\), \(\ket1 = (0, 1)\); \(X, Y, Z\) the Pauli matrices, \(\boldsymbol\sigma = (X, Y, Z)\); the Bloch vector
+\(\mathbf r = \braket{\psi|\boldsymbol\sigma|\psi}\), so \(\ket\psi\!\bra\psi = \tfrac12(I + \mathbf r\cdot\boldsymbol\sigma)\); and</p>
+\[ R_{\mathbf n}(\theta) = e^{-i\theta\,\mathbf n\cdot\boldsymbol\sigma/2} = \cos\tfrac\theta2\,I - i\sin\tfrac\theta2\,\mathbf n\cdot\boldsymbol\sigma, \]
+<p>which turns the sphere by \(\theta\) about \(\mathbf n\), anticlockwise seen from the tip of \(\mathbf n\).
+\(H = \tfrac1{\sqrt2}(X + Z)\), \(S = \mathrm{diag}(1, i)\), \(T = \mathrm{diag}(1, e^{i\pi/4})\). Where a proton appears, \(\hbar\) is
+restored and the signs are the deck's: \(\gamma \gt 0\), \(H = -\tfrac{\gamma\hbar}{2}\mathbf B\cdot\boldsymbol\sigma\), and in the rotating frame
+\(\tilde H = -\tfrac\hbar2(\Delta Z + \Omega X)\) with \(\Delta = \omega_0 - \omega\). Proton: \(\gamma/2\pi = 42.577\) MHz/T.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="medium" href="#p1" title="Unit 00's debt, paid in full">P1</a></li>
+<li><a class="routine" href="#p2" title="Unbiased to all three">P2</a></li>
+<li><a class="medium" href="#p3" title="Axis and angle">P3</a></li>
+<li><a class="routine" href="#p4" title="Hamiltonians are precessions">P4</a></li>
+<li><a class="medium" href="#p5" title="Two quarter-turns make a third of a turn">P5</a></li>
+<li><a class="routine" href="#p6" title="Cayley–Klein: SU(2) is a three-sphere">P6</a></li>
+<li><a class="routine" href="#p7" title="Spinors and rotations">P7</a></li>
+<li><a class="hard" href="#p8" title="Surjectivity without Euler's theorem">P8</a></li>
+<li><a class="medium" href="#p9" title="ZYZ angles">P9</a></li>
+<li><a class="routine" href="#p10" title="Design a π-pulse">P10</a></li>
+<li><a class="hard" href="#p11" title="The rotating frame, exactly">P11</a></li>
+</ul>
+</header>
+
+<h2 class="group">The sphere</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Unit 00's debt, paid in full <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the transition-probability formula, antipodes as bases, surjectivity of \(\Phi\) used as a tool</p>
+<div class="statement">
+<p>Unit 00 showed that once the \(z\) and \(x\) bases are fixed, the only basis unbiased to both is \(y\), and left
+open whether <em>every</em> pair of mutually unbiased bases looks like \(z, x\).</p>
+<ol>
+<li>Prove that two orthonormal bases of \(\mathbb C^2\) are mutually unbiased if and only if their Bloch axes are
+perpendicular, and conclude that \(\mathbb C^2\) holds at most three pairwise mutually unbiased bases.</li>
+<li>Let \(\mathcal B\), \(\mathcal B'\) be any two mutually unbiased bases. Prove that there is a unitary \(U\) carrying
+\(\mathcal B\) onto the \(z\) basis and \(\mathcal B'\) onto the \(x\) basis, each vector up to a phase.</li>
+<li>Deduce that, given \(\mathcal B\) and \(\mathcal B'\), there is exactly one basis unbiased to both, up to the order and
+phases of its vectors.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything is a statement about lines through the origin of \(\mathbb R^3\). Translate "basis",
+"unbiased" and "a unitary" into the sphere's language, then argue about lines.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>An orthonormal basis is a pair of orthogonal states, which are antipodes \(\pm\mathbf u\): an axis. The four overlaps
+between bases at \(\pm\mathbf u\) and \(\pm\mathbf v\) are \(\tfrac12(1 \pm \mathbf u\cdot\mathbf v)\). For part 2, a unitary moves points of the sphere by a
+rotation, and every rotation is \(\Phi\) of something.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "Let the bases have axes \(\mathbf u \perp \mathbf v\). The frame \((\mathbf u, \mathbf v, \mathbf u\times\mathbf v)\) is orthonormal and
+right-handed, so the matrix \(R\) with \(R\mathbf u = \hat{\mathbf z}\), \(R\mathbf v = \hat{\mathbf x}\), \(R(\mathbf u\times\mathbf v) = \hat{\mathbf y}\) is in \(SO(3)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> On the Bloch sphere a basis is an axis and unbiasedness is perpendicularity; unitaries are
+all the rotations. So questions about unbiased bases become questions about orthonormal frames in \(\mathbb R^3\),
+where the answers are obvious.</p>
+<p><strong>1.</strong> If \(\{e_1, e_2\}\) is orthonormal, \(|\braket{e_2|e_1}|^2 = 0 = \tfrac12(1 + \mathbf r_1\cdot\mathbf r_2)\) forces
+\(\mathbf r_2 = -\mathbf r_1\): the basis is the axis \(\pm\mathbf u\). With \(\{f_1, f_2\}\) at \(\pm\mathbf v\), the four squared overlaps are
+\(\tfrac12(1 + (\pm\mathbf u)\cdot(\pm\mathbf v))\), i.e. \(\tfrac12(1 + \mathbf u\cdot\mathbf v)\) twice and \(\tfrac12(1 - \mathbf u\cdot\mathbf v)\) twice. All equal \(\tfrac12\) iff
+\(\mathbf u\cdot\mathbf v = 0\). Pairwise unbiased bases therefore give pairwise perpendicular unit vectors, which are linearly
+independent, so there are at most three. \(\blacksquare\)</p>
+<p><strong>2.</strong> Let \(\mathcal B\) have axis \(\pm\mathbf u\) and \(\mathcal B'\) axis \(\pm\mathbf v\), with \(\mathbf u\perp\mathbf v\) by part 1. Take \(\mathbf w = \mathbf u\times\mathbf v\); then
+\((\mathbf u, \mathbf v, \mathbf w)\) is a right-handed orthonormal frame, as is \((\hat{\mathbf z}, \hat{\mathbf x}, \hat{\mathbf y})\) since \(\hat{\mathbf z}\times\hat{\mathbf x} = \hat{\mathbf y}\). The
+linear map \(R\) sending the first frame to the second is orthogonal (it maps an orthonormal basis to one), and has
+determinant \(+1\) because both frames are right-handed. By the surjectivity of \(\Phi\) there is \(U\in SU(2)\) with
+\(\Phi(U) = R\). By the deck's corollary, \(U\) sends the state with Bloch vector \(\mathbf u\) to the state with Bloch vector
+\(R\mathbf u = \hat{\mathbf z}\), which is \(\ket0\) up to phase; likewise \(-\mathbf u\mapsto-\hat{\mathbf z}\) (\(\ket1\)) and \(\pm\mathbf v\mapsto\pm\hat{\mathbf x}\) (\(\ket\pm\)). \(\blacksquare\)</p>
+<p><strong>3.</strong> A basis unbiased to both has an axis perpendicular to \(\mathbf u\) and \(\mathbf v\): the line \(\mathbb R\mathbf w\), and no
+other. Its two points \(\pm\mathbf w\) are two states, determined up to phase by the bijection, and they form a basis. So
+there is exactly one third basis, up to order and phases. Through the unitary of part 2 it is unit 00's \(y\) basis,
+recovering unit 00's computation. \(\blacksquare\)</p>
+<p><strong>Check.</strong> For \(\mathcal B = z\), \(\mathcal B' = x\): \(\mathbf u = \hat{\mathbf z}\), \(\mathbf v = \hat{\mathbf x}\), \(R = I\), \(U = I\), and \(\mathbf w = \hat{\mathbf z}\times\hat{\mathbf x} = \hat{\mathbf y}\) — the
+\(y\) basis, as unit 00 found. A second check: \(\mathcal B = x\), \(\mathcal B' = z\) gives \(R\) the half-turn swapping \(\hat{\mathbf x}\) and
+\(\hat{\mathbf z}\), and \(U\) may be taken as the Hadamard gate up to phase, which does swap the two bases.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Unbiased to all three <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: measuring along an axis as \(\tfrac12(1 \pm \mathbf n\cdot\mathbf r)\), the inverse of the Bloch map, a computed state</p>
+<div class="statement">
+<ol>
+<li>Show that no pure state of a qubit is unbiased to all three of the \(z\), \(x\), \(y\) bases at once (every outcome
+probability \(\tfrac12\)).</li>
+<li>Find every pure state that is unbiased to both \(z\) and \(x\).</li>
+<li>Find the states whose "up" probabilities along \(z\), \(x\) and \(y\) are all equal, give that common probability
+as a number, and write one such state as \(\cos\tfrac\theta2\ket0 + e^{i\varphi}\sin\tfrac\theta2\ket1\) with \(\theta\) and \(\varphi\) explicit.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each question is about the Bloch vector \(\mathbf r\) of the state, a unit vector, and its three components.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The probability of "up" along \(\mathbf n\) is \(\tfrac12(1 + \mathbf n\cdot\mathbf r)\). Unbiased along \(\mathbf n\) means \(\mathbf n\cdot\mathbf r = 0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "Unbiased to \(z\), \(x\) and \(y\) means \(r_3 = r_1 = r_2 = 0\), but \(|\mathbf r| = 1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Unbiased to the basis along \(\mathbf n\) is "perpendicular to \(\mathbf n\)". A unit vector cannot be
+perpendicular to three perpendicular axes.</p>
+<p><strong>1.</strong> Along \(\mathbf n\) the outcome probabilities are \(\tfrac12(1 \pm \mathbf n\cdot\mathbf r)\), both \(\tfrac12\) iff \(\mathbf n\cdot\mathbf r = 0\). Unbiased to
+\(z\), \(x\), \(y\) would need \(r_3 = r_1 = r_2 = 0\), contradicting \(|\mathbf r| = 1\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(r_3 = r_1 = 0\) and \(|\mathbf r| = 1\) give \(\mathbf r = \pm\hat{\mathbf y}\): the states \(\ket{+i}\) and \(\ket{-i}\), up to phase. This is
+unit 00's "the third basis is forced", now as a one-liner.</p>
+<p><strong>3.</strong> Equal "up" probabilities mean \(r_1 = r_2 = r_3\), so \(\mathbf r = \pm\tfrac1{\sqrt3}(1, 1, 1)\). For the \(+\) sign the common
+probability is</p>
+\[ \tfrac12\Big(1 + \tfrac1{\sqrt3}\Big) = 0.7887, \]
+<p>and for the \(-\) sign \(\tfrac12(1 - \tfrac1{\sqrt3}) = 0.2113\). For \(\mathbf r = \tfrac1{\sqrt3}(1, 1, 1)\): \(\cos\theta = \tfrac1{\sqrt3}\), so
+\(\theta = 54.74^\circ\), and \(\varphi = 45^\circ\) since \(r_1 = r_2 \gt 0\). With \(\cos^2\tfrac\theta2 = \tfrac12(1 + \cos\theta) = 0.7887\):</p>
+\[ \ket\psi = 0.8881\,\ket0 + e^{i\pi/4}\,0.4597\,\ket1 . \]
+<p><strong>Check.</strong> Normalised: \(0.8881^2 + 0.4597^2 = 0.7887 + 0.2113 = 1.0000\) ✓. The probability along \(z\) is
+\(0.8881^2 = 0.7887\) ✓. Along \(x\): \(r_1 = 2\,\mathrm{Re}(\bar ab) = 2\cdot0.8881\cdot0.4597\cos45^\circ = 0.5774 = \tfrac1{\sqrt3}\) ✓, so the
+\(x\) "up" probability is \(\tfrac12(1 + 0.5774) = 0.7887\) ✓. Each pair of outcome probabilities sums to one.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg
+th = np.arccos(1 / np.sqrt(3))
+psi = np.array([np.cos(th / 2), np.exp(1j * np.pi / 4) * np.sin(th / 2)])
+print(np.round(linalg.bloch_vector(psi) * np.sqrt(3), 6))   # [1. 1. 1.]
+print(round((1 + 1 / np.sqrt(3)) / 2, 4))                    # 0.7887</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Rotations</h2>
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Axis and angle <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: splitting off a phase, reading \(R_{\mathbf n}(\theta)\) from a matrix by traces, the checkpoint's first half</p>
+<div class="statement">
+<ol>
+<li>Prove the recipe: for \(U\in U(2)\), choose \(\alpha\) with \(e^{2i\alpha} = \det U\) and set \(V = e^{-i\alpha}U\); then
+\(V = R_{\mathbf n}(\theta)\) with \(\cos\tfrac\theta2 = \tfrac12\operatorname{tr}V\) and \(n_k\sin\tfrac\theta2 = \tfrac i2\operatorname{tr}(\sigma_kV)\). Replacing \(\alpha\) by \(\alpha + \pi\)
+flips the sign of \(V\); show you can always choose \(\theta\in[0, \pi]\).</li>
+<li>Find the global phase \(e^{i\alpha}\), the axis \(\mathbf n\) and the angle \(\theta\in[0, \pi]\) of \(S\), of \(T\), and of
+\(\sqrt X := \tfrac12\begin{pmatrix}1 + i&amp;1 - i\\1 - i&amp;1 + i\end{pmatrix}\) (check that it squares to \(X\)).</li>
+<li>The same for \(SH = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;1\\i&amp;-i\end{pmatrix}\), and say where it sends each of the axes \(\hat{\mathbf x}, \hat{\mathbf y}, \hat{\mathbf z}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer for each matrix is three things: a phase, a unit vector, an angle. The deck proved every element of
+\(SU(2)\) has the form \(\cos\tfrac\theta2 I - i\sin\tfrac\theta2\,\mathbf n\cdot\boldsymbol\sigma\); read the coefficients off with traces.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Trace orthogonality: \(\operatorname{tr}I = 2\), \(\operatorname{tr}\sigma_k = 0\), \(\operatorname{tr}(\sigma_k\sigma_j) = 2\delta_{jk}\). So \(\operatorname{tr}V = 2\cos\tfrac\theta2\) and
+\(\operatorname{tr}(\sigma_kV) = -2i\sin\tfrac\theta2\,n_k\). For diagonal matrices like \(S\) and \(T\), compare with \(R_z(\theta) = \mathrm{diag}(e^{-i\theta/2}, e^{i\theta/2})\) directly.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line for \(SH\): "\(\det(SH) = \tfrac12(-i - i) = -i\), so \(e^{2i\alpha} = -i\) and \(\alpha = -\tfrac\pi4\); then
+\(V = e^{i\pi/4}SH\) has \(\operatorname{tr}V = e^{i\pi/4}\tfrac{1 - i}{\sqrt2} = 1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Split off the determinant's square root to land in \(SU(2)\); there every element is
+\(\cos\tfrac\theta2I - i\sin\tfrac\theta2\,\mathbf n\cdot\boldsymbol\sigma\), and the Pauli basis's trace orthogonality reads off the four coefficients.</p>
+<p><strong>1.</strong> \(\det V = e^{-2i\alpha}\det U = 1\), so \(V\in SU(2)\) and \(V = cI - is\,\mathbf n\cdot\boldsymbol\sigma\) with \(c = \cos\tfrac\theta2\), \(s = \sin\tfrac\theta2\).
+Then \(\operatorname{tr}V = 2c\) and \(\operatorname{tr}(\sigma_kV) = c\operatorname{tr}\sigma_k - is\sum_jn_j\operatorname{tr}(\sigma_k\sigma_j) = -2is\,n_k\), so \(n_ks = \tfrac i2\operatorname{tr}(\sigma_kV)\). Replacing
+\(V\) by \(-V\) replaces \((c, s\mathbf n)\) by \((-c, -s\mathbf n)\), i.e. \(\theta\) by \(2\pi - \theta\) and \(\mathbf n\) by \(-\mathbf n\) (as \(\cos(\pi - \tfrac\theta2) = -c\),
+\(\sin(\pi - \tfrac\theta2) = s\)); so choose the sign with \(c \ge 0\), giving \(\theta\in[0, \pi]\). When \(s = 0\) (\(V = \pm I\)) every axis
+works. \(\blacksquare\)</p>
+<p><strong>2.</strong> \(S\): \(\det S = i\), \(\alpha = \tfrac\pi4\), \(V = e^{-i\pi/4}\mathrm{diag}(1, i) = \mathrm{diag}(e^{-i\pi/4}, e^{i\pi/4}) = R_z(\tfrac\pi2)\). Phase
+\(e^{i\pi/4}\), axis \(\hat{\mathbf z}\), angle \(\tfrac\pi2\).<br>
+\(T\): \(\det T = e^{i\pi/4}\), \(\alpha = \tfrac\pi8\), \(V = \mathrm{diag}(e^{-i\pi/8}, e^{i\pi/8}) = R_z(\tfrac\pi4)\). Phase \(e^{i\pi/8}\), axis \(\hat{\mathbf z}\), angle \(\tfrac\pi4\).<br>
+\(\sqrt X\): \((\sqrt X)^2 = \tfrac14\begin{pmatrix}(1 + i)^2 + (1 - i)^2 &amp; 2(1 + i)(1 - i)\\ \cdot &amp; \cdot\end{pmatrix} = \tfrac14\begin{pmatrix}0&amp;4\\4&amp;0\end{pmatrix} = X\) ✓ (the
+second row is the first reversed, by symmetry). \(\det\sqrt X = \tfrac14\big((1 + i)^2 - (1 - i)^2\big) = \tfrac14(2i + 2i) = i\), so
+\(\alpha = \tfrac\pi4\) and \(V = e^{-i\pi/4}\sqrt X\). \(\operatorname{tr}V = e^{-i\pi/4}(1 + i) = \sqrt2\), so \(\cos\tfrac\theta2 = \tfrac1{\sqrt2}\), \(\theta = \tfrac\pi2\). \(\operatorname{tr}(XV) = e^{-i\pi/4}(1 - i) = -i\sqrt2\),
+so \(n_1s = \tfrac i2(-i\sqrt2) = \tfrac1{\sqrt2}\); \(\operatorname{tr}(YV)\) and \(\operatorname{tr}(ZV)\) vanish (the matrix is symmetric with equal diagonal). So
+\(\mathbf n = \hat{\mathbf x}\): \(\sqrt X = e^{i\pi/4}R_x(\tfrac\pi2)\), a quarter-turn about \(x\) — half of \(X = iR_x(\pi)\), as its name promises.</p>
+<p><strong>3.</strong> \(\det(SH) = -i\), \(\alpha = -\tfrac\pi4\), \(V = e^{i\pi/4}SH = \tfrac{e^{i\pi/4}}{\sqrt2}\begin{pmatrix}1&amp;1\\i&amp;-i\end{pmatrix}\). \(\operatorname{tr}V = \tfrac{e^{i\pi/4}(1 - i)}{\sqrt2} = e^{i\pi/4}e^{-i\pi/4} = 1\),
+so \(\cos\tfrac\theta2 = \tfrac12\), \(\theta = \tfrac{2\pi}3\), \(s = \tfrac{\sqrt3}2\). Next, with \(\kappa = e^{i\pi/4}/\sqrt2\):
+entrywise, \(\operatorname{tr}(\sigma V) = \sum_{jk}\sigma_{jk}V_{kj}\) gives
+\(\operatorname{tr}(XV) = V_{10} + V_{01} = \kappa(i + 1) = i\), \(\operatorname{tr}(YV) = -iV_{10} + iV_{01} = \kappa(1 + i) = i\), \(\operatorname{tr}(ZV) = V_{00} - V_{11} = \kappa(1 + i) = i\),
+using \(\kappa(1 + i) = \tfrac{e^{i\pi/4}\sqrt2e^{i\pi/4}}{\sqrt2} = i\). So \(n_ks = \tfrac i2\cdot i = -\tfrac12\) for every \(k\), and \(\mathbf n = -\tfrac1{\sqrt3}(1, 1, 1)\).</p>
+\[ SH = e^{-i\pi/4}\,R_{\mathbf n}\big(\tfrac{2\pi}3\big),\qquad \mathbf n = -\tfrac{1}{\sqrt3}(1, 1, 1). \]
+<p>A third of a turn about \(-(1,1,1)\) permutes the axes cyclically: \(\hat{\mathbf z}\mapsto\hat{\mathbf y}\mapsto\hat{\mathbf x}\mapsto\hat{\mathbf z}\). Directly: \(H\) swaps \(\hat{\mathbf z}, \hat{\mathbf x}\) and
+reverses \(\hat{\mathbf y}\); \(S\) turns \(\hat{\mathbf x}\to\hat{\mathbf y}\to-\hat{\mathbf x}\); so \(SH\) takes \(\hat{\mathbf z}\to\hat{\mathbf x}\to\hat{\mathbf y}\), \(\hat{\mathbf x}\to\hat{\mathbf z}\to\hat{\mathbf z}\), \(\hat{\mathbf y}\to-\hat{\mathbf y}\to\hat{\mathbf x}\) ✓.</p>
+<p><strong>Check.</strong> \(|\mathbf n|^2 = 3\cdot\tfrac13 = 1\) ✓. \(c^2 + s^2 = \tfrac14 + \tfrac34 = 1\) ✓. Rotating three times by \(\tfrac{2\pi}3\) is a full turn, so
+\((SH)^3 = e^{-3i\pi/4}R_{\mathbf n}(2\pi) = -e^{-3i\pi/4}I = e^{i\pi/4}I\); multiplying out \((SH)^3\) gives exactly that scalar.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+def axis_angle(U):
+    alpha = np.angle(np.linalg.det(U)) / 2
+    V = np.exp(-1j * alpha) * U
+    if np.trace(V).real &lt; 0:                       # choose the root with theta in [0, pi]
+        V, alpha = -V, alpha + np.pi
+    theta = 2 * np.arccos(min(1.0, np.trace(V).real / 2))
+    s_n = np.array([(1j * np.trace(P @ V) / 2).real for P in (gates.X, gates.Y, gates.Z)])
+    return alpha, theta, s_n / np.sin(theta / 2)
+sqrtX = np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]]) / 2
+for name, U in [("S", gates.S), ("T", gates.T), ("sqrtX", sqrtX), ("SH", gates.S @ gates.H)]:
+    a, th, n = axis_angle(U)
+    ok = np.allclose(U, np.exp(1j * a) * gates.rotation(n, th))
+    print(name, round(a / np.pi, 4), round(th / np.pi, 4), np.round(n, 4), ok)
+# S 0.25 0.5 [0. 0. 1.] True
+# T 0.125 0.25 [0. 0. 1.] True
+# sqrtX 0.25 0.5 [1. 0. 0.] True
+# SH -0.25 0.6667 [-0.5774 -0.5774 -0.5774] True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Hamiltonians are precessions <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the Pauli decomposition of a Hermitian matrix, commuting exponentials, a time that ends in a number</p>
+<div class="statement">
+<ol>
+<li>Prove that for \(H = aI + \mathbf b\cdot\boldsymbol\sigma\) with \(a\in\mathbb R\), \(0 \ne \mathbf b\in\mathbb R^3\), \(e^{-iHt} = e^{-iat}R_{\hat{\mathbf b}}(2|\mathbf b|t)\), and that the energies are
+\(a \pm |\mathbf b|\).</li>
+<li>For \(H = X + Z\), give the axis and angular frequency of precession, and the first time \(t \gt 0\) at which
+\(e^{-iHt}\) equals the Hadamard gate up to global phase. Give that time as a number, and the phase.</li>
+<li>For \(H = \tfrac12\begin{pmatrix}3&amp;1 - i\\1 + i&amp;1\end{pmatrix}\), find \(a\), \(\mathbf b\), the energies and the axis.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a short proof using two facts from unit 00 and one from section 1; parts 2 and 3 are matching
+coefficients against \(aI + \mathbf b\cdot\boldsymbol\sigma\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(aI\) commutes with everything, so the exponential splits. Write \(\mathbf b\cdot\boldsymbol\sigma = |\mathbf b|\,\hat{\mathbf b}\cdot\boldsymbol\sigma\) and compare with the
+definition of \(R_{\mathbf n}(\theta)\). For part 2, the Hadamard gate is \(iR_{\mathbf n}(\pi)\) with \(\mathbf n = \tfrac1{\sqrt2}(1, 0, 1)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(X + Z = \mathbf b\cdot\boldsymbol\sigma\) with \(\mathbf b = (1, 0, 1)\), \(|\mathbf b| = \sqrt2\), so \(e^{-iHt} = R_{\mathbf n}(2\sqrt2\,t)\) with
+\(\mathbf n = \tfrac1{\sqrt2}(1, 0, 1)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The identity part of a qubit Hamiltonian only makes a global phase; the traceless part is an
+axis and a speed.</p>
+<p><strong>1.</strong> \(aI\) and \(\mathbf b\cdot\boldsymbol\sigma\) commute, so \(e^{-iHt} = e^{-iatI}e^{-it\mathbf b\cdot\boldsymbol\sigma}\) (unit 00, commuting exponentials), and
+\(e^{-iatI} = e^{-iat}I\). Then \(-it\,\mathbf b\cdot\boldsymbol\sigma = -i(2|\mathbf b|t)\,\hat{\mathbf b}\cdot\boldsymbol\sigma/2\), so \(e^{-it\mathbf b\cdot\boldsymbol\sigma} = R_{\hat{\mathbf b}}(2|\mathbf b|t)\) by definition. The
+eigenvalues of \(\hat{\mathbf b}\cdot\boldsymbol\sigma\) are \(\pm1\), so those of \(H\) are \(a \pm |\mathbf b|\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(a = 0\), \(\mathbf b = (1, 0, 1)\), \(|\mathbf b| = \sqrt2\): precession about \(\mathbf n = \tfrac1{\sqrt2}(1, 0, 1)\) at angular frequency \(2\sqrt2\).
+The Hadamard gate is \(iR_{\mathbf n}(\pi)\), and \(R_{\mathbf n}(\theta)\) equals \(R_{\mathbf n}(\pi)\) up to phase only when the rotations agree,
+\(\theta \equiv \pi \pmod{2\pi}\). The first time is \(2\sqrt2\,t = \pi\):</p>
+\[ t = \frac{\pi}{2\sqrt2} = 1.1107,\qquad e^{-i(X + Z)t} = R_{\mathbf n}(\pi) = -iH . \]
+<p>So the phase is \(-i\). (In units: if \(H\) is in units of some angular frequency \(\omega\), the time is \(1.1107/\omega\).)</p>
+<p><strong>3.</strong> \(a = \tfrac12\operatorname{tr}H = \tfrac12\cdot\tfrac{3 + 1}{2} = 1\). From the matrix of \(\mathbf b\cdot\boldsymbol\sigma\), \(\begin{pmatrix}b_3&amp;b_1 - ib_2\\b_1 + ib_2&amp;-b_3\end{pmatrix}\), and
+\(H - I = \tfrac12\begin{pmatrix}1&amp;1 - i\\1 + i&amp;-1\end{pmatrix}\): \(b_3 = \tfrac12\), \(b_1 = \tfrac12\), \(b_2 = \tfrac12\). So \(\mathbf b = \tfrac12(1, 1, 1)\), \(|\mathbf b| = \tfrac{\sqrt3}{2}\),
+energies \(1 \pm \tfrac{\sqrt3}2 = 1.8660\) and \(0.1340\), axis \(\tfrac1{\sqrt3}(1, 1, 1)\), angular frequency \(\sqrt3\).</p>
+<p><strong>Check.</strong> Part 3: the energies sum to \(2 = \operatorname{tr}H\) ✓ and multiply to \(1 - \tfrac34 = \tfrac14\); \(\det H = \tfrac14(3 - |1 - i|^2) = \tfrac14(3 - 2) = \tfrac14\) ✓.
+Part 2 at \(t = 0\): \(I\) ✓; the axis \(\mathbf n\) is fixed by the half-turn and \(\hat{\mathbf z}\mapsto\hat{\mathbf x}\), as the Hadamard gate does ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+t = np.pi / (2 * np.sqrt(2))
+U = linalg.exp_hermitian(gates.X + gates.Z, -1j * t)
+print(round(t, 4), np.allclose(U, -1j * gates.H))        # 1.1107 True
+H3 = np.array([[3, 1 - 1j], [1 + 1j, 1]]) / 2
+print(np.round(np.linalg.eigvalsh(H3), 4))               # [0.134 1.866]</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Two quarter-turns make a third of a turn <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the product rule for Pauli vectors, composing rotations about different axes, unit 00's cycling unitary explained</p>
+<div class="statement">
+<ol>
+<li>Using \((\mathbf a\cdot\boldsymbol\sigma)(\mathbf b\cdot\boldsymbol\sigma) = (\mathbf a\cdot\mathbf b)I + i(\mathbf a\times\mathbf b)\cdot\boldsymbol\sigma\), prove the composition law: with \(c = \cos\tfrac\alpha2\),
+\(s = \sin\tfrac\alpha2\), \(c' = \cos\tfrac\beta2\), \(s' = \sin\tfrac\beta2\),
+\[ R_{\mathbf m}(\alpha)R_{\mathbf n}(\beta) = (cc' - ss'\,\mathbf m\cdot\mathbf n)\,I - i\big(sc'\,\mathbf m + cs'\,\mathbf n + ss'\,\mathbf m\times\mathbf n\big)\cdot\boldsymbol\sigma . \]</li>
+<li>Find the axis and angle of \(R_x(\tfrac\pi2)R_y(\tfrac\pi2)\).</li>
+<li>Unit 00's problem P3 found that \(U = \tfrac12(I - iX - iY - iZ)\) conjugates \(Z\to X\to Y\to Z\) and satisfies
+\(U^3 = -I\). Explain both facts from part 2.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a product of two expressions \(cI - is\,\mathbf m\cdot\boldsymbol\sigma\); part 2 reads an axis and angle from the result;
+part 3 is about what rotation \(U\) is.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The only non-obvious term in the product is \((-is\,\mathbf m\cdot\boldsymbol\sigma)(-is'\,\mathbf n\cdot\boldsymbol\sigma) = -ss'(\mathbf m\cdot\boldsymbol\sigma)(\mathbf n\cdot\boldsymbol\sigma)\). In part 2
+\(\mathbf m = \hat{\mathbf x}\), \(\mathbf n = \hat{\mathbf y}\), and \(\hat{\mathbf x}\times\hat{\mathbf y} = \hat{\mathbf z}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "With \(c = s = c' = s' = \tfrac1{\sqrt2}\): \(R_x(\tfrac\pi2)R_y(\tfrac\pi2) = \tfrac12I - \tfrac i2(\hat{\mathbf x} + \hat{\mathbf y} + \hat{\mathbf z})\cdot\boldsymbol\sigma\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Multiplying two elements of \(SU(2)\) written as "scalar plus vector" is quaternion multiplication; the
+product rule does all the work. The result is again "scalar plus vector", so its angle and axis can be read off.</p>
+<p><strong>1.</strong> \((cI - is\,\mathbf m\cdot\boldsymbol\sigma)(c'I - is'\,\mathbf n\cdot\boldsymbol\sigma) = cc'I - ics'\,\mathbf n\cdot\boldsymbol\sigma - isc'\,\mathbf m\cdot\boldsymbol\sigma - ss'(\mathbf m\cdot\boldsymbol\sigma)(\mathbf n\cdot\boldsymbol\sigma)\), and the
+last term is \(-ss'(\mathbf m\cdot\mathbf n)I - iss'(\mathbf m\times\mathbf n)\cdot\boldsymbol\sigma\). Collecting gives the formula. \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\mathbf m\cdot\mathbf n = 0\), \(\mathbf m\times\mathbf n = \hat{\mathbf z}\), all four of \(c, s, c', s'\) are \(\tfrac1{\sqrt2}\), so the products are \(\tfrac12\):</p>
+\[ R_x(\tfrac\pi2)R_y(\tfrac\pi2) = \tfrac12I - \tfrac i2(X + Y + Z) = \cos\tfrac\gamma2\,I - i\sin\tfrac\gamma2\,\mathbf k\cdot\boldsymbol\sigma \]
+<p>with \(\cos\tfrac\gamma2 = \tfrac12\), so \(\gamma = \tfrac{2\pi}3\), \(\sin\tfrac\gamma2 = \tfrac{\sqrt3}2\), and \(\mathbf k = \tfrac{1}{\sqrt3}(1, 1, 1)\). <b>Two quarter-turns about
+perpendicular axes make a third of a turn about the diagonal.</b></p>
+<p><strong>3.</strong> The product in part 2 is exactly unit 00's \(U\). A third of a turn about \((1, 1, 1)\) permutes the axes
+cyclically, \(\hat{\mathbf z}\mapsto\hat{\mathbf x}\mapsto\hat{\mathbf y}\mapsto\hat{\mathbf z}\) (anticlockwise seen from the tip of \((1,1,1)\), the three axes are met in the order
+\(x, y, z\)). By the conjugation theorem, \(UZU^\dagger = X\), \(UXU^\dagger = Y\), \(UYU^\dagger = Z\) ✓. And \(U^3 = R_{\mathbf k}(\tfrac{2\pi}3)^3 = R_{\mathbf k}(2\pi) = -I\): three
+thirds of a turn are a full turn, which in \(SU(2)\) is \(-I\) ✓. Unit 00's sign was the double cover, seen early.</p>
+<p><strong>Check.</strong> The formula at \(\mathbf m = \mathbf n\) gives \(\cos\tfrac{\alpha + \beta}2 I - i\sin\tfrac{\alpha + \beta}{2}\,\mathbf n\cdot\boldsymbol\sigma\) by the addition formulae: angles
+about one axis add ✓. The result in part 2 is unitary: \(\tfrac14 + 3\cdot\tfrac14 = 1\) is the squared norm of its four real
+coefficients, as for any element of \(SU(2)\). The order matters: \(R_y(\tfrac\pi2)R_x(\tfrac\pi2)\) has \(\mathbf m\times\mathbf n = -\hat{\mathbf z}\), axis
+\(\tfrac1{\sqrt3}(1, 1, -1)\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+U = gates.rx(np.pi / 2) @ gates.ry(np.pi / 2)
+print(np.allclose(U, gates.rotation([1, 1, 1], 2 * np.pi / 3)))          # True
+print(np.allclose(U @ gates.Z @ linalg.dagger(U), gates.X))                # True
+print(np.allclose(np.linalg.matrix_power(U, 3), -gates.I))                 # True
+V = gates.ry(np.pi / 2) @ gates.rx(np.pi / 2)
+print(np.allclose(V, gates.rotation([1, 1, -1], 2 * np.pi / 3)))         # True</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">The double cover</h2>
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Cayley–Klein: SU(2) is a three-sphere <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: unitarity and determinant as equations on entries, the parametrisation the ZYZ proof used</p>
+<div class="statement">
+<ol>
+<li>Prove that \(SU(2) = \Big\{\begin{pmatrix}a&amp;-\bar b\\b&amp;\bar a\end{pmatrix} : a, b\in\mathbb C,\ |a|^2 + |b|^2 = 1\Big\}\).</li>
+<li>Writing \(a = x_0 - ix_3\), \(b = x_2 - ix_1\) with \(x_\mu\) real, show the matrix is \(x_0I - i(x_1X + x_2Y + x_3Z)\), and
+conclude that \(SU(2)\) is in bijection with the unit sphere \(S^3\subset\mathbb R^4\).</li>
+<li>Match this with \(R_{\mathbf n}(\theta)\): what are \(x_0\) and \((x_1, x_2, x_3)\)? Where on \(S^3\) do \(I\) and \(-I\) sit, and which points of
+\(S^3\) give the same rotation?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 says: a unitary with determinant one is fixed by its first column. Use that the columns are orthonormal.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In \(\mathbb C^2\) the vectors orthogonal to \((a, b)\) form a line spanned by \((-\bar b, \bar a)\). So the second column is
+\(\lambda(-\bar b, \bar a)\) with \(|\lambda| = 1\); the determinant fixes \(\lambda\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "Let \(V\in SU(2)\) have first column \((a, b)\), a unit vector. Its second column is a unit vector orthogonal to it,
+hence \(\lambda(-\bar b, \bar a)\) with \(|\lambda| = 1\), and \(\det V = \lambda(|a|^2 + |b|^2) = \lambda\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two complex numbers with \(|a|^2 + |b|^2 = 1\) are four real numbers on a unit sphere; unitarity and
+determinant one leave nothing else free.</p>
+<p><strong>1.</strong> If \(V\in SU(2)\) has first column \((a, b)\), it is a unit vector. The second column is a unit vector orthogonal
+to it. \((-\bar b, \bar a)\) is one such: \(\bar a(-\bar b) + \bar b\bar a = 0\) and \(|b|^2 + |a|^2 = 1\); the orthogonal complement of a nonzero vector
+in \(\mathbb C^2\) is a line, so the second column is \(\lambda(-\bar b, \bar a)\) with \(|\lambda| = 1\). Then
+\(\det V = a\cdot\lambda\bar a - b\cdot(-\lambda\bar b) = \lambda(|a|^2 + |b|^2) = \lambda\), so \(\lambda = 1\). Conversely, any such matrix has orthonormal columns
+(so is unitary) and determinant \(|a|^2 + |b|^2 = 1\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(x_0I - i(x_1X + x_2Y + x_3Z) = \begin{pmatrix}x_0 - ix_3 &amp; -ix_1 - x_2\\ -ix_1 + x_2 &amp; x_0 + ix_3\end{pmatrix}\). The \((0,0)\) entry is \(a\), the
+\((1,0)\) entry is \(x_2 - ix_1 = b\), the \((0,1)\) entry is \(-(x_2 + ix_1) = -\bar b\), and the \((1,1)\) entry is \(\bar a\) ✓. The map
+\((x_0, x_1, x_2, x_3)\mapsto\) this matrix is injective (the \(x_\mu\) are read back from \(a\), \(b\)), and
+\(|a|^2 + |b|^2 = x_0^2 + x_3^2 + x_2^2 + x_1^2\), so the condition is \(\sum x_\mu^2 = 1\): a bijection \(S^3\to SU(2)\). \(\blacksquare\)</p>
+<p><strong>3.</strong> Comparing with \(R_{\mathbf n}(\theta) = \cos\tfrac\theta2I - i\sin\tfrac\theta2\,\mathbf n\cdot\boldsymbol\sigma\): \(x_0 = \cos\tfrac\theta2\) and \((x_1, x_2, x_3) = \sin\tfrac\theta2\,\mathbf n\). So \(\tfrac\theta2\) is the
+angle of the point from the "north pole" \((1, 0, 0, 0)\) of \(S^3\), which is \(I\); the south pole \((-1, 0, 0, 0)\) is \(-I = R_{\mathbf n}(2\pi)\). Since
+\(\ker\Phi = \{\pm I\}\), the points of \(S^3\) giving the same rotation are exactly the antipodal pairs \(\pm x\): \(SO(3)\) is \(S^3\) with
+antipodes identified.</p>
+<p><strong>Check.</strong> \(H\) is not in \(SU(2)\) (determinant \(-1\)), but \(-iH = \tfrac{1}{\sqrt2}\begin{pmatrix}-i&amp;-i\\-i&amp;i\end{pmatrix}\) is: \(a = -\tfrac{i}{\sqrt2}\), \(b = -\tfrac{i}{\sqrt2}\),
+\(-\bar b = -\tfrac{i}{\sqrt2}\) ✓, \(\bar a = \tfrac{i}{\sqrt2}\) ✓, \(|a|^2 + |b|^2 = 1\) ✓. Its coordinates: \(x_0 = 0\), \(x_3 = \tfrac1{\sqrt2}\), \(x_1 = \tfrac1{\sqrt2}\), \(x_2 = 0\) —
+\(\theta = \pi\), \(\mathbf n = \tfrac1{\sqrt2}(1, 0, 1)\), the deck's half-turn ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Spinors and rotations <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the closed form at \(2\pi\) and \(4\pi\), global phase made rigorous, the interference term behind the neutron experiment</p>
+<div class="statement">
+<ol>
+<li>Show that \(R_{\mathbf n}(2\pi) = -I\) and \(R_{\mathbf n}(4\pi) = I\) for every unit \(\mathbf n\).</li>
+<li>Prove that no measurement on the qubit alone distinguishes \(\psi\) from \(-\psi\): every Born probability and every
+post-measurement state agrees, up to phase.</li>
+<li>A proton in a 1.5 T field: how long after preparation is its state first multiplied by \(-1\)? Give the time in nanoseconds.</li>
+<li>In the neutron interferometer, a spin state \(\chi\) in one arm meets \(R_z(\alpha)\chi\) from the other, and the interference
+term is \(\mathrm{Re}\braket{\chi|R_z(\alpha)\chi}\). Show it equals \(\cos\tfrac\alpha2\) for <em>every</em> unit \(\chi\), and conclude that the pattern has period
+\(4\pi\) in \(\alpha\) whatever the spin state.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 4 are substitutions into the closed form of \(R_{\mathbf n}(\theta)\); part 2 is unit 01's rule for probabilities and
+post-measurement states; part 3 is the Larmor period.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\cos\pi = -1\), \(\sin\pi = 0\). For part 4: \(\braket{\chi|R_z(\alpha)\chi} = \cos\tfrac\alpha2 - i\sin\tfrac\alpha2\braket{\chi|Z|\chi}\), and \(\braket{\chi|Z|\chi}\) is real.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "For a projector \(P\), \(\braket{-\psi|P|-\psi} = (-1)^2\braket{\psi|P|\psi}\), and \(P(-\psi)/\lVert P(-\psi)\rVert = -\,P\psi/\lVert P\psi\rVert\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The sign is a global phase on the qubit, and global phases cancel in every probability. It becomes
+visible only as a relative phase against something that was not rotated — and then the half-angle shows directly.</p>
+<p><strong>1.</strong> \(R_{\mathbf n}(2\pi) = \cos\pi\,I - i\sin\pi\,\mathbf n\cdot\boldsymbol\sigma = -I\), and \(R_{\mathbf n}(4\pi) = \cos2\pi\,I - i\sin2\pi\,\mathbf n\cdot\boldsymbol\sigma = I\), whatever \(\mathbf n\). \(\blacksquare\)</p>
+<p><strong>2.</strong> By unit 01, measuring an observable with spectral projectors \(P_\lambda\) gives \(\lambda\) with probability
+\(\braket{\psi|P_\lambda|\psi}\) and leaves \(P_\lambda\psi/\lVert P_\lambda\psi\rVert\). For \(-\psi\): \(\braket{-\psi|P_\lambda|-\psi} = \overline{(-1)}(-1)\braket{\psi|P_\lambda|\psi} = \braket{\psi|P_\lambda|\psi}\), and the
+post-measurement state is \(-P_\lambda\psi/\lVert P_\lambda\psi\rVert\), the same up to the phase \(-1\). By induction the same holds through any sequence of
+measurements and unitaries, since each is linear. \(\blacksquare\)</p>
+<p><strong>3.</strong> \(e^{-iHt/\hbar} = R_z(-\omega_0t)\), which is \(-I\) first at \(\omega_0t = 2\pi\):</p>
+\[ t = \frac{2\pi}{\omega_0} = \frac{1}{42.577\ \text{MHz/T}\times1.5\ \text{T}} = \frac{1}{63.87\ \text{MHz}} = 15.66\ \text{ns}. \]
+<p><strong>4.</strong> \(R_z(\alpha) = \cos\tfrac\alpha2I - i\sin\tfrac\alpha2Z\), so \(\braket{\chi|R_z(\alpha)\chi} = \cos\tfrac\alpha2 - i\sin\tfrac\alpha2\,r_3\) with \(r_3 = \braket{\chi|Z|\chi}\) real. Its real
+part is \(\cos\tfrac\alpha2\), independent of \(\chi\). The detector probabilities are \(\tfrac12(1 \pm \cos\tfrac\alpha2)\) and so return to their starting
+values first at \(\alpha = 4\pi\); at \(\alpha = 2\pi\) they are exchanged. (The full description of a neutron with both a path and a
+spin needs unit 03's tensor product; this problem takes the interference term as given and computes it.)</p>
+<p><strong>Check.</strong> Part 4 with \(\chi = \ket0\): \(\braket{0|R_z(\alpha)|0} = e^{-i\alpha/2}\), real part \(\cos\tfrac\alpha2\) ✓, the deck's computation.
+With \(\chi = \ket+\), whose Bloch vector is perpendicular to the field and actually precesses: \(r_3 = 0\), and
+\(\braket{+|R_z(\alpha)|+} = \cos\tfrac\alpha2\) exactly ✓. Part 3: \(\omega_0 = 4.013\times10^8\ \mathrm{s^{-1}}\), and \(2\pi/\omega_0 = 1.566\times10^{-8}\) s ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Surjectivity without Euler's theorem <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: Euler angles in \(SO(3)\), the homomorphism property, a second proof that \(\Phi\) is onto</p>
+<div class="statement">
+<p>Write \(\mathcal R_z(\phi)\), \(\mathcal R_y(\phi)\) for the \(3\times3\) rotations by \(\phi\) about the \(z\) and \(y\) axes.</p>
+<ol>
+<li>Prove that every \(R\in SO(3)\) is \(\mathcal R_z(\beta)\mathcal R_y(\gamma)\mathcal R_z(\delta)\) for some angles. Do not use Euler's rotation theorem.</li>
+<li>Deduce that \(\Phi: SU(2)\to SO(3)\) is surjective, using only that \(\Phi\) is a homomorphism with
+\(\Phi(R_z(\phi)) = \mathcal R_z(\phi)\) and \(\Phi(R_y(\phi)) = \mathcal R_y(\phi)\).</li>
+<li>Now deduce Euler's rotation theorem from part 2 and the deck's theorem that every element of \(SU(2)\) is some
+\(R_{\mathbf n}(\theta)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a constructive argument: first move the north pole where \(R\) sends it, then fix what is left. Parts 2 and 3
+are two lines each.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The unit vector \(R\hat{\mathbf z}\) has spherical angles \((\gamma, \beta)\), and \(\mathcal R_z(\beta)\mathcal R_y(\gamma)\hat{\mathbf z}\) is the same point. So
+\(Q = \big(\mathcal R_z(\beta)\mathcal R_y(\gamma)\big)^{-1}R\) fixes \(\hat{\mathbf z}\). What is an element of \(SO(3)\) fixing \(\hat{\mathbf z}\)?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the last step of part 1: "\(Q\in SO(3)\) and \(Q\hat{\mathbf z} = \hat{\mathbf z}\), so \(Q\) preserves the plane \(\hat{\mathbf z}^\perp\) and acts on it by a \(2\times2\)
+orthogonal matrix of determinant \(\det Q = 1\), which is a rotation by some \(\delta\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Where the north pole goes is two angles; the twist about the pole is the third. Lift each factor to
+\(SU(2)\) and multiply.</p>
+<p><strong>1.</strong> \(R\hat{\mathbf z}\) is a unit vector, so \(R\hat{\mathbf z} = (\sin\gamma\cos\beta, \sin\gamma\sin\beta, \cos\gamma)\) for some \(\gamma\in[0, \pi]\) and \(\beta\) (any
+\(\beta\) if \(\gamma\in\{0, \pi\}\)). Compute \(\mathcal R_y(\gamma)\hat{\mathbf z} = (\sin\gamma, 0, \cos\gamma)\) — a turn about \(y\) by \(\gamma\) tilts \(\hat{\mathbf z}\) toward \(\hat{\mathbf x}\) —
+and then \(\mathcal R_z(\beta)\) turns its azimuth to \(\beta\): \(\mathcal R_z(\beta)\mathcal R_y(\gamma)\hat{\mathbf z} = R\hat{\mathbf z}\). So \(Q := \mathcal R_y(\gamma)^{-1}\mathcal R_z(\beta)^{-1}R\) is in \(SO(3)\) and
+fixes \(\hat{\mathbf z}\). Being orthogonal, it preserves \(\hat{\mathbf z}^\perp\), the \(xy\)-plane; in the basis \((\hat{\mathbf x}, \hat{\mathbf y}, \hat{\mathbf z})\) it is block-diagonal with a
+\(2\times2\) orthogonal block \(Q'\) and a \(1\), so \(\det Q' = 1\) and \(Q'\) is the rotation of the plane by some \(\delta\). That is, \(Q = \mathcal R_z(\delta)\), and
+\(R = \mathcal R_z(\beta)\mathcal R_y(\gamma)\mathcal R_z(\delta)\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Given \(R\), take the angles of part 1 and \(U = R_z(\beta)R_y(\gamma)R_z(\delta)\in SU(2)\). Since \(\Phi\) is a homomorphism,
+\(\Phi(U) = \Phi(R_z(\beta))\Phi(R_y(\gamma))\Phi(R_z(\delta)) = \mathcal R_z(\beta)\mathcal R_y(\gamma)\mathcal R_z(\delta) = R\). \(\blacksquare\)</p>
+<p><strong>3.</strong> Given \(R\in SO(3)\), part 2 gives \(U\) with \(\Phi(U) = R\); the deck shows \(U = R_{\mathbf n}(\theta)\) for some \(\mathbf n, \theta\); and
+section 3's theorem says \(\Phi(R_{\mathbf n}(\theta))\) is the rotation by \(\theta\) about \(\mathbf n\). So \(R\) is a rotation about an axis. \(\blacksquare\)
+The deck went the other way round (Euler, then onto); either theorem gives the other.</p>
+<p><strong>Check.</strong> The two facts used in part 2 are the conjugation theorem for \(\mathbf n = \hat{\mathbf z}, \hat{\mathbf y}\); for \(\hat{\mathbf z}\) the deck checked
+\(\Phi(R_z(\theta))\) entry by entry. A numerical instance of part 1: \(R = \mathcal R_x(\tfrac\pi2)\) sends \(\hat{\mathbf z}\) to \(-\hat{\mathbf y}\), so \(\gamma = \tfrac\pi2\),
+\(\beta = -\tfrac\pi2\); and the deck's \(R_x(\theta) = R_z(-\tfrac\pi2)R_y(\theta)R_z(\tfrac\pi2)\) gives \(\delta = \tfrac\pi2\) ✓. In the degenerate case \(R\hat{\mathbf z} = \hat{\mathbf z}\) the proof still
+works with \(\gamma = 0\), any \(\beta\): it simply finds \(R\) is a turn about \(z\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Euler angles</h2>
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> ZYZ angles <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the ZYZ recipe, phases of complex entries, the two degenerate cases, the checkpoint's second half</p>
+<div class="statement">
+<p>Write each as \(e^{i\alpha}R_z(\beta)R_y(\gamma)R_z(\delta)\), and multiply your answer back out (or check it on the sphere).</p>
+<ol>
+<li>\(\sqrt X = \tfrac12\begin{pmatrix}1 + i&amp;1 - i\\1 - i&amp;1 + i\end{pmatrix}\).</li>
+<li>\(SH = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;1\\i&amp;-i\end{pmatrix}\).</li>
+<li>\(T\). Show that \(\gamma = 0\), that only \(\beta + \delta\) is determined, and find it.</li>
+<li>\(X\). Show that \(\gamma = \pi\), that only \(\beta - \delta\) is determined, and find it.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is four angles. Find \(\alpha\) from the determinant, then read \(\gamma\) from the moduli of the first column
+and \(\beta, \delta\) from its phases.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(V = e^{-i\alpha}U\) and first column \((a, b) = (|a|e^{i\mu}, |b|e^{i\nu})\): \(\cos\tfrac\gamma2 = |a|\), \(\beta + \delta = -2\mu\), \(\beta - \delta = 2\nu\). If \(b = 0\), \(\nu\)
+is undefined; if \(a = 0\), \(\mu\) is.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(\det\sqrt X = i\), so \(\alpha = \tfrac\pi4\), and \(V = e^{-i\pi/4}\sqrt X\) has first column \(e^{-i\pi/4}\big(\tfrac{1 + i}2, \tfrac{1 - i}2\big) = \big(\tfrac1{\sqrt2}, -\tfrac{i}{\sqrt2}\big)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The deck's matrix \(\begin{pmatrix}e^{-ip}c &amp; -e^{-iq}s\\ e^{iq}s &amp; e^{ip}c\end{pmatrix}\), \(p = \tfrac{\beta + \delta}2\), \(q = \tfrac{\beta - \delta}2\), is determined by its first
+column, which has modulus \((c, s)\) and phases \((-p, q)\). Match.</p>
+<p><strong>1.</strong> \(\alpha = \tfrac\pi4\); \(a = \tfrac1{\sqrt2}\), \(b = -\tfrac{i}{\sqrt2}\). So \(\gamma = \tfrac\pi2\), \(\mu = 0\), \(\nu = -\tfrac\pi2\): \(\beta + \delta = 0\), \(\beta - \delta = -\pi\), so \(\beta = -\tfrac\pi2\),
+\(\delta = \tfrac\pi2\):</p>
+\[ \sqrt X = e^{i\pi/4}\,R_z(-\tfrac\pi2)\,R_y(\tfrac\pi2)\,R_z(\tfrac\pi2), \]
+<p>which is \(e^{i\pi/4}R_x(\tfrac\pi2)\) by the deck's identity \(R_x(\theta) = R_z(-\tfrac\pi2)R_y(\theta)R_z(\tfrac\pi2)\), agreeing with P3 ✓.</p>
+<p><strong>2.</strong> \(\det(SH) = -i\), \(\alpha = -\tfrac\pi4\); \(V = e^{i\pi/4}SH\) has first column \(\tfrac{1}{\sqrt2}(e^{i\pi/4}, e^{i\pi/4}i) = \tfrac1{\sqrt2}(e^{i\pi/4}, e^{3i\pi/4})\). So
+\(\gamma = \tfrac\pi2\), \(\mu = \tfrac\pi4\), \(\nu = \tfrac{3\pi}4\): \(\beta + \delta = -\tfrac\pi2\), \(\beta - \delta = \tfrac{3\pi}2\), so \(\beta = \tfrac\pi2\), \(\delta = -\pi\):</p>
+\[ SH = e^{-i\pi/4}\,R_z(\tfrac\pi2)\,R_y(\tfrac\pi2)\,R_z(-\pi). \]
+<p>Multiplying out the deck's forms gives the same: \(S = e^{i\pi/4}R_z(\tfrac\pi2)\) and \(H = iR_y(\tfrac\pi2)R_z(\pi)\), so
+\(SH = e^{3i\pi/4}R_z(\tfrac\pi2)R_y(\tfrac\pi2)R_z(\pi)\), and \(R_z(\pi) = -R_z(-\pi)\) turns \(e^{3i\pi/4}\) into \(-e^{3i\pi/4} = e^{-i\pi/4}\) ✓.</p>
+<p><strong>3.</strong> \(\det T = e^{i\pi/4}\), \(\alpha = \tfrac\pi8\), \(V = \mathrm{diag}(e^{-i\pi/8}, e^{i\pi/8})\). Here \(b = 0\), so \(\sin\tfrac\gamma2 = 0\), \(\gamma = 0\), and the product is
+\(R_z(\beta)R_z(\delta) = R_z(\beta + \delta)\), which depends on the sum alone. \(a = e^{-i\pi/8}\), so \(\beta + \delta = \tfrac\pi4\): \(T = e^{i\pi/8}R_z(\beta)R_z(\tfrac\pi4 - \beta)\) for any \(\beta\).</p>
+<p><strong>4.</strong> \(\det X = -1\), \(\alpha = \tfrac\pi2\), \(V = -iX\), first column \((0, -i)\). So \(a = 0\), \(\gamma = \pi\), and \(\mu\) is undefined; \(\nu = -\tfrac\pi2\)
+gives \(\beta - \delta = -\pi\). By the deck, \(R_y(\pi)R_z(\delta) = R_z(-\delta)R_y(\pi)\), so the product is \(R_z(\beta - \delta)R_y(\pi)\), depending on the difference
+alone. Taking \(\beta = 0\), \(\delta = \pi\): \(X = iR_y(\pi)R_z(\pi) = i(-iY)(-iZ) = -iYZ = -i(iX) = X\) ✓.</p>
+<p><strong>Check.</strong> Part 1 on the sphere: \(\hat{\mathbf z}\) goes to the point with \((\theta, \varphi) = (\gamma, \beta) = (\tfrac\pi2, -\tfrac\pi2)\), which is \(-\hat{\mathbf y}\); and a
+quarter-turn about \(x\) does send \(\hat{\mathbf z}\) to \(\hat{\mathbf x}\times\hat{\mathbf z} = -\hat{\mathbf y}\) ✓. Part 2: \(\hat{\mathbf z}\) goes to \((\tfrac\pi2, \tfrac\pi2)\), which is \(\hat{\mathbf y}\), as P3 found ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates
+def zyz(U):
+    alpha = np.angle(np.linalg.det(U)) / 2
+    V = np.exp(-1j * alpha) * U
+    gamma = 2 * np.arccos(min(1.0, abs(V[0, 0])))
+    mu, nu = np.angle(V[0, 0]), np.angle(V[1, 0])        # an undefined phase comes back as 0
+    beta, delta = nu - mu, -mu - nu
+    back = np.exp(1j * alpha) * gates.rz(beta) @ gates.ry(gamma) @ gates.rz(delta)
+    return np.round(np.array([alpha, beta, gamma, delta]) / np.pi, 4), np.allclose(U, back)
+sqrtX = np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]]) / 2
+for name, U in [("sqrtX", sqrtX), ("SH", gates.S @ gates.H), ("T", gates.T), ("X", gates.X)]:
+    print(name, *zyz(U))
+# sqrtX [ 0.25 -0.5   0.5   0.5 ] True
+# SH [-0.25  0.5   0.5  -1.  ] True
+# T [0.125 0.125 0.    0.125] True        (beta + delta = 1/4: one choice of the free split)
+# X [ 0.5 -0.5  1.   0.5] True           (beta - delta = -1: one choice)</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Driving</h2>
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Design a π-pulse <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: Rabi's formula with numbers, units, the cost of detuning</p>
+<div class="statement">
+<p>A qubit is driven with Rabi frequency \(\Omega/2\pi = 20\) MHz, the order of magnitude used for superconducting qubits.</p>
+<ol>
+<li>On resonance, how long are the \(\pi\)-pulse and the \(\pi/2\)-pulse?</li>
+<li>With detuning \(\Delta = \Omega\), what is the largest population of \(\ket1\) reachable from \(\ket0\), at what time is it first
+reached, and what population does the nominal \(\pi\)-pulse of part 1 give?</li>
+<li>How large may \(|\Delta|/2\pi\) be if the nominal \(\pi\)-pulse must still transfer at least \(0.99\) of the population?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer comes from \(P_1(t) = \tfrac{\Omega^2}{\Omega'^2}\sin^2\tfrac{\Omega't}{2}\) with \(\Omega' = \sqrt{\Omega^2 + \Delta^2}\). Keep angular frequencies and
+frequencies apart: \(\Omega = 2\pi\times20\) MHz.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>On resonance \(P_1 = \sin^2\tfrac{\Omega t}2\). Detuned, the peak is \(\Omega^2/\Omega'^2\), first reached when \(\Omega't/2 = \pi/2\). For part 3 write
+\(x = \Delta/\Omega\) and study \(f(x) = \tfrac{1}{1 + x^2}\sin^2\big(\tfrac\pi2\sqrt{1 + x^2}\big)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(t_\pi = \pi/\Omega = \dfrac{1}{2\times20\ \text{MHz}} = 25\) ns."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A pulse's angle is \(\Omega' t\); on resonance it is \(\Omega t\). Detuning tilts the rotation axis up out of the
+equator, so the Bloch vector no longer reaches the south pole.</p>
+<p><strong>1.</strong> \(t_\pi = \dfrac{\pi}{\Omega} = \dfrac{1}{2\cdot(\Omega/2\pi)} = \dfrac{1}{40\ \text{MHz}} = 25\) ns, and \(t_{\pi/2} = 12.5\) ns. Units: \(1/\text{MHz} = \mu\)s, so \(0.025\ \mu\)s ✓.</p>
+<p><strong>2.</strong> \(\Omega' = \sqrt2\,\Omega\). The peak is \(\Omega^2/\Omega'^2 = \tfrac12\), first reached at \(\Omega't = \pi\):</p>
+\[ t = \frac{\pi}{\sqrt2\,\Omega} = \frac{25\ \text{ns}}{\sqrt2} = 17.68\ \text{ns}. \]
+<p>The nominal \(\pi\)-pulse, \(t = \pi/\Omega\), gives \(P_1 = \tfrac12\sin^2\big(\tfrac{\pi}{2}\sqrt2\big) = \tfrac12\sin^2(2.2214) = \tfrac12(0.7957)^2 = 0.3166\).</p>
+<p><strong>3.</strong> With \(x = \Delta/\Omega\), \(P_1(t_\pi) = f(x) = \tfrac{1}{1 + x^2}\sin^2\big(\tfrac\pi2\sqrt{1 + x^2}\big)\). For small \(x\) the sine factor is
+\(1 - O(x^4)\), so \(f(x) \approx \tfrac{1}{1 + x^2}\), and \(f = 0.99\) needs \(x^2 \approx \tfrac{1}{99}\), \(x \approx 0.1005\). Solving \(f(x) = 0.99\) exactly by
+bisection gives \(x = 0.1002\). So</p>
+\[ \frac{|\Delta|}{2\pi} \le 0.1002\times20\ \text{MHz} = 2.00\ \text{MHz}. \]
+<p><strong>Check.</strong> \(\Delta = 0\) in part 2's formula gives peak \(1\) at \(t = 25\) ns, part 1 ✓. Part 2's peak time is shorter than \(t_\pi\),
+since the generalised Rabi frequency is larger ✓. \(f(0.1002) = 0.99\) and \(f(0) = 1\) ✓; and the approximation
+\(\tfrac{1}{1 + x^2}\) alone gives \(0.990\) at \(x = 0.1\), consistent.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+Om = 2 * np.pi * 20e6
+def P1(D, t):                                   # rotating frame, hbar = 1
+    U = linalg.exp_hermitian(-0.5 * (D * gates.Z + Om * gates.X), -1j * t)
+    return round(abs(U[1, 0]) ** 2, 4)
+print(P1(0, 25e-9), P1(Om, 17.68e-9), P1(Om, 25e-9), P1(0.1002 * Om, 25e-9))
+# 1.0 0.5 0.3166 0.99</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> The rotating frame, exactly <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: transforming a time-dependent Hamiltonian, the frame term \(-i\hbar V^\dagger\dot V\), identifying the counter-rotating term and its size</p>
+<div class="statement">
+<ol>
+<li>For \(H(t) = -\tfrac\hbar2\big[\omega_0Z + \Omega(\cos\omega t\,X - \sin\omega t\,Y)\big]\), derive from \(i\hbar\dot\psi = H(t)\psi\) that \(\tilde\psi = R_z(-\omega t)^\dagger\psi\) obeys
+\(i\hbar\dot{\tilde\psi} = -\tfrac\hbar2(\Delta Z + \Omega X)\tilde\psi\), \(\Delta = \omega_0 - \omega\), and write \(\psi(t)\) in closed form.</li>
+<li>For a linearly polarised drive, \(\mathbf B = (2B_1\cos\omega t, 0, B_0)\), find the rotating-frame Hamiltonian exactly. Identify the
+counter-rotating term, and show its average over one of its own periods is zero.</li>
+<li>State when the counter-rotating term may be dropped. For the qubit of P10 at \(\omega_0/2\pi = 5\) GHz, compute
+\(\Omega/\omega_0\) and the Bloch–Siegert shift \(\Omega^2/4\omega_0\) (as a frequency, cited from the deck).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 1 is a constant Hermitian matrix; to part 2 the same matrix plus a term that oscillates. Write
+the time dependence of \(H(t)\) as a conjugation by a \(z\)-rotation.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(V = R_z(-\omega t)\): \(VXV^\dagger = \cos\omega t\,X - \sin\omega t\,Y\) and \(\dot V = \tfrac{i\omega}2ZV\). Substitute \(\psi = V\tilde\psi\). For part 2, split
+\(2\cos\omega t\,\hat{\mathbf x}\) into \((\cos\omega t, -\sin\omega t)\) and \((\cos\omega t, \sin\omega t)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(H(t) = V\big[-\tfrac\hbar2(\omega_0Z + \Omega X)\big]V^\dagger\), and \(i\hbar(\dot V\tilde\psi + V\dot{\tilde\psi}) = HV\tilde\psi\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> In a frame turning with the drive the drive stands still, at the price of a frame term \(\tfrac{\hbar\omega}2Z\) that
+subtracts \(\omega\) from the precession. A field turning the other way does not stand still; it turns at \(2\omega\).</p>
+<p><strong>1.</strong> \(V = R_z(-\omega t) = e^{i\omega tZ/2}\) implements the rotation by \(-\omega t\) about \(z\), so \(VXV^\dagger = \cos\omega t\,X - \sin\omega t\,Y\),
+\(VZV^\dagger = Z\), and \(H(t) = V\tilde H_0V^\dagger\) with \(\tilde H_0 = -\tfrac\hbar2(\omega_0Z + \Omega X)\). From the spectral form, \(\dot V = \tfrac{i\omega}{2}ZV\).
+Substituting \(\psi = V\tilde\psi\) into \(i\hbar\dot\psi = H\psi\): \(i\hbar\dot V\tilde\psi + i\hbar V\dot{\tilde\psi} = V\tilde H_0\tilde\psi\). Multiply by \(V^\dagger\):
+\(i\hbar\dot{\tilde\psi} = \tilde H_0\tilde\psi - i\hbar V^\dagger\dot V\tilde\psi = \big(\tilde H_0 + \tfrac{\hbar\omega}2Z\big)\tilde\psi = -\tfrac\hbar2\big((\omega_0 - \omega)Z + \Omega X\big)\tilde\psi\). So</p>
+\[ \psi(t) = R_z(-\omega t)\,\exp\!\Big(\tfrac{it}{2}(\Delta Z + \Omega X)\Big)\,\psi(0). \]
+<p>(Uniqueness: any solution, transformed, solves the constant equation, whose solutions are \(e^{-i\tilde Ht/\hbar}\tilde\psi(0)\) since
+\(\tfrac{d}{dt}(e^{i\tilde Ht/\hbar}\tilde\psi) = 0\).)</p>
+<p><strong>2.</strong> \(-\tfrac{\gamma\hbar}2\mathbf B\cdot\boldsymbol\sigma = H(t) + H_{\text{cr}}(t)\) with \(H(t)\) as in part 1 and
+\(H_{\text{cr}} = -\tfrac{\hbar\Omega}2(\cos\omega t\,X + \sin\omega t\,Y)\), since \(2\cos\omega t = \cos\omega t + \cos\omega t\) and the \(\mp\sin\omega t\,Y\) cancel. In the frame,
+\(H_{\text{cr}}\) becomes \(V^\dagger H_{\text{cr}}V\), and \(V^\dagger = R_z(\omega t)\) turns \((\cos\omega t, \sin\omega t, 0)\) by a further \(+\omega t\):</p>
+\[ \tilde H(t) = -\frac\hbar2\Big[\Delta Z + \Omega X + \Omega\big(\cos2\omega t\,X + \sin2\omega t\,Y\big)\Big]. \]
+<p>The last term is the counter-rotating term. Over one period \(\pi/\omega\) of \(2\omega t\), \(\int\cos2\omega t\,dt = \int\sin2\omega t\,dt = 0\), so its average
+vanishes: to first order it does nothing.</p>
+<p><strong>3.</strong> It may be dropped — the rotating-wave approximation — when it turns much faster than everything else moves:
+\(\Omega, |\Delta| \ll \omega_0\) (so that \(2\omega \approx 2\omega_0\) is the fastest rate). Its first effect is second order, the Bloch–Siegert shift \(\Omega^2/4\omega_0\)
+(cited: Bloch and Siegert 1940). For P10's qubit: \(\Omega/\omega_0 = 20\ \text{MHz}/5\ \text{GHz} = 4\times10^{-3}\), and</p>
+\[ \frac{\delta\omega}{2\pi} = \frac{(\Omega/2\pi)^2}{4\,\omega_0/2\pi} = \frac{(20\ \text{MHz})^2}{4\times5\ \text{GHz}} = \frac{4\times10^{14}\ \text{Hz}^2}{2\times10^{10}\ \text{Hz}} = 20\ \text{kHz}. \]
+<p><strong>Check.</strong> Part 1 at \(\Omega = 0\) gives \(\psi(t) = R_z(-\omega t)R_z(-\Delta t)\psi(0) = R_z(-\omega_0t)\psi(0)\), free Larmor precession ✓. Units in part 3:
+\(\text{Hz}^2/\text{Hz} = \text{Hz}\) ✓. Against the proton: \(\Omega/\omega_0\) there is \(7.8\times10^{-6}\), \(511\) times smaller.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+w0, Om, w, T, n = 10.0, 0.7, 9.6, 2.3, 20000      # hbar = 1; any values with a slow drive
+dt, U = T / n, gates.I
+for k in range(n):                                  # step the lab equation, midpoint rule
+    t = (k + 0.5) * dt
+    H = -0.5 * (w0 * gates.Z + Om * (np.cos(w * t) * gates.X - np.sin(w * t) * gates.Y))
+    U = linalg.exp_hermitian(H, -1j * dt) @ U
+closed = gates.rz(-w * T) @ linalg.exp_hermitian(-0.5 * ((w0 - w) * gates.Z + Om * gates.X), -1j * T)
+print(np.allclose(U, closed, atol=1e-6))           # True</code></pre>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 02</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

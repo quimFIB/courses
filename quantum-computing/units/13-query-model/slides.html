@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13 · The query model, phase kickback, and the first separations</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="d">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="ex"><span class="ref-name">the running example: $f(x) = s\cdot x$, $\ s = 101$</span>$f:\{0, 1\}^3\to\{0, 1\}$, $\ f(x) = x_0\oplus x_2$, with $s$ hidden in a box. <span class="ref-note">Ones at $001, 011, 100, 110$: balanced. Classically $f(100), f(010), f(001) = 1, 0, 1$ reveal $s$ in three queries, and no classical algorithm does it in two, even with coins. Quantumly one query answers both questions: the output is $\ket{101}$, which is not $\ket{000}$</span></template>
+  <template data-ref="orc"><span class="ref-name">its oracle</span>$U_f = \mathrm{CNOT}_{03}\,\mathrm{CNOT}_{23}$ on input qubits $0, 1, 2$ and target $3$: $\ \ket{x}\ket{y}\mapsto\ket{x}\ket{y\oplus x_0\oplus x_2}$. <span class="ref-note">A permutation matrix, so unitary, and its own inverse. With the target in $\ket-$ each CNOT kicks back its own sign, $(-1)^{x_0}$ and $(-1)^{x_2}$</span></template>
+  <template data-ref="signs"><span class="ref-name">the eight signs</span>$(-1)^{f(x)}$ for $x = 000, \dots, 111$: $\ +\,-\,+\,-\,-\,+\,-\,+$. <span class="ref-note">Four of each, so they sum to $0$: the amplitude of $\ket{000}$ after Deutsch–Jozsa. They are the character $\chi_{101}$, row $101$ of the Hadamard matrix, and the phase state they define is the product $\ket-\ket+\ket-$</span></template>
+  <template data-ref="bvx"><span class="ref-name">Bernstein–Vazirani on $s = 101$</span>$\ket{000}\ket1\to\ket{+++}\ket-\to\ket-\ket+\ket-\ket-\to\ket{101}\ket-$. <span class="ref-note">Hadamards, one query, Hadamards. The output is $s$ with probability $1$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part D · algorithms · spine</p>
+  <div class="unit-no">13</div>
+  <h1>The query model, phase kickback, and the first separations</h1>
+  <p class="lede">Charge an algorithm only for looking at its input, and lower bounds become provable. Feed unit 10's oracle the state $\ket-$ and it writes $f$ into a phase; a layer of Hadamards then reads a global property of $f$ from a single query.</p>
+  <p class="meta"><span>needs 10</span><span>~2 h slides + 4 h problems</span><span>problems: <code>./qc problems 13</code></span></p>
+  <aside class="notes">
+    <p>Part D is about algorithms: what interference buys a computation, and where it stops buying anything. It opens
+    here, in the query model, for a reason that is about proof rather than taste. Nobody can prove that a quantum
+    computer outperforms a classical one on any problem measured in gates — such a proof would settle questions in
+    classical complexity theory that have been open for decades. In the query model, where an algorithm pays only
+    for looking at its input, lower bounds <b>can</b> be proved, and so separations can be proved. Every claim of
+    "quantum speed-up" in Part D is, at bottom, a query-model statement.</p>
+    <p>This unit proves the one trick every Part D algorithm uses — phase kickback — and runs the first three algorithms
+    on it: Deutsch, Deutsch–Jozsa and Bernstein–Vazirani. Each beats some classical model. The unit's discipline is to say
+    exactly which one, because the history of the subject is partly a history of speed-ups that evaporated when the
+    classical side was allowed coins.</p>
+    <p>What this unit is not: it does not define BQP (unit 12) or prove an exponential separation against randomised
+    algorithms (unit 14, Simon). Its separations are against weaker models, and its last slide says so.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through it: the function $f(x) = s\cdot x$ on three bits with $s = 101$, hidden in a box,
+    introduced on the next slide. Proofs are on the slides when they are one line and in these notes under <b>Full
+    proof</b> when they are not; anything imported is labelled <i>cited</i>, with where its proof is. Every number was
+    computed.</p>
+    <p><b>Used from earlier units.</b> Unit 00: complex inner-product spaces, Dirac notation, orthonormal bases,
+    unitary and Hermitian operators, $\ket\pm = (\ket0\pm\ket1)/\sqrt2$, global versus relative phase, Parseval's
+    identity. Unit 01: the Born rule, the Mach–Zehnder interferometer with its beam splitters, phase shifters and fringes
+    $P(D_0) = \sin^2\tfrac\varphi2$, and the which-path detector. Unit 02: the Pauli matrices and the Hadamard gate
+    $H = (X + Z)/\sqrt2$, with $HXH = Z$ and $H^2 = I$. Unit 03: tensor products, the Kronecker product, the computational
+    basis and the qubit order (qubit 0 leftmost and most significant), product versus entangled states. Unit 10: the
+    circuit model, CNOT and controlled gates, deferred measurement, reversible computation, garbage and Bennett's
+    uncomputation, and the oracle $U_f\ket x\ket y = \ket x\ket{y\oplus f(x)}$ with its polynomial-size construction. From
+    the assumed background: decision problems and promise problems, BPP-style amplification by majority vote, group
+    homomorphisms, arithmetic mod 2.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · overview</p>
+  <h2>A box that hides one string</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="ex">$f(x) = s\cdot x$, $s = 101$</span></span>
+        <p class="small">A box computes $f:\{0, 1\}^3\to\{0, 1\}$, $\ f(x) = s\cdot x$, for a string $s$ we are not shown. Here $x\cdot y$ is the <span class="term">dot product mod 2</span>, $x_0y_0\oplus x_1y_1\oplus x_2y_2$; with $s = 101$, $\ f(x) = x_0\oplus x_2$.</p>
+        <p class="small">We may only <b>ask</b>: give the box $x$, get $f(x)$ back. Two questions:</p>
+        <p class="small"><b>1.</b> Is $f$ constant, or balanced — $1$ on exactly half the inputs?<br><b>2.</b> What is $s$?</p>
+        <p class="small"><b>How many questions does each cost?</b> Classically, the second takes three. Quantumly, one query answers both.</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> the query model · <b>2</b> phase kickback, and Deutsch · <b>3</b> the Hadamard transform · <b>4</b> Deutsch–Jozsa · <b>5</b> Bernstein–Vazirani · <b>6</b> the scorecard.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 236" width="420" role="img" aria-label="a black box with three input wires x0, x1, x2 and a target wire y; the inputs pass through unchanged and the target leaves as y xor f of x; the inside of the box is hidden"><line x1="60" y1="40" x2="330" y2="40" class="ink" stroke-width="1.6"/><text x="52" y="45" font-size="15" text-anchor="end">|x₀⟩</text><line x1="60" y1="82" x2="330" y2="82" class="ink" stroke-width="1.6"/><text x="52" y="87" font-size="15" text-anchor="end">|x₁⟩</text><line x1="60" y1="124" x2="330" y2="124" class="ink" stroke-width="1.6"/><text x="52" y="129" font-size="15" text-anchor="end">|x₂⟩</text><line x1="60" y1="176" x2="330" y2="176" class="ink" stroke-width="1.6"/><text x="52" y="181" font-size="15" text-anchor="end">|y⟩</text><text x="338" y="45" font-size="15" text-anchor="start">|x₀⟩</text><text x="338" y="87" font-size="15" text-anchor="start">|x₁⟩</text><text x="338" y="129" font-size="15" text-anchor="start">|x₂⟩</text><text x="338" y="181" font-size="15" text-anchor="start">|y ⊕ f(x)⟩</text><rect x="140" y="20" width="110" height="176" rx="4" class="fill-ink ink" stroke-width="1.6"/><text x="195" y="114" font-size="26" text-anchor="middle" class="fill-ground">?</text><text x="195" y="222" font-size="13" text-anchor="middle" class="soft">one call = one query</text></svg>
+        <p class="cap">The box is unit 10's oracle: inputs pass through, the answer is added into the target. Its insides are hidden.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="query model">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="ex">the hidden string</span> is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the example appears.</b> Section 1 opens the box (<i>The input is a function, the access is an oracle</i>)
+    and finds $s$ classically with a decision tree. Section 2 feeds the box $\ket-$ and computes the kickback line by line
+    (<i>Worked: phase kickback, every line</i>). Section 3 recognises its eight signs as a row of the Hadamard matrix. Section 4
+    runs Deutsch–Jozsa on it and watches the amplitude of $\ket{000}$ cancel to zero (<i>Worked: Deutsch–Jozsa on three bits,
+    sign by sign</i>). Section 5 runs the same circuit and reads $\ket{101}$ off the output (<i>Worked: Bernstein–Vazirani on
+    s = 101</i>). The close puts one query against three.</p>
+    <p><b>Why this example.</b> It is the smallest instance that carries everything: it is balanced (four ones among
+    eight inputs), so it answers question 1; it is linear, so it answers question 2; and three bits are few enough that
+    every amplitude can be written out. Being linear is also what makes it special: section 4's notes show a balanced
+    function that is not linear, majority, whose output the same circuit spreads over four strings.</p>
+    <p><b>The dot product mod 2</b> is the ordinary dot product of 0/1 vectors, reduced mod 2: $x\cdot y = 1$ exactly when
+    $x$ and $y$ share an odd number of 1s. It is bilinear for $\oplus$: $(x\oplus x')\cdot y = x\cdot y\oplus x'\cdot y$, since
+    $(x_i + x_i')y_i \equiv x_iy_i + x_i'y_i \pmod 2$ term by term. That one identity carries section 3.</p>
+    <p>Every computation in this deck can also be checked with the course's optional simulator; none needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The query model</h2>
+  <p>An algorithm that may look at its input only by asking, and pays per question.</p>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the query model</p>
+  <h2>Why count queries</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>A speed-up is a lower bound.</b> To say a quantum algorithm beats every classical one is to prove that <b>no</b> classical algorithm is as fast — a statement about all algorithms at once.</p>
+      <div class="box warn"><span class="label">what cannot be proved, yet</span>
+        <p class="small">For Boolean circuits, the best lower bound known for any explicit function is $3.1n - o(n)$ gates (Li and Yang 2022, cited): <b>linear</b>. A superpolynomial bound for a function in NP would prove $\mathrm P\ne\mathrm{NP}$. Gate-count separations between quantum and classical are out of reach for the same reason.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">what can</span>
+        <p class="small">In the <span class="term">query model</span> the input is reachable only through a box, and an algorithm is charged one unit per call to it. Everything between calls is free.</p>
+        <p class="small">Then what the algorithm knows after $k$ calls is a function of $k$ answers — and counting what $k$ answers can distinguish gives <b>provable</b> lower bounds. Separations are proved here.</p>
+      </div>
+      <p class="small"><b>The price.</b> A query bound counts calls, not gates. Upper bounds transfer to gates when the box is efficient — unit 10 makes every polynomial-time $f$ a polynomial-size oracle. Lower bounds do not: an algorithm that may open the box might do better.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The circuit lower bounds, cited.</b> For circuits over the full binary basis (all sixteen two-input gates), Blum
+    proved $3n - o(n)$ for an explicit function in 1984; Find, Golovnev, Hirsch and Kulikov raised it to
+    $(3 + \tfrac1{86})n - o(n)$ in 2016; Li and Yang to $3.1n - o(n)$ (STOC 2022), for affine dispersers, functions computable in
+    polynomial time. Nothing superlinear is known for any function in NP. If some NP function needed superpolynomial
+    circuits, then $\mathrm P\ne\mathrm{NP}$, since polynomial time gives polynomial-size circuits (unit 10, from the
+    background).</p>
+    <p><b>Why quantum gate-count separations are harder still.</b> Unit 12 shows that a proof that quantum polynomial time
+    exceeds classical randomised polynomial time would separate P from PSPACE — also open. So an unconditional proof that a
+    quantum computer is faster at some problem, counted in gates, is out of reach. In the query model there is no such
+    barrier.</p>
+    <p><b>What a query separation means.</b> It says: an algorithm that treats $f$ as a black box needs this many calls. It
+    is a real statement about the world whenever $f$ is given as a black box — a physical process, a database, a
+    subroutine one cannot inspect. When $f$ comes from an efficient circuit one <b>can</b> inspect, a query separation is
+    evidence, not proof. Units 12 and 14 make that precise with oracle separations of complexity classes.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the query model</p>
+  <h2>The input is a function, the access is an oracle</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the input, and one query</span>
+        <p class="small">The input is $f:\{0, 1\}^n\to\{0, 1\}$ — equivalently its truth table, a string of $N = 2^n$ bits. A quantum algorithm reaches it only through unit 10's oracle</p>
+        $$U_f\ket x\ket y = \ket x\ket{y\oplus f(x)},$$
+        <p class="small">one query per application. $U_f$ permutes basis states, so it is unitary; and $U_f^2 = I$, since $(y\oplus f(x))\oplus f(x) = y$.</p>
+      </div>
+      <p class="small"><b>The running example opened.</b> <span class="ref" data-ref="orc">Two CNOTs</span>, from qubits 0 and 2 to the target, add $x_0\oplus x_2 = f(x)$. Check on basis inputs:</p>
+      <p class="small">$U_f\ket{100}\ket0 = \ket{100}\ket1$, as $f(100) = 1$; $\ U_f\ket{101}\ket0 = \ket{101}\ket0$, as $f(101) = 1\oplus1 = 0$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 226" width="400" role="img" aria-label="the oracle for f of x equals x0 xor x2 opened up: a CNOT from wire x0 to the target y, then a CNOT from wire x2 to the target; wire x1 is untouched; the target leaves as y xor x0 xor x2"><line x1="60" y1="36" x2="290" y2="36" class="ink" stroke-width="1.6"/><text x="52" y="41" font-size="15" text-anchor="end">|x₀⟩</text><line x1="60" y1="80" x2="290" y2="80" class="ink" stroke-width="1.6"/><text x="52" y="85" font-size="15" text-anchor="end">|x₁⟩</text><line x1="60" y1="124" x2="290" y2="124" class="ink" stroke-width="1.6"/><text x="52" y="129" font-size="15" text-anchor="end">|x₂⟩</text><line x1="60" y1="176" x2="290" y2="176" class="ink" stroke-width="1.6"/><text x="52" y="181" font-size="15" text-anchor="end">|y⟩</text><text x="298" y="41" font-size="15" text-anchor="start">|x₀⟩</text><text x="298" y="85" font-size="15" text-anchor="start">|x₁⟩</text><text x="298" y="129" font-size="15" text-anchor="start">|x₂⟩</text><text x="298" y="181" font-size="15" text-anchor="start">|y ⊕ x₀ ⊕ x₂⟩</text><line x1="140" y1="36" x2="140" y2="187" class="ink" stroke-width="1.6"/><circle cx="140" cy="36" r="5.5" class="fill-ink"/><circle cx="140" cy="176" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="129" y1="176" x2="151" y2="176" class="ink" stroke-width="1.6"/><line x1="140" y1="165" x2="140" y2="187" class="ink" stroke-width="1.6"/><line x1="210" y1="124" x2="210" y2="187" class="ink" stroke-width="1.6"/><circle cx="210" cy="124" r="5.5" class="fill-ink"/><circle cx="210" cy="176" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="199" y1="176" x2="221" y2="176" class="ink" stroke-width="1.6"/><line x1="210" y1="165" x2="210" y2="187" class="ink" stroke-width="1.6"/><rect x="104" y="14" width="142" height="182" rx="6" fill="none" class="accent" stroke-width="1.5" stroke-dasharray="6 4"/><text x="175" y="214" font-size="13" text-anchor="middle" class="fill-accent">U<tspan font-size="10" dy="3">f</tspan><tspan dy="-3"> for s = 101</tspan></text></svg>
+        <p class="cap">Inside the box for $s = 101$. The algorithm never sees this: it may only apply the whole box.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why not $\ket x\mapsto\ket{f(x)}$?</b> It is not injective whenever $f$ is not, so it is not unitary. Keeping $x$
+    and adding the answer into a fresh register is the reversible version (unit 10, <i>Every polynomial-time function is a
+    polynomial-size oracle</i>). A function with $m$-bit values has the same oracle with an $m$-qubit target; this unit needs
+    only $m = 1$.</p>
+    <p><b>Unitarity, in full.</b> On basis vectors $U_f\ket{x, y} = \ket{x, y\oplus f(x)}$. The map $(x, y)\mapsto(x, y\oplus f(x))$ is a
+    bijection of $\{0, 1\}^{n+1}$ — it is its own inverse — so $U_f$ is a permutation matrix, whose columns are orthonormal. It is
+    also real and symmetric (a permutation that is its own inverse), so Hermitian. Its eigenvalues are therefore $\pm1$, a fact
+    the next section turns into an algorithm.</p>
+    <p><b>The running example's oracle, checked on all eight inputs with $y = 0$.</b> The first CNOT adds $x_0$, the second adds
+    $x_2$, so the target ends at $x_0\oplus x_2$: $0, 1, 0, 1, 1, 0, 1, 0$ for $x = 000, \dots, 111$, which is $s\cdot x$ for $s = 101$ ✓.
+    In general $U_f$ for $f = s\cdot x$ is one CNOT from each qubit $i$ with $s_i = 1$ — no work qubits, so no garbage.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the query model</p>
+  <h2>Quantum query algorithms</h2>
+  <div class="fig">
+    <svg viewBox="0 0 650 228" width="640" role="img" aria-label="a query algorithm: three registers, input, target and work, all starting at zero; a fixed unitary U0 on all of them, then the oracle U_f on input and target, then U1, then U_f again, and so on up to the T-th oracle call and a last unitary U_T; then the input register is measured"><line x1="70" y1="40" x2="600" y2="40" class="ink" stroke-width="1.6"/><text x="64" y="45" font-size="14" text-anchor="end">|0…0⟩</text><line x1="70" y1="96" x2="600" y2="96" class="ink" stroke-width="1.6"/><text x="64" y="101" font-size="14" text-anchor="end">|0⟩</text><line x1="70" y1="152" x2="600" y2="152" class="ink" stroke-width="1.6"/><text x="64" y="157" font-size="14" text-anchor="end">|0…0⟩</text><line x1="81" y1="48" x2="91" y2="32" class="ink" stroke-width="1.3"/><text x="94" y="32" font-size="11" text-anchor="start" class="soft">n</text><line x1="81" y1="160" x2="91" y2="144" class="ink" stroke-width="1.3"/><text x="94" y="144" font-size="11" text-anchor="start" class="soft">w</text><rect x="107.0" y="20" width="46" height="152" class="fill-ground ink" stroke-width="1.6"/><text x="130" y="102.0" font-size="17" text-anchor="middle">U<tspan font-size="12" dy="4">0</tspan></text><rect x="187.0" y="22" width="46" height="94" class="fill-ground unit" stroke-width="1.6"/><text x="210" y="75.0" font-size="17" text-anchor="middle">U<tspan font-size="12" dy="4">f</tspan></text><rect x="267.0" y="20" width="46" height="152" class="fill-ground ink" stroke-width="1.6"/><text x="290" y="102.0" font-size="17" text-anchor="middle">U<tspan font-size="12" dy="4">1</tspan></text><rect x="347.0" y="22" width="46" height="94" class="fill-ground unit" stroke-width="1.6"/><text x="370" y="75.0" font-size="17" text-anchor="middle">U<tspan font-size="12" dy="4">f</tspan></text><rect x="412" y="18" width="36" height="160" class="fill-ground" stroke="none"/><text x="430" y="101" font-size="22" text-anchor="middle">⋯</text><rect x="467.0" y="22" width="46" height="94" class="fill-ground unit" stroke-width="1.6"/><text x="490" y="75.0" font-size="17" text-anchor="middle">U<tspan font-size="12" dy="4">f</tspan></text><rect x="532.0" y="20" width="46" height="152" class="fill-ground ink" stroke-width="1.6"/><text x="555" y="102.0" font-size="17" text-anchor="middle">U<tspan font-size="12" dy="4">T</tspan></text><rect x="603" y="24" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 609 50 A 11 11 0 0 1 631 50" fill="none" class="ink" stroke-width="1.3"/><line x1="620" y1="50" x2="629" y2="31" class="ink" stroke-width="1.3"/><line x1="578" y1="40" x2="603" y2="40" class="ink" stroke-width="1.6"/><text x="210" y="196" font-size="12" text-anchor="middle" class="fill-unit">query 1</text><text x="370" y="196" font-size="12" text-anchor="middle" class="fill-unit">query 2</text><text x="490" y="196" font-size="12" text-anchor="middle" class="fill-unit">query T</text><text x="345" y="218" font-size="12" text-anchor="middle" class="soft">U₀, …, U<tspan font-size="9" dy="3">T</tspan><tspan dy="-3"> are fixed in advance and never depend on f: they are free</tspan></text></svg>
+  </div>
+  <div class="cols">
+    <div class="box def"><span class="label">a <span class="term">query algorithm</span> with $T$ queries</span>
+      <p class="small">Fixed unitaries $U_0, \dots, U_T$, independent of $f$, on input, target and work registers. On $f$ it prepares</p>
+      $$\ket{\psi_f} = U_T\,\tilde U_f\,U_{T-1}\cdots\tilde U_f\,U_0\ket{0\cdots0},$$
+      <p class="small">with $\tilde U_f = U_f\otimes I_{\rm work}$, and measures an output register. It computes $F$ with error $\varepsilon$ if, on every allowed $f$, the output is $F(f)$ with probability $\ge 1 - \varepsilon$; <b>exactly</b> if $\varepsilon = 0$.</p>
+    </div>
+    <div>
+      <p class="small"><b><span class="term">Query complexity</span></b>: $Q_E(F)$ and $Q_\varepsilon(F)$, the least $T$ for exact and for error-$\varepsilon$ algorithms. Gates are free; only calls count.</p>
+      <div class="box warn"><span class="label">asking every $x$ at once is not the trick</span>
+        <p class="small">$U_f$ on $2^{-n/2}\sum_x\ket x\ket0$ gives $2^{-n/2}\sum_x\ket x\ket{f(x)}$ — and measuring it yields one random pair $(x, f(x))$, exactly what one random classical query gives. The gain must come from interference.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Measurement at the end only.</b> Unit 10's principle of deferred measurement lets any intermediate measurement
+    be replaced by a controlled gate and a final measurement, so this definition loses nothing. The $U_j$ may use any
+    number of gates, of any kind; that is what "query complexity counts only oracle calls" means.</p>
+    <p><b>Promise problems.</b> $F$ need not be defined on every $f$. Deutsch–Jozsa will promise that $f$ is constant or
+    balanced and say nothing about other $f$; an algorithm is then judged only on the allowed $f$. Such an $F$ is a
+    <b>partial function</b> of the truth table, and its classical analogue is a promise problem from the background.</p>
+    <p><b>The warning, computed.</b> The state $2^{-n/2}\sum_x\ket x\ket{f(x)}$ has $\Pr(x, b) = 2^{-n}$ when $b = f(x)$ and $0$
+    otherwise, summing to $2^n\cdot2^{-n} = 1$. So a measurement in the computational basis returns a uniformly random $x$
+    with its value — "quantum parallelism" alone is a random classical query. Every algorithm in Part D works by arranging
+    for the $2^n$ terms to <b>interfere</b> before anything is measured, so that the amplitudes pile up on an answer that
+    depends on all of $f$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the query model</p>
+  <h2>Classical query algorithms: decision trees</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">decision tree</span></span>
+        <p class="small">A rooted binary tree. Each internal node names an $x$ to query; its two children are followed on the answers $f(x) = 0$ and $1$; each leaf names an output. On $f$, walk from the root along the answers; output the leaf.</p>
+        <p class="small">Its cost is its <b>depth</b>, the most queries on any path. The <span class="term">deterministic query complexity</span> $D(F)$ is the least depth of a tree correct on every allowed $f$.</p>
+      </div>
+      <p class="small"><b>Every deterministic algorithm is one:</b> with free computation between calls, it is determined by which $x$ it asks next given the answers so far.</p>
+      <p class="small"><b>The running example.</b> $f(e_i) = s\cdot e_i = s_i$ for the unit strings $e_i$, so asking $100, 010, 001$ reads off $s$: <span class="ref" data-ref="ex">$1, 0, 1$</span>. Depth $3$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 600 292" width="560" role="img" aria-label="a decision tree of depth three: the root queries f at 100, each child queries f at 010, each grandchild queries f at 001, and the eight leaves output the eight strings s from 000 to 111; the path answering 1, 0, 1 is highlighted and ends at the leaf 101"><line x1="300" y1="48" x2="150" y2="90" class="rule" stroke-width="1.3"/><text x="215.0" y="73.0" font-size="12" text-anchor="middle" class="soft">0</text><line x1="300" y1="48" x2="450" y2="90" class="accent" stroke-width="2.4"/><text x="385.0" y="73.0" font-size="12" text-anchor="middle" class="soft">1</text><line x1="150" y1="118" x2="75" y2="160" class="rule" stroke-width="1.3"/><text x="102.5" y="143.0" font-size="12" text-anchor="middle" class="soft">0</text><line x1="150" y1="118" x2="225" y2="160" class="rule" stroke-width="1.3"/><text x="197.5" y="143.0" font-size="12" text-anchor="middle" class="soft">1</text><line x1="450" y1="118" x2="375" y2="160" class="accent" stroke-width="2.4"/><text x="402.5" y="143.0" font-size="12" text-anchor="middle" class="soft">0</text><line x1="450" y1="118" x2="525" y2="160" class="rule" stroke-width="1.3"/><text x="497.5" y="143.0" font-size="12" text-anchor="middle" class="soft">1</text><line x1="75" y1="188" x2="37.5" y2="230" class="rule" stroke-width="1.3"/><text x="46.25" y="213.0" font-size="12" text-anchor="middle" class="soft">0</text><line x1="75" y1="188" x2="112.5" y2="230" class="rule" stroke-width="1.3"/><text x="103.75" y="213.0" font-size="12" text-anchor="middle" class="soft">1</text><line x1="225" y1="188" x2="187.5" y2="230" class="rule" stroke-width="1.3"/><text x="196.25" y="213.0" font-size="12" text-anchor="middle" class="soft">0</text><line x1="225" y1="188" x2="262.5" y2="230" class="rule" stroke-width="1.3"/><text x="253.75" y="213.0" font-size="12" text-anchor="middle" class="soft">1</text><line x1="375" y1="188" x2="337.5" y2="230" class="rule" stroke-width="1.3"/><text x="346.25" y="213.0" font-size="12" text-anchor="middle" class="soft">0</text><line x1="375" y1="188" x2="412.5" y2="230" class="accent" stroke-width="2.4"/><text x="403.75" y="213.0" font-size="12" text-anchor="middle" class="soft">1</text><line x1="525" y1="188" x2="487.5" y2="230" class="rule" stroke-width="1.3"/><text x="496.25" y="213.0" font-size="12" text-anchor="middle" class="soft">0</text><line x1="525" y1="188" x2="562.5" y2="230" class="rule" stroke-width="1.3"/><text x="553.75" y="213.0" font-size="12" text-anchor="middle" class="soft">1</text><rect x="262" y="20" width="76" height="28" rx="4" class="fill-ground accent" stroke-width="2.2"/><text x="300" y="39" font-size="13" text-anchor="middle" class="mono">f(100)?</text><rect x="112" y="90" width="76" height="28" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="150" y="109" font-size="13" text-anchor="middle" class="mono">f(010)?</text><rect x="412" y="90" width="76" height="28" rx="4" class="fill-ground accent" stroke-width="2.2"/><text x="450" y="109" font-size="13" text-anchor="middle" class="mono">f(010)?</text><rect x="37" y="160" width="76" height="28" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="75" y="179" font-size="13" text-anchor="middle" class="mono">f(001)?</text><rect x="187" y="160" width="76" height="28" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="225" y="179" font-size="13" text-anchor="middle" class="mono">f(001)?</text><rect x="337" y="160" width="76" height="28" rx="4" class="fill-ground accent" stroke-width="2.2"/><text x="375" y="179" font-size="13" text-anchor="middle" class="mono">f(001)?</text><rect x="487" y="160" width="76" height="28" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="525" y="179" font-size="13" text-anchor="middle" class="mono">f(001)?</text><text x="37.5" y="258" font-size="14" text-anchor="middle" class="mono soft">000</text><text x="112.5" y="258" font-size="14" text-anchor="middle" class="mono soft">001</text><text x="187.5" y="258" font-size="14" text-anchor="middle" class="mono soft">010</text><text x="262.5" y="258" font-size="14" text-anchor="middle" class="mono soft">011</text><text x="337.5" y="258" font-size="14" text-anchor="middle" class="mono soft">100</text><text x="412.5" y="258" font-size="14" text-anchor="middle" class="mono fill-accent">101</text><text x="487.5" y="258" font-size="14" text-anchor="middle" class="mono soft">110</text><text x="562.5" y="258" font-size="14" text-anchor="middle" class="mono soft">111</text><text x="300" y="284" font-size="12" text-anchor="middle" class="soft">leaves: the output s</text></svg>
+        <p class="cap">The tree that finds $s$ for $n = 3$. On $s = 101$ the answers $1, 0, 1$ lead to the leaf $101$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why trees capture every deterministic algorithm.</b> Fix any deterministic procedure that may compute freely and
+    calls the box. Its first query is fixed (it has seen nothing); its second depends only on the first answer; its
+    $j$-th only on the first $j - 1$ answers; and its output only on all of them. Drawing the possible answer sequences as
+    paths gives a tree whose depth is the worst-case number of calls. Repeated queries can be pruned without increasing
+    depth, so we may assume no path asks the same $x$ twice.</p>
+    <p><b>Adaptivity.</b> In general a node's query depends on the path to it. The tree on this slide happens to ask the
+    same three strings on every path: it is <i>non-adaptive</i>. Section 5 proves that for this problem no tree, adaptive or
+    not, does better.</p>
+    <p><b>Multi-bit answers.</b> For $f$ with $m$-bit values each node has $2^m$ children. The counting arguments below then
+    give $2^{mk}$ leaves at depth $k$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the query model</p>
+  <h2>Randomised query algorithms</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">randomised decision tree</span></span>
+        <p class="small">A probability distribution $\mu$ over decision trees: flip the coins first, then run the chosen tree. It computes $F$ with error $\varepsilon$ if for <b>every</b> allowed $f$,</p>
+        $$\Pr_{T\sim\mu}\big[T(f)\ne F(f)\big]\le\varepsilon .$$
+        <p class="small">Its cost is the greatest depth among the trees it may choose. The <span class="term">randomised query complexity</span> $R_\varepsilon(F)$ is the least cost.</p>
+      </div>
+      <p class="small"><b><span class="term">Bounded error</span></b> means $\varepsilon = \tfrac13$; a majority of $r$ independent runs drives the error down exponentially in $r$, as for BPP.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 540 210" width="460" role="img" aria-label="coins choose one of several decision trees T1, T2, T3 with probabilities p1, p2, p3; the requirement is to be correct with probability at least one minus epsilon on every input"><circle cx="270" cy="34" r="26" class="fill-ground unit" stroke-width="1.8"/><text x="270" y="39" font-size="13" text-anchor="middle">coins</text><line x1="253.2" y1="60.0" x2="136.2" y2="90.4" class="unit" stroke-width="1.4"/><polygon points="130.0,92.0 138.7,93.9 136.7,86.1" class="fill-unit"/><text x="186.0" y="80" font-size="13" text-anchor="end" class="fill-unit">p₁</text><polygon points="130,96 88,170 172,170" class="fill-ground ink" stroke-width="1.4"/><text x="130" y="152" font-size="15" text-anchor="middle">T₁</text><line x1="270.0" y1="60.0" x2="270.0" y2="85.6" class="unit" stroke-width="1.4"/><polygon points="270.0,92.0 274.0,84.0 266.0,84.0" class="fill-unit"/><text x="282.0" y="80" font-size="13" text-anchor="middle" class="fill-unit">p₂</text><polygon points="270,96 228,170 312,170" class="fill-ground ink" stroke-width="1.4"/><text x="270" y="152" font-size="15" text-anchor="middle">T₂</text><line x1="286.8" y1="60.0" x2="403.8" y2="90.4" class="unit" stroke-width="1.4"/><polygon points="410.0,92.0 403.3,86.1 401.3,93.9" class="fill-unit"/><text x="354.0" y="80" font-size="13" text-anchor="start" class="fill-unit">p₃</text><polygon points="410,96 368,170 452,170" class="fill-ground ink" stroke-width="1.4"/><text x="410" y="152" font-size="15" text-anchor="middle">T₃</text><text x="480" y="140" font-size="22" text-anchor="middle">⋯</text><text x="270" y="200" font-size="13" text-anchor="middle" class="soft">on every input: correct with probability ≥ 1 − ε</text></svg>
+        <p class="cap">Coins choose a tree; the error is measured over the coins, never over the inputs.</p>
+      </div>
+      <div class="box thm"><span class="label">how the models compare</span>
+        <p class="small">$Q_\varepsilon(F)\le R_\varepsilon(F)\le D(F)$ and $Q_E(F)\le D(F)$. A <span class="term">separation</span> is a family $F_n$ on which one of these is far below another.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Coins in advance.</b> An algorithm that flips coins as it goes can flip them all at the start — it uses at most
+    finitely many — and then behaves deterministically. Each coin string fixes a tree, so the algorithm is a distribution over
+    trees.</p>
+    <p><b>Full proof of the comparisons.</b> $R_\varepsilon\le D$: a deterministic tree is a distribution on one tree, with error $0$.
+    $Q_E\le D$: run the tree reversibly. To ask $x$, write $x$ into the input register (a classical reversible circuit,
+    unit 10), apply $U_f$ to $\ket x\ket0$, and read the answer from the target; the choice of the next $x$ from the answers so far is
+    a classical function, so unit 10 computes it reversibly too. On a basis state everything stays a basis state, the answers
+    are exact, and the number of oracle calls is the depth. $Q_\varepsilon\le R_\varepsilon$: put a coin register in
+    $\ket+^{\otimes r}$ — each coin string with probability $2^{-r}$, when $\mu$ is uniform on $2^r$ coin strings — and run, controlled on the coins, the tree they choose.
+    Branches with different coin strings carry orthogonal records, so their probabilities add (unit 10's garbage principle, here
+    used on purpose), and the output distribution is the classical one. Coins with probabilities that are not dyadic are
+    never a problem: $U_0$ may be any unitary, so it can prepare $\sum_T\sqrt{\mu(T)}\ket T$ on the coin register directly.</p>
+    <p><b>Why only bounded error matters.</b> If one run errs with probability $\varepsilon\lt\tfrac12$, the majority of $r$
+    independent runs errs with probability at most $e^{-2r(1/2 - \varepsilon)^2}$ (Hoeffding, from the background). So
+    $R_{1/3}$ and $R_{0.001}$ differ by a constant factor, and "bounded error" names one class of algorithms whatever constant
+    is chosen. Exact algorithms ($\varepsilon = 0$) are a different matter, as section 4 will show.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the query model</p>
+  <h2>Why lower bounds can be proved here</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">three tools</span>
+        <p class="small"><b>1. A fooling pair.</b> If $f, f'$ agree at every $x$ a tree asks on $f$'s path, they reach the same leaf; so if $F(f)\ne F(f')$ the tree is wrong on one. An <span class="term">adversary argument</span> answers queries so as to keep such a pair alive.</p>
+        <p class="small"><b>2. Counting leaves.</b> A depth-$k$ tree has at most $2^k$ leaves, so it outputs at most $2^k$ different values.</p>
+        <p class="small"><b>3. <span class="term">Averaging</span>.</b> If every depth-$k$ tree is right with probability at most $p$ on an $f$ drawn from a distribution $\nu$, then every randomised algorithm of depth $k$ is right with probability at most $p$ on <b>some</b> $f$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 172" width="420" role="img" aria-label="two input strings x and x prime of eight bits each; the three positions the tree asks about are outlined and hold the same bits in both; the strings differ at two other positions; so the tree reaches the same leaf on both and gives the same output"><text x="30" y="42" font-size="16" text-anchor="end">x</text><rect x="44" y="20" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="64" y="43" font-size="16" text-anchor="middle" class="mono">0</text><rect x="90" y="20" width="40" height="34" class="fill-ground unit" stroke-width="2.4"/><text x="110" y="43" font-size="16" text-anchor="middle" class="mono">1</text><rect x="136" y="20" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="156" y="43" font-size="16" text-anchor="middle" class="mono">1</text><rect x="182" y="20" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="202" y="43" font-size="16" text-anchor="middle" class="mono">0</text><rect x="228" y="20" width="40" height="34" class="fill-ground unit" stroke-width="2.4"/><text x="248" y="43" font-size="16" text-anchor="middle" class="mono">1</text><rect x="274" y="20" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="294" y="43" font-size="16" text-anchor="middle" class="mono">0</text><rect x="320" y="20" width="40" height="34" class="fill-ground unit" stroke-width="2.4"/><text x="340" y="43" font-size="16" text-anchor="middle" class="mono">0</text><rect x="366" y="20" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="386" y="43" font-size="16" text-anchor="middle" class="mono">1</text><text x="30" y="98" font-size="16" text-anchor="end">x′</text><rect x="44" y="76" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="64" y="99" font-size="16" text-anchor="middle" class="mono">0</text><rect x="90" y="76" width="40" height="34" class="fill-ground unit" stroke-width="2.4"/><text x="110" y="99" font-size="16" text-anchor="middle" class="mono">1</text><rect x="136" y="76" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="156" y="99" font-size="16" text-anchor="middle" class="mono">0</text><rect x="182" y="76" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="202" y="99" font-size="16" text-anchor="middle" class="mono">0</text><rect x="228" y="76" width="40" height="34" class="fill-ground unit" stroke-width="2.4"/><text x="248" y="99" font-size="16" text-anchor="middle" class="mono">1</text><rect x="274" y="76" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="294" y="99" font-size="16" text-anchor="middle" class="mono">1</text><rect x="320" y="76" width="40" height="34" class="fill-ground unit" stroke-width="2.4"/><text x="340" y="99" font-size="16" text-anchor="middle" class="mono">0</text><rect x="366" y="76" width="40" height="34" class="fill-ground ink" stroke-width="1"/><text x="386" y="99" font-size="16" text-anchor="middle" class="mono">1</text><text x="156" y="134" font-size="15" text-anchor="middle" class="fill-warn">≠</text><text x="294" y="134" font-size="15" text-anchor="middle" class="fill-warn">≠</text><text x="110" y="14" font-size="11" text-anchor="middle" class="fill-unit">asked</text><text x="248" y="14" font-size="11" text-anchor="middle" class="fill-unit">asked</text><text x="340" y="14" font-size="11" text-anchor="middle" class="fill-unit">asked</text><text x="220" y="162" font-size="13" text-anchor="middle" class="soft">agree wherever the tree asked → same leaf → same output</text></svg>
+        <p class="cap">A fooling pair: the tree asks three positions; elsewhere the inputs may differ unseen.</p>
+      </div>
+      <div class="box proof"><span class="label">proof of 3</span>
+        <p class="small">$\mathbb E_{f\sim\nu}\Pr_{T\sim\mu}[\text{right}] = \mathbb E_{T\sim\mu}\Pr_{f\sim\nu}[\text{right}]\le p$, and an average is at least its smallest term. $\blacksquare$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Proofs of 1 and 2.</b> (1) The walk on $f$ is determined by the answers on its path; $f'$ gives the same answers there,
+    so it takes the same walk, and the leaf has one label. (2) Induction on depth: a tree of depth $0$ is one leaf; a tree of
+    depth $k$ is a root and two subtrees of depth at most $k - 1$, so at most $2\cdot2^{k-1}$ leaves.</p>
+    <p><b>Why these work and circuit lower bounds do not.</b> A query algorithm's knowledge of its input is bottlenecked
+    through the answers it has received — a channel of one bit per query — and both tools count what can pass through that
+    channel. A circuit has the whole input from the start; there is no channel to count, and the only known lower-bound
+    techniques for general circuits stall at small linear bounds.</p>
+    <p><b>Tool 3 is the easy half of Yao's minimax principle</b> (A. C. Yao, 1977): the best randomised algorithm's worst-case
+    success is at most the best deterministic algorithm's average success under any input distribution. The swap of expectations is
+    legitimate because both distributions are finite. The hard half — that some $\nu$ makes this tight — is not used in this
+    course.</p>
+    <p><b>Quantum lower bounds</b> need different tools, because a quantum algorithm's state after $k$ queries is not a
+    function of $k$ classical answers. Unit 18 builds them: the polynomial method and the adversary method.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Phase kickback, and Deutsch</h2>
+  <p>Feed the oracle's target the state $\ket-$ and the answer comes back as a sign.</p>
+</section>
+
+<section>
+  <p class="eyebrow">13 · phase kickback</p>
+  <h2>Phase kickback</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\ket- = \tfrac1{\sqrt2}(\ket0 - \ket1)$ is an eigenvector of $X$: $\ X\ket- = \tfrac1{\sqrt2}(\ket1 - \ket0) = -\ket-$. And adding $f(x)$ into the target is $X^{f(x)}$ on it.</p>
+      <div class="box thm"><span class="label">lemma: <span class="term">phase kickback</span></span>
+        $$U_f\big(\ket x\ket-\big) = (-1)^{f(x)}\ket x\ket- .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$U_f(\ket x\ket b) = \ket x\,X^{f(x)}\ket b$, so $U_f(\ket x\ket-) = \ket x\,X^{f(x)}\ket- = (-1)^{f(x)}\ket x\ket-$. $\blacksquare$</p>
+      </div>
+      <p class="small">By linearity, on any input state:</p>
+      $$U_f\big(\textstyle\sum_x a_x\ket x\big)\ket- = \big(\textstyle\sum_x(-1)^{f(x)}a_x\ket x\big)\ket- .$$
+      <p class="small"><b>Check:</b> the norm is $\sum_x|a_x|^2$ before and after ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 188" width="420" role="img" aria-label="phase kickback: the input register x and a target in the minus state enter the oracle U_f; the input leaves multiplied by minus one to the f of x, and the target leaves still in the minus state; a curved arrow from target to input shows the sign moving onto the input"><line x1="60" y1="50" x2="300" y2="50" class="ink" stroke-width="1.6"/><line x1="60" y1="130" x2="300" y2="130" class="ink" stroke-width="1.6"/><text x="54" y="55" font-size="15" text-anchor="end">|x⟩</text><text x="54" y="135" font-size="15" text-anchor="end">|−⟩</text><line x1="79" y1="58" x2="89" y2="42" class="ink" stroke-width="1.3"/><text x="92" y="42" font-size="11" text-anchor="start" class="soft">n</text><rect x="150.0" y="28" width="60" height="124" class="fill-ground unit" stroke-width="1.6"/><text x="180" y="96.0" font-size="19" text-anchor="middle">U<tspan font-size="14" dy="4">f</tspan></text><text x="308" y="55" font-size="15" text-anchor="start">(−1)<tspan font-size="11" dy="-7">f(x)</tspan><tspan dy="7"> </tspan> |x⟩</text><text x="308" y="135" font-size="15" text-anchor="start">|−⟩</text><path d="M 268 124 C 290 100, 290 80, 268 62" fill="none" class="alt" stroke-width="1.8"/><polygon points="268,58 262,70 275,68" class="fill-alt"/><text x="296" y="96" font-size="12" text-anchor="start" class="alt">the sign lands here</text><text x="180" y="178" font-size="12" text-anchor="middle" class="soft">target unchanged, unentangled</text></svg>
+        <p class="cap">The gate acts on the target, yet the target is unchanged and the input picks up the sign.</p>
+      </div>
+      <div class="box good"><span class="label">why it matters</span>
+        <p class="small">The value $f(x)$ is now a <b>relative phase</b> between the terms of a superposition — invisible to a direct measurement, but able to interfere.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The name.</b> One expects the oracle to act on its target and leave its input alone, as it does on basis states.
+    On $\ket-$ the roles reverse: the target is an eigenvector, so it is untouched, and the eigenvalue $(-1)^{f(x)}$ is "kicked back"
+    onto the input. The term and the one-query form of the algorithms below are from R. Cleve, A. Ekert, C. Macchiavello and
+    M. Mosca, "Quantum algorithms revisited", <i>Proc. R. Soc. Lond. A</i> 454, 339 (1998).</p>
+    <p><b>The general pattern.</b> If $\ket u$ is an eigenvector of a unitary $V$ with $V\ket u = e^{i\theta}\ket u$, then the
+    controlled gate $C(V)$ sends $(\alpha\ket0 + \beta\ket1)\ket u$ to $(\alpha\ket0 + \beta e^{i\theta}\ket1)\ket u$: the eigenvalue moves
+    to the control as a relative phase. Here $V = X$, $\ket u = \ket-$, $e^{i\theta} = -1$, and the oracle is a CNOT controlled by
+    "$f(x) = 1$". Unit 15's phase estimation is the same move with a general $V$.</p>
+    <p><b>Unit 10 saw this coming.</b> Its slide <i>The Toffoli gate, as a matrix</i> noted that the Toffoli multiplies
+    $\ket{ab}\ket-$ by $(-1)^{ab}$: phase kickback for $f(a, b) = ab$.</p>
+    <p><b>Preparing $\ket-$.</b> Start the target in $\ket1$ and apply $H$: $H\ket1 = \tfrac1{\sqrt2}(\ket0 - \ket1) = \ket-$. Every circuit below
+    does this.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · phase kickback · example</p>
+  <h2>Worked: phase kickback, every line</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="orc">$U_f = \mathrm{CNOT}_{03}\,\mathrm{CNOT}_{23}$</span>, target in $\ket-$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>(a) $x = 100$.</b> Expand the target:</p>
+      $$\ket{100}\ket- = \tfrac1{\sqrt2}\big(\ket{100}\ket0 - \ket{100}\ket1\big).$$
+      <p class="small">$\mathrm{CNOT}_{03}$ fires ($x_0 = 1$) and flips the target in both terms:</p>
+      $$\tfrac1{\sqrt2}\big(\ket{100}\ket1 - \ket{100}\ket0\big) = -\ket{100}\ket- .$$
+      <p class="small">$\mathrm{CNOT}_{23}$ does nothing ($x_2 = 0$). Result $-\ket{100}\ket-$, and $(-1)^{f(100)} = (-1)^1$ ✓.</p>
+      <p class="small"><b>(b) $x = 101$.</b> Both CNOTs fire; each gives a factor $-1$: $\ (-1)(-1)\ket{101}\ket- = +\ket{101}\ket-$, and $f(101) = 0$ ✓.</p>
+    </div>
+    <div>
+      <p class="small"><b>(c) A superposition.</b> By linearity, from (a) and (b):</p>
+      $$\tfrac1{\sqrt2}\big(\ket{100} + \ket{101}\big)\ket-\ \mapsto$$
+      $$\tfrac1{\sqrt2}\big(-\ket{100} + \ket{101}\big)\ket- .$$
+      <p class="small">Norm $\tfrac12 + \tfrac12 = 1$ ✓. The input is $\ket{10}\otimes\tfrac1{\sqrt2}(-\ket0 + \ket1) = -\ket{10}\ket-$ on qubits $0, 1, 2$.</p>
+      <p class="small"><b>(d) The sign is visible.</b> $H$ on qubit 2 now gives $-\ket{10}\ket1$: it reads $1$ with certainty. Without the oracle the input was $\ket{10}\ket+$, and $H$ gives $\ket{10}\ket0$: it reads $0$.</p>
+      <p class="small">In (a) and (b) the sign is a <b>global</b> phase, invisible; in (c) it is <b>relative</b>, and one Hadamard reads it.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every CNOT kicks its own sign.</b> With the target in $\ket-$, $\mathrm{CNOT}_{i3}$ multiplies $\ket x\ket-$ by $(-1)^{x_i}$. The oracle is a
+    product of such CNOTs, one for each $i$ with $s_i = 1$, so it multiplies by $\prod_{i:\,s_i = 1}(-1)^{x_i} = (-1)^{s\cdot x}$. Phase kickback for a
+    linear $f$ is therefore a product of one-qubit phases $Z^{s_i}$ on the input qubits — which is why section 5's algorithm never
+    entangles anything.</p>
+    <p><b>The bookkeeping in (c).</b> $\tfrac1{\sqrt2}(-\ket{100} + \ket{101}) = \ket1\otimes\ket0\otimes\tfrac1{\sqrt2}(-\ket0 + \ket1)$ and
+    $\tfrac1{\sqrt2}(-\ket0 + \ket1) = -\ket-$. Then $H\ket- = \ket1$, so $H$ on qubit 2 gives $-\ket{101}$, a basis state up to the global phase
+    $-1$, and qubit 2 reads 1 with probability $1$. The probability distribution of qubit 2 went from $(1, 0)$ to $(0, 1)$, both summing
+    to one, because of one sign.</p>
+    <p><b>A warning about global phase.</b> In (a) the state $-\ket{100}\ket-$ is the same physical state as $\ket{100}\ket-$
+    (unit 01). One query on a single basis state therefore learns <b>nothing</b> in phase-kickback form — the classical way of
+    asking (target $\ket0$) is the right one there. The sign only means something next to another term with a different sign.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · phase kickback</p>
+  <h2>The phase oracle</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">phase oracle</span></span>
+        $$O_f\ket x = (-1)^{f(x)}\ket x .$$
+        <p class="small">Kickback builds it from one query to $U_f$ and an ancilla in $\ket-$, which leaves unentangled.</p>
+      </div>
+      <p class="small"><b>Checks.</b> $O_f$ is diagonal with entries $\pm1$: real, so Hermitian; of modulus one, so unitary; and $O_f^2 = I$ ✓.</p>
+      <div class="box warn"><span class="label">two cautions</span>
+        <p class="small"><b>A lost bit.</b> $O_{1\oplus f} = -O_f$, a global phase: $O_f$ alone cannot tell $f$ from its complement. No problem here asks it to; problem P2 restores the bit with a control qubit.</p>
+        <p class="small"><b>Clean oracles only.</b> If $U_f$ leaves garbage $\ket{g(x)}$, the sign sits on $\ket x\ket{g(x)}$, and terms with orthogonal garbage no longer interfere — unit 10's <i>Garbage destroys interference</i>. Problem P10.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 410 100" width="400" role="img" aria-label="eight cells for x from 000 to 111 holding the signs of the phase oracle for s = 101: plus, minus, plus, minus, minus, plus, minus, plus"><rect x="40" y="10" width="40" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="60.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="60.0" y="62" font-size="12" text-anchor="middle" class="mono soft">000</text><rect x="86" y="10" width="40" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="106.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="106.0" y="62" font-size="12" text-anchor="middle" class="mono soft">001</text><rect x="132" y="10" width="40" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="152.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="152.0" y="62" font-size="12" text-anchor="middle" class="mono soft">010</text><rect x="178" y="10" width="40" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="198.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="198.0" y="62" font-size="12" text-anchor="middle" class="mono soft">011</text><rect x="224" y="10" width="40" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="244.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="244.0" y="62" font-size="12" text-anchor="middle" class="mono soft">100</text><rect x="270" y="10" width="40" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="290.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="290.0" y="62" font-size="12" text-anchor="middle" class="mono soft">101</text><rect x="316" y="10" width="40" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="336.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="336.0" y="62" font-size="12" text-anchor="middle" class="mono soft">110</text><rect x="362" y="10" width="40" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="382.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="382.0" y="62" font-size="12" text-anchor="middle" class="mono soft">111</text><text x="200" y="92" font-size="13" text-anchor="middle" class="soft">diagonal of O<tspan font-size="10" dy="3">f</tspan><tspan dy="-3">: signs (−1) to the power x₀ ⊕ x₂</tspan></text></svg>
+        <p class="cap">The running example's phase oracle: its diagonal is <span class="ref" data-ref="signs">eight signs</span>, four of each.</p>
+      </div>
+      <p class="small"><b>The running example.</b> $O_f = \mathrm{diag}(1, -1, 1, -1, -1, 1, -1, 1)$, and as the last example showed, it equals $Z\otimes I\otimes Z$: a phase $(-1)^{x_0}$ times a phase $(-1)^{x_2}$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Kickback as an identity of operators.</b> Kickback says $U_f(I\otimes\ket-) = O_f\otimes\ket-$ as maps from the input space:
+    on the subspace where the target is $\ket-$, the bit oracle acts as the phase oracle. So any algorithm written with $O_f$ can be
+    run with $U_f$ at the same number of queries, plus one ancilla.</p>
+    <p><b>The complement.</b> $O_{1\oplus f}\ket x = (-1)^{1\oplus f(x)}\ket x = -(-1)^{f(x)}\ket x$, so $O_{1\oplus f} = -O_f$. A global phase cannot be
+    observed (unit 01), so no algorithm using $O_f$ alone can distinguish $f$ from $1\oplus f$. But $U_f$ can: one classical query
+    with target $\ket0$ returns $f(x)$, which differs from $1\oplus f(x)$. The fix (problem P2) is the <b>controlled</b> phase oracle
+    $\ket b\ket x\mapsto(-1)^{b\,f(x)}\ket b\ket x$, which turns the global sign into a relative one on the control.</p>
+    <p><b>The garbage, quantitatively.</b> Suppose $U_f\ket x\ket y\ket0 = \ket x\ket{y\oplus f(x)}\ket{g(x)}$. Then kickback gives
+    $\sum_x a_x(-1)^{f(x)}\ket x\ket{g(x)}\ket-$, and measuring the input register in any basis weights each cross term between $x$ and $x'$ by
+    $\braket{g(x)|g(x')}$. With orthogonal garbage every cross term dies, and the input behaves as if each $x$ had been measured — the
+    which-path detector of unit 01. Bennett's uncomputation (unit 10) is exactly what prevents this.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch</p>
+  <h2>Deutsch's problem in an interferometer</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small"><b>The experiment, recalled from unit 01.</b> One photon at a time meets a half-silvered mirror, travels one of two paths, meets a second half-silvered mirror, and is caught by detector $D_0$ or $D_1$. A glass slab in path 1 delays it there by a phase $\varphi$, and the clicks follow the fringes $P(D_0) = \sin^2\tfrac\varphi2$, $\ P(D_1) = \cos^2\tfrac\varphi2$.</p>
+      <p class="small"><b>Now hide a bit in each path.</b> Someone places in path $b$ either nothing or a slab of phase $\pi$ — that is, phase $\pi f(b)$ — for an unknown $f:\{0, 1\}\to\{0, 1\}$.</p>
+      <p class="small">Up to a global phase the paths differ by $\varphi = \pi\big(f(1) - f(0)\big)$, so</p>
+      $$P(D_0) = \sin^2\tfrac{\pi(f(1) - f(0))}{2} = f(0)\oplus f(1).$$
+      <p class="small"><b>One photon</b>, through both slabs, says whether they are equal. Looking at one slab says nothing about it.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 -14 480 254" width="440" role="img" aria-label="a Mach-Zehnder interferometer: a photon enters from the left, a half-silvered mirror splits path 0 along the bottom and path 1 up the left side; mirrors bring both to a second half-silvered mirror, whose outputs go up to detector D0 and right to detector D1; a glass slab of phase pi f of 0 sits in path 0 and one of phase pi f of 1 in path 1"><line x1="20" y1="190" x2="90" y2="190" class="unit" stroke-width="2.4"/><line x1="90" y1="190" x2="330" y2="190" class="unit" stroke-width="2.4"/><line x1="330" y1="190" x2="330" y2="60" class="unit" stroke-width="2.4"/><line x1="90" y1="190" x2="90" y2="60" class="unit" stroke-width="2.4"/><line x1="90" y1="60" x2="330" y2="60" class="unit" stroke-width="2.4"/><line x1="330" y1="60" x2="410" y2="60" class="unit" stroke-width="2.4"/><line x1="330" y1="60" x2="330" y2="22" class="unit" stroke-width="2.4"/><line x1="72" y1="208" x2="108" y2="172" class="ink" stroke-width="3" stroke-dasharray="5 3"/><line x1="312" y1="78" x2="348" y2="42" class="ink" stroke-width="3" stroke-dasharray="5 3"/><line x1="312" y1="208" x2="348" y2="172" class="ink" stroke-width="5"/><line x1="72" y1="78" x2="108" y2="42" class="ink" stroke-width="5"/><rect x="196" y="176" width="22" height="28" class="fill-alt alt" stroke-width="1"/><rect x="196" y="46" width="22" height="28" class="fill-alt alt" stroke-width="1"/><text x="207" y="228" font-size="13" text-anchor="middle" class="alt">slab: phase π f(0)</text><text x="207" y="36" font-size="13" text-anchor="middle" class="alt">slab: phase π f(1)</text><text x="150" y="182" font-size="12" text-anchor="middle" class="soft">path 0</text><text x="150" y="52" font-size="12" text-anchor="middle" class="soft">path 1</text><rect x="410" y="44" width="26" height="32" rx="13" class="fill-ink ink"/><text x="446" y="65" font-size="15" text-anchor="start">D₁</text><rect x="314" y="-4" width="32" height="26" rx="13" class="fill-ink ink"/><text x="356" y="14" font-size="15" text-anchor="start">D₀</text><text x="20" y="180" font-size="12" text-anchor="start" class="soft">photon</text></svg>
+        <p class="cap">Unit 01's Mach–Zehnder interferometer with a slab that may or may not be there in each path.</p>
+      </div>
+      <p class="small">Check the four cases: slabs $(0,0)$ and $(\pi,\pi)$ send the photon to $D_1$; $(0,\pi)$ and $(\pi,0)$ to $D_0$. Each distribution sums to one ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The computation.</b> The photon enters path 0. With unit 01's beam splitter $B = \tfrac1{\sqrt2}\begin{pmatrix}1 &amp; i\\ i &amp; 1\end{pmatrix}$ and slabs
+    $\mathrm{diag}(e^{i\pi f(0)}, e^{i\pi f(1)}) = e^{i\pi f(0)}\,\mathrm{diag}(1, e^{i\varphi})$, $\varphi = \pi(f(1) - f(0))$, the output is $e^{i\pi f(0)}$ times
+    unit 01's state $\tfrac12\big[(1 - e^{i\varphi})\ket0 + i(1 + e^{i\varphi})\ket1\big]$, whose probabilities are $\sin^2\tfrac\varphi2$ and $\cos^2\tfrac\varphi2$. For
+    $\varphi = 0$ that is $(0, 1)$; for $\varphi = \pm\pi$ it is $(1, 0)$. The global factor $e^{i\pi f(0)} = \pm1$ changes nothing.</p>
+    <p><b>Why this is the right picture.</b> A slab of phase $\pi f(b)$ in path $b$ is exactly the phase oracle $O_f$ acting on the
+    photon's path qubit. The first beam splitter puts the photon into both paths, so it "consults" both slabs; the second recombines
+    the paths so that the relative sign decides the detector. What comes out is one bit, the parity — never both values of
+    $f$. That is the shape of every algorithm in Part D: a single global property of $f$, extracted by interference, and nothing
+    more.</p>
+    <p><b>Classically.</b> A slab is a physical object; to learn whether two unknown slabs are equal by examining them one at a time,
+    one must examine both. The photon examines neither separately.</p>
+    <p><b>History.</b> D. Deutsch, "Quantum theory, the Church–Turing principle and the universal quantum computer",
+    <i>Proc. R. Soc. Lond. A</i> 400, 97 (1985), posed the problem and gave the first algorithm that beat classical query counting on
+    it — though, in that version, only with probability $\tfrac12$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch</p>
+  <h2>Deutsch's algorithm</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: <span class="term">Deutsch's algorithm</span></span>
+        <p class="small">For $f:\{0, 1\}\to\{0, 1\}$, the circuit below outputs $f(0)\oplus f(1)$ with probability $1$, using one query.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\psi_1 = H\ket0\otimes H\ket1 = \ket+\ket-$. By kickback,</p>
+        $$\psi_2 = \tfrac1{\sqrt2}\big((-1)^{f(0)}\ket0 + (-1)^{f(1)}\ket1\big)\ket-$$
+        $$= (-1)^{f(0)}\,\tfrac1{\sqrt2}\big(\ket0 + (-1)^{f(0)\oplus f(1)}\ket1\big)\ket-,$$
+        <p class="small">which is $\pm\ket+\ket-$ if $f(0) = f(1)$ and $\pm\ket-\ket-$ if not. Since $H\ket+ = \ket0$ and $H\ket- = \ket1$,</p>
+        $$\psi_3 = (-1)^{f(0)}\ket{f(0)\oplus f(1)}\ket- .\qquad\blacksquare$$
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 172" width="430" role="img" aria-label="Deutsch's algorithm: qubit 0 starts at 0 and gets H, qubit 1 starts at 1 and gets H; both enter U_f; then H on qubit 0 and a measurement, which reads f of 0 xor f of 1; dashed lines mark the states psi0 to psi3"><line x1="60" y1="40" x2="330" y2="40" class="ink" stroke-width="1.6"/><line x1="60" y1="110" x2="330" y2="110" class="ink" stroke-width="1.6"/><text x="54" y="45" font-size="15" text-anchor="end">|0⟩</text><text x="54" y="115" font-size="15" text-anchor="end">|1⟩</text><rect x="84.0" y="24.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="100" y="45" font-size="15" text-anchor="middle">H</text><rect x="84.0" y="94.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="100" y="115" font-size="15" text-anchor="middle">H</text><rect x="158.0" y="20" width="54" height="110" class="fill-ground unit" stroke-width="1.6"/><text x="185" y="81.0" font-size="18" text-anchor="middle">U<tspan font-size="13" dy="4">f</tspan></text><rect x="249.0" y="24.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="265" y="45" font-size="15" text-anchor="middle">H</text><rect x="301" y="24" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 307 50 A 11 11 0 0 1 329 50" fill="none" class="ink" stroke-width="1.3"/><line x1="318" y1="50" x2="327" y2="31" class="ink" stroke-width="1.3"/><text x="338" y="115" font-size="15" text-anchor="start">|−⟩</text><line x1="70" y1="8" x2="70" y2="140" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="70" y="156" font-size="13" text-anchor="middle" class="fill-accent">ψ₀</text><line x1="140" y1="8" x2="140" y2="140" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="140" y="156" font-size="13" text-anchor="middle" class="fill-accent">ψ₁</text><line x1="225" y1="8" x2="225" y2="140" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="225" y="156" font-size="13" text-anchor="middle" class="fill-accent">ψ₂</text><line x1="292" y1="8" x2="292" y2="140" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="292" y="156" font-size="13" text-anchor="middle" class="fill-accent">ψ₃</text><text x="345" y="45" font-size="14" text-anchor="start">f(0) ⊕ f(1)</text></svg>
+        <p class="cap">The interferometer as a circuit: $H$ is the splitter, the oracle is the slabs, the meter is the detectors.</p>
+      </div>
+      <p class="small"><b>Check:</b> $\psi_3$ is a basis state up to the global phase $\pm1$, so the outcome distribution is $(1, 0)$ or $(0, 1)$, summing to one ✓.</p>
+      <p class="small">The <span class="term">Deutsch problem</span>: decide $f(0)\oplus f(1)$ — whether $f$ is constant — with as few queries as possible.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The middle step in full.</b> $\psi_1 = \tfrac1{\sqrt2}(\ket0 + \ket1)\ket-$. Kickback on each term: $\ket0\ket-\mapsto(-1)^{f(0)}\ket0\ket-$ and
+    $\ket1\ket-\mapsto(-1)^{f(1)}\ket1\ket-$. Factor out $(-1)^{f(0)}$: the coefficient of $\ket1$ becomes $(-1)^{f(1) - f(0)} = (-1)^{f(0)\oplus f(1)}$, since
+    $f(1) - f(0)$ and $f(0)\oplus f(1)$ have the same parity.</p>
+    <p><b>Interferometer and circuit, compared.</b> Unit 01's beam splitter $B$ and the Hadamard differ by phases on the
+    paths: $B = R_x(-\tfrac\pi2)$, a quarter-turn about $x$, while $H$ is a reflection; both map a path to an equal-weight superposition of both paths. Any such
+    pair works, and changes only which detector means "equal": in the interferometer $D_1$ fires on equal slabs, in the circuit the
+    meter reads $0$. The circuit's choice is the one that generalises to $n$ qubits.</p>
+    <p><b>The four functions, as circuits.</b> $f\equiv0$: no gate. $f\equiv1$: $X$ on the target. $f = \mathrm{id}$: a CNOT. $f = \mathrm{not}$:
+    a CNOT then $X$ on the target. The next slide runs all four.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch · example</p>
+  <h2>Worked: Deutsch on all four functions</h2>
+  <div class="box ex"><span class="label">every $f:\{0, 1\}\to\{0, 1\}$, through the circuit</span>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <tr><th>$f$</th><th class="num">$f(0)\,f(1)$</th><th>qubit 0 after $U_f$</th><th>qubit 0 at the end</th><th class="num">reads</th></tr>
+        <tr><td>$f\equiv0$</td><td class="num">0 0</td><td>$+\ket+$</td><td>$+\ket0$</td><td class="num">0</td></tr>
+        <tr><td>$f\equiv1$</td><td class="num">1 1</td><td>$-\ket+$</td><td>$-\ket0$</td><td class="num">0</td></tr>
+        <tr><td>$f = \mathrm{id}$</td><td class="num">0 1</td><td>$+\ket-$</td><td>$+\ket1$</td><td class="num">1</td></tr>
+        <tr><td>$f = \mathrm{not}$</td><td class="num">1 0</td><td>$-\ket-$</td><td>$-\ket1$</td><td class="num">1</td></tr>
+      </table>
+      <p class="small">The target leaves as $\ket-$ in every row. The reading is $f(0)\oplus f(1)$ in every row ✓.</p>
+      <div class="fig">
+        <svg viewBox="0 0 530 132" width="520" role="img" aria-label="four tiny two-wire circuits, x on top and y below: for f identically 0, nothing; for f identically 1, an X on y; for the identity, a CNOT from x to y; for not, a CNOT from x to y followed by an X on y"><line x1="30" y1="30" x2="120" y2="30" class="ink" stroke-width="1.6"/><line x1="30" y1="80" x2="120" y2="80" class="ink" stroke-width="1.6"/><text x="24" y="35" font-size="13" text-anchor="end">x</text><text x="24" y="85" font-size="13" text-anchor="end">y</text><text x="75" y="122" font-size="13" text-anchor="middle">f ≡ 0</text><line x1="160" y1="30" x2="250" y2="30" class="ink" stroke-width="1.6"/><line x1="160" y1="80" x2="250" y2="80" class="ink" stroke-width="1.6"/><text x="154" y="35" font-size="13" text-anchor="end">x</text><text x="154" y="85" font-size="13" text-anchor="end">y</text><rect x="191.0" y="66.0" width="28" height="28" class="fill-ground alt" stroke-width="1.6"/><text x="205" y="85" font-size="14" text-anchor="middle">X</text><text x="205" y="122" font-size="13" text-anchor="middle">f ≡ 1</text><line x1="290" y1="30" x2="380" y2="30" class="ink" stroke-width="1.6"/><line x1="290" y1="80" x2="380" y2="80" class="ink" stroke-width="1.6"/><text x="284" y="35" font-size="13" text-anchor="end">x</text><text x="284" y="85" font-size="13" text-anchor="end">y</text><line x1="335" y1="30" x2="335" y2="91" class="ink" stroke-width="1.6"/><circle cx="335" cy="30" r="5.5" class="fill-ink"/><circle cx="335" cy="80" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="324" y1="80" x2="346" y2="80" class="ink" stroke-width="1.6"/><line x1="335" y1="69" x2="335" y2="91" class="ink" stroke-width="1.6"/><text x="335" y="122" font-size="13" text-anchor="middle">f = id</text><line x1="420" y1="30" x2="510" y2="30" class="ink" stroke-width="1.6"/><line x1="420" y1="80" x2="510" y2="80" class="ink" stroke-width="1.6"/><text x="414" y="35" font-size="13" text-anchor="end">x</text><text x="414" y="85" font-size="13" text-anchor="end">y</text><line x1="450" y1="30" x2="450" y2="91" class="ink" stroke-width="1.6"/><circle cx="450" cy="30" r="5.5" class="fill-ink"/><circle cx="450" cy="80" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="439" y1="80" x2="461" y2="80" class="ink" stroke-width="1.6"/><line x1="450" y1="69" x2="450" y2="91" class="ink" stroke-width="1.6"/><rect x="470.0" y="66.0" width="28" height="28" class="fill-ground alt" stroke-width="1.6"/><text x="484" y="85" font-size="14" text-anchor="middle">X</text><text x="465" y="122" font-size="13" text-anchor="middle">f = not</text></svg>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>One row from scratch: $f = \mathrm{id}$</b>, whose oracle is a CNOT.</p>
+      $$\psi_1 = \tfrac12\big(\ket{00} - \ket{01} + \ket{10} - \ket{11}\big).$$
+      <p class="small">The CNOT swaps $\ket{10}\leftrightarrow\ket{11}$:</p>
+      $$\psi_2 = \tfrac12\big(\ket{00} - \ket{01} + \ket{11} - \ket{10}\big)$$
+      $$= \tfrac12(\ket0 - \ket1)(\ket0 - \ket1) = \ket-\ket- .$$
+      <p class="small">Then $H\ket- = \ket1$: $\ \psi_3 = \ket1\ket-$. Four amplitudes of $\pm\tfrac12$, squares summing to $1$ ✓; the meter reads $1$.</p>
+      <p class="small">The signs of rows 2 and 4 are global phases: they change nothing measurable.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The other rows, briefly.</b> $f\equiv0$: $U_f = I$, so $\psi_2 = \ket+\ket-$, then $\ket0\ket-$. $f\equiv1$: $U_f = I\otimes X$, and
+    $X\ket- = -\ket-$, so $\psi_2 = -\ket+\ket-$ and $\psi_3 = -\ket0\ket-$. $f = \mathrm{not}$: the CNOT gives $\ket-\ket-$ as above, then $X$ on the
+    target gives $-\ket-\ket-$, and $\psi_3 = -\ket1\ket-$.</p>
+    <p><b>What the table shows.</b> The four functions fall into two pairs, $\{0, 1\}$ and $\{\mathrm{id}, \mathrm{not}\}$, and within a pair the
+    final states differ only by a global sign. So the algorithm cannot say <b>which</b> function it was given — only which pair.
+    That is one bit, $f(0)\oplus f(1)$, and it is all one query of this kind can deliver: the phase oracle cannot separate
+    $f$ from $1\oplus f$ (<i>The phase oracle</i>).</p>
+    <p>The referee checks each row in one line, with <code>Circuit.oracle</code>; problem P1 does it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch</p>
+  <h2>Classically, two queries</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Every deterministic algorithm for Deutsch's problem makes $2$ queries. Every one-query randomised algorithm is right with probability at most $\tfrac12$ on some $f$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Deterministic:</b> one query sees $f(b)$ for one $b$. Flipping $f(1 - b)$ changes the parity and not the answer: a fooling pair.</p>
+        <p class="small"><b>Randomised:</b> take $f$ uniform over the four. Whatever $b$ a tree asks, $f(1 - b)$ is a fair coin independent of $f(b)$, so each one-query tree is right on exactly $2$ of the $4$ functions. Averaging gives an $f$ with success $\le\tfrac12$. $\blacksquare$</p>
+      </div>
+      <p class="small">So $D = 2$, $\ R_\varepsilon = 2$ for every $\varepsilon\lt\tfrac12$, $\ Q_E = 1$. A <b>factor of two</b>, against every classical model.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 196" width="420" role="img" aria-label="a one-query classical tree for Deutsch's problem: it asks f of 0; on answer 0 both f identically 0, of parity 0, and the identity, of parity 1, remain; on answer 1 both f identically 1, of parity 0, and not, of parity 1, remain"><rect x="170" y="14" width="100" height="30" rx="4" class="fill-ground ink" stroke-width="1.4"/><text x="220" y="34" font-size="14" text-anchor="middle" class="mono">f(0)?</text><line x1="220" y1="44" x2="110" y2="84" class="rule" stroke-width="1.4"/><text x="155.0" y="66" font-size="12" text-anchor="middle" class="soft">0</text><rect x="15" y="84" width="190" height="78" rx="4" class="fill-ground unit" stroke-width="1.4"/><text x="30" y="112" font-size="14" text-anchor="start">f ≡ 0</text><text x="190" y="112" font-size="14" text-anchor="end" class="alt">parity 0</text><text x="30" y="142" font-size="14" text-anchor="start">f = id</text><text x="190" y="142" font-size="14" text-anchor="end" class="alt">parity 1</text><line x1="220" y1="44" x2="330" y2="84" class="rule" stroke-width="1.4"/><text x="285.0" y="66" font-size="12" text-anchor="middle" class="soft">1</text><rect x="235" y="84" width="190" height="78" rx="4" class="fill-ground unit" stroke-width="1.4"/><text x="250" y="112" font-size="14" text-anchor="start">f ≡ 1</text><text x="410" y="112" font-size="14" text-anchor="end" class="alt">parity 0</text><text x="250" y="142" font-size="14" text-anchor="start">f = not</text><text x="410" y="142" font-size="14" text-anchor="end" class="alt">parity 1</text><text x="220" y="186" font-size="13" text-anchor="middle" class="soft">each answer leaves both parities possible</text></svg>
+        <p class="cap">After one classical query, two functions remain on each branch, with opposite parities.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The randomised bound in full.</b> A one-query tree asks some $b$ and outputs a bit $g(f(b))$. Under the uniform
+    distribution on the four functions, $f(b)$ and $f(1 - b)$ are independent fair bits, so the parity $f(0)\oplus f(1)$ is a fair bit
+    independent of $f(b)$, and $\Pr[g(f(b)) = f(0)\oplus f(1)] = \tfrac12$ exactly. Every tree in the support of $\mu$ has success $\tfrac12$ on
+    average over $f$, so $\mu$ does too, and the averaging tool gives an $f$ on which $\mu$'s success is at most $\tfrac12$ — no better than
+    guessing without a query. Two queries suffice deterministically, so $R_\varepsilon = 2$ for $\varepsilon\lt\tfrac12$.</p>
+    <p><b>History.</b> Deutsch's 1985 algorithm was not this one: it answered correctly with probability $\tfrac12$ and otherwise
+    reported failure. The exact one-query version on the previous slides is from Cleve, Ekert, Macchiavello and Mosca (1998), and is the
+    one now taught.</p>
+    <p><b>A factor of two is not nothing.</b> It is the smallest possible separation, and it holds against every classical model,
+    deterministic or randomised. The next two sections scale it up — and find that scaling up the separation and keeping it against
+    randomised algorithms pull in different directions.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>The Hadamard transform</h2>
+  <p>Hadamards on every qubit turn a pattern of signs into a string: the Fourier transform of the group of bit strings.</p>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the Hadamard transform</p>
+  <h2>Hadamards on n qubits</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">Hadamard transform</span></span>
+        $$H^{\otimes n}\ket x = 2^{-n/2}\sum_{y\in\{0, 1\}^n}(-1)^{x\cdot y}\ket y .$$
+      </div>
+      <div class="box proof"><span class="label">proof, by induction on $n$</span>
+        <p class="small">$n = 1$: $\ H\ket b = \tfrac1{\sqrt2}\big(\ket0 + (-1)^b\ket1\big) = 2^{-1/2}\sum_c(-1)^{bc}\ket c$. Step: for $x\in\{0, 1\}^n$ and a bit $b$,</p>
+        $$H^{\otimes(n+1)}\ket{x\,b} = H^{\otimes n}\ket x\otimes H\ket b$$
+        $$= 2^{-\frac{n+1}2}\sum_{y, c}(-1)^{x\cdot y + bc}\ket{y\,c},$$
+        <p class="small">and $(x\,b)\cdot(y\,c) = x\cdot y\oplus bc$; a sign depends only on parity. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>Check</b>, $n = 2$, $x = 11$: $H\ket1\otimes H\ket1 = \tfrac12(\ket0 - \ket1)(\ket0 - \ket1) = \tfrac12(\ket{00} - \ket{01} - \ket{10} + \ket{11})$, signs $(-1)^{y_0 + y_1}$ ✓; norm $4\cdot\tfrac14 = 1$ ✓. And $H^{\otimes n}\ket{0^n}$ is the uniform superposition.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 342" width="350" role="img" aria-label="the eight by eight matrix of signs minus one to the x dot y, rows y and columns x from 000 to 111; minus signs are filled; the row for y = 101 is outlined and reads plus, minus, plus, minus, minus, plus, minus, plus"><text x="62" y="62" font-size="12" text-anchor="end" class="mono soft">000</text><text x="87.0" y="32" font-size="11" text-anchor="middle" class="mono soft">000</text><rect x="70" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="121.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="138" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="155.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="172" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="189.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="206" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="223.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="240" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="257.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="274" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="291.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="308" y="40" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="325.0" y="63" font-size="16" text-anchor="middle" class="fill-unit">+</text><text x="62" y="96" font-size="12" text-anchor="end" class="mono soft">001</text><text x="121.0" y="32" font-size="11" text-anchor="middle" class="mono soft">001</text><rect x="70" y="74" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="97" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="74" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="121.0" y="97" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="138" y="74" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="155.0" y="97" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="172" y="74" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="189.0" y="97" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="206" y="74" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="223.0" y="97" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="240" y="74" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="257.0" y="97" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="274" y="74" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="291.0" y="97" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="308" y="74" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="325.0" y="97" font-size="16" text-anchor="middle" class="fill-ground">−</text><text x="62" y="130" font-size="12" text-anchor="end" class="mono soft">010</text><text x="155.0" y="32" font-size="11" text-anchor="middle" class="mono soft">010</text><rect x="70" y="108" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="131" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="108" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="121.0" y="131" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="138" y="108" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="155.0" y="131" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="172" y="108" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="189.0" y="131" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="206" y="108" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="223.0" y="131" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="240" y="108" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="257.0" y="131" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="274" y="108" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="291.0" y="131" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="308" y="108" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="325.0" y="131" font-size="16" text-anchor="middle" class="fill-ground">−</text><text x="62" y="164" font-size="12" text-anchor="end" class="mono soft">011</text><text x="189.0" y="32" font-size="11" text-anchor="middle" class="mono soft">011</text><rect x="70" y="142" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="165" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="142" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="121.0" y="165" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="138" y="142" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="155.0" y="165" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="172" y="142" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="189.0" y="165" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="206" y="142" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="223.0" y="165" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="240" y="142" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="257.0" y="165" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="274" y="142" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="291.0" y="165" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="308" y="142" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="325.0" y="165" font-size="16" text-anchor="middle" class="fill-unit">+</text><text x="62" y="198" font-size="12" text-anchor="end" class="mono soft">100</text><text x="223.0" y="32" font-size="11" text-anchor="middle" class="mono soft">100</text><rect x="70" y="176" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="199" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="176" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="121.0" y="199" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="138" y="176" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="155.0" y="199" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="172" y="176" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="189.0" y="199" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="206" y="176" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="223.0" y="199" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="240" y="176" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="257.0" y="199" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="274" y="176" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="291.0" y="199" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="308" y="176" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="325.0" y="199" font-size="16" text-anchor="middle" class="fill-ground">−</text><text x="62" y="232" font-size="12" text-anchor="end" class="mono soft">101</text><text x="257.0" y="32" font-size="11" text-anchor="middle" class="mono soft">101</text><rect x="70" y="210" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="233" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="210" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="121.0" y="233" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="138" y="210" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="155.0" y="233" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="172" y="210" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="189.0" y="233" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="206" y="210" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="223.0" y="233" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="240" y="210" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="257.0" y="233" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="274" y="210" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="291.0" y="233" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="308" y="210" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="325.0" y="233" font-size="16" text-anchor="middle" class="fill-unit">+</text><text x="62" y="266" font-size="12" text-anchor="end" class="mono soft">110</text><text x="291.0" y="32" font-size="11" text-anchor="middle" class="mono soft">110</text><rect x="70" y="244" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="267" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="244" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="121.0" y="267" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="138" y="244" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="155.0" y="267" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="172" y="244" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="189.0" y="267" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="206" y="244" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="223.0" y="267" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="240" y="244" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="257.0" y="267" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="274" y="244" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="291.0" y="267" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="308" y="244" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="325.0" y="267" font-size="16" text-anchor="middle" class="fill-unit">+</text><text x="62" y="300" font-size="12" text-anchor="end" class="mono soft">111</text><text x="325.0" y="32" font-size="11" text-anchor="middle" class="mono soft">111</text><rect x="70" y="278" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="87.0" y="301" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="104" y="278" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="121.0" y="301" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="138" y="278" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="155.0" y="301" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="172" y="278" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="189.0" y="301" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="206" y="278" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="223.0" y="301" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="240" y="278" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="257.0" y="301" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="274" y="278" width="34" height="34" class="fill-ground rule" stroke-width="1"/><text x="291.0" y="301" font-size="16" text-anchor="middle" class="fill-unit">+</text><rect x="308" y="278" width="34" height="34" class="fill-alt rule" stroke-width="1"/><text x="325.0" y="301" font-size="16" text-anchor="middle" class="fill-ground">−</text><rect x="67" y="207" width="278" height="40" fill="none" class="accent" stroke-width="3"/><text x="206" y="334" font-size="12" text-anchor="middle" class="soft">entry (y, x) is (−1) to the power x·y;  row 101 outlined</text><text x="62" y="20" font-size="11" text-anchor="end" class="soft">y \ x</text></svg>
+        <p class="cap">$2^{3/2}H^{\otimes3}$ as a table of signs. Row $101$ is <span class="ref" data-ref="signs">the running example's eight signs</span>.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof, the step written out.</b> By the induction hypothesis and the case $n = 1$,
+    $H^{\otimes n}\ket x\otimes H\ket b = \big(2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y\big)\otimes\big(2^{-1/2}\sum_c(-1)^{bc}\ket c\big)$. The tensor product is
+    bilinear (unit 03), so this is $2^{-(n+1)/2}\sum_{y, c}(-1)^{x\cdot y}(-1)^{bc}\ket y\otimes\ket c$. Concatenation matches the qubit order:
+    $\ket y\otimes\ket c = \ket{y\,c}$, with $c$ the new last qubit. Finally $(-1)^{x\cdot y}(-1)^{bc} = (-1)^{x\cdot y + bc}$ and, since $(-1)^k$ depends
+    only on $k$ mod 2, this is $(-1)^{(x\cdot y)\oplus bc} = (-1)^{(x\,b)\cdot(y\,c)}$.</p>
+    <p><b>Unitary, and its own inverse.</b> $H$ is unitary and $H^2 = I$ (unit 02), so $H^{\otimes n}$ is unitary — a tensor product of
+    unitaries — and $(H^{\otimes n})^2 = (H^2)^{\otimes n} = I$. In the table: the matrix is real and symmetric, since $x\cdot y = y\cdot x$, so it is its
+    own transpose and adjoint, and unitarity says its rows are orthonormal. The next slide proves that orthogonality directly.</p>
+    <p><b>Reading the table.</b> Row $y$, column $x$ holds $(-1)^{x\cdot y}$. Row $000$ is all $+$; every other row has four $+$ and four $-$.
+    The row for $y = 101$ reads $+\,-\,+\,-\,-\,+\,-\,+$, which is $(-1)^{x_0\oplus x_2}$ — the diagonal of the running example's phase
+    oracle. That coincidence is section 5's algorithm.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the Hadamard transform</p>
+  <h2>The characters of ℤ₂ⁿ</h2>
+  <div class="cols">
+    <div>
+      <p class="small">$\mathbb Z_2^n$: bit strings under $\oplus$ — a group with identity $0^n$, each element its own inverse.</p>
+      <div class="box def"><span class="label">a <span class="term">character</span></span>
+        <p class="small">A homomorphism $\chi:\mathbb Z_2^n\to\mathbb C^\times$ (nonzero complex numbers under multiplication): $\chi(x\oplus x') = \chi(x)\chi(x')$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">The characters are exactly $\chi_y(x) = (-1)^{x\cdot y}$, one for each $y$, and they are orthogonal:</p>
+        $$\sum_x\chi_y(x)\chi_z(x) = 2^n\,\delta_{yz}.$$
+      </div>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$\chi_y$ is a homomorphism because $(x\oplus x')\cdot y = x\cdot y\oplus x'\cdot y$. Conversely $\chi(e_i)^2 = \chi(e_i\oplus e_i) = \chi(0) = 1$, so $\chi(e_i) = (-1)^{y_i}$ for some bit $y_i$, and $\chi(x) = \prod_i\chi(e_i)^{x_i} = (-1)^{x\cdot y}$. Orthogonality: $\chi_y\chi_z = \chi_{y\oplus z}$, and</p>
+        $$\sum_x(-1)^{x\cdot w} = \prod_i\big(1 + (-1)^{w_i}\big),$$
+        <p class="small">which is $2^n$ if $w = 0$ and $0$ otherwise. $\blacksquare$</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 400 196" width="400" role="img" aria-label="three rows of eight signs: the character for 101, the character for 011, and their cellwise product, which is the character for 110"><text x="30" y="34" font-size="14" text-anchor="end">χ₁₀₁</text><rect x="44" y="10" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="62.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><rect x="86" y="10" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="104.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="128" y="10" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="146.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><rect x="170" y="10" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="188.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="212" y="10" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="230.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="254" y="10" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="272.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><rect x="296" y="10" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="314.0" y="34" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="338" y="10" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="356.0" y="34" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="30" y="82" font-size="14" text-anchor="end">χ₀₁₁</text><rect x="44" y="58" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="62.0" y="82" font-size="19" text-anchor="middle" class="fill-unit">+</text><rect x="86" y="58" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="104.0" y="82" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="128" y="58" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="146.0" y="82" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="170" y="58" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="188.0" y="82" font-size="19" text-anchor="middle" class="fill-unit">+</text><rect x="212" y="58" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="230.0" y="82" font-size="19" text-anchor="middle" class="fill-unit">+</text><rect x="254" y="58" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="272.0" y="82" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="296" y="58" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="314.0" y="82" font-size="19" text-anchor="middle" class="fill-ground">−</text><rect x="338" y="58" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="356.0" y="82" font-size="19" text-anchor="middle" class="fill-unit">+</text><line x1="44" y1="102" x2="374" y2="102" class="ink" stroke-width="1.2"/><text x="30" y="136" font-size="14" text-anchor="end">χ₁₁₀</text><rect x="44" y="112" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="62.0" y="136" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="62.0" y="164" font-size="12" text-anchor="middle" class="mono soft">000</text><rect x="86" y="112" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="104.0" y="136" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="104.0" y="164" font-size="12" text-anchor="middle" class="mono soft">001</text><rect x="128" y="112" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="146.0" y="136" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="146.0" y="164" font-size="12" text-anchor="middle" class="mono soft">010</text><rect x="170" y="112" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="188.0" y="136" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="188.0" y="164" font-size="12" text-anchor="middle" class="mono soft">011</text><rect x="212" y="112" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="230.0" y="136" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="230.0" y="164" font-size="12" text-anchor="middle" class="mono soft">100</text><rect x="254" y="112" width="36" height="34" class="fill-alt alt" stroke-width="1.6"/><text x="272.0" y="136" font-size="19" text-anchor="middle" class="fill-ground">−</text><text x="272.0" y="164" font-size="12" text-anchor="middle" class="mono soft">101</text><rect x="296" y="112" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="314.0" y="136" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="314.0" y="164" font-size="12" text-anchor="middle" class="mono soft">110</text><rect x="338" y="112" width="36" height="34" class="fill-ground unit" stroke-width="1.6"/><text x="356.0" y="136" font-size="19" text-anchor="middle" class="fill-unit">+</text><text x="356.0" y="164" font-size="12" text-anchor="middle" class="mono soft">111</text><text x="210" y="186" font-size="13" text-anchor="middle" class="soft">multiply cell by cell: 101 ⊕ 011 = 110</text></svg>
+        <p class="cap">Characters multiply as their labels add: $\chi_{101}\chi_{011} = \chi_{110}$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the product formula.</b> $\sum_{x\in\{0, 1\}^n}(-1)^{x\cdot w} = \sum_{x_0}\cdots\sum_{x_{n-1}}\prod_i(-1)^{x_iw_i} = \prod_i\sum_{x_i\in\{0, 1\}}(-1)^{x_iw_i}$,
+    and the factor for $i$ is $1 + 1 = 2$ if $w_i = 0$ and $1 - 1 = 0$ if $w_i = 1$. One zero factor kills the product.</p>
+    <p><b>What this says about $H^{\otimes n}$.</b> Its rows are $2^{-n/2}\chi_y$, so orthogonality of the characters is exactly
+    $H^{\otimes n}(H^{\otimes n})^\dagger = I$: the transform is unitary, now proved without the tensor product.</p>
+    <p><b>The first appearance of a pattern.</b> For any finite abelian group $G$, the characters $G\to\mathbb C^\times$ form a group of the
+    same size, they are orthogonal, and the unitary whose rows are the normalised characters is the <b>Fourier transform on $G$</b>.
+    For $G = \mathbb Z_2^n$ it is $H^{\otimes n}$. For $G = \mathbb Z_N$ the characters are $j\mapsto e^{2\pi ijk/N}$ and the transform is the quantum Fourier
+    transform of unit 15, which builds the general theory. At $N = 2$, $e^{2\pi ijk/2} = (-1)^{jk}$, so $H$ is the QFT on $\mathbb Z_2$, and the course's
+    sign convention for the QFT makes no difference there.</p>
+    <p><b>The running example.</b> $(-1)^{f(x)} = \chi_{101}(x)$: the function in the box, written as signs, is a character. Characters of
+    $\mathbb Z_2^n$ are exactly the functions $x\mapsto(-1)^{s\cdot x}$, i.e. the sign patterns of the linear functions — which is why
+    Bernstein–Vazirani's promise is "$f$ is linear".</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the Hadamard transform</p>
+  <h2>Fourier sampling</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Fourier transform over ℤ₂ⁿ</span></span>
+        <p class="small">For $F:\{0, 1\}^n\to\mathbb C$, $\ \hat F(y) = 2^{-n}\sum_xF(x)(-1)^{x\cdot y}$. By orthogonality $F = \sum_y\hat F(y)\chi_y$, and if $F = \pm1$ everywhere, $\sum_y\hat F(y)^2 = 1$ (Parseval).</p>
+      </div>
+      <div class="box thm"><span class="label">theorem: <span class="term">Fourier sampling</span></span>
+        <p class="small">With $F = (-1)^f$, one query gives</p>
+        $$H^{\otimes n}O_fH^{\otimes n}\ket{0^n} = \sum_y\hat F(y)\ket y,$$
+        <p class="small">so measuring returns $y$ with probability $\hat F(y)^2$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$H^{\otimes n}\ket{0^n} = 2^{-n/2}\sum_x\ket x$; $\ O_f$ multiplies by $F(x)$; then $H^{\otimes n}$ by the theorem, and swap the sums. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 170" width="390" role="img" aria-label="Fourier sampling: n qubits at zero get H on each, a target at 1 gets H; both enter U_f; H on each input qubit again; the input register is measured, giving y with probability F hat of y squared"><line x1="60" y1="40" x2="360" y2="40" class="ink" stroke-width="1.6"/><line x1="60" y1="110" x2="300" y2="110" class="ink" stroke-width="1.6"/><text x="54" y="45" font-size="15" text-anchor="end">|0ⁿ⟩</text><text x="54" y="115" font-size="15" text-anchor="end">|1⟩</text><line x1="67" y1="48" x2="77" y2="32" class="ink" stroke-width="1.3"/><text x="80" y="32" font-size="11" text-anchor="start" class="soft">n</text><rect x="96.0" y="24.0" width="44" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="118" y="45" font-size="15" text-anchor="middle">H<tspan font-size="10" dy="-7">⊗n</tspan></text><rect x="102.0" y="94.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="118" y="115" font-size="15" text-anchor="middle">H</text><rect x="173.0" y="20" width="54" height="110" class="fill-ground unit" stroke-width="1.6"/><text x="200" y="81.0" font-size="18" text-anchor="middle">U<tspan font-size="13" dy="4">f</tspan></text><rect x="263.0" y="24.0" width="44" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="285" y="45" font-size="15" text-anchor="middle">H<tspan font-size="10" dy="-7">⊗n</tspan></text><rect x="328" y="24" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 334 50 A 11 11 0 0 1 356 50" fill="none" class="ink" stroke-width="1.3"/><line x1="345" y1="50" x2="354" y2="31" class="ink" stroke-width="1.3"/><text x="308" y="115" font-size="15" text-anchor="start">|−⟩</text><text x="368" y="45" font-size="15" text-anchor="start" class="fill-unit">y</text><text x="210" y="160" font-size="14" text-anchor="middle" class="fill-unit">Pr(y) = F̂(y)²</text></svg>
+        <p class="cap">One query, Hadamards on both sides: the outcome is a sample from $\hat F^{\,2}$.</p>
+      </div>
+      <p class="small"><b>Check:</b> probabilities sum to $\sum_y\hat F(y)^2 = 1$ by Parseval ✓. For <span class="ref" data-ref="signs">the running example</span>, $F = \chi_{101}$, so $\hat F(y) = \delta_{y,101}$ by orthogonality: the outcome is $101$, certainly.</p>
+      <p class="small">Sections 4 and 5 are two readings of this one circuit: $\hat F(0^n)$, and $\hat F$ of a character.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> $H^{\otimes n}O_fH^{\otimes n}\ket{0^n} = H^{\otimes n}\,2^{-n/2}\sum_xF(x)\ket x = 2^{-n/2}\sum_xF(x)\,2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y
+    = \sum_y\big(2^{-n}\sum_xF(x)(-1)^{x\cdot y}\big)\ket y$. In circuits, $O_f$ is one query to $U_f$ with the target in $\ket-$, as drawn.</p>
+    <p><b>Inversion and Parseval, in full.</b> $\sum_y\hat F(y)\chi_y(x') = 2^{-n}\sum_xF(x)\sum_y(-1)^{(x\oplus x')\cdot y} = 2^{-n}\sum_xF(x)\,2^n\delta_{xx'} = F(x')$, using
+    orthogonality with the roles of $x$ and $y$ exchanged (the formula is symmetric). Parseval: the vector $(\hat F(y))_y$ is
+    $2^{-n/2}H^{\otimes n}$ applied to $(F(x))_x$, and $H^{\otimes n}$ is unitary, so $\sum_y|\hat F(y)|^2 = 2^{-n}\sum_x|F(x)|^2$, which is $1$ when every
+    $|F(x)| = 1$ (unit 00's Parseval identity in the basis of characters).</p>
+    <p><b>The name.</b> Bernstein and Vazirani called this primitive Fourier sampling. It does not compute the Fourier
+    transform of $f$ — that is $2^n$ numbers — it draws one $y$ with probability $\hat F(y)^2$. Whether a single sample is useful
+    depends entirely on the promise: for a character it is the whole answer.</p>
+    <p><b>A second example.</b> For majority on three bits ($1$ when at least two bits are $1$) the coefficients are
+    $\hat F = \tfrac12$ at $001, 010, 100$ and $-\tfrac12$ at $111$, and $0$ elsewhere, so the outcome is one of those four strings, each
+    with probability $\tfrac14$. Problem P4 computes it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Deutsch–Jozsa</h2>
+  <p>A promise, one query, and an exponential separation — against deterministic algorithms only.</p>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch–Jozsa</p>
+  <h2>Constant or balanced</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Deutsch–Jozsa problem</span></span>
+        <p class="small">$f:\{0, 1\}^n\to\{0, 1\}$ is promised to be <span class="term">constant</span> (one value on all $2^n$ inputs) or <span class="term">balanced</span> ($1$ on exactly $2^{n-1}$ inputs). Decide which.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">Deutsch–Jozsa algorithm</span></span>
+        <p class="small">Fourier sampling outputs $0^n$ with probability $1$ if $f$ is constant and $0$ if balanced. So "constant iff $0^n$" is exact, with one query.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">With $w$ the number of $x$ with $f(x) = 1$,</p>
+        $$\hat F(0^n) = 2^{-n}\big((2^n - w) - w\big) = 1 - \frac{2w}{2^n}.$$
+        <p class="small">$w = 0$ or $2^n$: $\pm1$, squared $1$. $\ w = 2^{n-1}$: $0$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 170" width="390" role="img" aria-label="Fourier sampling: n qubits at zero get H on each, a target at 1 gets H; both enter U_f; H on each input qubit again; the input register is measured, giving y with probability F hat of y squared"><line x1="60" y1="40" x2="360" y2="40" class="ink" stroke-width="1.6"/><line x1="60" y1="110" x2="300" y2="110" class="ink" stroke-width="1.6"/><text x="54" y="45" font-size="15" text-anchor="end">|0ⁿ⟩</text><text x="54" y="115" font-size="15" text-anchor="end">|1⟩</text><line x1="67" y1="48" x2="77" y2="32" class="ink" stroke-width="1.3"/><text x="80" y="32" font-size="11" text-anchor="start" class="soft">n</text><rect x="96.0" y="24.0" width="44" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="118" y="45" font-size="15" text-anchor="middle">H<tspan font-size="10" dy="-7">⊗n</tspan></text><rect x="102.0" y="94.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="118" y="115" font-size="15" text-anchor="middle">H</text><rect x="173.0" y="20" width="54" height="110" class="fill-ground unit" stroke-width="1.6"/><text x="200" y="81.0" font-size="18" text-anchor="middle">U<tspan font-size="13" dy="4">f</tspan></text><rect x="263.0" y="24.0" width="44" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="285" y="45" font-size="15" text-anchor="middle">H<tspan font-size="10" dy="-7">⊗n</tspan></text><rect x="328" y="24" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 334 50 A 11 11 0 0 1 356 50" fill="none" class="ink" stroke-width="1.3"/><line x1="345" y1="50" x2="354" y2="31" class="ink" stroke-width="1.3"/><text x="308" y="115" font-size="15" text-anchor="start">|−⟩</text><text x="368" y="45" font-size="15" text-anchor="start" class="fill-unit">y</text><text x="210" y="160" font-size="14" text-anchor="middle" class="fill-unit">Pr(y) = F̂(y)²</text></svg>
+        <p class="cap">The same circuit as Fourier sampling; read only whether the outcome is $0^n$.</p>
+      </div>
+      <p class="small"><b>The running example</b> is balanced: $f = x_0\oplus x_2$ is $1$ on $001, 011, 100, 110$ — four of eight. So the outcome is never $000$.</p>
+      <p class="small">Unit 15 will meet the same structure on a different group; here the group is $\mathbb Z_2^n$ and $\hat F(0^n)$ is just the average sign.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The circuit in qubits.</b> $n$ input qubits in $\ket0$ and a target in $\ket1$; $H$ on all $n + 1$; one call to $U_f$; $H$ on the $n$ input
+    qubits; measure them. By kickback the target factors out as $\ket-$ throughout, and the input register follows the Fourier-sampling
+    calculation exactly.</p>
+    <p><b>Where the probability goes when $f$ is balanced.</b> Not to $0^n$ — and otherwise wherever $\hat F^{\,2}$ puts it. For the running
+    example all of it lands on $101$ (section 5). For majority on three bits it spreads over $001, 010, 100, 111$. The algorithm ignores
+    everything but whether the outcome is $0^n$.</p>
+    <p><b>History.</b> D. Deutsch and R. Jozsa, "Rapid solution of problems by quantum computation", <i>Proc. R. Soc. Lond. A</i>
+    439, 553 (1992). Their version used two queries; the one-query version with the target in $\ket-$ is from Cleve, Ekert, Macchiavello
+    and Mosca (1998).</p>
+    <p><b>The promise is load-bearing.</b> For an $f$ with $w$ ones that is neither constant nor balanced, the probability of $0^n$ is
+    $(1 - 2w/2^n)^2$, strictly between $0$ and $1$, and the algorithm decides nothing. Problem P7.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch–Jozsa · example</p>
+  <h2>Worked: Deutsch–Jozsa on three bits, sign by sign</h2>
+  <div class="box ex"><span class="label">$n = 3$: two constant functions and <span class="ref" data-ref="ex">$f(x) = x_0\oplus x_2$</span></span>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <tr><th class="num">$x$</th><th class="num">$(-1)^0$</th><th class="num">$(-1)^1$</th><th class="num">$x_0\oplus x_2$</th><th class="num">$(-1)^{x_0\oplus x_2}$</th></tr>
+        <tr><td class="num">000</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">0</td><td class="num">$+$</td></tr>
+        <tr><td class="num">001</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">1</td><td class="num">$-$</td></tr>
+        <tr><td class="num">010</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">0</td><td class="num">$+$</td></tr>
+        <tr><td class="num">011</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">1</td><td class="num">$-$</td></tr>
+        <tr><td class="num">100</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">1</td><td class="num">$-$</td></tr>
+        <tr><td class="num">101</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">0</td><td class="num">$+$</td></tr>
+        <tr><td class="num">110</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">1</td><td class="num">$-$</td></tr>
+        <tr><td class="num">111</td><td class="num">$+$</td><td class="num">$-$</td><td class="num">0</td><td class="num">$+$</td></tr>
+        <tr><th class="num">sum</th><th class="num">$8$</th><th class="num">$-8$</th><th></th><th class="num">$0$</th></tr>
+      </table>
+    </div>
+    <div>
+      <p class="small"><b>1.</b> The amplitude of $\ket{000}$ is $\tfrac18$ times the column sum (the Hadamard row $000$ is all $+$).</p>
+      <p class="small"><b>2. $f\equiv0$:</b> $\tfrac88 = 1$. $\Pr(000) = 1$: "constant" ✓.</p>
+      <p class="small"><b>3. $f\equiv1$:</b> $-\tfrac88 = -1$. The input register ends as $-\ket{000}$, a global sign: $\Pr(000) = 1$ ✓.</p>
+      <p class="small"><b>4. $f = x_0\oplus x_2$:</b> $\tfrac18(1 - 1 + 1 - 1 - 1 + 1 - 1 + 1) = 0$. $\Pr(000) = 0$: "balanced" ✓.</p>
+      <p class="small"><b>5. Normalisation.</b> In the constant cases the final input state is $\pm\ket{000}$, of norm $1$. In the balanced case the missing probability must sit elsewhere; section 5 finds all of it on $\ket{101}$.</p>
+      <p class="small"><b>6. Classically</b> one would need $2^{3-1} + 1 = 5$ deterministic queries; the next slides prove it.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The whole state, for the balanced case.</b> After the oracle the input register is $\tfrac1{2\sqrt2}\sum_x(-1)^{x_0\oplus x_2}\ket x$; its inner
+    product with $H^{\otimes3}\ket{000} = \tfrac1{2\sqrt2}\sum_x\ket x$ is $\tfrac18\sum_x(-1)^{x_0\oplus x_2} = 0$. Since $H^{\otimes3}$ is unitary and its own inverse, the amplitude
+    of $\ket{000}$ after the final Hadamards is exactly that inner product. The same computation with any row $y$ in place of $000$ gives
+    $\hat F(y)$; only $y = 101$ is nonzero, and there the eight terms are all $+\tfrac18$.</p>
+    <p><b>What "every sign shown" buys.</b> The cancellation is not approximate and not statistical: four terms of $+\tfrac18$ and four of
+    $-\tfrac18$ meet in one amplitude, and the sum is zero exactly. This is unit 01's dark detector with eight paths instead of two.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch–Jozsa</p>
+  <h2>Cancellation, drawn</h2>
+  <div class="cols">
+    <div class="fig">
+      <svg viewBox="0 0 420 360" width="400" role="img" aria-label="two bar charts of the eight contributions to the amplitude of 000, one bar per input x from 000 to 111. For f identically 0 all eight bars point up by one eighth and sum to 1. For f = s dot x with s = 101 the bars go up, down, up, down, down, up, down, up and sum to 0"><text x="180" y="38" font-size="13" text-anchor="middle" class="soft">f ≡ 0: eight terms of +⅛</text><line x1="54" y1="100" x2="300" y2="100" class="ink" stroke-width="1.2"/><rect x="63" y="56" width="22" height="44" class="fill-unit"/><text x="74" y="116" font-size="10" text-anchor="middle" class="mono soft">000</text><rect x="93" y="56" width="22" height="44" class="fill-unit"/><text x="104" y="116" font-size="10" text-anchor="middle" class="mono soft">001</text><rect x="123" y="56" width="22" height="44" class="fill-unit"/><text x="134" y="116" font-size="10" text-anchor="middle" class="mono soft">010</text><rect x="153" y="56" width="22" height="44" class="fill-unit"/><text x="164" y="116" font-size="10" text-anchor="middle" class="mono soft">011</text><rect x="183" y="56" width="22" height="44" class="fill-unit"/><text x="194" y="116" font-size="10" text-anchor="middle" class="mono soft">100</text><rect x="213" y="56" width="22" height="44" class="fill-unit"/><text x="224" y="116" font-size="10" text-anchor="middle" class="mono soft">101</text><rect x="243" y="56" width="22" height="44" class="fill-unit"/><text x="254" y="116" font-size="10" text-anchor="middle" class="mono soft">110</text><rect x="273" y="56" width="22" height="44" class="fill-unit"/><text x="284" y="116" font-size="10" text-anchor="middle" class="mono soft">111</text><text x="330" y="106" font-size="15" text-anchor="start" class="fill-unit">sum = 1</text><text x="180" y="208" font-size="13" text-anchor="middle" class="soft">f = s·x, s = 101: four +⅛, four −⅛</text><line x1="54" y1="270" x2="300" y2="270" class="ink" stroke-width="1.2"/><rect x="63" y="226" width="22" height="44" class="fill-unit"/><text x="74" y="286" font-size="10" text-anchor="middle" class="mono soft">000</text><rect x="93" y="270" width="22" height="44" class="fill-alt"/><text x="104" y="336" font-size="10" text-anchor="middle" class="mono soft">001</text><rect x="123" y="226" width="22" height="44" class="fill-unit"/><text x="134" y="286" font-size="10" text-anchor="middle" class="mono soft">010</text><rect x="153" y="270" width="22" height="44" class="fill-alt"/><text x="164" y="336" font-size="10" text-anchor="middle" class="mono soft">011</text><rect x="183" y="270" width="22" height="44" class="fill-alt"/><text x="194" y="336" font-size="10" text-anchor="middle" class="mono soft">100</text><rect x="213" y="226" width="22" height="44" class="fill-unit"/><text x="224" y="286" font-size="10" text-anchor="middle" class="mono soft">101</text><rect x="243" y="270" width="22" height="44" class="fill-alt"/><text x="254" y="336" font-size="10" text-anchor="middle" class="mono soft">110</text><rect x="273" y="226" width="22" height="44" class="fill-unit"/><text x="284" y="286" font-size="10" text-anchor="middle" class="mono soft">111</text><text x="330" y="276" font-size="15" text-anchor="start" class="alt">sum = 0</text><text x="30" y="104" font-size="12" text-anchor="end" class="soft">+⅛</text><text x="30" y="280" font-size="12" text-anchor="end" class="soft">±⅛</text></svg>
+      <p class="cap">The eight contributions $\tfrac18(-1)^{f(x)}$ to the amplitude of $\ket{000}$: constant above, the running example below.</p>
+    </div>
+    <div>
+      <p class="small"><b>Paths, again.</b> Each input $x$ is a path from $\ket{000}$ back to $\ket{000}$: amplitude $2^{-3/2}$ out, the sign $(-1)^{f(x)}$, and $2^{-3/2}$ back. Eight paths, each worth $\pm\tfrac18$.</p>
+      <p class="small"><b>Constant:</b> all eight agree, and add to $\pm1$: every bit of probability returns to $\ket{000}$.</p>
+      <p class="small"><b>Balanced:</b> four and four, and they cancel exactly — whatever the order of the signs.</p>
+      <div class="box good"><span class="label">the general fact</span>
+        <p class="small">The amplitude of $0^n$ is the <b>average sign</b>, $2^{-n}\sum_x(-1)^{f(x)}$: $\pm1$ under one promise and $0$ under the other. Anything in between is excluded by the promise, not by the algorithm.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "paths".</b> Expand $\braket{0^n|H^{\otimes n}O_fH^{\otimes n}|0^n}$ by inserting the identity $\sum_x\ket x\!\bra x$ on each side of $O_f$, which is diagonal:
+    $\sum_x\braket{0^n|H^{\otimes n}|x}(-1)^{f(x)}\braket{x|H^{\otimes n}|0^n} = \sum_x2^{-n/2}(-1)^{f(x)}2^{-n/2}$. Each $x$ contributes one product of three
+    amplitudes, as each arm of unit 01's interferometer did. Unit 12's path sums make this bookkeeping systematic.</p>
+    <p><b>The drawing for majority.</b> Majority on three bits is $1$ on $011, 101, 110, 111$, also balanced; its bars at $000$ read
+    $+\,+\,+\,-\,+\,-\,-\,-$ and again cancel. What differs is the rest of the output: for majority the outcome is one of $001, 010, 100, 111$,
+    each with probability $\tfrac14$, while for the running example it is $101$ with probability $1$. Deutsch–Jozsa cannot tell these apart,
+    and does not need to.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch–Jozsa</p>
+  <h2>Deterministically: 2ⁿ⁻¹ + 1 queries</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$D(\mathrm{DJ}_n) = 2^{n-1} + 1$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Enough:</b> ask any $2^{n-1} + 1$ distinct inputs. A balanced $f$ has only $2^{n-1}$ of each value, so if all answers agree, $f$ is constant; otherwise balanced.</p>
+        <p class="small"><b>Needed</b> (an adversary): answer $0$ to every query. After $k\le2^{n-1}$ distinct queries, at least $2^n - k\ge2^{n-1}$ inputs are unasked. Both $f\equiv0$ and the balanced $f$ that is $1$ on $2^{n-1}$ of the unasked inputs fit every answer: a fooling pair, so the tree is wrong on one. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>The running example's size:</b> $n = 3$ needs $5$ queries against one. At $n = 30$, $536{,}870{,}913$ against one.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 288" width="420" role="img" aria-label="the cube of three-bit inputs; four vertices, 000, 011, 101 and 110, have been queried and answered 0 and are filled; the other four carry a question mark, and could all be 0, making f constant, or all be 1, making f balanced"><line x1="90" y1="220" x2="260" y2="220" class="rule" stroke-width="1.4"/><line x1="90" y1="220" x2="160" y2="170" class="rule" stroke-width="1.4"/><line x1="90" y1="220" x2="90" y2="70" class="rule" stroke-width="1.4"/><line x1="260" y1="220" x2="330" y2="170" class="rule" stroke-width="1.4"/><line x1="260" y1="220" x2="260" y2="70" class="rule" stroke-width="1.4"/><line x1="160" y1="170" x2="330" y2="170" class="rule" stroke-width="1.4"/><line x1="160" y1="170" x2="160" y2="20" class="rule" stroke-width="1.4"/><line x1="330" y1="170" x2="330" y2="20" class="rule" stroke-width="1.4"/><line x1="90" y1="70" x2="260" y2="70" class="rule" stroke-width="1.4"/><line x1="90" y1="70" x2="160" y2="20" class="rule" stroke-width="1.4"/><line x1="260" y1="70" x2="330" y2="20" class="rule" stroke-width="1.4"/><line x1="160" y1="20" x2="330" y2="20" class="rule" stroke-width="1.4"/><circle cx="90" cy="220" r="15" class="fill-unit"/><text x="90" y="225" font-size="14" text-anchor="middle" class="fill-ground">0</text><text x="108" y="208" font-size="11" text-anchor="start" class="mono soft">000</text><circle cx="260" cy="220" r="15" class="fill-ground ink" stroke-width="1.6"/><text x="260" y="225" font-size="14" text-anchor="middle">?</text><text x="278" y="208" font-size="11" text-anchor="start" class="mono soft">001</text><circle cx="160" cy="170" r="15" class="fill-ground ink" stroke-width="1.6"/><text x="160" y="175" font-size="14" text-anchor="middle">?</text><text x="178" y="158" font-size="11" text-anchor="start" class="mono soft">010</text><circle cx="330" cy="170" r="15" class="fill-unit"/><text x="330" y="175" font-size="14" text-anchor="middle" class="fill-ground">0</text><text x="348" y="158" font-size="11" text-anchor="start" class="mono soft">011</text><circle cx="90" cy="70" r="15" class="fill-ground ink" stroke-width="1.6"/><text x="90" y="75" font-size="14" text-anchor="middle">?</text><text x="108" y="58" font-size="11" text-anchor="start" class="mono soft">100</text><circle cx="260" cy="70" r="15" class="fill-unit"/><text x="260" y="75" font-size="14" text-anchor="middle" class="fill-ground">0</text><text x="278" y="58" font-size="11" text-anchor="start" class="mono soft">101</text><circle cx="160" cy="20" r="15" class="fill-unit"/><text x="160" y="25" font-size="14" text-anchor="middle" class="fill-ground">0</text><text x="178" y="8" font-size="11" text-anchor="start" class="mono soft">110</text><circle cx="330" cy="20" r="15" class="fill-ground ink" stroke-width="1.6"/><text x="330" y="25" font-size="14" text-anchor="middle">?</text><text x="348" y="8" font-size="11" text-anchor="start" class="mono soft">111</text><text x="220" y="262" font-size="12" text-anchor="middle" class="soft">four queries, all answered 0: the four ? can still be</text><text x="220" y="278" font-size="12" text-anchor="middle" class="soft">all 0 (constant) or all 1 (balanced)</text></svg>
+        <p class="cap">$n = 3$: the adversary has said $0$ four times. Constant and balanced both remain possible, so a fifth query is needed.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the lower bound.</b> Fix a deterministic tree of depth $k\le2^{n-1}$. Follow the path on which every answer is
+    $0$; it asks at most $k$ distinct inputs, forming a set $A$ with $|A|\le2^{n-1}$. Let $f_0\equiv0$, and let $f_1$ be $0$ on $A$ and $1$ on some
+    $2^{n-1}$ inputs outside $A$ — possible since $2^n - |A|\ge2^{n-1}$ — and $0$ on the rest. Then $f_1$ has exactly $2^{n-1}$ ones, so it is balanced. Both
+    $f_0$ and $f_1$ answer $0$ on $A$, so both follow the all-zeros path to the same leaf (tool 1), while the right outputs differ. The
+    tree is wrong on one of them.</p>
+    <p><b>The adversary's strategy.</b> It answers $0$ — the answer that commits it to least. Any algorithm can be forced down this
+    path, so the worst case is at least as bad as this path. The argument does not depend on the order or adaptivity of the
+    queries.</p>
+    <p><b>The numbers.</b> $2^{3-1} + 1 = 5$; $2^{29} + 1 = 536{,}870{,}913$; $2^{9} + 1 = 513$ at $n = 10$. The quantum algorithm uses one query
+    at every $n$, and is exact: this is an exponential separation between $Q_E$ and $D$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch–Jozsa</p>
+  <h2>With coins: a constant number</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Query $k$ inputs chosen independently and uniformly. Say "constant" if all answers agree, "balanced" otherwise. This errs only on balanced $f$, with probability</p>
+        $$2\cdot2^{-k} = 2^{1-k}.$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Constant $f$: the answers always agree, and the verdict is right. Balanced $f$: each answer is an independent fair bit, since half the inputs give each value; all $k$ agree with probability $2\cdot(\tfrac12)^k$. $\blacksquare$</p>
+      </div>
+      <p class="small">So $R_{1/3}(\mathrm{DJ}_n)\le3$ for <b>every</b> $n$: $k = 3$ gives error $\tfrac14$. This is <span class="term">one-sided error</span>: a "balanced" verdict is always right.</p>
+      <p class="small"><b>The running example</b> with $k = 2$: two random answers from <span class="ref" data-ref="signs">four $0$s and four $1$s</span> agree with probability $\tfrac12$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 262" width="440" role="img" aria-label="the error bound two to the one minus k plotted on a log scale against k from 1 to 22: a straight line falling from 1; it crosses one third between k = 2 and k = 3, and ten to the minus six between k = 20 and k = 21"><line x1="60" y1="20" x2="60" y2="220" class="ink" stroke-width="1.2"/><line x1="60" y1="220" x2="440" y2="220" class="ink" stroke-width="1.2"/><line x1="56" y1="20.0" x2="60" y2="20.0" class="ink" stroke-width="1"/><text x="52" y="24.0" font-size="11" text-anchor="end" class="soft">1</text><line x1="56" y1="48.57142857142857" x2="60" y2="48.57142857142857" class="ink" stroke-width="1"/><text x="52" y="52.57142857142857" font-size="11" text-anchor="end" class="soft">10⁻¹</text><line x1="56" y1="77.14285714285714" x2="60" y2="77.14285714285714" class="ink" stroke-width="1"/><text x="52" y="81.14285714285714" font-size="11" text-anchor="end" class="soft">10⁻²</text><line x1="56" y1="105.71428571428571" x2="60" y2="105.71428571428571" class="ink" stroke-width="1"/><text x="52" y="109.71428571428571" font-size="11" text-anchor="end" class="soft">10⁻³</text><line x1="56" y1="134.28571428571428" x2="60" y2="134.28571428571428" class="ink" stroke-width="1"/><text x="52" y="138.28571428571428" font-size="11" text-anchor="end" class="soft">10⁻⁴</text><line x1="56" y1="162.85714285714286" x2="60" y2="162.85714285714286" class="ink" stroke-width="1"/><text x="52" y="166.85714285714286" font-size="11" text-anchor="end" class="soft">10⁻⁵</text><line x1="56" y1="191.42857142857142" x2="60" y2="191.42857142857142" class="ink" stroke-width="1"/><text x="52" y="195.42857142857142" font-size="11" text-anchor="end" class="soft">10⁻⁶</text><line x1="56" y1="220.0" x2="60" y2="220.0" class="ink" stroke-width="1"/><text x="52" y="224.0" font-size="11" text-anchor="end" class="soft">10⁻⁷</text><text x="60.0" y="238" font-size="11" text-anchor="middle" class="soft">1</text><text x="132.38095238095238" y="238" font-size="11" text-anchor="middle" class="soft">5</text><text x="222.85714285714286" y="238" font-size="11" text-anchor="middle" class="soft">10</text><text x="313.3333333333333" y="238" font-size="11" text-anchor="middle" class="soft">15</text><text x="403.8095238095238" y="238" font-size="11" text-anchor="middle" class="soft">20</text><text x="250.0" y="256" font-size="12" text-anchor="middle" class="soft">queries k</text><line x1="60" y1="33.6" x2="440" y2="33.6" class="alt" stroke-width="1.2" stroke-dasharray="5 4"/><text x="440" y="27.632035849133217" font-size="13" text-anchor="end" class="alt">⅓</text><line x1="60" y1="191.4" x2="440" y2="191.4" class="alt" stroke-width="1.2" stroke-dasharray="5 4"/><text x="64" y="185.42857142857142" font-size="12" text-anchor="start" class="alt">10⁻⁶</text><circle cx="60.0" cy="20.0" r="3.5" class="fill-unit"/><circle cx="78.1" cy="28.6" r="3.5" class="fill-unit"/><circle cx="96.2" cy="37.2" r="5" class="fill-accent"/><circle cx="114.3" cy="45.8" r="3.5" class="fill-unit"/><circle cx="132.4" cy="54.4" r="3.5" class="fill-unit"/><circle cx="150.5" cy="63.0" r="3.5" class="fill-unit"/><circle cx="168.6" cy="71.6" r="3.5" class="fill-unit"/><circle cx="186.7" cy="80.2" r="3.5" class="fill-unit"/><circle cx="204.8" cy="88.8" r="3.5" class="fill-unit"/><circle cx="222.9" cy="97.4" r="3.5" class="fill-unit"/><circle cx="241.0" cy="106.0" r="3.5" class="fill-unit"/><circle cx="259.0" cy="114.6" r="3.5" class="fill-unit"/><circle cx="277.1" cy="123.2" r="3.5" class="fill-unit"/><circle cx="295.2" cy="131.8" r="3.5" class="fill-unit"/><circle cx="313.3" cy="140.4" r="3.5" class="fill-unit"/><circle cx="331.4" cy="149.0" r="3.5" class="fill-unit"/><circle cx="349.5" cy="157.6" r="3.5" class="fill-unit"/><circle cx="367.6" cy="166.2" r="3.5" class="fill-unit"/><circle cx="385.7" cy="174.8" r="3.5" class="fill-unit"/><circle cx="403.8" cy="183.4" r="3.5" class="fill-unit"/><circle cx="421.9" cy="192.0" r="5" class="fill-accent"/><circle cx="440.0" cy="200.6" r="3.5" class="fill-unit"/><text x="104.19047619047619" y="53.201714037941784" font-size="12" text-anchor="start" class="fill-accent">k = 3: ¼</text><text x="415.90476190476187" y="210.01714037941784" font-size="12" text-anchor="end" class="fill-accent">k = 21</text></svg>
+        <p class="cap">The error bound $2^{1-k}$ falls by half per query, whatever $n$ is.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why independent and uniform.</b> For a balanced $f$, a uniform $x$ has $\Pr[f(x) = 1] = 2^{-n}\cdot2^{n-1} = \tfrac12$. Independent draws give
+    independent answers, so the $k$ answers are $k$ fair coin flips, and the chance they agree is $\Pr[\text{all }0] + \Pr[\text{all }1] = 2^{-k} + 2^{-k}$.
+    Drawing without replacement does slightly better, since after some $0$s a $1$ becomes more likely; the bound $2^{1-k}$ is enough.</p>
+    <p><b>The randomised lower bound is tiny too.</b> One query is not enough for any $\varepsilon\lt\tfrac12$. A one-query algorithm asks $x$ with
+    some probability $\pi(x)$, sees the bit $b = f(x)$, and says "constant" with some probability $c(x, b)$. Let $c_b = \sum_x\pi(x)c(x, b)$. On $f\equiv0$ every
+    answer is $0$, so it says "constant" with probability $c_0$; on $f\equiv1$, with probability $c_1$; being right on both needs $c_0, c_1\ge1 - \varepsilon$.
+    Now average over a uniformly random balanced $f$: for each fixed $x$, $f(x)$ is a fair bit, so the average probability of "constant" is
+    $\sum_x\pi(x)\tfrac12\big(c(x, 0) + c(x, 1)\big) = \tfrac12(c_0 + c_1)\ge1 - \varepsilon$. Some balanced $f$ is at least the average, and on it the algorithm
+    errs with probability at least $1 - \varepsilon\gt\tfrac12\gt\varepsilon$. So
+    $R_\varepsilon(\mathrm{DJ}_n)$ lies between $2$ and $\lceil\log_2(1/\varepsilon)\rceil + 1$ for every $n\ge1$: a constant.</p>
+    <p><b>The numbers on the plot.</b> $2^{1-3} = 0.25\lt\tfrac13$, while $2^{1-2} = 0.5$ is not, so $3$ queries are the least this test needs for
+    bounded error. $2^{1-21} = 9.54\times10^{-7}\lt10^{-6}$, while $2^{1-20} = 1.91\times10^{-6}$ is not: $21$ queries for error below one in a million.
+    Problem P6 puts that beside the deterministic $536{,}870{,}913$ at $n = 30$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Deutsch–Jozsa</p>
+  <h2>Not yet a separation worth having</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <tr><th>model</th><th class="num">queries for $\mathrm{DJ}_n$</th></tr>
+        <tr><td>quantum, exact $Q_E$</td><td class="num">$1$</td></tr>
+        <tr><td>deterministic $D$</td><td class="num">$2^{n-1} + 1$</td></tr>
+        <tr><td>randomised, bounded error $R_{1/3}$</td><td class="num">$\le3$</td></tr>
+      </table>
+      <div class="box good"><span class="label">what it does show</span>
+        <p class="small">An <b>exponential</b> separation between <b>exact</b> quantum and <b>exact</b> classical computation: $Q_E = 1$, $D = 2^{n-1} + 1$. And the pattern — kickback, Hadamards, one global property — that the rest of Part D reuses.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">what it does not</span>
+        <p class="small">Against coins the gap is $1$ against at most $3$. Allow a classical algorithm the error a real quantum computer has anyway, and Deutsch–Jozsa's exponential speed-up <b>evaporates</b>.</p>
+        <p class="small">A quantum machine is never exact: every gate has some error. So the comparison that matters for a physical device is bounded-error quantum against bounded-error classical — and here it is constant against constant.</p>
+      </div>
+      <p class="small">The question for the rest of the unit, and for unit 14: is there a problem where quantum beats <b>randomised</b> algorithms, and by how much?</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The history of the claim.</b> Deutsch and Jozsa's 1992 paper was careful: it compared with deterministic computation and
+    said so. The claim is still often repeated as "Deutsch–Jozsa gives an exponential speed-up", without the word
+    "deterministic". It is the standard example of why a separation must name its classical model.</p>
+    <p><b>Exactness is fragile.</b> If each gate errs with probability $p$, a circuit of $g$ gates errs with probability at most $gp$ (a union bound over the gates), and
+    the algorithm is then a bounded-error one. Its competitor is $R_\varepsilon$, not $D$. Units 22–24 show how error correction makes
+    the error as small as one likes — small, never zero.</p>
+    <p><b>Where the exponential lives, precisely.</b> A family of promise problems on which $Q_E(F_n) = 1$ and $D(F_n) = 2^{n-1} + 1$. As a
+    statement about exact computation with a black box it is true and proved. It is just not a statement about the computers anyone
+    will build.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Bernstein–Vazirani</h2>
+  <p>The same circuit, a stronger promise, and a separation that survives coins — but only n against 1.</p>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Bernstein–Vazirani</p>
+  <h2>Find the hidden string</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Bernstein–Vazirani problem</span></span>
+        <p class="small">$f(x) = s\cdot x$ for an unknown $s\in\{0, 1\}^n$. Find $s$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">The Deutsch–Jozsa circuit outputs $s$ with probability $1$, after one query.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">After the oracle the input register holds $2^{-n/2}\sum_x(-1)^{s\cdot x}\ket x$, which is $H^{\otimes n}\ket s$ by the Hadamard transform. $H^{\otimes n}$ is its own inverse, so the last layer returns $\ket s$. $\blacksquare$</p>
+      </div>
+      <p class="small">In Fourier terms: $F = \chi_s$, so $\hat F = \delta_s$. The promise says $F$ <b>is</b> a character, and Fourier sampling names it.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 170" width="390" role="img" aria-label="Fourier sampling: n qubits at zero get H on each, a target at 1 gets H; both enter U_f; H on each input qubit again; the input register is measured, giving y with probability F hat of y squared"><line x1="60" y1="40" x2="360" y2="40" class="ink" stroke-width="1.6"/><line x1="60" y1="110" x2="300" y2="110" class="ink" stroke-width="1.6"/><text x="54" y="45" font-size="15" text-anchor="end">|0ⁿ⟩</text><text x="54" y="115" font-size="15" text-anchor="end">|1⟩</text><line x1="67" y1="48" x2="77" y2="32" class="ink" stroke-width="1.3"/><text x="80" y="32" font-size="11" text-anchor="start" class="soft">n</text><rect x="96.0" y="24.0" width="44" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="118" y="45" font-size="15" text-anchor="middle">H<tspan font-size="10" dy="-7">⊗n</tspan></text><rect x="102.0" y="94.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="118" y="115" font-size="15" text-anchor="middle">H</text><rect x="173.0" y="20" width="54" height="110" class="fill-ground unit" stroke-width="1.6"/><text x="200" y="81.0" font-size="18" text-anchor="middle">U<tspan font-size="13" dy="4">f</tspan></text><rect x="263.0" y="24.0" width="44" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="285" y="45" font-size="15" text-anchor="middle">H<tspan font-size="10" dy="-7">⊗n</tspan></text><rect x="328" y="24" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 334 50 A 11 11 0 0 1 356 50" fill="none" class="ink" stroke-width="1.3"/><line x1="345" y1="50" x2="354" y2="31" class="ink" stroke-width="1.3"/><text x="308" y="115" font-size="15" text-anchor="start">|−⟩</text><text x="368" y="45" font-size="15" text-anchor="start" class="fill-unit">y</text><text x="210" y="160" font-size="14" text-anchor="middle" class="fill-unit">Pr(y) = F̂(y)²</text></svg>
+        <p class="cap">The circuit of section 4 again. Deutsch–Jozsa asked whether the output is $0^n$; now the output is the answer.</p>
+      </div>
+      <p class="small"><b>Classically</b>, $f(e_i) = s_i$, so $n$ queries suffice: section 1's tree. For $s\ne0^n$, $f$ is balanced, so this is a special case of Deutsch–Jozsa's promise.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The proof, without the Fourier words.</b> By kickback, one query on $2^{-n/2}\sum_x\ket x\ket-$ gives $2^{-n/2}\sum_x(-1)^{s\cdot x}\ket x\ket-$. The
+    Hadamard-transform formula with $x$ and $s$ in place of $x$ and $y$ reads $H^{\otimes n}\ket s = 2^{-n/2}\sum_x(-1)^{s\cdot x}\ket x$, the same vector,
+    because $s\cdot x = x\cdot s$. Applying $H^{\otimes n}$, with $(H^{\otimes n})^2 = I$, gives $\ket s$.</p>
+    <p><b>Why $f$ is balanced for $s\ne0^n$.</b> $\sum_x(-1)^{s\cdot x} = 0$ by the character sum, so $f$ takes the values $0$ and $1$ equally often. For
+    $s = 0^n$, $f\equiv0$, constant. So every instance of Bernstein–Vazirani is an instance of Deutsch–Jozsa, and the Deutsch–Jozsa verdict
+    is read off the Bernstein–Vazirani answer: constant iff $s = 0^n$.</p>
+    <p><b>History.</b> E. Bernstein and U. Vazirani, "Quantum complexity theory", <i>STOC</i> 1993, pp. 11–20; journal version
+    <i>SIAM J. Comput.</i> 26, 1411 (1997). The paper's main subject was the quantum Turing machine and the complexity class it
+    defines (unit 12); the hidden-string problem was a step towards a separation, recursive Fourier sampling, which closes this section.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Bernstein–Vazirani · example</p>
+  <h2>Worked: Bernstein–Vazirani on s = 101</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="bvx">the state after each layer</span></span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>$\psi_0$</b> $= \ket{000}\ket1$.</p>
+      <p class="small"><b>$\psi_1$</b>: $H$ on all four: $\ket{+++}\ket- = \tfrac1{2\sqrt2}\sum_x\ket x\,\ket-$. Eight amplitudes of $\tfrac1{2\sqrt2}$; squares sum to $\tfrac88 = 1$ ✓.</p>
+      <p class="small"><b>$\psi_2$</b>: the query kicks back $(-1)^{x_0\oplus x_2}$:</p>
+      $$\begin{aligned}\tfrac1{2\sqrt2}\big(&amp;\ket{000} - \ket{001} + \ket{010} - \ket{011}\\ -\,&amp;\ket{100} + \ket{101} - \ket{110} + \ket{111}\big)\ket-\end{aligned}$$
+      <p class="small">which factorises as $\ket-\ket+\ket-\,\ket-$. Check by expanding $\ket-\ket+\ket-$: the sign of $\ket x$ is $(-1)^{x_0}(-1)^{x_2}$ ✓.</p>
+      <p class="small"><b>$\psi_3$</b>: $H$ on qubits 0, 1, 2: $\ H\ket- = \ket1$, $H\ket+ = \ket0$, so $\psi_3 = \ket{101}\ket-$.</p>
+      <p class="small">$\Pr(101) = 1$, every other outcome $0$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 480 240" width="470" role="img" aria-label="Bernstein-Vazirani on s = 101: three input qubits at 0 and a target at 1; H on all four; the oracle, two CNOTs from qubits 0 and 2 to the target, in a dashed box; H on the three inputs; measurements read 1, 0, 1; dashed lines mark psi0 to psi3"><line x1="60" y1="36" x2="430" y2="36" class="ink" stroke-width="1.6"/><text x="54" y="41" font-size="15" text-anchor="end">|0⟩</text><line x1="60" y1="84" x2="430" y2="84" class="ink" stroke-width="1.6"/><text x="54" y="89" font-size="15" text-anchor="end">|0⟩</text><line x1="60" y1="132" x2="430" y2="132" class="ink" stroke-width="1.6"/><text x="54" y="137" font-size="15" text-anchor="end">|0⟩</text><line x1="60" y1="186" x2="430" y2="186" class="ink" stroke-width="1.6"/><text x="54" y="191" font-size="15" text-anchor="end">|1⟩</text><rect x="84.0" y="20.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="100" y="41" font-size="15" text-anchor="middle">H</text><rect x="84.0" y="68.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="100" y="89" font-size="15" text-anchor="middle">H</text><rect x="84.0" y="116.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="100" y="137" font-size="15" text-anchor="middle">H</text><rect x="84.0" y="170.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="100" y="191" font-size="15" text-anchor="middle">H</text><line x1="190" y1="36" x2="190" y2="197" class="ink" stroke-width="1.6"/><circle cx="190" cy="36" r="5.5" class="fill-ink"/><circle cx="190" cy="186" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="179" y1="186" x2="201" y2="186" class="ink" stroke-width="1.6"/><line x1="190" y1="175" x2="190" y2="197" class="ink" stroke-width="1.6"/><line x1="240" y1="132" x2="240" y2="197" class="ink" stroke-width="1.6"/><circle cx="240" cy="132" r="5.5" class="fill-ink"/><circle cx="240" cy="186" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="229" y1="186" x2="251" y2="186" class="ink" stroke-width="1.6"/><line x1="240" y1="175" x2="240" y2="197" class="ink" stroke-width="1.6"/><rect x="160" y="16" width="110" height="190" rx="6" fill="none" class="accent" stroke-width="1.4" stroke-dasharray="6 4"/><rect x="304.0" y="20.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="320" y="41" font-size="15" text-anchor="middle">H</text><rect x="373" y="20" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 379 46 A 11 11 0 0 1 401 46" fill="none" class="ink" stroke-width="1.3"/><line x1="390" y1="46" x2="399" y2="27" class="ink" stroke-width="1.3"/><rect x="304.0" y="68.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="320" y="89" font-size="15" text-anchor="middle">H</text><rect x="373" y="68" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 379 94 A 11 11 0 0 1 401 94" fill="none" class="ink" stroke-width="1.3"/><line x1="390" y1="94" x2="399" y2="75" class="ink" stroke-width="1.3"/><rect x="304.0" y="116.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="320" y="137" font-size="15" text-anchor="middle">H</text><rect x="373" y="116" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 379 142 A 11 11 0 0 1 401 142" fill="none" class="ink" stroke-width="1.3"/><line x1="390" y1="142" x2="399" y2="123" class="ink" stroke-width="1.3"/><text x="438" y="41" font-size="15" text-anchor="start" class="fill-unit">1</text><text x="438" y="89" font-size="15" text-anchor="start" class="fill-unit">0</text><text x="438" y="137" font-size="15" text-anchor="start" class="fill-unit">1</text><text x="438" y="191" font-size="15" text-anchor="start">|−⟩</text><line x1="72" y1="6" x2="72" y2="210" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="72" y="226" font-size="13" text-anchor="middle" class="fill-accent">ψ₀</text><line x1="140" y1="6" x2="140" y2="210" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="140" y="226" font-size="13" text-anchor="middle" class="fill-accent">ψ₁</text><line x1="290" y1="6" x2="290" y2="210" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="290" y="226" font-size="13" text-anchor="middle" class="fill-accent">ψ₂</text><line x1="352" y1="6" x2="352" y2="210" class="accent" stroke-width="1.2" stroke-dasharray="4 4"/><text x="352" y="226" font-size="13" text-anchor="middle" class="fill-accent">ψ₃</text></svg>
+        <p class="cap">One query, and the meters read $s = 101$.</p>
+      </div>
+      <p class="small"><b>Both questions, one run.</b> The outcome $101$ is not $000$, so $f$ is balanced; and it is $s$.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>$\psi_2$ from the kickback rule.</b> Each term $\ket x\ket-$ of $\psi_1$ is multiplied by $(-1)^{f(x)}$ with $f(x) = x_0\oplus x_2$: the
+    values $0, 1, 0, 1, 1, 0, 1, 0$ for $x = 000, \dots, 111$ give the signs $+\,-\,+\,-\,-\,+\,-\,+$ shown — the running example's eight
+    signs, and row $101$ of the Hadamard table.</p>
+    <p><b>The factorisation.</b> $\ket-\ket+\ket- = \tfrac1{2\sqrt2}(\ket0 - \ket1)(\ket0 + \ket1)(\ket0 - \ket1)$; expanding, the coefficient of $\ket{x_0x_1x_2}$ is
+    $\tfrac1{2\sqrt2}(-1)^{x_0}(-1)^{x_2}$, which is the sign above. In general $2^{-n/2}\sum_x(-1)^{s\cdot x}\ket x = \bigotimes_i H\ket{s_i}$: a product state, each qubit
+    $\ket+$ or $\ket-$ according to $s_i$.</p>
+    <p><b>No entanglement anywhere.</b> Every state in this run is a product of one-qubit states. The oracle, for a linear $f$, acts
+    on the subspace with the target in $\ket-$ as $Z^{s_0}\otimes\cdots\otimes Z^{s_{n-1}}$ (the worked kickback example). So Bernstein–Vazirani's
+    advantage is not entanglement; it is the ability to query in the Hadamard basis, where one query touches every bit of $s$ at
+    once. The next slide draws this.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Bernstein–Vazirani</p>
+  <h2>Why it works, drawn</h2>
+  <div class="fig">
+    <svg viewBox="0 0 530 236" width="520" role="img" aria-label="left: H on all four wires, the two CNOTs from qubits 0 and 2 onto the target, H on all four again; equals right: two CNOTs controlled by the target, which holds 1, onto qubits 0 and 2, so the input register leaves as 101"><line x1="40" y1="36" x2="250" y2="36" class="ink" stroke-width="1.6"/><text x="34" y="41" font-size="14" text-anchor="end">|0⟩</text><line x1="40" y1="80" x2="250" y2="80" class="ink" stroke-width="1.6"/><text x="34" y="85" font-size="14" text-anchor="end">|0⟩</text><line x1="40" y1="124" x2="250" y2="124" class="ink" stroke-width="1.6"/><text x="34" y="129" font-size="14" text-anchor="end">|0⟩</text><line x1="40" y1="172" x2="250" y2="172" class="ink" stroke-width="1.6"/><text x="34" y="177" font-size="14" text-anchor="end">|1⟩</text><rect x="56.0" y="20.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="72" y="41" font-size="15" text-anchor="middle">H</text><rect x="202.0" y="20.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="218" y="41" font-size="15" text-anchor="middle">H</text><rect x="56.0" y="64.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="72" y="85" font-size="15" text-anchor="middle">H</text><rect x="202.0" y="64.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="218" y="85" font-size="15" text-anchor="middle">H</text><rect x="56.0" y="108.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="72" y="129" font-size="15" text-anchor="middle">H</text><rect x="202.0" y="108.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="218" y="129" font-size="15" text-anchor="middle">H</text><rect x="56.0" y="156.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="72" y="177" font-size="15" text-anchor="middle">H</text><rect x="202.0" y="156.0" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="218" y="177" font-size="15" text-anchor="middle">H</text><line x1="130" y1="36" x2="130" y2="183" class="ink" stroke-width="1.6"/><circle cx="130" cy="36" r="5.5" class="fill-ink"/><circle cx="130" cy="172" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="119" y1="172" x2="141" y2="172" class="ink" stroke-width="1.6"/><line x1="130" y1="161" x2="130" y2="183" class="ink" stroke-width="1.6"/><line x1="166" y1="124" x2="166" y2="183" class="ink" stroke-width="1.6"/><circle cx="166" cy="124" r="5.5" class="fill-ink"/><circle cx="166" cy="172" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="155" y1="172" x2="177" y2="172" class="ink" stroke-width="1.6"/><line x1="166" y1="161" x2="166" y2="183" class="ink" stroke-width="1.6"/><text x="290" y="110" font-size="26" text-anchor="middle">=</text><line x1="350" y1="36" x2="480" y2="36" class="ink" stroke-width="1.6"/><text x="344" y="41" font-size="14" text-anchor="end">|0⟩</text><line x1="350" y1="80" x2="480" y2="80" class="ink" stroke-width="1.6"/><text x="344" y="85" font-size="14" text-anchor="end">|0⟩</text><line x1="350" y1="124" x2="480" y2="124" class="ink" stroke-width="1.6"/><text x="344" y="129" font-size="14" text-anchor="end">|0⟩</text><line x1="350" y1="172" x2="480" y2="172" class="ink" stroke-width="1.6"/><text x="344" y="177" font-size="14" text-anchor="end">|1⟩</text><line x1="400" y1="172" x2="400" y2="25" class="ink" stroke-width="1.6"/><circle cx="400" cy="172" r="5.5" class="fill-ink"/><circle cx="400" cy="36" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="389" y1="36" x2="411" y2="36" class="ink" stroke-width="1.6"/><line x1="400" y1="25" x2="400" y2="47" class="ink" stroke-width="1.6"/><line x1="440" y1="172" x2="440" y2="113" class="ink" stroke-width="1.6"/><circle cx="440" cy="172" r="5.5" class="fill-ink"/><circle cx="440" cy="124" r="11" class="fill-ground ink" stroke-width="1.6"/><line x1="429" y1="124" x2="451" y2="124" class="ink" stroke-width="1.6"/><line x1="440" y1="113" x2="440" y2="135" class="ink" stroke-width="1.6"/><text x="488" y="41" font-size="15" text-anchor="start" class="fill-unit">1</text><text x="488" y="85" font-size="15" text-anchor="start" class="fill-unit">0</text><text x="488" y="129" font-size="15" text-anchor="start" class="fill-unit">1</text><text x="488" y="177" font-size="15" text-anchor="start">1</text><text x="145" y="210" font-size="12" text-anchor="middle" class="soft">H on both ends of a CNOT</text><text x="145" y="226" font-size="12" text-anchor="middle" class="soft">swaps control and target</text><text x="420" y="210" font-size="12" text-anchor="middle" class="soft">the target, a 1, flips</text><text x="420" y="226" font-size="12" text-anchor="middle" class="soft">exactly the wires where sᵢ = 1</text></svg>
+    <p class="cap">Conjugating the oracle by Hadamards turns each CNOT round: the target becomes the control.</p>
+  </div>
+  <div class="cols">
+    <div class="box thm"><span class="label">lemma</span>
+      <p class="small">$(H\otimes H)\,\mathrm{CNOT}_{01}\,(H\otimes H) = \mathrm{CNOT}_{10}$.</p>
+      <p class="small"><b>Proof.</b> $\mathrm{CNOT}_{01} = (I\otimes H)\,CZ\,(I\otimes H)$ with $CZ = \mathrm{diag}(1, 1, 1, -1)$, since $HXH = Z$. So the left side is $(H\otimes I)\,CZ\,(H\otimes I)$, and $CZ$ is symmetric in its qubits. $\blacksquare$</p>
+    </div>
+    <div>
+      <p class="small"><b>Read off the answer.</b> Add an $H$ on the target at the end (it is unentangled, so the input register is unaffected). Then the whole circuit is the right-hand picture: the target, holding $1$, flips <b>exactly the qubits $i$ with $s_i = 1$</b>, writing $s$ into a register of zeros.</p>
+      <p class="small">In the computational basis each query reveals one bit of $s$; in the Hadamard basis, all of them.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the lemma.</b> $CZ = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes Z$ (unit 10's controlled-$U$ with $U = Z$). Since $HZH = X$,
+    $(I\otimes H)CZ(I\otimes H) = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X = \mathrm{CNOT}_{01}$. Then
+    $(H\otimes H)\mathrm{CNOT}_{01}(H\otimes H) = (H\otimes H)(I\otimes H)CZ(I\otimes H)(H\otimes H) = (H\otimes I)CZ(H\otimes I)$, using $H^2 = I$ on the second qubit. Now $CZ$ is diagonal with
+    $-1$ only on $\ket{11}$, which is symmetric under swapping the qubits, so $CZ = I\otimes\ket0\!\bra0 + Z\otimes\ket1\!\bra1$ as well, and
+    $(H\otimes I)CZ(H\otimes I) = I\otimes\ket0\!\bra0 + X\otimes\ket1\!\bra1 = \mathrm{CNOT}_{10}$. Check on one basis state: the left side sends $\ket{01}$ through
+    $H\otimes H$ to $\tfrac12(\ket{00} - \ket{01} + \ket{10} - \ket{11})$, the CNOT to $\tfrac12(\ket{00} - \ket{01} + \ket{11} - \ket{10}) = \ket-\ket-$, and $H\otimes H$ to $\ket{11}$;
+    $\mathrm{CNOT}_{10}\ket{01} = \ket{11}$ ✓.</p>
+    <p><b>Applying it to the oracle.</b> The oracle is $\mathrm{CNOT}_{03}\mathrm{CNOT}_{23}$. Conjugating the product by $H^{\otimes4}$ conjugates each factor
+    (insert $H^{\otimes4}H^{\otimes4} = I$ between them), and on the qubits a CNOT does not touch, $HH = I$. So
+    $H^{\otimes4}\,U_f\,H^{\otimes4} = \mathrm{CNOT}_{30}\mathrm{CNOT}_{32}$. The circuit with a final $H$ on the target is exactly
+    $H^{\otimes4}U_fH^{\otimes4}$ on $\ket{000}\ket1$, which gives $\ket{101}\ket1$.</p>
+    <p><b>The moral, stated carefully.</b> "Information flows from target to control in the Hadamard basis." It is a change of
+    basis, not a change of physics: the same unitary looks like a copy in one basis and a phase in the other. Unit 23's stabiliser
+    formalism turns this into a calculus.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Bernstein–Vazirani</p>
+  <h2>Classically, n queries — even with coins</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">A randomised algorithm that finds $s$ with error below $\tfrac12$ on every $s$ makes at least $n$ queries. So $D = R_\varepsilon = n$ for $\varepsilon\lt\tfrac12$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Draw $s$ uniformly from the $2^n$ strings. A depth-$k$ tree has at most $2^k$ leaves, each with one output, and on $s$ it is right only if $s$'s leaf is labelled $s$. So it is right on at most $2^k$ strings: probability $\le2^{k-n}$.</p>
+        <p class="small">By averaging, a randomised algorithm of depth $k$ is right on some $s$ with probability $\le2^{k-n}$. If $k\le n - 1$ that is $\le\tfrac12$: error $\ge\tfrac12$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 210" width="400" role="img" aria-label="a decision tree of depth two has four leaves; each leaf outputs one string, so at most four of the eight possible strings s, shaded, are ever output"><rect x="60" y="14" width="70" height="26" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="95" y="32" font-size="12" text-anchor="middle" class="mono">query</text><line x1="95" y1="40" x2="40" y2="70" class="rule" stroke-width="1.3"/><rect x="8" y="70" width="64" height="26" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="40" y="88" font-size="12" text-anchor="middle" class="mono">query</text><line x1="40" y1="96" x2="18" y2="130" class="rule" stroke-width="1.3"/><circle cx="18" cy="138" r="8" class="fill-unit"/><line x1="40" y1="96" x2="62" y2="130" class="rule" stroke-width="1.3"/><circle cx="62" cy="138" r="8" class="fill-unit"/><line x1="95" y1="40" x2="150" y2="70" class="rule" stroke-width="1.3"/><rect x="118" y="70" width="64" height="26" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="150" y="88" font-size="12" text-anchor="middle" class="mono">query</text><line x1="150" y1="96" x2="128" y2="130" class="rule" stroke-width="1.3"/><circle cx="128" cy="138" r="8" class="fill-unit"/><line x1="150" y1="96" x2="172" y2="130" class="rule" stroke-width="1.3"/><circle cx="172" cy="138" r="8" class="fill-unit"/><rect x="240" y="40" width="32" height="32" rx="3" class="fill-ground ink" stroke-width="1.2"/><text x="256" y="61" font-size="10" text-anchor="middle" class="mono">000</text><rect x="276" y="40" width="32" height="32" rx="3" class="fill-unit" stroke-width="1.2"/><text x="292" y="61" font-size="10" text-anchor="middle" class="mono fill-ground">001</text><rect x="312" y="40" width="32" height="32" rx="3" class="fill-unit" stroke-width="1.2"/><text x="328" y="61" font-size="10" text-anchor="middle" class="mono fill-ground">010</text><rect x="348" y="40" width="32" height="32" rx="3" class="fill-ground ink" stroke-width="1.2"/><text x="364" y="61" font-size="10" text-anchor="middle" class="mono">011</text><rect x="240" y="90" width="32" height="32" rx="3" class="fill-ground ink" stroke-width="1.2"/><text x="256" y="111" font-size="10" text-anchor="middle" class="mono">100</text><rect x="276" y="90" width="32" height="32" rx="3" class="fill-unit" stroke-width="1.2"/><text x="292" y="111" font-size="10" text-anchor="middle" class="mono fill-ground">101</text><rect x="312" y="90" width="32" height="32" rx="3" class="fill-unit" stroke-width="1.2"/><text x="328" y="111" font-size="10" text-anchor="middle" class="mono fill-ground">110</text><rect x="348" y="90" width="32" height="32" rx="3" class="fill-ground ink" stroke-width="1.2"/><text x="364" y="111" font-size="10" text-anchor="middle" class="mono">111</text><text x="195" y="186" font-size="12" text-anchor="middle" class="soft">depth 2: at most 4 leaves, so at most 4 of the 8 strings</text><text x="195" y="202" font-size="12" text-anchor="middle" class="soft">can ever be output — right on at most half of them</text></svg>
+        <p class="cap">$n = 3$, $k = 2$: four leaves, eight candidates. Two queries cannot beat a coin flip on some $s$.</p>
+      </div>
+      <p class="small"><b>Each query reveals at most one bit about $s$</b>, and $s$ has $n$ bits — the leaf count is that sentence made exact. For <span class="ref" data-ref="ex">$s = 101$</span>: three queries classically, and no fewer, against one.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof, the counting step.</b> Fix a tree $T$ of depth $k$. On input $s$ the walk ends at a leaf $\ell(s)$ with label $L(\ell(s))$, and $T$ is right
+    on $s$ iff $L(\ell(s)) = s$. The map $s\mapsto\ell(s)$ sends the set of strings on which $T$ is right injectively into the leaves, because two such
+    strings with the same leaf would both equal its label. So $T$ is right on at most (number of leaves) $\le2^k$ strings (tool 2), and
+    $\Pr_{s}[T\text{ right}]\le2^k/2^n$.</p>
+    <p><b>The averaging step.</b> For a distribution $\mu$ over trees of depth at most $k$, $\mathbb E_s\Pr_\mu[\text{right}] = \mathbb E_\mu\Pr_s[\text{right}]\le2^{k-n}$, so
+    some $s$ has $\Pr_\mu[\text{right on }s]\le2^{k-n}$ (tool 3). The uniform distribution on $s$ is what makes "one bit per query" rigorous: the
+    information argument is just this count.</p>
+    <p><b>Tightness.</b> With $n - 1$ queries, ask $e_0, \dots, e_{n-2}$ and guess the last bit with a fair coin: right with probability exactly
+    $\tfrac12$ on every $s$. So the bound $\tfrac12$ is attained, and $n - 1$ queries really are not enough for any error below $\tfrac12$.
+    For $n = 3$, $k = 2$: success at most $4/8 = \tfrac12$, as drawn.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · Bernstein–Vazirani</p>
+  <h2>One against n is only polynomial</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">the size of the gap</span>
+        <p class="small">Bernstein–Vazirani beats <b>randomised</b> algorithms — the first separation in this unit that survives coins. But the gap is $1$ against $n$: polynomial. A computer $n$ times slower is not a different kind of computer.</p>
+      </div>
+      <p class="small"><b><span class="term">Recursive Fourier sampling</span></b> (Bernstein and Vazirani 1993): nest the problem $h$ levels deep. At each node, the answer of each child is one query's worth of $s\cdot x$ for the node's hidden $s$.</p>
+      <p class="small">Quantumly, run Bernstein–Vazirani on each child, kick back its answer, and <b>uncompute</b> — possible because the algorithm is exact and leaves no garbage: $2^{h-1}$ queries. Classically, superpolynomially many at $h = \log_2 n$ (cited).</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 530 204" width="500" role="img" aria-label="recursive Fourier sampling of height two with n = 2: a root holding a hidden string s, with four children, one for each x, each holding its own hidden string s_x; below each child four leaves, the actual queries x prime mapped to s_x dot x prime; each child's answer g of s_x must equal s dot x"><rect x="200" y="10" width="120" height="30" rx="4" class="fill-ground unit" stroke-width="1.6"/><text x="260" y="30" font-size="13" text-anchor="middle">hidden s</text><line x1="260" y1="40" x2="60" y2="84" class="rule" stroke-width="1.3"/><rect x="14" y="84" width="92" height="44" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="60" y="102" font-size="12" text-anchor="middle" class="mono soft">x = 00</text><text x="60" y="120" font-size="12" text-anchor="middle">hidden sₓ</text><line x1="60" y1="128" x2="27" y2="160" class="rule" stroke-width="1"/><circle cx="27" cy="164" r="5" class="fill-alt"/><line x1="60" y1="128" x2="49" y2="160" class="rule" stroke-width="1"/><circle cx="49" cy="164" r="5" class="fill-alt"/><line x1="60" y1="128" x2="71" y2="160" class="rule" stroke-width="1"/><circle cx="71" cy="164" r="5" class="fill-alt"/><line x1="60" y1="128" x2="93" y2="160" class="rule" stroke-width="1"/><circle cx="93" cy="164" r="5" class="fill-alt"/><line x1="260" y1="40" x2="160" y2="84" class="rule" stroke-width="1.3"/><rect x="114" y="84" width="92" height="44" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="160" y="102" font-size="12" text-anchor="middle" class="mono soft">x = 01</text><text x="160" y="120" font-size="12" text-anchor="middle">hidden sₓ</text><line x1="160" y1="128" x2="127" y2="160" class="rule" stroke-width="1"/><circle cx="127" cy="164" r="5" class="fill-alt"/><line x1="160" y1="128" x2="149" y2="160" class="rule" stroke-width="1"/><circle cx="149" cy="164" r="5" class="fill-alt"/><line x1="160" y1="128" x2="171" y2="160" class="rule" stroke-width="1"/><circle cx="171" cy="164" r="5" class="fill-alt"/><line x1="160" y1="128" x2="193" y2="160" class="rule" stroke-width="1"/><circle cx="193" cy="164" r="5" class="fill-alt"/><line x1="260" y1="40" x2="360" y2="84" class="rule" stroke-width="1.3"/><rect x="314" y="84" width="92" height="44" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="360" y="102" font-size="12" text-anchor="middle" class="mono soft">x = 10</text><text x="360" y="120" font-size="12" text-anchor="middle">hidden sₓ</text><line x1="360" y1="128" x2="327" y2="160" class="rule" stroke-width="1"/><circle cx="327" cy="164" r="5" class="fill-alt"/><line x1="360" y1="128" x2="349" y2="160" class="rule" stroke-width="1"/><circle cx="349" cy="164" r="5" class="fill-alt"/><line x1="360" y1="128" x2="371" y2="160" class="rule" stroke-width="1"/><circle cx="371" cy="164" r="5" class="fill-alt"/><line x1="360" y1="128" x2="393" y2="160" class="rule" stroke-width="1"/><circle cx="393" cy="164" r="5" class="fill-alt"/><line x1="260" y1="40" x2="460" y2="84" class="rule" stroke-width="1.3"/><rect x="414" y="84" width="92" height="44" rx="4" class="fill-ground ink" stroke-width="1.3"/><text x="460" y="102" font-size="12" text-anchor="middle" class="mono soft">x = 11</text><text x="460" y="120" font-size="12" text-anchor="middle">hidden sₓ</text><line x1="460" y1="128" x2="427" y2="160" class="rule" stroke-width="1"/><circle cx="427" cy="164" r="5" class="fill-alt"/><line x1="460" y1="128" x2="449" y2="160" class="rule" stroke-width="1"/><circle cx="449" cy="164" r="5" class="fill-alt"/><line x1="460" y1="128" x2="471" y2="160" class="rule" stroke-width="1"/><circle cx="471" cy="164" r="5" class="fill-alt"/><line x1="460" y1="128" x2="493" y2="160" class="rule" stroke-width="1"/><circle cx="493" cy="164" r="5" class="fill-alt"/><text x="260" y="66" font-size="18" text-anchor="middle">⋯</text><text x="260" y="194" font-size="12" text-anchor="middle" class="soft">leaves: the queries, x′ ↦ sₓ·x′;  each child’s answer g(sₓ) must equal s·x</text></svg>
+        <p class="cap">Height two: each child is a hidden-string problem whose answer is one bit of the parent's.</p>
+      </div>
+      <p class="small"><b>Next, unit 14:</b> Simon's problem, an <b>exponential</b> separation against randomised algorithms, with a proof that fits on a slide.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The quantum count, in outline</b> (problem P11 does it). Let $C(h)$ be the number of queries needed to prepare $\ket{s}$
+    cleanly for a height-$h$ instance. $C(1) = 1$: Bernstein–Vazirani. At height $h$, the "oracle" $x\mapsto s\cdot x$ is not given; its value at
+    $x$ is the answer $g(s_x)$ of the child instance at $x$. To apply its phase oracle, prepare $\ket{s_x}$ with $C(h - 1)$ queries, multiply by
+    $(-1)^{g(s_x)}$ (no query: $g$ is a known function), and run the preparation backwards with another $C(h - 1)$. So one virtual query
+    costs $2C(h - 1)$, Bernstein–Vazirani needs one virtual query, and $C(h) = 2C(h - 1) = 2^{h-1}$. At $h = \log_2 n$ that is $n/2$. Exactness and
+    the absence of garbage are essential: anything left behind would act as a which-path record and spoil the next level's
+    interference.</p>
+    <p><b>The classical side, cited.</b> Bernstein and Vazirani proved that bounded-error classical algorithms need superpolynomially many
+    queries at $h = \log_2 n$ (classically $n^h$ always suffice), and concluded that relative to an oracle, quantum polynomial time is not
+    contained in classical randomised polynomial time — the first such oracle separation (<i>SIAM J. Comput.</i> 26, 1411, 1997; the classes
+    are unit 12's). S. Aaronson, "Quantum lower bound for recursive Fourier sampling", <i>Quantum Inf. Comput.</i> 3, 165 (2003), showed that this
+    quantum algorithm is essentially optimal (cited), despite its apparently wasteful uncomputation.</p>
+    <p><b>Why Simon is better.</b> Recursive Fourier sampling's separation is superpolynomial but not exponential, and its proof is long.
+    Simon's (1994) is exponential — $O(n)$ quantum against $\Omega(2^{n/2})$ randomised — and short. It is also the algorithm Shor read.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>The scorecard</h2>
+  <p>One query told us everything. What, exactly, did it beat?</p>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the close</p>
+  <h2>The running example, closed</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 142" width="460" role="img" aria-label="top: a quantum algorithm makes one query and outputs 101 exactly; bottom: a classical algorithm asks f at 100, 010 and 001, gets 1, 0, 1, and outputs 101; no classical algorithm does it in two"><text x="10" y="30" font-size="14" text-anchor="start" class="fill-unit">quantum</text><rect x="100" y="12" width="74" height="28" rx="4" class="fill-unit"/><text x="137" y="31" font-size="12" text-anchor="middle" class="fill-ground">1 query</text><line x1="180.0" y1="26.0" x2="223.6" y2="26.0" class="unit" stroke-width="1.4"/><polygon points="230.0,26.0 222.0,22.0 222.0,30.0" class="fill-unit"/><text x="240" y="31" font-size="14" text-anchor="start" class="mono">|101⟩, exactly</text><text x="10" y="90" font-size="14" text-anchor="start" class="alt">classical</text><rect x="100" y="72" width="84" height="28" rx="4" class="fill-ground alt" stroke-width="1.4"/><text x="142" y="91" font-size="12" text-anchor="middle" class="mono">f(100) = 1</text><rect x="192" y="72" width="84" height="28" rx="4" class="fill-ground alt" stroke-width="1.4"/><text x="234" y="91" font-size="12" text-anchor="middle" class="mono">f(010) = 0</text><rect x="284" y="72" width="84" height="28" rx="4" class="fill-ground alt" stroke-width="1.4"/><text x="326" y="91" font-size="12" text-anchor="middle" class="mono">f(001) = 1</text><line x1="380.0" y1="86.0" x2="403.6" y2="86.0" class="alt" stroke-width="1.4"/><polygon points="410.0,86.0 402.0,82.0 402.0,90.0" class="fill-alt"/><text x="418" y="91" font-size="14" text-anchor="start" class="mono">101</text><text x="230" y="132" font-size="12" text-anchor="middle" class="soft">and no classical algorithm, even with coins, does it in 2</text></svg>
+        <p class="cap">The box for $s = 101$, opened twice.</p>
+      </div>
+      <p class="small"><b>Quantum, one query:</b> Hadamards, the oracle on $\ket-$, Hadamards. The eight signs <span class="ref" data-ref="signs">$+\,-\,+\,-\,-\,+\,-\,+$</span> cancel at $\ket{000}$ and add at $\ket{101}$. Outcome $101$, with probability $1$.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <tr><th>question</th><th class="num">quantum</th><th class="num">deterministic</th><th class="num">coins</th></tr>
+        <tr><td>constant or balanced?</td><td class="num">1</td><td class="num">5</td><td class="num">3 at error ¼</td></tr>
+        <tr><td>what is $s$?</td><td class="num">1</td><td class="num">3</td><td class="num">3 at error $\lt\tfrac12$</td></tr>
+      </table>
+      <p class="small"><b>Both answers from one run:</b> $101\ne000$, so balanced; and $s = 101$.</p>
+      <p class="small"><b>Every number proved:</b> $5 = 2^{3-1} + 1$ by the adversary; $3$ coins by $2^{1-3} = \tfrac14$; $3$ for $s$ by counting leaves, with or without coins.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What "one query told us everything" means.</b> Everything there was to know: $f$ is determined by $s$, and the run returned $s$.
+    That is special to the promise. For a general balanced $f$ on three bits one query returns one sample from $\hat F^{\,2}$, which says
+    "balanced" (it is not $000$) and little else — majority returns one of four strings.</p>
+    <p><b>The coins column for $n = 3$.</b> Deutsch–Jozsa's random test with $k = 3$ queries errs with probability at most $2^{-2} = \tfrac14$ and,
+    for this $f$, exactly that. Finding $s$: two queries succeed with probability at most $\tfrac12$ on some $s$ (four leaves against eight
+    strings), so at error below $\tfrac12$ three are needed, and three suffice.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · the close</p>
+  <h2>The honest scorecard</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <tr><th>problem</th><th class="num">$Q$</th><th class="num">$D$</th><th class="num">$R_{1/3}$</th><th>beats</th></tr>
+        <tr><td>Deutsch</td><td class="num">1</td><td class="num">2</td><td class="num">2</td><td>both, by 2</td></tr>
+        <tr><td>Deutsch–Jozsa</td><td class="num">1</td><td class="num">$2^{n-1} + 1$</td><td class="num">$\le3$</td><td>$D$ only</td></tr>
+        <tr><td>Bernstein–Vazirani</td><td class="num">1</td><td class="num">$n$</td><td class="num">$n$</td><td>both, by $n$</td></tr>
+        <tr><td>Simon (unit 14)</td><td class="num">$O(n)$</td><td class="num">$\Omega(2^{n/2})$</td><td class="num">$\Omega(2^{n/2})$</td><td>both, exponentially</td></tr>
+      </table>
+      <p class="small">The quantum counts in the first three rows are <b>exact</b>; Simon's is bounded error.</p>
+      <div class="box warn"><span class="label">read it this way</span>
+        <p class="small">Exponential against deterministic is cheap — coins erase it. Against coins, so far, only polynomial.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 600 252" width="580" role="img" aria-label="query counts for n = 30 on a log scale: Deutsch-Jozsa deterministic 536,870,913; Deutsch-Jozsa with coins at error ten to the minus six, 21; Bernstein-Vazirani with coins, 30; quantum, either problem, exactly 1"><text x="200" y="46" font-size="13" text-anchor="end">Deutsch–Jozsa, deterministic</text><rect x="210" y="30" width="320.1" height="24" class="fill-warn"/><text x="522.095228752361" y="47" font-size="13" text-anchor="end" class="mono fill-ground">536,870,913</text><text x="200" y="90" font-size="13" text-anchor="end">Deutsch–Jozsa, coins, error 10⁻⁶</text><rect x="210" y="74" width="48.5" height="24" class="fill-alt"/><text x="266.4813741402437" y="91" font-size="13" text-anchor="start" class="mono">21</text><text x="200" y="134" font-size="13" text-anchor="end">Bernstein–Vazirani, coins</text><rect x="210" y="118" width="54.2" height="24" class="fill-alt"/><text x="272.1611126730543" y="135" font-size="13" text-anchor="start" class="mono">30</text><text x="200" y="178" font-size="13" text-anchor="end">either, quantum, exact</text><rect x="210" y="162" width="3.0" height="24" class="fill-unit"/><text x="221" y="179" font-size="13" text-anchor="start" class="mono">1</text><line x1="210" y1="20" x2="210" y2="206" class="ink" stroke-width="1.2"/><line x1="210.0" y1="206" x2="210.0" y2="212" class="ink" stroke-width="1"/><text x="210.0" y="228" font-size="11" text-anchor="middle" class="soft">1</text><line x1="320.0" y1="206" x2="320.0" y2="212" class="ink" stroke-width="1"/><text x="320.0" y="228" font-size="11" text-anchor="middle" class="soft">10³</text><line x1="430.0" y1="206" x2="430.0" y2="212" class="ink" stroke-width="1"/><text x="430.0" y="228" font-size="11" text-anchor="middle" class="soft">10⁶</text><line x1="540.0" y1="206" x2="540.0" y2="212" class="ink" stroke-width="1"/><text x="540.0" y="228" font-size="11" text-anchor="middle" class="soft">10⁹</text><text x="375.0" y="246" font-size="12" text-anchor="middle" class="soft">queries, log scale, n = 30</text></svg>
+        <p class="cap">$n = 30$, log scale: the deterministic count dwarfs the others; the randomised counts sit near the quantum one.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers in the figure.</b> $2^{29} + 1 = 536{,}870{,}913$; Deutsch–Jozsa's random test at error below $10^{-6}$ needs $21$ queries
+    ($2^{-20} = 9.54\times10^{-7}$); Bernstein–Vazirani needs $30$ with or without coins; the quantum algorithms need $1$.</p>
+    <p><b>Simon's row, a forward pointer.</b> Unit 14 proves the quantum upper bound $O(n)$ and the classical randomised lower bound
+    $\Omega(2^{n/2})$. Its deterministic count is at least the randomised one, since $R\le D$. That row is the first exponential separation
+    against the strongest classical model, relative to a black box.</p>
+    <p><b>A limit, from unit 18.</b> For total functions — no promise — deterministic and quantum query complexity are polynomially
+    related, so exponential separations need a promise, as Deutsch–Jozsa, Bernstein–Vazirani and Simon all have.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · summary</p>
+  <h2>What this unit bought, and where it stops</h2>
+  <div class="cols">
+    <div class="box good"><span class="label">the toolkit</span>
+      <ul class="small">
+        <li><b>The query model</b>: decision trees, distributions over them, quantum query algorithms; $Q\le R\le D$.</li>
+        <li><b>Lower bounds</b> by fooling pairs, counting leaves, and averaging.</li>
+        <li><b>Phase kickback</b>: $U_f\ket x\ket- = (-1)^{f(x)}\ket x\ket-$, and the phase oracle; clean oracles only.</li>
+        <li><b>The Hadamard transform</b> $H^{\otimes n}\ket x = 2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y$: the Fourier transform of $\mathbb Z_2^n$, whose characters are $(-1)^{x\cdot y}$.</li>
+        <li><b>Fourier sampling</b>: one query samples $\hat F^{\,2}$.</li>
+        <li><b>Three algorithms</b>, each exact with one query, and the classical model each one beats.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Nielsen and Chuang, <i>Quantum Computation and Quantum Information</i>, §1.4.3–1.4.4 (Deutsch, Deutsch–Jozsa). R. de Wolf, <i>Quantum Computing: Lecture Notes</i> (arXiv:1907.09415), chapter 2, the sections on query complexity, Deutsch–Jozsa and Bernstein–Vazirani. Cleve, Ekert, Macchiavello and Mosca (1998), up to and including Deutsch–Jozsa; the rest is unit 15's. Buhrman and de Wolf, "Complexity measures and decision tree complexity: a survey" (2002), the deterministic and randomised parts; the quantum ones are unit 18's.</p>
+      <h3>Next</h3>
+      <p class="small"><b>14</b> Simon: the first exponential separation against coins. <b>15</b> Fourier on finite abelian groups. <b>17</b> Grover, the unstructured counterpart.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, on purpose.</b> Quantum query lower bounds (the polynomial and adversary methods, unit 18). Oracle
+    separations of complexity classes, which turn query separations into statements about BQP (units 12 and 14). The exact
+    quantum query complexity of total functions, where the largest known separations from $D$ are polynomial. Las Vegas
+    (zero-error, expected-cost) randomised algorithms, which the problems do not need.</p>
+    <p><b>Reading notes.</b> Nielsen and Chuang's Deutsch–Jozsa circuit is this deck's, with the same target preparation; their
+    "$\ket{x}\ket{y}\mapsto\ket{x}\ket{y\oplus f(x)}$" is this deck's $U_f$, and their $x\cdot z$ is the dot product mod 2. de Wolf's chapter 2 uses the
+    phase oracle throughout and proves the same classical bounds. Skip de Wolf's chapter 3 until after unit 14.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">13 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>prove phase kickback, and from it prove Deutsch–Jozsa and Bernstein–Vazirani correct — the amplitude of $0^n$ is $2^{-n}\sum_x(-1)^{f(x)}$, and the phase state of $s\cdot x$ is $H^{\otimes n}\ket s$;</li>
+      <li>say precisely which classical model each one beats and which it does not: Deutsch–Jozsa beats deterministic algorithms ($2^{n-1} + 1$ against $1$) and not randomised ones ($2^{1-k}$ error with $k$ queries); Bernstein–Vazirani beats both, but only $n$ against $1$;</li>
+      <li>prove the two classical bounds, and give their sizes at $n = 30$: $536{,}870{,}913$ deterministic queries, $21$ randomised queries for error below $10^{-6}$, and $30$ queries to find $s$, with or without coins.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">"Deutsch–Jozsa is an exponential speed-up" with no model named; a lower bound for Bernstein–Vazirani that only handles deterministic trees; a kickback proof that never uses $X\ket- = -\ket-$; or a count other than those three.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">No separation in this unit is exponential against coins; unit 14's Simon is the first. The sheet: <code>./qc problems 13</code>. When the checkpoint is true: <code>./qc done 13</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on something not in the deck before opening the sheet. A good one: $n = 4$ and $s = 1011$. Write the oracle as
+    three CNOTs, run Bernstein–Vazirani layer by layer — the phase state is $\ket-\ket+\ket-\ket-$ on the input, and the output $\ket{1011}$ — then say
+    how many classical queries are needed, with and without coins (four, either way), and how many deterministic queries Deutsch–Jozsa
+    would need on four bits ($2^3 + 1 = 9$).</p>
+    <p>Every number in this paragraph was computed. If yours disagree, check your arithmetic before the deck.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

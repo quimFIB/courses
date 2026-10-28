@@ -1,0 +1,2157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · Two systems: the tensor product, and the states that are not products</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="a">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="pair"><span class="ref-name">the running example: the photon pair from the crystal</span>A crystal turns one laser photon into two, one sent to A and one to B. Analysers at the <b>same</b> setting on both sides — any angle $\theta$, or circular — always give <b>opposite</b> results, each way half the time. <span class="ref-note">The model: the singlet $\ket{\Psi^-} = \tfrac1{\sqrt2}(\ket{01} - \ket{10})$ in $\mathbb C^2\otimes\mathbb C^2$, with $\ket0 = $ horizontal, $\ket1 = $ vertical. Not a product state, not a random choice of product states, and $(U\otimes U)\ket{\Psi^-} = \det(U)\ket{\Psi^-}$</span></template>
+  <template data-ref="singlet"><span class="ref-name">the singlet, in coordinates</span>$\ket{\Psi^-} = \tfrac1{\sqrt2}(\ket{01} - \ket{10}) = \tfrac1{\sqrt2}(0, 1, -1, 0)^{\mathsf T}$, norm $\tfrac12 + \tfrac12 = 1$. <span class="ref-note">Coefficient matrix $C = \tfrac1{\sqrt2}\begin{pmatrix}0 &amp; 1\\ -1 &amp; 0\end{pmatrix}$, $\det C = \tfrac12 \ne 0$: entangled. Schmidt coefficients $\tfrac1{\sqrt2}, \tfrac1{\sqrt2}$: maximally entangled</span></template>
+  <template data-ref="every"><span class="ref-name">the singlet in every basis</span>$(U\otimes U)\ket{\Psi^-} = \det(U)\,\ket{\Psi^-}$ for every $2\times2$ matrix $U$. <span class="ref-note">So for any orthonormal basis $\{\ket n, \ket{n^\perp}\}$ of $\mathbb C^2$: $\ket{\Psi^-} = \tfrac{c}{\sqrt2}\big(\ket{n}\ket{n^\perp} - \ket{n^\perp}\ket{n}\big)$ with $|c| = 1$ — the same Schmidt form in every basis, and opposite results in every basis</span></template>
+  <template data-ref="count"><span class="ref-name">the count</span>Pure states of $n$ qubits: $2^{n+1} - 2$ real parameters. Product states: $2n$. <span class="ref-note">$n = 2$: $4$ against $6$, and the singlet is one of the states outside the product family. $n = 50$: $100$ against $2\,251\,799\,813\,685\,246 \approx 2.25\times10^{15}$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part A · a finite quantum system · spine</p>
+  <div class="unit-no">03</div>
+  <h1>Two systems: the tensor product, and the states that are not products</h1>
+  <p class="lede">Two photons from one crystal disagree in every basis, and no pair of separate states can do that. The joint space is the tensor product — defined, built, computed with — and the Schmidt decomposition decides whether a pure state of two systems is a product.</p>
+  <p class="meta"><span>needs 01</span><span>~2½ h slides + 5 h problems</span><span>problems: <code>./qc problems 03</code></span></p>
+  <aside class="notes">
+    <p>Unit 01 stated three postulates — states, measurement, evolution — and deferred a fourth: what the
+    state space of two systems together is. This unit states it. The answer is the tensor product
+    $H_A\otimes H_B$, and the difference between it and the more obvious direct sum $H_A\oplus H_B$ is, for $n$
+    qubits, the difference between $2n$ dimensions and $2^n$. That gap is the whole of quantum computing's
+    promise, and of its difficulty.</p>
+    <p>The tensor product is defined the way a mathematician wants, by a universal property; then it is shown
+    to exist and to be unique; then it is computed with, as matrices and Kronecker products. Entanglement is
+    defined for pure states and decided by the Schmidt decomposition, proved from the singular value
+    decomposition.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through it: a pair of photons from a crystal, introduced on the overview slide. Proofs are
+    on the slides when they are one line and in these notes under <b>Full proof</b> when they are not; anything
+    imported is labelled <i>cited</i>, with where its proof is. You need unit 00 (complex inner products, Dirac
+    notation, the adjoint, unitary and Hermitian operators, the spectral theorem) and unit 01 (states as unit
+    vectors up to phase, the Born rule and the post-measurement state for a projective measurement). From the
+    assumed background: linear algebra over $\mathbb R$ including dual spaces and the real singular value
+    decomposition, and the law of total probability. No physics is assumed: the light, the crystal and the
+    analysers are described from nothing. Every number on the slides was computed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · overview</p>
+  <h2>Two photons that always disagree</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="pair">the photon pair from the crystal</span></span>
+        <p class="small">A crystal turns one laser photon into two, sent to A and to B. Each side measures polarisation with an analyser at angle $\theta$ — the <b>same</b> $\theta$ on both sides. <b>Whatever $\theta$ is, the photons give opposite answers.</b></p>
+        <p class="small">No state of photon A paired with a state of photon B does this (section 3). The pair is in <span class="ref" data-ref="singlet">the singlet</span> $\ket{\Psi^-} = \tfrac1{\sqrt2}(\ket{01} - \ket{10})$, in a space built in section 2.</p>
+      </div>
+      <div class="box warn"><span class="label">deliberately left for later</span>
+        <p class="small">Photon B's state <i>by itself</i> is unit 04's; Bell inequalities unit 06's; teleportation and dense coding unit 07's. Measuring one photon here is projective, $P\otimes I$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 520 200" width="560" role="img" aria-label="a laser beam enters a crystal from below; one photon leaves to the left towards analyser A, one to the right towards analyser B; each analyser is a cube with a diagonal that transmits one polarisation to a detector straight ahead, labelled theta, and reflects the other down to a detector labelled theta plus 90 degrees">
+          <text x="260" y="20" font-size="13" class="soft" text-anchor="middle">both analysers at the same angle θ</text>
+          <line x1="260" y1="196" x2="260" y2="112" class="warn" stroke-width="3"/>
+          <text x="268" y="178" font-size="12" class="soft">laser</text>
+          <rect x="238" y="72" width="44" height="40" class="fill-soft"/>
+          <text x="260" y="64" font-size="12" text-anchor="middle">crystal</text>
+          <line x1="238" y1="92" x2="122" y2="92" class="unit" stroke-width="2.5"/>
+          <line x1="282" y1="92" x2="398" y2="92" class="unit" stroke-width="2.5"/>
+          <text x="180" y="84" font-size="15" text-anchor="middle">A</text>
+          <text x="340" y="84" font-size="15" text-anchor="middle">B</text>
+          <rect x="92" y="77" width="30" height="30" class="fill-soft"/>
+          <line x1="92" y1="107" x2="122" y2="77" class="ink" stroke-width="1.5"/>
+          <line x1="92" y1="92" x2="44" y2="92" class="unit" stroke-width="2.5"/>
+          <rect x="24" y="80" width="20" height="24" class="fill-ink"/>
+          <text x="34" y="124" font-size="13" text-anchor="middle">θ</text>
+          <line x1="107" y1="107" x2="107" y2="148" class="unit" stroke-width="2.5"/>
+          <rect x="95" y="148" width="24" height="18" class="fill-ink"/>
+          <text x="107" y="186" font-size="13" text-anchor="middle">θ + 90°</text>
+          <rect x="398" y="77" width="30" height="30" class="fill-soft"/>
+          <line x1="398" y1="77" x2="428" y2="107" class="ink" stroke-width="1.5"/>
+          <line x1="428" y1="92" x2="476" y2="92" class="unit" stroke-width="2.5"/>
+          <rect x="476" y="80" width="20" height="24" class="fill-ink"/>
+          <text x="486" y="124" font-size="13" text-anchor="middle">θ</text>
+          <line x1="413" y1="107" x2="413" y2="148" class="unit" stroke-width="2.5"/>
+          <rect x="401" y="148" width="24" height="18" class="fill-ink"/>
+          <text x="413" y="186" font-size="13" text-anchor="middle">θ + 90°</text>
+        </svg>
+        <p class="cap">One photon to each side; each meets an analyser at angle $\theta$ and is counted at one of its two exits. Never both at $\theta$; never both at $\theta + 90^\circ$.</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> two photons, and why not the direct sum · <b>2</b> the tensor product · <b>3</b> product or entangled · <b>4</b> Schmidt · <b>5</b> measuring one photon · <b>6</b> counting.</p>
+      <p class="small muted">A <span class="term" data-term="tensor product">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the running example is.</b> Section 1 describes the light, the crystal and the fact, and shows why
+    the obvious joint space — the direct sum — cannot hold it. Section 2 builds the tensor product and writes
+    the singlet in it, as a Kronecker vector and as a coefficient matrix. Section 3 proves that the singlet is
+    not a product state and that no random choice of product states reproduces its statistics. Section 4
+    finds its Schmidt form in every basis at once, in <i>The singlet in every basis at once</i> and
+    <i>Worked: opposite in every basis</i>. Section 5 measures one photon and derives the anticorrelation.
+    Section 6 counts dimensions and closes the example in <i>The photon pair, closed</i>.</p>
+    <p><b>Why "every basis" is the point.</b> Two coins that always land opposite are easy to arrange: glue them.
+    What is hard is a pair that is opposite whichever of several incompatible questions is asked. The
+    horizontal–vertical, diagonal and circular analysers measure in unit 00's three bases $z$, $x$, $y$, which unit 00
+    proved mutually unbiased (<i>Polarisation is a qubit</i> makes the identification). That is what
+    forces a joint state that is not a pair of individual states.</p>
+    <p><b>The referee.</b> The course directory holds an optional NumPy simulator for checking hand
+    calculations; nothing in this deck needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Two photons, and why not the direct sum</h2>
+  <p>Polarisation from nothing, a crystal that makes pairs, and the fact that needs a model. Then the first guess at a joint space, and why it fails.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · two photons</p>
+  <h2>Polarisation, from nothing</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Light is a wave.</b> What oscillates is an electric field, and it oscillates <b>across</b> the direction of travel, never along it. The direction across which it swings is the light's <span class="term">polarisation</span>: horizontal (H), vertical (V), or any angle $\alpha$ between.</p>
+      <p class="small"><b>The analyser.</b> A <span class="term">polarising beam splitter</span> is a glass cube cut along a diagonal and coated: it transmits H light and reflects V light. Turned through $\theta$ about the beam, it transmits polarisation $\theta$ and reflects $\theta + 90^\circ$.</p>
+      <div class="box warn"><span class="label">two facts, observed</span>
+        <p class="small"><b>Bright light</b> polarised at $\alpha$: a fraction $\cos^2(\alpha - \theta)$ is transmitted — <span class="term">Malus's law</span> (1809).</p>
+        <p class="small"><b>One photon at a time</b> (unit 01's photons): each one leaves by <b>one</b> exit, at random; the fraction becomes a probability, $\cos^2(\alpha - \theta)$.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 250" width="513" role="img" aria-label="top: a wave drawn along a horizontal line of travel, swinging up and down across it, labelled vertical polarisation. bottom: a beam enters a cube with a diagonal; the horizontal part goes straight through to a detector, the vertical part is reflected upward to another detector">
+        <line x1="20" y1="70" x2="232" y2="70" class="rule" stroke-width="1.2"/>
+        <polygon points="240,70 230,65 230,75" class="fill-ink"/>
+        <text x="248" y="74" font-size="13" class="soft">travel</text>
+        <path d="M 30 70 q 20 -70 40 0 t 40 0 t 40 0 t 40 0 t 40 0" fill="none" class="alt" stroke-width="2.5"/>
+        <line x1="50" y1="30" x2="50" y2="110" class="ink" stroke-width="1.4" stroke-dasharray="3 3"/>
+        <text x="58" y="122" font-size="12" class="soft">field swings across: V</text>
+        <line x1="20" y1="205" x2="170" y2="205" class="unit" stroke-width="2.5"/>
+        <text x="24" y="196" font-size="12" class="soft">light at angle α</text>
+        <rect x="170" y="185" width="40" height="40" class="fill-soft"/>
+        <line x1="170" y1="225" x2="210" y2="185" class="ink" stroke-width="1.5"/>
+        <line x1="210" y1="205" x2="350" y2="205" class="unit" stroke-width="2.5"/>
+        <rect x="350" y="193" width="18" height="24" class="fill-ink"/>
+        <text x="256" y="232" font-size="12">H: transmitted</text>
+        <line x1="190" y1="185" x2="190" y2="150" class="unit" stroke-width="2.5"/>
+        <rect x="179" y="134" width="22" height="16" class="fill-ink"/>
+        <text x="210" y="150" font-size="12">V: reflected</text>
+      </svg>
+      <p class="cap">Above: a wave polarised vertically. Below: a polarising beam splitter at $\theta = 0$, sorting H from V.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What is being described.</b> Light is an electromagnetic wave; for this unit all that matters is that
+    at each point along the beam there is a field pointing in some direction perpendicular to the beam, and
+    that this direction swings back and forth as the wave passes. If it swings along one fixed line the light is
+    <i>linearly polarised</i> along that line. The line, not an arrow on it: swinging up–down is the same as
+    swinging down–up.</p>
+    <p><b>The polarising beam splitter</b> is two glass prisms glued along their long faces, with a thin
+    multilayer coating at the join. Light whose field swings in the plane of incidence is transmitted; light
+    swinging perpendicular to it is reflected. The details of why are optics, not this course's business; what
+    matters is the behaviour: two exits, one per polarisation.</p>
+    <p><b>Malus's law</b> (Étienne-Louis Malus, 1809) is the measured fraction. If the field swings at angle
+    $\alpha$ and the analyser transmits angle $\theta$, the field's component along $\theta$ is
+    $\cos(\alpha - \theta)$ times its amplitude, and brightness goes as the square of the amplitude. Checks: $\alpha
+    = \theta$ transmits everything; $\alpha = \theta + 90^\circ$ transmits nothing; $45^\circ$ apart, half.</p>
+    <p><b>Single photons.</b> Unit 01 introduced photons in the interferometer: light arrives in indivisible
+    lumps, and a detector clicks once per lump. Sent one at a time into an analyser, each photon leaves by one
+    exit; over many photons the transmitted fraction is again $\cos^2(\alpha - \theta)$, now as a frequency. This is
+    the observed behaviour this unit models, not something derived here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · two photons</p>
+  <h2>Polarisation is a qubit</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the model</span>
+        <p class="small">A photon's polarisation is a unit vector of $\mathbb C^2$, with $\ket H = \ket0$ and $\ket V = \ket1$. Linear polarisation at angle $\alpha$:</p>
+        $$\ket\alpha := \cos\alpha\,\ket0 + \sin\alpha\,\ket1 .$$
+        <p class="small">An analyser at $\theta$ measures in the orthonormal basis $\{\ket\theta, \ket{\theta + 90^\circ}\}$: $\ \braket{\theta|\theta + 90^\circ} = -\cos\theta\sin\theta + \sin\theta\cos\theta = 0$.</p>
+      </div>
+      <div class="box good"><span class="label">check: Malus's law</span>
+        <p class="small">$|\braket{\theta|\alpha}|^2 = (\cos\theta\cos\alpha + \sin\theta\sin\alpha)^2 = \cos^2(\alpha - \theta)$, and the other exit gets $\sin^2(\alpha - \theta)$. Sum: $1$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 230" width="405" role="img" aria-label="lines through a centre: horizontal and vertical labelled ket 0 and ket 1; the two diagonals labelled ket plus and ket minus; to the right two small circles with opposite arrows labelled ket plus i and ket minus i">
+          <circle cx="120" cy="115" r="90" fill="none" class="rule" stroke-width="1"/>
+          <line x1="30" y1="115" x2="210" y2="115" class="unit" stroke-width="2.5"/>
+          <line x1="120" y1="25" x2="120" y2="205" class="unit" stroke-width="2.5"/>
+          <line x1="56.4" y1="178.6" x2="183.6" y2="51.4" class="alt" stroke-width="2.5"/>
+          <line x1="56.4" y1="51.4" x2="183.6" y2="178.6" class="alt" stroke-width="2.5"/>
+          <text x="214" y="112" font-size="13" class="halo">H = |0⟩</text>
+          <text x="126" y="20" font-size="13" class="halo">V = |1⟩</text>
+          <text x="186" y="46" font-size="13" class="halo">|+⟩</text>
+          <text x="34" y="46" font-size="13" class="halo">|−⟩</text>
+          <circle cx="282" cy="70" r="16" fill="none" class="alt" stroke-width="2"/>
+          <polygon points="298,70 293,60 303,60" class="fill-alt"/>
+          <text x="270" y="104" font-size="13" class="alt">|+i⟩</text>
+          <circle cx="282" cy="160" r="16" fill="none" class="alt" stroke-width="2"/>
+          <polygon points="298,160 293,170 303,170" class="fill-alt"/>
+          <text x="270" y="196" font-size="13" class="alt">|−i⟩</text>
+        </svg>
+        <p class="cap">Three analysers: H/V is the $z$ basis, $\pm45^\circ$ the $x$ basis, circular the $y$ basis. A linear polarisation is a line, not an arrow: $\ket{\alpha + 180^\circ} = -\ket\alpha$.</p>
+      </div>
+      <p class="small"><b>The $y$ basis</b> $\ket{\pm i} = \tfrac1{\sqrt2}(\ket0 \pm i\ket1)$ is <b>circular</b> polarisation, measured by a thin plate that delays V by a quarter-cycle, then an analyser at $45^\circ$. Unit 00's three mutually unbiased bases, made of light.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this model.</b> It is unit 01's postulates applied to one photon's polarisation. The state space is
+    two-dimensional because an analyser has two exits and a photon that left by one exit leaves by the same
+    one at a second analyser at the same angle (repeatability, as for unit 00's magnets). The Malus check on the
+    slide is the only quantitative input, and the model reproduces it for every $\alpha$ and $\theta$.</p>
+    <p><b>The angle is not doubled here.</b> Orthogonal polarisations are $90^\circ$ apart in physical space, and
+    $\ket\theta$, $\ket{\theta + 90^\circ}$ are orthogonal vectors at $90^\circ$ in the real plane of $\mathbb C^2$: for linear
+    polarisation the picture in the plane <i>is</i> the physical picture. A forward-compatible aside: unit 02 puts all
+    qubit states on a sphere on which orthogonal states are antipodal, so there the angle doubles. Nothing in
+    this unit needs the sphere.</p>
+    <p><b>Circular polarisation.</b> If the H and V components of the field swing a quarter-cycle out of step,
+    the field's tip goes round a circle instead of along a line; the two senses of rotation are
+    $\tfrac1{\sqrt2}(\ket0 \pm i\ket1)$ — which one is called "left" depends on a convention this course does not need.
+    A <i>quarter-wave plate</i> — a slab of crystal in which V light travels slightly slower than H — delays V
+    by a quarter-cycle, multiplying its amplitude by a phase $\pm i$ and turning circular light into
+    diagonal light, which an analyser at $45^\circ$ then sorts. That is how a circular analyser is built.</p>
+    <p><b>Unbiasedness, checked.</b> $|\braket{0|\pm}|^2 = |\braket{0|\pm i}|^2 = |\braket{+|\pm i}|^2 = \tfrac12$: computed in unit 00 for the
+    Stern–Gerlach bases, and the same vectors here. An H photon at a $45^\circ$ analyser goes each way half the
+    time, as Malus's law says: $\cos^2 45^\circ = \tfrac12$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · two photons</p>
+  <h2>Down-conversion: one photon in, two out</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The crystal.</b> An ultraviolet laser shines into a crystal of beta-barium borate. Almost all the light passes straight through. Very rarely, one laser photon is replaced by <b>two</b> photons, each with about half its energy: <span class="term">spontaneous parametric down-conversion</span>.</p>
+      <p class="small"><b>The cut.</b> With the crystal cut a particular way ("type II"), one photon of each pair is polarised H and the other V, and they leave on two different cones. The cones cross along two lines; beams taken there go to A and to B.</p>
+      <p class="small"><b>The point.</b> Along those two lines nothing tells which photon is the H one. Kwiat and co-workers (1995) built exactly this source — pump $351$ nm, pairs at $702$ nm, twice the wavelength — and set the relative sign with a thin plate.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 520 220" width="560" role="img" aria-label="side view: a laser enters a crystal; two beams labelled A and B leave at angles to a screen, with faint cone edges around them. front view of the screen: two overlapping circles labelled H and V, with dots at the two points where they cross, labelled A and B">
+        <line x1="10" y1="110" x2="120" y2="110" class="warn" stroke-width="3"/>
+        <text x="16" y="100" font-size="12" class="soft">pump</text>
+        <rect x="120" y="90" width="30" height="40" class="fill-soft"/>
+        <line x1="150" y1="110" x2="300" y2="30" class="rule" stroke-width="1"/>
+        <line x1="150" y1="110" x2="300" y2="80" class="rule" stroke-width="1"/>
+        <line x1="150" y1="110" x2="300" y2="140" class="rule" stroke-width="1"/>
+        <line x1="150" y1="110" x2="300" y2="190" class="rule" stroke-width="1"/>
+        <line x1="150" y1="110" x2="300" y2="55" class="unit" stroke-width="2.5"/>
+        <line x1="150" y1="110" x2="300" y2="165" class="unit" stroke-width="2.5"/>
+        <text x="270" y="50" font-size="14" class="halo">A</text>
+        <text x="270" y="184" font-size="14" class="halo">B</text>
+        <line x1="310" y1="20" x2="310" y2="200" class="ink" stroke-width="2"/>
+        <text x="200" y="212" font-size="12" class="soft" text-anchor="middle">side view</text>
+        <circle cx="400" cy="110" r="50" fill="none" class="unit" stroke-width="2"/>
+        <circle cx="460" cy="110" r="50" fill="none" class="alt" stroke-width="2"/>
+        <circle cx="430" cy="70" r="6" class="fill-ink"/>
+        <circle cx="430" cy="150" r="6" class="fill-ink"/>
+        <text x="440" y="66" font-size="14" class="halo">A</text>
+        <text x="440" y="160" font-size="14" class="halo">B</text>
+        <text x="362" y="56" font-size="13">H</text>
+        <text x="494" y="56" font-size="13">V</text>
+        <text x="430" y="212" font-size="12" class="soft" text-anchor="middle">front view: the two cones</text>
+      </svg>
+      <p class="cap">Pairs leave on two cones, one of H photons and one of V. Where the cones cross, a photon could be from either, so the pair is in a superposition of "H to A, V to B" and "V to A, H to B".</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What down-conversion is.</b> In most transparent materials light passes through unchanged in colour. In
+    some crystals the response of the material to a strong field is not simply proportional to the field, and
+    that non-linearity lets one photon of the pump be converted into two photons whose energies add up to
+    the pump photon's energy. Two facts about light are needed to turn that into colours, both observed and
+    taken here as given (cited: any optics text; the second is Einstein's 1905 reading of the photoelectric
+    effect): light of frequency $f$ has wavelength $c/f$, with $c$ the speed of light; and each photon of it
+    carries energy $hf$, with $h$ Planck's constant. So energies adding means frequencies adding, and with equal
+    shares each daughter has half the frequency, so twice the wavelength: $2\times351 = 702$ nm. Dimensions: $hf$
+    is (J s)(s$^{-1}$) $=$ J, and $c/f$ is (m s$^{-1}$)(s) $=$ m ✓. It is <i>spontaneous</i> because nothing
+    triggers each event, and rare: almost every pump photon goes straight through.</p>
+    <p><b>Type II, and the two cones.</b> The crystal is birefringent: light polarised one way travels at a
+    different speed from light polarised the other. In a type-II crystal the two daughters have perpendicular
+    polarisations, and momentum conservation sends the H daughters out along one cone and the V daughters
+    along another. Where the cones intersect, a detected photon could have come from either cone — and its
+    partner is then on the other intersection line with the other polarisation.</p>
+    <p><b>The paper, cited.</b> P. G. Kwiat, K. Mattle, H. Weinfurter, A. Zeilinger, A. V. Sergienko and Y. Shih,
+    "New high-intensity source of polarization-entangled photon pairs", <i>Physical Review Letters</i> 75, 4337
+    (1995): a 351 nm pump in beta-barium borate, pairs at 702 nm, and wave plates in one arm that set the
+    relative phase between the two possibilities and so produce whichever of four states is wanted. This unit
+    takes the setting that gives the singlet.</p>
+    <p><b>Coincidences.</b> The detectors on the two sides record times; two clicks within a very short window
+    are counted as one pair. Everything on <i>The fact that needs a model</i> is about those pairs.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · two photons</p>
+  <h2>The fact that needs a model</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">the experimental fact, idealised</span>
+        <p class="small">Analysers at the <b>same</b> angle $\theta$ on both sides: the outcomes are $(\theta, \theta + 90^\circ)$ or $(\theta + 90^\circ, \theta)$, each half the time — <b>never the same</b>. For every $\theta$, and for circular analysers too.</p>
+      </div>
+      <p class="small">That is <span class="term">perfect anticorrelation</span> in every basis. At <b>different</b> angles the results are correlated less strongly; section 5 computes how much.</p>
+      <p class="small"><b>The question.</b> What state space for the pair, and what state in it, gives opposite answers whichever question is asked? Two guesses:</p>
+      <ul class="small">
+        <li>each photon carries a state of its own — killed in section 3;</li>
+        <li>the pair's space is $\mathbb C^2\oplus\mathbb C^2$ — killed on <i>The first guess</i>.</li>
+      </ul>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 470 150" width="560" role="img" aria-label="four small circles. In the first three, a teal line at angle theta equals 0, 30 and 60 degrees marks photon A's exit and a warm line at right angles to it marks photon B's exit. In the fourth, two small circular arrows turning opposite ways mark the circular case">
+        <circle cx="60" cy="70" r="40" fill="none" class="rule" stroke-width="1"/>
+        <line x1="20" y1="70" x2="100" y2="70" class="unit" stroke-width="3"/>
+        <line x1="60" y1="30" x2="60" y2="110" class="alt" stroke-width="3"/>
+        <text x="60" y="138" font-size="13" text-anchor="middle">θ = 0°</text>
+        <circle cx="170" cy="70" r="40" fill="none" class="rule" stroke-width="1"/>
+        <line x1="135.4" y1="90" x2="204.6" y2="50" class="unit" stroke-width="3"/>
+        <line x1="190" y1="104.6" x2="150" y2="35.4" class="alt" stroke-width="3"/>
+        <text x="170" y="138" font-size="13" text-anchor="middle">θ = 30°</text>
+        <circle cx="280" cy="70" r="40" fill="none" class="rule" stroke-width="1"/>
+        <line x1="260" y1="104.6" x2="300" y2="35.4" class="unit" stroke-width="3"/>
+        <line x1="245.4" y1="50" x2="314.6" y2="90" class="alt" stroke-width="3"/>
+        <text x="280" y="138" font-size="13" text-anchor="middle">θ = 60°</text>
+        <circle cx="372" cy="70" r="18" fill="none" class="unit" stroke-width="2.5"/>
+        <polygon points="390,70 385,60 395,60" class="fill-unit"/>
+        <circle cx="430" cy="70" r="18" fill="none" class="alt" stroke-width="2.5"/>
+        <polygon points="448,70 443,80 453,80" class="fill-alt"/>
+        <text x="401" y="138" font-size="13" text-anchor="middle">circular</text>
+      </svg>
+      <p class="cap">Teal: the exit photon A leaves by. Warm: the exit photon B leaves by, at the same setting. Always at right angles — or, for circular analysers, turning the other way.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Idealised.</b> A real source has imperfections — some pairs are lost, a small fraction of coincidences
+    land in the "same" exits — and the data approach the idealisation as the source is improved. This unit,
+    like unit 01's interferometer, works with the ideal statistics.</p>
+    <p><b>What "every basis" covers.</b> Linear analysers at any angle $\theta$ are the real bases
+    $\{\ket\theta, \ket{\theta + 90^\circ}\}$; circular analysers are the $y$ basis. Section 4 proves the model gives opposite
+    results in <i>every</i> orthonormal basis of $\mathbb C^2$, including the elliptical ones in between.</p>
+    <p><b>Why a single pair of individual states looks hopeless.</b> If photon A were simply H and photon B
+    simply V, the H/V analysers would always disagree, but the $45^\circ$ analysers would see each photon go each way
+    half the time, independently — agreeing half the time. Section 3 turns this into a theorem, and extends it
+    to any random mixture of such assignments.</p>
+    <p><b>Anticorrelation</b> is used here in its plain sense: the two outcomes, labelled by the same pair of
+    exits, are always different.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · two photons</p>
+  <h2>The first guess: the direct sum</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">direct sum</span></span>
+        <p class="small">$V\oplus W$ is the set of pairs $(v, w)$, added and scaled componentwise; $\dim V\oplus W = \dim V + \dim W$. So $\dim\,\mathbb C^2\oplus\mathbb C^2 = 4$.</p>
+      </div>
+      <p class="small"><b>Failure 1: no joint outcomes.</b> A vector $(\alpha, \beta)$ lists A's amplitudes and B's amplitudes separately. There are four joint outcomes — (H, H), (H, V), (V, H), (V, V) — and no coordinate is the amplitude for "A gives $i$ <b>and</b> B gives $j$".</p>
+      <p class="small"><b>Failure 2: phases.</b> A phase on A alone is invisible (unit 01). But $(e^{i\gamma}\alpha, \beta)$ is not a multiple of $(\alpha, \beta)$: the direct sum turns one photon's global phase into a <b>relative</b> phase of the pair.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 200" width="560" role="img" aria-label="left: four stacked cells, alpha 0 and alpha 1 for photon A then beta 0 and beta 1 for photon B, labelled two plus two numbers. right: a two by two grid whose rows are A equals 0 and 1 and columns B equals 0 and 1, with one amplitude per cell">
+          <text x="90" y="22" font-size="15" text-anchor="middle">ℂ² ⊕ ℂ²</text>
+          <rect x="40" y="36" width="100" height="28" fill="none" class="unit" stroke-width="1.5"/>
+          <rect x="40" y="64" width="100" height="28" fill="none" class="unit" stroke-width="1.5"/>
+          <rect x="40" y="104" width="100" height="28" fill="none" class="alt" stroke-width="1.5"/>
+          <rect x="40" y="132" width="100" height="28" fill="none" class="alt" stroke-width="1.5"/>
+          <text x="90" y="55" font-size="13" text-anchor="middle">α₀ : A gives 0</text>
+          <text x="90" y="83" font-size="13" text-anchor="middle">α₁ : A gives 1</text>
+          <text x="90" y="123" font-size="13" text-anchor="middle">β₀ : B gives 0</text>
+          <text x="90" y="151" font-size="13" text-anchor="middle">β₁ : B gives 1</text>
+          <text x="90" y="186" font-size="12" class="soft" text-anchor="middle">2 + 2 numbers</text>
+          <text x="320" y="22" font-size="15" text-anchor="middle">ℂ² ⊗ ℂ²</text>
+          <text x="285" y="48" font-size="12" class="soft" text-anchor="middle">B = 0</text>
+          <text x="355" y="48" font-size="12" class="soft" text-anchor="middle">B = 1</text>
+          <text x="226" y="84" font-size="12" class="soft" text-anchor="middle">A = 0</text>
+          <text x="226" y="134" font-size="12" class="soft" text-anchor="middle">A = 1</text>
+          <rect x="250" y="56" width="70" height="50" class="fill-soft"/>
+          <rect x="320" y="56" width="70" height="50" fill="none" class="ink" stroke-width="1"/>
+          <rect x="250" y="106" width="70" height="50" fill="none" class="ink" stroke-width="1"/>
+          <rect x="320" y="106" width="70" height="50" class="fill-soft"/>
+          <rect x="250" y="56" width="140" height="100" fill="none" class="ink" stroke-width="1.5"/>
+          <text x="285" y="86" font-size="14" text-anchor="middle">c₀₀</text>
+          <text x="355" y="86" font-size="14" text-anchor="middle">c₀₁</text>
+          <text x="285" y="136" font-size="14" text-anchor="middle">c₁₀</text>
+          <text x="355" y="136" font-size="14" text-anchor="middle">c₁₁</text>
+          <text x="320" y="186" font-size="12" class="soft" text-anchor="middle">2 × 2 numbers: one per joint outcome</text>
+        </svg>
+        <p class="cap">Same dimension at $n = 2$, different meaning. For $n$ photons the list has $2n$ entries; the grid has $2^n$.</p>
+      </div>
+      <p class="small"><b>What the direct sum does describe:</b> one photon that is in beam A <i>or</i> beam B, with a polarisation — unit 01's two paths with polarisation added. "Or", not "and".</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full argument for failure 2.</b> Suppose the pair's state were $(\alpha, \beta) \in \mathbb C^2\oplus\mathbb C^2$, with $\alpha$ A's state and
+    $\beta$ B's. Multiplying $\alpha$ by $e^{i\gamma}$ prepares the same photon A (unit 01: a global phase changes no statistic of
+    A). For the pair's state to be the same ray we would need $(e^{i\gamma}\alpha, \beta) = e^{i\delta}(\alpha, \beta)$ for some $\delta$, so
+    $e^{i\gamma} = e^{i\delta}$ (from the first component, as $\alpha \ne 0$) and $1 = e^{i\delta}$ (from the second, as $\beta \ne 0$): only
+    $\gamma \in 2\pi\mathbb Z$. So for $\gamma = \pi$, say, physically identical preparations give different rays, and a
+    measurement in a basis mixing the two summands (for instance one containing $(\alpha, \beta)/\sqrt2$) tells them apart.
+    A model that makes an invisible phase visible is wrong.</p>
+    <p><b>Where the direct sum is right.</b> For a single photon that can be in one of two beams, each with a
+    polarisation, the state space is (beam) $\otimes$ (polarisation) $= \mathbb C^2\otimes\mathbb C^2$, which is isomorphic to
+    $\mathbb C^2\oplus\mathbb C^2$: "beam A with polarisation $\alpha$" or "beam B with polarisation $\beta$". There, a relative phase between the
+    beams is physical — it is unit 01's interferometer phase. The direct sum is the right construction for
+    <i>alternatives</i>, the tensor product for <i>conjunctions</i>.</p>
+    <p><b>The dimension coincidence.</b> $2 + 2 = 2\times2$ is the only case where the two agree for qubits: $2n = 2^n$
+    for $n = 1, 2$ and $2n \lt 2^n$ for $n \ge 3$. The count is closed in section 6.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · two photons</p>
+  <h2>Joint amplitudes are bilinear</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Two photons prepared independently</b>, A in $\alpha = (\alpha_0, \alpha_1)$ and B in $\beta = (\beta_0, \beta_1)$. Independence means joint probabilities multiply:</p>
+      $$P(i, j) = |\alpha_i|^2|\beta_j|^2 = |\alpha_i\beta_j|^2 .$$
+      <p class="small">So take $\alpha_i\beta_j$ as the amplitude of the joint outcome $(i, j)$. The map $(\alpha, \beta) \mapsto (\alpha_i\beta_j)_{ij}$ is <b>bilinear</b> — linear in $\alpha$ for fixed $\beta$, and in $\beta$ for fixed $\alpha$ — and a phase on either photon is a phase of the whole ✓. Probabilities sum to $\sum_i|\alpha_i|^2\sum_j|\beta_j|^2 = 1$ ✓.</p>
+      <p class="small">The joint space should receive a bilinear map from $H_A\times H_B$ — the <b>most general</b> one, so that it imposes nothing more. That is the universal property of section 2.</p>
+    </div>
+    <div>
+      <div class="box def"><span class="label">the <span class="term">composite-system postulate</span></span>
+        <p class="small">The state space of systems A and B together is $H_A\otimes H_B$. If A is prepared in $\psi$ and B independently in $\varphi$, the joint state is $\psi\otimes\varphi$.</p>
+        <p class="small">Not every unit vector of $H_A\otimes H_B$ is of that form. <span class="ref" data-ref="singlet">The singlet</span> is not.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 300 140" width="364" role="img" aria-label="a column of two cells alpha 0 and alpha 1, times a row of two cells beta 0 and beta 1, gives a two by two grid with entries alpha i beta j">
+          <rect x="20" y="50" width="44" height="36" fill="none" class="unit" stroke-width="1.5"/>
+          <rect x="20" y="86" width="44" height="36" fill="none" class="unit" stroke-width="1.5"/>
+          <text x="42" y="74" font-size="14" text-anchor="middle">α₀</text>
+          <text x="42" y="110" font-size="14" text-anchor="middle">α₁</text>
+          <rect x="140" y="6" width="60" height="34" fill="none" class="alt" stroke-width="1.5"/>
+          <rect x="200" y="6" width="60" height="34" fill="none" class="alt" stroke-width="1.5"/>
+          <text x="170" y="28" font-size="14" text-anchor="middle">β₀</text>
+          <text x="230" y="28" font-size="14" text-anchor="middle">β₁</text>
+          <rect x="140" y="50" width="120" height="72" fill="none" class="ink" stroke-width="1.5"/>
+          <line x1="200" y1="50" x2="200" y2="122" class="ink" stroke-width="1"/>
+          <line x1="140" y1="86" x2="260" y2="86" class="ink" stroke-width="1"/>
+          <text x="170" y="74" font-size="14" text-anchor="middle">α₀β₀</text>
+          <text x="230" y="74" font-size="14" text-anchor="middle">α₀β₁</text>
+          <text x="170" y="110" font-size="14" text-anchor="middle">α₁β₀</text>
+          <text x="230" y="110" font-size="14" text-anchor="middle">α₁β₁</text>
+          <text x="100" y="92" font-size="18" text-anchor="middle">→</text>
+        </svg>
+        <p class="cap">Independent preparation: the joint amplitudes form the column-times-row $\alpha\beta^{\mathsf T}$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the amplitude is $\alpha_i\beta_j$, and not just something of that modulus.</b> Independence fixes only
+    $|c_{ij}|$. The phases are fixed by asking that the two photons, prepared separately, can be measured in
+    <i>any</i> pair of bases with independent results; with $c_{ij} = \alpha_i\beta_j$ that holds for every pair of bases (the
+    inner product of section 2 makes this a one-line check: $|\braket{e\otimes f|\alpha\otimes\beta}|^2 = |\braket{e|\alpha}|^2|\braket{f|\beta}|^2$). A
+    different choice of phases per cell would correlate the photons in some other basis. So the choice is
+    forced by the physics, not merely convenient.</p>
+    <p><b>Why "most general".</b> If the joint space were the target of some bilinear map that already satisfied
+    extra relations, those relations would forbid some joint states without any experiment demanding it.
+    The universal property says the target is free of relations other than bilinearity. It is the same move as
+    unit 01's "a state is <i>any</i> unit vector": nothing is excluded that the theory does not exclude.</p>
+    <p><b>History.</b> The tensor-product rule for composite systems is in von Neumann's
+    <i>Mathematische Grundlagen der Quantenmechanik</i> (1932). The word "entanglement" (Schrödinger's
+    <i>Verschränkung</i>) is from 1935, the year of the Einstein–Podolsky–Rosen paper, which first pressed on
+    exactly the kind of state this unit studies.</p>
+    <p><b>Postulate 4, stated.</b> This is the composite-system postulate unit 01 named and deferred. With it,
+    unit 01's other three postulates apply unchanged to the pair: a state is a unit vector of $H_A\otimes H_B$ up to
+    phase, a measurement is a projection-valued measure on it, and closed evolution is a unitary on it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>The tensor product</h2>
+  <p>Defined by what it does, shown to be unique and to exist, then computed with: bases, inner products, operators, and the Kronecker matrix.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>The universal property</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">bilinear map</span></span>
+        <p class="small">$h: V\times W \to U$ with $h(\cdot, w)$ linear for each $w$ and $h(v, \cdot)$ linear for each $v$. All spaces are finite-dimensional over $\mathbb C$.</p>
+      </div>
+      <div class="box def"><span class="label">the <span class="term">tensor product</span>, by its <span class="term">universal property</span></span>
+        <p class="small">A pair $(T, \otimes)$: a vector space $T$ and a bilinear map $\otimes: V\times W \to T$ such that</p>
+        <p class="small">for <b>every</b> bilinear $h: V\times W \to U$ there is <b>exactly one</b> linear $L: T \to U$ with $h = L\circ\otimes$.</p>
+        <p class="small">Write $V\otimes W := T$ and $v\otimes w := \otimes(v, w)$, a <span class="term">pure tensor</span>.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 190" width="405" role="img" aria-label="a triangle: V cross W maps by the tensor sign to V tensor W along the top; a diagonal arrow h goes from V cross W down to U; a dashed arrow labelled exists unique L goes from V tensor W down to U">
+          <text x="50" y="41" font-size="16" text-anchor="middle">V × W</text>
+          <text x="250" y="41" font-size="16" text-anchor="middle">V ⊗ W</text>
+          <text x="250" y="174" font-size="16" text-anchor="middle">U</text>
+          <line x1="92" y1="36" x2="198.0" y2="36.0" class="ink" stroke-width="1.6"/><polygon points="205.0,36.0 196.0,40.5 196.0,31.5" class="fill-ink"/>
+          <text x="148" y="26" font-size="13" text-anchor="middle">⊗  (bilinear)</text>
+          <line x1="68" y1="52" x2="226.2" y2="156.2" class="ink" stroke-width="1.6"/><polygon points="232.0,160.0 222.0,158.8 227.0,151.3" class="fill-ink"/>
+          <text x="120" y="128" font-size="13" class="halo" text-anchor="middle">h, any bilinear</text>
+          <line x1="250" y1="54" x2="250.0" y2="145.0" class="alt" stroke-width="1.6" stroke-dasharray="5 4"/><polygon points="250.0,152.0 245.5,143.0 254.5,143.0" class="fill-alt"/>
+          <text x="258" y="106" font-size="13">∃! L linear</text>
+        </svg>
+        <p class="cap">Every bilinear $h$ out of $V\times W$ is a linear $L$ out of $V\otimes W$, composed with $\otimes$ — and $L$ is unique.</p>
+      </div>
+      <div class="box warn"><span class="label">a pure tensor is not a pair</span>
+        <p class="small">$(2v)\otimes w = 2(v\otimes w) = v\otimes(2w)$, though $(2v, w) \ne (v, 2w)$. And $v\otimes 0 = 0$ for every $v$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What the property says.</b> Bilinear maps out of $V\times W$ and linear maps out of $V\otimes W$ are the same thing:
+    composing with $\otimes$ turns a linear $L$ into a bilinear $L\circ\otimes$, and the property says every bilinear map arises
+    exactly once this way. So $V\otimes W$ is the space in which "bilinear" becomes "linear" — which is what
+    <i>Joint amplitudes are bilinear</i> asked of the joint space.</p>
+    <p><b>Why define it this way.</b> The definition mentions no basis. Any concrete model — matrices,
+    Kronecker vectors, bilinear forms — is then one instance, and <i>Unique up to unique isomorphism</i> proves all instances are
+    identified by exactly one isomorphism compatible with $\otimes$. So a computation done in one model holds in all.</p>
+    <p><b>The warning box, proved.</b> Bilinearity of $\otimes$ gives $(2v)\otimes w = 2(v\otimes w)$ and $v\otimes(2w) = 2(v\otimes w)$. And
+    $v\otimes0 = v\otimes(0\cdot0) = 0\cdot(v\otimes0) = 0$. In $V\times W$ none of this holds: the pair $(v, 0)$ is not the zero pair
+    unless $v = 0$. This is the algebraic shadow of the physics: a joint amplitude is a product, and a product
+    with a zero factor is zero.</p>
+    <p><b>History.</b> Tensor products of abelian groups were introduced by Whitney (1938); the
+    universal-property definition became the standard one through Bourbaki's <i>Algebra</i>. For finite-dimensional
+    spaces every route gives the same object, as <i>Unique up to unique isomorphism</i> and <i>Existence</i> prove.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>Unique up to unique isomorphism</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">If $(T, \otimes)$ and $(T', \otimes')$ both have the universal property for $V\times W$, there is <b>exactly one</b> linear $L: T \to T'$ with $L\circ\otimes = \otimes'$, and it is an <b>isomorphism</b>.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$T$'s property with $h = \otimes'$ gives a unique $L$ with $L\circ\otimes = \otimes'$; $T'$'s with $h = \otimes$ gives $L'$ with $L'\circ\otimes' = \otimes$. Then</p>
+        $$(L'L)\circ\otimes = L'\circ\otimes' = \otimes = \mathrm{id}_T\circ\otimes .$$
+        <p class="small">$T$'s property with $h = \otimes$ allows only <b>one</b> linear map composing with $\otimes$ to give $\otimes$; so $L'L = \mathrm{id}_T$. Symmetrically $LL' = \mathrm{id}_{T'}$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 200" width="432" role="img" aria-label="V cross W on the left with arrows to T at top right and T prime at bottom right; between T and T prime a curved arrow L going down and a curved arrow L prime going up">
+          <text x="48" y="106" font-size="16" text-anchor="middle">V × W</text>
+          <text x="270" y="44" font-size="16" text-anchor="middle">T</text>
+          <text x="270" y="170" font-size="16" text-anchor="middle">T′</text>
+          <line x1="88" y1="92" x2="245.3" y2="47.9" class="ink" stroke-width="1.6"/><polygon points="252.0,46.0 244.5,52.8 242.1,44.1" class="fill-ink"/>
+          <line x1="88" y1="110" x2="245.3" y2="154.1" class="ink" stroke-width="1.6"/><polygon points="252.0,156.0 242.1,157.9 244.5,149.2" class="fill-ink"/>
+          <text x="160" y="58" font-size="14" class="halo">⊗</text>
+          <text x="160" y="154" font-size="14" class="halo">⊗′</text>
+          <path d="M 280 55 Q 320 100 284 142" fill="none" class="unit" stroke-width="1.8"/>
+          <polygon points="280.0,148.0 282.3,138.2 289.2,144.0" class="fill-unit"/>
+          <path d="M 262 148 Q 225 100 258 61" fill="none" class="alt" stroke-width="1.8"/>
+          <polygon points="262.0,55.0 259.8,64.8 252.8,59.1" class="fill-alt"/>
+          <text x="314" y="104" font-size="15">L</text>
+          <text x="216" y="104" font-size="15" class="alt">L′</text>
+        </svg>
+        <p class="cap">Going round $T \to T' \to T$ is a linear map that composes with $\otimes$ to give $\otimes$; so is the identity; uniqueness says they are equal.</p>
+      </div>
+      <p class="small"><b>So</b> any model with the property <b>is</b> the tensor product: compute in whichever is convenient.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof, every step.</b> (1) $\otimes': V\times W \to T'$ is bilinear, so $T$'s universal property, applied with
+    $U = T'$ and $h = \otimes'$, gives a linear $L: T \to T'$ with $L\circ\otimes = \otimes'$, and it is the only one. (2) Likewise $T'$'s
+    property with $U = T$ and $h = \otimes$ gives a linear $L': T' \to T$ with $L'\circ\otimes' = \otimes$. (3) $L'L: T \to T$ is linear, and
+    $(L'L)\circ\otimes = L'\circ(L\circ\otimes) = L'\circ\otimes' = \otimes$. (4) Now apply $T$'s property with $U = T$ and $h = \otimes$: there is exactly one
+    linear $M: T \to T$ with $M\circ\otimes = \otimes$. Both $M = L'L$ and $M = \mathrm{id}_T$ qualify, so $L'L = \mathrm{id}_T$. (5) The same
+    argument with the roles exchanged gives $LL' = \mathrm{id}_{T'}$. (6) So $L$ is invertible with inverse $L'$, and it is the
+    unique linear map with $L\circ\otimes = \otimes'$ by (1). $\blacksquare$</p>
+    <p><b>Why "unique isomorphism" matters.</b> Any two vector spaces of the same dimension are isomorphic, in
+    many ways. The theorem says more: there is exactly one isomorphism that carries $v\otimes w$ to $v\otimes'w$ for all $v, w$.
+    So "the" tensor product is well defined, and its pure tensors are identified too — which is what lets the
+    deck write $\ket{01}$ in one model and $(0, 1, 0, 0)^{\mathsf T}$ in another and mean the same thing.</p>
+    <p><b>The pattern.</b> Steps (3)–(4) are the standard argument for every object defined by a universal property
+    — products, quotients, free groups. Problem P1 runs it again to prove $V\otimes W \cong W\otimes V$ and
+    $(U\otimes V)\otimes W \cong U\otimes(V\otimes W)$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>Existence: a construction, and the basis theorem</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">construction</span>
+        <p class="small">$T :=$ the bilinear maps $V^*\times W^* \to \mathbb C$ (unit 00's dual spaces), with</p>
+        $$v\otimes w := \big((f, g) \mapsto f(v)\,g(w)\big).$$
+        <p class="small">Bilinear in $(v, w)$, since $f$ and $g$ are linear.</p>
+      </div>
+      <div class="box thm"><span class="label">the basis theorem</span>
+        <p class="small">If $e_1, \dots, e_m$ and $f_1, \dots, f_n$ are bases of $V$ and $W$, then $\{e_i\otimes f_j\}$ is a basis of $T$, so $\dim V\otimes W = mn$; and $(T, \otimes)$ has the universal property.</p>
+      </div>
+      <p class="small"><b>The other construction</b>, named only: the free vector space on the set $V\times W$, modulo the span of the relations that bilinearity demands. It works in every dimension; this course never needs it.</p>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Let $e^k$, $f^l$ be the dual bases. Then $(e_i\otimes f_j)(e^k, f^l) = \delta_{ik}\delta_{jl}$.</p>
+        <p class="small"><b>Basis.</b> A bilinear $\beta$ on $V^*\times W^*$ is fixed by the numbers $\beta(e^k, f^l)$, so $\beta = \sum_{kl}\beta(e^k, f^l)\,e_k\otimes f_l$; evaluating at $(e^k, f^l)$ shows the coefficients are forced.</p>
+        <p class="small"><b>Existence of $L$.</b> Given bilinear $h$, set $L(e_i\otimes f_j) := h(e_i, f_j)$ and extend linearly. With $v = \sum v_ie_i$, $w = \sum w_jf_j$:</p>
+        $$L(v\otimes w) = \sum_{ij}v_iw_j\,h(e_i, f_j) = h(v, w).$$
+        <p class="small"><b>Uniqueness of $L$.</b> Any such $L$ has $L(e_i\otimes f_j) = h(e_i, f_j)$: fixed on a basis. $\blacksquare$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> <i>The values on dual bases.</i> $(e_i\otimes f_j)(e^k, f^l) = e^k(e_i)\,f^l(f_j) = \delta_{ik}\delta_{jl}$.</p>
+    <p><i>Spanning.</i> Let $\beta: V^*\times W^* \to \mathbb C$ be bilinear. Any $(f, g)$ expands as $f = \sum_kf(e_k)e^k$, $g = \sum_lg(f_l)f^l$, so by
+    bilinearity $\beta(f, g) = \sum_{kl}f(e_k)g(f_l)\,\beta(e^k, f^l)$. The right-hand side is $\big(\sum_{kl}\beta(e^k, f^l)\,e_k\otimes f_l\big)(f, g)$, since
+    $(e_k\otimes f_l)(f, g) = f(e_k)g(f_l)$. So $\beta = \sum_{kl}\beta(e^k, f^l)\,e_k\otimes f_l$.</p>
+    <p><i>Independence.</i> If $\sum c_{ij}e_i\otimes f_j = 0$, evaluate at $(e^k, f^l)$: $c_{kl} = 0$.</p>
+    <p><i>Universal property.</i> Pure tensors expand: by bilinearity of $\otimes$, $v\otimes w = \sum_{ij}v_iw_j\,e_i\otimes f_j$. Define $L$ on the basis
+    as on the slide; then $L(v\otimes w) = \sum_{ij}v_iw_jh(e_i, f_j)$, which is $h(v, w)$ by bilinearity of $h$. Uniqueness: two linear maps
+    agreeing on a basis are equal, and any $L$ with $L\circ\otimes = h$ must send $e_i\otimes f_j$ to $h(e_i, f_j)$. $\blacksquare$</p>
+    <p><b>A useful corollary.</b> The pure tensors span $V\otimes W$ (the basis consists of pure tensors). So two linear
+    maps out of $V\otimes W$ that agree on all pure tensors are equal. This is used on almost every slide that
+    follows.</p>
+    <p><b>Why bilinear forms on the duals.</b> In finite dimension $V^{**} = V$ canonically, so a bilinear form on
+    $V^*\times W^*$ is the most economical object that is "bilinear in a $V$ and a $W$". The free-vector-space construction
+    needs quotients of infinite-dimensional spaces, which is why it is only named here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>Computing in coordinates: matrices, and rank</h2>
+  <div class="cols">
+    <div>
+      <p class="small">By uniqueness, compute in any model. For $\mathbb C^m\otimes\mathbb C^n$, two are standard:</p>
+      <ul class="small">
+        <li><b>matrices:</b> $\mathbb C^{m\times n}$ with $v\otimes w := vw^{\mathsf T}$ — column times row, <b>no conjugation</b>;</li>
+        <li><b>Kronecker vectors:</b> $\mathbb C^{mn}$, the same entries read row by row, $v\otimes w = (v_1w_1, \dots, v_1w_n, v_2w_1, \dots)$.</li>
+      </ul>
+      <div class="box def"><span class="label"><span class="term">coefficient matrix</span></span>
+        <p class="small">For $t = \sum_{ij}C_{ij}\,e_i\otimes f_j$, the matrix $C = (C_{ij})$. A pure tensor $v\otimes w$ has $C = vw^{\mathsf T}$.</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term">tensor rank</span></span>
+        <p class="small">The least $r$ with $t = \sum_{k=1}^rv_k\otimes w_k$. <b>Theorem:</b> it equals $\operatorname{rank}C$. So the pure tensors are exactly the rank-one matrices — a thin set.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 160" width="459" role="img" aria-label="left: a two by two grid with entries a i b j, labelled pure tensor, rank one. right: the singlet's grid with zero, one over root two, minus one over root two, zero, labelled rank two">
+          <rect x="20" y="20" width="140" height="100" fill="none" class="ink" stroke-width="1.5"/>
+          <line x1="90" y1="20" x2="90" y2="120" class="ink" stroke-width="1"/>
+          <line x1="20" y1="70" x2="160" y2="70" class="ink" stroke-width="1"/>
+          <text x="55" y="50" font-size="14" text-anchor="middle">a₀b₀</text>
+          <text x="125" y="50" font-size="14" text-anchor="middle">a₀b₁</text>
+          <text x="55" y="100" font-size="14" text-anchor="middle">a₁b₀</text>
+          <text x="125" y="100" font-size="14" text-anchor="middle">a₁b₁</text>
+          <text x="90" y="146" font-size="12" class="soft" text-anchor="middle">pure tensor a ⊗ b: rank 1</text>
+          <rect x="200" y="20" width="140" height="100" fill="none" class="alt" stroke-width="1.5"/>
+          <line x1="270" y1="20" x2="270" y2="120" class="alt" stroke-width="1"/>
+          <line x1="200" y1="70" x2="340" y2="70" class="alt" stroke-width="1"/>
+          <text x="235" y="50" font-size="14" text-anchor="middle">0</text>
+          <text x="305" y="50" font-size="14" text-anchor="middle">1/√2</text>
+          <text x="235" y="100" font-size="14" text-anchor="middle">−1/√2</text>
+          <text x="305" y="100" font-size="14" text-anchor="middle">0</text>
+          <text x="270" y="146" font-size="12" class="soft" text-anchor="middle">the singlet: rank 2</text>
+        </svg>
+        <p class="cap">Every $2\times2$ pure tensor has rows proportional. <span class="ref" data-ref="singlet">The singlet</span>'s rows are not.</p>
+      </div>
+      <div class="box proof"><span class="label">proof of the theorem</span>
+        <p class="small">$\sum_{k\le r}v_kw_k^{\mathsf T}$ has rank $\le r$. Conversely, if $\operatorname{rank}C = r$, pick a basis $v_1, \dots, v_r$ of its column space; each column $j$ is $\sum_kv_k(w_k)_j$, so $C = \sum_kv_kw_k^{\mathsf T}$. $\blacksquare$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the matrix model has the universal property.</b> $(v, w) \mapsto vw^{\mathsf T}$ is bilinear, and $e_ie_j^{\mathsf T}$ is the matrix unit
+    $E_{ij}$, so the images of basis pairs form a basis of $\mathbb C^{m\times n}$. The proof of the basis theorem used only that, so
+    it applies verbatim: define $L(E_{ij}) := h(e_i, e_j)$. The Kronecker model is the matrix model with the entries
+    listed row by row, a linear isomorphism, so it has the property too.</p>
+    <p><b>No conjugation.</b> The pure tensor is $vw^{\mathsf T}$, not $v\bar w^{\mathsf T}$: $\otimes$ is bilinear, so it must be linear in $w$. The
+    outer product $\ket v\!\bra w = v\bar w^{\mathsf T}$ of unit 00 is a different object — a map, conjugate-linear in $w$. The two are
+    related in <i>Worked: the universal property in anger</i>, and confusing them is the commonest error with Schmidt vectors in
+    section 4.</p>
+    <p><b>Rank and the singlet.</b> $C_{\Psi^-} = \tfrac1{\sqrt2}\begin{pmatrix}0&amp;1\\-1&amp;0\end{pmatrix}$ has determinant $\tfrac12 \ne 0$, so rank $2$: the singlet is not a pure
+    tensor. Section 3 says what that means physically.</p>
+    <p><b>A caution for later.</b> For tensors of three or more factors the rank is not a matrix rank, and is
+    in general hard to compute (Håstad, 1990, showed tensor rank NP-hard for three factors; cited). Two
+    factors — the bipartite case of this unit — are the easy case, and that is why the Schmidt decomposition
+    exists.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>Worked: the universal property in anger</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">worked example: a map defined on pure tensors</span>
+      <p class="small"><b>Want:</b> a linear $\mathrm{ev}: V\otimes V^* \to \mathbb C$ with $\mathrm{ev}(v\otimes f) = f(v)$.</p>
+      <p class="small"><b>1. The danger.</b> A tensor has many expressions $\sum_kv_k\otimes f_k$. "Apply the rule to each term and add" might depend on the expression.</p>
+      <p class="small"><b>2. Bilinear.</b> $(v, f) \mapsto f(v)$ is linear in $v$ ($f$ is linear) and in $f$ (how $V^*$ adds). So the universal property gives a <b>unique linear</b> $\mathrm{ev}$ with $\mathrm{ev}(v\otimes f) = f(v)$: well defined, no check of expressions needed.</p>
+      <p class="small"><b>3. Same move:</b> $\Phi(v\otimes f) := (w \mapsto f(w)\,v)$ defines a linear $\Phi: V\otimes V^* \to \operatorname{End}V$. On bases, $\Phi(e_i\otimes e^j) = E_{ij}$, the matrix unit: basis to basis, so $\Phi$ is an <b>isomorphism</b>. In Dirac notation, $\Phi(u\otimes\bra v) = \ket u\!\bra v$.</p>
+      <p class="small"><b>4. Compare.</b> $\operatorname{tr}\Phi(e_i\otimes e^j) = \operatorname{tr}E_{ij} = \delta_{ij} = e^j(e_i) = \mathrm{ev}(e_i\otimes e^j)$. Two linear maps agreeing on a basis: $\ \operatorname{tr}\circ\,\Phi = \mathrm{ev}$.</p>
+      <p class="small"><b>Check.</b> $\operatorname{tr}\ket u\!\bra v = \mathrm{ev}(u\otimes\bra v) = \braket{v|u}$ — unit 00's trace of an outer product ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 370 190" width="459" role="img" aria-label="top row: V cross V star, arrow tensor, V tensor V star, arrow Phi, End V. From V cross V star a diagonal arrow labelled evaluation to C at the bottom; from V tensor V star a dashed arrow ev down to C; from End V a diagonal arrow labelled trace to C">
+          <text x="50" y="41" font-size="15" text-anchor="middle">V × V*</text>
+          <text x="185" y="41" font-size="15" text-anchor="middle">V ⊗ V*</text>
+          <text x="325" y="41" font-size="15" text-anchor="middle">End V</text>
+          <text x="185" y="172" font-size="16" text-anchor="middle">ℂ</text>
+          <line x1="92" y1="36" x2="143.0" y2="36.0" class="ink" stroke-width="1.6"/><polygon points="150.0,36.0 141.0,40.5 141.0,31.5" class="fill-ink"/>
+          <line x1="222" y1="36" x2="275.0" y2="36.0" class="ink" stroke-width="1.6"/><polygon points="282.0,36.0 273.0,40.5 273.0,31.5" class="fill-ink"/>
+          <text x="252" y="26" font-size="13" text-anchor="middle">Φ, ≅</text>
+          <line x1="185" y1="52" x2="185.0" y2="143.0" class="alt" stroke-width="1.6" stroke-dasharray="5 4"/><polygon points="185.0,150.0 180.5,141.0 189.5,141.0" class="fill-alt"/>
+          <text x="192" y="104" font-size="13">ev</text>
+          <line x1="60" y1="52" x2="162.9" y2="149.2" class="ink" stroke-width="1.6"/><polygon points="168.0,154.0 158.4,151.1 164.5,144.5" class="fill-ink"/>
+          <text x="70" y="118" font-size="12" class="halo">(v, f) ↦ f(v)</text>
+          <line x1="318" y1="52" x2="209.2" y2="149.3" class="ink" stroke-width="1.6"/><polygon points="204.0,154.0 207.7,144.6 213.7,151.4" class="fill-ink"/>
+          <text x="282" y="118" font-size="13" class="halo">tr</text>
+        </svg>
+        <p class="cap">The trace is the evaluation map, moved across the isomorphism $\Phi$. No basis appears in its definition.</p>
+      </div>
+      <div class="box warn"><span class="label">a recipe that is not bilinear fails</span>
+        <p class="small">"$v\otimes w \mapsto v_1 + w_1$" on $\mathbb C^2\otimes\mathbb C^2$: the one tensor $(2v)\otimes w = v\otimes(2w)$ would go to both $2v_1 + w_1$ and $v_1 + 2w_1$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why step 1 is a real danger.</b> $e_1\otimes e^1 + e_2\otimes e^2$ is also $(e_1 + e_2)\otimes e^1 + e_2\otimes(e^2 - e^1)$, by bilinearity. A
+    rule stated on pure tensors has to give the same answer for both expressions. Here it does —
+    $1 + 1 = 2$, and $e^1(e_1 + e_2) + (e^2 - e^1)(e_2) = 1 + 1 = 2$ — but checking every pair of expressions is hopeless in
+    general. The universal property replaces that check by one easy one: is the rule bilinear?</p>
+    <p><b>Full proof that $\Phi$ is an isomorphism.</b> $(v, f) \mapsto (w \mapsto f(w)v)$ is bilinear into $\operatorname{End}V$, so $\Phi$ exists and is
+    linear. $\Phi(e_i\otimes e^j)$ sends $e_k$ to $e^j(e_k)e_i = \delta_{jk}e_i$, which is the matrix unit $E_{ij}$. The $e_i\otimes e^j$ form a basis of
+    $V\otimes V^*$ (basis theorem) and the $E_{ij}$ a basis of $\operatorname{End}V$, so $\Phi$ maps a basis bijectively onto a basis.</p>
+    <p><b>The trace is basis-free.</b> The background proves this by $\operatorname{tr}(P^{-1}AP) = \operatorname{tr}A$. Here it falls out: $\mathrm{ev}$ and $\Phi$ were
+    defined without any basis, so $\operatorname{tr} = \mathrm{ev}\circ\Phi^{-1}$ is too. In Dirac notation, with the Riesz map identifying $V^*$ with
+    bras: $\operatorname{tr}\ket u\!\bra v = \braket{v|u}$, exactly unit 00's formula, now as a consequence of a definition.</p>
+    <p><b>Where this comes back.</b> Unit 04 defines the partial trace by a universal-property-style
+    uniqueness argument, and the contraction $V\otimes V^* \to \mathbb C$ is its one-factor ancestor.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>The inner product on a tensor product</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">If $H_A$, $H_B$ are inner-product spaces, there is exactly one inner product on $H_A\otimes H_B$ with</p>
+        $$\braket{v\otimes w|v'\otimes w'} = \braket{v|v'}\braket{w|w'} .$$
+        <p class="small">If $\{e_i\}$ and $\{f_j\}$ are orthonormal, so is $\{e_i\otimes f_j\}$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Existence:</b> declare $\{e_i\otimes f_j\}$ orthonormal, $\braket{s|t} := \sum_{ij}\bar s_{ij}t_{ij}$. On pure tensors, $s_{ij} = v_iw_j$, $t_{ij} = v'_iw'_j$:</p>
+        $$\textstyle\sum_{ij}\overline{v_iw_j}\,v'_iw'_j = \sum_i\bar v_iv'_i\,\sum_j\bar w_jw'_j .$$
+        <p class="small"><b>Uniqueness:</b> a sesquilinear form is fixed by its values on a spanning set, and pure tensors span. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>In coordinates</b> it is the inner product of coefficient matrices entry by entry:</p>
+      $$\braket{s|t} = \sum_{ij}\overline{C^s_{ij}}\,C^t_{ij} = \operatorname{tr}\big(C_s^\dagger C_t\big),$$
+      <p class="small">so $\lVert t\rVert^2 = \sum_{ij}|C_{ij}|^2$.</p>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>Product:</b> $\lVert v\otimes w\rVert = \lVert v\rVert\,\lVert w\rVert$, so unit vectors give a unit vector.</p>
+        <p class="small"><b>Independence:</b> $|\braket{e_i\otimes f_j|\alpha\otimes\beta}|^2 = |\alpha_i|^2|\beta_j|^2$ — section 1's demand ✓.</p>
+        <p class="small"><b><span class="ref" data-ref="singlet">The singlet</span>:</b> $\lVert\Psi^-\rVert^2 = 0 + \tfrac12 + \tfrac12 + 0 = 1$ ✓.</p>
+      </div>
+      <p class="small">With this, unit 01's postulates apply to the pair as they stand: states, Born rule, unitary evolution, all on $H_A\otimes H_B$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> <i>It is an inner product:</i> $\sum\bar s_{ij}t_{ij}$ is the standard inner product of $\mathbb C^{mn}$ in the
+    coordinates of the basis $\{e_i\otimes f_j\}$ — sesquilinear, conjugate-symmetric, positive definite.</p>
+    <p><i>The formula on pure tensors:</i> with $v = \sum v_ie_i$ etc., bilinearity of $\otimes$ gives $v\otimes w = \sum v_iw_j\,e_i\otimes f_j$, so
+    the coordinates are $v_iw_j$, and the display on the slide factorises. Since $\{e_i\}$ is orthonormal, $\sum_i\bar v_iv'_i = \braket{v|v'}$
+    (unit 00), and likewise for $w$.</p>
+    <p><i>Uniqueness, and so independence of the bases chosen:</i> let $B$ be any sesquilinear form on $H_A\otimes H_B$
+    satisfying the formula. Expand $s = \sum_k s_k$ and $t = \sum_l t_l$ as sums of pure tensors; then
+    $B(s, t) = \sum_{kl}B(s_k, t_l)$ by sesquilinearity, and each $B(s_k, t_l)$ is fixed by the formula. So $B$ is determined. In
+    particular, the inner product built from one pair of orthonormal bases equals the one built from any
+    other: the construction depended on bases, the result does not. $\blacksquare$</p>
+    <p><b>Orthonormality of $\{e_i\otimes f_j\}$</b> is the formula: $\braket{e_i\otimes f_j|e_k\otimes f_l} = \delta_{ik}\delta_{jl}$.</p>
+    <p><b>Why "Hilbert space".</b> In finite dimension every inner-product space is complete, so $H_A\otimes H_B$ with this
+    inner product is a Hilbert space with no further work. In infinite dimension the algebraic tensor product
+    must be completed; this course never needs that.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>n qubits, and the order of the bits</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">computational basis</span> of $n$ qubits</span>
+        <p class="small">$(\mathbb C^2)^{\otimes n}$, of dimension $2^n$, with orthonormal basis</p>
+        $$\ket{x_0\cdots x_{n-1}} := \ket{x_0}\otimes\cdots\otimes\ket{x_{n-1}}$$
+        <p class="small">for bit strings $x$. Brackets do not matter: $(U\otimes V)\otimes W \cong U\otimes(V\otimes W)$ (problem P1).</p>
+      </div>
+      <div class="box warn"><span class="label">the <span class="term">qubit order</span>, fixed for the course</span>
+        <p class="small">Qubit 0 is the <b>leftmost</b> symbol and the <b>most significant</b> bit: $\ket{x_0\cdots x_{n-1}}$ is basis vector number $\sum_kx_k2^{n-1-k}$. So $\ket{01}$ is vector $1$ and $\ket{10}$ is vector $2$. In a circuit, qubit 0 is the top wire.</p>
+        <p class="small"><b>Qiskit reverses this</b>: there qubit 0 is the least significant bit, and "$A$ on qubit 0, $B$ on qubit 1" has matrix $B\otimes A$ instead of $A\otimes B$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 200" width="418" role="img" aria-label="two horizontal wires, qubit 0 on top and qubit 1 below. Beside them a table: ket 00 is index 0, ket 01 index 1, ket 10 index 2, ket 11 index 3, with qubit 0's bit as the high bit">
+          <text x="10" y="44" font-size="13">qubit 0</text>
+          <text x="10" y="94" font-size="13">qubit 1</text>
+          <line x1="70" y1="40" x2="150" y2="40" class="alt" stroke-width="2.5"/>
+          <line x1="70" y1="90" x2="150" y2="90" class="unit" stroke-width="2.5"/>
+          <text x="110" y="132" font-size="12" class="soft" text-anchor="middle">top wire = leftmost bit</text>
+          <text x="245" y="26" font-size="12" class="soft" text-anchor="middle">ket → index</text>
+          <text x="210" y="56" font-size="15">|<tspan class="alt">0</tspan>0⟩</text><text x="270" y="56" font-size="15">0</text>
+          <text x="210" y="86" font-size="15">|<tspan class="alt">0</tspan>1⟩</text><text x="270" y="86" font-size="15">1</text>
+          <text x="210" y="116" font-size="15">|<tspan class="alt">1</tspan>0⟩</text><text x="270" y="116" font-size="15">2</text>
+          <text x="210" y="146" font-size="15">|<tspan class="alt">1</tspan>1⟩</text><text x="270" y="146" font-size="15">3</text>
+          <text x="245" y="180" font-size="12" class="soft" text-anchor="middle">index = 2·x₀ + x₁</text>
+        </svg>
+        <p class="cap">Qubit 0's bit (warm) is the high bit of the index.</p>
+      </div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="singlet">the singlet</span> as a Kronecker vector</span>
+        <p class="small">$\ket{01} = (0, 1, 0, 0)^{\mathsf T}$, $\ket{10} = (0, 0, 1, 0)^{\mathsf T}$, so</p>
+        $$\ket{\Psi^-} = \tfrac1{\sqrt2}(0, 1, -1, 0)^{\mathsf T},$$
+        <p class="small">with $\lVert\Psi^-\rVert^2 = \tfrac12 + \tfrac12 = 1$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The count of basis vectors.</b> By the basis theorem and induction, $\dim(\mathbb C^2)^{\otimes n} = 2^n$, and the $2^n$ vectors
+    $\ket x$, $x \in \{0, 1\}^n$, are an orthonormal basis (the inner-product theorem, applied $n - 1$ times).</p>
+    <p><b>A three-qubit instance.</b> $\ket{101} = \ket1\otimes\ket0\otimes\ket1$ is basis vector $4 + 0 + 1 = 5$ of $\mathbb C^8$. Its Kronecker vector:
+    $\ket1\otimes\ket0 = (0, 0, 1, 0)$, then $\otimes\ket1$ replaces each entry $c$ by $(0, c)$, giving $1$ in position $5$ (counting from
+    $0$) ✓.</p>
+    <p><b>Why the warning matters.</b> The physics does not depend on the order; the matrices do. A gate list
+    copied from software that uses Qiskit's order, then multiplied out in this course's order, gives the right
+    operator on the wrong qubits. Problem P2 does this for the controlled-NOT and shows the two matrices
+    differ by conjugation with the swap $\ket{ab} \mapsto \ket{ba}$.</p>
+    <p><b>The running example.</b> With $\ket0 = $ H and $\ket1 = $ V, $\ket{01}$ is "A horizontal, B vertical" and $\ket{10}$ "A vertical, B
+    horizontal". The singlet gives these two amplitudes $\pm1/\sqrt2$ and the other two $0$: opposite results in the H/V
+    basis, each way half the time. Section 4 extends this to every basis.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>Operators on a tensor product</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">tensor product of operators</span></span>
+        <p class="small">For linear $A$ on $V$ and $B$ on $W$, $A\otimes B$ is the unique linear map on $V\otimes W$ with</p>
+        $$(A\otimes B)(v\otimes w) = Av\otimes Bw .$$
+        <p class="small">It exists because $(v, w) \mapsto Av\otimes Bw$ is bilinear.</p>
+      </div>
+      <div class="box thm"><span class="label">rules</span>
+        $$(A\otimes B)(C\otimes D) = AC\otimes BD,$$
+        $$(A\otimes B)^\dagger = A^\dagger\otimes B^\dagger .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Both sides of the first agree on every $v\otimes w$, and pure tensors span. For the second: $\braket{v\otimes w|(A\otimes B)(v'\otimes w')} = \braket{v|Av'}\braket{w|Bw'} = \braket{A^\dagger v\otimes B^\dagger w|v'\otimes w'}$; extend by sesquilinearity. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 190" width="364" role="img" aria-label="a commuting square: V cross W to V tensor W along the top and bottom; A cross B down the left side; A tensor B dashed down the right side">
+          <text x="55" y="41" font-size="15" text-anchor="middle">V × W</text>
+          <text x="235" y="41" font-size="15" text-anchor="middle">V ⊗ W</text>
+          <text x="55" y="171" font-size="15" text-anchor="middle">V × W</text>
+          <text x="235" y="171" font-size="15" text-anchor="middle">V ⊗ W</text>
+          <line x1="100" y1="36" x2="183.0" y2="36.0" class="ink" stroke-width="1.6"/><polygon points="190.0,36.0 181.0,40.5 181.0,31.5" class="fill-ink"/>
+          <line x1="100" y1="166" x2="183.0" y2="166.0" class="ink" stroke-width="1.6"/><polygon points="190.0,166.0 181.0,170.5 181.0,161.5" class="fill-ink"/>
+          <line x1="55" y1="52" x2="55.0" y2="141.0" class="ink" stroke-width="1.6"/><polygon points="55.0,148.0 50.5,139.0 59.5,139.0" class="fill-ink"/>
+          <line x1="235" y1="52" x2="235.0" y2="141.0" class="alt" stroke-width="1.6" stroke-dasharray="5 4"/><polygon points="235.0,148.0 230.5,139.0 239.5,139.0" class="fill-alt"/>
+          <text x="62" y="104" font-size="13">(v, w) ↦ (Av, Bw)</text>
+          <text x="242" y="104" font-size="14">A ⊗ B</text>
+          <text x="145" y="26" font-size="13" text-anchor="middle">⊗</text>
+          <text x="145" y="186" font-size="13" text-anchor="middle">⊗</text>
+        </svg>
+        <p class="cap">Either way round the square, $(v, w)$ lands on $Av\otimes Bw$.</p>
+      </div>
+      <div class="box good"><span class="label">consequences, checked</span>
+        <p class="small"><b>Unitary:</b> $(U\otimes V)^\dagger(U\otimes V) = U^\dagger U\otimes V^\dagger V = I\otimes I = I$.</p>
+        <p class="small"><b>Projector:</b> $(P\otimes Q)^2 = P^2\otimes Q^2 = P\otimes Q = (P\otimes Q)^\dagger$. <b>Hermitian</b> likewise.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of existence.</b> $(v, w) \mapsto Av\otimes Bw$ is bilinear: linear in $v$ because $A$ is and $\otimes$ is
+    linear in its first slot, and likewise in $w$. The universal property, with $U = V\otimes W$, gives exactly one linear
+    map $V\otimes W \to V\otimes W$ sending $v\otimes w$ to $Av\otimes Bw$.</p>
+    <p><b>The product rule.</b> $(A\otimes B)(C\otimes D)(v\otimes w) = (A\otimes B)(Cv\otimes Dw) = ACv\otimes BDw = (AC\otimes BD)(v\otimes w)$. Two linear maps that
+    agree on all pure tensors agree everywhere (pure tensors span: the corollary of the basis theorem).</p>
+    <p><b>The adjoint.</b> Define $\beta(s, t) := \braket{s|(A\otimes B)t}$ and $\beta'(s, t) := \braket{(A^\dagger\otimes B^\dagger)s|t}$, both sesquilinear in
+    $(s, t)$. On pure tensors they agree by the computation on the slide, which uses the product formula for the
+    inner product and unit 00's definition of the adjoint in each factor. Both are therefore equal on all of
+    $(H_A\otimes H_B)^2$ (expand $s$, $t$ into pure tensors), which is the defining property of $(A\otimes B)^\dagger$. $\blacksquare$</p>
+    <p><b>Consequences, in full.</b> $I_V\otimes I_W = I$ (agrees on pure tensors). Unitary: as on the slide, so $U\otimes V$ is
+    unitary, and $(U\otimes V)^{-1} = U^{-1}\otimes V^{-1}$. Hermitian: $(A\otimes B)^\dagger = A^\dagger\otimes B^\dagger = A\otimes B$. Projector: idempotent and
+    self-adjoint, as on the slide. In particular $P\otimes I$ is a projector whenever $P$ is — the measurement of
+    section 5.</p>
+    <p><b>A trap.</b> Not every operator on $V\otimes W$ is an $A\otimes B$: the space of operators has dimension $(mn)^2$,
+    and $A\otimes B$ is the operator version of a pure tensor. Sums of them give everything (problem P2's controlled-NOT
+    is a sum of two).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>The Kronecker matrix</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Kronecker product</span></span>
+        <p class="small">In the bases $\{e_i\otimes f_j\}$ ordered with the first factor most significant,</p>
+        $$(A\otimes B)_{(i,j),(k,l)} = A_{ik}B_{jl},$$
+        $$A\otimes B = \begin{pmatrix}a_{00}B &amp; a_{01}B\\ a_{10}B &amp; a_{11}B\end{pmatrix}.$$
+        <p class="small"><b>Proof:</b> $(A\otimes B)(e_k\otimes f_l) = Ae_k\otimes Bf_l = \sum_{ij}A_{ik}B_{jl}\,e_i\otimes f_j$.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma: coefficient matrices</span>
+        <p class="small">If $t$ has coefficient matrix $C$, then $(A\otimes B)\,t$ has coefficient matrix</p>
+        $$A\,C\,B^{\mathsf T} .$$
+        <p class="small"><b>Check:</b> on $v\otimes w$, $\ A\,vw^{\mathsf T}B^{\mathsf T} = (Av)(Bw)^{\mathsf T}$ ✓.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 300 250" width="392" role="img" aria-label="a four by four grid with rows and columns labelled 00, 01, 10, 11; its four two by two blocks are labelled a00 B, a01 B, a10 B, a11 B, with the diagonal blocks shaded">
+        <rect x="70" y="40" width="90" height="90" class="fill-soft"/>
+        <rect x="160" y="130" width="90" height="90" class="fill-soft"/>
+        <rect x="70" y="40" width="180" height="180" fill="none" class="ink" stroke-width="1.8"/>
+        <line x1="160" y1="40" x2="160" y2="220" class="ink" stroke-width="1.8"/>
+        <line x1="70" y1="130" x2="250" y2="130" class="ink" stroke-width="1.8"/>
+        <line x1="115" y1="40" x2="115" y2="220" class="rule" stroke-width="1"/>
+        <line x1="205" y1="40" x2="205" y2="220" class="rule" stroke-width="1"/>
+        <line x1="70" y1="85" x2="250" y2="85" class="rule" stroke-width="1"/>
+        <line x1="70" y1="175" x2="250" y2="175" class="rule" stroke-width="1"/>
+        <text x="115" y="90" font-size="16" text-anchor="middle" class="halo">a₀₀B</text>
+        <text x="205" y="90" font-size="16" text-anchor="middle" class="halo">a₀₁B</text>
+        <text x="115" y="180" font-size="16" text-anchor="middle" class="halo">a₁₀B</text>
+        <text x="205" y="180" font-size="16" text-anchor="middle" class="halo">a₁₁B</text>
+        <text x="50" y="67" font-size="12" class="soft" text-anchor="middle">00</text>
+        <text x="50" y="112" font-size="12" class="soft" text-anchor="middle">01</text>
+        <text x="50" y="157" font-size="12" class="soft" text-anchor="middle">10</text>
+        <text x="50" y="202" font-size="12" class="soft" text-anchor="middle">11</text>
+        <text x="92" y="32" font-size="12" class="soft" text-anchor="middle">00</text>
+        <text x="137" y="32" font-size="12" class="soft" text-anchor="middle">01</text>
+        <text x="182" y="32" font-size="12" class="soft" text-anchor="middle">10</text>
+        <text x="227" y="32" font-size="12" class="soft" text-anchor="middle">11</text>
+        <text x="160" y="244" font-size="12" class="soft" text-anchor="middle">rows and columns labelled by (qubit 0, qubit 1)</text>
+      </svg>
+      <p class="cap">The first factor picks the block; the second factor fills it. Qubit 0's bit chooses the block row and column.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the matrix.</b> The column of $A\otimes B$ for the basis vector $e_k\otimes f_l$ is the coordinate vector of
+    $(A\otimes B)(e_k\otimes f_l) = Ae_k\otimes Bf_l = (\sum_iA_{ik}e_i)\otimes(\sum_jB_{jl}f_j) = \sum_{ij}A_{ik}B_{jl}\,e_i\otimes f_j$, by bilinearity. So the entry in row
+    $(i, j)$, column $(k, l)$ is $A_{ik}B_{jl}$. With row index $i\cdot\dim W + j$ — first factor most significant, the course's
+    order — the rows with a fixed $i$ and the columns with a fixed $k$ form a block, and that block is $A_{ik}B$.</p>
+    <p><b>Full proof of the lemma.</b> $(A\otimes B)\sum_{kl}C_{kl}\,e_k\otimes f_l = \sum_{kl}C_{kl}\sum_{ij}A_{ik}B_{jl}\,e_i\otimes f_j$, so the new coefficient of
+    $e_i\otimes f_j$ is $\sum_{kl}A_{ik}C_{kl}B_{jl} = (ACB^{\mathsf T})_{ij}$. $\blacksquare$</p>
+    <p><b>Why the lemma is worth having.</b> It turns statements about $A\otimes B$ acting on a two-system state into
+    statements about one matrix multiplied on both sides. Section 4 uses it three times: local unitaries do not
+    change singular values; $(U\otimes U)\ket{\Psi^-} = \det(U)\ket{\Psi^-}$; and $(U\otimes\bar U)\ket{\Phi^+} = \ket{\Phi^+}$. Note the transpose — not
+    the adjoint — on $B$: it comes from $\otimes$ being bilinear.</p>
+    <p><b>Mixed products.</b> The rule $(A\otimes B)(C\otimes D) = AC\otimes BD$ is, for Kronecker matrices, a block-multiplication
+    identity; with the definition by the universal property it needed no index work at all.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · the tensor product</p>
+  <h2>Worked: X ⊗ Z against Z ⊗ X</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">worked example: the order made concrete</span>
+      <p class="small">Unit 00's $X$ (flip) and $Z = \mathrm{diag}(1, -1)$. By blocks, $X\otimes Z$ has blocks $0, Z$ over $Z, 0$, and $Z\otimes X$ has blocks $X, 0$ over $0, -X$:</p>
+      $$X\otimes Z = \begin{pmatrix}0&amp;0&amp;1&amp;0\\0&amp;0&amp;0&amp;-1\\1&amp;0&amp;0&amp;0\\0&amp;-1&amp;0&amp;0\end{pmatrix},$$
+      <p class="small"><b>On $\ket{01}$</b> — basis vector $1$, so column $1$, counting from $0$:</p>
+      <p class="small">$(X\otimes Z)\ket{01} = X\ket0\otimes Z\ket1 = \ket1\otimes(-\ket1) = -\ket{11}$; column $1$ of $X\otimes Z$ is $(0, 0, 0, -1)^{\mathsf T}$ ✓.</p>
+      <p class="small"><b>Checks.</b> Both are unitary and Hermitian (tensor products of such); $(X\otimes Z)^2 = X^2\otimes Z^2 = I$ ✓.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">continued</span>
+        $$Z\otimes X = \begin{pmatrix}0&amp;1&amp;0&amp;0\\1&amp;0&amp;0&amp;0\\0&amp;0&amp;0&amp;-1\\0&amp;0&amp;-1&amp;0\end{pmatrix}.$$
+        <p class="small">$(Z\otimes X)\ket{01} = Z\ket0\otimes X\ket1 = \ket{00}$; column $1$ is $(1, 0, 0, 0)^{\mathsf T}$ ✓. A different matrix: order is meaning. (In Qiskit's order the two names swap.)</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 300 190" width="290" role="img" aria-label="two bipartite maps of the four basis states. X tensor Z: 00 to 10, 01 to minus 11, 10 to 00, 11 to minus 01. Z tensor X: 00 to 01, 01 to 00, 10 to minus 11, 11 to minus 10">
+          <text x="70" y="18" font-size="13" text-anchor="middle">X ⊗ Z</text>
+          <text x="230" y="18" font-size="13" text-anchor="middle">Z ⊗ X</text>
+          <text x="22" y="44" font-size="13">00</text><text x="22" y="84" font-size="13">01</text><text x="22" y="124" font-size="13">10</text><text x="22" y="164" font-size="13">11</text>
+          <text x="104" y="44" font-size="13">00</text><text x="104" y="84" font-size="13">01</text><text x="104" y="124" font-size="13">10</text><text x="104" y="164" font-size="13">11</text>
+          <line x1="44" y1="40" x2="100" y2="120" class="unit" stroke-width="1.8"/>
+          <line x1="44" y1="80" x2="100" y2="160" class="alt" stroke-width="1.8"/>
+          <line x1="44" y1="120" x2="100" y2="40" class="unit" stroke-width="1.8"/>
+          <line x1="44" y1="160" x2="100" y2="80" class="alt" stroke-width="1.8"/>
+          <text x="182" y="44" font-size="13">00</text><text x="182" y="84" font-size="13">01</text><text x="182" y="124" font-size="13">10</text><text x="182" y="164" font-size="13">11</text>
+          <text x="264" y="44" font-size="13">00</text><text x="264" y="84" font-size="13">01</text><text x="264" y="124" font-size="13">10</text><text x="264" y="164" font-size="13">11</text>
+          <line x1="204" y1="40" x2="260" y2="80" class="unit" stroke-width="1.8"/>
+          <line x1="204" y1="80" x2="260" y2="40" class="unit" stroke-width="1.8"/>
+          <line x1="204" y1="120" x2="260" y2="160" class="alt" stroke-width="1.8"/>
+          <line x1="204" y1="160" x2="260" y2="120" class="alt" stroke-width="1.8"/>
+          <text x="150" y="184" font-size="12" class="soft" text-anchor="middle">teal: sign +1 · warm: sign −1</text>
+        </svg>
+        <p class="cap">Each operator permutes the four basis states, with signs. $X$ flips the bit it acts on; $Z$ signs it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every column.</b> $X\otimes Z$: $\ket{00} \mapsto \ket1\otimes Z\ket0 = \ket{10}$; $\ket{01} \mapsto -\ket{11}$; $\ket{10} \mapsto \ket0\otimes\ket0 = \ket{00}$; $\ket{11} \mapsto \ket0\otimes(-\ket1) =
+    -\ket{01}$. Read as columns $0$–$3$: $(0,0,1,0)$, $(0,0,0,-1)$, $(1,0,0,0)$, $(0,-1,0,0)$ — the matrix on the slide. $Z\otimes X$:
+    $\ket{00} \mapsto \ket{01}$, $\ket{01} \mapsto \ket{00}$, $\ket{10} \mapsto -\ket{11}$, $\ket{11} \mapsto -\ket{10}$.</p>
+    <p><b>How to read a Kronecker matrix quickly.</b> Column $k$ is the image of basis vector $k$. Write $k$ in binary,
+    qubit 0 first, apply each factor to its own bit, and read off the result's index and sign.</p>
+    <p><b>A curiosity, proved.</b> $X\otimes Z$ and $Z\otimes X$ commute, although $X$ and $Z$ anticommute ($XZ = -ZX$, a
+    two-line matrix check): $(X\otimes Z)(Z\otimes X) = XZ\otimes ZX = (-ZX)\otimes(-XZ) = ZX\otimes XZ = (Z\otimes X)(X\otimes Z)$. The two minus
+    signs cancel. Unit 23 builds the theory of when such tensor products commute.</p>
+    <p><b>The trap, named.</b> If you take a gate list from software that uses Qiskit's order and compute its matrix
+    in this course's order without reversing the factors, you get the right operator on the wrong qubits —
+    a unitary that still looks plausible. The ordering convention is stated once, here, and kept everywhere.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Product or entangled</h2>
+  <p>A pure tensor is a product state. The singlet is not one — and no random choice among product states imitates it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · product or entangled</p>
+  <h2>Product states and entangled states</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">definition</span>
+        <p class="small">A unit vector of $H_A\otimes H_B$ is a <span class="term">product state</span> if it equals $\psi\otimes\varphi$ for some $\psi \in H_A$, $\varphi \in H_B$; otherwise it is an <span class="term">entangled state</span>.</p>
+        <p class="small">A property of the ray: $e^{i\gamma}(\psi\otimes\varphi) = (e^{i\gamma}\psi)\otimes\varphi$.</p>
+      </div>
+      <div class="box thm"><span class="label">two qubits: the determinant test</span>
+        <p class="small">A state of $\mathbb C^2\otimes\mathbb C^2$ with coefficient matrix $C$ is a product state if and only if $\det C = 0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Product $\iff$ $C = ab^{\mathsf T}$ $\iff$ $\operatorname{rank}C \le 1$ (tensor rank $=$ matrix rank). $C \ne 0$ since $\lVert C\rVert = 1$; and a nonzero $2\times2$ matrix has rank $1$ iff $\det C = 0$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 170" width="378" role="img" aria-label="a two by two grid of a i b j; the product of the diagonal entries a0 b0 a1 b1 and of the antidiagonal entries a0 b1 a1 b0 are equal, so the determinant is zero">
+          <rect x="80" y="20" width="140" height="100" fill="none" class="ink" stroke-width="1.5"/>
+          <line x1="150" y1="20" x2="150" y2="120" class="ink" stroke-width="1"/>
+          <line x1="80" y1="70" x2="220" y2="70" class="ink" stroke-width="1"/>
+          <line x1="95" y1="32" x2="205" y2="108" class="unit" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="205" y1="32" x2="95" y2="108" class="alt" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="115" y="50" font-size="14" text-anchor="middle" class="halo">a₀b₀</text>
+          <text x="185" y="50" font-size="14" text-anchor="middle" class="halo">a₀b₁</text>
+          <text x="115" y="100" font-size="14" text-anchor="middle" class="halo">a₁b₀</text>
+          <text x="185" y="100" font-size="14" text-anchor="middle" class="halo">a₁b₁</text>
+          <text x="150" y="146" font-size="13" text-anchor="middle">a₀b₀·a₁b₁ − a₀b₁·a₁b₀ = 0</text>
+        </svg>
+        <p class="cap">In a product state both diagonals multiply to the same thing.</p>
+      </div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="singlet">the singlet</span> is entangled</span>
+        <p class="small">$\det\tfrac1{\sqrt2}\begin{pmatrix}0&amp;1\\-1&amp;0\end{pmatrix} = \tfrac12(0\cdot0 - 1\cdot(-1)) = \tfrac12 \ne 0$.</p>
+        <p class="small">Directly: $\ (a_0\ket0 + a_1\ket1)(b_0\ket0 + b_1\ket1)$ would need $a_0b_0 = a_1b_1 = 0$ but $a_0b_1, a_1b_0 \ne 0$ — impossible.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the test.</b> If $\psi = a\otimes b$ then its coefficient matrix is $ab^{\mathsf T}$, which has rank at most one, so
+    $\det = a_0b_0a_1b_1 - a_0b_1a_1b_0 = 0$. Conversely, if $\det C = 0$ and $C \ne 0$, then $\operatorname{rank}C = 1$; pick a nonzero column $a$;
+    every column is a multiple $b_ja$ of it, so $C = ab^{\mathsf T}$ and $\psi = a\otimes b$. Normalisation: $1 = \lVert\psi\rVert = \lVert a\rVert\lVert b\rVert$, so
+    rescaling $a$ and $b$ by reciprocal positive factors makes both unit vectors.</p>
+    <p><b>The direct argument, completed.</b> If the singlet were $a\otimes b$, its $\ket{00}$ amplitude $a_0b_0$ and $\ket{11}$
+    amplitude $a_1b_1$ vanish, while $a_0b_1 = \tfrac1{\sqrt2}$ and $a_1b_0 = -\tfrac1{\sqrt2}$. The latter make all four of $a_0, a_1, b_0, b_1$
+    nonzero, contradicting the former.</p>
+    <p><b>Names.</b> "Entangled" translates Schrödinger's <i>verschränkt</i> (1935). For pure states, "entangled" means
+    exactly "not a product"; for the mixed states of unit 04 the definition has to change ("not a mixture of
+    products"), and deciding it becomes hard in general. Only pure states appear here.</p>
+    <p><b>What the definition depends on.</b> It depends on the split into A and B. The same vector of $\mathbb C^4$
+    can be entangled for one tensor decomposition $\mathbb C^4 \cong \mathbb C^2\otimes\mathbb C^2$ and a product for another. The split is
+    physical: it is which photon went where.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · product or entangled</p>
+  <h2>Worked: two determinants</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">worked example: decide, and factor if possible</span>
+      <p class="small"><b>(a)</b> $\ket{\psi_1} = \tfrac12(\ket{00} + \ket{01} + \ket{10} + \ket{11})$. Norm: $4\cdot\tfrac14 = 1$ ✓.</p>
+      <p class="small">$C = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}$, $\ \det C = \tfrac14(1 - 1) = 0$: <b>product</b>. Factor: every column is $\tfrac12(1, 1)^{\mathsf T}$, so $C = ab^{\mathsf T}$ with $a = b = \tfrac1{\sqrt2}(1, 1)^{\mathsf T}$, i.e.</p>
+      $$\ket{\psi_1} = \ket+\otimes\ket+ .$$
+      <p class="small">Check: $\ket+\otimes\ket+ = \tfrac12(1, 1, 1, 1)^{\mathsf T}$ ✓.</p>
+      <p class="small"><b>(b)</b> $\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{00} + \ket{11})$. Norm: $\tfrac12 + \tfrac12 = 1$ ✓.</p>
+      <p class="small">$C = \tfrac1{\sqrt2}I$, $\ \det C = \tfrac12 \ne 0$: <b>entangled</b>. In fact $|\det C| = \tfrac12$ is as large as it can be (problem P3).</p>
+      <p class="small"><b>Reading (a).</b> A pair in $\ket+\ket+$ is two photons each polarised at $45^\circ$: measured H/V, the four outcomes are equally likely, $\tfrac14$ each — sum $1$ — and independent.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 260 150" width="338" role="img" aria-label="two coefficient grids: left all entries one half, determinant zero; right one over root two on the diagonal and zero off it, determinant one half">
+          <rect x="20" y="20" width="90" height="80" fill="none" class="unit" stroke-width="1.5"/>
+          <line x1="65" y1="20" x2="65" y2="100" class="unit" stroke-width="1"/><line x1="20" y1="60" x2="110" y2="60" class="unit" stroke-width="1"/>
+          <text x="42" y="45" font-size="13" text-anchor="middle">½</text><text x="88" y="45" font-size="13" text-anchor="middle">½</text>
+          <text x="42" y="85" font-size="13" text-anchor="middle">½</text><text x="88" y="85" font-size="13" text-anchor="middle">½</text>
+          <text x="65" y="126" font-size="12" text-anchor="middle">det = 0</text>
+          <rect x="150" y="20" width="90" height="80" fill="none" class="alt" stroke-width="1.5"/>
+          <line x1="195" y1="20" x2="195" y2="100" class="alt" stroke-width="1"/><line x1="150" y1="60" x2="240" y2="60" class="alt" stroke-width="1"/>
+          <text x="172" y="45" font-size="13" text-anchor="middle">1/√2</text><text x="218" y="45" font-size="13" text-anchor="middle">0</text>
+          <text x="172" y="85" font-size="13" text-anchor="middle">0</text><text x="218" y="85" font-size="13" text-anchor="middle">1/√2</text>
+          <text x="195" y="126" font-size="12" text-anchor="middle">det = ½</text>
+        </svg>
+        <p class="cap">Left, $\ket+\ket+$: equal rows. Right, $\ket{\Phi^+}$: rows independent.</p>
+      </div>
+      <div class="box warn"><span class="label">superposition is not entanglement</span>
+        <p class="small">$\ket{\psi_1}$ is a superposition of all four basis states and is still a product. Entanglement is about the <b>rank</b> of $C$, not the number of nonzero amplitudes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every step of (a).</b> The coefficient of $\ket{ij}$ is $C_{ij}$, here all $\tfrac12$. The determinant is
+    $\tfrac12\cdot\tfrac12 - \tfrac12\cdot\tfrac12 = 0$. A rank-one matrix is a column times a row: the first column is $(\tfrac12, \tfrac12)^{\mathsf T}$ and the second
+    column is $1$ times it, so $C = (\tfrac12, \tfrac12)^{\mathsf T}(1, 1)$. Moving a factor $\sqrt2$ across makes both unit vectors:
+    $(\tfrac1{\sqrt2}, \tfrac1{\sqrt2})^{\mathsf T}(\tfrac1{\sqrt2}, \tfrac1{\sqrt2})$. Both are $\ket+$.</p>
+    <p><b>Every step of (b).</b> $C_{00} = C_{11} = \tfrac1{\sqrt2}$, $C_{01} = C_{10} = 0$, so $\det C = \tfrac12 - 0$. Nonzero, so rank two, so not a pure
+    tensor.</p>
+    <p><b>A third, for practice.</b> $\tfrac12(\ket{00} + \ket{01} - \ket{10} - \ket{11})$ has $C = \tfrac12\begin{pmatrix}1&amp;1\\-1&amp;-1\end{pmatrix}$, determinant
+    $\tfrac14(-1 + 1) = 0$, and factors as $\ket-\otimes\ket+$: check $\tfrac12(1, -1)^{\mathsf T}\otimes(1, 1)^{\mathsf T} = \tfrac12(1, 1, -1, -1)^{\mathsf T}$ ✓.</p>
+    <p><b>Where (b) goes next.</b> $\ket{\Phi^+}$ is one of <i>The four Bell states</i>, and <i>Φ⁺ is not the singlet</i>
+    compares it with the singlet: it too gives correlated results, but not in every basis.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · product or entangled</p>
+  <h2>The four Bell states</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Bell states</span></span>
+        $$\ket{\Phi^\pm} = \tfrac1{\sqrt2}(\ket{00} \pm \ket{11}),$$
+        $$\ket{\Psi^\pm} = \tfrac1{\sqrt2}(\ket{01} \pm \ket{10}).$$
+        <p class="small">$\ket{\Psi^-}$ is the <span class="term">singlet</span> — <span class="ref" data-ref="singlet">the running example's state</span>.</p>
+      </div>
+      <div class="box thm"><span class="label">an orthonormal basis of entangled states</span>
+        <p class="small"><b>Norms</b> $\tfrac12 + \tfrac12 = 1$. <b>Orthogonal:</b> $\Phi$'s and $\Psi$'s share no basis kets; $\braket{\Phi^+|\Phi^-} = \braket{\Psi^+|\Psi^-} = \tfrac12 - \tfrac12 = 0$. Four orthonormal vectors in a space of dimension four: a basis. Each has $|\det C| = \tfrac12$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 140" width="432" role="img" aria-label="four small coefficient grids in units of one over root two: Phi plus has one, one on the diagonal; Phi minus has one, minus one on the diagonal; Psi plus has one, one off the diagonal; Psi minus has one, minus one off the diagonal">
+          <g font-size="13" text-anchor="middle">
+            <rect x="10" y="30" width="64" height="64" fill="none" class="ink" stroke-width="1.3"/><line x1="42" y1="30" x2="42" y2="94" class="ink" stroke-width="0.8"/><line x1="10" y1="62" x2="74" y2="62" class="ink" stroke-width="0.8"/>
+            <text x="26" y="51">1</text><text x="58" y="51">0</text><text x="26" y="83">0</text><text x="58" y="83">1</text><text x="42" y="20">Φ⁺</text><text x="42" y="116" class="soft">det ½</text>
+            <rect x="90" y="30" width="64" height="64" fill="none" class="ink" stroke-width="1.3"/><line x1="122" y1="30" x2="122" y2="94" class="ink" stroke-width="0.8"/><line x1="90" y1="62" x2="154" y2="62" class="ink" stroke-width="0.8"/>
+            <text x="106" y="51">1</text><text x="138" y="51">0</text><text x="106" y="83">0</text><text x="138" y="83">−1</text><text x="122" y="20">Φ⁻</text><text x="122" y="116" class="soft">det −½</text>
+            <rect x="170" y="30" width="64" height="64" fill="none" class="ink" stroke-width="1.3"/><line x1="202" y1="30" x2="202" y2="94" class="ink" stroke-width="0.8"/><line x1="170" y1="62" x2="234" y2="62" class="ink" stroke-width="0.8"/>
+            <text x="186" y="51">0</text><text x="218" y="51">1</text><text x="186" y="83">1</text><text x="218" y="83">0</text><text x="202" y="20">Ψ⁺</text><text x="202" y="116" class="soft">det −½</text>
+            <rect x="250" y="30" width="64" height="64" fill="none" class="alt" stroke-width="1.8"/><line x1="282" y1="30" x2="282" y2="94" class="alt" stroke-width="0.8"/><line x1="250" y1="62" x2="314" y2="62" class="alt" stroke-width="0.8"/>
+            <text x="266" y="51">0</text><text x="298" y="51">1</text><text x="266" y="83">−1</text><text x="298" y="83">0</text><text x="282" y="20">Ψ⁻</text><text x="282" y="116" class="soft">det ½</text>
+          </g>
+          <text x="165" y="136" font-size="12" class="soft" text-anchor="middle">entries in units of 1/√2; rows: qubit 0, columns: qubit 1</text>
+        </svg>
+        <p class="cap">Coefficient matrices of the Bell states. Every one has rank two.</p>
+      </div>
+      <p class="small"><b>All from one</b>, by acting on qubit 1 only:</p>
+      $$\begin{aligned}(I\otimes X)\ket{\Phi^+} &amp;= \ket{\Psi^+},\\ (I\otimes Z)\ket{\Phi^+} &amp;= \ket{\Phi^-},\\ (I\otimes XZ)\ket{\Phi^+} &amp;= \ket{\Psi^-}.\end{aligned}$$
+      <p class="small"><b>Checks.</b> $X$ swaps $\ket0, \ket1$ on qubit 1: $\ket{00} + \ket{11} \mapsto \ket{01} + \ket{10}$ ✓. $Z$ signs $\ket1$: $\mapsto \ket{00} - \ket{11}$ ✓. $XZ\ket0 = \ket1$, $XZ\ket1 = -\ket0$: $\mapsto \ket{01} - \ket{10}$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The orthogonality, in full.</b> $\braket{\Phi^\pm|\Psi^\pm}$ and $\braket{\Phi^\pm|\Psi^\mp}$ vanish because the $\Phi$'s are combinations of $\ket{00}, \ket{11}$ and the
+    $\Psi$'s of $\ket{01}, \ket{10}$, which are orthogonal to them. $\braket{\Phi^+|\Phi^-} = \tfrac12(\braket{00|00} - \braket{11|11}) = 0$, and the same for $\Psi^\pm$.
+    Four orthonormal vectors are linearly independent, so in a four-dimensional space they are a basis.</p>
+    <p><b>Names.</b> After John Bell, whose 1964 theorem — unit 06 — is about the correlations of exactly these
+    states. "Singlet" is a name from spin, where the antisymmetric state spans a one-dimensional
+    (single) subspace; unit 02 meets spin. Nothing here uses that origin.</p>
+    <p><b>Acting on one qubit.</b> The operators $I\otimes X$, $I\otimes Z$, $I\otimes XZ$ are unitary (tensor products of unitaries), and
+    act on photon B alone. That a local operation on one photon moves between all four Bell states is the
+    algebra behind dense coding, unit 07. Problem P7 proves that a local unitary never changes how
+    entangled a state is — so all four Bell states are equally entangled, as their determinants already say.</p>
+    <p><b>The matrices.</b> $X$ and $Z$ are unit 00's matrices; unit 02 names them Pauli matrices and explains
+    the name. This unit needs only their action: $X$ flips a bit, $Z$ multiplies $\ket1$ by $-1$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · product or entangled</p>
+  <h2>No product state does it</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">No product state $\ket a\otimes\ket b$ gives opposite results with certainty both in the H/V basis ($z$) and in the $\pm45^\circ$ basis ($x$).</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$P_z(\text{same}) = |a_0b_0|^2 + |a_1b_1|^2 = 0$ forces $a_0b_0 = a_1b_1 = 0$. If $a_0 = 0$ then $|a_1| = 1$, so $b_1 = 0$: $\ a = \ket1$, $b = \ket0$ up to phases. If $a_0 \ne 0$ then $b_0 = 0$, so $b_1 \ne 0$ and $a_1 = 0$: $\ a = \ket0$, $b = \ket1$. Either way $\{a, b\} = \{\ket0, \ket1\}$. Then each "same" outcome $\ket{++}$, $\ket{--}$ has probability $|\braket{\pm|0}\braket{\pm|1}|^2 = \tfrac14$:</p>
+        $$P_x(\text{same}) = \tfrac14 + \tfrac14 = \tfrac12 . \ \blacksquare$$
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 200" width="405" role="img" aria-label="bar chart of the probability that the two photons give the same result. For ket 01 and ket 10: zero in the z basis and one half in the x basis. For the singlet: zero in both">
+          <line x1="40" y1="40" x2="40" y2="160" class="ink" stroke-width="1.2"/>
+          <line x1="40" y1="160" x2="300" y2="160" class="ink" stroke-width="1.2"/>
+          <line x1="36" y1="100" x2="300" y2="100" class="rule" stroke-width="0.8" stroke-dasharray="3 3"/>
+          <line x1="36" y1="40" x2="300" y2="40" class="rule" stroke-width="0.8" stroke-dasharray="3 3"/>
+          <text x="30" y="104" font-size="12" text-anchor="end">½</text>
+          <text x="30" y="44" font-size="12" text-anchor="end">1</text>
+          <text x="30" y="164" font-size="12" text-anchor="end">0</text>
+          <rect x="62" y="157" width="26" height="3" class="fill-unit"/>
+          <rect x="92" y="100" width="26" height="60" class="fill-alt"/>
+          <rect x="142" y="157" width="26" height="3" class="fill-unit"/>
+          <rect x="172" y="100" width="26" height="60" class="fill-alt"/>
+          <rect x="222" y="157" width="26" height="3" class="fill-unit"/>
+          <rect x="252" y="157" width="26" height="3" class="fill-alt"/>
+          <text x="90" y="180" font-size="13" text-anchor="middle">|01⟩</text>
+          <text x="170" y="180" font-size="13" text-anchor="middle">|10⟩</text>
+          <text x="250" y="180" font-size="13" text-anchor="middle">Ψ⁻</text>
+          <rect x="60" y="14" width="12" height="12" class="fill-unit"/><text x="78" y="25" font-size="12">z: H/V</text>
+          <rect x="160" y="14" width="12" height="12" class="fill-alt"/><text x="178" y="25" font-size="12">x: ±45°</text>
+        </svg>
+        <p class="cap">$P(\text{same})$ for the only product states that never agree in $z$, and for the singlet.</p>
+      </div>
+      <div class="box good"><span class="label">check against <span class="ref" data-ref="singlet">the singlet</span></span>
+        <p class="small">Its $\ket{00}$, $\ket{11}$ amplitudes are $0$: $P_z(\text{same}) = 0$. Section 4 shows $P_x(\text{same}) = 0$ too.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> For unit vectors $a, b \in \mathbb C^2$, the product state has amplitudes $a_ib_j$ on $\ket{ij}$, so by the Born rule
+    (unit 01) the probability of the same result in the H/V basis is $|a_0b_0|^2 + |a_1b_1|^2$. If this is $0$, both products are $0$.
+    <i>Case $a_0 = 0$:</i> then $|a_1|^2 = 1 - |a_0|^2 = 1$, so $a_1 \ne 0$ and $a_1b_1 = 0$ gives $b_1 = 0$; so $a = a_1\ket1$ and $b = b_0\ket0$ with $|a_1| = |b_0| = 1$.
+    <i>Case $a_0 \ne 0$:</i> $a_0b_0 = 0$ gives $b_0 = 0$, so $|b_1| = 1$ and $a_1b_1 = 0$ gives $a_1 = 0$; so $a = a_0\ket0$, $b = b_1\ket1$. Phases on
+    $a$ and $b$ are global phases of the product (they multiply into one), so do not affect any probability.</p>
+    <p><b>The $x$ statistics.</b> Measuring both photons at $45^\circ$ is measuring in the basis $\{\ket{\pm}\otimes\ket{\pm}\}$, orthonormal by
+    the inner-product theorem, and $\braket{s\otimes t|a\otimes b} = \braket{s|a}\braket{t|b}$. Each of $\braket{\pm|0}$, $\braket{\pm|1}$ has modulus $\tfrac1{\sqrt2}$, so
+    each of the two "same" outcomes $\ket{++}$, $\ket{--}$ has probability $\tfrac12\cdot\tfrac12 = \tfrac14$. Total $\tfrac12$. The other two outcomes take
+    the remaining $\tfrac12$: sum $1$ ✓. $\blacksquare$</p>
+    <p><b>What it uses.</b> Only two bases. The singlet's anticorrelation in <i>every</i> basis is much more than is
+    needed to rule out product states; two mutually unbiased bases already do it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · product or entangled</p>
+  <h2>Nor does any random choice of product states</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Let each pair be prepared in a product state $\ket{a_\lambda}\otimes\ket{b_\lambda}$, with $\lambda$ chosen at random with probabilities $p_\lambda$. Then $P_z(\text{same}) = 0$ forces $P_x(\text{same}) = \tfrac12$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Law of total probability: $\ P_z(\text{same}) = \sum_\lambda p_\lambda\,P_z(\text{same}\mid\lambda) = 0$. Each term is $\ge 0$, so every $\lambda$ with $p_\lambda \gt 0$ has $P_z(\text{same}\mid\lambda) = 0$, hence, by <i>No product state does it</i>, $P_x(\text{same}\mid\lambda) = \tfrac12$. So</p>
+        $$P_x(\text{same}) = \sum_\lambda p_\lambda\cdot\tfrac12 = \tfrac12 . \ \blacksquare$$
+      </div>
+      <p class="small">A continuous choice of $\lambda$ changes nothing: the sums become integrals.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 170" width="432" role="img" aria-label="a tree: a source on the left branches with probabilities p1, p2, p3 to three product states; each leaf is marked z same 0 implies x same one half">
+          <text x="30" y="89" font-size="13" text-anchor="middle">source</text>
+          <line x1="58" y1="85" x2="130" y2="30" class="ink" stroke-width="1.4"/>
+          <line x1="58" y1="85" x2="130" y2="85" class="ink" stroke-width="1.4"/>
+          <line x1="58" y1="85" x2="130" y2="140" class="ink" stroke-width="1.4"/>
+          <text x="86" y="48" font-size="12" class="soft halo">p₁</text>
+          <text x="94" y="80" font-size="12" class="soft halo">p₂</text>
+          <text x="86" y="128" font-size="12" class="soft halo">p₃</text>
+          <text x="138" y="34" font-size="13">|a₁⟩|b₁⟩</text>
+          <text x="138" y="89" font-size="13">|a₂⟩|b₂⟩</text>
+          <text x="138" y="144" font-size="13">|a₃⟩|b₃⟩</text>
+          <text x="210" y="34" font-size="12" class="alt">z: 0 ⇒ x: ½</text>
+          <text x="210" y="89" font-size="12" class="alt">z: 0 ⇒ x: ½</text>
+          <text x="210" y="144" font-size="12" class="alt">z: 0 ⇒ x: ½</text>
+          <text x="170" y="166" font-size="12" class="soft" text-anchor="middle">P(same) at each leaf</text>
+        </svg>
+        <p class="cap">A mixture can only average what its branches do, and every branch is forced to $\tfrac12$ in $x$.</p>
+      </div>
+      <div class="box warn"><span class="label">what is, and is not, proved</span>
+        <p class="small">Ruled out: every model in which each photon carries a <b>quantum state</b> of its own. <b>Not</b> ruled out here: every model in which each photon carries <b>some</b> classical instructions. That is Bell's theorem, unit 06, and it needs more than two bases.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The model being ruled out.</b> The source picks a label $\lambda$ at random — it could encode anything about
+    the pair — and then sends photon A in the pure state $a_\lambda$ and photon B in $b_\lambda$, with the quantum rules
+    applied to each photon separately. This is the most natural attempt to explain the correlation with
+    individual states: "the photons were made opposite at the source; we just do not know which way".</p>
+    <p><b>Full proof.</b> Conditional on $\lambda$, the pair is in $a_\lambda\otimes b_\lambda$ and <i>No product state does it</i> applies. The law of total
+    probability gives $P(E) = \sum_\lambda p_\lambda P(E\mid\lambda)$ for any event $E$. With $E$ = "same in $z$": a sum of non-negative terms is zero
+    only if each is zero, so every $\lambda$ that occurs with positive probability has $P_z(\text{same}\mid\lambda) = 0$, and hence
+    $P_x(\text{same}\mid\lambda) = \tfrac12$. With $E$ = "same in $x$": the sum is $\tfrac12\sum_\lambda p_\lambda = \tfrac12$. For a general probability measure $\mu$
+    on labels, the same argument reads: a non-negative integrand with integral zero vanishes $\mu$-almost
+    everywhere, and $\int\tfrac12\,d\mu = \tfrac12$.</p>
+    <p><b>Why this is not Bell's theorem.</b> A classical model need not obey the quantum rule within each
+    branch: it could hand each photon a table of answers, "H/V: H; $45^\circ$: $+$; circular: …", chosen to be opposite to
+    its partner's. Such a model reproduces perfect anticorrelation in any finite list of bases. What it cannot
+    reproduce is the strength of correlation at <i>intermediate</i> angles — and showing that needs an inequality,
+    Bell's (1964) or CHSH's (1969), unit 06. Do not claim more than this slide proves.</p>
+    <p><b>Unit 04's view.</b> A random choice of product states is what unit 04 calls a separable mixed state.
+    The theorem says the singlet's statistics are not those of any separable state, in these two bases.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>The Schmidt decomposition</h2>
+  <p>Every pure state of two systems has a normal form, read off the singular value decomposition of its coefficient matrix. It decides entanglement — and it shows the singlet looks the same in every basis.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>The singular value decomposition over C</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">singular value decomposition</span></span>
+        <p class="small">Every complex $m\times n$ matrix $C$ of rank $r$ can be written</p>
+        $$C = \sum_{k=1}^rs_k\,\ket{u_k}\!\bra{v_k},\qquad s_k \gt 0,$$
+        <p class="small">with $\{u_k\} \subset \mathbb C^m$ and $\{v_k\} \subset \mathbb C^n$ orthonormal. The $s_k^2$ are the nonzero eigenvalues of $C^\dagger C$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, from unit 00's spectral theorem</span>
+        <p class="small">$C^\dagger C$ is Hermitian, and $\braket{v|C^\dagger Cv} = \lVert Cv\rVert^2 \ge 0$, so $C^\dagger C = \sum_ks_k^2\ket{v_k}\!\bra{v_k}$ over an orthonormal eigenbasis, $s_k \ge 0$. For $s_k \gt 0$ put $u_k := Cv_k/s_k$:</p>
+        $$\braket{u_k|u_l} = \frac{\braket{v_k|C^\dagger Cv_l}}{s_ks_l} = \delta_{kl}.$$
+        <p class="small">Both sides send $v_l$ to $s_lu_l$, or to $0$ when $s_l = 0$ (then $\lVert Cv_l\rVert^2 = 0$). $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 350 200" width="446" role="img" aria-label="left: a unit circle with two perpendicular arrows v1 and v2. an arrow labelled C points right to an ellipse whose semi-axes are arrows s1 u1 and s2 u2">
+          <circle cx="80" cy="100" r="55" fill="none" class="rule" stroke-width="1.2"/>
+          <line x1="80" y1="100" x2="125.1" y2="83.6" class="unit" stroke-width="2"/><polygon points="131.7,81.2 124.8,88.5 121.7,80.0" class="fill-unit"/>
+          <line x1="80" y1="100" x2="63.6" y2="54.9" class="unit" stroke-width="2"/><polygon points="61.2,48.3 68.5,55.2 60.0,58.3" class="fill-unit"/>
+          <text x="134" y="78" font-size="14" class="halo">v₁</text>
+          <text x="44" y="44" font-size="14" class="halo">v₂</text>
+          <line x1="150" y1="100" x2="188.0" y2="100.0" class="ink" stroke-width="1.6"/><polygon points="195.0,100.0 186.0,104.5 186.0,95.5" class="fill-ink"/>
+          <text x="172" y="90" font-size="14" text-anchor="middle">C</text>
+          <ellipse cx="265" cy="100" rx="70" ry="28" transform="rotate(-35 265 100)" fill="none" class="ink" stroke-width="1.5"/>
+          <line x1="265" y1="100" x2="316.6" y2="63.8" class="alt" stroke-width="2"/><polygon points="322.3,59.8 317.5,68.7 312.3,61.3" class="fill-alt"/>
+          <line x1="265" y1="100" x2="252.9" y2="82.8" class="alt" stroke-width="2"/><polygon points="248.9,77.1 257.8,81.9 250.4,87.1" class="fill-alt"/>
+          <text x="318" y="52" font-size="14" class="halo">s₁u₁</text>
+          <text x="214" y="70" font-size="14" class="halo">s₂u₂</text>
+          <text x="80" y="180" font-size="12" class="soft" text-anchor="middle">unit vectors</text>
+          <text x="265" y="180" font-size="12" class="soft" text-anchor="middle">their images</text>
+        </svg>
+        <p class="cap">Drawn over $\mathbb R$: $C$ takes the orthonormal $v_k$ to the orthogonal $s_ku_k$, the axes of an ellipse. Over $\mathbb C$ the same, with no picture.</p>
+      </div>
+      <p class="small">You know the real SVD. The complex one is the same statement with $\dagger$ for $\mathsf T$, and this proof gives both.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> (1) $C^\dagger C$ is an $n\times n$ matrix with $(C^\dagger C)^\dagger = C^\dagger C$: Hermitian. Unit 00's spectral theorem gives an
+    orthonormal eigenbasis $v_1, \dots, v_n$ with real eigenvalues $\mu_k$. (2) $\mu_k = \braket{v_k|C^\dagger Cv_k} = \braket{Cv_k|Cv_k} = \lVert Cv_k\rVert^2 \ge 0$, so
+    write $\mu_k = s_k^2$ with $s_k \ge 0$. (3) For $s_k \gt 0$ define $u_k = Cv_k/s_k$; the computation on the slide shows these are
+    orthonormal. (4) Compare $C$ with $C' := \sum_{s_k \gt 0}s_k\ket{u_k}\!\bra{v_k}$ on the basis $\{v_l\}$: if $s_l \gt 0$, $C'v_l = s_lu_l = Cv_l$; if $s_l = 0$,
+    $C'v_l = 0$ and $\lVert Cv_l\rVert^2 = s_l^2 = 0$ so $Cv_l = 0$. Equal on a basis, so equal. (5) The image of $C$ is spanned by the
+    orthonormal $u_k$ with $s_k \gt 0$, so their number is $\operatorname{rank}C = r$. $\blacksquare$</p>
+    <p><b>Uniqueness of the $s_k$.</b> From any such expression, $C^\dagger C = \sum_{kl}s_ks_l\ket{v_k}\braket{u_k|u_l}\bra{v_l} = \sum_ks_k^2\ket{v_k}\!\bra{v_k}$, a spectral
+    decomposition; its nonzero eigenvalues are the $s_k^2$. So the singular values do not depend on the choices
+    made.</p>
+    <p><b>Matrix form.</b> Collecting the $u_k$ and $v_k$ as columns, extended to orthonormal bases, gives $C = U\Sigma V^\dagger$ with $U$,
+    $V$ unitary and $\Sigma$ the $m\times n$ matrix with $s_1, \dots, s_r$ on the diagonal. Unit 00's closing notes promised exactly
+    this: the real SVD with conjugate transposes.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>The Schmidt decomposition</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Schmidt decomposition</span></span>
+        <p class="small">Every unit vector $\psi \in H_A\otimes H_B$ can be written</p>
+        $$\psi = \sum_{k=1}^rs_k\,a_k\otimes b_k,$$
+        <p class="small">$s_k \gt 0$, $\sum_ks_k^2 = 1$, with $\{a_k\}$ orthonormal in $H_A$ and $\{b_k\}$ orthonormal in $H_B$. The $s_k$ are the <span class="term">Schmidt coefficients</span>; $r$ is the <span class="term">Schmidt rank</span>, and $r \le \min(\dim H_A, \dim H_B)$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">In orthonormal bases $\psi = \sum C_{ij}e_i\otimes f_j$. Take the SVD $C = \sum_ks_ku_kv_k^\dagger$, so $C_{ij} = \sum_ks_k(u_k)_i\overline{(v_k)_j}$. Regroup by bilinearity: $\psi = \sum_ks_k\,a_k\otimes b_k$, where $a_k$ has coordinates $u_k$ and $b_k$ has coordinates $\bar v_k$ — both orthonormal sets. And $\sum s_k^2 = \sum|C_{ij}|^2 = \lVert\psi\rVert^2 = 1$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 170" width="432" role="img" aria-label="left panel H A with orthonormal arrows a1 and a2; right panel H B with orthonormal arrows b1 and b2; dashed lines pair a1 with b1 labelled s1 and a2 with b2 labelled s2">
+          <text x="70" y="160" font-size="14" class="soft" text-anchor="middle">H<tspan dy="4" font-size="10">A</tspan></text>
+          <text x="250" y="160" font-size="14" class="soft" text-anchor="middle">H<tspan dy="4" font-size="10">B</tspan></text>
+          <line x1="70" y1="100" x2="111.5" y2="76.0" class="unit" stroke-width="2"/><polygon points="117.6,72.5 112.1,80.9 107.6,73.1" class="fill-unit"/>
+          <line x1="70" y1="100" x2="46.0" y2="58.5" class="unit" stroke-width="2"/><polygon points="42.5,52.4 50.9,57.9 43.1,62.4" class="fill-unit"/>
+          <line x1="250" y1="100" x2="295.1" y2="116.4" class="alt" stroke-width="2"/><polygon points="301.7,118.8 291.7,120.0 294.8,111.5" class="fill-alt"/>
+          <line x1="250" y1="100" x2="266.4" y2="54.9" class="alt" stroke-width="2"/><polygon points="268.8,48.3 270.0,58.3 261.5,55.2" class="fill-alt"/>
+          <line x1="117.6" y1="72.5" x2="301.7" y2="118.8" class="rule" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <line x1="42.5" y1="52.4" x2="268.8" y2="48.3" class="rule" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <text x="122" y="70" font-size="14" class="halo">a₁</text>
+          <text x="24" y="50" font-size="14" class="halo">a₂</text>
+          <text x="306" y="124" font-size="14" class="halo">b₁</text>
+          <text x="274" y="44" font-size="14" class="halo">b₂</text>
+          <text x="210" y="92" font-size="14" class="halo">s₁</text>
+          <text x="150" y="44" font-size="14" class="halo">s₂</text>
+        </svg>
+        <p class="cap">One orthonormal set on each side, paired off, with a weight on each pair. No cross terms $a_k\otimes b_l$, $k \ne l$.</p>
+      </div>
+      <div class="box warn"><span class="label">the conjugate</span>
+        <p class="small">$b_k$ has coordinates $\bar v_k$, not $v_k$: the SVD's row $v_k^\dagger$ is <b>conjugated</b>, while $\otimes$ is bilinear.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> (1) Fix orthonormal bases $\{e_i\}$ of $H_A$ and $\{f_j\}$ of $H_B$; by the basis theorem $\psi = \sum_{ij}C_{ij}e_i\otimes f_j$ for a
+    unique $C$. (2) The SVD gives $C = \sum_{k\le r}s_ku_kv_k^\dagger$ with $s_k \gt 0$ and orthonormal $u_k$, $v_k$; entrywise $C_{ij} = \sum_ks_k(u_k)_i\overline{(v_k)_j}$.
+    (3) Substitute and regroup using bilinearity of $\otimes$, as on the slide. (4) $a_k := \sum_i(u_k)_ie_i$ are orthonormal because
+    $\{e_i\}$ is and the $u_k$ are (Parseval, unit 00). $b_k := \sum_j\overline{(v_k)_j}f_j$: $\braket{b_k|b_l} = \sum_j(v_k)_j\overline{(v_l)_j} = \overline{\braket{v_k|v_l}} = \delta_{kl}$. (5)
+    $\lVert\psi\rVert^2 = \sum|C_{ij}|^2$ (inner-product theorem), and $\sum_{ij}|C_{ij}|^2 = \operatorname{tr}C^\dagger C = \sum_ks_k^2$. (6) $r = \operatorname{rank}C \le \min(m, n)$. $\blacksquare$</p>
+    <p><b>What is special.</b> A general state needs $mn$ coefficients on the product basis. In its Schmidt bases it
+    needs at most $\min(m, n)$, all positive, with no cross terms. For two qubits: at most two terms. Nothing like
+    this holds for three systems: there is no "Schmidt decomposition" $\sum_ks_ka_k\otimes b_k\otimes c_k$, with all three sets orthonormal, for
+    $\mathbb C^2\otimes\mathbb C^2\otimes\mathbb C^2$ in general (a remark only, used nowhere; when one exists is characterised in Peres, <i>Physics
+    Letters A</i> 202, 16 (1995), cited). An example, with the proof: $\psi = \tfrac1{\sqrt3}(\ket{001} + \ket{010} + \ket{100})$. If it had such a form,
+    the vectors $b_k\otimes c_k$ would be orthonormal and the form would be a two-system Schmidt decomposition of $\psi$ in
+    $\mathbb C^2\otimes\mathbb C^4$ (first qubit against the other two), with every $b_k\otimes c_k$ a product. But that split has coefficient
+    matrix $\tfrac1{\sqrt3}\begin{pmatrix}0&amp;1&amp;1&amp;0\\1&amp;0&amp;0&amp;0\end{pmatrix}$, whose rows are orthogonal with squared norms $\tfrac23 \ne \tfrac13$; by <i>What is unique</i> the
+    Schmidt vectors on the two-qubit side are then fixed up to phase, and the one for $\tfrac23$ is $\tfrac1{\sqrt2}(\ket{01} + \ket{10})$, which is
+    not a product (determinant $-\tfrac12$). So no such form exists.</p>
+    <p><b>History.</b> Erhard Schmidt (1907) proved the integral-equation version, for kernels $K(x, y)$ — a
+    function of two variables is a continuous analogue of a coefficient matrix. A readable account of its
+    uses in quantum theory: Ekert and Knight, <i>American Journal of Physics</i> 63, 415 (1995).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>What is unique, and the test for entanglement</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">uniqueness</span>
+        <p class="small">In any Schmidt form of $\psi$, the $s_k^2$ are the nonzero eigenvalues of $CC^\dagger$ (any orthonormal bases). So the Schmidt coefficients and rank depend on $\psi$ alone. If the $s_k$ are <b>distinct</b>, each $a_k$ is fixed up to a phase, and then $b_k$ with it.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">A Schmidt form gives $C = \sum_ks_k\,a_kb_k^{\mathsf T}$ (coordinates). Then $b_k^{\mathsf T}\bar b_l = \braket{b_l|b_k} = \delta_{kl}$, so</p>
+        $$CC^\dagger = \sum_ks_k^2\,\ket{a_k}\!\bra{a_k},$$
+        <p class="small">a spectral decomposition: eigenvalues fixed, and a simple eigenvalue's eigenspace is a line. Then $b_k = (\bra{a_k}\otimes I)\psi/s_k$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the criterion</span>
+        <p class="small">$\psi$ is a product state $\iff$ its Schmidt rank is $1$. For two qubits: entangled $\iff \det C \ne 0$, and $|\det C| = s_1s_2$.</p>
+        <p class="small">A two-qubit state is <span class="term">maximally entangled</span> if $s_1 = s_2 = \tfrac1{\sqrt2}$.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 340 160" width="418" role="img" aria-label="left: an ellipse with its two axes drawn, labelled s1 not equal s2, axes determined. right: a circle with two different pairs of perpendicular diameters, labelled s1 equals s2, any pair">
+          <ellipse cx="85" cy="85" rx="65" ry="28" transform="rotate(-25 85 85)" fill="none" class="ink" stroke-width="1.5"/>
+          <line x1="143.9" y1="57.5" x2="26.1" y2="112.5" class="unit" stroke-width="2"/>
+          <line x1="73.2" y1="59.6" x2="96.8" y2="110.4" class="unit" stroke-width="2"/>
+          <text x="85" y="150" font-size="12" text-anchor="middle">s₁ ≠ s₂: axes fixed</text>
+          <circle cx="255" cy="85" r="50" fill="none" class="ink" stroke-width="1.5"/>
+          <line x1="305" y1="85" x2="205" y2="85" class="unit" stroke-width="2"/>
+          <line x1="255" y1="35" x2="255" y2="135" class="unit" stroke-width="2"/>
+          <line x1="298.3" y1="60" x2="211.7" y2="110" class="alt" stroke-width="2" stroke-dasharray="5 3"/>
+          <line x1="230" y1="41.7" x2="280" y2="128.3" class="alt" stroke-width="2" stroke-dasharray="5 3"/>
+          <text x="255" y="150" font-size="12" text-anchor="middle">s₁ = s₂: any pair</text>
+        </svg>
+        <p class="cap">The image of the unit circle under $C$ (over $\mathbb R$). Equal coefficients make it round, and every orthonormal pair is a pair of axes.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of uniqueness.</b> Suppose $\psi = \sum_ks_ka_k\otimes b_k$ is any Schmidt form, and write $a_k$, $b_k$ in coordinates
+    of fixed orthonormal bases. Bilinearity gives coefficient matrix $C = \sum_ks_ka_kb_k^{\mathsf T}$. Then
+    $CC^\dagger = \sum_{kl}s_ks_la_k(b_k^{\mathsf T}\bar b_l)a_l^\dagger$, and $b_k^{\mathsf T}\bar b_l = \sum_j(b_k)_j\overline{(b_l)_j} = \braket{b_l|b_k} = \delta_{kl}$. So $CC^\dagger = \sum_ks_k^2\ket{a_k}\!\bra{a_k}$ with
+    orthonormal $a_k$: this is a spectral decomposition of the Hermitian $CC^\dagger$, whose nonzero eigenvalues are thus the
+    $s_k^2$, with eigenvectors $a_k$. Eigenvalues do not depend on how $\psi$ was written. If $s_k^2$ is a simple eigenvalue,
+    its eigenspace is one-dimensional and $a_k$ is fixed up to a phase. Then
+    $(\bra{a_k}\otimes I)\psi = \sum_ls_l\braket{a_k|a_l}b_l = s_kb_k$ fixes $b_k$, and changing $a_k$ to $e^{i\gamma}a_k$ changes $b_k$ to $e^{-i\gamma}b_k$. (Here
+    $\bra{a}\otimes I$ is the linear map $v\otimes w \mapsto \braket{a|v}w$, defined by the universal property.)</p>
+    <p><b>Independence of bases.</b> Changing the orthonormal bases replaces $C$ by $ACB^{\mathsf T}$ for unitaries $A$, $B$ (the
+    coefficient-matrix lemma) — and $CC^\dagger$ by $A\,CC^\dagger A^\dagger$, a unitary conjugate with the same eigenvalues. The theorem says the same thing without coordinates.</p>
+    <p><b>The criterion.</b> Rank 1 means $\psi = s_1a_1\otimes b_1$ with $s_1 = 1$: a product. Conversely a product $v\otimes w$ has
+    $C = vw^{\mathsf T}$ of rank 1, and the Schmidt rank is $\operatorname{rank}C$. For two qubits, $|\det C| = |\det(U\Sigma V^\dagger)| = |\det\Sigma| = s_1s_2$ (with $s_2 = 0$ when the
+    rank is one). <b>When the coefficients are equal</b>, $CC^\dagger = \tfrac12I$ for two qubits, and every orthonormal basis is an
+    eigenbasis: the Schmidt vectors are as far from unique as possible. The singlet is that case.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>Worked: a Schmidt decomposition, the coefficients</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">worked example, part 1</span>
+      <p class="small">$\ket\psi = \tfrac1{\sqrt3}(\ket{00} + \ket{01} + \ket{10})$. Norm: $3\cdot\tfrac13 = 1$ ✓.</p>
+      <p class="small"><b>1. Matrix.</b> $C = \tfrac1{\sqrt3}M$, $\ M = \begin{pmatrix}1&amp;1\\1&amp;0\end{pmatrix}$; $\ \det C = -\tfrac13 \ne 0$: entangled.</p>
+      <p class="small"><b>2. Eigenvalues.</b> $M$ is real symmetric, so $C^\dagger C = C^2$, and the singular values of $M$ are $|\text{eigenvalues}|$. $\ \lambda^2 - \lambda - 1 = 0$:</p>
+      $$\lambda_1 = \varphi = \tfrac{1 + \sqrt5}2 \approx 1.618,\quad \lambda_2 = 1 - \varphi \approx -0.618 .$$
+      <p class="small"><b>3. Coefficients.</b> $\varphi$ is the golden ratio, and</p>
+      $$s_1 = \tfrac{\varphi}{\sqrt3} \approx 0.9342,\qquad s_2 = \tfrac{\varphi - 1}{\sqrt3} \approx 0.3568 .$$
+      <p class="small"><b>4. Check.</b> $s_1^2 = \tfrac{3 + \sqrt5}6 \approx 0.8727$, $\ s_2^2 = \tfrac{3 - \sqrt5}6 \approx 0.1273$; sum $\tfrac66 = 1$ ✓. And $s_1s_2 = \tfrac{\varphi(\varphi - 1)}3 = \tfrac13 = |\det C|$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 250 230" width="324" role="img" aria-label="a unit circle and inside it a thin ellipse tilted up by about 32 degrees; its long semi-axis 0.934 points along the tilt and its short semi-axis 0.357 at right angles">
+          <line x1="20" y1="115" x2="225" y2="115" class="rule" stroke-width="1"/>
+          <line x1="120" y1="20" x2="120" y2="210" class="rule" stroke-width="1"/>
+          <circle cx="120" cy="115" r="80" fill="none" class="rule" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <ellipse cx="120" cy="115" rx="74.73" ry="28.55" transform="rotate(-31.72 120 115)" fill="none" class="ink" stroke-width="1.6"/>
+          <line x1="120" y1="115" x2="177.6" y2="79.4" class="unit" stroke-width="2"/><polygon points="183.6,75.7 178.3,84.3 173.6,76.6" class="fill-unit"/>
+          <line x1="120" y1="115" x2="131.3" y2="133.3" class="alt" stroke-width="2"/><polygon points="135.0,139.3 126.4,134.0 134.1,129.3" class="fill-alt"/>
+          <text x="180" y="66" font-size="13" class="halo">0.934</text>
+          <text x="138" y="156" font-size="13" class="halo">0.357</text>
+          <text x="214" y="132" font-size="12" class="soft">|0⟩</text>
+          <text x="126" y="28" font-size="12" class="soft">|1⟩</text>
+        </svg>
+        <p class="cap">The unit circle (dashed) under $C$: an ellipse with semi-axes $s_1$, $s_2$, tilted $31.72^\circ$.</p>
+      </div>
+      <div class="box good"><span class="label">two identities used</span>
+        <p class="small">$\varphi^2 = \varphi + 1$, so $\varphi(\varphi - 1) = 1$, $\ \varphi^2 = \tfrac{3 + \sqrt5}2$, $\ (\varphi - 1)^2 = 2 - \varphi = \tfrac{3 - \sqrt5}2$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every step.</b> (1) The amplitudes of $\ket{00}, \ket{01}, \ket{10}, \ket{11}$ are $\tfrac1{\sqrt3}, \tfrac1{\sqrt3}, \tfrac1{\sqrt3}, 0$; as a matrix (rows qubit 0)
+    $C = \tfrac1{\sqrt3}\begin{pmatrix}1&amp;1\\1&amp;0\end{pmatrix}$. $\det C = \tfrac13(1\cdot0 - 1\cdot1) = -\tfrac13$.</p>
+    <p>(2) For a real symmetric matrix, $C^\dagger C = C^{\mathsf T}C = C^2$, whose eigenvalues are the squares of $C$'s eigenvalues; so
+    the singular values are the absolute values of the eigenvalues. The characteristic polynomial of $M$ is
+    $(1 - \lambda)(0 - \lambda) - 1 = \lambda^2 - \lambda - 1$, roots $\tfrac{1 \pm \sqrt5}2$. Numerically $\tfrac{1 + \sqrt5}2 = 1.6180$ and $\tfrac{1 - \sqrt5}2 = -0.6180$.</p>
+    <p>(3) Singular values of $M$: $\varphi$ and $\varphi - 1 = 0.6180$. Divide by $\sqrt3 = 1.7321$: $0.9342$ and $0.3568$.</p>
+    <p>(4) $\varphi^2 = \varphi + 1 = \tfrac{3 + \sqrt5}2$, so $s_1^2 = \tfrac{3 + \sqrt5}6 = 0.8727$. $(\varphi - 1)^2 = \varphi^2 - 2\varphi + 1 = 2 - \varphi = \tfrac{3 - \sqrt5}2$, so
+    $s_2^2 = \tfrac{3 - \sqrt5}6 = 0.1273$. Sum: $\tfrac{6}{6} = 1$, as $\lVert\psi\rVert = 1$ demands. $\varphi(\varphi - 1) = \varphi^2 - \varphi = 1$, so $s_1s_2 = \tfrac13 = |\det C|$, as the
+    criterion $|\det C| = s_1s_2$ of <i>What is unique</i> demands.</p>
+    <p><b>Reading the numbers.</b> The state is mostly one product term — $87\%$ of the weight — with a $13\%$
+    admixture of a second. Unit 08 turns the distribution $(0.8727, 0.1273)$ into a number of ebits; here it is
+    enough that the state is entangled, but far from maximally.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>Worked: a Schmidt decomposition, the vectors</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">worked example, part 2</span>
+      <p class="small"><b>5. Eigenvectors of $M$.</b> $M(\varphi, 1)^{\mathsf T} = (\varphi + 1, \varphi)^{\mathsf T} = \varphi(\varphi, 1)^{\mathsf T}$ ✓, and $(1, -\varphi)^{\mathsf T}$ is orthogonal to it. With $\varphi^2 + 1 = \varphi + 2 \approx 3.618$:</p>
+      $$e_1 = \tfrac{(\varphi,\,1)}{\sqrt{\varphi + 2}} \approx (0.8507, 0.5257),$$
+      $$e_2 = \tfrac{(1,\,-\varphi)}{\sqrt{\varphi + 2}} \approx (0.5257, -0.8507).$$
+      <p class="small"><b>6. Spectral form,</b> then make the coefficients positive: $\ M = \varphi\,e_1e_1^{\mathsf T} + (1 - \varphi)\,e_2e_2^{\mathsf T} = \varphi\,e_1e_1^{\mathsf T} + (\varphi - 1)\,e_2(-e_2)^{\mathsf T}$. So</p>
+      $$\ket\psi = s_1\,\ket{e_1}\ket{e_1} + s_2\,\ket{e_2}\big(-\ket{e_2}\big),$$
+      <p class="small">so $a_1 = b_1 = e_1$, $\ a_2 = e_2$, $\ b_2 = -e_2$.</p>
+      <p class="small"><b>7. Check two amplitudes.</b> $\ket{00}$: $0.9342(0.8507)^2 - 0.3568(0.5257)^2 = 0.6760 - 0.0986 = 0.5774 = \tfrac1{\sqrt3}$ ✓. $\ \ket{11}$: $0.9342(0.5257)^2 - 0.3568(0.8507)^2 = 0.2582 - 0.2582 = 0$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 250 230" width="324" role="img" aria-label="axes ket 0 and ket 1; arrow e1 at 31.7 degrees above the ket 0 axis; arrow e2 at 58.3 degrees below it; dashed arrow minus e2 opposite to e2">
+          <line x1="20" y1="130" x2="230" y2="130" class="rule" stroke-width="1"/>
+          <line x1="110" y1="20" x2="110" y2="225" class="rule" stroke-width="1"/>
+          <text x="216" y="146" font-size="12" class="soft">|0⟩</text>
+          <text x="116" y="30" font-size="12" class="soft">|1⟩</text>
+          <line x1="110" y1="130" x2="180.6" y2="86.4" class="unit" stroke-width="2.2"/><polygon points="186.6,82.7 181.3,91.2 176.5,83.6" class="fill-unit"/>
+          <line x1="110" y1="130" x2="153.6" y2="200.6" class="alt" stroke-width="2.2"/><polygon points="157.3,206.6 148.8,201.3 156.4,196.5" class="fill-alt"/>
+          <line x1="110" y1="130" x2="66.4" y2="59.4" class="alt" stroke-width="1.6" stroke-dasharray="5 4"/><polygon points="62.7,53.4 71.2,58.7 63.6,63.5" class="fill-alt"/>
+          <text x="124" y="64" font-size="14" class="halo">e₁ = a₁ = b₁</text>
+          <text x="162" y="214" font-size="14" class="halo">a₂ = e₂</text>
+          <text x="20" y="48" font-size="14" class="halo">b₂ = −e₂</text>
+          <path d="M 150 130 A 40 40 0 0 0 144 109" fill="none" class="ink" stroke-width="1"/>
+          <text x="154" y="122" font-size="11" class="soft">31.7°</text>
+        </svg>
+        <p class="cap">The Schmidt vectors are real here, and $\tan31.72^\circ = 1/\varphi$.</p>
+      </div>
+      <div class="box warn"><span class="label">the sign</span>
+        <p class="small">The eigenvalue $1 - \varphi$ is <b>negative</b>; singular values are not. The sign goes into $b_2 = -e_2$. Coefficients $s_k$ are always positive.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every step of 5.</b> $M(\varphi, 1)^{\mathsf T} = (\varphi + 1, \varphi)^{\mathsf T}$, and $\varphi + 1 = \varphi^2$, so this is $\varphi(\varphi, 1)^{\mathsf T}$. For the other eigenvalue,
+    $M(1, -\varphi)^{\mathsf T} = (1 - \varphi, 1)^{\mathsf T}$, and $(1 - \varphi)(1, -\varphi)^{\mathsf T} = (1 - \varphi, \varphi^2 - \varphi)^{\mathsf T} = (1 - \varphi, 1)^{\mathsf T}$ ✓. Both have squared length
+    $\varphi^2 + 1 = \varphi + 2 = 3.6180$, so divide by $\sqrt{3.6180} = 1.9021$: $\varphi/1.9021 = 0.8507$ and $1/1.9021 = 0.5257$. Orthogonal: $\varphi\cdot1 + 1\cdot(-\varphi) = 0$.</p>
+    <p><b>Step 6.</b> For a real symmetric matrix the spectral decomposition is $M = \sum\lambda_ke_ke_k^{\mathsf T}$. Dividing by $\sqrt3$ gives
+    $C = \tfrac{\varphi}{\sqrt3}e_1e_1^{\mathsf T} - \tfrac{\varphi - 1}{\sqrt3}e_2e_2^{\mathsf T}$, and a coefficient matrix $\sum s_ka_kb_k^{\mathsf T}$ is the state $\sum s_ka_k\otimes b_k$. In SVD language:
+    $u_1 = v_1 = e_1$, $u_2 = e_2$, $v_2 = -e_2$ — real, so the conjugation in $b_k = \bar v_k$ does nothing here.</p>
+    <p><b>Step 7, more digits.</b> $0.93417\times0.72361 = 0.67597$; $0.35682\times0.27639 = 0.09862$; difference $0.57735 = 1/\sqrt3$. And
+    $0.93417\times0.27639 = 0.25820$; $0.35682\times0.72361 = 0.25820$; difference $0$. The $\ket{01}$ and $\ket{10}$ amplitudes are both
+    $s_1(0.8507)(0.5257) - s_2(0.5257)(-0.8507) = (s_1 + s_2)(0.4472) = 1.2910\times0.4472 = 0.5774$ ✓.</p>
+    <p><b>Uniqueness here.</b> $s_1 \ne s_2$, so by the uniqueness theorem $a_1$, $a_2$ are fixed up to phases: the only freedom
+    is $e_k \to e^{i\gamma}e_k$ on one side with $e^{-i\gamma}$ on the other.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>The singlet in every basis at once</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">For <b>every</b> $2\times2$ matrix $U$,</p>
+        $$(U\otimes U)\ket{\Psi^-} = \det(U)\,\ket{\Psi^-} .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">By the coefficient-matrix lemma, $C \mapsto UCU^{\mathsf T}$. With $U = \begin{pmatrix}a&amp;b\\c&amp;d\end{pmatrix}$:</p>
+        $$U\begin{pmatrix}0&amp;1\\-1&amp;0\end{pmatrix} = \begin{pmatrix}-b&amp;a\\-d&amp;c\end{pmatrix},$$
+        <p class="small">then multiply on the right by $U^{\mathsf T} = \begin{pmatrix}a&amp;c\\b&amp;d\end{pmatrix}$:</p>
+        $$\begin{pmatrix}0 &amp; ad - bc\\ -(ad - bc) &amp; 0\end{pmatrix}. \ \blacksquare$$
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 200" width="284" role="img" aria-label="two arrows from a common origin, U ket 0 and U ket 1, span a shaded parallelogram whose area is the determinant of U">
+          <polygon points="40,180 180,140 230,30 90,70" class="fill-soft"/>
+          <line x1="40" y1="180" x2="173.3" y2="141.9" class="unit" stroke-width="2.2"/><polygon points="180.0,140.0 172.6,146.8 170.1,138.1" class="fill-unit"/>
+          <line x1="40" y1="180" x2="87.1" y2="76.4" class="alt" stroke-width="2.2"/><polygon points="90.0,70.0 90.4,80.1 82.2,76.3" class="fill-alt"/>
+          <line x1="180" y1="140" x2="230" y2="30" class="rule" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="90" y1="70" x2="230" y2="30" class="rule" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="150" y="166" font-size="14" class="halo">U|0⟩</text>
+          <text x="30" y="96" font-size="14" class="halo">U|1⟩</text>
+          <text x="136" y="104" font-size="14" class="halo">det U</text>
+        </svg>
+        <p class="cap">Real $U$: $u\otimes w - w\otimes u$ keeps only $u_0w_1 - u_1w_0$, the signed area spanned by $u$, $w$.</p>
+      </div>
+      <div class="box good"><span class="label">corollary: <span class="ref" data-ref="every">the same form in every basis</span></span>
+        <p class="small">For any orthonormal basis $\{\ket n, \ket{n^\perp}\}$, let $U := \ket n\!\bra0 + \ket{n^\perp}\!\bra1$, unitary, $|\det U| = 1$:</p>
+        $$\ket{\Psi^-} = \tfrac{\overline{\det U}}{\sqrt2}\big(\ket n\ket{n^\perp} - \ket{n^\perp}\ket n\big),$$
+        <p class="small">a Schmidt form with $s_1 = s_2 = \tfrac1{\sqrt2}$, in every basis.</p>
+      </div>
+      <p class="small"><b>Checks.</b> $U = I$: trivial. $\ U = X$: $(X\otimes X)\ket{\Psi^-} = \tfrac1{\sqrt2}(\ket{10} - \ket{01}) = -\ket{\Psi^-}$, and $\det X = -1$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof, without the lemma.</b> $(U\otimes U)(\ket{01} - \ket{10}) = U\ket0\otimes U\ket1 - U\ket1\otimes U\ket0$, with $U\ket0 = a\ket0 + c\ket1$ and
+    $U\ket1 = b\ket0 + d\ket1$. Expanding by bilinearity: $(ab\ket{00} + ad\ket{01} + cb\ket{10} + cd\ket{11}) - (ba\ket{00} + bc\ket{01} + da\ket{10} + dc\ket{11})
+    = (ad - bc)\ket{01} - (ad - bc)\ket{10}$. Divide by $\sqrt2$. $\blacksquare$ Note that $U$ need not be unitary, or even invertible.</p>
+    <p><b>The corollary in full.</b> $U$ sends the orthonormal basis $\ket0, \ket1$ to the orthonormal basis $\ket n, \ket{n^\perp}$, and it is
+    unitary: $U^\dagger U = (\ket0\!\bra n + \ket1\!\bra{n^\perp})(\ket n\!\bra0 + \ket{n^\perp}\!\bra1) = \ket0\!\bra0 + \ket1\!\bra1 = I$, the cross terms
+    carrying $\braket{n|n^\perp} = 0$. So $|\det U|^2 = \det(U^\dagger U) = 1$. The theorem gives $(U\otimes U)\ket{\Psi^-} = \det(U)\ket{\Psi^-}$; the left side is
+    $\tfrac1{\sqrt2}(\ket n\ket{n^\perp} - \ket{n^\perp}\ket n)$. Multiply by $\overline{\det U} = 1/\det U$. In Schmidt form: $a_1 = n$, $b_1 = \overline{\det U}\,n^\perp$, $a_2 = n^\perp$,
+    $b_2 = -\overline{\det U}\,n$, both pairs orthonormal, both coefficients $\tfrac1{\sqrt2}$.</p>
+    <p><b>Why the determinant.</b> The antisymmetric tensors in $\mathbb C^2\otimes\mathbb C^2$ — those with $C^{\mathsf T} = -C$ — form a
+    one-dimensional space spanned by $\ket{\Psi^-}$. $U\otimes U$ preserves it (it maps $u\otimes w - w\otimes u$ to $Uu\otimes Uw - Uw\otimes Uu$), so acts on it
+    by a scalar, and that scalar is the determinant: this is how exterior algebra defines $\det$. The picture is
+    that scalar, drawn as an area.</p>
+    <p><b>The uniqueness theorem's worst case.</b> With $s_1 = s_2$, the Schmidt vectors can be any orthonormal pair —
+    the singlet realises that freedom completely.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>Worked: opposite in every basis</h2>
+  <div class="cols wide-left">
+    <div class="box ex"><span class="label">worked example: the anticorrelation, derived</span>
+      <p class="small">Both analysers measure in the same orthonormal basis $\{\ket n, \ket{n^\perp}\}$ — linear at $\theta$, circular, anything.</p>
+      <p class="small"><b>1. The joint measurement</b> is in the basis $\{\ket{nn}, \ket{nn^\perp}, \ket{n^\perp n}, \ket{n^\perp n^\perp}\}$, orthonormal by the inner-product theorem.</p>
+      <p class="small"><b>2. Rewrite the state</b> by the corollary, $c := \overline{\det U}$, $|c| = 1$: $\ \ket{\Psi^-} = \tfrac{c}{\sqrt2}(\ket{nn^\perp} - \ket{n^\perp n})$.</p>
+      <p class="small"><b>3. Amplitudes:</b> $\ \braket{nn|\Psi^-} = 0$, $\ \braket{nn^\perp|\Psi^-} = \tfrac{c}{\sqrt2}$, $\ \braket{n^\perp n|\Psi^-} = -\tfrac{c}{\sqrt2}$, $\ \braket{n^\perp n^\perp|\Psi^-} = 0$.</p>
+      <p class="small"><b>4. Probabilities:</b> $\ 0,\ \tfrac12,\ \tfrac12,\ 0$. Sum $1$ ✓. <b>Opposite with certainty</b>, each way half the time.</p>
+      <p class="small"><b>5. Check at $45^\circ$.</b> $U = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;-1\\1&amp;1\end{pmatrix}$, $\det U = 1$, $n = \ket+$, $n^\perp = -\ket-$: the formula says $\ket{\Psi^-} = \tfrac1{\sqrt2}(\ket{-+} - \ket{+-})$. Multiply out: $\ket{-+} - \ket{+-} = \tfrac12\big[(1, 1, -1, -1) - (1, -1, 1, -1)\big] = (0, 1, -1, 0)$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 220 210" width="284" role="img" aria-label="a circle with a teal line at 30 degrees labelled A reads n and a warm line at 120 degrees labelled B reads n perp">
+          <circle cx="110" cy="100" r="70" fill="none" class="rule" stroke-width="1"/>
+          <line x1="49.4" y1="135" x2="170.6" y2="65" class="unit" stroke-width="3"/>
+          <line x1="75" y1="39.4" x2="145" y2="160.6" class="alt" stroke-width="3"/>
+          <text x="172" y="58" font-size="13" class="halo">A: n</text>
+          <text x="40" y="34" font-size="13" class="halo">B: n⊥</text>
+          <text x="110" y="198" font-size="12" class="soft" text-anchor="middle">or the other way round</text>
+        </svg>
+        <p class="cap">Linear analysers at $\theta = 30^\circ$: the photons leave by perpendicular exits.</p>
+      </div>
+      <div class="box good"><span class="label">the running example</span>
+        <p class="small">Section 3 needed $P_x(\text{same}) = 0$ for <span class="ref" data-ref="pair">the photon pair</span>; step 5 is that, and step 4 is every other basis.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every step.</b> (1) The analysers on the two sides together perform the measurement whose outcomes are the four
+    pairs; its projectors are $\ket{st}\!\bra{st}$ for $s, t \in \{n, n^\perp\}$, rank-one projectors onto an orthonormal basis of $\mathbb C^2\otimes\mathbb C^2$,
+    since $\braket{st|s't'} = \braket{s|s'}\braket{t|t'}$. (2) The corollary on <i>The singlet in every basis at once</i>. (3) Inner products with an orthonormal basis
+    read off coefficients: $\ket{\Psi^-}$ is $\tfrac c{\sqrt2}$ times $\ket{nn^\perp}$ minus $\tfrac c{\sqrt2}$ times $\ket{n^\perp n}$, with nothing on $\ket{nn}$ or $\ket{n^\perp n^\perp}$.
+    (4) Born rule: $|\tfrac c{\sqrt2}|^2 = \tfrac12$.</p>
+    <p><b>Step 5 in detail.</b> $U\ket0 = \tfrac1{\sqrt2}(1, 1)^{\mathsf T} = \ket+$, $U\ket1 = \tfrac1{\sqrt2}(-1, 1)^{\mathsf T} = -\ket-$; $\det U = \tfrac12(1 + 1) = 1$, so $c = 1$. The corollary
+    gives $\tfrac1{\sqrt2}(\ket+(-\ket-) - (-\ket-)\ket+) = \tfrac1{\sqrt2}(\ket{-+} - \ket{+-})$. Kronecker: $\ket{-+} = \tfrac12(1, -1)\otimes(1, 1) = \tfrac12(1, 1, -1, -1)$ and
+    $\ket{+-} = \tfrac12(1, 1)\otimes(1, -1) = \tfrac12(1, -1, 1, -1)$. Their difference is $\tfrac12(0, 2, -2, 0) = (0, 1, -1, 0)$, and divided by $\sqrt2$ that is $\ket{\Psi^-}$.</p>
+    <p><b>Circular analysers.</b> $U = \ket{+i}\!\bra0 + \ket{-i}\!\bra1 = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;1\\i&amp;-i\end{pmatrix}$, $\det U = \tfrac12(-i - i) = -i$, $c = i$: $\ket{\Psi^-} = \tfrac{i}{\sqrt2}(\ket{+i,-i} - \ket{-i,+i})$.
+    Opposite circular polarisations, as the overview's figure drew.</p>
+    <p><b>The running example, so far.</b> The fact demanded opposite results in every basis; the singlet delivers
+    exactly that, with probabilities $\tfrac12, \tfrac12$ for the two ways of disagreeing. Section 5 derives the same thing
+    a second way, by measuring one photon first.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · Schmidt</p>
+  <h2>Φ⁺ is not the singlet: correlated in real bases only</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (problem P9 proves it)</span>
+        <p class="small">For every unitary $U$, $\ (U\otimes\bar U)\ket{\Phi^+} = \ket{\Phi^+}$, where $\bar U$ is the entrywise conjugate.</p>
+        <p class="small"><b>One line:</b> $C = \tfrac1{\sqrt2}I \mapsto U\,\tfrac1{\sqrt2}I\,\bar U^{\mathsf T} = \tfrac1{\sqrt2}UU^\dagger = \tfrac1{\sqrt2}I$.</p>
+      </div>
+      <p class="small"><b>Real bases</b> (any linear polarisation): $U$ real, $\bar U = U$, so $\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{nn} + \ket{n^\perp n^\perp})$ — <b>the same</b> result, every time.</p>
+      <p class="small"><b>Circular:</b> $U$ has columns $\ket{+i}, \ket{-i}$; $\bar U$ has columns $\ket{-i}, \ket{+i}$. So $\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{+i,-i} + \ket{-i,+i})$ — <b>opposite</b>.</p>
+      <div class="box warn"><span class="label">a common slip</span>
+        <p class="small">"$\ket{\Phi^+}$ is perfectly correlated in every basis" is false. Only the singlet is opposite in <b>every</b> basis — so the crystal must be making $\ket{\Psi^-}$, up to global phase.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 190" width="432" role="img" aria-label="a two by two table. Rows: Psi minus and Phi plus. Columns: linear at any angle, and circular. Psi minus linear: perpendicular lines, opposite. Psi minus circular: opposite rotations, opposite. Phi plus linear: parallel lines, same. Phi plus circular: opposite rotations, opposite">
+          <text x="145" y="18" font-size="12" class="soft" text-anchor="middle">linear, any θ</text>
+          <text x="265" y="18" font-size="12" class="soft" text-anchor="middle">circular</text>
+          <text x="40" y="70" font-size="15" text-anchor="middle">Ψ⁻</text>
+          <text x="40" y="150" font-size="15" text-anchor="middle">Φ⁺</text>
+          <line x1="80" y1="105" x2="320" y2="105" class="rule" stroke-width="1"/>
+          <line x1="205" y1="28" x2="205" y2="185" class="rule" stroke-width="1"/>
+          <line x1="104.4" y1="74" x2="135.6" y2="56" class="unit" stroke-width="3"/>
+          <line x1="179" y1="49.4" x2="161" y2="80.6" class="alt" stroke-width="3"/>
+          <text x="145" y="98" font-size="12" text-anchor="middle">opposite</text>
+          <circle cx="240" cy="62" r="13" fill="none" class="unit" stroke-width="2.2"/><polygon points="253,55 248,65 258,65" class="fill-unit"/>
+          <circle cx="290" cy="62" r="13" fill="none" class="alt" stroke-width="2.2"/><polygon points="303,69 298,59 308,59" class="fill-alt"/>
+          <text x="265" y="98" font-size="12" text-anchor="middle">opposite</text>
+          <line x1="104.4" y1="154" x2="135.6" y2="136" class="unit" stroke-width="3"/>
+          <line x1="154.4" y1="154" x2="185.6" y2="136" class="alt" stroke-width="3"/>
+          <text x="145" y="178" font-size="12" text-anchor="middle">same</text>
+          <circle cx="240" cy="142" r="13" fill="none" class="unit" stroke-width="2.2"/><polygon points="253,135 248,145 258,145" class="fill-unit"/>
+          <circle cx="290" cy="142" r="13" fill="none" class="alt" stroke-width="2.2"/><polygon points="303,149 298,139 308,139" class="fill-alt"/>
+          <text x="265" y="178" font-size="12" text-anchor="middle">opposite</text>
+        </svg>
+        <p class="cap">Teal: photon A's result. Warm: photon B's. The singlet is opposite in every column; $\ket{\Phi^+}$ is not.</p>
+      </div>
+      <p class="small"><b>Check, $y$ basis directly:</b> $\braket{+i,+i|\Phi^+} = \tfrac1{2\sqrt2}(1 + (-i)(-i)) = 0$ and $\braket{+i,-i|\Phi^+} = \tfrac1{2\sqrt2}(1 + (-i)(i)) = \tfrac1{\sqrt2}$: probabilities $0$ and $\tfrac12$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the invariance.</b> The coefficient matrix of $\ket{\Phi^+}$ is $\tfrac1{\sqrt2}I$. The lemma on <i>The Kronecker matrix</i>
+    says $(A\otimes B)$ sends $C$ to $ACB^{\mathsf T}$; with $A = U$ and $B = \bar U$, $B^{\mathsf T} = \bar U^{\mathsf T} = U^\dagger$. So $C \mapsto \tfrac1{\sqrt2}UU^\dagger = \tfrac1{\sqrt2}I$, since $U$ is
+    unitary. $\blacksquare$ Problem P9 asks for this, and for the deductions below, in full.</p>
+    <p><b>The deductions.</b> Let $U = \ket n\!\bra0 + \ket{n^\perp}\!\bra1$. Then $(U\otimes\bar U)\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket n\otimes\ket{\bar n} + \ket{n^\perp}\otimes\ket{\overline{n^\perp}})$, where
+    $\bar n$ is the entrywise conjugate. For a real basis, $\bar n = n$: the outcomes $(n, n)$ and $(n^\perp, n^\perp)$, each $\tfrac12$. For the $y$
+    basis, $\overline{\ket{+i}} = \ket{-i}$: the outcomes $(+i, -i)$ and $(-i, +i)$, each $\tfrac12$. For a general complex basis, $\bar n$ is a different
+    vector from $n$ and from $n^\perp$, and the results are neither perfectly correlated nor perfectly anticorrelated.</p>
+    <p><b>Where this is going.</b> The invariance under $U\otimes\bar U$ is the algebraic heart of teleportation, unit 07.
+    The correction recorded here — the singlet, not $\ket{\Phi^+}$, is the state that is anticorrelated in every basis — is
+    the reason this unit's source is set to make $\ket{\Psi^-}$.</p>
+    <p><b>Full proof of "only the singlet".</b> Suppose $\psi$ gives opposite results in the $z$ basis and in the $x$ basis.
+    Then $\braket{00|\psi} = \braket{11|\psi} = 0$ and $\braket{++|\psi} = 0$. Now $\ket{++} = \tfrac12(\ket{00} + \ket{11}) + \tfrac1{\sqrt2}\ket{\Psi^+}$, so also
+    $\braket{\Psi^+|\psi} = 0$. The Bell states are an orthonormal basis, so $\psi$ is a multiple of $\ket{\Psi^-}$, and a unit
+    multiple since $\lVert\psi\rVert = 1$. Two bases already pin the state down; the singlet then delivers every other basis
+    by <i>Worked: opposite in every basis</i>.</p>
+    <p><b>Also checked numerically:</b> the $y$-basis probabilities of $\ket{\Phi^+}$ for the four outcomes $(+i, +i), (+i, -i),
+    (-i, +i), (-i, -i)$ are $0, \tfrac12, \tfrac12, 0$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Measuring one photon</h2>
+  <p>A measurement on A alone is $P\otimes I$. Measuring photon A of the singlet leaves photon B in the orthogonal state — the anticorrelation derived again, and why it carries no message.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · measuring one photon</p>
+  <h2>A measurement on one subsystem</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">measurement on a subsystem</span></span>
+        <p class="small">Measuring an observable $\sum_\lambda\lambda P_\lambda$ of system A, when the pair is in $\psi \in H_A\otimes H_B$, is the projective measurement $\{P_\lambda\otimes I\}$ on the pair. By unit 01's rules:</p>
+        $$P(\lambda) = \braket{\psi|(P_\lambda\otimes I)|\psi},$$
+        $$\psi \mapsto \frac{(P_\lambda\otimes I)\psi}{\lVert(P_\lambda\otimes I)\psi\rVert}.$$
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small"><b>A measurement:</b> each $P_\lambda\otimes I$ is a projector; $(P_\lambda\otimes I)(P_\mu\otimes I) = P_\lambda P_\mu\otimes I = 0$ for $\lambda \ne \mu$; and $\sum_\lambda P_\lambda\otimes I = I\otimes I = I$.</p>
+        <p class="small"><b>Known case, a product $a\otimes b$:</b> $P(\lambda) = \braket{a|P_\lambda|a}\braket{b|b} = \braket{a|P_\lambda|a}$, and afterwards $\tfrac{P_\lambda a}{\lVert P_\lambda a\rVert}\otimes b$ — as if B were not there ✓.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 320 130" width="405" role="img" aria-label="a circuit: two wires, qubit 0 for photon A on top and qubit 1 for photon B below, starting from a joint state psi; a meter on the top wire only, labelled P lambda tensor I; the bottom wire passes untouched">
+          <text x="18" y="72" font-size="15">|ψ⟩</text>
+          <path d="M 52 26 Q 44 26 44 36 L 44 56 Q 44 65 38 65 Q 44 65 44 74 L 44 94 Q 44 104 52 104" fill="none" class="ink" stroke-width="1.4"/>
+          <line x1="58" y1="40" x2="150" y2="40" class="unit" stroke-width="2"/>
+          <line x1="190" y1="38" x2="290" y2="38" class="ink" stroke-width="1.2"/>
+          <line x1="190" y1="42" x2="290" y2="42" class="ink" stroke-width="1.2"/>
+          <line x1="58" y1="90" x2="290" y2="90" class="alt" stroke-width="2"/>
+          <rect x="150" y="24" width="40" height="32" class="fill-ground ink" stroke-width="1.5"/>
+          <path d="M 157 50 A 13 13 0 0 1 183 50" fill="none" class="ink" stroke-width="1.4"/>
+          <line x1="170" y1="50" x2="180" y2="31" class="ink" stroke-width="1.4"/>
+          <text x="170" y="16" font-size="13" text-anchor="middle">Pλ ⊗ I</text>
+          <text x="240" y="30" font-size="12" class="soft" text-anchor="middle">outcome λ</text>
+          <text x="66" y="34" font-size="12" class="soft">A (qubit 0)</text>
+          <text x="66" y="84" font-size="12" class="soft">B (qubit 1)</text>
+          <text x="240" y="112" font-size="12" class="soft" text-anchor="middle">B: no operation</text>
+        </svg>
+        <p class="cap">A meter on wire A only. The double line carries the classical outcome.</p>
+      </div>
+      <p class="small"><b>Why $P\otimes I$.</b> An observable of A alone is $A\otimes I$ on the pair, and its spectral projectors are $P_\lambda\otimes I$. Nothing more general (POVMs) until unit 21.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why this is the right definition.</b> The composite-system postulate makes the pair a single system with
+    space $H_A\otimes H_B$; unit 01's measurement postulate then applies to it. "Measuring A" must be a measurement whose
+    statistics for a product $a\otimes b$ are those of measuring $a$ alone, and which does nothing to B. The observable
+    $A\otimes I$ has spectral decomposition $\sum\lambda P_\lambda\otimes I$ (the $P_\lambda\otimes I$ are orthogonal projectors summing to $I$, by the checks on
+    the slide, and $\sum\lambda P_\lambda\otimes I = (\sum\lambda P_\lambda)\otimes I$), and the known-case check shows it does what is required.</p>
+    <p><b>The known case, in full.</b> $\braket{a\otimes b|(P_\lambda\otimes I)(a\otimes b)} = \braket{a\otimes b|P_\lambda a\otimes b} = \braket{a|P_\lambda a}\braket{b|b}$. And
+    $(P_\lambda\otimes I)(a\otimes b) = P_\lambda a\otimes b$, whose norm is $\lVert P_\lambda a\rVert\,\lVert b\rVert = \lVert P_\lambda a\rVert$; dividing, B's factor is untouched.</p>
+    <p><b>What this unit does not do.</b> It does not say what state B is in when A is not measured, or when A's
+    result is unknown: for an entangled pair there is no pure state of B that works, and unit 04's density
+    operator is the answer. It also does not use measurements more general than projective ones; unit 21
+    does.</p>
+    <p><b>Circuits.</b> The figure uses the course's convention: qubit 0 (here photon A) is the top wire, time runs
+    left to right, and a meter is a box with a dial. Unit 10 builds circuits properly.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · measuring one photon</p>
+  <h2>Measure photon A, and photon B is left in n⊥</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Measure photon A of <span class="ref" data-ref="singlet">the singlet</span> in any orthonormal basis $\{\ket n, \ket{n^\perp}\}$. The result is $n$ with probability $\tfrac12$, and the pair is left in $\ket n\otimes\ket{n^\perp}$ up to phase. Likewise $n^\perp$, leaving $\ket{n^\perp}\otimes\ket n$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">By <span class="ref" data-ref="every">the singlet in every basis</span>, $\ket{\Psi^-} = \tfrac{c}{\sqrt2}(\ket{nn^\perp} - \ket{n^\perp n})$ with $|c| = 1$. Then</p>
+        $$(\ket n\!\bra n\otimes I)\ket{\Psi^-} = \tfrac{c}{\sqrt2}\,\ket n\ket{n^\perp},$$
+        <p class="small">of squared norm $\tfrac12$; normalised, $c\,\ket n\ket{n^\perp}$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>So</b> B, measured afterwards in the same basis, gives $n^\perp$ with certainty: opposite results, derived.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 140" width="459" role="img" aria-label="left: a circuit from the singlet; a meter on wire A reads n; after it wire B is labelled n perp. right: a circle with a teal line n at 30 degrees and a warm line n perp at 120 degrees">
+          <text x="4" y="72" font-size="14">|Ψ⁻⟩</text>
+          <line x1="50" y1="40" x2="110" y2="40" class="unit" stroke-width="2"/>
+          <line x1="150" y1="38" x2="220" y2="38" class="ink" stroke-width="1.2"/>
+          <line x1="150" y1="42" x2="220" y2="42" class="ink" stroke-width="1.2"/>
+          <line x1="50" y1="90" x2="220" y2="90" class="alt" stroke-width="2"/>
+          <rect x="110" y="24" width="40" height="32" class="fill-ground ink" stroke-width="1.5"/>
+          <path d="M 117 50 A 13 13 0 0 1 143 50" fill="none" class="ink" stroke-width="1.4"/>
+          <line x1="130" y1="50" x2="140" y2="31" class="ink" stroke-width="1.4"/>
+          <text x="185" y="30" font-size="13" text-anchor="middle">reads n</text>
+          <text x="185" y="112" font-size="13" text-anchor="middle" class="halo">B now |n⊥⟩</text>
+          <circle cx="300" cy="65" r="35" fill="none" class="rule" stroke-width="1"/>
+          <line x1="269.7" y1="82.5" x2="330.3" y2="47.5" class="unit" stroke-width="2.6"/>
+          <line x1="317.5" y1="95.3" x2="282.5" y2="34.7" class="alt" stroke-width="2.6"/>
+          <text x="334" y="42" font-size="13">n</text>
+          <text x="262" y="30" font-size="13">n⊥</text>
+        </svg>
+        <p class="cap">Whatever basis A is measured in, B is left in the orthogonal state of that basis.</p>
+      </div>
+      <div class="box good"><span class="label">at different angles</span>
+        <p class="small">B measured in another basis $\{\ket m, \ket{m^\perp}\}$ then gives $m$ with probability $|\braket{m|n^\perp}|^2$. For linear analysers at $\theta_A$, $\theta_B$: $\ P(\text{A at }\theta_A,\ \text{B at }\theta_B) = \tfrac12\sin^2(\theta_B - \theta_A)$. At $30^\circ$ apart: $\tfrac18$ (problem P11).</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> The projector for outcome $n$ on A is $\ket n\!\bra n\otimes I$. Applied to $\ket n\ket{n^\perp}$ it gives $\braket{n|n}\ket n\ket{n^\perp} = \ket n\ket{n^\perp}$;
+    applied to $\ket{n^\perp}\ket n$ it gives $\braket{n|n^\perp}(\cdots) = 0$. So $(\ket n\!\bra n\otimes I)\ket{\Psi^-} = \tfrac c{\sqrt2}\ket n\ket{n^\perp}$, whose squared norm is $\tfrac12$:
+    that is the probability (unit 01's Born rule). Dividing by the norm $\tfrac1{\sqrt2}$ gives $c\,\ket n\ket{n^\perp}$, which is $\ket n\ket{n^\perp}$ up to the
+    phase $c$. The outcome $n^\perp$ is the same computation with the other term. Probabilities $\tfrac12 + \tfrac12 = 1$ ✓.</p>
+    <p><b>The formula at different angles.</b> After A reads $\theta_A$, B is in $\ket{\theta_A + 90^\circ}$, and Malus's rule (from <i>Polarisation is
+    a qubit</i>) gives $|\braket{\theta_B|\theta_A + 90^\circ}|^2 = \cos^2(\theta_B - \theta_A - 90^\circ) = \sin^2(\theta_B - \theta_A)$. Multiply by A's $\tfrac12$. At equal angles this is $0$, as it
+    must be. These intermediate-angle numbers are what Bell's theorem (unit 06) will show no local classical
+    model can reproduce in general; here they are only computed.</p>
+    <p><b>What this does not say.</b> It does not say photon B "was" $n^\perp$ before A was measured — the singlet has
+    the same form in every basis, so there is no basis B could have been in. Nor does it say anything travels
+    from A to B; <i>Operators on different factors commute</i> shows B's own statistics do not change.</p>
+    <p><b>Order does not matter.</b> Measuring B first gives the mirror-image statement, and the joint
+    distribution of the two outcomes is the same either way, proved on <i>Operators on different factors commute</i>
+    too.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · measuring one photon</p>
+  <h2>Operators on different factors commute</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$(A\otimes I)(I\otimes B) = A\otimes B = (I\otimes B)(A\otimes I)$. Hence, for projective measurements $\{P_\lambda\}$ on A and $\{Q_\mu\}$ on B:</p>
+        <ul class="small">
+          <li>A then B, or B then A: the same joint distribution, $\ P(\lambda, \mu) = \braket{\psi|(P_\lambda\otimes Q_\mu)|\psi}$;</li>
+          <li>summed over A's outcomes, B's distribution is $\braket{\psi|(I\otimes Q_\mu)|\psi}$ — <b>exactly as if A had done nothing</b>.</li>
+        </ul>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The product rule. A first: $P(\lambda)\cdot P(\mu\mid\lambda) = \lVert(P_\lambda\otimes I)\psi\rVert^2\cdot\frac{\lVert(I\otimes Q_\mu)(P_\lambda\otimes I)\psi\rVert^2}{\lVert(P_\lambda\otimes I)\psi\rVert^2} = \lVert(P_\lambda\otimes Q_\mu)\psi\rVert^2$; symmetric in the order. Then $\sum_\lambda P_\lambda = I$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 120" width="459" role="img" aria-label="two circuits side by side with an equals sign: on the left, a meter on wire A then a meter on wire B; on the right, a meter on wire B then a meter on wire A">
+          <line x1="15" y1="35" x2="160" y2="35" class="unit" stroke-width="2"/>
+          <line x1="15" y1="85" x2="160" y2="85" class="alt" stroke-width="2"/>
+          <rect x="40" y="20" width="34" height="30" class="fill-ground ink" stroke-width="1.4"/>
+          <path d="M 46 44 A 11 11 0 0 1 68 44" fill="none" class="ink" stroke-width="1.2"/><line x1="57" y1="44" x2="65" y2="27" class="ink" stroke-width="1.2"/>
+          <rect x="100" y="70" width="34" height="30" class="fill-ground ink" stroke-width="1.4"/>
+          <path d="M 106 94 A 11 11 0 0 1 128 94" fill="none" class="ink" stroke-width="1.2"/><line x1="117" y1="94" x2="125" y2="77" class="ink" stroke-width="1.2"/>
+          <text x="180" y="66" font-size="20" text-anchor="middle">=</text>
+          <line x1="200" y1="35" x2="345" y2="35" class="unit" stroke-width="2"/>
+          <line x1="200" y1="85" x2="345" y2="85" class="alt" stroke-width="2"/>
+          <rect x="225" y="70" width="34" height="30" class="fill-ground ink" stroke-width="1.4"/>
+          <path d="M 231 94 A 11 11 0 0 1 253 94" fill="none" class="ink" stroke-width="1.2"/><line x1="242" y1="94" x2="250" y2="77" class="ink" stroke-width="1.2"/>
+          <rect x="285" y="20" width="34" height="30" class="fill-ground ink" stroke-width="1.4"/>
+          <path d="M 291 44 A 11 11 0 0 1 313 44" fill="none" class="ink" stroke-width="1.2"/><line x1="302" y1="44" x2="310" y2="27" class="ink" stroke-width="1.2"/>
+          <text x="10" y="116" font-size="12" class="soft">A first</text>
+          <text x="300" y="116" font-size="12" class="soft">B first</text>
+        </svg>
+        <p class="cap">Same joint distribution either way: the meters act on different factors.</p>
+      </div>
+      <div class="box good"><span class="label"><span class="ref" data-ref="pair">the photon pair</span>: no message</span>
+        <p class="small">Whatever basis A uses, B's results in basis $\{m, m^\perp\}$ are $\tfrac12|\braket{m|n^\perp}|^2 + \tfrac12|\braket{m|n}|^2 = \tfrac12\lVert m\rVert^2 = \tfrac12$ each. A's choice is invisible at B: the first glimpse of <b>no-signalling</b>, here for projective measurements only (problem P10). Unit 04 proves it in general.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> <i>Commuting:</i> by the product rule, $(A\otimes I)(I\otimes B) = AI\otimes IB = A\otimes B$ and $(I\otimes B)(A\otimes I) = IA\otimes BI = A\otimes B$.</p>
+    <p><i>A then B.</i> A's outcome $\lambda$ has probability $\lVert(P_\lambda\otimes I)\psi\rVert^2$ and leaves $\psi_\lambda = (P_\lambda\otimes I)\psi/\lVert(P_\lambda\otimes I)\psi\rVert$. Then B's outcome
+    $\mu$ has probability $\lVert(I\otimes Q_\mu)\psi_\lambda\rVert^2$. The product is $\lVert(I\otimes Q_\mu)(P_\lambda\otimes I)\psi\rVert^2 = \lVert(P_\lambda\otimes Q_\mu)\psi\rVert^2$, and since $P_\lambda\otimes Q_\mu$ is a
+    projector this is $\braket{\psi|(P_\lambda\otimes Q_\mu)|\psi}$. <i>B then A</i> gives $\lVert(P_\lambda\otimes I)(I\otimes Q_\mu)\psi\rVert^2$, the same by commuting.</p>
+    <p><i>B's marginal.</i> $\sum_\lambda\braket{\psi|(P_\lambda\otimes Q_\mu)|\psi} = \braket{\psi|((\sum_\lambda P_\lambda)\otimes Q_\mu)|\psi} = \braket{\psi|(I\otimes Q_\mu)|\psi}$, which is the probability of $\mu$
+    if B alone is measured. It does not depend on $\{P_\lambda\}$, i.e. on what A chose to measure. $\blacksquare$</p>
+    <p><b>The singlet's numbers.</b> With A in $\{n, n^\perp\}$: $P(n, m) = \tfrac12|\braket{m|n^\perp}|^2$ and $P(n^\perp, m) = \tfrac12|\braket{m|n}|^2$. Their sum is
+    $\tfrac12(|\braket{m|n^\perp}|^2 + |\braket{m|n}|^2) = \tfrac12\lVert m\rVert^2 = \tfrac12$ (Parseval in the basis $\{n, n^\perp\}$). So B sees a fair coin in every basis,
+    whatever A does: the correlation is visible only when the two records are brought together.</p>
+    <p><b>Scope.</b> "No-signalling" proper — nothing A does locally, unitary or measurement of any kind, changes
+    anything B can observe — needs B's state as an object of its own, which is unit 04's density operator.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Counting</h2>
+  <p>Product states of $n$ qubits are a thin family: $2n$ real parameters inside a space of $2^{n+1} - 2$. The singlet already lives outside it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">03 · counting</p>
+  <h2>Product states are a thin family</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: <span class="ref" data-ref="count">the count</span></span>
+        <p class="small">Pure states of $n$ qubits — unit vectors of $(\mathbb C^2)^{\otimes n}$ up to phase — form a family with $2^{n+1} - 2$ free real parameters. Product states $\psi_1\otimes\cdots\otimes\psi_n$ form a family with $2n$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, by counting free real parameters</span>
+        <p class="small"><b>All states.</b> $\mathbb C^D$ has $2D$ real coordinates; $\lVert\psi\rVert = 1$ is one equation; the global phase is one more: $2D - 2$, with $D = 2^n$.</p>
+        <p class="small"><b>Products.</b> Each factor is a qubit state up to phase: $2\cdot2 - 2 = 2$ parameters. The $n$ factor phases merge into the one global phase, and the product determines each factor up to phase, so nothing is counted twice: $2n$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">lemma: the factors are determined</span>
+        <p class="small">If $a\otimes b = a'\otimes b' \ne 0$ then $a' = ca$, $b' = b/c$ for some $c \ne 0$.</p>
+        <p class="small"><b>Proof:</b> $ab^{\mathsf T}$ has column space $\operatorname{span}(a)$ and row space $\operatorname{span}(b^{\mathsf T})$, so $a' \in \operatorname{span}(a)$, $b' \in \operatorname{span}(b)$, and the product fixes the scalars. For $n$ factors, group as $\psi_1\otimes(\psi_2\otimes\cdots)$ and induct. $\blacksquare$</p>
+      </div>
+      <div class="box warn"><span class="label">the level of rigour</span>
+        <p class="small">"Count free parameters" is a heuristic made exact by differential geometry: the product states are the image of an injective smooth immersion — the Segre embedding — of real dimension $2n$ (cited: Harris, <i>Algebraic Geometry: A First Course</i>, Lecture 2). This unit claims the count, not the manifold theory.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the count of all states.</b> $\mathbb C^D \cong \mathbb R^{2D}$ (real and imaginary parts). The unit sphere $\lVert\psi\rVert^2 = 1$ is one
+    real equation whose gradient $2\psi \ne 0$ never vanishes on it, so it is a smooth hypersurface of dimension
+    $2D - 1$. The phases $e^{i\gamma}$ act on it freely (if $e^{i\gamma}\psi = \psi$ with $\psi \ne 0$ then $e^{i\gamma} = 1$), each orbit is a circle, and the
+    quotient — the space of rays — has dimension $2D - 2$. With $D = 2^n$: $2^{n+1} - 2$. For $n = 1$, $2$: a qubit state is two
+    real numbers, as unit 02's sphere will show.</p>
+    <p><b>Full proof of the count of products.</b> Parametrise by $(\psi_1, \dots, \psi_n)$, each a unit vector of $\mathbb C^2$ ($3$ real
+    parameters each, $3n$ in all). The map to rays is constant along the $n$ independent phase changes
+    $\psi_k \mapsto e^{i\gamma_k}\psi_k$ (they only multiply the product by $e^{i\sum\gamma_k}$, a global phase), and by the lemma those are the only
+    coincidences: two tuples with the same product ray differ by scalars, which have modulus one because all
+    factors are unit vectors. So the free parameters are $3n - n = 2n$.</p>
+    <p><b>The lemma, in full.</b> If $a\otimes b = a'\otimes b' \ne 0$, then all four vectors are nonzero, and the matrix $ab^{\mathsf T} = a'b'^{\mathsf T}$
+    has column space $\operatorname{span}(a) = \operatorname{span}(a')$, so $a' = ca$; then $ab^{\mathsf T} = c\,ab'^{\mathsf T}$, and comparing a nonzero row gives $b = cb'$. For
+    $n$ factors, $(\psi_1\otimes\cdots\otimes\psi_{n-1})\otimes\psi_n$ is a two-factor product, and induction finishes.</p>
+    <p><b>What "thin" means.</b> A family of dimension $2n$ inside one of dimension $2^{n+1} - 2$ has measure zero once
+    $2n \lt 2^{n+1} - 2$, i.e. for every $n \ge 2$: the smooth image of a manifold of lower dimension has measure zero
+    (the easy case of Sard's theorem, cited: Lee, <i>Introduction to Smooth Manifolds</i>, 2nd ed., chapter 6). So a
+    state picked "at random" is entangled with probability one. For $n = 2$ there is a direct proof: the products are
+    the zeros of the polynomial $\det C = c_{00}c_{11} - c_{01}c_{10}$, which is not identically zero, and the zero set of such a
+    polynomial has measure zero (induction on the number of variables, with Fubini's theorem).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · counting</p>
+  <h2>2n against 2ⁿ⁺¹ − 2</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <tr><th class="num">$n$</th><th class="num">products: $2n$</th><th class="num">all pure states: $2^{n+1} - 2$</th></tr>
+        <tr><td class="num">$1$</td><td class="num">$2$</td><td class="num">$2$</td></tr>
+        <tr><td class="num">$2$</td><td class="num">$4$</td><td class="num">$6$</td></tr>
+        <tr><td class="num">$3$</td><td class="num">$6$</td><td class="num">$14$</td></tr>
+        <tr><td class="num">$10$</td><td class="num">$20$</td><td class="num">$2\,046$</td></tr>
+        <tr><td class="num">$50$</td><td class="num">$100$</td><td class="num">$2\,251\,799\,813\,685\,246 \approx 2.25\times10^{15}$</td></tr>
+      </table>
+      <p class="small"><b>The direct sum</b> of $n$ qubits has dimension $2n$ — linear in $n$, like the product family. The tensor product's $2^n$ is exponential, and so is the space of states.</p>
+      <div class="box good"><span class="label">promise and difficulty</span>
+        <p class="small">The <b>promise</b>: a register of $n$ qubits ranges over a space this large. The <b>difficulty</b>: describing one state classically takes $2^n$ amplitudes, and most $n$-qubit unitaries need exponentially many gates (unit 10).</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 360 225" width="459" role="img" aria-label="log-scale plot of real parameters against n from 1 to 50: the product family's 2n rises from 2 to 100, nearly flat; the full state space's 2 to the n plus 1 minus 2 rises in a straight line on the log scale to about 2.25 times 10 to the 15 at n equals 50">
+        <text x="62" y="12" font-size="11" class="soft">real parameters (log scale)</text>
+        <line x1="60" y1="20" x2="60" y2="190" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="190" x2="345" y2="190" class="ink" stroke-width="1.2"/>
+        <line x1="60" y1="147.5" x2="340" y2="147.5" class="rule" stroke-width="0.6" stroke-dasharray="3 3"/>
+        <line x1="60" y1="105" x2="340" y2="105" class="rule" stroke-width="0.6" stroke-dasharray="3 3"/>
+        <line x1="60" y1="62.5" x2="340" y2="62.5" class="rule" stroke-width="0.6" stroke-dasharray="3 3"/>
+        <line x1="60" y1="20" x2="340" y2="20" class="rule" stroke-width="0.6" stroke-dasharray="3 3"/>
+        <text x="54" y="194" font-size="11" text-anchor="end">1</text>
+        <text x="54" y="151" font-size="11" text-anchor="end">10⁴</text>
+        <text x="54" y="109" font-size="11" text-anchor="end">10⁸</text>
+        <text x="54" y="66" font-size="11" text-anchor="end">10¹²</text>
+        <text x="54" y="24" font-size="11" text-anchor="end">10¹⁶</text>
+        <text x="60" y="206" font-size="11" text-anchor="middle">1</text>
+        <text x="111.4" y="206" font-size="11" text-anchor="middle">10</text>
+        <text x="168.6" y="206" font-size="11" text-anchor="middle">20</text>
+        <text x="225.7" y="206" font-size="11" text-anchor="middle">30</text>
+        <text x="282.9" y="206" font-size="11" text-anchor="middle">40</text>
+        <text x="340" y="206" font-size="11" text-anchor="middle">50</text>
+        <text x="200" y="222" font-size="12" class="soft" text-anchor="middle">n, the number of qubits</text>
+        <polyline points="60.0,186.8 65.7,183.6 71.4,181.7 77.1,180.4 82.9,179.4 88.6,178.5 94.3,177.8 100.0,177.2 105.7,176.7 111.4,176.2 117.1,175.7 122.9,175.3 128.6,175.0 134.3,174.6 140.0,174.3 145.7,174.0 151.4,173.7 157.1,173.5 162.9,173.2 168.6,173.0 174.3,172.8 180.0,172.5 185.7,172.3 191.4,172.1 197.1,171.9 202.9,171.8 208.6,171.6 214.3,171.4 220.0,171.3 225.7,171.1 231.4,171.0 237.1,170.8 242.9,170.7 248.6,170.5 254.3,170.4 260.0,170.3 265.7,170.1 271.4,170.0 277.1,169.9 282.9,169.8 288.6,169.7 294.3,169.6 300.0,169.4 305.7,169.3 311.4,169.2 317.1,169.1 322.9,169.0 328.6,168.9 334.3,168.8 340.0,168.8" fill="none" class="unit" stroke-width="2.2"/>
+        <polyline points="60.0,186.8 65.7,181.7 71.4,177.8 77.1,174.3 82.9,171.0 88.6,167.7 94.3,164.4 100.0,161.2 105.7,158.0 111.4,154.8 117.1,151.6 122.9,148.4 128.6,145.2 134.3,142.0 140.0,138.8 145.7,135.6 151.4,132.4 157.1,129.2 162.9,126.0 168.6,122.8 174.3,119.6 180.0,116.4 185.7,113.2 191.4,110.0 197.1,106.8 202.9,103.6 208.6,100.4 214.3,97.2 220.0,94.0 225.7,90.8 231.4,87.6 237.1,84.5 242.9,81.3 248.6,78.1 254.3,74.9 260.0,71.7 265.7,68.5 271.4,65.3 277.1,62.1 282.9,58.9 288.6,55.7 294.3,52.5 300.0,49.3 305.7,46.1 311.4,42.9 317.1,39.7 322.9,36.5 328.6,33.3 334.3,30.1 340.0,26.9" fill="none" class="alt" stroke-width="2.2"/>
+        <circle cx="111.4" cy="176.2" r="3.5" class="fill-unit"/><circle cx="111.4" cy="154.8" r="3.5" class="fill-alt"/>
+        <circle cx="340" cy="168.8" r="3.5" class="fill-unit"/><circle cx="340" cy="26.9" r="3.5" class="fill-alt"/>
+        <text x="200" y="163" font-size="12" class="halo">products: 2n</text>
+        <text x="70" y="60" font-size="12" class="halo">all states: 2ⁿ⁺¹ − 2</text>
+      </svg>
+      <p class="cap">Dots at $n = 10$ ($20$ against $2046$) and $n = 50$ ($100$ against $2.25\times10^{15}$).</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The numbers, computed.</b> $2^{n+1} - 2$ at $n = 2, 3, 10, 50$: $6$, $14$, $2046$, $2^{51} - 2 = 2\,251\,799\,813\,685\,246$. The ratio of
+    the two counts at $n = 50$ is $100/(2^{51} - 2) \approx 4.44\times10^{-14}$ (problem P5).</p>
+    <p><b>A storage check.</b> Writing down a 50-qubit state means $2^{50} \approx 1.13\times10^{15}$ complex amplitudes. Problem P5 turns
+    that into bytes.</p>
+    <p><b>What this does not show.</b> A large state space is not by itself computational power. Unit 23 proves
+    that a large class of highly entangled computations (Clifford circuits) can be simulated efficiently on a
+    classical computer, and unit 12 states plainly that $\mathsf{BQP} \ne \mathsf{BPP}$ is unproved. The count says where there
+    is room; it does not say the room can be used.</p>
+    <p><b>The direct sum and the product family.</b> Both grow linearly in $n$: a list of $n$ separate qubit states,
+    which is what the direct sum can hold, carries $2n$ real parameters up to the phase of each, the same count as
+    the product family. The tensor product's extra room — everything above the $2n$ — is made of entangled
+    states.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · counting</p>
+  <h2>The photon pair, closed</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b><span class="ref" data-ref="pair">The fact</span>:</b> same analyser on both sides, opposite results, whatever the analyser.</p>
+      <ul class="small">
+        <li><b>The space</b> is $\mathbb C^2\otimes\mathbb C^2$, not $\mathbb C^2\oplus\mathbb C^2$: joint amplitudes are bilinear (section 1).</li>
+        <li><b>The state</b> is <span class="ref" data-ref="singlet">the singlet</span>, $\tfrac1{\sqrt2}(0, 1, -1, 0)^{\mathsf T}$ (section 2).</li>
+        <li><b>Not a product</b>, and not a random choice of products: those agree half the time at $45^\circ$ (section 3).</li>
+        <li><b>The same Schmidt form in every basis</b>, from $(U\otimes U)\ket{\Psi^-} = \det(U)\ket{\Psi^-}$ — hence opposite in every basis (section 4).</li>
+        <li><b>Measuring A</b> leaves B in $n^\perp$, and B's own statistics never change (section 5).</li>
+        <li><b>Where it sits:</b> for two qubits, product states are a $4$-parameter family in a $6$-parameter space; the singlet is off it (section 6).</li>
+      </ul>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">what the singlet still asks</span>
+        <p class="small"><b>What is photon B's state by itself?</b> Not any pure state — the pair is not a product. Unit 04's density operator answers: $I/2$.</p>
+        <p class="small"><b>Could classical instructions do it?</b> Not at intermediate angles — Bell's theorem, unit 06.</p>
+        <p class="small"><b>What is it good for?</b> A shared singlet plus two classical bits moves a qubit; a shared singlet plus one qubit sent carries two bits — teleportation and dense coding, unit 07.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The running example, closed.</b> Every claim in its hover card has been derived: the model state and its
+    coordinates (section 2), the impossibility of products and of random products (section 3), the identity
+    $(U\otimes U)\ket{\Psi^-} = \det(U)\ket{\Psi^-}$ and the anticorrelation in every basis (section 4), and the same anticorrelation from a
+    measurement on one photon (section 5). Every state on the way was normalised and every distribution
+    summed to one on its slide.</p>
+    <p><b>The honest boundary.</b> What was proved is that no model in which each photon carries its own quantum
+    state — however chosen at random — fits the facts. Whether some other kind of local model could is
+    unit 06's question, and its answer needs the correlations at intermediate angles that section 5 computed
+    but did not use.</p>
+    <p><b>The forward pointers, precisely.</b> Unit 04 defines the partial trace and finds that photon B's reduced state is $I/2$
+    for every Bell state. Unit 06 proves the CHSH inequality and Tsirelson's bound. Unit 07 proves the resource
+    inequalities "1 ebit + 2 cbits ≥ 1 qubit" and "1 ebit + 1 qubit ≥ 2 cbits", using this unit's $U\otimes\bar U$
+    invariance.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · summary</p>
+  <h2>What this unit bought, and where it stops</h2>
+  <div class="cols">
+    <div class="box good"><span class="label">the toolkit</span>
+      <ul class="small">
+        <li><b>Postulate 4:</b> two systems together live in $H_A\otimes H_B$; independent preparations give $\psi\otimes\varphi$.</li>
+        <li><b>The tensor product</b> by its universal property; unique up to unique isomorphism; built; $\dim = mn$.</li>
+        <li><b>Coordinates:</b> coefficient matrices, Kronecker vectors and matrices, qubit 0 most significant; $(A\otimes B)$ acts as $C \mapsto ACB^{\mathsf T}$.</li>
+        <li><b>Product or entangled:</b> rank of $C$; for two qubits, $\det C$.</li>
+        <li><b>Schmidt:</b> $\psi = \sum s_ka_k\otimes b_k$ from the complex SVD; coefficients unique, entangled iff rank $\gt 1$.</li>
+        <li><b>The Bell basis</b>, the singlet's $U\otimes U$ and $\ket{\Phi^+}$'s $U\otimes\bar U$ invariance.</li>
+        <li><b>Measurement on one part:</b> $P\otimes I$; local operators commute; B's marginals do not move.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Nielsen and Chuang, <i>Quantum Computation and Quantum Information</i>, §2.1.7 (tensor products), §2.2.8 (composite systems), and from §2.5 the Schmidt decomposition theorem and its proof only — its consequences for reduced density operators, and purification, are unit 04's. Axler, <i>Linear Algebra Done Right</i> (4th ed.), §9D for tensor products done basis-free. Kwiat et al., <i>Phys. Rev. Lett.</i> 75, 4337 (1995), for the source.</p>
+      <h3>Next</h3>
+      <p class="small"><b>04</b> density operators: what photon B knows on its own, the partial trace, and why A cannot signal.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, on purpose.</b> Partial trace, reduced states, mixed states and purification (unit 04).
+    Bell inequalities (unit 06). Teleportation and dense coding (unit 07). Entanglement entropy (unit 08).
+    Tensor products of infinite-dimensional spaces and their completion. Multipartite entanglement beyond the
+    remark that the Schmidt decomposition does not extend. Measurements more general than projective (unit 21).</p>
+    <p><b>Reading notes.</b> Nielsen and Chuang define the tensor product concretely, by bases and the
+    Kronecker product, rather than by the universal property; their §2.1.7 is the computational half of section 2
+    here. Their §2.5 proves the Schmidt decomposition with the same SVD argument, but phrases its
+    consequences in terms of reduced density operators — read those after unit 04. Axler's §9D (in the 4th
+    edition, "Tensor Products") gives a basis-free treatment closer to this deck's, for real and complex spaces,
+    with the conjugate-linear convention in the other slot.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">03 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>prove that the universal property determines $V\otimes W$ up to unique isomorphism, every step;</li>
+      <li>for any two-qubit state, decide whether it is entangled and compute its Schmidt coefficients — for instance, find $\tfrac{\varphi}{\sqrt3} \approx 0.9342$ and $\tfrac{\varphi - 1}{\sqrt3} \approx 0.3568$ for $\tfrac1{\sqrt3}(\ket{00} + \ket{01} + \ket{10})$, with squares summing to one.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A uniqueness proof that never uses the uniqueness clause of the property, or shows only that some isomorphism exists; an entanglement verdict from the number of nonzero amplitudes rather than the rank; Schmidt coefficients that are negative, or whose squares do not sum to one.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./qc problems 03</code>. When the checkpoint is true: <code>./qc done 03</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try the checkpoint on something not in the deck before opening the sheet. A good one:
+    $\ket\psi = \tfrac1{\sqrt{10}}(\ket{00} + 2\ket{01} + 2\ket{10} + \ket{11})$. Its coefficient matrix is $\tfrac1{\sqrt{10}}\begin{pmatrix}1&amp;2\\2&amp;1\end{pmatrix}$, with determinant
+    $\tfrac{1 - 4}{10} = -\tfrac3{10} \ne 0$: entangled. The eigenvalues of $\begin{pmatrix}1&amp;2\\2&amp;1\end{pmatrix}$ are $3$ and $-1$, with eigenvectors $\ket+$ and $\ket-$, so the
+    Schmidt coefficients are $\tfrac3{\sqrt{10}} \approx 0.9487$ and $\tfrac1{\sqrt{10}} \approx 0.3162$ (squares $0.9$ and $0.1$), and
+    $\ket\psi = \tfrac3{\sqrt{10}}\ket{++} + \tfrac1{\sqrt{10}}\ket-\big(-\ket-\big)$. Problem P6 does it in full.</p>
+    <p>Every number in this paragraph was computed. If yours disagree, check the coefficient matrix — rows
+    are qubit 0 — before the deck.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

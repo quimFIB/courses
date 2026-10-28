@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>07 · Problems — Teleportation and dense coding: the exchange rate between qubits, bits and ebits</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="b">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part B · unit 07 · problems</p>
+<h1>Teleportation and dense coding: the exchange rate between qubits, bits and ebits</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u07">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you derive the teleportation identity
+\(\ket\psi\ket{\Phi^+} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}\otimes X^kZ^j\ket\psi\) term by term and give Bob's correction for
+all four outcomes; you prove that Bob's state is \(I/2\) until the bits arrive, for every \(\psi\); and you compute the
+average fidelity of measuring in \(z\) and resending — the classical benchmark — as \(\tfrac23\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about four hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the first slot; \(\ket0 = (1, 0)\), \(\ket1 = (0, 1)\),
+\(\ket\pm = (\ket0 \pm \ket1)/\sqrt2\), \(\ket{\pm i} = (\ket0 \pm i\ket1)/\sqrt2\); in \(\ket{ab}\) the first symbol is qubit 0. \(X, Y, Z\)
+are the Pauli matrices and \(H = (X + Z)/\sqrt2\); \(\mathrm{CNOT}_{01} = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X\). The Bell states are
+labelled \(\ket{\mathcal B_{jk}} = (I\otimes\sigma_{jk})\ket{\Phi^+}\) with \(\sigma_{jk} = X^kZ^j\): \(\mathcal B_{00} = \Phi^+\), \(\mathcal B_{01} = \Psi^+\),
+\(\mathcal B_{10} = \Phi^-\), \(\mathcal B_{11} = \Psi^-\). In teleportation C (qubit 0) is the input, A (qubit 1) Alice's half of the
+pair and B (qubit 2) Bob's; the running example is \(\ket\psi = \cos\tfrac\theta2\ket0 + e^{i\varphi}\sin\tfrac\theta2\ket1\), with Bloch
+vector \((x, y, z) = (\sin\theta\cos\varphi, \sin\theta\sin\varphi, \cos\theta)\). Average fidelities are over the uniform
+measure on the Bloch sphere, \(\sin\theta\,\mathrm d\theta\,\mathrm d\varphi/4\pi\), and the deck's lemma \(\langle x^2\rangle = \langle y^2\rangle = \langle z^2\rangle = \tfrac13\),
+\(\langle x\rangle = \langle xy\rangle = 0\) (and permutations) may be used throughout.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="The Bell measurement as a circuit">P1</a></li>
+<li><a class="routine" href="#p2" title="Teleporting with the singlet">P2</a></li>
+<li><a class="hard" href="#p3" title="Uniform outcomes, and why they are forced">P3</a></li>
+<li><a class="medium" href="#p4" title="Teleporting an entangled half">P4</a></li>
+<li><a class="medium" href="#p5" title="Entanglement swapping, every branch">P5</a></li>
+<li><a class="medium" href="#p6" title="One bit is worth the classical benchmark">P6</a></li>
+<li><a class="medium" href="#p7" title="Dense coding is optimal">P7</a></li>
+<li><a class="hard" href="#p8" title="Why two bits">P8</a></li>
+<li><a class="routine" href="#p9" title="The fidelity of doing nothing">P9</a></li>
+<li><a class="medium" href="#p10" title="The classical benchmark">P10</a></li>
+<li><a class="medium" href="#p11" title="Six states are enough">P11</a></li>
+<li><a class="medium" href="#p12" title="Teleporting through a noisy pair">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The identity and the protocol</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> The Bell measurement as a circuit <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: CNOT and H on basis states, the bit labels of the Bell basis, inverting a product of self-inverse unitaries</p>
+<div class="statement">
+<ol>
+<li>Compute \(\mathrm{CNOT}_{01}\) applied to each of \(\ket{\Phi^+}, \ket{\Psi^+}, \ket{\Phi^-}, \ket{\Psi^-}\), write each result as a product state,
+and then apply \(H\otimes I\). Conclude that \((H\otimes I)\,\mathrm{CNOT}_{01}\ket{\mathcal B_{jk}} = \ket{jk}\) for all four, and say in words what the
+two bits record.</li>
+<li>Show that the circuit run the other way, \(\mathrm{CNOT}_{01}(H\otimes I)\), sends \(\ket{jk}\) to \(\ket{\mathcal B_{jk}}\), and explain why that follows
+from part 1 without further computation.</li>
+<li>A two-qubit state \(\ket v\) is put through CNOT, then \(H\) on qubit 0, then both qubits are measured in \(z\). Show the
+probability of outcome \(jk\) is \(|\braket{\mathcal B_{jk}|v}|^2\), and evaluate it for \(\ket v = \ket{00}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is four short computations, each ending in a basis ket; part 2 is a remark about inverses; part 3 is the
+Born rule and the definition of the adjoint.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>CNOT flips the second qubit exactly when the first is 1, so it sends \(\ket{1k}\) to \(\ket{1\bar k}\) and leaves \(\ket{0k}\)
+alone. Each Bell state becomes \(\ket\pm\ket k\) for some sign and some \(k\), and \(H\ket\pm\) is a basis ket (unit 02).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\mathrm{CNOT}\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{00} + \ket{10}) = \tfrac1{\sqrt2}(\ket0 + \ket1)\ket0 = \ket+\ket0\). For part 3 write
+\(\Pr(jk) = |\braket{jk|Uv}|^2\) with \(U = (H\otimes I)\mathrm{CNOT}\), and move \(U\) to the bra.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> CNOT reads the parity of the Bell state into the second qubit and leaves the sign on the first
+as \(\ket\pm\); \(H\) turns that sign into a bit.</p>
+<p><strong>1.</strong> CNOT sends \(\ket{00}\mapsto\ket{00}\), \(\ket{01}\mapsto\ket{01}\), \(\ket{10}\mapsto\ket{11}\), \(\ket{11}\mapsto\ket{10}\). So</p>
+\[ \begin{aligned}
+\mathrm{CNOT}\ket{\Phi^\pm} &amp;= \tfrac1{\sqrt2}(\ket{00} \pm \ket{10}) = \ket\pm\ket0, \\
+\mathrm{CNOT}\ket{\Psi^\pm} &amp;= \tfrac1{\sqrt2}(\ket{01} \pm \ket{11}) = \ket\pm\ket1 .
+\end{aligned} \]
+<p>Then \(H\ket+ = \ket0\), \(H\ket- = \ket1\) give \(\Phi^+\mapsto\ket{00}\), \(\Psi^+\mapsto\ket{01}\), \(\Phi^-\mapsto\ket{10}\), \(\Psi^-\mapsto\ket{11}\): that is,
+\(\ket{\mathcal B_{jk}}\mapsto\ket{jk}\) with the deck's labels. The second bit \(k\) is the <strong>parity</strong> — \(0\) when the two qubits agree in
+\(z\) (the \(\Phi\)'s), \(1\) when they differ (the \(\Psi\)'s); the first bit \(j\) is the <strong>sign</strong> between the two terms.</p>
+<p><strong>2.</strong> Directly: \((H\otimes I)\ket{jk} = \tfrac1{\sqrt2}(\ket0 + (-1)^j\ket1)\ket k = \tfrac1{\sqrt2}(\ket{0k} + (-1)^j\ket{1k})\), and CNOT flips the second
+qubit of the second term: \(\tfrac1{\sqrt2}(\ket{0k} + (-1)^j\ket{1\bar k}) = \ket{\mathcal B_{jk}}\). Without computing: \(\mathrm{CNOT}^2 = I\) and \(H^2 = I\), so
+\(\big((H\otimes I)\mathrm{CNOT}\big)^{-1} = \mathrm{CNOT}^{-1}(H\otimes I)^{-1} = \mathrm{CNOT}(H\otimes I)\); inverting part 1's map gives part 2's.</p>
+<p><strong>3.</strong> With \(U = (H\otimes I)\mathrm{CNOT}\), the outcome \(jk\) has probability \(\lVert\ket{jk}\!\bra{jk}Uv\rVert^2 = |\braket{jk|Uv}|^2 = |\braket{U^\dagger jk|v}|^2\),
+and \(U^\dagger = \mathrm{CNOT}^\dagger(H\otimes I)^\dagger = \mathrm{CNOT}(H\otimes I)\), which by part 2 sends \(\ket{jk}\) to \(\ket{\mathcal B_{jk}}\). For \(\ket v = \ket{00}\):
+\(\braket{\Phi^\pm|00} = \tfrac1{\sqrt2}\) and \(\braket{\Psi^\pm|00} = 0\), so outcomes \(00\) and \(10\) each have probability \(\tfrac12\), and \(01\), \(11\) never occur.</p>
+<p><strong>Check.</strong> Probabilities \(\tfrac12 + \tfrac12 + 0 + 0 = 1\) ✓. Directly: \(\mathrm{CNOT}\ket{00} = \ket{00}\), \(H\otimes I\) gives \(\tfrac1{\sqrt2}(\ket{00} + \ket{10})\):
+outcomes \(00\) and \(10\), each \(\tfrac12\) ✓. A computational-basis state has a Bell parity fixed by its \(z\) values and a sign that is a coin flip; a
+product such as \(\ket{++}\) does the reverse, sign \(0\) for certain and parity a coin flip.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, library
+U = Circuit(2).cx(0, 1).h(0).unitary()          # CNOT, then H on qubit 0
+for name in ("phi+", "psi+", "phi-", "psi-"):
+    print(name, np.round(np.abs(U @ library.bell_state(name)) ** 2, 6))
+# phi+ [1 0 0 0], psi+ [0 1 0 0], phi- [0 0 1 0], psi- [0 0 0 1]: outcome 00, 01, 10, 11</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Teleporting with the singlet <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the teleportation identity for a different resource, Pauli products and signs, corrections up to global phase</p>
+<div class="statement">
+<p>The Innsbruck experiment shared the singlet \(\ket{\Psi^-}_{AB}\) rather than \(\ket{\Phi^+}_{AB}\). Alice still makes the Bell measurement
+of the deck (CNOT, \(H\), meters) on C and A.</p>
+<ol>
+<li>Using \(\ket{\Psi^-} = (I\otimes XZ)\ket{\Phi^+}\) and the teleportation identity, find Bob's (unnormalised) qubit in each branch \(jk\).</li>
+<li>Give the correction Bob must apply for each outcome. Which outcome needs none, up to global phase?</li>
+<li>Check your answer to part 2 for the outcome \(00\) on \(\psi = \ket{+i}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is four \(2\times2\) unitaries, each a product of Paulis, possibly with a sign. Nothing new needs deriving:
+the new starting state is the old one with an operator on B.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\ket\psi_C\ket{\Psi^-}_{AB} = (I_C\otimes I_A\otimes XZ_B)\ket\psi_C\ket{\Phi^+}_{AB}\). Apply \(XZ\) on B to each term of the identity, and simplify
+\(XZ\sigma_{jk}\) with \(XZ = -ZX\), \(X^2 = Z^2 = I\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\ket\psi\ket{\Psi^-} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{CA}\otimes XZ\,X^kZ^j\ket\psi_B\); for \(jk = 01\), \(XZX = -X^2Z = -Z\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The resource differs from \(\ket{\Phi^+}\) by a fixed Pauli on Bob's side, so every branch differs by that Pauli too,
+and Bob's corrections change accordingly.</p>
+<p><strong>1.</strong> Since \(\ket{\Psi^-}_{AB} = (I\otimes XZ)\ket{\Phi^+}_{AB}\) (deck, <i>Three qubits, three resources</i>), and an operator on B commutes with
+everything on C and A,</p>
+\[ \ket\psi_C\ket{\Psi^-}_{AB} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{CA}\otimes XZ\,\sigma_{jk}\ket\psi_B . \]
+<p>The four products: \(jk = 00\): \(XZ\). \(\ 01\): \(XZX = -XXZ = -Z\). \(\ 10\): \(XZZ = X\). \(\ 11\): \(XZXZ = -XXZZ = -I\). So Bob holds
+\(XZ\psi\), \(-Z\psi\), \(X\psi\), \(-\psi\) in the four branches, each with weight \(\tfrac12\), so each branch has probability \(\tfrac14\).</p>
+<p><strong>2.</strong> Corrections, as unitaries applied by Bob: \(00\): \((XZ)^{-1} = ZX\) (first \(X\), then \(Z\)); \(01\): \(Z\); \(10\): \(X\); \(11\):
+nothing — Bob holds \(-\ket\psi\), which is \(\psi\) up to global phase. The outcome \(11\), the singlet itself, is the one that needs no
+correction: exactly the outcome the Innsbruck beam splitter could recognise.</p>
+<p><strong>3.</strong> \(\psi = \ket{+i} = \tfrac1{\sqrt2}(\ket0 + i\ket1)\). Branch \(00\): \(Z\ket{+i} = \ket{-i}\), then \(X\ket{-i} = \tfrac1{\sqrt2}(\ket1 - i\ket0) = -i\cdot\tfrac1{\sqrt2}(\ket0 + i\ket1) = -i\ket{+i}\).
+So Bob holds \(-i\ket{+i}\). Applying \(ZX\): \(X(-i\ket{+i}) = -i\cdot\tfrac1{\sqrt2}(\ket1 + i\ket0) = -i\cdot i\cdot\tfrac1{\sqrt2}(\ket0 - i\ket1) = \ket{-i}\), then
+\(Z\ket{-i} = \ket{+i}\) ✓.</p>
+<p><strong>Check.</strong> Norm: \(4\cdot\tfrac14 = 1\) ✓. A known case: \(\psi = \ket0\), branch \(11\): the singlet piece of \(\ket0\ket{\Psi^-} = \tfrac1{\sqrt2}(\ket{001} - \ket{010})\)
+is \(\braket{\Psi^-|\,\cdot\,}\) on CA: \(\tfrac1{\sqrt2}\big(\braket{\Psi^-|00}\ket1 - \braket{\Psi^-|01}\ket0\big) = \tfrac1{\sqrt2}(0 - \tfrac1{\sqrt2}\ket0) = -\tfrac12\ket0\), which is \(\tfrac12(-\psi)\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, Statevector, gates, library, linalg
+X, Z = gates.X, gates.Z
+psi = np.array([np.cos(np.pi / 6), np.exp(1j * np.pi / 4) * np.sin(np.pi / 6)])   # θ = π/3, φ = π/4
+st = Circuit(3).cx(0, 1).h(0).run(Statevector(np.kron(psi, library.bell_state("psi-"))))
+v = st.vector.reshape(2, 2, 2)                    # indices: C, A, B
+fix = {(0, 0): Z @ X, (0, 1): Z, (1, 0): X, (1, 1): np.eye(2)}
+for (j, k), C in fix.items():
+    bob = v[j, k] / np.linalg.norm(v[j, k])
+    print(j, k, round(np.linalg.norm(v[j, k]) ** 2, 4), linalg.equal_up_to_phase(C @ bob, psi))
+# each line: probability 0.25, True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Uniform outcomes, and why they are forced <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: a proof from the identity, mixed inputs by linearity, no-signalling as a constraint, a linear system with orthogonal rows</p>
+<div class="statement">
+<ol>
+<li>Prove that in teleportation each of Alice's four outcomes has probability exactly \(\tfrac14\), for every pure input
+\(\psi\) and for every mixed input \(\rho\).</li>
+<li>Imagine a different physical world in which, after Alice's measurement, Bob's qubit is still \(\sigma_{jk}\ket\psi\) in branch \(jk\),
+but the branches occur with probabilities \(q_{jk}(\psi)\) that may depend on \(\psi\). Use unit 04's no-signalling theorem to
+show that \(\sum_{jk}q_{jk}(\psi)\,\mathbf r_{jk} = \mathbf 0\), where \(\mathbf r_{jk}\) is the Bloch vector of \(\sigma_{jk}\ket\psi\).</li>
+<li>Deduce that if all three components \(x, y, z\) of \(\psi\)'s Bloch vector are nonzero, then \(q_{jk}(\psi) = \tfrac14\) for every \(jk\).</li>
+<li>Show that for \(\psi\) with \(x = 0\) the conclusion fails: find non-uniform \(q\) satisfying part 2.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a norm computation. Parts 2–3 are about a vector equation in \(\mathbb R^3\) plus \(\sum q = 1\): four linear equations in
+four unknowns. Part 4 is an example.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 2: whatever Alice does, Bob's reduced state cannot change, and before she acted it was \(I/2\). After, not
+knowing \(jk\), Bob holds the mixture \(\sum q_{jk}\,\sigma_{jk}\ket\psi\!\bra\psi\sigma_{jk}^\dagger\), whose Bloch vector is \(\sum q_{jk}\mathbf r_{jk}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>The four Bloch vectors are \((x, y, z)\), \((x, -y, -z)\), \((-x, -y, z)\), \((-x, y, -z)\) (deck, <i>All four branches</i>). Write the three
+components of \(\sum q\mathbf r = \mathbf 0\) as equations, divide each by its nonzero \(x\), \(y\) or \(z\).</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line of part 3: \(x(q_{00} + q_{01} - q_{10} - q_{11}) = 0\). The coefficient matrix of the four equations has rows
+\((1,1,1,1), (1,1,-1,-1), (1,-1,-1,1), (1,-1,1,-1)\), which are mutually orthogonal.</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Uniformity is a one-line consequence of the identity; the converse says it is not an accident, because any
+other distribution would let Alice steer Bob's density operator, and the no-signalling theorem forbids that.</p>
+<p><strong>1.</strong> After CNOT and \(H\) the state is \(\tfrac12\sum_{jk}\ket{jk}\otimes\sigma_{jk}\ket\psi\) (deck, <i>The teleportation circuit</i>). Outcome \(jk\) has
+probability \(\lVert\tfrac12\sigma_{jk}\ket\psi\rVert^2 = \tfrac14\lVert\psi\rVert^2 = \tfrac14\), as \(\sigma_{jk}\) is unitary. For a mixed input \(\rho = \sum_ip_i\ket{\psi_i}\!\bra{\psi_i}\) (any
+ensemble for it, unit 04), outcome probabilities are linear in \(\rho\) — \(\operatorname{tr}\big((\ket{jk}\!\bra{jk}\otimes I)\,U(\rho\otimes\Phi^+)U^\dagger\big)\) — so they are
+\(\sum_ip_i\cdot\tfrac14 = \tfrac14\).</p>
+<p><strong>2.</strong> Before Alice acts, \(\rho_B = \operatorname{tr}_A\ket{\Phi^+}\!\bra{\Phi^+} = I/2\) (unit 04). Alice's operations act on C and A only, and Bob does not know
+her outcome; unit 04's no-signalling theorem says \(\rho_B\) is unchanged, so still \(I/2\). In the imagined world Bob, ignorant of
+\(jk\), holds the ensemble \(\{q_{jk}, \sigma_{jk}\ket\psi\}\), whose density operator is \(\sum q_{jk}\tfrac12(I + \mathbf r_{jk}\cdot\boldsymbol\sigma) = \tfrac12\big(I + (\sum q_{jk}\mathbf r_{jk})\cdot\boldsymbol\sigma\big)\)
+(using \(\sum q = 1\)). This equals \(I/2\) if and only if \(\sum q_{jk}\mathbf r_{jk} = \mathbf 0\), since \(I, \sigma_x, \sigma_y, \sigma_z\) are linearly independent.</p>
+<p><strong>3.</strong> With the four Bloch vectors listed in rung 3, the components of \(\sum q\mathbf r = \mathbf 0\) are</p>
+\[ x(q_{00} + q_{01} - q_{10} - q_{11}) = 0,\quad y(q_{00} - q_{01} - q_{10} + q_{11}) = 0,\quad z(q_{00} - q_{01} + q_{10} - q_{11}) = 0 . \]
+<p>If \(x, y, z \ne 0\), divide them out. Together with \(q_{00} + q_{01} + q_{10} + q_{11} = 1\) this is \(Mq = (1, 0, 0, 0)^{\mathsf T}\) with</p>
+\[ M = \begin{pmatrix}1&amp;1&amp;1&amp;1\\1&amp;1&amp;-1&amp;-1\\1&amp;-1&amp;-1&amp;1\\1&amp;-1&amp;1&amp;-1\end{pmatrix},\qquad MM^{\mathsf T} = 4I, \]
+<p>so \(M\) is invertible with \(M^{-1} = \tfrac14M^{\mathsf T}\), and \(q = \tfrac14M^{\mathsf T}(1, 0, 0, 0)^{\mathsf T} = \tfrac14(1, 1, 1, 1)\): uniform.</p>
+<p><strong>4.</strong> If \(x = 0\) the first equation is empty. Try \(q = (\tfrac12, \tfrac12, 0, 0)\): the second gives \(y(\tfrac12 - \tfrac12) = 0\) ✓, the third
+\(z(\tfrac12 - \tfrac12) = 0\) ✓, and the sum is \(1\) ✓. Indeed the vectors are \((0, y, z)\) and \((0, -y, -z)\), which average to zero with weights
+\(\tfrac12, \tfrac12\). So for states on the \(yz\) great circle, no-signalling alone does not pin the distribution down; it is the identity
+that does.</p>
+<p><strong>Check.</strong> The real protocol satisfies part 2: with \(q = \tfrac14\) the sum is the deck's tetrahedron, centred at \(\mathbf 0\) ✓. The
+rows of \(M\) are the signs of the four Bloch vectors' components, so \(MM^{\mathsf T} = 4I\) is the statement that the four sign patterns
+are orthogonal — the same fact that made the Pauli twirl work.</p>
+</div></details>
+</section>
+
+<h2 class="group">What does and does not travel</h2>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Teleporting an entangled half <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: linearity of the identity, tensor factors with labels, the twirl on one factor, a probability computed</p>
+<div class="statement">
+<p>A fourth qubit R, never touched by anyone, is entangled with C: the input is \(\ket\chi_{RC} = \sum_{a,b}c_{ab}\ket a_R\ket b_C\), and
+Alice teleports C with the standard protocol using \(\ket{\Phi^+}_{AB}\).</p>
+<ol>
+<li>Show that after Alice's outcome \(jk\) and Bob's correction, R and B are in \(\ket\chi_{RB} = \sum_{a,b}c_{ab}\ket a_R\ket b_B\): the entanglement
+with R has been moved to Bob.</li>
+<li>Show that before the bits arrive, the state of RB is \(\rho_R\otimes I/2\), where \(\rho_R = \operatorname{tr}_C\ket\chi\!\bra\chi\).</li>
+<li>Take \(\ket\chi = \cos\tfrac\pi6\ket{00} + \sin\tfrac\pi6\ket{11}\). R and B are both measured in \(z\). Find the probability that they agree,
+before the bits arrive and after Bob's correction.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the teleportation identity applied term by term; part 2 is the Pauli twirl applied to one tensor factor; part 3
+is two numbers between \(0\) and \(1\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For each \(b\), the identity gives \(\ket b_C\ket{\Phi^+}_{AB} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{CA}\,\sigma_{jk}\ket b_B\). Multiply by \(c_{ab}\ket a_R\) and sum.
+For part 2, write \(\ket\chi\!\bra\chi = \sum_mA_m\otimes M_m\) with \(A_m\) on R and \(M_m\) on the second factor.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\ket\chi_{RC}\ket{\Phi^+}_{AB} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{CA}\otimes(I_R\otimes\sigma_{jk})\ket\chi_{RB}\). In part 3, \(\rho_R = \operatorname{diag}(\tfrac34, \tfrac14)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The identity is linear in the input, so it holds with R along for the ride; Bob's correction acts on B alone and
+therefore undoes the Pauli on every term at once.</p>
+<p><strong>1.</strong> For each basis ket \(\ket b\) of C, the identity reads \(\ket b_C\ket{\Phi^+}_{AB} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{CA}\otimes\sigma_{jk}\ket b_B\). Multiply by
+\(c_{ab}\ket a_R\) and sum over \(a, b\) (both sides are linear, and R is a spectator):</p>
+\[ \ket\chi_{RC}\ket{\Phi^+}_{AB} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{CA}\otimes\Big(\sum_{a,b}c_{ab}\ket a_R\,\sigma_{jk}\ket b_B\Big) = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{CA}\otimes(I\otimes\sigma_{jk})\ket\chi_{RB} . \]
+<p>Alice's Bell measurement selects one term, with probability \(\tfrac14\lVert(I\otimes\sigma_{jk})\chi\rVert^2 = \tfrac14\). Bob applies \(\sigma_{jk}^{-1}\) to B, i.e.
+\(I\otimes\sigma_{jk}^{-1}\) on RB, leaving \(\ket\chi_{RB}\).</p>
+<p><strong>2.</strong> Not knowing \(jk\), the state of RB is \(\tfrac14\sum_{jk}(I\otimes\sigma_{jk})\ket\chi\!\bra\chi(I\otimes\sigma_{jk})^\dagger\). Write \(\ket\chi\!\bra\chi = \sum_mA_m\otimes M_m\) (any
+operator on a tensor product is such a sum, unit 03). Then the expression is \(\sum_mA_m\otimes\tfrac14\sum_{jk}\sigma_{jk}M_m\sigma_{jk}^\dagger = \sum_mA_m\otimes\tfrac12\operatorname{tr}(M_m)I\) by
+the twirl, and \(\sum_mA_m\operatorname{tr}(M_m) = \operatorname{tr}_B\ket\chi\!\bra\chi = \rho_R\). So the state is \(\rho_R\otimes I/2\): before the bits arrive, R and B are uncorrelated.</p>
+<p><strong>3.</strong> \(\ket\chi = \tfrac{\sqrt3}2\ket{00} + \tfrac12\ket{11}\), normalised: \(\tfrac34 + \tfrac14 = 1\). <em>After</em> correction RB is \(\ket\chi\): the outcomes are \(00\) with
+probability \(\tfrac34\) and \(11\) with probability \(\tfrac14\), so they agree with probability \(\mathbf 1\). <em>Before</em>: \(\rho_R = \operatorname{diag}(\tfrac34, \tfrac14)\) and B is
+\(I/2\), independent; agreement has probability \(\tfrac34\cdot\tfrac12 + \tfrac14\cdot\tfrac12 = \mathbf{\tfrac12}\).</p>
+<p><strong>Check.</strong> R alone is \(\rho_R\) both before and after — nothing was done to it, and by no-signalling nothing done to C, A or B
+could change it ✓. For \(\chi = \ket{\Phi^+}\) part 1 is entanglement swapping, problem P5 ✓. Part 2's state has trace
+\(\operatorname{tr}\rho_R\cdot1 = 1\) ✓, and its diagonal is \((\tfrac38, \tfrac38, \tfrac18, \tfrac18)\), which sums to one.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Entanglement swapping, every branch <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the identity applied to half a pair, the four branches written out, Bob's state before the bits</p>
+<div class="statement">
+<p>Photons 1, 2 share \(\ket{\Phi^+}_{12}\) and photons 3, 4 share \(\ket{\Phi^+}_{34}\). A Bell measurement is made on 2 and 3 (CNOT from 2 to 3,
+\(H\) on 2, meters), with outcome \(jk\).</p>
+<ol>
+<li>Show that \(\ket{\Phi^+}_{12}\ket{\Phi^+}_{34} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{23}\otimes\ket{\mathcal B_{jk}}_{14}\).</li>
+<li>Write out, for each of the four outcomes, its probability, the state of photons 1 and 4, and the Pauli the holder of photon 4
+must apply to leave 1 and 4 in \(\ket{\Phi^+}\).</li>
+<li>What is the state of 1 and 4 before the outcome is announced? Could anyone holding 1 and 4 tell whether the
+measurement on 2 and 3 has happened?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>This is P4 with \(\chi = \ket{\Phi^+}\), photon 2 as the input C, photon 3 as A and photon 4 as B.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(\ket{\Phi^+}_{12} = \tfrac1{\sqrt2}\sum_a\ket a_1\ket a_2\) and apply the identity to \(\ket a_2\ket{\Phi^+}_{34}\). Then recognise
+\(\tfrac1{\sqrt2}\sum_a\ket a_1\sigma_{jk}\ket a_4 = (I\otimes\sigma_{jk})\ket{\Phi^+}_{14}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\ket{\Phi^+}_{12}\ket{\Phi^+}_{34} = \tfrac1{\sqrt2}\sum_a\ket a_1\otimes\tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{23}\,\sigma_{jk}\ket a_4\). For part 3, recall P4 part 2.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Swapping is teleportation of photon 2, which happens to be half of a pair: its partnership with photon 1 is
+carried over to photon 4.</p>
+<p><strong>1.</strong> \(\ket{\Phi^+}_{12}\ket{\Phi^+}_{34} = \tfrac1{\sqrt2}\sum_a\ket a_1\big(\ket a_2\ket{\Phi^+}_{34}\big)\), and the identity with C = 2, A = 3, B = 4 gives
+\(\ket a_2\ket{\Phi^+}_{34} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{23}\,\sigma_{jk}\ket a_4\). So</p>
+\[ \ket{\Phi^+}_{12}\ket{\Phi^+}_{34} = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{23}\otimes\tfrac1{\sqrt2}\sum_a\ket a_1\,\sigma_{jk}\ket a_4 = \tfrac12\sum_{jk}\ket{\mathcal B_{jk}}_{23}\otimes\ket{\mathcal B_{jk}}_{14}, \]
+<p>since \(\tfrac1{\sqrt2}\sum_a\ket a\,\sigma_{jk}\ket a = (I\otimes\sigma_{jk})\ket{\Phi^+} = \ket{\mathcal B_{jk}}\).</p>
+<p><strong>2.</strong> Each term has squared norm \(\tfrac14\). The four branches:</p>
+<table>
+<tr><th>\(jk\)</th><th>probability</th><th>photons 1, 4</th><th>correction on 4</th></tr>
+<tr><td>00</td><td>\(\tfrac14\)</td><td>\(\Phi^+\)</td><td>none</td></tr>
+<tr><td>01</td><td>\(\tfrac14\)</td><td>\(\Psi^+ = (I\otimes X)\Phi^+\)</td><td>\(X\)</td></tr>
+<tr><td>10</td><td>\(\tfrac14\)</td><td>\(\Phi^- = (I\otimes Z)\Phi^+\)</td><td>\(Z\)</td></tr>
+<tr><td>11</td><td>\(\tfrac14\)</td><td>\(\Psi^- = (I\otimes XZ)\Phi^+\)</td><td>\(X\), then \(Z\)</td></tr>
+</table>
+<p>Row 11 checked: \((I\otimes ZX)\ket{\Psi^-} = (I\otimes ZXXZ)\ket{\Phi^+} = \ket{\Phi^+}\) ✓. Photons 1 and 4 come from different sources and never met.</p>
+<p><strong>3.</strong> Before the outcome is known, 1 and 4 are in \(\tfrac14\sum_{jk}\ket{\mathcal B_{jk}}\!\bra{\mathcal B_{jk}} = I/4\) — the four Bell projectors sum to \(I\) — the
+maximally mixed state of two qubits, which is also P4's \(\rho_R\otimes I/2\) with \(\rho_R = I/2\). It is the same as before the measurement:
+then 1 and 4 belonged to two independent pairs, each half \(I/2\), so \(I/2\otimes I/2 = I/4\). No measurement on 1 and 4 can tell
+whether the swap happened — no-signalling again. Only after the two bits are known can 1 and 4 be shown to be entangled.</p>
+<p><strong>Check.</strong> Probabilities sum to \(1\) ✓. Trace of \(I/4\) is \(1\) ✓. A known case: if the measurement were instead in the \(z\)
+basis on 2 and 3, 1 and 4 would end in a product state — the Bell basis is what makes the swap work.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, Statevector, gates, library, linalg
+phi = library.bell_state("phi+")
+st = Circuit(4).cx(1, 2).h(1).run(Statevector(np.kron(phi, phi)))   # photons 1-4 are qubits 0-3
+v = st.vector.reshape(2, 2, 2, 2)
+for j in (0, 1):
+    for k in (0, 1):
+        pair = v[:, j, k, :].reshape(4)                               # photons 1 and 4
+        sigma = np.linalg.matrix_power(gates.X, k) @ np.linalg.matrix_power(gates.Z, j)
+        p = np.linalg.norm(pair) ** 2
+        print(j, k, round(p, 4), linalg.equal_up_to_phase(pair / np.sqrt(p), linalg.kron(gates.I, sigma) @ phi))
+# each line: 0.25 True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> One bit is worth the classical benchmark <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: mixtures of branch states, Bloch vectors of a dephased state, sphere averages, numbers on the running example</p>
+<div class="statement">
+<p>The phone line fails after one bit. Alice sends only the parity bit \(k\); Bob applies \(X^k\) and stops.</p>
+<ol>
+<li>Show Bob's output is \(\tfrac12\big(\ket\psi\!\bra\psi + Z\ket\psi\!\bra\psi Z\big)\) and find its Bloch vector.</li>
+<li>Find its fidelity with \(\psi\), its average fidelity, and its fidelity on the running example at \(\theta = \pi/3\), \(\varphi = \pi/4\).</li>
+<li>Repeat for the case where only the sign bit \(j\) arrives and Bob applies \(Z^j\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each output is a density operator, an equal mixture of two branch states; each fidelity is \(\tfrac12(1 + \mathbf r\cdot\mathbf s)\), and
+each average is a sphere average of a square.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In branch \(jk\) Bob holds \(X^kZ^j\psi\); after \(X^k\) he holds \(Z^j\psi\), and \(j\) is a fair coin he does not see. In part 3, after \(Z^j\)
+he holds \(Z^jX^kZ^j\psi\), which is \(\psi\) or \(\pm X\psi\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\rho_{\text{out}} = \tfrac12\ket\psi\!\bra\psi + \tfrac12Z\ket\psi\!\bra\psi Z\), with Bloch vectors \((x, y, z)\) and \((-x, -y, z)\), averaging
+to \((0, 0, z)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Each missing bit leaves a Pauli unknown, and averaging over it erases the two Bloch components that
+Pauli flips. One component survives, and its square averages to \(\tfrac13\).</p>
+<p><strong>1.</strong> Branch \(jk\) has probability \(\tfrac14\) and Bob holds \(X^kZ^j\ket\psi\). After \(X^k\): \(X^kX^kZ^j\ket\psi = Z^j\ket\psi\). Given \(k\), the value of \(j\) is
+uniform (the four outcomes are equally likely), so Bob's state is \(\tfrac12\ket\psi\!\bra\psi + \tfrac12Z\ket\psi\!\bra\psi Z\), the same for either \(k\). The Bloch
+vectors are \((x, y, z)\) and \((-x, -y, z)\) (conjugation by \(Z\) negates \(\sigma_x, \sigma_y\)), so \(\mathbf s = (0, 0, z)\): the state is \(\psi\) with its phase
+information wiped out.</p>
+<p><strong>2.</strong> \(F = \tfrac12(1 + \mathbf r\cdot\mathbf s) = \tfrac12(1 + z^2)\); average \(\tfrac12(1 + \tfrac13) = \tfrac23\). On the running example \(z = \cos\tfrac\pi3 = \tfrac12\), so
+\(F = \tfrac12(1 + \tfrac14) = \tfrac58 = 0.625\).</p>
+<p><strong>3.</strong> After \(Z^j\) Bob holds \(Z^jX^kZ^j\ket\psi\): for \(k = 0\) that is \(\psi\); for \(k = 1\) it is \(X\psi\) (if \(j = 0\)) or \(ZXZ\psi = -X\psi\) (if \(j = 1\)), the
+state \(X\psi\) either way. So \(\rho_{\text{out}} = \tfrac12(\ket\psi\!\bra\psi + X\ket\psi\!\bra\psi X)\), Bloch vector \(\tfrac12\big((x, y, z) + (x, -y, -z)\big) = (x, 0, 0)\), fidelity
+\(\tfrac12(1 + x^2)\), average \(\tfrac23\). On the running example \(x = \sin\tfrac\pi3\cos\tfrac\pi4 = \tfrac{\sqrt6}4\), \(x^2 = \tfrac38\), \(F = \tfrac12(1 + \tfrac38) = \tfrac{11}{16} = 0.6875\).</p>
+<p><strong>Check.</strong> Part 1's output is exactly measure-and-prepare in \(z\) (deck): the same \(\mathbf s = (0, 0, z)\) and the same \(\tfrac23\). One bit of
+classical communication plus the ebit, used this way, buys nothing over one bit with no ebit. A limit: at \(\theta = 0\), \(\psi = \ket0\),
+part 1 gives \(F = 1\) (a \(z\) state is immune to \(Z\)) ✓; part 3 gives \(F = \tfrac12\) ✓, since \(X\) swaps \(\ket0\) and \(\ket1\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Exchange rates</h2>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Dense coding is optimal <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: perfect distinguishability and orthogonality, a trace inequality, the Holevo bound in its elementary form, a number</p>
+<div class="statement">
+<p>Alice and Bob share one ebit. Alice receives a message \(x\), uniform over \(N\) values, does anything she likes to her half,
+and sends it to Bob — one qubit. Bob then makes any measurement on the two qubits he holds (he may add an ancilla in a
+fixed state) and guesses \(x\).</p>
+<ol>
+<li>Prove that Bob's probability of guessing correctly is at most \(4/N\).</li>
+<li>Deduce that no such protocol sends three bits (\(N = 8\)) with certainty, and give the best success probability it can
+have. Is dense coding (\(N = 4\)) consistent with the bound?</li>
+<li>Without the ebit — Alice sends one qubit, Bob has nothing else correlated with \(x\) — show the bound becomes \(2/N\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is an inequality \(\Pr \le d/N\), where \(d\) is the dimension of the system whose state depends on \(x\). The only facts
+needed: Bob's final state is some density operator \(\rho_x\) on \(\mathbb C^4\), and his measurement's projectors sum to \(I\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With an ancilla in \(\ket0\), define \(Q_y := (I\otimes\bra0)P_y(I\otimes\ket0)\) on \(\mathbb C^4\). Then \(Q_y \ge 0\), \(\sum_yQ_y = I\), and
+\(\operatorname{tr}(P_y(\rho\otimes\ket0\!\bra0)) = \operatorname{tr}(Q_y\rho)\). Now bound \(\operatorname{tr}(Q\rho)\) using \(\rho\)'s eigenvalues being at most \(1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\Pr(\text{correct}) = \tfrac1N\sum_x\operatorname{tr}(Q_x\rho_x) \le \tfrac1N\sum_x\operatorname{tr}(Q_x)\), since \(\operatorname{tr}(Q\rho) = \sum_i\lambda_i\braket{e_i|Q|e_i} \le \sum_i\braket{e_i|Q|e_i}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Whatever Alice does, the message ends up written in the state of Bob's two qubits, a four-dimensional
+space; a measurement on a \(d\)-dimensional space has total "weight" \(\operatorname{tr}I = d\) to spread over \(N\) guesses.</p>
+<p><strong>1.</strong> After Alice's operations and the transfer, Bob holds two qubits in a state \(\rho_x\) depending on \(x\) (a density operator on
+\(\mathbb C^4\); Alice's lab may keep other systems, which Bob does not hold). He adjoins an ancilla in \(\ket0\) and measures \(\{P_y\}\). Set
+\(Q_y = (I\otimes\bra0)P_y(I\otimes\ket0)\). Each \(Q_y\) is positive, \(\braket{v|Q_y|v} = \braket{v\otimes0|P_y|v\otimes0} \ge 0\), and \(\sum_yQ_y = (I\otimes\bra0)I(I\otimes\ket0) = I\).
+Also \(\operatorname{tr}(P_y(\rho\otimes\ket0\!\bra0)) = \operatorname{tr}(Q_y\rho)\) by cyclicity. Write \(\rho_x = \sum_i\lambda_i\ket{e_i}\!\bra{e_i}\) with \(0 \le \lambda_i \le 1\):</p>
+\[ \operatorname{tr}(Q_x\rho_x) = \sum_i\lambda_i\braket{e_i|Q_x|e_i} \le \sum_i\braket{e_i|Q_x|e_i} = \operatorname{tr}Q_x . \]
+<p>So \(\Pr(\text{correct}) = \tfrac1N\sum_x\operatorname{tr}(Q_x\rho_x) \le \tfrac1N\sum_x\operatorname{tr}Q_x \le \tfrac1N\operatorname{tr}\sum_yQ_y = \tfrac1N\operatorname{tr}I_4 = \tfrac4N\).</p>
+<p><strong>2.</strong> For \(N = 8\): \(\Pr \le \tfrac48 = \tfrac12\). Three bits cannot be sent with certainty; at best half the time. And \(\tfrac12\) is reached:
+dense-code the first two bits and guess the third. For \(N = 4\) the bound is \(1\), which dense coding attains ✓.</p>
+<p><strong>3.</strong> Without the ebit, Bob's other systems are in a state \(\tau\) independent of \(x\); his whole state is \(\rho_x\otimes\tau\) with \(\rho_x\) on \(\mathbb C^2\).
+Put \(\tau\) in the role of the ancilla (purify it inside Bob's lab if it is mixed, unit 04, and repeat part 1 with \(\ket0\) replaced by
+the purification): the bound becomes \(\tfrac1N\operatorname{tr}I_2 = \tfrac2N\). So one qubit alone carries at most one bit with certainty, and the
+second bit of dense coding is paid for by the ebit.</p>
+<p><strong>Check.</strong> \(N = 1\): bound \(\ge 1\), trivially true ✓. \(N = 2\) without an ebit: bound \(1\), met by sending \(\ket0\) or \(\ket1\) ✓. The Holevo
+bound (cited; unit 08) strengthens this from "success probability" to "information": \(n\) qubits with no prior entanglement
+never carry more than \(n\) bits, even with errors allowed and many uses combined.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Why two bits <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the guessing argument, no-signalling as a bound on communication, composing protocols, a proof by contradiction</p>
+<div class="statement">
+<ol>
+<li>Prove the deck's lemma: if Alice and Bob share any state and Alice sends \(n\) cbits, Bob identifies a uniformly random
+\(K\)-bit message with probability at most \(2^{n-K}\).</li>
+<li>Prove that no protocol teleports every qubit state exactly using shared entanglement (any amount) and one cbit. You
+may use that an exact teleporter also transmits halves of entangled states exactly (deck notes; P4 for the standard
+protocol).</li>
+<li>What does part 1 say about a protocol with no cbits at all, and how is that the no-signalling theorem again?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an inequality between two probabilities of one modified protocol; part 2 is a contradiction with part 1 at
+\(n = 1\), \(K = 2\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Modify the protocol so that Bob does not wait: he draws an \(n\)-bit string \(c'\) at random and runs his procedure as if it
+were Alice's message. Compute the success probability of this run in two ways.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Way one: no communication, so by no-signalling Bob's output distribution does not depend on \(x\). Way two: with
+probability \(2^{-n}\) the guess equals Alice's message, and then the run is the real one.</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>For part 2: share an extra \(\ket{\Phi^+}_{A'B'}\); Alice dense-codes a 2-bit message into \(A'\) and teleports \(A'\) with the supposed
+one-cbit protocol. First line: "Bob ends with \(A'B'\) in \(\ket{\mathcal B_{jk}}\), so he reads \(jk\) with probability \(1\)."</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Replacing a message by a guess costs a factor \(2^{-n}\) in success and removes all communication, after which
+no-signalling caps success at a blind guess. A one-cbit teleporter would beat that cap via dense coding.</p>
+<p><strong>1.</strong> Alice's actions (depending on \(x\)) are unitaries and measurements on her systems ending in an \(n\)-bit string \(c\); Bob's, given a
+string, are unitaries and a measurement on his, ending in \(\hat x\). Operators of the two labs act on different tensor factors,
+so they commute, and the joint distribution of all outcomes does not depend on which lab acts first (unit 03).</p>
+<p><em>The guessing run.</em> Bob draws \(c'\) uniformly from \(\{0, 1\}^n\), independently of everything, and acts as if he had received \(c'\).</p>
+<p><em>Way one.</em> Let Bob act first. His output is computed from his reduced state, which by unit 04's no-signalling theorem is
+what it was before Alice acted — independent of \(x\). So \(\Pr(\hat x = y \mid x) = q(y)\) for some distribution \(q\) not depending on \(x\), and
+\(\Pr(\hat x = x) = \sum_x2^{-K}q(x) = 2^{-K}\).</p>
+<p><em>Way two.</em> For each fixed string \(c_0\): \(\Pr(c' = c_0,\ c = c_0,\ \hat x = x) = 2^{-n}\Pr_{\text{real}}(c = c_0,\ \hat x = x)\), because given \(c' = c_0\) Bob performs exactly
+his real-protocol operations for message \(c_0\), and \(c'\) is independent of the rest. Summing over \(c_0\),
+\(\Pr(c' = c,\ \hat x = x) = 2^{-n}\Pr_{\text{real}}(\hat x = x)\).</p>
+<p>The event in way two is contained in the event of way one, so \(2^{-n}\Pr_{\text{real}}(\hat x = x) \le 2^{-K}\), i.e. \(\Pr_{\text{real}}(\hat x = x) \le 2^{n-K}\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Suppose a protocol \(T\) teleports every qubit exactly with shared entanglement and one cbit. Give Alice and Bob an extra
+\(\ket{\Phi^+}_{A'B'}\). To send \(jk\), uniform over four values: Alice applies \(Z^jX^k\) to \(A'\), making \(A'B'\) the Bell state \(\ket{\mathcal B_{jk}}\) (deck,
+<i>Dense coding</i>). She then teleports \(A'\) by \(T\), sending one cbit. Since \(T\) transmits halves of entangled states exactly, Bob ends
+holding \(A'B'\) in \(\ket{\mathcal B_{jk}}\), and his Bell measurement returns \(jk\) with probability \(1\). This is a protocol with shared entanglement, \(n = 1\)
+and \(K = 2\), succeeding with probability \(1 \gt 2^{1-2} = \tfrac12\), contradicting part 1. \(\blacksquare\)</p>
+<p><strong>3.</strong> With \(n = 0\): \(\Pr \le 2^{-K}\), a blind guess. Shared entanglement with no communication lets Bob learn nothing about \(x\) — which is the
+statement that Alice cannot signal, now in the language of communication rather than of \(\rho_B\).</p>
+<p><strong>Check.</strong> \(n = K\) gives \(1\), met by sending \(x\) ✓. Teleportation itself is consistent: \(n = 2\) cbits deliver a qubit, and through dense
+coding that qubit carries \(K = 2\) bits — success \(1 \le 2^{2-2}\) ✓. The argument also rules out teleporting with one cbit even
+approximately well enough to dense-code reliably: any success above \(\tfrac12\) for the composed protocol is impossible.</p>
+</div></details>
+</section>
+
+<h2 class="group">Benchmarks</h2>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> The fidelity of doing nothing <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: fidelity with a mixed output, the Bloch form of fidelity, sphere averages of linear functions</p>
+<div class="statement">
+<ol>
+<li>Bob ignores the phone and outputs his half of the pair as it is. Find the fidelity with \(\psi\) for every \(\psi\), and the average.</li>
+<li>Bob instead always outputs \(\ket0\). Find the fidelity as a function of \(\theta\), and the average.</li>
+<li>Bob guesses the two bits at random and applies the corresponding correction. Show his average fidelity is again \(\tfrac12\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 2 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three numbers, each \(\tfrac12(1 + \mathbf r\cdot\mathbf s)\) for some output Bloch vector \(\mathbf s\), averaged over the sphere. What is \(\mathbf s\) for \(I/2\)?</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>First line: \(F = \braket{\psi|\tfrac I2|\psi} = \tfrac12\). For part 2, \(\mathbf s = (0, 0, 1)\), so \(F = \tfrac12(1 + z)\), and \(\langle z\rangle = 0\).</p>
+</div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> With no information from Alice, Bob's output is a fixed state, and a fixed state's fidelity is linear in \(\mathbf r\),
+which averages to zero.</p>
+<p><strong>1.</strong> Bob's half is \(I/2\) whatever Alice does (deck, <i>Before the bits arrive</i>). \(F = \braket{\psi|\tfrac I2|\psi} = \tfrac12\lVert\psi\rVert^2 = \tfrac12\) for every
+\(\psi\); average \(\tfrac12\).</p>
+<p><strong>2.</strong> \(F = |\braket{\psi|0}|^2 = \cos^2\tfrac\theta2 = \tfrac12(1 + \cos\theta) = \tfrac12(1 + z)\). Average \(\tfrac12(1 + \langle z\rangle) = \tfrac12\).</p>
+<p><strong>3.</strong> To Bob, before any bits, his qubit is \(I/2\); applying any unitary \(U\) leaves \(UIU^\dagger/2 = I/2\). Averaged over his random choice,
+the output is still \(I/2\), so \(F = \tfrac12\) for every \(\psi\). In detail: he guesses right with probability \(\tfrac14\) and outputs \(\psi\) (fidelity
+\(1\)); otherwise he outputs \(\psi\) turned by a half-turn about one axis, with fidelity \(\tfrac12(1 + \mathbf r\cdot R\mathbf r)\): for the three
+half-turns these are \(x^2\), \(y^2\), \(z^2\) (e.g. about \(x\): \(\mathbf r\cdot(x, -y, -z) = x^2 - y^2 - z^2 = 2x^2 - 1\), so \(F = x^2\)). Average over guesses:
+\(\tfrac14(1 + x^2 + y^2 + z^2) = \tfrac14\cdot2 = \tfrac12\) for every \(\psi\) ✓.</p>
+<p><strong>Check.</strong> All three equal \(\tfrac12\): the floor. Measure-and-prepare's \(\tfrac23\) is above it because the bit carries information
+about \(\psi\); teleportation's \(1\) is above that because the ebit carries the rest.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> The classical benchmark <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the measure-and-prepare fidelity, sphere averages by symmetry, rotation invariance, the uniform-in-θ trap</p>
+<div class="statement">
+<ol>
+<li>Alice measures \(\psi\) in the \(z\) basis and phones the outcome; Bob prepares \(\ket0\) or \(\ket1\). Show the fidelity is
+\(1 - \tfrac12\sin^2\theta\) and the average fidelity is \(1 - \tfrac12\langle\sin^2\theta\rangle = \tfrac23\).</li>
+<li>Alice measures along a fixed axis \(\mathbf n\) instead, and Bob prepares the corresponding eigenstate. Show the average fidelity
+is still \(\tfrac23\). Conclude the same for an axis chosen at random by Alice and announced with the outcome.</li>
+<li>A careless average takes \(\theta\) uniform on \([0, \pi]\). What does it give for part 1, and why is it wrong?</li>
+<li>State what Massar and Popescu proved, and what a measured average fidelity of \(0.80\) therefore shows.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is a function of the Bloch vector averaged over the sphere. The deck's lemma does all the integrals.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 2, the output's Bloch vector is \(\pm\mathbf n\), with probabilities \(\tfrac12(1 \pm \mathbf n\cdot\mathbf r)\) (unit 02). Average the fidelities
+\(\tfrac12(1 \pm\mathbf n\cdot\mathbf r)\) with those weights. Then use a rotation taking \(\mathbf n\) to \(\hat z\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(F = \tfrac12(1 + \mathbf n\cdot\mathbf r)\cdot\tfrac12(1 + \mathbf n\cdot\mathbf r) + \tfrac12(1 - \mathbf n\cdot\mathbf r)\cdot\tfrac12(1 - \mathbf n\cdot\mathbf r) = \tfrac12\big(1 + (\mathbf n\cdot\mathbf r)^2\big)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A projective measurement keeps one component of the Bloch vector, so the fidelity is \(\tfrac12(1 + (\text{that
+component})^2)\), and on the sphere a squared component averages to \(\tfrac13\).</p>
+<p><strong>1.</strong> \(\Pr(0) = \cos^2\tfrac\theta2\), \(\Pr(1) = \sin^2\tfrac\theta2\), and the output passes the test "is it \(\psi\)?" with probability \(|\braket{\psi|0}|^2 = \cos^2\tfrac\theta2\) after
+outcome 0 and \(\sin^2\tfrac\theta2\) after outcome 1. So \(F = \cos^4\tfrac\theta2 + \sin^4\tfrac\theta2 = 1 - 2\cos^2\tfrac\theta2\sin^2\tfrac\theta2 = 1 - \tfrac12\sin^2\theta\). With
+\(\sin^2\theta = x^2 + y^2\), \(\langle\sin^2\theta\rangle = \tfrac23\) and \(\bar F = 1 - \tfrac13 = \tfrac23\).</p>
+<p><strong>2.</strong> Outcome \(\pm\) has probability \(\tfrac12(1 \pm \mathbf n\cdot\mathbf r)\) and the prepared state \(\pm\mathbf n\) has fidelity \(\tfrac12(1 \pm \mathbf n\cdot\mathbf r)\) with \(\psi\). So
+\(F = \tfrac14(1 + u)^2 + \tfrac14(1 - u)^2 = \tfrac12(1 + u^2)\) with \(u = \mathbf n\cdot\mathbf r\). Choose a rotation \(R\) with \(R\mathbf n = \hat z\); then \(u = \hat z\cdot R\mathbf r\), and since
+\(\mu\) is rotation-invariant, \(\langle(\mathbf n\cdot\mathbf r)^2\rangle = \langle z^2\rangle = \tfrac13\). So \(\bar F = \tfrac23\) for every fixed \(\mathbf n\). A random axis is a mixture of fixed-axis
+strategies, each averaging \(\tfrac23\), so it averages \(\tfrac23\) as well.</p>
+<p><strong>3.</strong> \(\tfrac1\pi\int_0^\pi(1 - \tfrac12\sin^2\theta)\,\mathrm d\theta = 1 - \tfrac12\cdot\tfrac12 = \tfrac34\). Wrong because \(\theta\) is not uniform on the sphere: the band at
+polar angle \(\theta\) has area proportional to \(\sin\theta\), so the equator — where this strategy is worst — carries more weight than
+the poles. The correct weight gives \(\tfrac12\int_0^\pi(1 - \tfrac12\sin^2\theta)\sin\theta\,\mathrm d\theta = 1 - \tfrac14\cdot\tfrac43 = \tfrac23\).</p>
+<p><strong>4.</strong> Massar and Popescu (<i>Phys. Rev. Lett.</i> 74, 1259, 1995; cited) proved that from one copy of a uniformly random pure qubit
+state, no measurement and preparation achieves average fidelity above \(\tfrac23\) (and from \(N\) copies, above \(\tfrac{N+1}{N+2}\)). Any
+teleporter without shared entanglement is such a procedure, since its message is classical. A measured \(0.80\) — clear of
+\(\tfrac23\) by more than its error bar, as for Micius's \(0.80 \pm 0.01\) — therefore certifies that the shared entanglement did work.</p>
+<p><strong>Check.</strong> Part 2 with \(\mathbf n = \hat z\) is part 1: \(\tfrac12(1 + z^2) = \tfrac12(2 - \sin^2\theta) = 1 - \tfrac12\sin^2\theta\) ✓. A numerical quadrature of part
+1's integral gives \(0.666667\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Six states are enough <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: averages of polynomials over a finite set, the sphere's second moments, why an experiment may test six inputs</p>
+<div class="statement">
+<ol>
+<li>Show that for every polynomial \(f(x, y, z)\) of degree at most two, its average over the six axis points \(\pm\hat x, \pm\hat y, \pm\hat z\)
+equals its average over the uniform sphere.</li>
+<li>A teleporter's output for input \(\mathbf r\) has Bloch vector \(\mathbf s = A\mathbf r + \mathbf b\) for a fixed real \(3\times3\) matrix \(A\) and vector \(\mathbf b\).
+Show its average fidelity is \(\tfrac12 + \tfrac16\operatorname{tr}A\), and that six inputs measure it exactly.</li>
+<li>Give \(A\) and \(\mathbf b\) for measure-and-prepare in \(z\), and recover \(\tfrac23\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A degree-two polynomial is a combination of \(1, x, y, z, x^2, y^2, z^2, xy, yz, zx\). Compare the two averages monomial by monomial.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>On the six points: \(x\) takes values \(\pm1\) once each and \(0\) four times; \(xy\) is always \(0\). On the sphere use the deck's lemma.
+For part 2, \(F = \tfrac12(1 + \mathbf r\cdot A\mathbf r + \mathbf r\cdot\mathbf b)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: six-point average of \(x^2\) is \(\tfrac16(1 + 1 + 0 + 0 + 0 + 0) = \tfrac13\), as on the sphere. And \(\langle\mathbf r\cdot A\mathbf r\rangle = \sum_{ab}A_{ab}\langle r_ar_b\rangle = \tfrac13\operatorname{tr}A\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Averages of degree-two polynomials depend only on the first and second moments, and the six axis points
+have the same moments as the sphere.</p>
+<p><strong>1.</strong> Both averages are linear in \(f\), so check monomials. Constant: \(1 = 1\). Degree one: on the six points \(x\) takes \(+1, -1, 0, 0, 0, 0\),
+average \(0\); same for \(y, z\); sphere: \(0\). Squares: \(x^2\) takes \(1, 1, 0, 0, 0, 0\), average \(\tfrac13\); sphere: \(\tfrac13\). Cross terms: on every axis point two
+coordinates vanish, so \(xy = yz = zx = 0\), average \(0\); sphere: \(0\). All ten agree. \(\blacksquare\)</p>
+<p><strong>2.</strong> \(F = \tfrac12(1 + \mathbf r\cdot\mathbf s) = \tfrac12\big(1 + \sum_{ab}A_{ab}r_ar_b + \sum_ab_ar_a\big)\), a polynomial of degree two in \((x, y, z)\). Its sphere average
+is \(\tfrac12\big(1 + \sum_{ab}A_{ab}\tfrac13\delta_{ab} + 0\big) = \tfrac12 + \tfrac16\operatorname{tr}A\), and by part 1 the six-point average is the same number. So testing the
+six states \(\ket0, \ket1, \ket\pm, \ket{\pm i}\) and averaging gives the sphere average exactly.</p>
+<p><strong>3.</strong> Measure-and-prepare in \(z\) outputs \(\mathbf s = (0, 0, z)\): \(A = \operatorname{diag}(0, 0, 1)\), \(\mathbf b = 0\). Then \(\bar F = \tfrac12 + \tfrac16 = \tfrac23\) ✓. Ideal teleportation:
+\(A = I\), \(\bar F = \tfrac12 + \tfrac36 = 1\) ✓. Doing nothing: \(A = 0\), \(\tfrac12\) ✓.</p>
+<p><strong>Check.</strong> The six-point averages for measure-and-prepare, directly: fidelities \(1, 1\) on \(\pm\hat z\) and \(\tfrac12\) on the other four;
+\(\tfrac16(1 + 1 + 4\cdot\tfrac12) = \tfrac46 = \tfrac23\) ✓. This is why Ren et al. (2017) could report the average of six input states as the
+teleporter's average fidelity. (Four states forming a regular tetrahedron would also do; that is a problem in design theory
+not needed here.)</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Teleporting through a noisy pair <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: linearity of the protocol in the resource, the maximally mixed resource, a fidelity as a function of noise, a threshold and a number</p>
+<div class="statement">
+<p>The shared pair is the <em>Werner state</em> \(W_p = p\ket{\Phi^+}\!\bra{\Phi^+} + (1 - p)\tfrac I4\), \(0 \le p \le 1\). Alice and Bob run the standard protocol.</p>
+<ol>
+<li>Check that \(W_p\) is a density operator.</li>
+<li>Show that Bob's corrected output is \(p\ket\psi\!\bra\psi + (1 - p)\tfrac I2\) for every \(\psi\).</li>
+<li>Find the average fidelity as a function of \(p\), the values of \(p\) for which it beats the classical benchmark, and its value
+at \(p = 0.5\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The protocol's output depends linearly on the shared state: treat the two terms of \(W_p\) separately. The answer to part 3
+is a linear function of \(p\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(\ket{\Phi^+}\) the output is \(\ket\psi\!\bra\psi\). With \(I/4 = \tfrac I2\otimes\tfrac I2\) the pair is uncorrelated: Bob's qubit is \(I/2\) and nothing Alice
+does can change it; then a Pauli correction leaves \(I/2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(F = \braket{\psi|\big(p\ket\psi\!\bra\psi + (1 - p)\tfrac I2\big)|\psi} = p + \tfrac{1 - p}2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Noise in the resource passes straight to the output: the fraction \(p\) of perfect pairs teleports perfectly, the
+fraction \(1 - p\) of junk delivers \(I/2\).</p>
+<p><strong>1.</strong> \(W_p\) is a convex combination of the density operators \(\ket{\Phi^+}\!\bra{\Phi^+}\) and \(I/4\) (both positive with trace one), so it is positive
+with trace \(p + (1 - p) = 1\) (unit 04: the density operators form a convex set). Its eigenvalues: \(p + \tfrac{1 - p}4 = \tfrac{1 + 3p}4\) on \(\ket{\Phi^+}\) and
+\(\tfrac{1 - p}4\) on the three other Bell states, summing to \(\tfrac{1 + 3p + 3 - 3p}4 = 1\) ✓, all \(\ge 0\) ✓.</p>
+<p><strong>2.</strong> In each branch \(jk\) the protocol applies a fixed sequence of linear maps — \(\rho\mapsto(\ket{jk}\!\bra{jk}\otimes I)U\rho U^\dagger(\ket{jk}\!\bra{jk}\otimes I)\), then
+the partial trace over CA, then conjugation by Bob's correction — to \(\rho = \ket\psi\!\bra\psi\otimes W_p\); summing over branches gives Bob's
+output, a linear function of \(W_p\). For the \(\ket{\Phi^+}\) part it is \(\ket\psi\!\bra\psi\) (the deck). For the \(I/4\) part: \(\ket\psi\!\bra\psi\otimes\tfrac I2\otimes\tfrac I2\) is a
+product across the cut CA | B, so Bob's qubit is \(I/2\) and, by no-signalling, remains \(I/2\) after Alice's operations; each branch
+then has B in \(I/2\) (the state is a product, so conditioning on Alice's outcome does not change B), and \(\sigma^{-1}\tfrac I2\sigma = \tfrac I2\). Hence the
+output is \(p\ket\psi\!\bra\psi + (1 - p)\tfrac I2\).</p>
+<p><strong>3.</strong> \(F = p\cdot1 + (1 - p)\cdot\tfrac12 = \tfrac{1 + p}2\), the same for every \(\psi\), so \(\bar F = \tfrac{1 + p}2\). It exceeds \(\tfrac23\) iff \(1 + p \gt \tfrac43\), i.e.
+\(p \gt \tfrac13\). At \(p = 0.5\): \(\bar F = 0.75\).</p>
+<p><strong>Check.</strong> \(p = 1\): \(\bar F = 1\), perfect teleportation ✓. \(p = 0\): \(\tfrac12\), the floor of P9 ✓. In P11's language the output has
+\(A = pI\), \(\mathbf b = 0\), and \(\tfrac12 + \tfrac16\cdot3p = \tfrac{1 + p}2\) ✓. That the threshold \(p = \tfrac13\) is also where \(W_p\) stops being entangled is
+a theorem about mixed-state entanglement (Werner, 1989; cited) beyond this course; and \(\tfrac{1 + p}2 = \tfrac{2f + 1}3\) with \(f = \tfrac{1 + 3p}4\) the
+weight of \(\ket{\Phi^+}\), as the general formula of the Horodeckis (1999; cited) predicts.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, DensityMatrix, Statevector, gates, library
+def teleport(psi, resource):
+    rho = DensityMatrix(np.kron(np.outer(psi, psi.conj()), resource))
+    m = Circuit(3).cx(0, 1).h(0).run(rho).matrix.reshape([2] * 6)
+    out = np.zeros((2, 2), dtype=complex)
+    for j in (0, 1):
+        for k in (0, 1):
+            C = np.linalg.matrix_power(gates.Z, j) @ np.linalg.matrix_power(gates.X, k)
+            out += C @ m[j, k, :, j, k, :] @ C.conj().T      # Bob's corrected state, branch jk
+    return out
+phi = library.bell_state("phi+")
+six = [Statevector.from_label(c).vector for c in "01+-rl"]   # exact by P11
+for p in (1 / 3, 0.5, 1):
+    W = p * np.outer(phi, phi.conj()) + (1 - p) * np.eye(4) / 4
+    print(round(np.mean([np.real(s.conj() @ teleport(s, W) @ s) for s in six]), 6))
+# 0.666667, 0.75, 1.0</code></pre>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 07</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

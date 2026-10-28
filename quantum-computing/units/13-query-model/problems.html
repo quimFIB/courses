@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13 · Problems — The query model, phase kickback, and the first separations</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="d">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part D · unit 13 · problems</p>
+<h1>The query model, phase kickback, and the first separations</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u13">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove phase kickback and, from it,
+that Deutsch–Jozsa and Bernstein–Vazirani are correct; you say precisely which classical model each one beats and
+which it does not — Deutsch–Jozsa beats deterministic algorithms (\(2^{n-1} + 1\) queries against \(1\)) and not
+randomised ones (error \(2^{1-k}\) with \(k\) queries), Bernstein–Vazirani beats both, but only \(n\) against \(1\);
+and you prove the two classical bounds and give their sizes at \(n = 30\): \(536{,}870{,}913\) deterministic
+queries, \(21\) randomised queries for error below \(10^{-6}\), and \(30\) queries to find \(s\), with or without
+coins.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Eleven problems, about four hours. Work them on paper first. Conventions as in the deck: qubit 0 is the leftmost
+symbol of a ket and the most significant bit, so \(\ket{101}\) has \(x_0 = 1\), \(x_1 = 0\), \(x_2 = 1\);
+\(x\cdot y = x_0y_0\oplus\cdots\oplus x_{n-1}y_{n-1}\) is the dot product mod 2; \(e_i\) is the string with a single 1 in
+position \(i\).</p>
+<p>Oracles: the bit oracle \(U_f\ket x\ket y = \ket x\ket{y\oplus f(x)}\) (unit 10) and the phase oracle
+\(O_f\ket x = (-1)^{f(x)}\ket x\). The target \(\ket- = \tfrac1{\sqrt2}(\ket0 - \ket1)\) is prepared as \(H\ket1\). Query
+complexities: \(D\) deterministic, \(R_\varepsilon\) randomised with error at most \(\varepsilon\) on every allowed input,
+\(Q_E\) exact quantum.</p>
+<p>Some solutions end with an optional check on the course's simulator, run from the course directory with
+<code>uv run python</code>. Nothing needs it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Deutsch's four oracles, built and run">P1</a></li>
+<li><a class="medium" href="#p2" title="Phase oracles and bit oracles">P2</a></li>
+<li><a class="medium" href="#p3" title="Proof: the Hadamard transform">P3</a></li>
+<li><a class="medium" href="#p4" title="Fourier sampling, by hand">P4</a></li>
+<li><a class="medium" href="#p5" title="Proof: the deterministic lower bound">P5</a></li>
+<li><a class="routine" href="#p6" title="Randomised Deutsch–Jozsa">P6</a></li>
+<li><a class="medium" href="#p7" title="Deutsch–Jozsa when the promise fails">P7</a></li>
+<li><a class="routine" href="#p8" title="Bernstein–Vazirani on four bits">P8</a></li>
+<li><a class="hard" href="#p9" title="Proof: Bernstein–Vazirani's classical lower bound">P9</a></li>
+<li><a class="medium" href="#p10" title="Garbage breaks it">P10</a></li>
+<li><a class="hard" href="#p11" title="Recursive Fourier sampling">P11</a></li>
+</ul>
+</header>
+
+<h2 class="group">Phase kickback, and Deutsch</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Deutsch's four oracles, built and run <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: oracle circuits from CNOT and \(X\), phase kickback line by line, why the target must be \(\ket-\), the interferometer as the same computation</p>
+<div class="statement">
+<p>The four functions \(f:\{0, 1\}\to\{0, 1\}\) are \(f\equiv0\), \(f\equiv1\), \(f = \mathrm{id}\) and \(f = \mathrm{not}\).</p>
+<ol>
+<li>Write \(U_f\) for each as a circuit of CNOT and \(X\) gates on the input qubit \(x\) and the target \(y\), and check
+each on the four basis states \(\ket{x}\ket{y}\).</li>
+<li>Run Deutsch's algorithm (\(\ket0\ket1\), \(H\otimes H\), \(U_f\), \(H\) on qubit 0, measure qubit 0) on \(f = \mathrm{not}\),
+writing the full two-qubit state after every layer. What does the meter read?</li>
+<li>Now start the target in \(\ket0\) instead of \(\ket1\), so it enters the oracle as \(\ket+\). Show that the meter reads 0
+for all four functions, and say in one sentence why.</li>
+<li>In unit 01's interferometer, with a slab of phase \(\pi f(b)\) in path \(b\), compute \(P(D_0)\) for each of the four
+functions and match it with the meter readings of the algorithm.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four small circuits, then four two-qubit state vectors, then one eigenvalue argument, then four
+probabilities. Every step is a finite computation in the computational basis.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Adding \(1\) into the target is \(X\) on it; adding \(x\) is a CNOT from \(x\); adding \(1\oplus x\) is both. For part 3
+ask what \(X\) does to \(\ket+\). For part 4 use the fringe formula \(P(D_0) = \sin^2\tfrac\varphi2\) with \(\varphi\) the
+phase difference between the paths.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\psi_1 = \ket+\ket- = \tfrac12\big(\ket{00} - \ket{01} + \ket{10} - \ket{11}\big)\). For part 3:
+\(X\ket+ = \ket+\), so \(U_f(\ket x\ket+) = \ket x\,X^{f(x)}\ket+ = \ket x\ket+\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(U_f\) adds \(f(x)\) into the target, which is \(X^{f(x)}\) on it; on \(\ket-\), an eigenvector of \(X\)
+with eigenvalue \(-1\), that is a sign. On \(\ket+\), eigenvalue \(+1\), it is nothing at all.</p>
+<p><strong>1. The circuits.</strong> \(f\equiv0\): no gate. \(f\equiv1\): \(X\) on \(y\). \(f = \mathrm{id}\): \(\mathrm{CNOT}_{xy}\). \(f = \mathrm{not}\):
+\(\mathrm{CNOT}_{xy}\) then \(X\) on \(y\). Check, for \(\mathrm{not}\): \(\ket{00}\mapsto\ket{00}\mapsto\ket{01}\) (\(y\oplus1\)),
+\(\ket{01}\mapsto\ket{01}\mapsto\ket{00}\), \(\ket{10}\mapsto\ket{11}\mapsto\ket{10}\) (\(y\oplus0\)), \(\ket{11}\mapsto\ket{10}\mapsto\ket{11}\) ✓.
+The other three are checked the same way.</p>
+<p><strong>2. \(f = \mathrm{not}\), layer by layer.</strong></p>
+<ul>
+<li>\(\psi_0 = \ket{01}\).</li>
+<li>\(\psi_1 = \ket+\ket- = \tfrac12\big(\ket{00} - \ket{01} + \ket{10} - \ket{11}\big)\).</li>
+<li>CNOT swaps \(\ket{10}\leftrightarrow\ket{11}\): \(\tfrac12\big(\ket{00} - \ket{01} + \ket{11} - \ket{10}\big)\). Then \(X\) on the target swaps
+\(\ket{x0}\leftrightarrow\ket{x1}\): \(\psi_2 = \tfrac12\big(\ket{01} - \ket{00} + \ket{10} - \ket{11}\big) = \tfrac12(-\ket0 + \ket1)(\ket0 - \ket1) = -\ket-\ket-\).</li>
+<li>\(H\ket- = \ket1\): \(\psi_3 = -\ket1\ket-\).</li>
+</ul>
+<p>The meter reads \(1 = f(0)\oplus f(1) = 1\oplus0\) ✓, with probability \(1\); the sign is global.</p>
+<p><strong>3. Target \(\ket+\).</strong> \(\psi_1 = \ket+\ket+\). Since \(X\ket+ = \ket+\), \(U_f(\ket x\ket+) = \ket x\ket+\) for every \(x\) and every
+\(f\): the oracle acts as the identity on this state, so \(\psi_2 = \ket+\ket+\) and \(\psi_3 = \ket0\ket+\). The meter reads \(0\) always. In one
+sentence: \(\ket+\) has eigenvalue \(+1\) under \(X\), so the value \(f(x)\) is kicked back as \((+1)^{f(x)} = 1\) and leaves no trace.</p>
+<p><strong>4. The interferometer.</strong> The paths differ by \(\varphi = \pi\big(f(1) - f(0)\big)\), up to the global phase \(e^{i\pi f(0)}\), so
+\(P(D_0) = \sin^2\tfrac\varphi2\):</p>
+<table>
+<tr><th>\(f\)</th><th>\(\varphi\)</th><th>\(P(D_0)\)</th><th>\(P(D_1)\)</th><th>meter</th></tr>
+<tr><td>\(f\equiv0\)</td><td>\(0\)</td><td>\(0\)</td><td>\(1\)</td><td>\(0\)</td></tr>
+<tr><td>\(f\equiv1\)</td><td>\(0\)</td><td>\(0\)</td><td>\(1\)</td><td>\(0\)</td></tr>
+<tr><td>\(\mathrm{id}\)</td><td>\(\pi\)</td><td>\(1\)</td><td>\(0\)</td><td>\(1\)</td></tr>
+<tr><td>\(\mathrm{not}\)</td><td>\(-\pi\)</td><td>\(1\)</td><td>\(0\)</td><td>\(1\)</td></tr>
+</table>
+<p>\(D_0\) clicks exactly when the meter reads 1: the same bit, \(f(0)\oplus f(1)\).</p>
+<p><strong>Check.</strong> Every distribution above sums to one, and every state in part 2 has four amplitudes \(\pm\tfrac12\), norm
+\(4\cdot\tfrac14 = 1\) ✓. The deck's table gives \(-\ket-\) for \(\mathrm{not}\) after the oracle, matching \(\psi_2\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+for name, f in [("0", lambda x: 0), ("1", lambda x: 1), ("id", lambda x: x), ("not", lambda x: 1 - x)]:
+    c = Circuit(2).x(1).h(0).h(1).oracle(f, [0], [1]).h(0)
+    print(name, c.run().probabilities([0]).round(6))
+# 0 [1. 0.]
+# 1 [1. 0.]
+# id [0. 1.]
+# not [0. 1.]
+for name, f in [("0", lambda x: 0), ("id", lambda x: x)]:
+    c = Circuit(2).h(0).h(1).oracle(f, [0], [1]).h(0)      # target |+⟩: no kickback
+    print(name, c.run().probabilities([0]).round(6))
+# 0 [1. 0.]
+# id [1. 0.]</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Phase oracles and bit oracles <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: kickback as an operator identity, the controlled phase oracle, building each oracle from the other with one query, global versus relative phase</p>
+<div class="statement">
+<p>For \(f:\{0, 1\}^n\to\{0, 1\}\), let the <em>controlled</em> phase oracle be
+\(CO_f\ket b\ket x = (-1)^{b\,f(x)}\ket b\ket x\) for a bit \(b\).</p>
+<ol>
+<li>Show that one query to \(U_f\), with one ancilla, implements \(O_f\), and that the ancilla returns to its starting state.</li>
+<li>Show that \(U_f = (H\otimes I)\,CO_f\,(H\otimes I)\), where \(H\) acts on the target \(\ket y\) used as the control \(\ket b\) of
+\(CO_f\). So one query to \(CO_f\) builds \(U_f\), with no ancilla.</li>
+<li>Build \(CO_f\) from one query to \(U_f\), one ancilla starting in \(\ket0\), and gates that do not depend on \(f\).</li>
+<li>Show that no circuit using the uncontrolled \(O_f\), any number of times, implements \(U_f\) for every \(f\), even up to a global
+phase.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1–3 are identities between unitaries: check each on basis states. Part 4 is an impossibility proof, so look for two
+functions that \(O_f\) cannot tell apart but \(U_f\) can.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 2: \(H\ket y = 2^{-1/2}\sum_b(-1)^{yb}\ket b\), and \(H\) applied to such a sum is the deck's Hadamard transform on one qubit. Part 3: you
+want the ancilla to be \(\ket+\) when \(b = 0\) (no kickback) and \(\ket-\) when \(b = 1\). Part 4: compare \(O_f\) with \(O_{1\oplus f}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 2, first line: \((H\otimes I)\ket y\ket x = 2^{-1/2}\sum_b(-1)^{yb}\ket b\ket x\), and \(CO_f\) turns this into
+\(2^{-1/2}\sum_b(-1)^{b(y\oplus f(x))}\ket b\ket x\). Part 3: \(H\,X^b\ket0 = H\ket b\) is \(\ket+\) or \(\ket-\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A sign \((-1)^{f(x)}\) and an added bit \(f(x)\) are the same information in two bases, related by one Hadamard. The
+only obstacle is a global phase, which a control qubit turns into a relative one.</p>
+<p><strong>1.</strong> Ancilla in \(\ket1\), then \(H\): it is \(\ket-\). Kickback: \(U_f(\ket x\ket-) = (-1)^{f(x)}\ket x\ket-\), so on every input
+\(\sum_xa_x\ket x\), one query gives \(\big(O_f\sum_xa_x\ket x\big)\otimes\ket-\). Then \(H\) returns the ancilla to \(\ket1\), unentangled: the
+state is a product throughout.</p>
+<p><strong>2.</strong> On a basis state \(\ket y\ket x\):</p>
+\[ (H\otimes I)\ket y\ket x = \tfrac1{\sqrt2}\sum_b(-1)^{yb}\ket b\ket x
+ \ \xrightarrow{CO_f}\ \tfrac1{\sqrt2}\sum_b(-1)^{yb + b f(x)}\ket b\ket x = \Big(\tfrac1{\sqrt2}\sum_b(-1)^{b\,(y\oplus f(x))}\ket b\Big)\ket x , \]
+<p>and the bracket is \(H\ket{y\oplus f(x)}\). The last \(H\), with \(H^2 = I\), gives \(\ket{y\oplus f(x)}\ket x\), which is \(U_f\) with the target
+written first ✓. One query, no ancilla.</p>
+<p><strong>3.</strong> Ancilla \(a\) in \(\ket0\). Apply \(\mathrm{CNOT}_{ba}\), then \(H\) on \(a\): the ancilla is \(H\ket b\), which is \(\ket+\) if
+\(b = 0\) and \(\ket-\) if \(b = 1\). Apply \(U_f\) to \(\ket x\ket a\): on \(\ket+\) nothing happens (\(X\ket+ = \ket+\)), on \(\ket-\) the sign
+\((-1)^{f(x)}\) appears. Together: \((-1)^{b f(x)}\). Undo: \(H\) on \(a\), then \(\mathrm{CNOT}_{ba}\), returning \(a\) to \(\ket0\). By linearity in
+\(\ket b\ket x\) this is \(CO_f\ket b\ket x\otimes\ket0\), with one query.</p>
+<p><strong>4.</strong> \(O_{1\oplus f} = -O_f\). A circuit that calls \(O_f\) \(T\) times denotes a product in which each call is a factor; replacing
+\(f\) by \(1\oplus f\) multiplies the whole product by \((-1)^T\). So the circuit's unitaries for \(f\) and \(1\oplus f\) are equal up to a global phase.
+But \(U_{1\oplus f} = (I\otimes X)U_f\), and \(U_f^{-1}U_{1\oplus f} = U_f(I\otimes X)U_f = I\otimes X\) (since \(U_f\) commutes with \(X\) on the target),
+which is not a multiple of the identity. So \(U_f\) and \(U_{1\oplus f}\) are not equal up to phase, and no such circuit implements both.</p>
+<p><strong>Check.</strong> Take \(n = 1\), \(f = \mathrm{id}\), and part 2 on \(\ket y\ket x = \ket0\ket1\): \(H\) gives \(\tfrac1{\sqrt2}(\ket0 + \ket1)\ket1\);
+\(CO_f\) gives \(\tfrac1{\sqrt2}(\ket0 - \ket1)\ket1 = \ket-\ket1\); \(H\) gives \(\ket1\ket1\), and indeed \(y\oplus f(x) = 0\oplus1 = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+f = lambda x: bin(x &amp; 0b11).count("1") % 2                                  # s·x with s = 11
+cO = np.diag([(-1) ** (b * f(x)) for b in range(2) for x in range(4)])      # |b⟩|x⟩
+built = Circuit(3).h(2).gate(cO, 2, 0, 1, name="cO").h(2)                   # b is qubit 2, the target
+print(np.allclose(built.unitary(), Circuit(3).oracle(f, [0, 1], [2]).unitary()))
+# True</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">The Hadamard transform</h2>
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Proof: the Hadamard transform <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: induction over tensor factors, the character sum, unitarity and self-inverse from the formula alone</p>
+<div class="statement">
+<ol>
+<li>Prove \(H^{\otimes n}\ket x = 2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y\) by induction on \(n\).</li>
+<li>Prove \(\sum_{x\in\{0, 1\}^n}(-1)^{x\cdot w} = 2^n\) if \(w = 0^n\) and \(0\) otherwise, and deduce that the characters
+\(\chi_y(x) = (-1)^{x\cdot y}\) are orthogonal.</li>
+<li>Using only the formula of part 1 and the sum of part 2, show that \(H^{\otimes n}H^{\otimes n}\ket x = \ket x\).</li>
+<li>Give the amplitudes of \(\ket{111}\) and of \(\ket{100}\) in \(H^{\otimes3}\ket{101}\), as numbers.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three proofs and two numbers. The proofs are all about sums of signs \((-1)^{\text{something}}\), and the only facts needed are that
+\(H\ket b = 2^{-1/2}\sum_c(-1)^{bc}\ket c\) and that \((-1)^k\) depends only on \(k\) mod 2.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: split \(x\) into its first \(n\) bits and its last bit. Part 2: the sum over \(x\) factorises over the bits. Part 3: apply the
+formula twice and collect the coefficient of each \(\ket z\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 3, first line: \(H^{\otimes n}H^{\otimes n}\ket x = 2^{-n/2}\sum_y(-1)^{x\cdot y}\,2^{-n/2}\sum_z(-1)^{y\cdot z}\ket z
+= \sum_z\Big(2^{-n}\sum_y(-1)^{(x\oplus z)\cdot y}\Big)\ket z\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Signs multiply when exponents add, exponents only matter mod 2, and the dot product mod 2 is linear in each argument. Every
+step below is one of those three facts.</p>
+<p><strong>1.</strong> \(n = 1\): \(H\ket0 = \tfrac1{\sqrt2}(\ket0 + \ket1)\), \(H\ket1 = \tfrac1{\sqrt2}(\ket0 - \ket1)\), which is
+\(2^{-1/2}\sum_c(-1)^{bc}\ket c\) for \(b = 0, 1\). Step: for \(x\in\{0, 1\}^n\) and a bit \(b\), by the hypothesis and bilinearity of \(\otimes\),</p>
+\[ H^{\otimes(n+1)}\ket{x\,b} = H^{\otimes n}\ket x\otimes H\ket b = 2^{-(n+1)/2}\sum_{y, c}(-1)^{x\cdot y}(-1)^{bc}\ket{y\,c}, \]
+<p>and \((-1)^{x\cdot y}(-1)^{bc} = (-1)^{x\cdot y\oplus bc} = (-1)^{(x\,b)\cdot(y\,c)}\). As \((y, c)\) runs over all pairs, \(y\,c\) runs over \(\{0, 1\}^{n+1}\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\sum_x(-1)^{x\cdot w} = \sum_{x_0}\cdots\sum_{x_{n-1}}\prod_i(-1)^{x_iw_i} = \prod_i\big(1 + (-1)^{w_i}\big)\). A factor is \(2\) if
+\(w_i = 0\) and \(0\) if \(w_i = 1\), so the product is \(2^n\) if \(w = 0^n\) and \(0\) otherwise. Since \(\chi_y(x)\chi_z(x) = (-1)^{x\cdot y + x\cdot z} =
+(-1)^{x\cdot(y\oplus z)}\), \(\sum_x\chi_y(x)\chi_z(x) = 2^n\) if \(y\oplus z = 0\), i.e. \(y = z\), and \(0\) otherwise: \(2^n\delta_{yz}\). \(\blacksquare\)</p>
+<p><strong>3.</strong> From the first line of rung 3, and \(x\cdot y\oplus y\cdot z = (x\oplus z)\cdot y\), the coefficient of \(\ket z\) is
+\(2^{-n}\sum_y(-1)^{(x\oplus z)\cdot y}\), which by part 2 is \(1\) if \(x\oplus z = 0\), i.e. \(z = x\), and \(0\) otherwise. So
+\(H^{\otimes n}H^{\otimes n}\ket x = \ket x\). \(\blacksquare\) Since the matrix is also real and symmetric, it equals its adjoint, so this shows it is
+unitary as well.</p>
+<p><strong>4.</strong> Amplitude of \(\ket y\) in \(H^{\otimes3}\ket{101}\) is \(2^{-3/2}(-1)^{101\cdot y}\). For \(y = 111\): \(101\cdot111 = 1\oplus0\oplus1 = 0\),
+amplitude \(+2^{-3/2} = 0.35355\). For \(y = 100\): \(101\cdot100 = 1\), amplitude \(-0.35355\).</p>
+<p><strong>Check.</strong> At \(n = 1\) part 3 says \(H^2 = I\) ✓ (unit 02). In part 4 all eight amplitudes have modulus \(2^{-3/2}\), and
+\(8\cdot\tfrac18 = 1\) ✓; and \(H^{\otimes3}\ket{101} = H\ket1\otimes H\ket0\otimes H\ket1 = \ket-\ket+\ket-\), whose \(\ket{111}\) coefficient is
+\((-\tfrac1{\sqrt2})(\tfrac1{\sqrt2})(-\tfrac1{\sqrt2}) = +2^{-3/2}\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Fourier sampling, by hand <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: computing \(\hat F\), Parseval, reading the output distribution of \(H^{\otimes n}O_fH^{\otimes n}\)</p>
+<div class="statement">
+<p>With \(F = (-1)^f\) and \(\hat F(y) = 2^{-n}\sum_xF(x)(-1)^{x\cdot y}\), one query of Fourier sampling returns \(y\) with probability
+\(\hat F(y)^2\).</p>
+<ol>
+<li>Prove \(\sum_y\hat F(y)^2 = 1\) for every \(f\), directly from part 2 of P3.</li>
+<li>For \(f(x_0, x_1) = x_0x_1\) (AND on two bits), compute every \(\hat F(y)\) and the output distribution.</li>
+<li>For majority on three bits (\(f = 1\) when at least two bits are 1), compute the output distribution. Is \(f\) balanced, and is
+that consistent with the Deutsch–Jozsa theorem?</li>
+<li>For \(f(x) = s\cdot x\oplus1\), show the output is still \(s\) with probability \(1\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A proof, then two tables of \(2^n\) numbers each, then a one-line argument. Each \(\hat F(y)\) is an average of signs: a
+number in \([-1, 1]\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: expand \(\hat F(y)^2\) as a double sum over \(x, x'\) and sum over \(y\) first. Parts 2–3: write the column of signs \(F(x)\)
+and take its dot product with each row of the sign matrix \((-1)^{x\cdot y}\). Part 4: \(F = -\chi_s\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 2, first line: \(F = (+1, +1, +1, -1)\) for \(x = 00, 01, 10, 11\), so \(\hat F(00) = \tfrac14(1 + 1 + 1 - 1) = \tfrac12\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(\hat F(y)\) is the correlation of the sign pattern of \(f\) with the character \(\chi_y\). Fourier sampling turns
+those correlations, squared, into probabilities.</p>
+<p><strong>1.</strong> \(\sum_y\hat F(y)^2 = 2^{-2n}\sum_{x, x'}F(x)F(x')\sum_y(-1)^{(x\oplus x')\cdot y} = 2^{-2n}\sum_{x, x'}F(x)F(x')\,2^n\delta_{xx'}
+= 2^{-n}\sum_xF(x)^2 = 1\), since \(F(x)^2 = 1\). \(\blacksquare\)</p>
+<p><strong>2. AND.</strong> Signs \(F = (+, +, +, -)\) on \(00, 01, 10, 11\).</p>
+<ul>
+<li>\(\hat F(00) = \tfrac14(1 + 1 + 1 - 1) = \tfrac12\).</li>
+<li>\(\hat F(01)\): character signs \((+, -, +, -)\), so \(\tfrac14(1 - 1 + 1 + 1) = \tfrac12\).</li>
+<li>\(\hat F(10)\): character \((+, +, -, -)\), so \(\tfrac14(1 + 1 - 1 + 1) = \tfrac12\).</li>
+<li>\(\hat F(11)\): character \((+, -, -, +)\), so \(\tfrac14(1 - 1 - 1 - 1) = -\tfrac12\).</li>
+</ul>
+<p>Output distribution: \(\tfrac14\) on each of \(00, 01, 10, 11\) — uniform, summing to \(1\) ✓.</p>
+<p><strong>3. Majority.</strong> \(f = 1\) on \(011, 101, 110, 111\): four of eight, so balanced. Signs, for \(x = 000, \dots, 111\):
+\((+, +, +, -, +, -, -, -)\). Dotting with the rows of the sign matrix and dividing by 8:</p>
+<table>
+<tr><th>\(y\)</th><th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th></tr>
+<tr><td>\(\hat F(y)\)</td><td>\(0\)</td><td>\(\tfrac12\)</td><td>\(\tfrac12\)</td><td>\(0\)</td><td>\(\tfrac12\)</td><td>\(0\)</td><td>\(0\)</td><td>\(-\tfrac12\)</td></tr>
+<tr><td>\(\Pr(y)\)</td><td>\(0\)</td><td>\(\tfrac14\)</td><td>\(\tfrac14\)</td><td>\(0\)</td><td>\(\tfrac14\)</td><td>\(0\)</td><td>\(0\)</td><td>\(\tfrac14\)</td></tr>
+</table>
+<p>For example \(\hat F(001) = \tfrac18\big[(+)(+) + (+)(-) + (+)(+) + (-)(-) + (+)(+) + (-)(-) + (-)(+) + (-)(-)\big] = \tfrac18(1 - 1 + 1 + 1 + 1 + 1 - 1 + 1) = \tfrac12\).
+\(\Pr(000) = 0\), as the Deutsch–Jozsa theorem demands of a balanced \(f\) ✓; but unlike the running example the probability spreads over
+four strings. In \(\pm1\) form, \(F = \tfrac12(\chi_{001} + \chi_{010} + \chi_{100} - \chi_{111})\).</p>
+<p><strong>4.</strong> \(F(x) = (-1)^{s\cdot x\oplus1} = -\chi_s(x)\), so \(\hat F(y) = -\delta_{ys}\) by orthogonality, and \(\Pr(s) = (-1)^2 = 1\). The
+complement only flips a global sign — the phase oracle's lost bit (deck, <i>The phase oracle</i>).</p>
+<p><strong>Check.</strong> Both distributions sum to one, as part 1 requires: \(4\cdot\tfrac14 = 1\) ✓. And \(\hat F(0^n)\) is the average sign: for AND,
+three \(+\) and one \(-\) average to \(\tfrac12\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+maj = lambda x: int(bin(x).count("1") &gt;= 2)
+c = Circuit(4).x(3).h(0).h(1).h(2).h(3).oracle(maj, [0, 1, 2], [3]).h(0).h(1).h(2)
+print(c.run().probabilities([0, 1, 2]).round(6))
+# [0.   0.25 0.25 0.   0.25 0.   0.   0.25]</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Deutsch–Jozsa</h2>
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Proof: the deterministic lower bound <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: an adversary argument written in full, fooling pairs, why the bound is exactly tight</p>
+<div class="statement">
+<ol>
+<li>Prove that every deterministic decision tree solving Deutsch–Jozsa on \(n\) bits has depth at least \(2^{n-1} + 1\), by an adversary that
+answers \(0\) to every query.</li>
+<li>Prove that \(2^{n-1} + 1\) queries suffice, so \(D(\mathrm{DJ}_n) = 2^{n-1} + 1\).</li>
+<li>Where exactly does the adversary's strategy fail at the \((2^{n-1} + 1)\)-th distinct query?</li>
+<li>Give \(D(\mathrm{DJ}_n)\) for \(n = 3\) and \(n = 10\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a proof that some path of every shallow tree reaches a leaf where two functions with different correct answers
+arrive together. Pick the path first, then the two functions.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Follow the path on which every answer is \(0\). Let \(A\) be the set of inputs asked along it. One of your two functions is \(f\equiv0\); the
+other must be balanced and also \(0\) on all of \(A\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: if the depth is \(k\le2^{n-1}\), the all-zeros path asks a set \(A\) of at most \(2^{n-1}\) inputs, so at least \(2^n - 2^{n-1} = 2^{n-1}\) inputs
+lie outside \(A\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> As long as at most half the inputs have been seen, a wall of zeros is consistent with the constant function \(0\) and
+with a balanced function that puts all its ones in the unseen half.</p>
+<p><strong>1.</strong> Fix a tree of depth \(k\le2^{n-1}\). Follow from the root the path on which every answer is \(0\); it ends at a leaf \(\ell\) and asks
+a set \(A\) of distinct inputs, \(|A|\le k\le2^{n-1}\). Outside \(A\) there are \(2^n - |A|\ge2^{n-1}\) inputs; choose \(2^{n-1}\) of them, a set \(B\).
+Define \(f_0\equiv0\) and \(f_1 = 1\) on \(B\), \(0\) elsewhere. Then \(f_1\) has exactly \(2^{n-1}\) ones, so it is balanced, and \(f_1 = 0\) on \(A\).
+Both \(f_0\) and \(f_1\) answer \(0\) at every node of the path, so the tree takes the path on both and outputs the label of \(\ell\) on both. The
+correct answers are "constant" and "balanced", which differ, so the tree is wrong on one of them. Hence no tree of depth \(\le2^{n-1}\) is
+correct on every allowed \(f\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Ask \(2^{n-1} + 1\) distinct inputs. If \(f\) is balanced it has \(2^{n-1}\) zeros and \(2^{n-1}\) ones, so among \(2^{n-1} + 1\)
+answers both values must occur (pigeonhole). So: if all answers agree, \(f\) is constant; if not, balanced. Always correct.</p>
+<p><strong>3.</strong> After \(2^{n-1} + 1\) distinct zeros, only \(2^{n-1} - 1\) inputs are unasked, too few to hold the \(2^{n-1}\) ones of a balanced
+function. The adversary can no longer keep a balanced function alive, and \(f\equiv0\) is forced.</p>
+<p><strong>4.</strong> \(n = 3\): \(2^2 + 1 = 5\). \(n = 10\): \(2^9 + 1 = 513\). The quantum algorithm uses \(1\) in both cases, exactly.</p>
+<p><strong>Check.</strong> At \(n = 1\) the bound is \(2^0 + 1 = 2\), which is Deutsch's problem: both values must be seen ✓ (deck, <i>Classically, two
+queries</i>). The argument used neither the order of the queries nor any assumption that the tree is non-adaptive: the adversary decides
+nothing until it must.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Randomised Deutsch–Jozsa <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: one-sided error, independence, the size of the deterministic–randomised gap as a number</p>
+<div class="statement">
+<p>The test: query \(k\) inputs chosen independently and uniformly; say "constant" if all answers agree, "balanced" otherwise.</p>
+<ol>
+<li>Show that the test is never wrong on a constant \(f\) and is wrong on a balanced \(f\) with probability exactly \(2^{1-k}\).</li>
+<li>Find the least \(k\) with error below \(\tfrac13\), and the least \(k\) with error below \(10^{-6}\).</li>
+<li>For \(n = 30\), compare with the deterministic \(2^{n-1} + 1\): give both numbers and their ratio.</li>
+<li>Does the answer to part 2 depend on \(n\)? What does that say about Deutsch–Jozsa as a quantum speed-up?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A probability, two integers found by solving an inequality, a ratio, and a sentence. Nothing here involves quantum mechanics.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For a balanced \(f\) and a uniform \(x\), \(\Pr[f(x) = 1] = \tfrac12\). The test errs only if all \(k\) answers are \(0\) or all are \(1\). Then solve
+\(2^{1-k}\lt\varepsilon\) for the least integer \(k\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(2^{1-k}\lt10^{-6}\) iff \(k - 1\gt\log_2 10^6 = 19.93\), so \(k\ge21\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A balanced function looks, to a uniform query, exactly like a fair coin, and \(k\) fair coins all agree with probability
+\(2\cdot2^{-k}\) — however large \(n\) is.</p>
+<p><strong>1.</strong> If \(f\) is constant every answer is the same, so the test says "constant", correctly. If \(f\) is balanced, a uniform \(x\) has
+\(\Pr[f(x) = 1] = 2^{n-1}/2^n = \tfrac12\), and independent queries give independent answers. The test errs iff all \(k\) agree:
+\(\Pr = (\tfrac12)^k + (\tfrac12)^k = 2^{1-k}\). The error is <em>one-sided</em>: "balanced" is never said wrongly.</p>
+<p><strong>2.</strong> \(2^{1-k}\lt\tfrac13\): \(k = 2\) gives \(\tfrac12\), \(k = 3\) gives \(\tfrac14\). Least \(k = 3\). \(2^{1-k}\lt10^{-6}\): \(\log_2 10^6 = 19.93\),
+so \(k - 1\ge20\) and \(k\ge21\). Check: \(2^{-20} = 9.54\times10^{-7}\lt10^{-6}\), while \(k = 20\) gives \(2^{-19} = 1.91\times10^{-6}\), too big. Least \(k = 21\).</p>
+<p><strong>3.</strong> Deterministic: \(2^{29} + 1 = 536{,}870{,}913\). Randomised at error below \(10^{-6}\): \(21\). Ratio
+\(536{,}870{,}913/21 = 2.56\times10^7\).</p>
+<p><strong>4.</strong> No: \(n\) never entered part 1. So \(R_{1/3}(\mathrm{DJ}_n)\le3\) for every \(n\), and Deutsch–Jozsa's one query beats randomised
+algorithms by at most a factor of \(3\). Its exponential separation is against deterministic algorithms only; it is not evidence that quantum
+computers outperform classical ones that may flip coins.</p>
+<p><strong>Check.</strong> \(k = 1\) gives error \(2^0 = 1\): one answer always agrees with itself, so the test says "constant" on every balanced
+\(f\) and is always wrong there — as it must be, since a one-query test that is never wrong on constants cannot catch a balanced \(f\) (deck, notes to
+<i>With coins: a constant number</i>). The formula passes this limit ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Deutsch–Jozsa when the promise fails <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the \(\ket{0^n}\) amplitude for general \(f\), what a promise buys, interpreting a probability as a distance</p>
+<div class="statement">
+<p>Let \(f:\{0, 1\}^n\to\{0, 1\}\) have \(w\) ones, with no promise.</p>
+<ol>
+<li>Show the Deutsch–Jozsa circuit outputs \(0^n\) with probability \((1 - 2w/2^n)^2\).</li>
+<li>For \(n = 3\), tabulate this for \(w = 0, \dots, 8\). Give the value at \(w = 1\), and at \(n = 10\), \(w = 1\).</li>
+<li>What does the algorithm say about an \(f\) that is neither constant nor balanced? Describe what repeated runs estimate.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a formula, then nine numbers, then an interpretation. The proof of the deck's theorem never used the promise until its
+last line.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The amplitude of \(0^n\) is the average sign \(2^{-n}\sum_x(-1)^{f(x)}\). Count the \(+1\)s and \(-1\)s. For part 3, compare
+\(|1 - 2w/2^n|\) with the fraction of inputs on which \(f\) would have to change to become constant.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\hat F(0^n) = 2^{-n}\big((2^n - w)\cdot(+1) + w\cdot(-1)\big) = 1 - 2w/2^n\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The algorithm measures one Fourier coefficient's square, \(\hat F(0^n)^2\). The promise guarantees it is \(0\) or \(1\);
+without it, it can be anything in between, and one run decides nothing.</p>
+<p><strong>1.</strong> By Fourier sampling the amplitude of \(0^n\) is \(\hat F(0^n) = 2^{-n}\sum_x(-1)^{f(x)} = 2^{-n}\big((2^n - w) - w\big) = 1 - 2w/2^n\);
+squaring gives the probability. \(\blacksquare\)</p>
+<p><strong>2.</strong> For \(n = 3\), \((1 - w/4)^2\):</p>
+<table>
+<tr><th>\(w\)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+<tr><td>\(\Pr(000)\)</td><td>1</td><td>0.5625</td><td>0.25</td><td>0.0625</td><td>0</td><td>0.0625</td><td>0.25</td><td>0.5625</td><td>1</td></tr>
+</table>
+<p>At \(w = 1\): \(\tfrac9{16} = 0.5625\). At \(n = 10\), \(w = 1\): \((1 - 2/1024)^2 = 0.99610\).</p>
+<p><strong>3.</strong> For such an \(f\) the outcome is random: \(0^n\) ("constant") with probability \((1 - 2w/2^n)^2\), something else ("balanced")
+otherwise. Neither verdict is correct, because the question has no answer. What the probability measures: let
+\(d = \min(w, 2^n - w)/2^n\) be the fraction of inputs at which \(f\) differs from the nearer constant function. Then \(|1 - 2w/2^n| = 1 - 2d\), so
+\(\Pr(0^n) = (1 - 2d)^2\): near \(1\) when \(f\) is nearly constant (the \(n = 10\), \(w = 1\) case), \(0\) when \(f\) is as far from constant as possible. Repeating
+\(r\) times and counting the fraction of \(0^n\) outcomes estimates \((1 - 2d)^2\), with the usual \(O(1/\sqrt r)\) statistical error (Hoeffding). The
+quantum algorithm then gives a statistical estimate of distance to constancy — exactly what classical random sampling of \(f\) gives too, at a
+comparable cost.</p>
+<p><strong>Check.</strong> The table is symmetric under \(w\mapsto8 - w\), as it must be: replacing \(f\) by \(1\oplus f\) flips the sign of \(\hat F\) and leaves its
+square alone ✓. At \(w = 0, 4, 8\) it reproduces the deck's theorem ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+f = lambda x: int(x == 0b101)                      # w = 1 on three bits
+c = Circuit(4).x(3).h(0).h(1).h(2).h(3).oracle(f, [0, 1, 2], [3]).h(0).h(1).h(2)
+print(c.run().probabilities([0, 1, 2])[0].round(6))
+# 0.5625</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Bernstein–Vazirani</h2>
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Bernstein–Vazirani on four bits <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: building a linear oracle, the state after each layer, the product structure of the phase state, the CNOT reversal</p>
+<div class="statement">
+<p>Take \(n = 4\) and \(s = 1011\).</p>
+<ol>
+<li>Write \(U_f\) for \(f(x) = s\cdot x\) as a circuit of CNOTs onto a target, qubit 4.</li>
+<li>Run Bernstein–Vazirani: give \(\psi_1\), \(\psi_2\) and \(\psi_3\) (the state after the Hadamards, after the query, after the last
+Hadamards), writing \(\psi_2\)'s input register as a product of one-qubit states.</li>
+<li>Explain the result with the identity \((H\otimes H)\,\mathrm{CNOT}_{01}\,(H\otimes H) = \mathrm{CNOT}_{10}\).</li>
+<li>How many classical queries find \(s\), with and without coins?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A circuit of three gates, three states of five qubits, a redrawn circuit, and a number. Keep the target factored out as \(\ket-\) after the first
+layer.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>There is one CNOT for each \(i\) with \(s_i = 1\). With the target in \(\ket-\), \(\mathrm{CNOT}_{i4}\) acts on the input as \(Z\) on qubit \(i\). And \(ZH\ket0 =
+Z\ket+ = \ket-\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\psi_1 = \ket{++++}\ket- = \tfrac14\sum_{x\in\{0, 1\}^4}\ket x\,\ket-\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A linear oracle is a row of CNOTs; with the target in \(\ket-\) each becomes a \(Z\) on its control; and \(HZH = X\) turns
+each \(Z\) into a bit flip that writes one bit of \(s\).</p>
+<p><strong>1.</strong> \(s\cdot x = x_0\oplus x_2\oplus x_3\): \(U_f = \mathrm{CNOT}_{04}\,\mathrm{CNOT}_{24}\,\mathrm{CNOT}_{34}\) (they commute). Check on
+\(\ket{1011}\ket0\): the target becomes \(1\oplus1\oplus1 = 1\), and \(s\cdot s = 1 + 0 + 1 + 1 = 3\equiv1\) ✓.</p>
+<p><strong>2.</strong></p>
+<ul>
+<li>\(\psi_0 = \ket{0000}\ket1\).</li>
+<li>\(\psi_1 = \ket{++++}\ket- = \tfrac14\sum_x\ket x\,\ket-\): sixteen amplitudes \(\tfrac14\), squares summing to \(1\) ✓.</li>
+<li>\(\psi_2 = \tfrac14\sum_x(-1)^{x_0\oplus x_2\oplus x_3}\ket x\,\ket-\). The sign factorises as \((-1)^{x_0}(-1)^{x_2}(-1)^{x_3}\), so the input
+register is \(\ket-\ket+\ket-\ket-\): each qubit with \(s_i = 1\) has been turned from \(\ket+\) to \(\ket-\) by a \(Z\).</li>
+<li>\(\psi_3 = H\ket-\otimes H\ket+\otimes H\ket-\otimes H\ket-\otimes\ket- = \ket{1011}\ket-\).</li>
+</ul>
+<p>The meters read \(1011 = s\) with probability \(1\).</p>
+<p><strong>3.</strong> Add an \(H\) on the target at the end; the target is unentangled, so the input register is unaffected. The whole circuit is then
+\(H^{\otimes5}U_fH^{\otimes5}\) on \(\ket{0000}\ket1\). Conjugating each \(\mathrm{CNOT}_{i4}\) by \(H\otimes H\) gives \(\mathrm{CNOT}_{4i}\), so the circuit equals
+\(\mathrm{CNOT}_{40}\,\mathrm{CNOT}_{42}\,\mathrm{CNOT}_{43}\): the target, holding \(1\), flips qubits \(0, 2, 3\) of \(\ket{0000}\), giving \(\ket{1011}\).</p>
+<p><strong>4.</strong> Four: ask \(f(e_i) = s_i\) for \(i = 0, 1, 2, 3\) — \(1000, 0100, 0010, 0001\) give \(1, 0, 1, 1\). No algorithm, even randomised, does it with
+three at error below \(\tfrac12\) (deck, <i>Classically, n queries — even with coins</i>; problem P9).</p>
+<p><strong>Check.</strong> \(\ket-\ket+\ket-\ket-\) expanded has \(\ket{1011}\)-coefficient \((-\tfrac1{\sqrt2})(\tfrac1{\sqrt2})(-\tfrac1{\sqrt2})(-\tfrac1{\sqrt2}) = -\tfrac14\), and
+the sign formula gives \((-1)^{1\oplus1\oplus1} = -1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+s = 0b1011
+f = lambda x: bin(x &amp; s).count("1") % 2
+c = Circuit(5).x(4)
+for q in range(5):
+    c.h(q)
+c.oracle(f, [0, 1, 2, 3], [4])
+for q in range(4):
+    c.h(q)
+p = c.run().probabilities([0, 1, 2, 3])
+print(format(int(p.argmax()), "04b"), p.max().round(6))
+# 1011 1.0</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Proof: Bernstein–Vazirani's classical lower bound <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: counting leaves, the averaging argument, tightness, a lower bound that survives coins</p>
+<div class="statement">
+<ol>
+<li>Prove that a deterministic decision tree of depth \(k\) finds \(s\) correctly on at most \(2^k\) of the \(2^n\) strings.</li>
+<li>Prove that every randomised algorithm of depth \(k\) has some \(s\) on which it succeeds with probability at most \(2^{k-n}\). Deduce
+\(R_\varepsilon = n\) for every \(\varepsilon\lt\tfrac12\).</li>
+<li>Show the bound is tight at \(k = n - 1\): give an algorithm with \(n - 1\) queries succeeding with probability exactly \(\tfrac12\) on every \(s\).</li>
+<li>For \(n = 30\), what is the best success probability an algorithm with \(20\) queries can guarantee on every \(s\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two proofs, a construction, and a number. The proofs need only the tools on the deck's slide <i>Why lower bounds can be proved here</i>:
+leaves, and averaging over a distribution on inputs.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: on input \(s\) the tree ends at a leaf with one label; it is right on \(s\) only if that label is \(s\). How many strings can a single leaf
+be right about? Part 2: put the uniform distribution on \(s\) and swap the order of averaging.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: if the tree is right on \(s\) and on \(s'\) and both reach leaf \(\ell\), then \(s = L(\ell) = s'\); so the strings the tree gets right map
+injectively to leaves.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A tree's output is fixed by its leaf, and a depth-\(k\) tree has at most \(2^k\) leaves, so it can name at most \(2^k\)
+strings. Under a uniformly random \(s\) that is success \(2^{k-n}\), and averaging transfers the bound to coins.</p>
+<p><strong>1.</strong> Let \(\ell(s)\) be the leaf reached on \(f = s\cdot x\) and \(L(\ell)\) its label. The tree is right on \(s\) iff \(L(\ell(s)) = s\). On the set
+\(G\) of strings it gets right, \(s\mapsto\ell(s)\) is injective (rung 3), so \(|G|\le\) (number of leaves) \(\le2^k\) — a binary tree of depth \(k\) has at most
+\(2^k\) leaves, by induction on \(k\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Let \(\mu\) be a distribution over trees of depth at most \(k\), and draw \(s\) uniformly. For each tree \(T\),
+\(\Pr_s[T\text{ right}] = |G_T|/2^n\le2^{k-n}\). So</p>
+\[ \mathbb E_s\Pr_{T\sim\mu}[T\text{ right on }s] = \mathbb E_{T\sim\mu}\Pr_s[T\text{ right}]\le2^{k-n}, \]
+<p>and an average is at least its smallest term: some \(s\) has \(\Pr_\mu[\text{right on }s]\le2^{k-n}\). \(\blacksquare\) If \(k\le n - 1\), that is \(\le\tfrac12\),
+so the error on that \(s\) is \(\ge\tfrac12\). Hence error \(\varepsilon\lt\tfrac12\) on every \(s\) forces \(k\ge n\), i.e. \(R_\varepsilon\ge n\). And \(n\) queries \(f(e_i) = s_i\) find
+\(s\) deterministically, so \(n\ge D\ge R_\varepsilon\ge n\): all equal \(n\).</p>
+<p><strong>3.</strong> Ask \(f(e_0), \dots, f(e_{n-2})\), learning \(s_0, \dots, s_{n-2}\), and guess \(s_{n-1}\) with a fair coin. On every \(s\), success is exactly \(\tfrac12\).
+So with \(n - 1\) queries the best worst-case success is exactly \(\tfrac12\), and part 2's bound is attained.</p>
+<p><strong>4.</strong> \(2^{20-30} = 2^{-10} = 0.000977\). Part 2 says no 20-query algorithm does better on every \(s\), and asking \(e_0, \dots, e_{19}\) and guessing the
+other ten bits achieves exactly \(2^{-10}\) on every \(s\). So the answer is \(2^{-10}\), about one in a thousand.</p>
+<p><strong>Check.</strong> \(k = n\) gives the bound \(2^0 = 1\), consistent with the deterministic algorithm ✓; \(k = 0\) gives \(2^{-n}\), a blind guess ✓. For
+\(n = 3\), \(k = 2\): four leaves against eight strings, success at most \(\tfrac12\), as drawn on the deck ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Garbage breaks it <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: phase kickback with an unclean oracle, orthogonal records destroying interference, unit 10's uncomputation as a necessity</p>
+<div class="statement">
+<p>A careless oracle for the running example \(f(x) = x_0\oplus x_2\) (\(s = 101\)) leaves a garbage qubit holding a copy of \(x_0\):</p>
+\[ V_f\ket x\ket y\ket0 = \ket x\ket{y\oplus f(x)}\ket{x_0}. \]
+<ol>
+<li>Run Bernstein–Vazirani with \(V_f\) in place of \(U_f\) (target in \(\ket-\), garbage starting in \(\ket0\)). Find the output distribution on the input
+register.</li>
+<li>Generalise: if the garbage is a copy of \(x_i\) for one \(i\), what does the algorithm output?</li>
+<li>Repair \(V_f\) with one CNOT and say which unit 10 principle that is.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a probability distribution over eight strings. The input register is no longer in a pure state of its own after the query, so
+compute probabilities from the full state.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>After the query the state is \(2^{-3/2}\sum_x(-1)^{s\cdot x}\ket x\ket-\ket{x_0}\). Split \(x = x_0\,x_1x_2\): the qubits \(x_1x_2\) are untouched by the
+garbage; qubit \(x_0\) is now entangled with it.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: the state factorises as \(\Big[\tfrac1{\sqrt2}\sum_{x_0}(-1)^{x_0}\ket{x_0}\ket{x_0}_g\Big]\otimes\Big[\tfrac12\sum_{x_1x_2}(-1)^{x_2}\ket{x_1x_2}\Big]\otimes\ket-\), with the
+garbage \(g\) written next to qubit 0.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The garbage is a which-path record of \(x_0\). The two values of \(x_0\) now carry orthogonal records, so their amplitudes cannot
+interfere at the last Hadamard, and bit 0 of the output becomes a coin flip. The bits the garbage did not record are unaffected.</p>
+<p><strong>1.</strong> Kickback still happens: \(V_f\ket x\ket-\ket0 = (-1)^{f(x)}\ket x\ket-\ket{x_0}\). After the first layer and the query,</p>
+\[ \tfrac1{2\sqrt2}\sum_x(-1)^{x_0\oplus x_2}\ket x\ket-\ket{x_0} = \Big[\tfrac1{\sqrt2}\big(\ket0\ket0_g - \ket1\ket1_g\big)\Big]_{0,g}\otimes\big(\ket+\ket-\big)_{1,2}\otimes\ket-. \]
+<p>Apply \(H\) to qubits \(0, 1, 2\). Qubits 1 and 2 give \(\ket0\ket1\), certainly. Qubit 0 with its garbage becomes
+\(\tfrac1{\sqrt2}\big(\ket+\ket0_g - \ket-\ket1_g\big) = \tfrac12\big(\ket{00} + \ket{10} - \ket{01} + \ket{11}\big)_{0,g}\), so qubit 0 reads \(0\) with probability
+\(\tfrac14 + \tfrac14 = \tfrac12\) and \(1\) with probability \(\tfrac12\). Output: \(001\) or \(101\), each with probability \(\tfrac12\); the other six never. Half the time the
+algorithm returns the wrong string \(001\).</p>
+<p><strong>2.</strong> With garbage \(\ket{x_i}\), the same factorisation puts qubit \(i\) in the entangled bracket and leaves the rest alone: bit \(i\) of the
+output is uniformly random, and every other bit equals \(s_j\). The output is \(s\) or \(s\oplus e_i\), each with probability \(\tfrac12\) — whatever \(s_i\) is.</p>
+<p><strong>3.</strong> Apply \(\mathrm{CNOT}\) from qubit 0 to the garbage qubit after \(V_f\): \(\ket{x_0}\mapsto\ket{x_0\oplus x_0} = \ket0\). Now the garbage is \(\ket0\) for every \(x\),
+unentangled, and the algorithm returns \(\ket{101}\) with certainty. This is Bennett's uncomputation (unit 10): compute, copy the answer, run
+the scratch work backwards.</p>
+<p><strong>Check.</strong> Unit 10's problem P5 gave \(\Pr(1) = \tfrac12(1 + \mathrm{Re}\,\gamma)\) for one input qubit with garbage overlap \(\gamma = \braket{g(0)|g(1)}\).
+Here \(g(x_0) = \ket{x_0}\), \(\gamma = 0\), so each outcome of qubit 0 has probability \(\tfrac12\) ✓. The distribution \(\tfrac12 + \tfrac12 = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+s = 0b101
+f = lambda x: bin(x &amp; s).count("1") % 2
+g = lambda x: 2 * f(x) + (x &gt;&gt; 2)        # two output bits: f(x) on the target, x0 as garbage
+c = Circuit(5).x(3).h(0).h(1).h(2).h(3).oracle(g, [0, 1, 2], [3, 4]).h(0).h(1).h(2)
+print(c.run().probabilities([0, 1, 2]).round(6))
+# [0.  0.5 0.  0.  0.  0.5 0.  0. ]          001 and 101, half each</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Recursive Fourier sampling <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: using an exact, garbage-free algorithm as a subroutine, phase kickback through a computed value, recursion on query counts</p>
+<div class="statement">
+<p>Fix a known function \(g:\{0, 1\}^n\to\{0, 1\}\). <b>Height 1:</b> an oracle \(A(x) = s\cdot x\) for a hidden \(s\); the answer is \(g(s)\).
+<b>Height \(h\):</b> an oracle \(A(x_1, \dots, x_h)\) such that for each fixed \(x_1\), the oracle \((x_2, \dots, x_h)\mapsto A(x_1, x_2, \dots, x_h)\) is a
+height-\((h - 1)\) instance, whose answer is \(s\cdot x_1\) for a hidden \(s\) of the top level; the answer is \(g(s)\). This is Bernstein and Vazirani's
+recursive Fourier sampling.</p>
+<ol>
+<li>Show that a height-1 instance takes one quantum query.</li>
+<li>Show that a height-2 instance takes two quantum queries: build the phase oracle \(\ket{x_1}\mapsto(-1)^{s\cdot x_1}\ket{x_1}\) from the height-1
+algorithm and its inverse.</li>
+<li>Prove by induction that \(2^{h-1}\) queries suffice at height \(h\). Where does the argument use that Bernstein–Vazirani is exact and leaves
+no garbage?</li>
+<li>Show that \(n^h\) classical queries always suffice. What is known about the classical lower bound?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A count, a circuit, an induction, and a citation. The key object is a procedure that prepares \(\ket{s}\) exactly from \(\ket{0}\), and its
+inverse, which un-prepares it.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For a fixed \(x_1\), the child's answer is \(g(s_{x_1}) = s\cdot x_1\), where \(s_{x_1}\) is the child's hidden string. Prepare \(\ket{s_{x_1}}\) in a work
+register controlled on \(\ket{x_1}\), apply the sign \((-1)^{g(\cdot)}\) to the work register (no query: \(g\) is known), and undo the preparation.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: let \(C(h)\) be the number of queries to prepare \(\ket{s}\) exactly and cleanly for a height-\(h\) instance; then \(C(1) = 1\) and one
+phase query at the top of a height-\(h\) instance costs \(2C(h - 1)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Bernstein–Vazirani turns phase queries to \(x\mapsto s\cdot x\) into \(\ket s\). At height \(h\) those phase queries are not given; each is computed
+by solving a height-\((h - 1)\) instance, using its answer as a sign, and then erasing every trace of the computation so that the sign is the only
+thing left.</p>
+<p><strong>1.</strong> Bernstein–Vazirani prepares \(\ket s\) with one query, exactly; measure, and compute \(g(s)\) classically.</p>
+<p><strong>2.</strong> Let \(P\) be Bernstein–Vazirani run on the oracle \(x_2\mapsto A(x_1, x_2)\), controlled on a register holding \(x_1\): on \(\ket{x_1}\ket{0^n}\ket-\)
+it gives \(\ket{x_1}\ket{s_{x_1}}\ket-\) with one query (the target \(\ket-\) returns unchanged). Then:</p>
+<ul>
+<li>apply \(P\): \(\ket{x_1}\ket{s_{x_1}}\ket-\) — one query;</li>
+<li>apply the diagonal unitary \(\ket z\mapsto(-1)^{g(z)}\ket z\) to the middle register — no query, since \(g\) is known: the state gains
+\((-1)^{g(s_{x_1})} = (-1)^{s\cdot x_1}\);</li>
+<li>apply \(P^{-1}\): \(\ket{x_1}\ket{0^n}\ket-\) — one query.</li>
+</ul>
+<p>Net effect: \(\ket{x_1}\mapsto(-1)^{s\cdot x_1}\ket{x_1}\) with the work registers restored, for every \(x_1\), so by linearity it is the phase oracle for
+\(x_1\mapsto s\cdot x_1\). Bernstein–Vazirani at the top level needs one such phase query: \(2\) queries in all.</p>
+<p><strong>3.</strong> Let \(C(h)\) be as in rung 3, with \(C(1) = 1\). At height \(h\), one top-level phase query costs \(C(h - 1)\) to prepare \(\ket{s_{x_1}}\), nothing for the
+sign, and \(C(h - 1)\) to unprepare. Bernstein–Vazirani at the top needs one phase query, so \(C(h) = 2C(h - 1)\), and \(C(h) = 2^{h-1}\). Then measure
+\(s\) and compute \(g(s)\). At \(h = \log_2 n\) this is \(n/2\) queries.</p>
+<p><em>Where exactness and cleanliness are used.</em> The step \(P^{-1}P = I\) restores the work register to \(\ket{0^n}\) only because \(P\) outputs exactly
+\(\ket{s_{x_1}}\), a basis state, with nothing else entangled. If \(P\) had left garbage \(\ket{\gamma(x_1)}\), the phase would sit on
+\(\ket{x_1}\ket{\gamma(x_1)}\) and the top level's interference would fail, as in P10. If \(P\) succeeded only with probability \(1 - \delta\), each level would
+leave an error of order \(\delta\), compounding over the \(2^{h-1}\) calls.</p>
+<p><strong>4.</strong> Classically, the top level needs \(s\), which \(n\) answers \(s\cdot e_i\) determine; each answer is a height-\((h - 1)\) instance. So
+\(N(h) = n\cdot N(h - 1)\) with \(N(1) = n\), giving \(N(h) = n^h\). For a lower bound (cited): Bernstein and Vazirani proved that for suitable \(g\),
+bounded-error classical algorithms need superpolynomially many queries at \(h = \log_2 n\), where the quantum algorithm uses \(n/2\) — the first oracle
+problem solved in quantum polynomial time and not in classical randomised polynomial time (<i>SIAM J. Comput.</i> 26, 1411, 1997).
+Aaronson (<i>Quantum Inf. Comput.</i> 3, 165, 2003) showed (cited) that this quantum algorithm is essentially optimal, despite the
+uncomputation that looks wasteful.</p>
+<p><strong>Check.</strong> \(h = 1\): \(2^0 = 1\) ✓ (part 1). \(h = 2\): \(2^1 = 2\) ✓ (part 2). With \(n = 4\) and \(h = 2\): quantum \(2\), classical at most \(4^2 = 16\).</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 13</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

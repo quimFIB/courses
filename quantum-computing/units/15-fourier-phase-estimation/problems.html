@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15 · Problems — Fourier on finite abelian groups, the quantum Fourier transform, and phase estimation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="d">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part D · unit 15 · problems</p>
+<h1>Fourier on finite abelian groups, the quantum Fourier transform, and phase estimation</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u15">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you derive the QFT circuit on \(\mathbb Z_{2^n}\) from the
+product formula — including where the swaps go in the course's qubit order — and count its gates; you prove the \(4/\pi^2\) bound for
+the nearest \(t\)-bit fraction; and you compute the full outcome distribution of phase estimation for \(\varphi = \tfrac13\) with three
+counting qubits: \(0.688\) on \(3/8\), \(0.175\) on \(2/8\), all eight summing to 1.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first. P9 is the checkpoint's computation; P4, P10 and P11 are its proofs.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the first slot. Qubit 0 is the leftmost symbol of a ket, the
+most significant bit of an index and the top wire of a circuit, so \(\ket{j_1j_2j_3}\) is basis vector \(4j_1 + 2j_2 + j_3\). A circuit drawn
+\(G_1\) then \(G_2\) is the operator \(G_2G_1\). \(\omega = e^{2\pi i/N}\) and \(F_N\ket j = N^{-1/2}\sum_k\omega^{jk}\ket k\) — the plus sign is the
+course's. \(R_k = \mathrm{diag}(1, e^{2\pi i/2^k})\), \(C(U) = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes U\), and \(C_{cq}(R_k)\) has control \(c\) and target \(q\)
+(it is symmetric, so the distinction is only in the drawing). In phase estimation counting qubit \(l\) controls \(U^{2^{t-1-l}}\), and outcome
+\(y\) has probability \(p(y) = \sin^2(\pi\delta_y)/(2^{2t}\sin^2(\pi\delta_y/2^t))\) with \(\delta_y = 2^t\varphi - y\). Logarithms are base 2.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it. The referee ships no QFT circuit — only
+<code>library.qft_matrix</code>, what one must equal — so P5's block builds one, and later blocks reuse that <code>qft</code> function.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Characters of ℤ₂ × ℤ₄">P1</a></li>
+<li><a class="medium" href="#p2" title="Proof: orthogonality, both ways">P2</a></li>
+<li><a class="medium" href="#p3" title="Shifts become phases, on a coset">P3</a></li>
+<li><a class="medium" href="#p4" title="Proof: the product formula">P4</a></li>
+<li><a class="routine" href="#p5" title="The four-qubit circuit">P5</a></li>
+<li><a class="routine" href="#p6" title="The inverse QFT, and F to the fourth">P6</a></li>
+<li><a class="routine" href="#p7" title="QFT versus FFT">P7</a></li>
+<li><a class="hard" href="#p8" title="Proof: the approximate-QFT bound">P8</a></li>
+<li><a class="medium" href="#p9" title="Three ancillas, phase one third">P9</a></li>
+<li><a class="medium" href="#p10" title="Proof: 4/π², and how it is approached">P10</a></li>
+<li><a class="hard" href="#p11" title="Proof: counting qubits for n bits with confidence 1 − ε">P11</a></li>
+<li><a class="medium" href="#p12" title="A superposition input, and a global phase that is not global">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Characters and the transform</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Characters of \(\mathbb Z_2\times\mathbb Z_4\) <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: characters of a product group, the Fourier matrix as a Kronecker product, why groups of the same order can have different transforms</p>
+<div class="statement">
+<p>Let \(G = \mathbb Z_2\times\mathbb Z_4\), and label \((x, y)\in G\) by the integer \(4x + y\), so that \(x\) sits on qubit 0 and \(y\) on qubits 1–2.</p>
+<ol>
+<li>List the eight characters of \(G\), and tabulate their values at \((1, 1)\).</li>
+<li>Show that in this labelling \(F_G = F_2\otimes F_4\), and write \(F_G\ket5\) as a vector and as a product.</li>
+<li>Show that no relabelling of rows and columns makes \(F_G\) equal to \(F_8\). What property of the two groups is behind this?</li>
+<li>Check in one line that \(F_G\) is unitary.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The characters are eight functions on \(G\), each a product of a character of \(\mathbb Z_2\) and one of \(\mathbb Z_4\) — the theorem on
+<i>Products of groups, and \(\hat G\cong G\)</i>. Part 3 needs an invariant of a matrix that relabelling cannot change.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The characters of \(\mathbb Z_2\) are \(x\mapsto(-1)^{ax}\), those of \(\mathbb Z_4\) are \(y\mapsto i^{by}\). For part 3, permuting rows and columns
+permutes the entries: compare the sets of values the entries take.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\chi_{(a, b)}(x, y) = (-1)^{ax}\,i^{by}\), \(a\in\{0, 1\}\), \(b\in\{0, 1, 2, 3\}\), so
+\((F_G)_{4a+b,\,4x+y} = \tfrac1{\sqrt8}(-1)^{ax}i^{by} = \tfrac1{\sqrt2}(-1)^{ax}\cdot\tfrac12i^{by}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A character of a product is a product of characters, so the Fourier matrix of a product is a Kronecker product. Its
+entries are then fourth roots of unity, which \(F_8\)'s are not.</p>
+<p><strong>1.</strong> By the product theorem every character is \(\chi_{(a, b)}(x, y) = (-1)^{ax}i^{by}\) with \(a\in\mathbb Z_2\), \(b\in\mathbb Z_4\): eight of them.
+At \((x, y) = (1, 1)\) the value is \((-1)^ai^b\); in the order \(4a + b = 0, \dots, 7\):</p>
+\[ 1,\ i,\ -1,\ -i,\ -1,\ -i,\ 1,\ i . \]
+<p><strong>2.</strong> \((F_G)_{4a+b,\,4x+y} = \tfrac1{\sqrt8}(-1)^{ax}i^{by} = (F_2)_{ax}(F_4)_{by}\), since \(F_2 = \tfrac1{\sqrt2}\big((-1)^{ax}\big)\) and \(F_4 = \tfrac12\big(i^{by}\big)\). That is
+the entry of \(F_2\otimes F_4\) in row \(4a + b\), column \(4x + y\) (unit 03's Kronecker product, with qubit 0 the outer index). Column \(5 = (1, 1)\) is
+the list of part 1 over \(\sqrt8\):</p>
+\[ F_G\ket5 = \tfrac1{\sqrt8}(1, i, -1, -i, -1, -i, 1, i)^{\mathsf T} = \ket-\otimes\tfrac12\big(\ket0 + i\ket1 - \ket2 - i\ket3\big) = (F_2\ket1)\otimes(F_4\ket1). \]
+<p><strong>3.</strong> Every entry of \(\sqrt8F_G\) is \((-1)^{ax}i^{by}\), a fourth root of unity. But \(\sqrt8F_8\) has the entry \(\omega = (1 + i)/\sqrt2\) in row 1,
+column 1, and \(\omega^4 = -1\ne1\). Permuting rows and columns only rearranges entries, so it cannot turn one matrix into the other. Behind
+it: \(\mathbb Z_2\times\mathbb Z_4\not\cong\mathbb Z_8\). Every element of \(\mathbb Z_2\times\mathbb Z_4\) has order dividing 4, so every character value \(z\) satisfies
+\(z^4 = \chi(4g) = 1\); \(\mathbb Z_8\) has an element of order 8, and a character sending it to \(\omega\).</p>
+<p><strong>4.</strong> \((F_2\otimes F_4)^\dagger(F_2\otimes F_4) = F_2^\dagger F_2\otimes F_4^\dagger F_4 = I\otimes I\).</p>
+<p><strong>Check.</strong> Column 5 has two each of \(1, i, -1, -i\), so its entries sum to \(0\): it is orthogonal to column 0, the all-ones
+column, as orthogonality demands. Its norm is \(8\cdot\tfrac18 = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import library
+F = np.kron(library.qft_matrix(1), library.qft_matrix(2))   # F_2 ⊗ F_4, index 4x + y
+print(np.allclose(F.conj().T @ F, np.eye(8)))              # True: unitary
+print(np.allclose((np.sqrt(8) * F)**4, 1))                 # True: every entry is ±1 or ±i
+print(np.allclose((np.sqrt(8) * library.qft_matrix(3))**4, 1))   # False: F_8 has ω</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Proof: orthogonality, both ways <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: counting homomorphisms, translation invariance on \(G\) and on \(\hat G\), rows versus columns of a square unitary</p>
+<div class="statement">
+<p>\(G\) is a finite abelian group.</p>
+<ol>
+<li>Prove from scratch that \(\mathbb Z_N\) has exactly \(N\) characters, and that \(|\hat G| = |G|\) for \(G = \mathbb Z_{N_1}\times\mathbb Z_{N_2}\).</li>
+<li>Assuming \(|\hat G| = |G|\), prove the <em>dual orthogonality</em> \(\sum_{\chi\in\hat G}\overline{\chi(g)}\chi(g') = |G|\,\delta_{gg'}\).</li>
+<li>Prove it again for \(G = \mathbb Z_N\) without matrices: translation invariance, this time on \(\hat G\).</li>
+<li>For \(\mathbb Z_8\) and \(g = 4\), \(g' = 0\), evaluate the sum term by term.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a count of homomorphisms out of a cyclic group; part 2 is a statement about the columns of a square matrix whose rows you already
+know are orthonormal; part 3 is the lemma of <i>Orthogonality of characters</i> with the roles of \(G\) and \(\hat G\) exchanged.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A homomorphism from \(\mathbb Z_N\) is fixed by where it sends \(1\), and that image must satisfy \(z^N = 1\). For part 3, multiplication by a fixed
+character is a bijection of \(\hat G\), just as translation by a fixed element is a bijection of \(G\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: for \(g\ne0\), \(\chi_1(g) = \omega^g\ne1\), and \(S = \sum_\chi\chi(g) = \sum_\chi(\chi_1\chi)(g) = \chi_1(g)\,S\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Characters and group elements play symmetric roles: a sum over either, of something that a non-trivial
+"translation" multiplies by a number other than 1, vanishes.</p>
+<p><strong>1.</strong> A character of \(\mathbb Z_N\) satisfies \(\chi(j) = \chi(1)^j\) (induction on \(j\)), so it is determined by \(\chi(1)\), and \(\chi(1)^N = \chi(N\cdot1) = \chi(0) = 1\):
+\(\chi(1)\) is one of the \(N\) roots \(\omega^k\). Each root occurs: \(j\mapsto\omega^{jk}\) is well defined modulo \(N\) and multiplicative. So exactly \(N\). For
+\(\mathbb Z_{N_1}\times\mathbb Z_{N_2}\), the product theorem gives a bijection \(\hat{\mathbb Z}_{N_1}\times\hat{\mathbb Z}_{N_2}\to\hat G\), so \(|\hat G| = N_1N_2 = |G|\).</p>
+<p><strong>2.</strong> The matrix \(M_{\chi g} = \chi(g)/\sqrt{|G|}\) has orthonormal rows (orthogonality of characters) and is square (\(|\hat G| = |G|\)), so
+\(MM^\dagger = I\) implies \(M^\dagger M = I\). The \((g, g')\) entry of \(M^\dagger M\) is \(\frac1{|G|}\sum_\chi\overline{\chi(g)}\chi(g')\), so the sum is \(|G|\delta_{gg'}\).</p>
+<p><strong>3.</strong> \(\overline{\chi(g)}\chi(g') = \chi(g' - g)\), so it suffices to show \(S(h) = \sum_\chi\chi(h)\) is \(N\) for \(h = 0\) (clear: every term is 1) and \(0\) for
+\(h\ne0\). For \(h\ne0\) in \(\mathbb Z_N\), \(\chi_1(h) = \omega^h\ne1\) since \(0 \lt h \lt N\). The map \(\chi\mapsto\chi_1\chi\) is a bijection of \(\hat G\) (inverse: multiply by
+\(\bar\chi_1\)), so</p>
+\[ S(h) = \sum_\chi(\chi_1\chi)(h) = \chi_1(h)\,S(h)\ \Longrightarrow\ S(h) = 0 . \]
+<p>For a general finite abelian \(G\) the same proof works once some character has \(\chi(h)\ne1\) for each \(h\ne0\); for products of cyclic groups
+take \(\chi_1\) on a factor where \(h\) has a non-zero coordinate, and the structure theorem (cited in the deck) covers the rest.</p>
+<p><strong>4.</strong> \(\sum_{k=0}^7\omega^{4k} = \sum_k(-1)^k = 1 - 1 + 1 - 1 + 1 - 1 + 1 - 1 = 0\) ✓, as \(g = 4\ne0 = g'\).</p>
+<p><strong>Check.</strong> At \(g = g' = 0\) the sum is \(\sum_\chi1 = |\hat G| = |G|\) ✓. In matrix terms part 2 says the columns of
+<i>\(F_8\), entry by entry</i> are orthonormal: column 4 is \((1, -1, 1, -1, \dots)/\sqrt8\) and column 0 is \((1, 1, \dots)/\sqrt8\), with inner product
+\(\tfrac18\cdot0 = 0\), which is part 4.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Shifts become phases, on a coset <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the translation theorem \(F_GT_a = D_aF_G\), the Fourier transform of a subgroup state, what a measurement after \(F\) reveals and what it hides</p>
+<div class="statement">
+<p>In \(\mathbb Z_8\), let \(H = \{0, 2, 4, 6\}\) and, for \(c\in\mathbb Z_8\), \(\ket{c + H} = \tfrac12\sum_{h\in H}\ket{c + h}\).</p>
+<ol>
+<li>Compute \(F_8\ket{0 + H}\) and \(F_8\ket{1 + H}\), and their outcome distributions.</li>
+<li>For \(r\mid N\), let \(H_r = \{0, r, 2r, \dots\}\subset\mathbb Z_N\) (it has \(N/r\) elements). Show that \(F_N\ket{c + H_r}\) is supported on the multiples of
+\(N/r\), uniformly, with phases depending on \(c\).</li>
+<li>Someone prepares \(\ket{c + H_r}\) with \(c\) uniformly random and unknown to you, applies \(F_N\) and measures. What do you learn about
+\(c\), and what about \(r\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answers are states supported on a few basis vectors. Part 1 is a direct computation; part 2 the same computation with letters; part 3
+uses <i>Shifts become phases</i>.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\ket{c + H} = T_c\ket{0 + H}\), so you only need \(F\ket{0 + H}\); then \(F T_c = D_cF\) multiplies the amplitude of \(\ket k\) by \(\omega^{ck}\). For \(\ket{0 + H}\) the
+amplitude of \(\ket k\) is a geometric sum in \(\omega^{2k} = i^k\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(F_8\ket{0 + H} = \tfrac12\cdot\tfrac1{\sqrt8}\sum_k\Big(\sum_{m=0}^3i^{km}\Big)\ket k\), and \(\sum_{m=0}^3i^{km}\) is \(4\) if \(4\mid k\), else \(0\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A subgroup state is periodic, and the transform of a periodic state lives on the characters that are trivial on the
+subgroup; shifting the state only changes phases.</p>
+<p><strong>1.</strong> With \(H = \{2m\}\), \(F_8\ket{0 + H} = \frac1{2\sqrt8}\sum_k\sum_{m=0}^3\omega^{2mk}\ket k\), and \(\omega^{2k} = i^k\). The inner sum is \(4\) when \(i^k = 1\), i.e.
+\(k\in\{0, 4\}\), and \(0\) otherwise (a geometric sum of a fourth root of unity \(\ne1\)). So</p>
+\[ F_8\ket{0 + H} = \frac4{2\sqrt8}(\ket0 + \ket4) = \tfrac1{\sqrt2}(\ket0 + \ket4),\qquad F_8\ket{1 + H} = D_1F_8\ket{0 + H} = \tfrac1{\sqrt2}(\ket0 + \omega^4\ket4) = \tfrac1{\sqrt2}(\ket0 - \ket4). \]
+<p>Both give outcome 0 or 4 with probability \(\tfrac12\) each.</p>
+<p><strong>2.</strong> \(\ket{c + H_r} = \sqrt{r/N}\sum_{m=0}^{N/r-1}\ket{c + mr}\). The amplitude of \(\ket k\) in its transform is</p>
+\[ \sqrt{\frac rN}\cdot\frac1{\sqrt N}\,\omega^{ck}\sum_{m=0}^{N/r-1}\big(\omega^{rk}\big)^m . \]
+<p>\(\omega^{rk} = e^{2\pi ik/(N/r)}\) is 1 exactly when \((N/r)\mid k\), and then the sum is \(N/r\); otherwise it is a full geometric sum of an
+\((N/r)\)-th root of unity \(\ne1\), so 0. For \(k = lN/r\) the amplitude is \(\frac{\sqrt r}{N}\cdot\frac Nr\,\omega^{ck} = \frac1{\sqrt r}\omega^{clN/r}\):</p>
+\[ F_N\ket{c + H_r} = \frac1{\sqrt r}\sum_{l=0}^{r-1}e^{2\pi i\,cl/r}\,\ket{lN/r} . \]
+<p><strong>3.</strong> The outcome is a uniformly random multiple \(lN/r\) of \(N/r\), whatever \(c\) is: the shift is invisible, so you learn nothing about
+\(c\). You do learn about \(r\): the outcome \(k\) satisfies \(k/N = l/r\), a fraction with denominator \(r\) (in lowest terms, a divisor of \(r\)).
+Two or three samples typically pin \(r\) down through the denominators of \(k/N\). This is unit 16's order finding in the special case
+\(r\mid N\); unit 16 handles \(r\nmid N\) with phase estimation and continued fractions.</p>
+<p><strong>Check.</strong> Norms: \(r\cdot\frac1r = 1\) ✓. Part 2 with \(N = 8\), \(r = 2\), \(c = 1\): \(\frac1{\sqrt2}(\ket0 + e^{i\pi}\ket4)\), which is part 1 ✓. With \(r = 4\), \(c = 1\)
+(the deck's \(\{1, 5\}\)), it gives \(\tfrac12\) times \(\ket0, i\ket2, -\ket4, -i\ket6\) — probability \(\tfrac14\) on each even \(k\), as in the figure on
+<i>Shifts become phases</i> ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Proof: the product formula <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: binary expansions, factorising a sum over bit strings into a tensor product, reading the formula in another qubit order</p>
+<div class="statement">
+<ol>
+<li>Prove, for every \(n\) and every \(j = j_12^{n-1} + \cdots + j_n\), that
+\(F_{2^n}\ket j = \bigotimes_{l=1}^n\tfrac1{\sqrt2}\big(\ket0 + e^{2\pi i\,0.j_{n-l+1}\cdots j_n}\ket1\big)\), factor \(l\) on qubit \(l - 1\).</li>
+<li>Deduce \(F\ket1\) and \(F\ket{2^{n-1}}\) as products.</li>
+<li>Show that \(F\ket j\) has Schmidt rank 1 across every cut of the \(n\) qubits, but that \(F\) applied to a superposition of two basis
+states can be entangled: compute \(F_4\tfrac1{\sqrt2}(\ket0 + \ket1)\) and decide.</li>
+<li>How does the formula read in Qiskit's order, where qubit 0 is the <em>least</em> significant bit?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an identity between two vectors in \((\mathbb C^2)^{\otimes n}\); expand both in the computational basis, or start from the left side and
+factorise it. Part 3 needs unit 03's criterion for a two-qubit state \(\sum a_{xy}\ket{xy}\) to be a product.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(k = \sum_lk_l2^{n-l}\) with \(k_l\) on qubit \(l - 1\). Then \(e^{2\pi ijk/2^n} = \prod_le^{2\pi ijk_l/2^l}\), and each factor depends on one bit of \(k\). Finally,
+\(j/2^l\) is an integer plus \(0.j_{n-l+1}\cdots j_n\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(F\ket j = 2^{-n/2}\sum_{k_1, \dots, k_n}\bigotimes_{l=1}^ne^{2\pi ijk_l/2^l}\ket{k_l} = 2^{-n/2}\bigotimes_{l=1}^n\big(\ket0 + e^{2\pi ij/2^l}\ket1\big)\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The exponent \(jk\) is linear in the bits of \(k\), so the exponential is a product over those bits and the sum factorises;
+\(e^{2\pi ix}\) then forgets the integer part of each \(j/2^l\).</p>
+<p><strong>1.</strong> With \(k = \sum_{l=1}^nk_l2^{n-l}\), \(\frac{jk}{2^n} = \sum_l\frac{jk_l}{2^l}\), and \(\ket k = \ket{k_1}\otimes\cdots\otimes\ket{k_n}\) in the course's order. So</p>
+\[ F\ket j = \frac1{2^{n/2}}\sum_{k_1, \dots, k_n\in\{0, 1\}}\ \bigotimes_{l=1}^ne^{2\pi ijk_l/2^l}\ket{k_l} = \frac1{2^{n/2}}\bigotimes_{l=1}^n\Big(\sum_{k_l\in\{0, 1\}}e^{2\pi ijk_l/2^l}\ket{k_l}\Big), \]
+<p>by multilinearity of \(\otimes\). The \(l\)-th factor is \(\ket0 + e^{2\pi ij/2^l}\ket1\). Now \(j/2^l = j_12^{n-1-l} + \cdots + j_{n-l} + \big(j_{n-l+1}2^{-1} + \cdots + j_n2^{-l}\big)\): an integer
+plus \(0.j_{n-l+1}\cdots j_n\). Since \(e^{2\pi im} = 1\) for integer \(m\), the factor is \(\ket0 + e^{2\pi i\,0.j_{n-l+1}\cdots j_n}\ket1\). Distributing \(2^{-n/2}\) as \(2^{-1/2}\) per
+factor gives the formula. ∎</p>
+<p><strong>2.</strong> \(j = 1\): \(j_n = 1\), others 0, so factor \(l\) has \(0.0\cdots01\) (\(l\) digits) \(= 2^{-l}\): \(F\ket1 = \bigotimes_l\tfrac1{\sqrt2}(\ket0 + e^{2\pi i/2^l}\ket1)\) — qubit 0 carries \(-1\),
+qubit 1 carries \(i\), …, the last carries \(\omega = e^{2\pi i/2^n}\). \(j = 2^{n-1}\): only \(j_1 = 1\), which appears only in the last factor, \(0.10\cdots0 = \tfrac12\):
+\(F\ket{2^{n-1}} = \ket+^{\otimes(n-1)}\otimes\ket-\).</p>
+<p><strong>3.</strong> A product of one-qubit states has Schmidt rank 1 across every cut. But
+\(F_4\tfrac1{\sqrt2}(\ket0 + \ket1) = \tfrac1{2\sqrt2}\sum_k(1 + i^k)\ket k = \tfrac1{2\sqrt2}\big(2\ket{00} + (1 + i)\ket{01} + 0\ket{10} + (1 - i)\ket{11}\big)\). Arrange the
+coefficients as the matrix \(\begin{pmatrix}2 &amp; 1 + i\\ 0 &amp; 1 - i\end{pmatrix}\) (rows: qubit 0); its determinant is \(2(1 - i)\ne0\), so its rank is 2
+and the state is entangled (unit 03). Linearity does not preserve "being a product".</p>
+<p><strong>4.</strong> In Qiskit's order the bit of weight \(2^{n-l}\) sits on qubit \(n - l\), so the same factors appear in reverse: qubit 0 carries
+\(0.j_1j_2\cdots j_n\) (with \(j_1\) now meaning the most significant bit, stored on the <em>last</em> qubit), and the last qubit carries \(0.j_n\). The
+mathematics is unchanged; only the qubit on which each factor is stored moves. That is why a Qiskit circuit is drawn as the mirror
+image of the course's: its first \(H\) acts on the last wire, which holds \(j_1\), and its rotations are controlled from the wires above.
+The swaps are still needed at the end, for the same reason as here.</p>
+<p><strong>Check.</strong> \(n = 2\), \(j = 1\): the formula gives \(\tfrac12(\ket0 - \ket1)(\ket0 + i\ket1) = \tfrac12(\ket{00} + i\ket{01} - \ket{10} - i\ket{11})\), and directly
+\(F_4\ket1 = \tfrac12\sum_ki^k\ket k = \tfrac12(\ket0 + i\ket1 - \ket2 - i\ket3)\) ✓. The norm of part 3's state: \(\tfrac18(4 + 2 + 0 + 2) = 1\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">The circuit</h2>
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> The four-qubit circuit <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: building the QFT circuit from the product formula, the gate count, placing the swaps in the course's order</p>
+<div class="statement">
+<ol>
+<li>Write the QFT circuit on four qubits as a list of gates in time order, in the course's order, and count the Hadamards, controlled
+phases and swaps.</li>
+<li>Track the input \(\ket{11} = \ket{1011}\) through it: give each qubit's phase (as a binary fraction) just before the swaps, and after them.</li>
+<li>Compare with the product formula, and check the amplitude of \(\ket{0001}\) against \(F_{16}\)'s matrix entry.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 1 is a list of twelve gates; to part 2, four binary fractions twice. The pattern is the three-qubit circuit of
+<i>The three-qubit QFT</i> with one more qubit.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Qubit \(q\) gets \(H\) and then \(R_2, R_3, \dots\) controlled by qubits \(q + 1, q + 2, \dots\); then qubit \(q\) and qubit \(3 - q\) are swapped for \(q = 0, 1\). Before the swaps
+qubit \(q\) holds \(0.j_{q+1}\cdots j_4\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First lines: \(H_0\), \(C_{10}(R_2)\), \(C_{20}(R_3)\), \(C_{30}(R_4)\); for \(j = 1011\) qubit 0 then holds \(0.1011 = \tfrac{11}{16}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Each qubit needs one \(H\) for its first digit and one controlled rotation for each further digit; the digits come out in
+reverse order, so the qubits are reversed at the end.</p>
+<p><strong>1.</strong> In time order:</p>
+\[ H_0,\ C_{10}(R_2),\ C_{20}(R_3),\ C_{30}(R_4),\ \ H_1,\ C_{21}(R_2),\ C_{31}(R_3),\ \ H_2,\ C_{32}(R_2),\ \ H_3,\ \ \mathrm{SWAP}_{03},\ \mathrm{SWAP}_{12} . \]
+<p>4 Hadamards, \(3 + 2 + 1 = 6 = \tfrac{4\cdot3}2\) controlled phases, \(2 = \lfloor4/2\rfloor\) swaps.</p>
+<p><strong>2.</strong> \(j = 1011\): \(j_1 = 1, j_2 = 0, j_3 = 1, j_4 = 1\). Before the swaps qubit \(q\) holds \(0.j_{q+1}\cdots j_4\):</p>
+<p>qubit 0: \(0.1011 = \tfrac{11}{16}\); qubit 1: \(0.011 = \tfrac38\); qubit 2: \(0.11 = \tfrac34\); qubit 3: \(0.1 = \tfrac12\).</p>
+<p>After \(\mathrm{SWAP}_{03}\) and \(\mathrm{SWAP}_{12}\): qubit 0 \(\tfrac12\), qubit 1 \(\tfrac34\), qubit 2 \(\tfrac38\), qubit 3 \(\tfrac{11}{16}\) — i.e. the phases \(-1\), \(-i\), \(e^{3\pi i/4}\), \(e^{11\pi i/8}\).</p>
+<p><strong>3.</strong> The product formula wants qubit \(l - 1\) to carry \(0.j_{5-l}\cdots j_4\): \(0.j_4 = 0.1\), \(0.j_3j_4 = 0.11\), \(0.j_2j_3j_4 = 0.011\), \(0.j_1j_2j_3j_4 = 0.1011\) ✓. The
+amplitude of \(\ket{0001}\) is \(\tfrac14\cdot1\cdot1\cdot1\cdot e^{2\pi i\cdot11/16}\), and \(F_{16}\)'s entry is \(\tfrac14\omega_{16}^{11\cdot1} = \tfrac14e^{2\pi i\cdot11/16}\) ✓.</p>
+<p><strong>Check.</strong> Gate count against the theorem of <i>The QFT on \(n\) qubits</i>: \(n = 4\) gives \(4\), \(6\), \(2\) ✓. One more amplitude: \(\ket{1000}\) has
+\(\tfrac14(-1) = \tfrac14\omega_{16}^{11\cdot8} = \tfrac14\omega_{16}^{88}\), and \(88\bmod16 = 8\), \(\omega_{16}^8 = -1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates, library
+
+def qft(n):
+    c = Circuit(n)
+    for q in range(n):
+        c.h(q)
+        for k in range(2, n - q + 1):              # R_k on qubit q, controlled by qubit q + k - 1
+            c.controlled(gates.phase(2 * np.pi / 2**k), [q + k - 1], [q], name=f"R{k}")
+    for q in range(n // 2):
+        c.swap(q, n - 1 - q)
+    return c
+
+print(np.allclose(qft(4).unitary(), library.qft_matrix(4)))   # True
+print(sorted(qft(4).counts().items()))
+# [('R2', 3), ('R3', 2), ('R4', 1), ('h', 4), ('swap', 2)]</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> The inverse QFT, and \(F\) to the fourth <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: inverting a circuit, the identity \(F_N^2\ket j = \ket{-j}\), eigenvalues of a unitary of finite order</p>
+<div class="statement">
+<ol>
+<li>Write the circuit for \(F_8^{-1}\), gate by gate.</li>
+<li>Prove \(F_N^2\ket j = \ket{-j\bmod N}\). Deduce \(F_N^4 = I\), \(F_N^{-1} = F_N^3\), and that every eigenvalue of \(F_N\) is one of \(1, i, -1, -i\).</li>
+<li>In phase estimation someone runs \(F\) instead of \(F^{-1}\) on the counting register. Show the outcome is distributed as \(-y\bmod2^t\), with
+\(y\) distributed as before. What does \(\varphi = \tfrac38\), \(t = 3\) give?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the rule \((G_m\cdots G_1)^{-1} = G_1^\dagger\cdots G_m^\dagger\). Part 2 is a computation of \(F^2\) on a basis state, ending in a geometric sum; part 3 writes \(F\)
+in terms of \(F^{-1}\) and the permutation \(P\ket j = \ket{-j}\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(F^2\ket j = \frac1N\sum_l\big(\sum_k\omega^{k(j+l)}\big)\ket l\). For part 3: \(F = F^{-1}F^2 = F^{-1}P\), and \(P\) commutes with \(F\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(F^2\ket j = F\Big(\frac1{\sqrt N}\sum_k\omega^{jk}\ket k\Big) = \frac1N\sum_k\omega^{jk}\sum_l\omega^{kl}\ket l\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Reverse and conjugate for the circuit; for the algebra, \(F\) applied twice reflects the group, so four times is the identity.</p>
+<p><strong>1.</strong> Reversing the seven gates of the three-qubit QFT and taking adjoints (\(H^\dagger = H\), \(\mathrm{SWAP}^\dagger = \mathrm{SWAP}\), \(C(R_k)^\dagger = C(R_k^\dagger)\)):</p>
+\[ \mathrm{SWAP}_{02},\ H_2,\ C_{21}(R_2^\dagger),\ H_1,\ C_{20}(R_3^\dagger),\ C_{10}(R_2^\dagger),\ H_0 . \]
+<p><strong>2.</strong> \(F^2\ket j = \frac1N\sum_l\big(\sum_k\omega^{k(j+l)}\big)\ket l\), and the inner sum is \(N\) if \(j + l\equiv0\) and \(0\) otherwise (the worked example of section 1).
+So \(F^2\ket j = \ket{-j}\). Applying twice, \(F^4\ket j = \ket j\): \(F^4 = I\), so \(F^{-1} = F^3\). If \(F\ket v = \lambda\ket v\) with \(\ket v\ne0\), then \(\ket v = F^4\ket v = \lambda^4\ket v\), so \(\lambda^4 = 1\).</p>
+<p><strong>3.</strong> Let \(P = F^2\), \(P\ket x = \ket{-x}\). Then \(F = F^{-1}F^2 = F^{-1}P\), and since \(P\) is a power of \(F\) it commutes with \(F^{-1}\): \(F = PF^{-1}\). So
+\(F\ket\psi = P(F^{-1}\ket\psi)\): the same distribution with each outcome \(y\) relabelled \(-y\bmod2^t\). For \(\varphi = \tfrac38\), \(t = 3\), the correct circuit gives
+\(3\) with certainty (deck, <i>Worked: phase \(3/8\), read exactly</i>); the wrong one gives \(-3\equiv5\), i.e. the estimate \(\tfrac58 = 1 - \tfrac38\) — the
+eigenphase of \(U^\dagger\).</p>
+<p><strong>Check.</strong> \(F_2 = H\): \(H^2 = I\), and \(-j\equiv j\pmod2\) ✓. \(F_4^2\ket1 = \ket3\): \(F_4\ket1 = \tfrac12(1, i, -1, -i)\), and applying \(F_4\) gives amplitude on \(\ket3\) of
+\(\tfrac14(1 + i\cdot i^3 + (-1)(i^6) + (-i)(i^9)) = \tfrac14(1 + 1 + 1 + 1) = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code># with qft() from P5's block
+import numpy as np
+from qclib import library
+F = library.qft_matrix(3)
+print(np.allclose(qft(3).inverse().unitary(), F.conj().T))    # True: reversed, conjugated
+parity = np.zeros((8, 8)); parity[(-np.arange(8)) % 8, np.arange(8)] = 1
+print(np.allclose(F @ F, parity))                              # True: F^2 |j> = |-j></code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> QFT versus FFT <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: exact gate counts, what a quantum output state is worth, Hoeffding's inequality as a cost of reading out</p>
+<div class="statement">
+<ol>
+<li>For \(n = 30\), count the QFT's Hadamards, controlled phases and swaps, and the CNOTs the swaps cost. Compare with the FFT's
+\(n2^n\) operations.</li>
+<li>To estimate a <em>single</em> output probability \(|\braket{k|F|\psi}|^2\) to \(\pm10^{-3}\) with confidence \(0.99\) by repeated runs, how many runs does
+Hoeffding's inequality ask for? How many gate applications is that, and how does it compare with the FFT computing all \(2^{30}\) outputs?</li>
+<li>Say in two sentences when the QFT's advantage is real.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the theorem of <i>The QFT on \(n\) qubits</i> at \(n = 30\). Part 2 is a sample size: each run is one Bernoulli trial with success
+probability \(p = |\braket{k|F|\psi}|^2\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Hoeffding (assumed background): with \(M\) independent trials, \(\Pr(|\hat p - p|\ge\varepsilon)\le2e^{-2M\varepsilon^2}\). Set the right side to \(0.01\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(2e^{-2M\cdot10^{-6}}\le0.01\iff M\ge\frac{\ln200}{2\times10^{-6}}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The QFT is cheap to <em>apply</em>; reading what it produced costs one run per sample, and samples are expensive.</p>
+<p><strong>1.</strong> \(30\) Hadamards, \(\tfrac{30\cdot29}2 = 435\) controlled phases, \(\lfloor30/2\rfloor = 15\) swaps \(= 45\) CNOTs. Without the swaps, \(465\) gates; with them,
+\(510\). The FFT: \(30\cdot2^{30} = 32\,212\,254\,720\approx3.2\times10^{10}\). Ratio about \(7\times10^7\).</p>
+<p><strong>2.</strong> \(M\ge\ln200/(2\times10^{-6}) = 5.2983/(2\times10^{-6}) = 2\,649\,159\) runs, about \(2.6\times10^6\). At \(465\) gates a run (ignoring the cost of preparing
+\(\ket\psi\) each time) that is \(1.23\times10^9\) gate applications — for <em>one</em> of the \(2^{30} = 1.07\times10^9\) output probabilities, and with no phase
+information. The FFT returns all of them, with phases, exactly, in \(3.2\times10^{10}\) operations: about 26 times the cost of our single
+estimate.</p>
+<p><strong>3.</strong> The advantage is real only when the computation prepares \(\ket\psi\) itself (so no exponential loading) and the transformed state
+is concentrated on a few outcomes, so that a handful of samples answers the question. Phase estimation, and through it Shor's algorithm,
+is the case where both hold.</p>
+<p><strong>Check.</strong> Units: Hoeffding's \(M\) is a pure number, and halving \(\varepsilon\) quadruples it, as \(1/\varepsilon^2\) should. The gate count
+\(465 = \tfrac{n(n+1)}2\) at \(n = 30\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Proof: the approximate-QFT bound <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the operator norm of a diagonal matrix, telescoping errors along a circuit, the operational meaning of a norm bound, choosing the cutoff</p>
+<div class="statement">
+<p>\(\tilde F\) is the QFT circuit on \(n\) qubits with every \(C(R_k)\), \(k \gt m\), removed.</p>
+<ol>
+<li>Prove \(\lVert C(R_k) - I\rVert = 2\sin(\pi/2^k)\le2\pi/2^k\).</li>
+<li>Prove \(\lVert U_r\cdots U_1 - V_r\cdots V_1\rVert\le\sum_i\lVert U_i - V_i\rVert\) for unitaries.</li>
+<li>Prove \(\lVert F - \tilde F\rVert\le2\pi(n - m)/2^m\).</li>
+<li>Prove that for every input state and every outcome, the outcome probabilities after \(F\) and after \(\tilde F\) differ by at most
+\(2\lVert F - \tilde F\rVert\).</li>
+<li>For \(n = 4096\), find the least \(m\) with bound \(\le0.01\), and count the controlled phases kept.</li>
+<li>Show that \(m = \lceil\log n\rceil + 10\) gives error at most \(0.0062\) for every \(n\), with \(O(n\log n)\) gates.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is an inequality between norms. The objects: a diagonal matrix (part 1), a sum of differences that cancel in pairs (part 2),
+and the difference of two squared lengths (part 4).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 2: insert and remove the mixed products \(U_r\cdots U_{i+1}V_i\cdots V_1\). Part 3: \(\tilde F\) is \(F\) with some gates replaced by \(I\); the number of
+gates \(C(R_k)\) in the circuit is \(n - k + 1\). Part 4: \(a^2 - b^2 = (a - b)(a + b)\) with \(a = \lVert P F\psi\rVert\), \(b = \lVert P\tilde F\psi\rVert\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(U_r\cdots U_1 - V_r\cdots V_1 = \sum_{i=1}^rU_r\cdots U_{i+1}(U_i - V_i)V_{i-1}\cdots V_1\) (check \(r = 2\) by expanding).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Each dropped rotation is nearly the identity, errors in a product add, and there are few large rotations and many tiny
+ones — so the total is dominated by the first dropped column.</p>
+<p><strong>1.</strong> \(C(R_k) - I = \mathrm{diag}(0, 0, 0, e^{2\pi i/2^k} - 1)\). For diagonal \(D\), \(\lVert Dv\rVert^2 = \sum|d_i|^2|v_i|^2\le\max|d_i|^2\lVert v\rVert^2\), with equality on the
+right basis vector, so \(\lVert D\rVert = \max|d_i|\). And \(|e^{i\theta} - 1| = |e^{i\theta/2} - e^{-i\theta/2}| = 2|\sin(\theta/2)|\le|\theta|\). With \(\theta = 2\pi/2^k\): \(2\sin(\pi/2^k)\le2\pi/2^k\).</p>
+<p><strong>2.</strong> The sum \(\sum_{i=1}^r\big(U_r\cdots U_iV_{i-1}\cdots V_1 - U_r\cdots U_{i+1}V_i\cdots V_1\big)\) telescopes to \(U_r\cdots U_1 - V_r\cdots V_1\), and its \(i\)-th term
+is \(U_r\cdots U_{i+1}(U_i - V_i)V_{i-1}\cdots V_1\). With \(\lVert AB\rVert\le\lVert A\rVert\lVert B\rVert\) and \(\lVert U\rVert = 1\) for unitary \(U\), each term has norm at most
+\(\lVert U_i - V_i\rVert\); the triangle inequality finishes. ∎</p>
+<p><strong>3.</strong> Write \(F\) as its gate list and \(\tilde F\) as the same list with \(V_i = I\) for each dropped \(C(R_k)\) and \(V_i = U_i\) otherwise. By part 2 the error is at
+most the sum over dropped gates of \(\lVert C(R_k) - I\rVert\). The gate \(C(R_k)\) occurs once on each qubit \(q\le n - k\), i.e. \(n - k + 1\) times, and
+\(n - k + 1\le n - m\) for \(k\ge m + 1\). So</p>
+\[ \lVert F - \tilde F\rVert\le\sum_{k=m+1}^n(n - k + 1)\frac{2\pi}{2^k}\le(n - m)\,2\pi\sum_{k=m+1}^\infty2^{-k} = \frac{2\pi(n - m)}{2^m} .\ \ ∎ \]
+<p><strong>4.</strong> Let \(a = F\ket\psi\), \(b = \tilde F\ket\psi\), and \(P\) the projector of the outcome. Then
+\(\big|\lVert Pa\rVert^2 - \lVert Pb\rVert^2\big| = \big|\lVert Pa\rVert - \lVert Pb\rVert\big|\,\big(\lVert Pa\rVert + \lVert Pb\rVert\big)\le\lVert P(a - b)\rVert\cdot2\le\lVert a - b\rVert\cdot2\le2\lVert F - \tilde F\rVert\), using the reverse
+triangle inequality, \(\lVert Pa\rVert\le1\), and \(\lVert P\rVert\le1\).</p>
+<p><strong>5.</strong> \(m = 21\): \(2\pi\cdot4075/2^{21} = 0.0122\), too big. \(m = 22\): \(2\pi\cdot4074/2^{22} = 0.0061\) ✓. Kept: \(\sum_{k=2}^{22}(4097 - k) = 21\cdot4096 - \sum_{k=2}^{22}(k - 1) = 86\,016 - 231 = 85\,785\)
+controlled phases, against \(\tfrac{4096\cdot4095}2 = 8\,386\,560\).</p>
+<p><strong>6.</strong> With \(2^m\ge2^{10}n\): \(2\pi(n - m)/2^m\le2\pi n/(2^{10}n) = 2\pi/1024 = 0.0061\). Each qubit keeps at most \(m - 1\) rotations, so at most
+\(n(m - 1)\le n(\log n + 10)\) controlled phases plus \(n\) Hadamards: \(O(n\log n)\).</p>
+<p><strong>Check.</strong> \(n = 2\), \(m = 1\): the only dropped gate is \(C(S)\), and \(\lVert F_4 - \tilde F\rVert = \lVert C(S) - I\rVert = |i - 1| = \sqrt2 = 1.414\) exactly (multiplying by
+unitaries preserves the operator norm), within the bound \(2\pi\cdot1/2 = \pi\) ✓. And \(n = 8\), \(m = 5\): the exact norm is \(0.414\), the bound \(0.589\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates, library, linalg
+
+def aqft(n, m):                          # P5's circuit with every R_k, k > m, dropped
+    c = Circuit(n)
+    for q in range(n):
+        c.h(q)
+        for k in range(2, min(m, n - q) + 1):
+            c.controlled(gates.phase(2 * np.pi / 2**k), [q + k - 1], [q])
+    for q in range(n // 2):
+        c.swap(q, n - 1 - q)
+    return c
+
+err = linalg.op_norm(aqft(8, 5).unitary() - library.qft_matrix(8))
+print(round(err, 4), round(2 * np.pi * 3 / 2**5, 4))   # 0.4142 0.589</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Phase estimation</h2>
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Three ancillas, phase one third <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the phase-estimation distribution formula, exact evaluation of the sines, normalisation, the difference between the nearest fraction and the truncation</p>
+<div class="statement">
+<p>\(U = \mathrm{diag}(1, e^{2\pi i/3})\), eigenvector \(\ket1\), \(\varphi = \tfrac13\), three counting qubits.</p>
+<ol>
+<li>Compute all eight outcome probabilities, with \(p(0)\) and \(p(4)\) exactly, and check that they sum to 1.</li>
+<li>What is the probability that the estimate \(y/8\) lies within \(\tfrac18\) of \(\tfrac13\)? That it equals the truncation of \(\tfrac13\) to three bits?</li>
+<li>Repeat part 1 with two counting qubits.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Eight numbers that sum to 1. Use \(p(y) = \sin^2(\pi\delta_y)/(64\sin^2(\pi\delta_y/8))\) with \(\delta_y = \tfrac83 - y\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Every \(\delta_y\) is \(\pm\tfrac13\) plus an integer, so the numerator is always \(\sin^2(\pi/3) = \tfrac34\). The denominators need \(\sin^2\) at multiples of \(\pi/24\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(p(y) = \dfrac{3}{256\,\sin^2\big(\pi(8 - 3y)/24\big)}\); at \(y = 0\), \(\sin^2(\pi/3) = \tfrac34\), so \(p(0) = \tfrac1{64}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The register holds a Fourier state of the non-integer frequency \(8/3\); the inverse transform spreads it over the
+integers, most on the nearest one, falling off like \(1/\delta^2\).</p>
+<p><strong>1.</strong> \(\sin^2(\pi\delta_y) = \tfrac34\) for every \(y\), and \(\pi\delta_y/8 = \pi(8 - 3y)/24\). So \(p(y) = 3/\big(256\sin^2(\pi(8 - 3y)/24)\big)\):</p>
+<table>
+<tr><th>\(y\)</th><th>\(\delta_y\)</th><th>angle</th><th>\(\sin^2\)</th><th>\(p(y)\)</th></tr>
+<tr><td>0</td><td>\(8/3\)</td><td>\(8\pi/24\)</td><td>\(0.750000\)</td><td>\(1/64 = 0.015625\)</td></tr>
+<tr><td>1</td><td>\(5/3\)</td><td>\(5\pi/24\)</td><td>\(0.370590\)</td><td>\(0.031622\)</td></tr>
+<tr><td>2</td><td>\(2/3\)</td><td>\(2\pi/24\)</td><td>\(0.066987\)</td><td>\(0.174940\)</td></tr>
+<tr><td>3</td><td>\(-1/3\)</td><td>\(-\pi/24\)</td><td>\(0.017037\)</td><td>\(0.687838\)</td></tr>
+<tr><td>4</td><td>\(-4/3\)</td><td>\(-4\pi/24\)</td><td>\(0.250000\)</td><td>\(3/64 = 0.046875\)</td></tr>
+<tr><td>5</td><td>\(-7/3\)</td><td>\(-7\pi/24\)</td><td>\(0.629410\)</td><td>\(0.018619\)</td></tr>
+<tr><td>6</td><td>\(-10/3\)</td><td>\(-10\pi/24\)</td><td>\(0.933013\)</td><td>\(0.012560\)</td></tr>
+<tr><td>7</td><td>\(-13/3\)</td><td>\(-13\pi/24\)</td><td>\(0.982963\)</td><td>\(0.011922\)</td></tr>
+</table>
+<p>The six-place values sum to \(1.000001\), i.e. 1 to rounding; exactly 1 by Parseval, since \(F^{-1}\) is unitary and the register state is
+normalised. (The exact closed forms: \(\sin^2(\pi/12) = (2 - \sqrt3)/4\), \(\sin^2(5\pi/12) = (2 + \sqrt3)/4\), \(\sin^2(\pi/24) = (1 - \cos(\pi/12))/2\).)</p>
+<p><strong>2.</strong> \(|y/8 - \tfrac13|\le\tfrac18\) means \(y/8\in[0.208, 0.458]\): \(y = 2, 3\), probability \(0.174940 + 0.687838 = 0.8628\). The truncation of
+\(\tfrac13 = 0.0101\ldots\) is \(0.010 = \tfrac28\), probability only \(0.1749\): phase estimation favours the <em>nearest</em> fraction, \(\tfrac38\).</p>
+<p><strong>3.</strong> \(t = 2\): \(\delta_y = \tfrac43 - y\), \(p(y) = \tfrac34/\big(16\sin^2(\pi\delta_y/4)\big)\): \(p(0) = \tfrac34/(16\cdot\tfrac34) = \tfrac1{16} = 0.0625\), \(p(1) = 0.6998\),
+\(p(2) = 0.1875\), \(p(3) = 0.0502\); sum \(1.0000\) ✓. The nearest fraction \(\tfrac14\) again wins, with almost the same probability.</p>
+<p><strong>Check.</strong> The bound of P10: \(p(3) = 0.688\ge4/\pi^2 = 0.405\) ✓. And \(t = 1\) gives \(p(0) = \tfrac34/(4\cdot\tfrac34) = \tfrac14\), the Hadamard test's
+\(\cos^2(\pi/3)\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code># with qft() from P5's block
+import numpy as np
+from qclib import Circuit, gates
+t = 3
+c = Circuit(t + 1)
+c.x(t)                                   # |u> = |1> on the last qubit
+for q in range(t):
+    c.h(q)
+for q in range(t):                       # counting qubit q controls U^(2^(t-1-q))
+    c.controlled(gates.phase(2 * np.pi / 3 * 2**(t - 1 - q)), [q], [t])
+c.extend(qft(t).inverse())               # F^{-1} on qubits 0..t-1
+p = c.run().probabilities(list(range(t)))
+print(np.round(p, 4))   # [0.0156 0.0316 0.1749 0.6878 0.0469 0.0186 0.0126 0.0119]
+print(round(p.sum(), 10))  # 1.0</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Proof: \(4/\pi^2\), and how it is approached <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the two sine inequalities, concavity, a limit, why the nearest fraction and not the truncation</p>
+<div class="statement">
+<ol>
+<li>Prove that the outcome \(y^*\) nearest \(2^t\varphi\) has \(p(y^*)\ge4/\pi^2\).</li>
+<li>Take \(\varphi\) exactly halfway between two \(t\)-bit fractions. Show \(p(y^*) = 1/\big(4^t\sin^2(\pi/2^{t+1})\big)\), compute it for \(t = 1, \dots, 5\), and prove it
+decreases to \(4/\pi^2\). So no larger constant works for all \(t\).</li>
+<li>Show that no positive constant bounds the probability of the <em>truncation</em> \(\lfloor2^t\varphi\rfloor\) from below.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 bounds a fraction below: bound its numerator below and its denominator above. Part 2 is a sequence of numbers and its limit;
+part 3 is an example where \(2^t\varphi\) sits just below an integer.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(|\sin x|\le|x|\) everywhere; \(\sin x\ge\tfrac2\pi x\) on \([0, \tfrac\pi2]\) because \(\sin\) is concave there. For part 2, write \(p = \big(\tfrac2\pi\big)^2\big(\tfrac{x}{\sin x}\big)^2\) with
+\(x = \pi/2^{t+1}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: with \(|\delta|\le\tfrac12\), \(p(y^*) = \dfrac{\sin^2\pi\delta}{4^t\sin^2(\pi\delta/2^t)}\ge\dfrac{(2\delta)^2}{4^t(\pi\delta/2^t)^2}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> For small arguments sine is nearly linear, so the ratio of the two sines is nearly \(2^t\); the worst loss comes at the
+largest admissible \(\delta\), where the chord bound is tight.</p>
+<p><strong>1.</strong> If \(\delta = 0\), \(p = 1\). Otherwise: on \([0, \pi/2]\), \(\sin'' = -\sin\le0\), so \(\sin\) lies above its chord from \((0, 0)\) to \((\pi/2, 1)\): \(\sin x\ge2x/\pi\).
+With \(x = \pi|\delta|\le\pi/2\), \(|\sin\pi\delta|\ge2|\delta|\). And \(|\sin(\pi\delta/2^t)|\le\pi|\delta|/2^t\). Hence</p>
+\[ p(y^*)\ge\frac{4\delta^2}{4^t\cdot\pi^2\delta^2/4^t} = \frac4{\pi^2}.\ \ ∎ \]
+<p><strong>2.</strong> Halfway: \(\delta = \pm\tfrac12\), \(\sin^2(\pi/2) = 1\), so \(p(y^*) = 1/(4^t\sin^2(\pi/2^{t+1}))\). Values: \(t = 1\): \(1/(4\cdot\tfrac12) = 0.5000\); \(t = 2\): \(0.4268\); \(t = 3\):
+\(0.4105\); \(t = 4\): \(0.4066\); \(t = 5\): \(0.4056\). With \(x = \pi/2^{t+1}\), \(4^t = \pi^2/(4x^2)\), so \(p = \tfrac4{\pi^2}\big(\tfrac x{\sin x}\big)^2\). As \(t\) grows, \(x\) decreases to 0; \(x/\sin x\) is
+increasing on \((0, \pi/2]\) (its derivative is \((\sin x - x\cos x)/\sin^2x\), and \(\tan x\ge x\)), so it decreases to its limit 1 as \(x\downarrow0\). Hence \(p\)
+decreases to \(4/\pi^2 = 0.40528\), and is above it for every finite \(t\): the bound is sharp in the limit.</p>
+<p><strong>3.</strong> Let \(2^t\varphi = b + 1 - \eta\) with \(b\) an integer and \(0 \lt \eta \lt \tfrac12\). The truncation is \(b\), with \(\delta_b = 1 - \eta\), and
+\(p(b) = \sin^2(\pi\eta)/(4^t\sin^2(\pi(1 - \eta)/2^t))\le\pi^2\eta^2/(4^t\sin^2(\pi/2^{t+1}))\le\tfrac12\pi^2\eta^2\), using \(\pi/2^{t+1}\le\pi(1 - \eta)/2^t\le\pi/2\) (sine increases there) and part 2's largest value, \(\tfrac12\) at \(t = 1\). As \(\eta\to0\) this tends to 0, for every \(t\). The running
+example already shows it: \(\varphi = \tfrac13\), \(t = 3\), truncation \(\tfrac28\) has probability \(0.175\) against \(0.688\) for the nearest.</p>
+<p><strong>Check.</strong> The bound at \(t = 1\): halfway is \(\varphi = \tfrac14\), and the Hadamard test gives \(\cos^2(\pi/4) = \tfrac12\) on each outcome, matching \(0.5000\) ✓,
+above \(0.405\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Proof: counting qubits for \(n\) bits with confidence \(1 - \varepsilon\) <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: bounding the amplitude far from the peak, summing a tail by an integral, turning an error tolerance into a qubit count</p>
+<div class="statement">
+<p>Let \(N = 2^t\), \(b = \lfloor N\varphi\rfloor\), \(\Delta = N\varphi - b\in[0, 1)\), and \(\alpha_l\) the amplitude of outcome \((b + l)\bmod N\), for \(-N/2 \lt l\le N/2\).</p>
+<ol>
+<li>Prove \(|\alpha_l|\le1/(2|l - \Delta|)\).</li>
+<li>Prove \(\Pr(|l| \gt e)\le1/(2(e - 1))\) for every integer \(e\ge2\).</li>
+<li>Deduce that \(t = n + \lceil\log(2 + 1/(2\varepsilon))\rceil\) gives \(|\tilde\varphi - \varphi| \lt 2^{-n}\) (on the circle) with probability at least \(1 - \varepsilon\).</li>
+<li>Evaluate \(t\) for \(n = 10\) and \(\varepsilon = 0.01\), and for \(\varepsilon = 0.001\). How many extra qubits does each factor of 10 in \(\varepsilon\) cost?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the geometric sum of <i>The general case</i> with a crude bound on top and a chord bound below; part 2 sums the squares of part 1
+over the tails; part 3 picks \(e\) so that "\(|l|\le e\)" means "error below \(2^{-n}\)".</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(|1 - e^{i\theta}| = 2|\sin(\theta/2)|\ge2|\theta|/\pi\) for \(|\theta|\le\pi\), and the range of \(l\) keeps \(\theta = 2\pi(\Delta - l)/N\) inside \([-\pi, \pi]\). For the tails, \(l - \Delta \gt l - 1\) when
+\(l \gt 0\), and \(|l - \Delta|\ge|l|\) when \(l \lt 0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\alpha_l = \frac1N\sum_{x=0}^{N-1}e^{2\pi ix(\Delta - l)/N} = \frac1N\cdot\frac{1 - e^{2\pi i(\Delta - l)}}{1 - e^{2\pi i(\Delta - l)/N}}\), whose numerator has modulus at most 2.</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Far from the peak the amplitudes fall off like \(1/\text{distance}\), so probabilities like \(1/\text{distance}^2\), and a tail of
+\(1/l^2\) is small. Extra counting qubits beyond the \(n\) wanted widen the acceptable window in units of \(2^{-t}\).</p>
+<p><strong>1.</strong> The geometric sum has ratio \(e^{2\pi i(\Delta - l)/N}\ne1\) (unless \(\Delta = l = 0\), where \(|\alpha_0| = 1\) and the bound is vacuous). The numerator has
+modulus \(\le2\). With \(\theta = 2\pi(\Delta - l)/N\): for \(-N/2 \lt l\le N/2\) and \(0\le\Delta \lt 1\), \(\Delta - l\in[-N/2, N/2)\), so \(|\theta|\le\pi\), and
+\(|1 - e^{i\theta}| = 2|\sin(\theta/2)|\ge\tfrac2\pi|\theta|\) (P10's chord bound). So \(|\alpha_l|\le\frac1N\cdot\frac{2}{(2/\pi)\cdot2\pi|\Delta - l|/N} = \frac1{2|l - \Delta|}\).</p>
+<p><strong>2.</strong> For \(l\ge e + 1\): \(l - \Delta \gt l - 1\ge e\ge1\). For \(l\le-(e + 1)\): \(|l - \Delta| = |l| + \Delta\ge|l|\). So</p>
+\[ \Pr(|l| \gt e)\le\frac14\Big[\sum_{l\ge e+1}\frac1{(l - 1)^2} + \sum_{l\ge e+1}\frac1{l^2}\Big]\le\frac12\sum_{m\ge e}\frac1{m^2}\le\frac12\int_{e-1}^\infty\frac{\mathrm dm}{m^2} = \frac1{2(e - 1)}, \]
+<p>since \(1/m^2\le\int_{m-1}^m\mathrm dx/x^2\).</p>
+<p><strong>3.</strong> Take \(e = 2^{t-n} - 1\). If \(|l|\le e\): for \(l\ge0\), \(-1 \lt l - \Delta\le e\); for \(l \lt 0\), \(|l - \Delta| = |l| + \Delta \lt e + 1\). Either way
+\(|\tilde\varphi - \varphi| = |l - \Delta|/2^t \lt (e + 1)/2^t = 2^{-n}\). The failure probability is at most \(\frac1{2(e - 1)} = \frac1{2(2^{t-n} - 2)}\), which is \(\le\varepsilon\) iff
+\(2^{t-n}\ge2 + \frac1{2\varepsilon}\), i.e. \(t - n\ge\log(2 + \frac1{2\varepsilon})\). The least integer such \(t\) is the one stated. ∎</p>
+<p><strong>4.</strong> \(\varepsilon = 0.01\): \(2 + 50 = 52\), \(\log52 = 5.70\), so \(t = 10 + 6 = 16\), and the guaranteed failure is \(\frac1{2(64 - 2)} = \frac1{124} = 0.0081\).
+\(\varepsilon = 0.001\): \(2 + 500 = 502\), \(\log502 = 8.97\), \(t = 19\). Each factor of 10 costs about \(\log10\approx3.3\) qubits, since \(\log(1/2\varepsilon)\) dominates.</p>
+<p><strong>Check.</strong> Evaluating the exact distribution at \(t = 16\) over 2000 values of \(\varphi\), the largest probability of an error \(\ge2^{-10}\) is about
+\(0.0032\): below the guaranteed \(0.0081\) ✓, so the bound is safe and about 2.5 times pessimistic. Dimensionally, \(e\) counts outcomes and
+\(2^{-t}\) is the outcome spacing, so \((e + 1)2^{-t} = 2^{-n}\) is a phase ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> A superposition input, and a global phase that is not global <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: phase estimation on a superposition of eigenvectors, the post-measurement state, why a controlled gate sees the phase of \(U\)</p>
+<div class="statement">
+<p>Let \(U = \mathrm{diag}(i, -i)\): eigenvectors \(\ket{u_1} = \ket0\) with phase \(\tfrac14\), \(\ket{u_2} = \ket1\) with phase \(\tfrac34\). Use \(t = 2\) counting qubits.</p>
+<ol>
+<li>With input \(\tfrac1{\sqrt2}(\ket{u_1} + \ket{u_2}) = \ket+\), find the outcome distribution and, for each outcome, the state of the target afterwards.</li>
+<li>Now use \(U' = Z\), which equals \(U\) up to the global phase \(-i\). Repeat part 1. Why is the answer different, when \(U\) and \(U'\) are the "same
+gate"?</li>
+<li>With input \(\cos\theta\ket0 + \sin\theta\ket1\) and the original \(U\), what is the distribution?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Use <i>A superposition of eigenvectors: a sample of one phase</i>: each eigenvector contributes its own distribution, weighted by
+\(|c_s|^2\). With \(t = 2\) both phases here are exact two-bit fractions.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(\tfrac14\) and \(\tfrac34\) as two-bit binary fractions: which case of <i>What the register holds before the inverse QFT</i> is this?
+For \(U' = Z\), find its eigenphases first. A controlled gate
+\(C(e^{i\alpha}V)\) equals \((P(\alpha)\otimes I)\,C(V)\), not \(C(V)\) (unit 10).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: the final state is \(\tfrac1{\sqrt2}\big(\ket{01}\ket{u_1} + \ket{11}\ket{u_2}\big)\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Phase estimation acts on each eigenvector separately and the eigenvectors are orthogonal, so the outcome is a sample of
+one eigenphase — and the eigenphase includes any "global" phase of \(U\), because the controlled gate turns it into a relative one.</p>
+<p><strong>1.</strong> \(2^2\cdot\tfrac14 = 1\) and \(2^2\cdot\tfrac34 = 3\), both integers: the exact case. So the final state is \(\tfrac1{\sqrt2}(\ket{01}\ket0 + \ket{11}\ket1)\): outcome
+\(01\) (estimate \(\tfrac14\)) with probability \(\tfrac12\), leaving the target in \(\ket0\); outcome \(11\) (estimate \(\tfrac34\)) with probability \(\tfrac12\), leaving \(\ket1\). The
+measurement has projected the target onto an eigenvector.</p>
+<p><strong>2.</strong> \(Z\) has phases \(0\) on \(\ket0\) and \(\tfrac12\) on \(\ket1\): outcomes \(00\) and \(10\), probability \(\tfrac12\) each, targets \(\ket0\) and \(\ket1\). The difference is
+real: \(C(U) = C(iZ) = (S\otimes I)\,C(Z)\), an extra \(S\) on the control. Controlled, the factor \(i\) multiplies only the branch where the control is
+\(\ket1\), which is a relative phase. Here even \(C(U^2) = C(-I) = Z\otimes I\) acts — on the control alone — though \(U^2 = -I\) does nothing to any
+state of the target. Phase estimation measures the eigenvalues of the operator you control, phase included.</p>
+<p><strong>3.</strong> Weights \(\cos^2\theta\) and \(\sin^2\theta\): outcome \(01\) with probability \(\cos^2\theta\), \(11\) with \(\sin^2\theta\); total \(1\) ✓.</p>
+<p><strong>Check.</strong> The distributions in parts 1 and 2 sum to \(\tfrac12 + \tfrac12 = 1\) ✓. Part 2 is part 1 shifted by \(-\tfrac14\) in phase, i.e. \(-1\) in outcome:
+\(1\to0\), \(3\to2\) ✓, as \(U' = e^{-2\pi i/4}U\).</p>
+<h4>With the referee</h4>
+<pre><code># with qft() from P5's block
+import numpy as np
+from qclib import Circuit
+U = np.diag([1j, -1j])                   # phases 1/4 on |0>, 3/4 on |1>
+c = Circuit(3)
+c.h(0).h(1).h(2)                         # qubit 2 = (|u1> + |u2>)/sqrt2 = |+>
+c.controlled(U @ U, [0], [2]).controlled(U, [1], [2])
+c.extend(qft(2).inverse())
+print(np.round(c.run().probabilities([0, 1]), 4))   # [0.  0.5 0.  0.5]</code></pre>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 15</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

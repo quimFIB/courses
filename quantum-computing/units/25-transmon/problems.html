@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>25 · Problems — The physical qubit: driving a transmon, and the third level that will not stay empty</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="e">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part E · unit 25 · problems</p>
+<h1>The physical qubit: driving a transmon, and the third level that will not stay empty</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u25">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> You derive the rotating-frame Hamiltonian of a driven three-level transmon under
+the rotating-wave approximation, \(\tilde H = \alpha\ket2\!\bra2 + \tfrac{\Omega_x}{2}(b + b^\dagger) + \tfrac{\Omega_y}{2}(ib^\dagger - ib)\);
+compute the \(3.0\times10^{-4}\) leakage of a 10 ns Gaussian \(\pi\)-pulse at \(\alpha/2\pi = -250\) MHz, and what the derivative
+correction does to it (\(3.9\times10^{-6}\), while the miss rises to \(2.8\%\)); and say which of leakage, Stark shift and \(T_1\)
+dominates the gate error — the Stark shift, then leakage, then \(T_1\) (\(t/3T_1 = 3.3\times10^{-5}\)).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first; the numerical ones need a short loop, which you may
+write in anything — the referee blocks show one.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the <strong>first</strong> slot; \(\ket0, \ket1, \ket2\) are the
+transmon's lowest levels; \(n = \mathrm{diag}(0, 1, 2)\); the truncated lowering operator has \(b\ket1 = \ket0\), \(b\ket2 = \sqrt2\ket1\),
+\(b\ket0 = 0\). \(R_x(\theta) = e^{-i\theta X/2}\). With \(\hbar = 1\), frequencies are in rad/ns and times in ns; \(\alpha = -2\pi\times0.25 =
+-1.5708\) rad/ns and \(\omega = 2\pi\times5\) rad/ns unless a problem says otherwise.</p>
+<p>The drive is \(H_d = (\Omega_x\cos\omega t + \Omega_y\sin\omega t)(b + b^\dagger)\), and after the rotating-wave approximation
+the model is \(\tilde H(t) = \alpha\ket2\!\bra2 + \tfrac{\Omega_x}{2}(b + b^\dagger) + \tfrac{\Omega_y}{2}(ib^\dagger - ib)\). A <strong>Gaussian
+\(\pi\)-pulse</strong> of duration \(T\) has \(\sigma = T/4\), \(\Omega_x(t) = A[e^{-(t - T/2)^2/2\sigma^2} - e^{-2}]\) on \([0, T]\), and \(A\) chosen so
+that \(\int_0^T\Omega_x = \pi\); for \(T = 10\), \(A = 0.6788\) rad/ns. DRAG is \(\Omega_y = -\lambda\Omega_x'/\alpha\); the detuning knob adds
+\(c\,\Omega_x^2n/\alpha\) to \(\tilde H\). "Leakage" is \(P_2\) and "the miss" is \(1 - P_1\), both at the end of a pulse started in \(\ket0\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="medium" href="#p1" title="Derive the rotating-frame Hamiltonian">P1</a></li>
+<li><a class="routine" href="#p2" title="The √2 and the leakage transition">P2</a></li>
+<li><a class="medium" href="#p3" title="Piecewise-constant error">P3</a></li>
+<li><a class="medium" href="#p4" title="A harmonic oscillator cannot be a qubit">P4</a></li>
+<li><a class="routine" href="#p5" title="Two levels are not enough">P5</a></li>
+<li><a class="medium" href="#p6" title="Leakage against duration">P6</a></li>
+<li><a class="hard" href="#p7" title="The leakage formula, and smoother pulses">P7</a></li>
+<li><a class="medium" href="#p8" title="DRAG">P8</a></li>
+<li><a class="routine" href="#p9" title="The AC Stark shift">P9</a></li>
+<li><a class="medium" href="#p10" title="The detuning">P10</a></li>
+<li><a class="medium" href="#p11" title="t/3T₁">P11</a></li>
+<li><a class="hard" href="#p12" title="Which dominates">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The model and the frame</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Derive the rotating-frame Hamiltonian <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the rotating frame as a time-dependent change of basis, conjugating the ladder operator, the rotating-wave approximation; a proof</p>
+<div class="statement">
+<ol>
+<li>Prove that if \(i\partial_t\ket\psi = H(t)\ket\psi\) and \(\ket{\tilde\psi} = e^{iGt}\ket\psi\) for a fixed Hermitian \(G\), then
+\(i\partial_t\ket{\tilde\psi} = \big(e^{iGt}He^{-iGt} - G\big)\ket{\tilde\psi}\).</li>
+<li>With \(G = \omega n\) and \(H = \omega n + \tfrac\alpha2 n(n - 1) + H_d\), compute \(\tilde H\) <em>exactly</em>, every term.</li>
+<li>Make the rotating-wave approximation: say which terms are dropped, at what frequency they turn, and the condition that
+justifies dropping them. Write the result as a \(3\times3\) matrix and check it is Hermitian.</li>
+<li>Restrict to \(\ket0, \ket1\) and identify the result with a rotation of the Bloch sphere.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 2 is a \(3\times3\) Hermitian matrix depending on \(t\) through \(\Omega_x\), \(\Omega_y\) and factors
+\(e^{\pm2i\omega t}\). Everything follows from one fact: how \(e^{i\omega nt}\) conjugates \(b\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Test \(e^{i\omega nt}be^{-i\omega nt}\) on a basis vector \(\ket k\). For the products, write \(\cos\omega t\) and \(\sin\omega t\) as
+exponentials and multiply out.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(e^{i\omega nt}be^{-i\omega nt}\ket k = e^{i\omega nt}\,b\,e^{-i\omega kt}\ket k = e^{-i\omega kt}\sqrt k\,e^{i\omega(k - 1)t}\ket{k - 1}
+= e^{-i\omega t}b\ket k\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Differentiate the change of basis (that gives the \(-G\)), then conjugate each operator in \(H\): the
+number operator is unchanged, \(b\) picks up \(e^{-i\omega t}\), and the drive's \(\cos\) and \(\sin\) split each product into a
+slow part and a part turning at \(2\omega\).</p>
+<p><strong>1.</strong> \(i\partial_t(e^{iGt}\psi) = i(iG)e^{iGt}\psi + e^{iGt}(i\partial_t\psi) = -Ge^{iGt}\psi + e^{iGt}He^{-iGt}\,e^{iGt}\psi\), using
+\(e^{-iGt}e^{iGt} = I\). That is the claim.</p>
+<p><strong>2.</strong> \(n\) commutes with \(e^{i\omega nt}\), so \(\omega n + \tfrac\alpha2n(n - 1)\) is unchanged and, minus \(G = \omega n\), leaves
+\(\tfrac\alpha2n(n - 1) = \mathrm{diag}(0, 0, \alpha) = \alpha\ket2\!\bra2\). By rung 3, \(b \mapsto e^{-i\omega t}b\), and taking adjoints
+\(b^\dagger \mapsto e^{i\omega t}b^\dagger\). So the drive becomes \((\Omega_x\cos\omega t + \Omega_y\sin\omega t)(e^{-i\omega t}b + e^{i\omega t}b^\dagger)\). With
+\(\cos\omega t\,e^{\mp i\omega t} = \tfrac12(1 + e^{\mp2i\omega t})\), \(\sin\omega t\,e^{-i\omega t} = \tfrac1{2i}(1 - e^{-2i\omega t})\) and
+\(\sin\omega t\,e^{i\omega t} = \tfrac1{2i}(e^{2i\omega t} - 1)\):</p>
+\[\begin{aligned}\tilde H &amp;= \alpha\ket2\!\bra2 + \tfrac{\Omega_x}2(b + b^\dagger) + \tfrac{\Omega_y}2(ib^\dagger - ib)\\
+&amp;\quad + \tfrac{\Omega_x}2\big(e^{-2i\omega t}b + e^{2i\omega t}b^\dagger\big) + \tfrac{\Omega_y}2\big(ie^{-2i\omega t}b - ie^{2i\omega t}b^\dagger\big),\end{aligned}\]
+<p>using \(\tfrac1{2i}(b - b^\dagger) = \tfrac12(ib^\dagger - ib)\). This is exact.</p>
+<p><strong>3.</strong> The last two brackets turn at \(2\omega\) (period \(\pi/\omega = 0.1\) ns). The rotating-wave approximation drops them;
+it is justified when every rate in the kept part is small against \(\omega\): \(|\Omega_x|, |\Omega_y|, |\alpha| \ll \omega\), with envelopes
+varying slowly on the scale \(1/\omega\). Its first correction is unit 02's Bloch–Siegert shift \(\approx\Omega^2/4\omega\). The result, with
+\(\braket{1|b^\dagger|0} = 1\) and \(\braket{2|b^\dagger|1} = \sqrt2\):</p>
+\[\tilde H = \begin{pmatrix}0 &amp; \frac{\Omega_x - i\Omega_y}2 &amp; 0\\ \frac{\Omega_x + i\Omega_y}2 &amp; 0 &amp; \frac{\Omega_x - i\Omega_y}{\sqrt2}\\ 0 &amp; \frac{\Omega_x + i\Omega_y}{\sqrt2} &amp; \alpha\end{pmatrix}.\]
+<p>Each entry below the diagonal is the complex conjugate of its mirror, and the diagonal is real: Hermitian.</p>
+<p><strong>4.</strong> Deleting row and column 2 leaves \(\tfrac12\begin{pmatrix}0 &amp; \Omega_x - i\Omega_y\\ \Omega_x + i\Omega_y &amp; 0\end{pmatrix} =
+\tfrac12(\Omega_xX + \Omega_yY)\): a rotation about the axis \((\Omega_x, \Omega_y, 0)\) at rate \(\sqrt{\Omega_x^2 + \Omega_y^2}\). With
+\(\Omega_y = 0\) it generates \(R_x\).</p>
+<p><strong>Check.</strong> With the drive off, \(\tilde H = \alpha\ket2\!\bra2\): in the frame turning at \(\omega\), \(\ket0\) and \(\ket1\) stand still
+and \(\ket2\) turns at \(\alpha\), because its lab frequency \(2\omega + \alpha\) exceeds \(2\omega\) by \(\alpha\) ✓. Dimensions: every term is
+a frequency ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> The √2 and the leakage transition <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: matrix elements of the truncated ladder, the detuning of the leakage transition, unit 02's Rabi formula; ends in a number</p>
+<div class="statement">
+<ol>
+<li>Find the eigenvalues of \(M = b + b^\dagger\) on three levels, and \(\lVert M\rVert\).</li>
+<li>In \(\tilde H\) with \(\Omega_y = 0\), what are the coupling and the detuning of the pair \(\ket0, \ket1\), and of the pair \(\ket1, \ket2\)?</li>
+<li>Suppose the drive were held constant at the peak of the 10 ns pulse, \(\Omega = 0.587\) rad/ns, and the qubit started in
+\(\ket1\). Using unit 02's Rabi formula on the pair \(\ket1, \ket2\) alone, what is the largest population \(\ket2\) could reach?
+Repeat for the 4 ns pulse's peak, \(\Omega = 1.467\) rad/ns.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a characteristic polynomial of a real symmetric \(3\times3\); part 3 is one number from unit 02, the peak of a detuned
+Rabi oscillation.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 02: a two-level system with Rabi frequency \(\Omega_{\rm R}\) and detuning \(\Delta\) reaches at most
+\(\Omega_{\rm R}^2/(\Omega_{\rm R}^2 + \Delta^2)\). Identify \(\Omega_{\rm R}\) and \(\Delta\) from the \(\ket1\)–\(\ket2\) block of \(\tilde H\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>The block is \(\begin{pmatrix}0 &amp; \Omega/\sqrt2\\ \Omega/\sqrt2 &amp; \alpha\end{pmatrix}\); compare with \(\tfrac12\begin{pmatrix}-\Delta &amp; \Omega_{\rm R}\\ \Omega_{\rm R} &amp; \Delta\end{pmatrix}\)
+plus a multiple of \(I\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The leakage pair is a detuned Rabi problem with a stronger coupling: read its two parameters off the
+matrix and apply unit 02.</p>
+<p><strong>1.</strong> \(M = \begin{pmatrix}0 &amp; 1 &amp; 0\\ 1 &amp; 0 &amp; \sqrt2\\ 0 &amp; \sqrt2 &amp; 0\end{pmatrix}\), \(\det(M - \lambda I) = -\lambda(\lambda^2 - 2) - (-\lambda) =
+-\lambda^3 + 3\lambda\). Eigenvalues \(0, \pm\sqrt3\); \(M\) is Hermitian, so \(\lVert M\rVert = \sqrt3 = 1.732\).</p>
+<p><strong>2.</strong> \(\ket0, \ket1\): diagonal entries \(0, 0\), so detuning \(0\) (resonant), coupling \(\braket{1|\tilde H|0} = \Omega/2\).
+\(\ket1, \ket2\): diagonal entries \(0, \alpha\), so detuning \(\alpha\), coupling \(\braket{2|\tilde H|1} = \Omega/\sqrt2\), larger by \(\sqrt2\).</p>
+<p><strong>3.</strong> The block equals \(\tfrac\alpha2I + \tfrac12\begin{pmatrix}-\alpha &amp; \sqrt2\Omega\\ \sqrt2\Omega &amp; \alpha\end{pmatrix}\): Rabi frequency
+\(\Omega_{\rm R} = \sqrt2\Omega\), detuning \(\Delta = \alpha\) (the constant is a global phase). The peak population is</p>
+\[\frac{2\Omega^2}{2\Omega^2 + \alpha^2} = \frac{2(0.587)^2}{2(0.587)^2 + 1.5708^2} = \frac{0.689}{3.156} = 0.218\quad(10\text{ ns peak}),\]
+\[\frac{2(1.467)^2}{2(1.467)^2 + 2.467} = \frac{4.306}{6.774} = 0.636\quad(4\text{ ns peak}).\]
+<p>So a drive held at the 4 ns pulse's peak could push nearly two thirds of \(\ket1\) up the ladder; the slide's quarter
+at 4 ns is that, softened by the pulse's rise and fall.</p>
+<p><strong>Check.</strong> \(\Omega \to 0\) gives \(0\); \(\alpha \to 0\) gives \(1\), full transfer on resonance, as unit 02 says ✓. In MHz: the
+leakage Rabi frequency \(\sqrt2\Omega/2\pi\) is \(132\) MHz at the 10 ns peak, against \(|\alpha|/2\pi = 250\) MHz — the same order, which is
+why the third level matters.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Piecewise-constant error <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: comparing two evolutions, the telescoping bound, choosing a step; a proof that ends in a number</p>
+<div class="statement">
+<ol>
+<li>Let \(iU' = H(t)U\) and \(iW' = K(t)W\) with \(U(0) = W(0) = I\) and \(H, K\) Hermitian. Prove
+\(\lVert U(t) - W(t)\rVert \le \int_0^t\lVert H - K\rVert\).</li>
+<li>Prove that for unitaries \(\lVert A_N\cdots A_1 - B_N\cdots B_1\rVert \le \sum_k\lVert A_k - B_k\rVert\).</li>
+<li>Deduce that midpoint steps of length \(\Delta t = T/N\) approximate \(U(T, 0)\) to within \(MT\Delta t/4\), \(M = \max\lVert H'\rVert\).</li>
+<li>For the 10 ns Gaussian \(\pi\)-pulse (\(\Omega_y = 0\)), how many steps does the bound require for accuracy \(10^{-6}\)? Use
+\(\max|\Omega_x'| = A/(\sigma\sqrt e)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is about the single operator \(W^\dagger U\), which equals \(I\) when the two evolutions agree. Part 4 is a
+number of steps, millions or fewer.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Differentiate \(W^\dagger U\) and integrate. For part 2, write the difference as a sum of \(N\) terms, each with one factor
+\(A_k - B_k\). For part 3, apply part 1 on each step with \(K\) constant.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \((W^\dagger U)' = (W')^\dagger U + W^\dagger U' = (iW^\dagger K)U + W^\dagger(-iHU) = -iW^\dagger(H - K)U\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two evolutions drift apart at most at the rate their generators differ; per step that is \(O(\Delta t^2)\), and
+\(N\) steps add.</p>
+<p><strong>1.</strong> From rung 3, integrating with \(W^\dagger U = I\) at \(0\): \(W^\dagger(t)U(t) - I = -i\int_0^tW^\dagger(H - K)U\). Unitaries
+have norm \(1\) and \(\lVert XY\rVert \le \lVert X\rVert\lVert Y\rVert\), so \(\lVert W^\dagger U - I\rVert \le \int_0^t\lVert H - K\rVert\). Finally
+\(\lVert U - W\rVert = \lVert W(W^\dagger U - I)\rVert = \lVert W^\dagger U - I\rVert\).</p>
+<p><strong>2.</strong> \(A_N\cdots A_1 - B_N\cdots B_1 = \sum_{k=1}^NA_N\cdots A_{k+1}(A_k - B_k)B_{k-1}\cdots B_1\) (expand: consecutive terms cancel
+in pairs). Each product of unitaries has norm \(1\).</p>
+<p><strong>3.</strong> Let \(U_k\) be the exact evolution over step \(k\) (it composes: \(U(T, 0) = U_N\cdots U_1\)). On that step, with
+\(K = H(t_k)\) constant, part 1 gives \(\lVert U_k - e^{-iH(t_k)\Delta t}\rVert \le \int\lVert H(t) - H(t_k)\rVert dt \le M\int|t - t_k|\,dt = M\Delta t^2/4\), since
+\(|t - t_k| \le \Delta t/2\) and \(\int_{-\Delta t/2}^{\Delta t/2}|u|\,du = \Delta t^2/4\). Part 2 sums \(N\) of these: \(NM\Delta t^2/4 = MT\Delta t/4\).</p>
+<p><strong>4.</strong> \(H' = \tfrac12\Omega_x'M\) with \(\lVert M\rVert = \sqrt3\) (P2), and \(\max|\Omega_x'| = 0.6788/(2.5\times1.6487) = 0.1647\) rad/ns², so
+\(M_{H} = \tfrac{\sqrt3}2\times0.1647 = 0.1426\) rad/ns². Accuracy \(10^{-6}\) needs \(\Delta t \le 4\times10^{-6}/(0.1426\times10) = 2.8\times10^{-6}\) ns,
+i.e. \(N \ge 10/2.8\times10^{-6} = 3.6\times10^6\) steps.</p>
+<p><strong>Check.</strong> The bound is linear in \(\Delta t\), as it should be for an error per step of \(\Delta t^2\) summed over \(1/\Delta t\)
+steps; with \(H\) constant, \(M = 0\) and the bound says the steps are exact, which they are ✓. In practice midpoints do much better:
+the error is \(O(\Delta t^2)\) (not proved here), falling fourfold per doubling of \(N\), and about \(1000\) steps already give \(10^{-6}\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg
+alpha = -2 * np.pi * 0.25                              # rad/ns
+b = np.diag([1, np.sqrt(2)], k=1)                      # truncated lowering operator
+n = np.diag([0, 1, 2])
+
+def pulse(T, lam=0.0, c=0.0, steps=4000):
+    """Gaussian pi-pulse, sigma = T/4, offset to start at zero; returns the final 3x3 unitary."""
+    s, m = T / 4, T / 2
+    env = lambda t: np.exp(-(t - m)**2 / (2 * s * s)) - np.exp(-2)
+    denv = lambda t: -(t - m) / (s * s) * np.exp(-(t - m)**2 / (2 * s * s))
+    grid = np.linspace(0, T, 100001)
+    A = np.pi / np.trapezoid(env(grid), grid)          # area pi
+    dt, U = T / steps, np.eye(3, dtype=complex)
+    for t in (np.arange(steps) + 0.5) * dt:            # midpoints
+        ox, oy = A * env(t), -lam * A * denv(t) / alpha
+        H = (alpha * n * (n - 1) / 2 + c * ox**2 / alpha * n
+             + ox / 2 * (b + b.T) + oy / 2 * (1j * b.T - 1j * b))
+        U = linalg.exp_hermitian(H, -1j * dt) @ U
+    return U
+
+exact = pulse(10, steps=64000)
+for N in (250, 500, 1000, 2000):
+    print(N, f"{linalg.op_norm(pulse(10, steps=N) - exact):.1e}")
+# 250 1.4e-05   500 3.4e-06   1000 8.6e-07   2000 2.1e-07   (fourfold per doubling)</code></pre>
+<p>The function <code>pulse</code> is reused by the referee blocks of P5, P6, P8 and P10.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> A harmonic oscillator cannot be a qubit <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: commuting time-dependent Hamiltonians, Cayley–Hamilton, functional calculus; a proof</p>
+<div class="statement">
+<p>Set \(\alpha = 0\) and \(\Omega_y = 0\), with \(\Omega_x(t)\) any real envelope of area \(\theta\), on three levels.</p>
+<ol>
+<li>Prove that \(U(T, 0) = e^{-i\theta M/2}\) with \(M = b + b^\dagger\), whatever the envelope's shape.</li>
+<li>Find \(P_0, P_1, P_2\) from \(\ket0\) as functions of \(\theta\), and prove \(P_1 \le \tfrac13\) for every pulse.</li>
+<li>Evaluate them at \(\theta = \pi\), and find the area at which \(P_1\) first reaches \(\tfrac13\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the area theorem with a \(3\times3\) matrix in place of \(X\). Part 2 needs \(e^{-ixM}\) in closed form; the tool is a
+polynomial identity for \(M\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(M\)'s eigenvalues are \(0, \pm\sqrt3\) (P2), so by Cayley–Hamilton \(M^3 = 3M\). Split the exponential series into odd and even
+powers.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(e^{-ixM} = I + \sum_{k\ge1}\frac{(-ix)^{2k}3^{k-1}}{(2k)!}M^2 + \sum_{k\ge0}\frac{(-ix)^{2k+1}3^k}{(2k+1)!}M\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> With no anharmonicity every instant's Hamiltonian is a multiple of one matrix, so only the area matters,
+and the matrix's cubic identity gives the exponential exactly.</p>
+<p><strong>1.</strong> \(\tilde H(t) = \tfrac{\Omega_x(t)}2M\). Let \(\Theta(t) = \int_0^t\Omega_x\). Then \(\tfrac{d}{dt}e^{-i\Theta M/2} = -\tfrac i2\Omega_xMe^{-i\Theta M/2}\) (the
+series differentiates term by term, and \(M\) commutes with itself), and it is \(I\) at \(t = 0\). By uniqueness it is the propagator;
+at \(T\), \(\Theta = \theta\).</p>
+<p><strong>2.</strong> From rung 3, the even part is \(I + \tfrac{M^2}3\sum_{k\ge1}\frac{(-1)^k(\sqrt3x)^{2k}}{(2k)!} = I + \tfrac{\cos\sqrt3x - 1}3M^2\) and the odd part
+is \(-\tfrac{i}{\sqrt3}\sum_k\frac{(-1)^k(\sqrt3x)^{2k+1}}{(2k+1)!}M = -i\tfrac{\sin\sqrt3x}{\sqrt3}M\). With \(M\ket0 = \ket1\), \(M^2\ket0 = \ket0 + \sqrt2\ket2\),
+\(x = \theta/2\) and \(s = \sqrt3\theta/2\):</p>
+\[e^{-i\theta M/2}\ket0 = \tfrac{2 + \cos s}3\ket0 - i\tfrac{\sin s}{\sqrt3}\ket1 + \tfrac{\sqrt2(\cos s - 1)}3\ket2,\]
+\[P_0 = \Big(\tfrac{2 + \cos s}3\Big)^2,\quad P_1 = \tfrac{\sin^2s}3 \le \tfrac13,\quad P_2 = \tfrac{2(1 - \cos s)^2}9 .\]
+<p><strong>3.</strong> At \(\theta = \pi\): \(s = 2.7207\), \(\cos s = -0.9127\), \(\sin s = 0.4086\); \(P_0 = 0.1314\), \(P_1 = 0.0556\), \(P_2 = 0.8130\). \(P_1 = \tfrac13\)
+needs \(\sin^2s = 1\), first at \(s = \pi/2\), i.e. \(\theta = \pi/\sqrt3 = 1.814\) — and there \(P_0 = \tfrac49\), \(P_2 = \tfrac29\).</p>
+<p><strong>Check.</strong> Normalisation: \(\tfrac{(2 + c)^2 + 3(1 - c^2) + 2(1 - c)^2}{9} = \tfrac{9}{9} = 1\) for every \(c = \cos s\) ✓; at \(\theta = \pi\),
+\(0.1314 + 0.0556 + 0.8130 = 1.0000\) ✓. At \(s = \pi/2\): \(\tfrac49 + \tfrac13 + \tfrac29 = 1\) ✓. Small \(\theta\): \(P_1 \approx \tfrac{3\theta^2/4}{3} = \theta^2/4 = \sin^2(\theta/2)\) to
+leading order, the two-level answer — for a weak pulse the ladder is not yet climbed ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Leakage</h2>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Two levels are not enough <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the area theorem, reading a three-level computation against a two-level one; ends in a number</p>
+<div class="statement">
+<ol>
+<li>On two levels, what does the 10 ns Gaussian \(\pi\)-pulse do to \(\ket0\)? Prove it, without computing anything about the
+envelope beyond its area.</li>
+<li>The three-level evolution of the same pulse gives \(P_0 = 0.02534\), \(P_1 = 0.97436\), \(P_2 = 3.0\times10^{-4}\). How large is the
+two-level model's error in \(P_1\), and where did the missing population go?</li>
+<li>Explain why a longer pulse of the same area would make the two models agree better.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a rotation of the Bloch sphere; part 2 is a subtraction and a split of \(1 - P_1\) into two populations.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>On two levels with \(\Omega_y = 0\), all the \(\tilde H(t)\) are multiples of \(X\). For part 3, ask how \(\Omega\) compares with \(|\alpha|\) as
+\(T\) grows.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\tilde H_{\rm qubit}(t) = \tfrac{\Omega_x(t)}2X\), so \(U = R_x(\int\Omega_x) = R_x(\pi) = -iX\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two levels see only the area, so they promise perfection; every deviation in the three-level answer is
+the third level's doing.</p>
+<p><strong>1.</strong> By the area theorem (all instants commute), \(U = R_x(\pi) = -iX\), so \(\ket0 \mapsto -i\ket1\): \(P_1 = 1\) exactly.</p>
+<p><strong>2.</strong> The two-level model overstates \(P_1\) by \(1 - 0.97436 = 0.02564\), i.e. \(2.6\%\). Of that, \(P_0 = 0.02534\) never left \(\ket0\)
+and \(P_2 = 0.00030\) leaked: \(0.02534 + 0.00030 = 0.02564\) ✓. So the miss is \(99\%\) a rotation that fell short, \(1\%\) leakage — the third
+level matters mainly by moving the qubit's frequency (the Stark shift), not by stealing population.</p>
+<p><strong>3.</strong> Area \(\pi\) fixes \(\int\Omega_x\), so the drive strength scales as \(1/T\). The third level's effects are controlled by
+\(\Omega/|\alpha|\): the Stark miss is \(\approx 2.6/T^2\) (\(T\) in ns) and leakage falls faster still. As \(T\) grows, \(\ket2\) is ever further
+off-resonant compared with the drive, and the three-level answer tends to the two-level one.</p>
+<p><strong>Check.</strong> \(0.02534 + 0.97436 + 0.00030 = 1.00000\) ✓. At 20 ns the three-level miss is \(0.65\%\), a quarter of \(2.6\%\), as \(1/T^2\) predicts ✓.</p>
+<h4>With the referee</h4>
+<pre><code># with pulse() from P3's block
+from qclib import gates
+U3 = pulse(10)
+print([f"{abs(U3[k, 0])**2:.5f}" for k in range(3)])          # ['0.02534', '0.97436', '0.00030']
+s, m = 2.5, 5
+env = lambda t: np.exp(-(t - m)**2 / (2 * s * s)) - np.exp(-2)
+grid = np.linspace(0, 10, 100001); A = np.pi / np.trapezoid(env(grid), grid)
+U2 = np.eye(2)
+for t in (np.arange(4000) + 0.5) * 10 / 4000:
+    U2 = linalg.exp_hermitian(A * env(t) / 2 * gates.X, -1j * 10 / 4000) @ U2
+print(linalg.equal_up_to_phase(U2, gates.rx(np.pi), atol=1e-6))  # True: two levels give R_x(pi)</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Leakage against duration <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the piecewise-constant evolution, the leading-order leakage formula, spectral width against anharmonicity; ends in a number</p>
+<div class="statement">
+<ol>
+<li>Compute the leakage \(P_2\) of Gaussian \(\pi\)-pulses of 4, 6, 8, 10 and 20 ns.</li>
+<li>Use \(P_2 \approx \Omega_x'(T)^2/2\alpha^4\) to predict the 20 ns value on paper, and compare.</li>
+<li>Explain the trend: why leakage falls like \(T^{-4}\) for long pulses, and why the formula fails at 4 ns.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is five numbers from a short loop: the deck's worked example, repeated. Part 2 needs only \(\Omega_x'\) at the end of the
+pulse.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\Omega_x'(T) = -2Ae^{-2}/\sigma\), and since every time scales with \(T\), \(AT = 6.788\) for all durations. For part 3 compare the
+pulse's spectral width, about \(1/\sigma\), with \(|\alpha|\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: at \(T = 20\), \(A = 0.3394\), \(\sigma = 5\), so \(|\Omega_x'(T)| = 2\times0.3394\times0.13534/5 = 0.01837\) rad/ns².</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Leakage is the Fourier transform of a smooth function at the frequency \(\alpha\); for long pulses only the kink at
+the switch-off contributes, and its size scales as \(1/T^2\).</p>
+<p><strong>1.</strong> With 4000 midpoint steps each:</p>
+<table>
+<tr><th>\(T\) (ns)</th><td>4</td><td>6</td><td>8</td><td>10</td><td>20</td></tr>
+<tr><th>\(P_2\)</th><td>\(0.252\)</td><td>\(0.0468\)</td><td>\(1.92\times10^{-3}\)</td><td>\(3.00\times10^{-4}\)</td><td>\(2.70\times10^{-5}\)</td></tr>
+</table>
+<p><strong>2.</strong> From rung 3, \(P_2 \approx 0.01837^2/(2\times1.5708^4) = 3.376\times10^{-4}/12.176 = 2.77\times10^{-5}\), against the computed \(2.70\times10^{-5}\):
+within \(3\%\).</p>
+<p><strong>3.</strong> \(\Omega_x'(T) = 2Ae^{-2}/\sigma = 7.349/T^2\) rad/ns², so \(P_2 \approx 4.44/T^4\) (\(T\) in ns): doubling \(T\) divides leakage by \(16\).
+The formula is the leading term of an expansion in \(1/(|\alpha|T)\), valid when the drive is weak and slow against \(\alpha\). At 4 ns
+\(\sigma = 1\) ns, so the pulse's spectral width \(1/\sigma = 1\) rad/ns is comparable with \(|\alpha| = 1.57\) rad/ns, and its peak
+\(\Omega/2\pi = 234\) MHz is comparable with \(|\alpha|/2\pi = 250\) MHz: the pulse drives the leakage transition directly, and the formula's
+\(0.017\) is fifteen times too small. In between, near 9–11 ns, higher-order terms make the curve wiggle.</p>
+<p><strong>Check.</strong> Dimensions: \(\Omega'^2/\alpha^4\) is \((\mathrm{ns}^{-2})^2/(\mathrm{ns}^{-1})^4\), a pure number ✓. The formula at 10 ns gives \(4.44\times10^{-4}\)
+against \(3.0\times10^{-4}\) — worse than at 20 ns, as a leading-order formula should be at a shorter pulse ✓.</p>
+<h4>With the referee</h4>
+<pre><code># with pulse() from P3's block
+for T in (4, 6, 8, 10, 20):
+    U = pulse(T)
+    print(T, f"{abs(U[2, 0])**2:.2e}")
+# 4 2.52e-01   6 4.68e-02   8 1.92e-03   10 3.00e-04   20 2.70e-05</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The leakage formula, and smoother pulses <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: variation of constants, integration by parts as an asymptotic expansion, the DRAG cancellation; a proof</p>
+<div class="statement">
+<ol>
+<li>From the third row of \(\tilde H\), prove that exactly \(c_2(T) = -ie^{-i\alpha T}\int_0^Te^{i\alpha t}g(t)c_1(t)\,dt\), with \(g = (\Omega_x + i\Omega_y)/\sqrt2\)
+and \(c_2(0) = 0\).</li>
+<li>For \(\Omega_y = 0\) and an envelope vanishing at both ends, integrate by parts twice to show that, to leading order in \(1/\alpha\),
+\(|c_2(T)| \approx |\Omega_x'(T)|\,|c_1(T)|/\sqrt2\alpha^2\).</li>
+<li>Show that \(\Omega_y = -\Omega_x'/\alpha\) cancels this leading term.</li>
+<li>Suppose instead the envelope's slope also vanishes at both ends (a "smooth" pulse) and \(\Omega_y = 0\). Find the leading term.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the variation-of-constants formula for a first-order linear ODE. Parts 2–4 are about boundary terms: which
+survive at \(t = 0\) and at \(t = T\), and at which power of \(1/\alpha\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Multiply \(i\dot c_2 = \alpha c_2 + gc_1\) by \(e^{i\alpha t}\). In the integrations by parts use \(c_1(0) = 0\) (the pulse starts in \(\ket0\)) and
+\(\Omega_x(0) = \Omega_x(T) = 0\). In part 3 the \(\Omega_y\) term is already \(O(1/\alpha)\), so one integration by parts suffices.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\int_0^Te^{i\alpha t}f\,dt = \big[\tfrac{e^{i\alpha t}}{i\alpha}f\big]_0^T - \tfrac1{i\alpha}\int_0^Te^{i\alpha t}f'\,dt\) with \(f = \Omega_xc_1/\sqrt2\),
+and the bracket vanishes.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The leakage amplitude is a Fourier coefficient at \(\alpha\). Each integration by parts trades a factor
+\(1/\alpha\) for a derivative, and leaves boundary values; the first non-vanishing boundary value is the answer, and a
+second quadrature can be chosen to cancel it.</p>
+<p><strong>1.</strong> The third row of \(i\dot{\mathbf c} = \tilde H\mathbf c\) is \(i\dot c_2 = gc_1 + \alpha c_2\), since \(\braket{2|\tilde H|0} = 0\) and
+\(\braket{2|\tilde H|1} = (\Omega_x + i\Omega_y)/\sqrt2\). Then \(\tfrac{d}{dt}(e^{i\alpha t}c_2) = e^{i\alpha t}(\dot c_2 + i\alpha c_2) = -ie^{i\alpha t}gc_1\);
+integrate from \(0\) with \(c_2(0) = 0\) and multiply by \(e^{-i\alpha T}\).</p>
+<p><strong>2.</strong> With rung 3 and a second integration by parts, using \((i\alpha)^2 = -\alpha^2\):</p>
+\[\int_0^Te^{i\alpha t}f = \frac{1}{\alpha^2}\Big[e^{i\alpha t}f'\Big]_0^T + \frac{i}{\alpha^3}\Big[e^{i\alpha t}f''\Big]_0^T + O(\alpha^{-4}).\]
+<p>Now \(f' = (\Omega_x'c_1 + \Omega_x\dot c_1)/\sqrt2\). At \(t = 0\) both terms vanish (\(c_1(0) = 0\), \(\Omega_x(0) = 0\)); at \(t = T\) only
+\(\Omega_x'(T)c_1(T)/\sqrt2\) survives. So \(|c_2(T)| = |\Omega_x'(T)||c_1(T)|/(\sqrt2\alpha^2) + O(\alpha^{-3})\), and \(P_2 \approx \Omega_x'(T)^2/2\alpha^4\) when
+\(|c_1(T)| \approx 1\).</p>
+<p><strong>3.</strong> With \(\Omega_y \ne 0\), add \(\int e^{i\alpha t}f_y\), \(f_y = i\Omega_yc_1/\sqrt2\). One integration by parts:
+\(\big[\tfrac{e^{i\alpha t}}{i\alpha}f_y\big]_0^T + O(\alpha^{-3}) = \tfrac1\alpha\big[e^{i\alpha t}\Omega_yc_1/\sqrt2\big]_0^T + O(\alpha^{-3})\), and at \(t = 0\) it vanishes. The total
+\(O(\alpha^{-2})\) term is \(\tfrac{e^{i\alpha T}c_1(T)}{\sqrt2\alpha^2}\big(\Omega_x'(T) + \alpha\Omega_y(T)\big)\), which is zero for \(\Omega_y = -\Omega_x'/\alpha\).</p>
+<p><strong>4.</strong> If also \(\Omega_x'(0) = \Omega_x'(T) = 0\), then \(f'(T) = 0\) and the first bracket vanishes. In the second,
+\(f'' = (\Omega_x''c_1 + 2\Omega_x'\dot c_1 + \Omega_x\ddot c_1)/\sqrt2\): at \(T\) only \(\Omega_x''(T)c_1(T)/\sqrt2\) survives, and at \(0\) everything vanishes
+(\(c_1(0) = 0\), \(\Omega_x'(0) = 0\), \(\Omega_x(0) = 0\)). So \(|c_2(T)| \approx |\Omega_x''(T)|/(\sqrt2|\alpha|^3)\) and \(P_2 \approx \Omega_x''(T)^2/2\alpha^6\): one more power of
+\(\Omega/\alpha\)-type smallness. Smoothness at the ends buys leakage suppression order by order — which is why real pulses are shaped
+to switch on and off gently.</p>
+<p><strong>Check.</strong> Part 2 against computation: at 20 ns, \(2.77\times10^{-5}\) predicted, \(2.70\times10^{-5}\) computed; with \(\alpha\) scaled up eightfold
+at 10 ns the ratio is \(0.998\) (the deck's table) ✓. Part 3 against computation: at 10 ns DRAG takes \(P_2\) from \(3.0\times10^{-4}\) to
+\(3.9\times10^{-6}\) ✓. Dimensions in part 4: \(\Omega''\) is ns\(^{-3}\), \(\alpha^3\) is ns\(^{-3}\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">DRAG and the Stark shift</h2>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> DRAG <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the derivative correction, the first-order miss theorem, separating leakage from a rotation error; ends in a number</p>
+<div class="statement">
+<ol>
+<li>Add \(\Omega_y = -\Omega_x'/\alpha\) (\(\lambda = 1\)) to the 10 ns pulse and compute \(P_2\) and \(1 - P_1\). What is the sign of \(\Omega_y\)
+while the pulse rises, given \(\alpha \lt 0\)?</li>
+<li>The deck's first-order theorem says \(1 - P_1 \approx \kappa^2\) with \(\kappa = (\lambda + c - \tfrac12)I_s/2\alpha\), \(I_s = \int_0^T\Omega_x^2\sin\Theta\,dt\). For the
+10 ns pulse \(I_s = 1.013\) rad/ns. Predict the miss at \(\lambda = 0\) and at \(\lambda = 1\) (with \(c = 0\)), and explain in words why
+DRAG cannot reduce it.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is two numbers from the same loop as P6, with the quadrature switched on. Part 2 is one number, the same at both
+values of \(\lambda\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\lambda + c - \tfrac12\) is \(-\tfrac12\) at \(\lambda = 0\) and \(+\tfrac12\) at \(\lambda = 1\). The miss depends on \(\kappa^2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(|\kappa| = \tfrac12\cdot\tfrac{1.013}{2\times1.5708} = 0.1612\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> DRAG cancels the leakage amplitude, but the miss comes from a different mechanism — the drive Stark-shifting
+the qubit — whose first-order size depends on \(|\lambda + c - \tfrac12|\), and \(\lambda = 1\) overshoots exactly as far as \(\lambda = 0\) undershoots.</p>
+<p><strong>1.</strong> Computed: \(P_2 = 3.95\times10^{-6}\) (down 76-fold from \(3.0\times10^{-4}\)), \(1 - P_1 = 0.0281\) (up from \(0.0256\)). Sign: \(\Omega_y =
+-\Omega_x'/\alpha = \Omega_x'/|\alpha|\), positive while \(\Omega_x\) rises, peaking at \(0.1647/1.5708 = 0.105\) rad/ns \(= 2\pi\times16.7\) MHz.</p>
+<p><strong>2.</strong> By rung 3, \(\kappa^2 = 0.02599\), so \(\sin^2\kappa = 0.0258\) at both \(\lambda = 0\) and \(\lambda = 1\). Computed: \(0.0256\) and \(0.0281\). The
+theorem's content: the Stark shift contributes a turn about \(Y\) with coefficient \(-\tfrac12\), the DRAG quadrature one with coefficient \(\lambda\).
+DRAG was designed to cancel the leakage amplitude, which needs \(\lambda = 1\); the turn about \(Y\) needs \(\lambda = \tfrac12\). One knob cannot
+do both, and \(\lambda = 1\) leaves the turn as large as no DRAG at all.</p>
+<p><strong>Check.</strong> The prediction at \(\lambda = 0\) is within \(1\%\) of the computation; at \(\lambda = 1\) within \(10\%\), and at 20 ns the
+two agree to within \(3\%\) (\(0.648\%\) predicted, \(0.664\%\) computed), as a first-order statement should improve with longer pulses ✓.
+\(P_0 + P_1 + P_2 = 1\) at \(\lambda = 1\): \(1 - P_1 = 0.0281 = P_0 + P_2 = 0.0281 + 0.000004\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code># with pulse() from P3's block
+for lam in (0, 1):
+    U = pulse(10, lam=lam)
+    print(lam, f"leak {abs(U[2, 0])**2:.2e}", f"miss {1 - abs(U[1, 0])**2:.4f}")
+# 0 leak 3.00e-04 miss 0.0256
+# 1 leak 3.95e-06 miss 0.0281</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> The AC Stark shift <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: a \(2\times2\) eigenvalue problem, expansion in \(\Omega/\alpha\), comparing shifts; ends in a number</p>
+<div class="statement">
+<ol>
+<li>For a drive frozen at \(\Omega\), find exactly the eigenvalue of the \(\ket1\)–\(\ket2\) block of \(\tilde H\) that tends to \(0\) as
+\(\Omega \to 0\), and expand it to order \(\Omega^2\). Which way does the qubit's frequency move, for \(\alpha \lt 0\)?</li>
+<li>Evaluate the exact and second-order shifts at the 10 ns pulse's peak, \(\Omega = 0.5869\) rad/ns, in MHz. Compare with the
+Bloch–Siegert shift \(\Omega^2/4\omega\).</li>
+<li>Held at that peak, a drive detuned by the Stark shift would reach at most what fraction of \(\ket1\), by unit 02's formula?
+Compare with the miss of \(2.6\%\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a quadratic equation; part 2 is three frequencies in MHz; part 3 is unit 02's \(\Omega^2/(\Omega^2 + \Delta^2)\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The block \(\begin{pmatrix}0 &amp; \Omega/\sqrt2\\ \Omega/\sqrt2 &amp; \alpha\end{pmatrix}\) has trace \(\alpha\) and determinant \(-\Omega^2/2\). For \(\alpha \lt 0\), write
+\(\sqrt{\alpha^2 + 2\Omega^2} = |\alpha|\sqrt{1 + 2\Omega^2/\alpha^2}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\lambda^2 - \alpha\lambda - \Omega^2/2 = 0\), so \(\lambda = \tfrac12(\alpha \pm \sqrt{\alpha^2 + 2\Omega^2})\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The drive mixes \(\ket1\) with \(\ket2\), and two coupled levels repel; \(\ket0\) is not coupled to \(\ket2\) and stays,
+so the qubit's frequency moves by however much \(\ket1\) does.</p>
+<p><strong>1.</strong> For \(\alpha \lt 0\) the root tending to \(0\) is the \(+\) one: \(E_1 = \tfrac12(\alpha + |\alpha|\sqrt{1 + 2\Omega^2/\alpha^2}) =
+\tfrac{|\alpha|}2(\sqrt{1 + 2\Omega^2/\alpha^2} - 1)\). With \(\sqrt{1 + u} = 1 + \tfrac u2 - \tfrac{u^2}8 + \dots\): \(E_1 = \tfrac{|\alpha|}2\big(\tfrac{\Omega^2}{\alpha^2} - \tfrac{\Omega^4}{2\alpha^4}\big) + \dots = \tfrac{\Omega^2}{2|\alpha|} - \tfrac{\Omega^4}{4|\alpha|^3} + \dots\).
+Positive: \(\ket1\) is pushed up, away from \(\ket2\) (which lies at \(\alpha \lt 0\) in this frame), so the qubit frequency rises and a drive
+fixed at \(\omega\) is left below resonance.</p>
+<p><strong>2.</strong> Exact: \(\tfrac12(-1.5708 + \sqrt{2.4674 + 0.6890}) = \tfrac12(-1.5708 + 1.7766) = 0.1029\) rad/ns \(= 2\pi\times16.4\) MHz. Second order:
+\(0.5869^2/(2\times1.5708) = 0.1097\) rad/ns \(= 2\pi\times17.5\) MHz. Bloch–Siegert: \(0.5869^2/(4\times31.416) = 2.74\times10^{-3}\) rad/ns \(= 2\pi\times0.44\) MHz,
+forty times smaller.</p>
+<p><strong>3.</strong> With \(\Delta = 0.110\) and \(\Omega = 0.587\): \(\Omega^2/(\Omega^2 + \Delta^2) = 0.3445/(0.3445 + 0.0120) = 0.966\), a shortfall of \(3.4\%\).
+The pulse's actual miss, \(2.6\%\), is of this size and somewhat smaller, because the shift is largest only at the peak, where it
+matters most, and falls as \(\Omega_x^2\) elsewhere.</p>
+<p><strong>Check.</strong> \(\Omega \to 0\): \(E_1 \to 0\) ✓. The two roots sum to \(\alpha\) (the trace): \(0.1029 + (-1.6737) = -1.5708\) ✓. Ratio of shift to
+drive at the peak, \(0.110/0.587 = 0.19\): a fifth of a Rabi frequency, which on unit 02's sphere tilts the rotation axis by about
+\(\arctan0.19 = 11^\circ\) — enough to miss the pole by a few per cent.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> The detuning <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a one- and a two-parameter search, reading a first-order prediction against computation; ends in a number</p>
+<div class="statement">
+<ol>
+<li>Show that adding \(c\,\Omega_x^2n/\alpha\) to \(\tilde H\) is the same as driving at the time-dependent frequency \(\omega - c\,\Omega_x^2/\alpha\), and
+find the \(c\) that would track the Stark shift exactly.</li>
+<li>At \(\lambda = \tfrac12\), search \(c\) in steps of \(0.01\) for the smallest score \(P_2 + (1 - P_1)\) for the 10 ns pulse. Report \(c\), \(P_2\), \(1 - P_1\).</li>
+<li>Search \((\lambda, c)\) together. Where is the best point, and how does it compare with the first-order line \(\lambda + c = \tfrac12\) and
+with the leakage-optimal \(\lambda \approx 1.1\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the rotating-frame theorem with \(G\) replaced by the drive's own (changing) phase; parts 2 and 3 are loops over a
+grid, reusing the pulse code.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Driving at \(\omega + \Delta_d\) and computing in the frame of the drive replaces \(G = \omega n\) by \((\omega + \Delta_d)n\), which leaves
+\(-\Delta_dn\) in \(\tilde H\). For part 3 a grid of \(\lambda\) from \(0.5\) to \(0.95\) and \(c\) from \(-0.34\) to \(-0.10\) suffices.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(H_0 - (\omega + \Delta_d)n = \alpha\ket2\!\bra2 - \Delta_dn\), so \(c\,\Omega_x^2/\alpha = -\Delta_d\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The Stark shift is a detuning that follows the pulse; a detuning of the drive that follows it too can cancel
+it — but the DRAG quadrature also acts on the qubit, and the two knobs must be tuned together.</p>
+<p><strong>1.</strong> Drive with phase \(\varphi(t) = \int_0^t(\omega + \Delta_d)\), i.e. \(H_d = (\Omega_x\cos\varphi + \Omega_y\sin\varphi)(b + b^\dagger)\), and change
+basis by \(e^{i\varphi(t)n}\). The rotating-frame proof goes through unchanged with \(\omega t\) replaced by \(\varphi(t)\): since \(n\) commutes with
+itself, \(\tfrac{d}{dt}e^{i\varphi n} = i\varphi'ne^{i\varphi n}\), so the frame term is \(-\varphi'n = -(\omega + \Delta_d)n\), and conjugation gives \(b \mapsto e^{-i\varphi}b\),
+so the drive terms come out as before with \(\omega t \to \varphi\). After the rotating-wave approximation the only change is the extra
+\(-\Delta_dn\) of rung 3. So the term \(c\,\Omega_x^2n/\alpha\) is a drive detuning \(\Delta_d = -c\,\Omega_x^2/\alpha\) (implemented as a phase ramp on the
+envelopes, since a frequency offset is a phase growing in time). The qubit moves up by \(\delta_S = -\Omega_x^2/2\alpha\) (P9), so
+tracking it needs \(\Delta_d = \delta_S\): \(c = \tfrac12\) — at \(\lambda = 0\). The first-order theorem says more generally that the miss
+vanishes on \(\lambda + c = \tfrac12\).</p>
+<p><strong>2.</strong> At \(\lambda = \tfrac12\) the best grid point is \(c = -0.03\): \(P_2 = 9.3\times10^{-5}\), \(1 - P_1 = 3.3\times10^{-4}\), score
+\(4.3\times10^{-4}\). (At \(c = 0\): score \(5.2\times10^{-4}\).) So half-strength DRAG alone removes almost all the miss — consistent with
+\(\lambda + c = \tfrac12\) — at the price of leakage about \(24\) times higher than at \(\lambda = 1\).</p>
+<p><strong>3.</strong> The coarse grid finds \((\lambda, c) = (0.70, -0.22)\), score \(3.7\times10^{-5}\); refining (a simplex search) gives \((0.706, -0.216)\)
+with \(P_2 = 1.39\times10^{-5}\), \(1 - P_1 = 1.40\times10^{-5}\), score \(2.8\times10^{-5}\). It lies on the first-order line (\(0.706 - 0.216 = 0.49\)), between
+\(\lambda = \tfrac12\) (best for the miss alone) and \(\lambda \approx 1.1\) (best for leakage alone). First order's own choice, \((1, -\tfrac12)\),
+scores \(1.3\times10^{-3}\): the detuning term also shifts \(\ket2\), a second-order effect that at \(\Omega/|\alpha| = 0.37\) is not small.
+The correction that minimises leakage is not the one that minimises the gate error (Gambetta, Motzoi, Merkel and Wilhelm,
+<i>Phys. Rev. A</i> 83, 012308, 2011).</p>
+<p><strong>Check.</strong> Every one-dimensional optimum (at \(\lambda = 0, \tfrac12, 1\): \(c = 0.45, -0.03, -0.47\)) has \(\lambda + c\) within \(0.05\) of
+\(\tfrac12\), the first-order prediction ✓. The best score is \(900\) times smaller than the plain Gaussian's \(0.026\).</p>
+<h4>With the referee</h4>
+<pre><code># with pulse() from P3's block
+score = lambda U: abs(U[2, 0])**2 + 1 - abs(U[1, 0])**2
+best = min((score(pulse(10, 0.5, c, 1000)), c) for c in np.arange(-0.10, 0.051, 0.01))
+print(f"lam = 0.5: c = {best[1]:.2f}, score {best[0]:.2e}")      # c = -0.03, score 4.28e-04
+best = min((score(pulse(10, l, c, 1000)), l, c)
+           for l in np.arange(0.5, 0.951, 0.05) for c in np.arange(-0.34, -0.099, 0.02))
+print(f"lam = {best[1]:.2f}, c = {best[2]:.2f}, score {best[0]:.2e}")  # lam = 0.70, c = -0.22, score 3.73e-05</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">T₁, and the verdict</h2>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> t/3T₁ <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the average gate fidelity, the six-state lemma, amplitude damping on Bloch vectors; a proof that ends in a number</p>
+<div class="statement">
+<ol>
+<li>Prove that the average of any polynomial of degree at most 2 in the Bloch vector over the sphere equals its average over
+\(\pm\hat x, \pm\hat y, \pm\hat z\).</li>
+<li>Prove that amplitude damping with \(\gamma = 1 - e^{-t/T_1}\) has average infidelity \(\tfrac{1 - \sqrt{1 - \gamma}}3 + \tfrac\gamma6\), and that
+this is \(t/3T_1\) to first order.</li>
+<li>Evaluate it for a 20 ns gate at \(T_1 = 100\ \mu\)s. Then check the result against the cited formula \(F_{\rm avg} = (2F_e + 1)/3\) with
+entanglement fidelity \(F_e = \sum_k|\operatorname{tr}K_k|^2/4\) for Kraus operators \(K_k\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 needs only symmetries of the sphere, checked on monomials. Part 2 is six fidelities and an average; part 3 is a
+number near \(7\times10^{-5}\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 21: amplitude damping sends \((x, y, z)\) to \((sx, sy, \gamma + (1 - \gamma)z)\), \(s = \sqrt{1 - \gamma}\). Unit 04: the fidelity of a pure
+state with Bloch vector \(\mathbf r\) and a state with Bloch vector \(\mathbf r'\) is \(\tfrac12(1 + \mathbf r\cdot\mathbf r')\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: at \(+\hat x\), \(\mathbf r' = (s, 0, \gamma)\), so the fidelity is \(\tfrac12(1 + s)\); the same at \(-\hat x, \pm\hat y\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The fidelity of a pure input with its output is quadratic in the input's Bloch vector, and six well-placed
+points average quadratics exactly; amplitude damping then costs \(\gamma/4\) on each of the four equatorial inputs, \(\gamma\) on \(\ket1\),
+nothing on \(\ket0\).</p>
+<p><strong>1.</strong> Both averages are linear, so check the monomials \(1, r_i, r_ir_j\). \(1\): both \(1\). \(r_i\), and \(r_ir_j\) with \(i \ne j\): the
+reflection \(r_i \mapsto -r_i\) preserves the uniform measure and the six-point set, so both averages are \(0\). \(r_i^2\): on the sphere,
+permuting coordinates preserves the measure, so the three averages are equal and sum to \(\langle r_1^2 + r_2^2 + r_3^2\rangle = 1\): each \(\tfrac13\).
+On the six points \(r_1^2\) is \(1\) at two of them and \(0\) at four: \(\tfrac13\).</p>
+<p><strong>2.</strong> The integrand \(\operatorname{tr}\big(\ket\psi\!\bra\psi\,\Phi(\ket\psi\!\bra\psi)\big)\) is bilinear in \(\ket\psi\!\bra\psi = \tfrac12(I + \mathbf r\cdot\boldsymbol\sigma)\), so of
+degree \(\le 2\) in \(\mathbf r\). The six fidelities: \(\pm\hat x, \pm\hat y\): \(\tfrac12(1 + s)\) each; \(+\hat z \mapsto (0, 0, 1)\): \(1\); \(-\hat z \mapsto (0, 0, 2\gamma - 1)\):
+\(\tfrac12(1 + 1 - 2\gamma) = 1 - \gamma\). Average \(\tfrac16[2(1 + s) + 2 - \gamma] = \tfrac{4 + 2s - \gamma}6\), so \(1 - F_{\rm avg} = \tfrac{2 - 2s + \gamma}{6} =
+\tfrac{1 - s}3 + \tfrac\gamma6\). With \(s = 1 - \tfrac\gamma2 + O(\gamma^2)\) and \(\gamma = t/T_1 + O(t^2)\): \(\tfrac\gamma6 + \tfrac\gamma6 = \tfrac{t}{3T_1}\) to first order.</p>
+<p><strong>3.</strong> \(t/T_1 = 20/100\,000 = 2\times10^{-4}\), \(\gamma = 1.9998\times10^{-4}\), \(s = e^{-t/2T_1} = 0.999900005\): \(1 - F_{\rm avg} = 6.6662\times10^{-5}\), against
+\(t/3T_1 = 6.6667\times10^{-5}\). Via \(F_e\): \(\operatorname{tr}K_0 = 1 + s\), \(\operatorname{tr}K_1 = 0\), so \(F_e = (1 + s)^2/4\) and
+\(1 - \tfrac{2F_e + 1}3 = \tfrac23\big(1 - \tfrac{(1 + s)^2}4\big) = \tfrac{3 - 2s - s^2}6 = \tfrac{2 - 2s + \gamma}{6}\), using \(s^2 = 1 - \gamma\): the same formula,
+hence the same \(6.6662\times10^{-5}\).</p>
+<p><strong>Check.</strong> \(\gamma = 0\): infidelity \(0\) ✓. \(\gamma = 1\): \(\tfrac13 + \tfrac16 = \tfrac12\), the infidelity of the channel that sends
+everything to \(\ket0\) ✓. The two routes agree exactly, not just to first order ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import channels
+gamma = 1 - np.exp(-20 / 100_000)                      # 20 ns at T1 = 100 us = 100 000 ns
+kraus = channels.amplitude_damping(gamma)
+six = [np.array(v) / np.linalg.norm(v) for v in ([1, 0], [0, 1], [1, 1], [1, -1], [1, 1j], [1, -1j])]
+damp = lambda rho: sum(K @ rho @ K.conj().T for K in kraus)
+F = np.mean([np.vdot(v, damp(np.outer(v, v.conj())) @ v).real for v in six])
+print(f"{1 - F:.4e}", f"{20 / (3 * 100_000):.4e}")    # 6.6662e-05 6.6667e-05
+Fe = (abs(np.trace(kraus[0]))**2 + abs(np.trace(kraus[1]))**2) / 4   # entanglement fidelity
+print(f"{1 - (2 * Fe + 1) / 3:.4e}")                   # 6.6662e-05</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Which dominates <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: average infidelity of a rotation error, combining control and decoherence errors, a crossover; ends in a number</p>
+<div class="statement">
+<ol>
+<li>To first order the uncorrected Gaussian \(\pi\)-pulse is \(R_x(\pi)e^{i\kappa Y}\), with \(\kappa = -I_s/4\alpha = I_s/4|\alpha|\) (P8, at
+\(\lambda = c = 0\)) and \(I_sT = 10.13\) for every duration, since \(\Omega_x \propto 1/T\) and \(\Theta\) depends on \(t/T\) only. Show that its average infidelity is \(\tfrac23\sin^2\kappa\).</li>
+<li>For gate times from 5 to 100 ns, compare this control error with the \(T_1\) error \(t/3T_1\) at \(T_1 = 100\ \mu\)s. Find the crossover
+duration on paper. Redo it for \(T_1 = 20\ \mu\)s.</li>
+<li>At 10 ns, rank leakage (\(3.0\times10^{-4}\)), the Stark-shift miss, and \(T_1\) for the uncorrected pulse. Then say how the ranking changes
+for the searched pulse of P10, whose average control infidelity is \(1.4\times10^{-5}\) at 10 ns and \(2.2\times10^{-6}\) at 20 ns.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a six-state average; part 2 solves a cubic \(T^3 = \dots\); part 3 is three numbers put in order, twice.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Average infidelity is unchanged by composing with a unitary (the measure is rotation-invariant), so compare \(e^{i\kappa Y}\) with
+\(I\). For part 2, \(\kappa = 10.13/(4|\alpha|T) = 1.612/T\) with \(T\) in ns.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\tfrac23\big(\tfrac{1.612}{T}\big)^2 = \tfrac{T}{3T_1}\) gives \(T^3 = 2T_1(1.612)^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The uncorrected control error falls as \(1/T^2\) and the \(T_1\) error rises as \(T\); they cross where the cube of the
+duration equals a constant set by \(\alpha\) and \(T_1\). Correcting the pulse moves the crossover far down.</p>
+<p><strong>1.</strong> \(F_{\rm avg}\) of \(R_x(\pi)e^{i\kappa Y}\) against \(R_x(\pi)\) equals that of \(e^{i\kappa Y}\) against \(I\), since the amplitude
+in the integrand is \(\braket{\psi|R_x(\pi)^\dagger R_x(\pi)e^{i\kappa Y}|\psi} = \braket{\psi|e^{i\kappa Y}|\psi}\). Six states: \(\pm\hat y\) are eigenvectors of \(Y\), fidelity \(1\);
+\(\pm\hat x, \pm\hat z\) are turned by \(2\kappa\) about \(\hat y\), fidelity \(\cos^2\kappa\). Average: \(\tfrac{2 + 4\cos^2\kappa}6\), so \(1 - F_{\rm avg} =
+\tfrac46\sin^2\kappa = \tfrac23\sin^2\kappa\).</p>
+<p><strong>2.</strong> With \(\sin\kappa \approx \kappa = 1.612/T\): control \(\approx 1.733/T^2\), and \(T_1\) error \(T/3T_1\). From rung 3, at \(T_1 = 10^5\) ns:
+\(T^3 = 2\times10^5\times2.599 = 5.20\times10^5\), \(T = 80.4\) ns. At \(T_1 = 2\times10^4\) ns: \(T^3 = 1.04\times10^5\), \(T = 47.0\) ns. Below the crossover the
+Stark miss dominates; above it \(T_1\) does. The crossover scales as \(T_1^{1/3}\): a five-times-worse qubit moves it only from 80 to 47 ns.</p>
+<p><strong>3.</strong> Uncorrected, 10 ns: Stark miss \(\tfrac23\times0.0258 = 1.7\times10^{-2}\) (average infidelity), leakage \(3.0\times10^{-4}\), \(T_1\)
+\(3.3\times10^{-5}\). Ranking: Stark shift \(\gg\) leakage \(\gg\) \(T_1\), by factors of about 60 and 9. Searched pulse: control \(1.4\times10^{-5}\)
+(nearly all of it leakage) against \(T_1\) \(3.3\times10^{-5}\) at 10 ns, and \(2.2\times10^{-6}\) against \(6.7\times10^{-5}\) at 20 ns: \(T_1\) now dominates. (At 10 ns
+this depends on the model: with a fourth level the searched control error is \(9.0\times10^{-5}\), above \(T_1\); at 20 ns three and four levels
+agree.)</p>
+<p><strong>Check.</strong> The formula against the computed average infidelities: \(1.733/T^2\) gives \(1.73\times10^{-2}\) at 10 ns and \(1.73\times10^{-4}\) at 100 ns;
+computed, \(1.72\times10^{-2}\) and \(1.73\times10^{-4}\) ✓. At the crossover, both errors are \(80.4/(3\times10^5) = 2.7\times10^{-4}\) — the computed curves cross
+between 80 and 90 ns at that height ✓. Dimensions: \(T_1(1.612)^2\) is ns\(\cdot\)ns\(^2\) ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 25</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

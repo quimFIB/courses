@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19 · Problems — Hamiltonian simulation: Feynman's reason, made into an algorithm</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="d">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part D · unit 19 · problems</p>
+<h1>Hamiltonian simulation: Feynman's reason, made into an algorithm</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u19">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> You prove the first-order Trotter bound and size a Trotterised Ising simulation for a target
+accuracy. Concretely, on paper and without notes: you prove \(\lVert e^{-i(A+B)\delta} - e^{-iA\delta}e^{-iB\delta}\rVert\le\tfrac12\lVert[A, B]\rVert\delta^2\)
+for Hermitian \(A, B\) with no unbounded remainder, telescope it to \(\lVert[A, B]\rVert t^2/2r\) for \(r\) steps, bound the transverse-field
+Ising chain's \(\lVert[A, B]\rVert\le4(n - 1)\) by counting the pairs of terms that fail to commute, and find that a 50-spin chain at
+\(t = 10\), \(\varepsilon = 10^{-3}\) needs \(r = 9.8\times10^6\) first-order steps.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Thirteen problems, the last optional, about four and a half hours. P4 is the checkpoint's proof and P7 its computation.</p>
+<p>Conventions, as in the deck. The chain is \(H = -J\sum_{i=0}^{n-2}Z_iZ_{i+1} - h\sum_{i=0}^{n-1}X_i\), split as \(H = A + B\) with \(A\) the \(ZZ\) part and
+\(B\) the \(X\) part; \(J = h = 1\) unless a problem says otherwise. \(n\) is the number of spins, \(t\) the time, \(r\) the number of Trotter steps
+and \(\delta = t/r\). \(U(\delta) = e^{-i(A+B)\delta}\), \(V(\delta) = e^{-iA\delta}e^{-iB\delta}\), \(S(\delta) = e^{-iA\delta/2}e^{-iB\delta}e^{-iA\delta/2}\). \(\lVert\cdot\rVert\) is the operator norm
+(unit 11). \(R_P(\theta) = e^{-i\theta P/2}\); qubit 0 is the leftmost symbol of a ket and the top wire. An eigenphase \(\varphi\) means \(U\ket u = e^{2\pi i\varphi}\ket u\),
+and phase estimation uses \(m\) counting qubits (unit 15's \(t\)). Logarithms are base 2.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Feynman's count">P1</a></li>
+<li><a class="routine" href="#p2" title="Commuting terms">P2</a></li>
+<li><a class="routine" href="#p3" title="One qubit">P3</a></li>
+<li><a class="medium" href="#p4" title="Proof: the one-step bound, from the other end">P4</a></li>
+<li><a class="medium" href="#p5" title="Many terms">P5</a></li>
+<li><a class="medium" href="#p6" title="Proof: Strang is second order">P6</a></li>
+<li><a class="medium" href="#p7" title="Size an Ising simulation">P7</a></li>
+<li><a class="medium" href="#p8" title="A square lattice">P8</a></li>
+<li><a class="medium" href="#p9" title="Pauli-product rotations">P9</a></li>
+<li><a class="routine" href="#p10" title="The gate count">P10</a></li>
+<li><a class="medium" href="#p11" title="Energies on one qubit">P11</a></li>
+<li><a class="hard" href="#p12" title="The flip symmetry, and a bad input">P12</a></li>
+<li><a class="routine" href="#p13" title="The classical picture (optional)">P13</a></li>
+</ul>
+</header>
+
+<h2 class="group">Feynman's reason</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Feynman's count <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the dimension of a tensor product, orders of magnitude, what one more spin costs</p>
+<div class="statement">
+<p>Store a state of \(n\) spins as \(2^n\) complex amplitudes in double precision, 16 bytes each.</p>
+<ol>
+<li>How many bytes does a 50-spin state take? Give it in petabytes (\(10^{15}\) bytes).</li>
+<li>How many bytes would the matrix \(e^{-iHt}\) of a 50-spin Hamiltonian take, stored densely?</li>
+<li>What is the largest \(n\) whose state fits in 16 GiB \(= 2^{34}\) bytes? In one exabyte, \(10^{18}\) bytes?</li>
+<li>How many qubits does a quantum computer need to hold the 50-spin state, and how many more for a 51st spin? How much more classical memory does the 51st spin cost?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four numbers, each a power of 2 times 16, then converted. Nothing here is subtle; the point is the size of the exponents.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\((\mathbb C^2)^{\otimes n}\) has dimension \(2^n\) (unit 03). An operator on it is a \(2^n\times2^n\) matrix: \(4^n\) entries. For part 3, solve \(16\cdot2^n\le M\)
+for the largest integer \(n\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(16\times2^{50} = 2^4\times2^{50} = 2^{54}\) bytes.</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A state is a vector in a space of dimension \(2^n\); an operator is a square matrix of that size. Exponents add.</p>
+<p><strong>1.</strong> \(2^{50} = 1.126\times10^{15}\) amplitudes, so \(16\times2^{50} = 2^{54} = 1.80\times10^{16}\) bytes \(= 18\) PB.</p>
+<p><strong>2.</strong> \(4^{50} = 2^{100}\) entries, so \(16\times2^{100} = 2^{104} = 2.03\times10^{31}\) bytes — \(10^{15}\) times the state vector. The matrix is out of the
+question at any \(n\) of interest, which is why classical simulation works on the vector.</p>
+<p><strong>3.</strong> \(16\cdot2^n\le2^{34}\) iff \(n\le30\): a 16 GiB laptop holds exactly 30 spins. \(16\cdot2^n\le10^{18}\) iff \(n\le\log(6.25\times10^{16}) = 55.8\), so
+\(n = 55\).</p>
+<p><strong>4.</strong> 50 qubits, and one more for the 51st spin. Classically the 51st spin doubles the memory, from 18 PB to 36 PB.</p>
+<p><strong>Check.</strong> Going from 16 GiB to an exabyte multiplies the memory by \(10^{18}/2^{34} = 5.8\times10^7\) and buys 25 spins, from 30 to 55:
+\(\log(5.8\times10^7) = 25.8\). Each factor of two buys one ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Lie–Trotter</h2>
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Commuting terms <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the derivative trick of worked example 1, commutators of Pauli products, exponentials of commuting sums</p>
+<div class="statement">
+<p>Let \(A\) and \(B\) be Hermitian.</p>
+<ol>
+<li>Prove, without power series, that \(e^{-i(A+B)t} = e^{-iAt}e^{-iBt}\) for all \(t\) when \([A, B] = 0\). Use \(F(s) = e^{i(A+B)s}e^{-iAs}e^{-iBs}\).</li>
+<li>Prove the converse: if the identity holds for all real \(t\), then \([A, B] = 0\).</li>
+<li>Show that the chain's \(A = -J\sum_iZ_iZ_{i+1}\) is a sum of pairwise commuting terms, and so is \(B = -h\sum_iX_i\). Deduce
+\(e^{-iA\delta} = \prod_ie^{iJ\delta Z_iZ_{i+1}}\).</li>
+<li>Show that \(Z_0Z_1\) anticommutes with \(X_1\) and commutes with \(X_2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is "a function with zero derivative is constant"; part 2 compares two second derivatives at \(t = 0\); parts 3 and 4 are
+statements about which tensor factors two operators share.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Worked example 1 computed \(F'(s) = ie^{i(A+B)s}\big[Be^{-iAs} - e^{-iAs}B\big]e^{-iBs}\) for any Hermitian \(A, B\). If \(B\) commutes with \(A\), does it
+commute with \(e^{-iAs}\)? The spectral projectors of \(A\) are polynomials in \(A\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\tfrac{d^2}{dt^2}e^{-i(A+B)t}\big|_0 = -(A + B)^2\), while \(\tfrac{d^2}{dt^2}\big(e^{-iAt}e^{-iBt}\big)\big|_0 = -A^2 - 2AB - B^2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The Trotter error's velocity is a commutator; if the commutator vanishes the error never starts. Conversely the
+error's second derivative at 0 is the commutator, so it cannot vanish identically unless the commutator does.</p>
+<p><strong>1.</strong> If \(AB = BA\) then \(B\) commutes with every polynomial in \(A\). Each spectral projector of the Hermitian \(A = \sum\lambda P_\lambda\) is
+one: \(P_\lambda = \prod_{\mu\ne\lambda}(A - \mu)/(\lambda - \mu)\), since the right side acts as 1 on the \(\lambda\)-eigenspace and 0 on the others. So \(B\) commutes with
+\(e^{-iAs} = \sum e^{-i\lambda s}P_\lambda\). By worked example 1's step 2, \(F'(s) = ie^{i(A+B)s}\big[Be^{-iAs} - e^{-iAs}B\big]e^{-iBs} = 0\). A matrix function with zero
+derivative is constant (unit 01), so \(F(s) = F(0) = I\), i.e. \(e^{-iAs}e^{-iBs} = e^{-i(A+B)s}\) for every \(s\).</p>
+<p><strong>2.</strong> Differentiate both sides twice (unit 01's product rule) and set \(t = 0\). Left: \((-i)^2(A + B)^2 = -(A^2 + AB + BA + B^2)\). Right:
+\(\tfrac{d^2}{dt^2}(e^{-iAt}e^{-iBt}) = (-iA)^2e^{-iAt}e^{-iBt} + 2(-iA)e^{-iAt}(-iB)e^{-iBt} + e^{-iAt}(-iB)^2e^{-iBt}\), which at 0 is \(-(A^2 + 2AB + B^2)\).
+Equality gives \(AB + BA = 2AB\), so \(BA = AB\).</p>
+<p><strong>3.</strong> Each \(Z_iZ_{i+1}\) is diagonal in the computational basis (\(Z\) is diagonal, and tensor products of diagonal matrices are
+diagonal), and diagonal matrices commute. For \(i\ne j\), \(X_i\) and \(X_j\) act on different factors:
+\((\cdots X\cdots I\cdots)(\cdots I\cdots X\cdots) = (\cdots X\cdots X\cdots) = (\cdots I\cdots X\cdots)(\cdots X\cdots I\cdots)\) by unit 03's rule
+\((P\otimes Q)(R\otimes T) = PR\otimes QT\). For the product formula, induct on the number of terms: \(H_1\) commutes with \(H_2 + \cdots + H_L\), so part 1 gives
+\(e^{-i(H_1 + \cdots + H_L)\delta} = e^{-iH_1\delta}e^{-i(H_2 + \cdots + H_L)\delta}\), and the hypothesis splits the second factor. With \(H_i = -JZ_iZ_{i+1}\),
+\(e^{-iH_i\delta} = e^{iJ\delta Z_iZ_{i+1}}\).</p>
+<p><strong>4.</strong> \(Z_0Z_1X_1 = Z_0\otimes ZX\otimes I\cdots\) and \(X_1Z_0Z_1 = Z_0\otimes XZ\otimes I\cdots\); since \(ZX = iY = -XZ\), \(Z_0Z_1X_1 = -X_1Z_0Z_1\).
+\(X_2\) shares no qubit with \(Z_0Z_1\), so they commute as in part 3.</p>
+<p><strong>Check.</strong> Part 2 is the deck's leading-order slide in other clothes: the two second derivatives differ by
+\(-(A^2 + 2AB + B^2) + (A^2 + AB + BA + B^2) = BA - AB\), and \(\tfrac{t^2}2\) times that is \(-\tfrac12[A, B]t^2\), the deck's second-order gap ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> One qubit <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: a Trotter error computed by hand, the distance between two \(SU(2)\) elements, the \(1/r\) and \(1/r^2\) laws</p>
+<div class="statement">
+<p>Take \(H = X + Z\), \(A = X\), \(B = Z\), \(t = 1\).</p>
+<ol>
+<li>Evaluate the first-order bound \(\lVert[X, Z]\rVert t^2/2r\) at \(r = 10\) and \(r = 20\).</li>
+<li>Compute the actual first-order error \(\lVert U(1) - V(\delta)^r\rVert\) at \(r = 10\) and at \(r = 20\), using the distance lemma of worked
+example 2: \(\lVert(a_0 - b_0)I - i(\mathbf a - \mathbf b)\cdot\boldsymbol\sigma\rVert = |(a_0, \mathbf a) - (b_0, \mathbf b)|\).</li>
+<li>Worked example 4 found \(S(\delta) = \cos^2\delta\,I - i(\sin\delta\cos\delta\,X + \sin\delta\,Z)\) and a Strang error of \(0.0027\) at \(r = 10\). Predict the
+Strang error at \(r = 20\) from the \(1/r^2\) law, then compute it.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every object here is a \(2\times2\) unitary of the form \(c_0I - i\mathbf c\cdot\boldsymbol\sigma\), so it is a unit 4-vector, and every error is the
+length of a difference of 4-vectors. The work is finding the 4-vector of a power.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write one step as \(\cos\tfrac\alpha2I - i\sin\tfrac\alpha2\,\mathbf m\cdot\boldsymbol\sigma\) with \(\mathbf m\) a unit vector. Then its \(r\)-th power is
+\(\cos\tfrac{r\alpha}2I - i\sin\tfrac{r\alpha}2\,\mathbf m\cdot\boldsymbol\sigma\): powers of a rotation about a fixed axis add angles.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line at \(r = 20\): \(\delta = 0.05\), \(\cos\tfrac\alpha2 = \cos^20.05 = 0.997502\), so \(\tfrac\alpha2 = 0.070696\) and \(20\cdot\tfrac\alpha2 = 1.413919\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Everything lives in \(SU(2)\), where the operator-norm distance is a Euclidean distance in \(\mathbb R^4\) and powers of one
+element only advance an angle.</p>
+<p><strong>1.</strong> \([X, Z] = XZ - ZX = -iY - iY = -2iY\), of norm 2. Bounds: \(2/20 = 0.1\) at \(r = 10\), \(2/40 = 0.05\) at \(r = 20\).</p>
+<p><strong>2.</strong> The exact evolution: \(((X + Z)/\sqrt2)^2 = I\), so \(U(1) = \cos\sqrt2\,I - i\sin\sqrt2\,\frac{X + Z}{\sqrt2}\), with 4-vector
+\(u = (0.155944, 0.698456, 0, 0.698456)\). One Trotter step, multiplied out with \(XZ = -iY\):</p>
+\[ V(\delta) = \cos^2\delta\,I - i\big[\sin\delta\cos\delta\,X - \sin^2\delta\,Y + \sin\delta\cos\delta\,Z\big], \]
+<p>a unit 4-vector since \(\cos^4\delta + 2\sin^2\delta\cos^2\delta + \sin^4\delta = 1\). So \(\cos\tfrac\alpha2 = \cos^2\delta\) and
+\(\mathbf m = (\sin\delta\cos\delta, -\sin^2\delta, \sin\delta\cos\delta)/\sin\tfrac\alpha2\).</p>
+<p><em>At \(r = 10\)</em> (worked example 2): \(\tfrac\alpha2 = 0.141303\), \(\mathbf m = (0.705334, -0.070769, 0.705334)\), \(10\cdot\tfrac\alpha2 = 1.413033\), so
+\(V^{10}\leftrightarrow(0.157110, 0.696574, -0.069891, 0.696574)\) and the distance to \(u\) is \(\sqrt{0.001166^2 + 2\times0.001882^2 + 0.069891^2} = 0.0700\).</p>
+<p><em>At \(r = 20\):</em> \(\tfrac\alpha2 = 0.070696\), \(\mathbf m = (0.706665, -0.035363, 0.706665)\), \(20\cdot\tfrac\alpha2 = 1.413919\), \(\cos = 0.156235\),
+\(\sin = 0.987720\). So \(V^{20}\leftrightarrow(0.156235, 0.697987, -0.034928, 0.697987)\), and the distance is
+\(\sqrt{0.000291^2 + 2\times0.000469^2 + 0.034928^2} = 0.0349\).</p>
+<p><strong>3.</strong> Prediction: \(0.0027/4 = 0.00069\). Computation: the Strang step has the same \(\cos\tfrac\alpha2 = \cos^2\delta\), so the same angle, and axis
+\((\cos\delta, 0, 1)/\sqrt{1 + \cos^2\delta} = (0.706665, 0, 0.707549)\) at \(\delta = 0.05\). Then \(S^{20}\leftrightarrow(0.156235, 0.697987, 0, 0.698860)\), and the distance to
+\(u\) is \(\sqrt{0.000291^2 + 0.000469^2 + 0.000404^2} = 0.00068\).</p>
+<p><strong>Check.</strong> First order: \(0.0700\to0.0349\), a factor \(2.00\) for twice the steps, and each below its bound (\(0.1\), \(0.05\)) ✓. Strang:
+\(0.00274\to0.00068\), a factor \(4.0\) ✓. In both first-order errors almost everything is the \(Y\) component, \(-\sin^2\delta/\sin\tfrac\alpha2\approx-\delta/\sqrt2\) in
+the axis, multiplied by \(\sin\tfrac{r\alpha}{2}\approx0.988\): \(0.0699\) and \(0.0349\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+X, Z = gates.X, gates.Z
+E = lambda h, s: linalg.exp_hermitian(h, -1j * s)       # e^{-ihs}
+U = E(X + Z, 1)
+for r in (1, 10, 20):
+    d = 1 / r
+    V = E(X, d) @ E(Z, d)                                # first-order step
+    S = E(X, d / 2) @ E(Z, d) @ E(X, d / 2)              # Strang step
+    first = linalg.op_norm(U - np.linalg.matrix_power(V, r))
+    strang = linalg.op_norm(U - np.linalg.matrix_power(S, r))
+    print(r, f"{first:.4f} {strang:.5f}")                # 1 0.7992 0.31367 · 10 0.0700 0.00274 · 20 0.0349 0.00068</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Proof: the one-step bound, from the other end <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the checkpoint's proof, re-derived by variation of parameters; why the constant ½ is the right one</p>
+<div class="statement">
+<p>Let \(A\), \(B\) be Hermitian and \(\delta \gt 0\).</p>
+<ol>
+<li>Let \(W(s) = e^{-i(A+B)(\delta - s)}e^{-iAs}e^{-iBs}\) for \(0\le s\le\delta\). Show \(W(0) = U(\delta)\) and \(W(\delta) = V(\delta)\), compute \(W'(s)\), and prove
+\(\lVert V(\delta) - U(\delta)\rVert\le\tfrac12\lVert[A, B]\rVert\delta^2\) from \(V(\delta) - U(\delta) = \int_0^\delta W'(s)\,ds\). You may use the deck's two lemmas.</li>
+<li>Show the constant cannot be lowered: \(\lim_{\delta\to0}\lVert V(\delta) - U(\delta)\rVert/\delta^2 = \tfrac12\lVert[A, B]\rVert\).</li>
+<li>For \(A = X\), \(B = Z\), the computed ratio \(\lVert V(\delta) - U(\delta)\rVert/\delta^2\) is \(0.99778\) at \(\delta = 0.1\) and \(0.99998\) at \(\delta = 0.01\). Is that what part 2
+predicts?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the proof of worked example 1 with the exact evolution moved to the other side: an interpolation from \(U(\delta)\) to \(V(\delta)\) whose
+velocity is a unitary sandwich around \(G(s) - B\). Part 2 needs a lower bound to match the upper one: an expansion with a remainder you control.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\tfrac{d}{ds}e^{-i(A+B)(\delta - s)} = e^{-i(A+B)(\delta - s)}\,i(A + B)\) — the chain rule with inner derivative \(-1\). For part 2, write
+\(V - U = -\tfrac12[A, B]\delta^2 + R(\delta)\) and bound \(R\) by the multinomial argument of the deck's Strang notes, with \(\alpha = \lVert A\rVert + \lVert B\rVert\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(W'(s) = e^{-i(A+B)(\delta - s)}\big[i(A + B)e^{-iAs} - iAe^{-iAs} - ie^{-iAs}B\big]e^{-iBs}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Interpolate between the exact and the split evolutions; the interpolation's velocity is, up to unitaries, the drift \(G(s) - B\) of
+lemma 2, which grows at most linearly. For sharpness, the second-order Taylor term is exactly \(-\tfrac12[A, B]\delta^2\), and everything else is
+smaller.</p>
+<p><strong>1.</strong> \(W(0) = e^{-i(A+B)\delta}\cdot I\cdot I = U(\delta)\) and \(W(\delta) = I\cdot e^{-iA\delta}e^{-iB\delta} = V(\delta)\). By the product rule (unit 01), the three
+factors differentiate to \(e^{-i(A+B)(\delta - s)}\,i(A + B)\), \(-iAe^{-iAs}\) and \(-iBe^{-iBs}\); writing \(-iBe^{-iBs}\) as \(e^{-iBs}(-iB)\) and keeping the factors in place,</p>
+\[ W'(s) = e^{-i(A+B)(\delta - s)}\Big[i(A + B)e^{-iAs} - iAe^{-iAs} - ie^{-iAs}B\Big]e^{-iBs} = ie^{-i(A+B)(\delta - s)}\Big[Be^{-iAs} - e^{-iAs}B\Big]e^{-iBs}, \]
+<p>using that \(A\) commutes with \(e^{-iAs}\). As in worked example 1, \(Be^{-iAs} - e^{-iAs}B = e^{-iAs}(G(s) - B)\) with \(G(s) = e^{iAs}Be^{-iAs}\), so</p>
+\[ W'(s) = i\,e^{-i(A+B)(\delta - s)}\,e^{-iAs}\,\big(G(s) - B\big)\,e^{-iBs},\qquad\lVert W'(s)\rVert = \lVert G(s) - B\rVert\le s\lVert[A, B]\rVert \]
+<p>by unitary invariance and lemma 2. By the fundamental theorem and lemma 1,
+\(\lVert V(\delta) - U(\delta)\rVert = \big\lVert\int_0^\delta W'\big\rVert\le\int_0^\delta s\lVert[A, B]\rVert\,ds = \tfrac12\lVert[A, B]\rVert\delta^2\). ∎ (Note \(W(s) = U(\delta)F(s)\) with worked example 1's
+\(F\): the same proof, multiplied on the left by a constant unitary.)</p>
+<p><strong>2.</strong> Write \(a = -iA\), \(b = -iB\). The products \(V(\delta) = \sum_{p,q}\frac{(a\delta)^p(b\delta)^q}{p!\,q!}\) and \(U(\delta) = \sum_m\frac{((a + b)\delta)^m}{m!}\) agree
+in degrees 0 and 1, and in degree 2 differ by \(\tfrac12(ab - ba)\delta^2 = -\tfrac12[A, B]\delta^2\) (the deck's leading-order slide). The terms of degree \(\ge3\) have
+total norm at most \(\sum_{m\ge3}(\alpha\delta)^m/m!\) in each series, by the multinomial (here binomial) theorem with \(\lVert A\rVert + \lVert B\rVert = \alpha\) and
+\(\lVert A + B\rVert\le\alpha\). So \(V - U = -\tfrac12[A, B]\delta^2 + R(\delta)\) with \(\lVert R(\delta)\rVert\le2\sum_{m\ge3}\frac{(\alpha\delta)^m}{m!}\le\tfrac13(\alpha\delta)^3e^{\alpha\delta}\).
+By the triangle inequality in both directions,</p>
+\[ \Big|\,\frac{\lVert V - U\rVert}{\delta^2} - \tfrac12\lVert[A, B]\rVert\,\Big|\le\frac{\lVert R(\delta)\rVert}{\delta^2}\le\tfrac13\alpha^3\delta\,e^{\alpha\delta}\to0 . \]
+<p>So no constant \(c \lt \tfrac12\) can satisfy \(\lVert V - U\rVert\le c\lVert[A, B]\rVert\delta^2\) for all small \(\delta\) unless \([A, B] = 0\).</p>
+<p><strong>3.</strong> \(\tfrac12\lVert[X, Z]\rVert = 1\), and the ratios \(0.99778\), \(0.99998\) approach it ✓. Part 2's remainder bound with \(\alpha = 2\) allows
+deviations up to \(\tfrac83\delta e^{2\delta}\): \(0.33\) at \(\delta = 0.1\) and \(0.027\) at \(\delta = 0.01\). The true deviations, \(0.0022\) and \(0.00002\), are far smaller —
+here they shrink like \(\delta^2\), the bound only like \(\delta\). That is all an upper bound promises.</p>
+<p><strong>Check.</strong> Dimensions: \(\lVert[A, B]\rVert\delta^2\) is dimensionless when \(A\), \(B\) are angular frequencies ✓. Special case \(B = 0\): \(W\) is constant,
+\(W' = 0\), bound 0 ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Many terms <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: induction on the one-step bound, counting the pairs that clash, what the bound cannot see</p>
+<div class="statement">
+<ol>
+<li>Prove that for Hermitian \(H_1, \dots, H_L\) with sum \(H\),
+\(\big\lVert e^{-iH\delta} - e^{-iH_1\delta}\cdots e^{-iH_L\delta}\big\rVert\le\frac{\delta^2}2\sum_{j \lt k}\lVert[H_j, H_k]\rVert\).</li>
+<li>Write the chain as its \(2n - 1\) terms in the <em>interleaved</em> order \(-X_0, -Z_0Z_1, -X_1, -Z_1Z_2, \dots, -X_{n-1}\). Evaluate
+\(\sum_{j \lt k}\lVert[H_j, H_k]\rVert\), and the resulting \(r\)-step bound at \(n = 8\), \(t = 5\), \(r = 1000\).</li>
+<li>The <em>grouped</em> order (all bonds, then all sites) is the deck's \(V = e^{-iA\delta}e^{-iB\delta}\), with actual error \(0.0144\) at these values. The interleaved
+order's actual error, computed, is \(0.155\). Is either inconsistent with part 2? What does the comparison say about the bound?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an induction on \(L\) whose step is the two-term bound; part 2 is a count; part 3 is a comparison of three numbers with one
+bound.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Peel off the first term: \(H = H_1 + R\), \(R = H_2 + \cdots + H_L\). Two errors: replacing \(e^{-iH\delta}\) by \(e^{-iH_1\delta}e^{-iR\delta}\), then replacing \(e^{-iR\delta}\) by the
+product of the rest. For part 2, which pairs fail to commute does not depend on the order in which they are listed.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\lVert e^{-iH\delta} - e^{-iH_1\delta}W\rVert\le\lVert e^{-iH\delta} - e^{-iH_1\delta}e^{-iR\delta}\rVert + \lVert e^{-iH_1\delta}(e^{-iR\delta} - W)\rVert\) with
+\(W = e^{-iH_2\delta}\cdots e^{-iH_L\delta}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One term at a time: each peel costs that term's commutators with everything after it, and the rest is the same problem
+with one term fewer.</p>
+<p><strong>1.</strong> \(L = 1\) is trivial and \(L = 2\) is the one-step bound. Assume the claim for \(L - 1\) terms. With \(R\) and \(W\) as in rung 3, the first
+term on the right is at most \(\tfrac{\delta^2}2\lVert[H_1, R]\rVert\le\tfrac{\delta^2}2\sum_{k\ge2}\lVert[H_1, H_k]\rVert\) (one-step bound; then linearity of the commutator and the
+triangle inequality). The second equals \(\lVert e^{-iR\delta} - W\rVert\) by unitary invariance, at most \(\tfrac{\delta^2}2\sum_{2\le j \lt k}\lVert[H_j, H_k]\rVert\) by hypothesis. The two
+sums together run over all pairs \(j \lt k\). ∎ Over \(r\) steps, the hybrid argument multiplies by \(r\) with \(\delta = t/r\): \(\frac{t^2}{2r}\sum_{j \lt k}\lVert[H_j, H_k]\rVert\).</p>
+<p><strong>2.</strong> A bond \(-Z_iZ_{i+1}\) and a site \(-X_j\) clash exactly when \(j\in\{i, i + 1\}\) (P2, part 4), with \(\lVert[Z_iZ_{i+1}, X_j]\rVert = \lVert2iY_iZ_{i+1}\rVert = 2\)
+(or \(2iZ_iY_{i+1}\)). Two bonds commute; two sites commute. So the sum is \(2(n - 1)\times2 = 4(n - 1)\), whatever the order: \(28\) at \(n = 8\). The bound is
+\(28\times25/2000 = 0.35\).</p>
+<p><strong>3.</strong> Neither is inconsistent: \(0.0144\le0.35\) and \(0.155\le0.35\) ✓. But the two orders differ by a factor of \(10.7\), and the bound — which
+depends only on which pairs clash — gives both the same number. So the ordering of terms is a free parameter the bound is blind to;
+at \(n = 8\) one can compute which order is better, and at \(n = 50\) one cannot. (The grouped order also satisfies the sharper two-term
+bound with the exact \(\lVert[A, B]\rVert = 19.0\), namely \(0.238\); the interleaved order has no such two-term form.)</p>
+<p><strong>Check.</strong> \(L = 2\) recovers the one-step bound ✓. For terms that all commute the sum is 0 and the product is exact, as P2 proved ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+n, t, r = 8, 5, 1000
+word = lambda d: gates.pauli(''.join(d.get(i, 'I') for i in range(n)))
+bonds = [-word({i: 'Z', i + 1: 'Z'}) for i in range(n - 1)]
+sites = [-word({i: 'X'}) for i in range(n)]
+U = linalg.exp_hermitian(sum(bonds) + sum(sites), -1j * t)
+
+def error(order):
+    step = np.eye(2**n, dtype=complex)
+    for term in order:                                   # leftmost factor acts last
+        step = step @ linalg.exp_hermitian(term, -1j * t / r)
+    return linalg.op_norm(U - np.linalg.matrix_power(step, r))
+
+inter = []
+for i in range(n):                                       # X0, Z0Z1, X1, Z1Z2, ..., X7
+    inter.append(sites[i])
+    if i &lt; n - 1:
+        inter.append(bonds[i])
+print(f"{error(bonds + sites):.4f} {error(inter):.4f}")  # 0.0144 0.1547</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">The numbers, and second order</h2>
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Proof: Strang is second order <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: power-series bookkeeping, a remainder bound by the multinomial theorem, time symmetry</p>
+<div class="statement">
+<ol>
+<li>Show that the coefficients of \(\delta\) and \(\delta^2\) in \(S(\delta)\) agree with those in \(e^{-i(A+B)\delta}\).</li>
+<li>Prove \(\lVert S(\delta) - e^{-i(A+B)\delta}\rVert\le\tfrac13(\alpha\delta)^3e^{\alpha\delta}\) with \(\alpha = \lVert A\rVert + \lVert B\rVert\), and deduce an \(r\)-step bound of order \(t^3/r^2\).</li>
+<li>Show \(S(-\delta) = S(\delta)^{-1}\), as for the exact evolution. Show that \(V(-\delta) = V(\delta)^{-1}\) for all \(\delta\) forces \([A, B] = 0\).</li>
+<li>For \(H = X + Z\) at \(\delta = 0.1\), evaluate part 2's bound for one step and for ten. Compare with the actual ten-step error \(0.0027\) and with the
+cited constant's \(0.005\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 multiply three power series and sort by degree. Part 3 is one line for \(S\) and a second-derivative argument, as in P2, for \(V\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In degree 2 there are six contributions to \(S\): one \(\delta^2\) term from each factor, and one product of \(\delta\) terms from each pair of factors, in
+order. For part 2, bound every term of degree \(m\) of \(S\) by the corresponding term of \(\big(\tfrac{\lVert A\rVert\delta}2 + \lVert B\rVert\delta + \tfrac{\lVert A\rVert\delta}2\big)^m/m!\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1, with \(a = -iA\), \(b = -iB\): the \(\delta^2\) coefficient of \(S\) is \(\tfrac{a^2}8 + \tfrac{b^2}2 + \tfrac{a^2}8 + \tfrac a2b + \tfrac a2\tfrac a2 + b\tfrac a2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A palindrome of exponentials agrees with the true evolution one order further than a non-palindrome, because the
+asymmetric \(ab\) has been split evenly into \(\tfrac12ab + \tfrac12ba\).</p>
+<p><strong>1.</strong> Degree 1: \(\tfrac a2 + b + \tfrac a2 = a + b\) ✓. Degree 2: from rung 3, \(\tfrac{a^2}4 + \tfrac{a^2}4 + \tfrac{b^2}2 + \tfrac12ab + \tfrac12ba = \tfrac12(a^2 + ab + ba + b^2) = \tfrac12(a + b)^2\),
+which is the \(\delta^2\) coefficient of \(e^{(a+b)\delta}\) ✓.</p>
+<p><strong>2.</strong> Multiply out: \(S(\delta) = \sum_{p,q,s\ge0}\frac{(a\delta/2)^p(b\delta)^q(a\delta/2)^s}{p!\,q!\,s!}\), an absolutely convergent triple series. The part of degree \(m = p + q + s\)
+has norm at most \(\sum_{p+q+s = m}\frac{x^py^qx^s}{p!\,q!\,s!} = \frac{(2x + y)^m}{m!}\) with \(x = \lVert A\rVert\delta/2\), \(y = \lVert B\rVert\delta\) (multinomial theorem), and
+\(2x + y = \alpha\delta\). Likewise the degree-\(m\) part of \(e^{(a+b)\delta}\) has norm at most \((\alpha\delta)^m/m!\). Degrees 0, 1 and 2 cancel by part 1, so</p>
+\[ \lVert S(\delta) - e^{-i(A+B)\delta}\rVert\le2\sum_{m\ge3}\frac{(\alpha\delta)^m}{m!} = 2(\alpha\delta)^3\sum_{k\ge0}\frac{(\alpha\delta)^k}{(k + 3)!}\le\frac{(\alpha\delta)^3}{3}e^{\alpha\delta}, \]
+<p>since \((k + 3)!\ge6\cdot k!\). Over \(r\) steps, the hybrid argument gives at most \(\frac{\alpha^3t^3}{3r^2}e^{\alpha t/r}\), which is \(O(t^3/r^2)\) once \(r\ge\alpha t\).</p>
+<p><strong>3.</strong> \(S(-\delta) = e^{iA\delta/2}e^{iB\delta}e^{iA\delta/2}\), and \(S(\delta)^{-1} = (e^{-iA\delta/2})^{-1}(e^{-iB\delta})^{-1}(e^{-iA\delta/2})^{-1}\) in reversed order, which is the same
+product because the palindrome reads the same backwards ✓. For \(V\): \(V(-\delta) = e^{iA\delta}e^{iB\delta}\) while \(V(\delta)^{-1} = e^{iB\delta}e^{iA\delta}\). If these agree for all \(\delta\),
+differentiate twice at \(\delta = 0\) as in P2: \(-(A^2 + 2AB + B^2) = -(B^2 + 2BA + A^2)\), so \(AB = BA\).</p>
+<p><strong>4.</strong> \(\alpha = \lVert X\rVert + \lVert Z\rVert = 2\), so one step: \(\tfrac13(0.2)^3e^{0.2} = 0.00326\); ten steps: \(0.0326\). The actual \(0.0027\) is twelve times smaller,
+and the cited nested-commutator constant (\(0.005\)) is six times sharper than this crude bound. All three are \(O(t^3/r^2)\); only the
+constants differ.</p>
+<p><strong>Check.</strong> Part 1 for commuting \(A, B\): \(S(\delta) = e^{-i(A+B)\delta}\) exactly, consistent ✓. A remark only, since it uses the logarithm of a
+matrix near \(I\), which this course has not developed: writing \(S(\delta) = e^{-i(A + B)\delta + E(\delta)}\) for small \(\delta\), part 3 forces \(E(-\delta) = -E(\delta)\). An odd \(E\)
+has no \(\delta^2\) term, so time symmetry alone explains why the error starts at \(\delta^3\).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Size an Ising simulation <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the counting bound on the chain's commutator, first-order step counts, Strang's scaling with nested commutators</p>
+<div class="statement">
+<p>The chain with \(J = h = 1\).</p>
+<ol>
+<li>Prove \(\lVert[A, B]\rVert\le4(n - 1)\) by counting.</li>
+<li>For \(n = 50\), \(t = 10\), \(\varepsilon = 10^{-3}\): how many first-order steps does the bound demand? How many rotations and CNOTs is that?</li>
+<li>Show by the same counting that \(\lVert[B, [B, A]]\rVert\) and \(\lVert[A, [A, B]]\rVert\) are each at most \(16(n - 1)\). With the cited Strang constant,
+\(\frac{\delta^3}{12}\lVert[B, [B, A]]\rVert + \frac{\delta^3}{24}\lVert[A, [A, B]]\rVert\) per step, how many Strang steps reach the same accuracy?</li>
+<li>By what factor does each count grow if \(t\) doubles?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a count of non-commuting pairs times a norm, fed into "error \(\le\varepsilon\)" and solved for \(r\). Two Pauli products either commute or
+anticommute; if they anticommute, their commutator is twice their product, of norm 2.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Worked example 3 gives \([A, B] = 2i\sum_i(Y_iZ_{i+1} + Z_iY_{i+1})\). For the nested commutators, ask which \(X_j\), and which \(Z_jZ_{j+1}\), anticommute with
+\(Y_iZ_{i+1}\): count the positions where the two products have different non-identity Paulis.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(r\ge\frac{\lVert[A, B]\rVert t^2}{2\varepsilon}\ge\) — with the counting bound — \(\frac{4\cdot49\cdot10^2}{2\cdot10^{-3}}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Locality makes almost every pair of terms commute; count the ones that do not, and each costs a fixed amount.</p>
+<p><strong>1.</strong> \([A, B] = \sum_{i,j}[Z_iZ_{i+1}, X_j]\) (the two minus signs cancel). A term vanishes unless \(j\in\{i, i + 1\}\); otherwise it is
+\(2iY_iZ_{i+1}\) or \(2iZ_iY_{i+1}\), of norm 2. There are \(2(n - 1)\) of them, so \(\lVert[A, B]\rVert\le4(n - 1)\).</p>
+<p><strong>2.</strong> \(r\ge\frac{4\cdot49\cdot100}{2\times10^{-3}} = 9.8\times10^6\). Each step has \(2n - 1 = 99\) rotations and \(2(n - 1) = 98\) CNOTs: \(9.70\times10^8\) rotations and
+\(9.60\times10^8\) CNOTs.</p>
+<p><strong>3.</strong> \([B, [B, A]] = -[B, [A, B]]\), and \([A, B]\) is a sum of \(2(n - 1)\) terms \(2iP\), \(P\) a Pauli product like \(Y_iZ_{i+1}\). Now \(X_j\) anticommutes with
+\(Y_iZ_{i+1}\) exactly for \(j = i\) (\(X\) against \(Y\)) and \(j = i + 1\) (\(X\) against \(Z\)): two clashing terms of \(B\), each giving \(\lVert[X_j, 2iP]\rVert = 2\cdot2 = 4\). So
+\(\lVert[B, [A, B]]\rVert\le2(n - 1)\times2\times4 = 16(n - 1)\). For \([A, [A, B]]\): \(Z_jZ_{j+1}\) anticommutes with \(Y_iZ_{i+1}\) when they differ in an odd number of
+positions — \(j = i - 1\) (\(Z\) against \(Y\) at \(i\)) and \(j = i\) (\(Z\) against \(Y\) at \(i\), \(Z\) against \(Z\) at \(i + 1\)), but not \(j = i + 1\). Again at most two, so
+\(\lVert[A, [A, B]]\rVert\le16(n - 1)\). (The same holds for \(Z_iY_{i+1}\) by reflection.) Per step:
+\(\delta^3\big(\tfrac{16(n-1)}{12} + \tfrac{16(n-1)}{24}\big) = 2(n - 1)\delta^3\); over \(r\) steps \(2(n - 1)t^3/r^2\). Solve \(2\cdot49\cdot1000/r^2\le10^{-3}\):
+\(r\ge\sqrt{9.8\times10^7} = 9899.5\), so \(r = 9{,}900\) — a thousand times fewer.</p>
+<p><strong>4.</strong> First order: \(r\propto t^2\), so \(\times4\). Strang: \(r\propto t^{3/2}\), so \(\times2^{3/2} = 2.83\).</p>
+<p><strong>Check.</strong> At \(n = 8\) the counts give \(28\) and \(112\), against the computed \(19.0\), \(76.1\) and \(69.6\): all safe ✓. The Strang count at \(n = 8\),
+\(t = 5\) asks for \(\sqrt{14\cdot125/0.0144} = 349\) steps to reach \(0.0144\); the computed truth is 133 ✓ — safe and, again, pessimistic.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> A square lattice <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: counting clashing pairs in two dimensions, commutator scaling against norm scaling</p>
+<div class="statement">
+<p>Put \(\ell^2\) spins on an \(\ell\times\ell\) grid, with a bond \(-Z_aZ_b\) between each pair of horizontal or vertical neighbours and a field term \(-X_a\)
+on each site.</p>
+<ol>
+<li>Count the bonds and the terms \(L\).</li>
+<li>Bound \(\lVert[A, B]\rVert\) by counting.</li>
+<li>For \(\ell = 7\) (49 spins), \(t = 10\), \(\varepsilon = 10^{-3}\): first-order steps and rotations. Compare with the bound \(2\lVert A\rVert\lVert B\rVert\).</li>
+<li>The exact norms, computed, are \(11.31\) at \(\ell = 2\) and \(28.75\) at \(\ell = 3\). Check your bound against them.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The chain's argument used only that a bond touches two sites. That is still true on a grid; what changes is the number of bonds.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Each of the \(\ell\) rows has \(\ell - 1\) horizontal bonds, and each of the \(\ell\) columns has \(\ell - 1\) vertical ones. A bond \(Z_aZ_b\) clashes with \(X_a\) and
+\(X_b\) and nothing else in \(B\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(2\ell(\ell - 1)\) bonds, so \(\lVert[A, B]\rVert\le2\ell(\ell - 1)\times2\times2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Commutator counting depends on the number of bonds, not on the square of the number of terms; the lattice's dimension
+changes the count, not the method.</p>
+<p><strong>1.</strong> \(\ell(\ell - 1)\) horizontal plus \(\ell(\ell - 1)\) vertical: \(2\ell(\ell - 1)\) bonds, and \(L = 2\ell(\ell - 1) + \ell^2\) terms.</p>
+<p><strong>2.</strong> Each bond clashes with exactly its two sites, each commutator of norm 2: \(\lVert[A, B]\rVert\le8\ell(\ell - 1)\).</p>
+<p><strong>3.</strong> \(\ell = 7\): 84 bonds, \(L = 133\), bound \(8\cdot7\cdot6 = 336\). Steps: \(r\ge336\times100/(2\times10^{-3}) = 1.68\times10^7\); rotations
+\(133\times1.68\times10^7 = 2.23\times10^9\). Norm scaling: \(\lVert A\rVert = 84\) (all neighbours agreeing) and \(\lVert B\rVert = 49\), so \(2\lVert A\rVert\lVert B\rVert = 8232\) — 24.5 times worse,
+and growing like the square of the number of spins.</p>
+<p><strong>4.</strong> \(\ell = 2\): bound \(16\ge11.31\) ✓. \(\ell = 3\): bound \(48\ge28.75\) ✓. The ratios, \(0.71\) and \(0.60\), are like the chain's \(19.0/28 = 0.68\).</p>
+<p><strong>Check.</strong> \(\ell = 1\): no bonds, the bound is 0, and a single spin in a field has nothing to split ✓. The \(2\times2\) grid is a ring of four
+spins: four bonds, and the chain formula with \(n - 1\) replaced by 4 bonds gives \(4\times4 = 16\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">From steps to gates</h2>
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Pauli-product rotations <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: conjugating an exponential by Cliffords, parity ladders, controlling only what must be controlled</p>
+<div class="statement">
+<ol>
+<li>Prove that the circuit — \(H\) on qubit 0; \(S^\dagger\) then \(H\) on qubit 1; \(\mathrm{CNOT}_{02}\), \(\mathrm{CNOT}_{12}\); \(R_z(2\theta)\) on qubit 2; \(\mathrm{CNOT}_{12}\), \(\mathrm{CNOT}_{02}\); \(H\) on
+qubit 0; \(H\) then \(S\) on qubit 1 — implements \(e^{-i\theta X\otimes Y\otimes Z}\) exactly.</li>
+<li>For a Pauli product on \(k\) qubits, count the CNOTs, rotations and single-qubit Cliffords.</li>
+<li>Show that replacing the \(R_z(2\theta)\) by a controlled-\(R_z(2\theta)\), controlled by an extra qubit, and leaving every other gate alone, implements
+controlled-\(e^{-i\theta P}\).</li>
+<li>Write a circuit for \(e^{-i\theta Y\otimes Y}\) and count its gates.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The circuit is \(C^\dagger\,M\,C\) with \(C\) a tensor product of basis changes and \(M\) a circuit for \(e^{-i\theta Z\otimes Z\otimes Z}\). Prove each piece, then use
+\(f(C^\dagger KC) = C^\dagger f(K)C\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>On \(\ket{x_0x_1x_2}\) the two CNOTs put \(x_0\oplus x_1\oplus x_2\) on qubit 2. For \(Y\): \(SXS^\dagger = Y\), so \(S^\dagger YS = X\). For part 3, what does the circuit do on the
+branch where the control is \(\ket0\)?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\mathrm{CNOT}_{12}\mathrm{CNOT}_{02}\ket{x_0x_1x_2} = \ket{x_0,\,x_1,\,x_0\oplus x_1\oplus x_2}\), and \(R_z(2\theta) = e^{-i\theta Z}\) multiplies it by \(e^{-i\theta(-1)^{x_0\oplus x_1\oplus x_2}}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A Pauli product is \(Z^{\otimes k}\) in a rotated basis, and \(Z^{\otimes k}\) is the parity, which CNOTs can compute onto one wire. One
+rotation does the rest.</p>
+<p><strong>1.</strong> <em>The middle.</em> Following rung 3, the CNOTs, \(R_z\) and CNOTs again (which restore \(x_2\), since \(\mathrm{CNOT}^2 = I\)) send \(\ket x\) to
+\(e^{-i\theta(-1)^{x_0\oplus x_1\oplus x_2}}\ket x\). And \(Z\otimes Z\otimes Z\ket x = (-1)^{x_0\oplus x_1\oplus x_2}\ket x\), so by the functional calculus the middle is \(M = e^{-i\theta Z\otimes Z\otimes Z}\).
+<em>The basis change.</em> Let \(C = H\otimes HS^\dagger\otimes I\) (in the circuit, \(S^\dagger\) acts before \(H\) on qubit 1). Then \(HXH = Z\); \(HS^\dagger YSH = HXH = Z\), using
+\(S^\dagger YS = X\), which follows from \(SXS^\dagger = \mathrm{diag}(1, i)\,X\,\mathrm{diag}(1, -i) = \begin{pmatrix}0&amp;-i\\ i&amp;0\end{pmatrix} = Y\); and \(Z\) is left alone. So
+\(C(X\otimes Y\otimes Z)C^\dagger = Z\otimes Z\otimes Z\), i.e. \(X\otimes Y\otimes Z = C^\dagger(Z\otimes Z\otimes Z)C\). <em>Together.</em> If \(K = \sum\lambda P_\lambda\) then \(C^\dagger KC = \sum\lambda\,C^\dagger P_\lambda C\) is
+a spectral decomposition, so \(e^{-i\theta C^\dagger KC} = C^\dagger e^{-i\theta K}C\). The circuit applies \(C\) first, then \(M\), then \(C^\dagger = H\otimes SH\otimes I\) — which is \(H\) then \(S\)
+on qubit 1 ✓.</p>
+<p><strong>2.</strong> \(k - 1\) CNOTs compute the parity and \(k - 1\) uncompute it: \(2(k - 1)\). One rotation. Basis changes: none for \(Z\), one gate each side for
+\(X\), two each side for \(Y\): at most \(4k\).</p>
+<p><strong>3.</strong> On the control's \(\ket1\) branch the circuit is the original one. On the \(\ket0\) branch the rotation is absent, and what remains is
+\(C^\dagger\,L^\dagger L\,C = I\), \(L\) the CNOT ladder. So the whole is \(\ket0\!\bra0\otimes I + \ket1\!\bra1\otimes e^{-i\theta P}\), controlled-\(e^{-i\theta P}\) ✓. Only the rotation needs a control
+— which is what section 5 needs.</p>
+<p><strong>4.</strong> \(S^\dagger\) then \(H\) on both qubits; \(\mathrm{CNOT}_{01}\); \(R_z(2\theta)\) on qubit 1; \(\mathrm{CNOT}_{01}\); \(H\) then \(S\) on both qubits. Two CNOTs, one rotation,
+eight single-qubit Cliffords.</p>
+<p><strong>Check.</strong> \(\theta = \pi/2\): \(e^{-i\frac\pi2X\otimes Y\otimes Z} = -iX\otimes Y\otimes Z\), and the circuit's middle is \(R_z(\pi) = -iZ\) on the parity: \(-i\,C^\dagger(Z\otimes Z\otimes Z)C\) ✓. And
+\(k = 2\) with no basis change is worked example 5 ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates, linalg
+th = 0.37
+c = Circuit(3).h(0).sdg(1).h(1)                          # basis change
+c.cx(0, 2).cx(1, 2).rz(2 * th, 2).cx(1, 2).cx(0, 2)      # parity, rotate, uncompute
+c.h(0).h(1).s(1)                                         # undo
+target = linalg.exp_hermitian(gates.pauli('XYZ'), -1j * th)
+print(np.allclose(c.unitary(), target), c.counts())      # True Counter({'h': 4, 'cx': 4, 'sdg': 1, 'rz': 1, 's': 1})</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> The gate count <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: costing a Trotter circuit, error budgets that add, T counts from Ross–Selinger</p>
+<div class="statement">
+<p>The chain at \(n = 8\), \(t = 5\).</p>
+<ol>
+<li>First order with \(r = 1000\) steps (error \(0.0144\)): how many CNOTs and rotations, and what depth, counting each bond block (CNOT, \(R_z\), CNOT) as depth 3?</li>
+<li>Synthesising each rotation to \(10^{-6}\) at \(3\log(1/\varepsilon)\) T gates each: the T count, and a bound on the circuit's total error.</li>
+<li>Strang with \(r = 133\) (computed error \(0.0143\)), with adjacent half-steps merged: rotations and CNOTs. What per-rotation accuracy makes the
+synthesis error equal the Trotter error, and what T count follows?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Counts per step times steps; then unit 11's "errors add" for the budget. The total error is the Trotter error plus the sum of the gate
+errors.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Per first-order step: \(n - 1\) bond blocks and \(n\) field rotations; the layers are fields, even bonds, odd bonds. Merged Strang with \(r\) steps
+has \(r\) field layers and \(r + 1\) bond layers.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: per step \(7\times2 = 14\) CNOTs and \(7 + 8 = 15\) rotations; depth \(1 + 3 + 3 = 7\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Count, then budget: Trotter error and synthesis error are two independent approximations, and their errors add.</p>
+<p><strong>1.</strong> \(1000\times14 = 14{,}000\) CNOTs, \(1000\times15 = 15{,}000\) rotations, depth \(1000\times7 = 7{,}000\).</p>
+<p><strong>2.</strong> \(3\log(10^6) = 3\times19.93 = 59.8\) T gates per rotation, so \(15{,}000\times59.8 = 8.97\times10^5\). With \(V^r\) the exact Trotter product and \(W\) the synthesised
+circuit, \(\lVert W - e^{-iHt}\rVert\le\lVert W - V^r\rVert + \lVert V^r - e^{-iHt}\rVert\le15{,}000\times10^{-6} + 0.0144 = 0.0294\), the first term by the hybrid argument (CNOTs exact).</p>
+<p><strong>3.</strong> 133 field layers of 8 rotations and 134 bond layers of 7 blocks: \(133\times8 + 134\times7 = 2{,}002\) rotations and \(134\times14 = 1{,}876\) CNOTs. Balance:
+\(2002\,\varepsilon_{\mathrm{rot}} = 0.0143\) gives \(\varepsilon_{\mathrm{rot}} = 7.1\times10^{-6}\), costing \(3\log(2002/0.0143) = 3\log(1.40\times10^5) = 51.3\) T gates each: \(2002\times51.3 = 1.03\times10^5\) T
+gates, with total error at most \(0.0286\).</p>
+<p><strong>Check.</strong> Ross–Selinger is insensitive to the budget: a factor of 7 in \(\varepsilon_{\mathrm{rot}}\) changed the per-rotation cost only from 59.8 to 51.3 (each factor of
+ten costs \(3\log10 = 10\) T gates). So the saving from Strang, a factor of 8.7 in T gates, is almost all from the 7.5-fold drop in steps ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Energies, by phase estimation</h2>
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Energies on one qubit <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: energies as eigenphases, choosing \(\tau\), counting qubits for a precision, the ground-state overlap</p>
+<div class="statement">
+<p>Take \(H = X + Z\), and phase estimation on \(U = e^{-iH\tau}\).</p>
+<ol>
+<li>Find the eigenvalues of \(H\) and its ground state \(\ket{E_0}\).</li>
+<li>Using only \(\lVert H\rVert\le\lVert X\rVert + \lVert Z\rVert\), say which \(\tau\) are safe; show \(\tau = 1\) is.</li>
+<li>With \(\tau = 1\), how many counting qubits \(m\) guarantee \(|\tilde E - E_0|\le5\times10^{-4}\) with probability at least \(4/\pi^2\) for the input \(\ket{E_0}\)? Which outcome \(y\)
+is most likely, and what is \(\tilde E\)?</li>
+<li>How many counting qubits give \(|\tilde E - E_0| \lt 5\times10^{-4}\) with probability at least \(0.99\)?</li>
+<li>The input must be preparable: \(\ket0\) or \(\ket1\)? With the better one and \(m\) from part 3, how likely is a run to return the outcome of part 3?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answers are an eigen-decomposition, an inequality on \(\tau\), two integers \(m\) from unit 15's two theorems, and a product of two
+probabilities (unit 15's superposition theorem).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(H = \sqrt2\,\mathbf n\cdot\boldsymbol\sigma\) with \(\mathbf n = (1, 0, 1)/\sqrt2\), so its eigenvectors are the Bloch vectors \(\pm\mathbf n\). With \(\tau = 1\), \(\varphi = -E/2\pi\), and a phase
+error \(2^{-m-1}\) is an energy error \(2\pi\cdot2^{-m-1} = \pi/2^m\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(\pi/2^m\le5\times10^{-4}\) iff \(2^m\ge6283.2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> An energy is an eigenphase scaled by \(-2\pi/\tau\); unit 15 says how many bits of eigenphase a register delivers and how often; the
+input decides how often the right eigenvector is sampled at all.</p>
+<p><strong>1.</strong> \(H^2 = X^2 + XZ + ZX + Z^2 = 2I\), so the eigenvalues are \(\pm\sqrt2\) (trace 0, so one of each). For \(-\sqrt2\): \(\ket{E_0} = \sin\tfrac\pi8\ket0 - \cos\tfrac\pi8\ket1\).
+Check: \(H\ket{E_0} = (\sin\tfrac\pi8 - \cos\tfrac\pi8)\ket0 + (\sin\tfrac\pi8 + \cos\tfrac\pi8)\ket1 = (-0.5412, 1.3066)\), and \(-\sqrt2(0.38268, -0.92388) = (-0.5412, 1.3066)\) ✓.
+Normalised: \(\sin^2 + \cos^2 = 1\) ✓.</p>
+<p><strong>2.</strong> \(\lambda = \lVert X\rVert + \lVert Z\rVert = 2\), so any \(\tau \lt \pi/2 = 1.571\) maps \([-2, 2]\) one-to-one into phases in \((-\tfrac12, \tfrac12)\). \(\tau = 1\) is safe.</p>
+<p><strong>3.</strong> \(\varphi_0 = \sqrt2/2\pi = 0.225079\). The nearest \(m\)-bit fraction is within \(2^{-m-1}\) with probability \(\ge4/\pi^2\); in energy, \(\pi/2^m\). This is \(\le5\times10^{-4}\) iff
+\(2^m\ge6283.2\): \(m = 13\) (\(\pi/8192 = 3.8\times10^{-4}\); \(m = 12\) gives \(7.7\times10^{-4}\), too coarse). Then \(2^{13}\varphi_0 = 1843.85\), so \(y = 1844\), with offset \(0.152\) and
+probability \(\sin^2(0.152\pi)/(4^{13}\sin^2(0.152\pi/8192)) = 0.926\). Estimate: \(\tilde E = -2\pi\cdot1844/8192 = -1.41433\), against \(-\sqrt2 = -1.41421\): off by \(1.2\times10^{-4}\) ✓.</p>
+<p><strong>4.</strong> Unit 15: \(t = n + \lceil\log(2 + \tfrac1{2\varepsilon})\rceil\) counting qubits give \(|\tilde\varphi - \varphi| \lt 2^{-n}\) with probability \(1 - \varepsilon\). Need \(2\pi\cdot2^{-n}\le5\times10^{-4}\),
+i.e. \(2^n\ge12566\): \(n = 14\). With \(\varepsilon = 0.01\), \(\lceil\log52\rceil = \lceil5.70\rceil = 6\). So \(m = 20\).</p>
+<p><strong>5.</strong> \(|\braket{E_0|0}|^2 = \sin^2\tfrac\pi8 = 0.146\) and \(|\braket{E_0|1}|^2 = \cos^2\tfrac\pi8 = 0.854\): start from \(\ket1\). A run returns \(y = 1844\) with probability
+\(0.854\times0.926 = 0.790\).</p>
+<p><strong>Check.</strong> The weights \(0.146 + 0.854 = 1\) ✓. The other eigenvalue \(+\sqrt2\) sits at \(\varphi = -0.225 \equiv 0.775\), outcome near 6348, far from 1844, so the two
+cannot be confused ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates, library, linalg
+m = 13                                                   # counting qubits 0..12, target qubit 13
+U = linalg.exp_hermitian(gates.X + gates.Z, -1j)         # tau = 1
+c = Circuit(m + 1).x(m)                                  # input |1&gt;
+for q in range(m):
+    c.h(q)
+for q in range(m):                                       # counting qubit q controls U^(2^(m-1-q))
+    c.controlled(np.linalg.matrix_power(U, 2**(m - 1 - q)), [q], [m])
+c.gate(library.qft_matrix(m).conj().T, *range(m))        # inverse QFT
+p = c.run().probabilities(range(m))
+y = int(np.argmax(p))
+print(y, round(p[y], 3), round(-2 * np.pi * y / 2**m, 5))   # 1844 0.79 -1.41433</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> The flip symmetry, and a bad input <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: a symmetry commuting with \(H\), simultaneous eigenvectors, bounding an overlap, the cat state</p>
+<div class="statement">
+<p>The chain with \(J = h = 1\), and \(F = X_0X_1\cdots X_{n-1}\), which flips every spin.</p>
+<ol>
+<li>Show \(F^2 = I\) and \([F, H] = 0\).</li>
+<li>Suppose the ground energy \(E_0\) is non-degenerate (true at \(n = 8\), by computation). Show \(\ket{E_0}\) is an eigenvector of \(F\), with eigenvalue \(\pm1\).</li>
+<li>Show that \(\ket{0^n}\) has weight exactly \(\tfrac12\) on each eigenspace of \(F\), so \(|\braket{E_0|0^n}|^2\le\tfrac12\). If \(F\ket{E_0} = \ket{E_0}\), show the cat state
+\(\ket{\mathrm{cat}} = (\ket{0^n} + \ket{1^n})/\sqrt2\) has \(|\braket{E_0|\mathrm{cat}}|^2 = 2|\braket{E_0|0^n}|^2\).</li>
+<li>At \(n = 8\), \(\ket{0^8}\) has weights \(0.116\) on \(E_0\) and \(0.211\) on \(E_1\), and computation gives \(F = +1\) on \(\ket{E_0}\), \(F = -1\) on \(\ket{E_1}\). Predict the cat state's
+weights on \(E_0\) and \(E_1\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>A unitary that commutes with \(H\) maps each eigenspace of \(H\) into itself; a one-dimensional eigenspace is then spanned by an eigenvector of
+the unitary. The weights in part 3 come from the projectors onto the eigenspaces of \(F\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(F\) and \(Z_iZ_{i+1}\) disagree (\(X\) against \(Z\)) in exactly two positions. The projectors of \(F\) are \(P_\pm = \tfrac12(I \pm F)\), and \(F\ket{0^n} = \ket{1^n}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: \(P_\pm\ket{0^n} = \tfrac12(\ket{0^n}\pm\ket{1^n})\), whose squared norm is \(\tfrac14(1 + 1) = \tfrac12\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The chain cannot tell "all up" from "all down", so its eigenvectors are symmetric or antisymmetric under the flip; a basis
+state is half of each, and so can never have more than half its weight on the ground state.</p>
+<p><strong>1.</strong> \(F^2 = \prod_iX_i^2 = I\), the factors acting on different qubits. \(F\) commutes with each \(X_j\) (same reason). Against \(Z_iZ_{i+1}\) it has \(X\) where the
+bond has \(Z\) at two positions, and each swap of an anticommuting pair gives a sign: \((-1)^2 = 1\). So \(F\) commutes with every term, hence with \(H\).</p>
+<p><strong>2.</strong> \(HF\ket{E_0} = FH\ket{E_0} = E_0F\ket{E_0}\), so \(F\ket{E_0}\) lies in the \(E_0\)-eigenspace, which is spanned by \(\ket{E_0}\): \(F\ket{E_0} = \lambda\ket{E_0}\). Then
+\(\ket{E_0} = F^2\ket{E_0} = \lambda^2\ket{E_0}\), so \(\lambda = \pm1\).</p>
+<p><strong>3.</strong> \(F\) is Hermitian and unitary with \(F^2 = I\), so \(P_\pm = \tfrac12(I\pm F)\) are the projectors onto its \(\pm1\) eigenspaces (they are Hermitian,
+\(P_\pm^2 = \tfrac14(I \pm 2F + I) = P_\pm\), and \(P_+ + P_- = I\)). By rung 3 each has weight \(\tfrac12\) on \(\ket{0^n}\) — the weights sum to 1 ✓. If \(F\ket{E_0} = \pm\ket{E_0}\) then
+\(\braket{E_0|0^n} = \braket{E_0|P_\pm|0^n}\), so \(|\braket{E_0|0^n}|^2\le\lVert P_\pm\ket{0^n}\rVert^2 = \tfrac12\) by Cauchy–Schwarz. If \(F\ket{E_0} = \ket{E_0}\):
+\(\braket{E_0|0^n} = \braket{E_0|P_+0^n} = \tfrac12\braket{E_0|0^n + 1^n} = \tfrac1{\sqrt2}\braket{E_0|\mathrm{cat}}\), and squaring gives the factor 2.</p>
+<p><strong>4.</strong> \(\ket{\mathrm{cat}}\) is in the \(+1\) eigenspace, so it has weight 0 on \(\ket{E_1}\) (orthogonal eigenspaces of \(F\)) and \(2\times0.116 = 0.232\) on \(\ket{E_0}\).</p>
+<p><strong>Check.</strong> \(0.116\le\tfrac12\) ✓. The cat state is not hard to prepare — one \(H\) and \(n - 1\) CNOTs — so this symmetry argument doubles the
+success rate of phase estimation for free. It does not reach the \(0.565\) of \(\ket{+}^{\otimes8}\), which is itself flip-symmetric (\(F\ket{+}^{\otimes n} = \ket{+}^{\otimes n}\)) and closer
+to the ground state at \(J = h\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates
+n = 8
+word = lambda d: gates.pauli(''.join(d.get(i, 'I') for i in range(n)))
+H = -sum(word({i: 'Z', i + 1: 'Z'}) for i in range(n - 1)) - sum(word({i: 'X'}) for i in range(n))
+E, v = np.linalg.eigh(H)
+F = gates.pauli('X' * n)                                  # flip every spin
+zero = np.zeros(2**n); zero[0] = 1
+cat = (zero + zero[::-1]) / np.sqrt(2)                    # (|0...0&gt; + |1...1&gt;)/sqrt2
+print(np.round(E[:2], 3))                                 # [-9.838 -9.469]
+print(np.round([(v[:, k].conj() @ F @ v[:, k]).real for k in (0, 1)], 6))   # [ 1. -1.]
+for s in (zero, cat):
+    print(np.round(abs(v[:, :2].conj().T @ s)**2, 3))     # [0.116 0.211] then [0.232 0.   ]</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Optional: the classical picture</h2>
+<section class="problem" id="p13">
+<h3><span class="pno">P13</span> The classical picture (optional) <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the same splitting for real matrices, second order from symmetry, area preservation in place of unitarity</p>
+<div class="statement">
+<p>Optional, and a cross-reference only: Mechanics to Relativity's unit 14 treats a Hamiltonian as generating a flow on phase space. Nothing
+here needs that course. The linear differential equation \((q, p)' = (p, -q)\) has flow \(R(t) = e^{tN} = \begin{pmatrix}\cos t&amp;\sin t\\ -\sin t&amp;\cos t\end{pmatrix}\) with
+\(N = N_D + N_K\), \(N_D = \begin{pmatrix}0&amp;1\\0&amp;0\end{pmatrix}\) (the "drift" \(q' = p\)) and \(N_K = \begin{pmatrix}0&amp;0\\-1&amp;0\end{pmatrix}\) (the "kick" \(p' = -q\)).</p>
+<ol>
+<li>Compute \(D(\delta) = e^{\delta N_D}\) and \(K(\delta) = e^{\delta N_K}\).</li>
+<li>Compute the first-order step \(D(\delta)K(\delta)\) and the symmetric step \(K(\tfrac\delta2)D(\delta)K(\tfrac\delta2)\), and show both have determinant 1.</li>
+<li>Show the symmetric step agrees with \(R(\delta)\) through \(\delta^2\), the first-order step only through \(\delta\).</li>
+<li>At \(t = 1\) the errors (operator norm) are \(0.0435\) and \(0.00147\) with 10 steps, \(0.0214\) and \(0.00037\) with 20. Which laws are these?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The exponentials are of nilpotent matrices — unit 00's <i>Exponentials do not add</i> slide had exactly this kind — so the series stop after two
+terms. Everything else is \(2\times2\) multiplication.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(N_D^2 = N_K^2 = 0\), so \(D(\delta) = I + \delta N_D\) and \(K(\delta) = I + \delta N_K\): shears. Expand \(\cos\delta = 1 - \tfrac{\delta^2}2 + \cdots\), \(\sin\delta = \delta - \tfrac{\delta^3}6 + \cdots\) for part 3.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(K(\tfrac\delta2)D(\delta) = \begin{pmatrix}1&amp;0\\-\delta/2&amp;1\end{pmatrix}\begin{pmatrix}1&amp;\delta\\0&amp;1\end{pmatrix} = \begin{pmatrix}1&amp;\delta\\-\delta/2&amp;1 - \delta^2/2\end{pmatrix}\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The same algebra as the unit, with real matrices: splitting a flow into exactly solvable pieces, and symmetrising for
+second order. Unitarity is replaced by determinant 1 — area preservation.</p>
+<p><strong>1.</strong> \(D(\delta) = \begin{pmatrix}1&amp;\delta\\0&amp;1\end{pmatrix}\), \(K(\delta) = \begin{pmatrix}1&amp;0\\-\delta&amp;1\end{pmatrix}\).</p>
+<p><strong>2.</strong> \(D(\delta)K(\delta) = \begin{pmatrix}1 - \delta^2&amp;\delta\\-\delta&amp;1\end{pmatrix}\), determinant \(1 - \delta^2 + \delta^2 = 1\). Continuing rung 3,</p>
+\[ K(\tfrac\delta2)D(\delta)K(\tfrac\delta2) = \begin{pmatrix}1 - \delta^2/2&amp;\delta\\-\delta + \delta^3/4&amp;1 - \delta^2/2\end{pmatrix}, \]
+<p>determinant \((1 - \tfrac{\delta^2}2)^2 + \delta(\delta - \tfrac{\delta^3}4) = 1 - \delta^2 + \tfrac{\delta^4}4 + \delta^2 - \tfrac{\delta^4}4 = 1\) ✓. (Each factor is a shear of determinant 1.)</p>
+<p><strong>3.</strong> \(R(\delta) = \begin{pmatrix}1 - \delta^2/2 + O(\delta^4)&amp;\delta - \delta^3/6\\-\delta + \delta^3/6&amp;1 - \delta^2/2 + O(\delta^4)\end{pmatrix}\) up to \(O(\delta^4)\) off the diagonal. The symmetric step
+matches every entry through \(\delta^2\) and first differs at \(\delta^3\) (\(\delta^3/4\) against \(\delta^3/6\) in the lower left; \(0\) against \(-\delta^3/6\) in the upper right). The
+first-order step already differs at \(\delta^2\) in the upper left: \(1 - \delta^2\) against \(1 - \delta^2/2\).</p>
+<p><strong>4.</strong> Doubling the steps divides the first-order error by \(0.0435/0.0214 = 2.03\) and the symmetric one by \(0.00147/0.00037 = 4.0\): \(1/r\) and \(1/r^2\),
+the same laws as the quantum case.</p>
+<p><strong>Check.</strong> At \(\delta = 0.1\) the symmetric step is \(\begin{pmatrix}0.995&amp;0.1\\-0.09975&amp;0.995\end{pmatrix}\), trace \(1.99\), so it is conjugate to a rotation by \(\arccos0.995 = 0.10004\) — a
+hair more than the true \(0.1\). This is the leapfrog (Störmer–Verlet) integrator of the oscillator. Mechanics to Relativity writes inner
+products linear in the first slot; nothing in this problem depends on it.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 19</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

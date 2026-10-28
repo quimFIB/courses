@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · Problems — Two systems: the tensor product, and the states that are not products</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="a">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part A · unit 03 · problems</p>
+<h1>Two systems: the tensor product, and the states that are not products</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u03">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove that the universal
+property determines \(V\otimes W\) up to unique isomorphism, every step; and for any two-qubit state you
+decide whether it is entangled and compute its Schmidt coefficients — for instance
+\(\varphi/\sqrt3 \approx 0.9342\) and \((\varphi - 1)/\sqrt3 \approx 0.3568\) for
+\(\tfrac1{\sqrt3}(\ket{00} + \ket{01} + \ket{10})\), with squares summing to one.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Eleven problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the <strong>first</strong> slot. Qubit 0 is
+the leftmost symbol of a ket and the most significant bit, so \(\ket{01}\) is basis vector \(1\). A state
+\(\psi = \sum_{ij}C_{ij}\ket{ij}\) has <strong>coefficient matrix</strong> \(C\), rows indexed by qubit 0; a product
+\(a\otimes b\) has \(C = ab^{\mathsf T}\), and \((A\otimes B)\) sends \(C\) to \(ACB^{\mathsf T}\). Linear polarisation at angle \(\theta\) is
+\(\ket\theta = \cos\theta\ket0 + \sin\theta\ket1\), and</p>
+\[ X = \begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix},\quad Z = \begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix},\quad
+\ket{\Phi^\pm} = \tfrac1{\sqrt2}(\ket{00} \pm \ket{11}),\quad \ket{\Psi^\pm} = \tfrac1{\sqrt2}(\ket{01} \pm \ket{10}). \]
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="hard" href="#p1" title="Universal property">P1</a></li>
+<li><a class="routine" href="#p2" title="Kronecker bookkeeping">P2</a></li>
+<li><a class="medium" href="#p3" title="The determinant test">P3</a></li>
+<li><a class="hard" href="#p4" title="No product, no mixture of products">P4</a></li>
+<li><a class="routine" href="#p5" title="Counting">P5</a></li>
+<li><a class="medium" href="#p6" title="Schmidt-decompose">P6</a></li>
+<li><a class="routine" href="#p7" title="The Bell basis, and local unitaries">P7</a></li>
+<li><a class="medium" href="#p8" title="The singlet and det U">P8</a></li>
+<li><a class="medium" href="#p9" title="Φ⁺ is invariant under U ⊗ Ū">P9</a></li>
+<li><a class="medium" href="#p10" title="Operators on a factor">P10</a></li>
+<li><a class="routine" href="#p11" title="Two analysers at different angles">P11</a></li>
+</ul>
+</header>
+
+<h2 class="group">The tensor product</h2>
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Universal property <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the universal property as a proof technique, uniqueness clauses, defining maps on pure tensors</p>
+<div class="statement">
+<p>All spaces are finite-dimensional over \(\mathbb C\). A pair \((T, \otimes)\) is a tensor product of \(V\) and \(W\) if
+\(\otimes: V\times W \to T\) is bilinear and every bilinear \(h: V\times W \to U\) equals \(L\circ\otimes\) for exactly one linear \(L: T \to U\).</p>
+<ol>
+<li>Prove that if \((T, \otimes)\) and \((T', \otimes')\) are both tensor products of \(V\) and \(W\), there is exactly one linear
+\(L: T \to T'\) with \(L\circ\otimes = \otimes'\), and that \(L\) is an isomorphism. Say where each clause of the property is used.</li>
+<li>Prove that there is exactly one linear \(\sigma: V\otimes W \to W\otimes V\) with \(\sigma(v\otimes w) = w\otimes v\), and that it is an isomorphism.</li>
+<li>Prove that there is an isomorphism \((U\otimes V)\otimes W \to U\otimes(V\otimes W)\) sending \((u\otimes v)\otimes w\) to \(u\otimes(v\otimes w)\) for all
+\(u, v, w\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer is a linear map produced by the universal property, and every "it is an isomorphism"
+is proved by exhibiting an inverse produced the same way. The work is in checking that the maps you
+feed in are bilinear, and in seeing which uniqueness clause forces a composite to be the identity.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The identity map of \(T\) is a linear map with \(\mathrm{id}\circ\otimes = \otimes\). So is any composite \(M: T \to T\) with \(M\circ\otimes = \otimes\).
+The universal property applied to the bilinear map \(\otimes\) itself says there is only <em>one</em> such \(M\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>For part 2, feed \((v, w) \mapsto w\otimes v\) into the property of \(V\otimes W\), and \((w, v) \mapsto v\otimes w\) into that of \(W\otimes V\).
+For part 3, fix \(w\) first: \((u, v) \mapsto u\otimes(v\otimes w)\) is bilinear, so gives a linear \(\alpha_w: U\otimes V \to U\otimes(V\otimes W)\). Then
+show \((t, w) \mapsto \alpha_w(t)\) is bilinear.</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line of part 1: "Since \(\otimes'\) is bilinear, the universal property of \(T\) with \(U = T'\) and \(h = \otimes'\) gives a
+unique linear \(L: T \to T'\) with \(L\circ\otimes = \otimes'\)."</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A universal property defines maps out of the object; two maps out of it that agree
+after composing with \(\otimes\) are equal. Every isomorphism below is "map there, map back, and both
+composites are forced to be identities".</p>
+<p><strong>1.</strong> <em>Existence of \(L\).</em> \(\otimes'\) is bilinear, so \(T\)'s property (existence clause) gives a linear \(L: T \to T'\)
+with \(L\circ\otimes = \otimes'\), and (uniqueness clause) only one. <em>A map back.</em> \(\otimes\) is bilinear, so \(T'\)'s property gives a
+linear \(L': T' \to T\) with \(L'\circ\otimes' = \otimes\). <em>Composites.</em> \((L'L)\circ\otimes = L'\circ\otimes' = \otimes\). Apply \(T\)'s property to the
+bilinear map \(h = \otimes: V\times W \to T\): there is exactly one linear \(M: T \to T\) with \(M\circ\otimes = \otimes\) (uniqueness clause). Both \(L'L\)
+and \(\mathrm{id}_T\) qualify, so \(L'L = \mathrm{id}_T\). The same with \(T'\) gives \(LL' = \mathrm{id}_{T'}\). So \(L\) is an isomorphism, and it was
+already the unique linear map with \(L\circ\otimes = \otimes'\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(s(v, w) := w\otimes v\) is bilinear \(V\times W \to W\otimes V\), because \(\otimes\) on \(W\times V\) is bilinear (linear in each slot).
+So there is exactly one linear \(\sigma: V\otimes W \to W\otimes V\) with \(\sigma(v\otimes w) = w\otimes v\). Likewise exactly one linear \(\tau: W\otimes V \to V\otimes W\)
+with \(\tau(w\otimes v) = v\otimes w\). Then \((\tau\sigma)(v\otimes w) = v\otimes w\), i.e. \((\tau\sigma)\circ\otimes = \otimes\), so \(\tau\sigma = \mathrm{id}\) by the uniqueness
+clause for \(V\otimes W\); and \(\sigma\tau = \mathrm{id}\) likewise. \(\blacksquare\)</p>
+<p><strong>3.</strong> <em>Step 1.</em> For fixed \(w\), \((u, v) \mapsto u\otimes(v\otimes w)\) is bilinear (linear in \(u\); linear in \(v\) because \(v \mapsto v\otimes w\) is
+linear and \(\otimes\) is linear in its second slot). So there is a unique linear \(\alpha_w: U\otimes V \to U\otimes(V\otimes W)\) with
+\(\alpha_w(u\otimes v) = u\otimes(v\otimes w)\).</p>
+<p><em>Step 2: \(\alpha_w\) depends linearly on \(w\).</em> \(\alpha_{w + cw'}\) and \(\alpha_w + c\,\alpha_{w'}\) are linear maps on \(U\otimes V\) that agree on
+every \(u\otimes v\) (both give \(u\otimes(v\otimes w) + c\,u\otimes(v\otimes w')\)), and pure tensors span, so they are equal. Hence
+\((t, w) \mapsto \alpha_w(t)\) is bilinear on \((U\otimes V)\times W\), and the universal property of \((U\otimes V)\otimes W\) gives a linear \(\alpha\) with
+\(\alpha(t\otimes w) = \alpha_w(t)\); in particular \(\alpha((u\otimes v)\otimes w) = u\otimes(v\otimes w)\).</p>
+<p><em>Step 3: the map back.</em> The same two steps, with roles exchanged (fix \(u\), use \((v, w) \mapsto (u\otimes v)\otimes w\), then vary
+\(u\)), give a linear \(\beta: U\otimes(V\otimes W) \to (U\otimes V)\otimes W\) with \(\beta(u\otimes(v\otimes w)) = (u\otimes v)\otimes w\).</p>
+<p><em>Step 4.</em> \(\beta\alpha\) fixes every \((u\otimes v)\otimes w\). These span \((U\otimes V)\otimes W\): pure tensors \(t\otimes w\) span it, and each \(t\) is a sum of
+\(u\otimes v\)'s, so by bilinearity each \(t\otimes w\) is a sum of \((u\otimes v)\otimes w\)'s. A linear map fixing a spanning set is the identity:
+\(\beta\alpha = \mathrm{id}\). Likewise \(\alpha\beta = \mathrm{id}\). \(\blacksquare\)</p>
+<h4>Another way to part 3</h4>
+<p>With bases \(e_i\), \(f_j\), \(g_k\), the basis theorem gives bases \(\{(e_i\otimes f_j)\otimes g_k\}\) and \(\{e_i\otimes(f_j\otimes g_k)\}\), both of size \(\dim U\dim V\dim W\).
+The linear map matching them up is an isomorphism, and expanding \(u\), \(v\), \(w\) in the bases (trilinearity of both sides)
+shows it sends \((u\otimes v)\otimes w\) to \(u\otimes(v\otimes w)\). This proof is shorter but uses bases; the one above does not.</p>
+<p><strong>Check.</strong> In coordinates for \(\mathbb C^2\otimes\mathbb C^2\), \(\sigma\) is the swap \(\ket{ab} \mapsto \ket{ba}\), the permutation matrix exchanging
+basis vectors \(1\) and \(2\); its square is the identity, as \(\tau\sigma = \mathrm{id}\) with \(\tau = \sigma\) requires. Dimensions in part 3: both sides
+have dimension \(\dim U\dim V\dim W\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Kronecker bookkeeping <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: Kronecker matrices in the course's order, the swap, the Qiskit warning made concrete</p>
+<div class="statement">
+<p>Let \(P_0 = \ket0\!\bra0\), \(P_1 = \ket1\!\bra1\), and define on two qubits the operator unit 10 will call \(\mathrm{CNOT}_{01}\)
+(control qubit 0, target qubit 1):</p>
+\[ \mathrm{CNOT}_{01} := P_0\otimes I + P_1\otimes X. \]
+<ol>
+<li>Write its \(4\times4\) matrix in the course's order, and say what it does to each of \(\ket{00}, \ket{01}, \ket{10}, \ket{11}\). Check it is
+unitary.</li>
+<li>Software that makes qubit 0 the <em>least</em> significant bit (Qiskit) writes the same operator — control on qubit 0,
+target on qubit 1 — as \(I\otimes P_0 + X\otimes P_1\). Write that matrix.</li>
+<li>Let \(\mathrm{SWAP}\) be the linear map with \(\ket{ab} \mapsto \ket{ba}\). Prove \(\mathrm{SWAP}\,(A\otimes B)\,\mathrm{SWAP} = B\otimes A\) for all \(2\times2\) \(A\), \(B\), and deduce that
+the two matrices of parts 1 and 2 differ by conjugation with the swap permutation.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a \(4\times4\) matrix with entries \(0\) and \(1\); both CNOT matrices are permutation matrices. Column \(k\) of a
+matrix is the image of basis vector \(k\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In block form, \(P_0\otimes I = \begin{pmatrix}I&amp;0\\0&amp;0\end{pmatrix}\) and \(P_1\otimes X = \begin{pmatrix}0&amp;0\\0&amp;X\end{pmatrix}\). For part 3, check the identity on pure tensors
+\(v\otimes w\), which span.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "\(\mathrm{SWAP}(A\otimes B)\mathrm{SWAP}(v\otimes w) = \mathrm{SWAP}(A\otimes B)(w\otimes v) = \mathrm{SWAP}(Aw\otimes Bv) = Bv\otimes Aw\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The physical operator is fixed; its matrix depends on which factor is written first. Reversing
+the order of the factors is conjugation by the swap.</p>
+<p><strong>1.</strong> By blocks, \(\mathrm{CNOT}_{01} = \begin{pmatrix}I&amp;0\\0&amp;X\end{pmatrix}\):</p>
+\[ \mathrm{CNOT}_{01} = \begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;1&amp;0&amp;0\\0&amp;0&amp;0&amp;1\\0&amp;0&amp;1&amp;0\end{pmatrix}. \]
+<p>On basis states: \(\ket{00} \mapsto \ket{00}\), \(\ket{01} \mapsto \ket{01}\) (control \(0\): nothing), \(\ket{10} \mapsto \ket{11}\), \(\ket{11} \mapsto \ket{10}\) (control \(1\): flip
+the target). Unitary: it is a permutation matrix, so \(M^\dagger M = M^{\mathsf T}M = I\); or, \(M^\dagger M = P_0\otimes I + P_1\otimes X^\dagger X = (P_0 + P_1)\otimes I = I\) since
+the cross terms contain \(P_0P_1 = 0\).</p>
+<p><strong>2.</strong> \(I\otimes P_0 = \mathrm{diag}(1, 0, 1, 0)\) and \(X\otimes P_1 = \begin{pmatrix}0&amp;P_1\\P_1&amp;0\end{pmatrix}\), so</p>
+\[ I\otimes P_0 + X\otimes P_1 = \begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;0&amp;0&amp;1\\0&amp;0&amp;1&amp;0\\0&amp;1&amp;0&amp;0\end{pmatrix}. \]
+<p>It exchanges basis vectors \(1\) and \(3\): in that software's labelling, index \(1\) has qubit 0 equal to \(1\), and the
+target, qubit 1, is the high bit, flipped to give index \(3\).</p>
+<p><strong>3.</strong> As in rung 3, \(\mathrm{SWAP}(A\otimes B)\mathrm{SWAP}\) sends \(v\otimes w\) to \(Bv\otimes Aw = (B\otimes A)(v\otimes w)\). Two linear maps agreeing on all pure
+tensors are equal. Applying this to each term, \(\mathrm{SWAP}\,(P_0\otimes I + P_1\otimes X)\,\mathrm{SWAP} = I\otimes P_0 + X\otimes P_1\). The swap matrix
+exchanges basis vectors \(1\) and \(2\):</p>
+\[ \mathrm{SWAP} = \begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;0&amp;1&amp;0\\0&amp;1&amp;0&amp;0\\0&amp;0&amp;0&amp;1\end{pmatrix}, \]
+<p>and conjugating by it exchanges rows \(1, 2\) and columns \(1, 2\) of the part-1 matrix, which gives the part-2 matrix ✓.</p>
+<p><strong>Check.</strong> Both matrices are permutation matrices of order two (each squares to \(I\)), as a controlled flip
+must be. Part 1 exchanges basis vectors \(2, 3\), part 2 exchanges \(1, 3\), and the swap, which exchanges \(1, 2\),
+carries the pair \(\{2, 3\}\) to \(\{1, 3\}\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import gates, linalg
+P0, P1 = np.diag([1, 0]), np.diag([0, 1])
+ours = linalg.kron(P0, gates.I) + linalg.kron(P1, gates.X)
+qiskit = linalg.kron(gates.I, P0) + linalg.kron(gates.X, P1)
+print(np.allclose(ours, gates.CX))                          # True: the course's CNOT_01
+print(np.allclose(gates.SWAP @ ours @ gates.SWAP, qiskit))  # True
+print(qiskit.real.astype(int))                              # rows 1000, 0001, 0010, 0100</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Entangled or not</h2>
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> The determinant test <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: rank of the coefficient matrix, the Schmidt form under local unitaries, a bound by AM–GM, a computed number</p>
+<div class="statement">
+<p>Let \(\ket\psi = a\ket{00} + b\ket{01} + c\ket{10} + d\ket{11}\) be a unit vector, with coefficient matrix \(C = \begin{pmatrix}a&amp;b\\c&amp;d\end{pmatrix}\).</p>
+<ol>
+<li>Prove that \(\psi\) is entangled if and only if \(\det C = ad - bc \ne 0\).</li>
+<li>Prove that \(|\det C| \le \tfrac12\), with equality exactly when \(\psi\) is maximally entangled (both Schmidt coefficients \(\tfrac1{\sqrt2}\)).</li>
+<li>The number \(2|ad - bc|\) is called the <em>concurrence</em> of a pure two-qubit state. Compute it for the four Bell states, for
+\(\cos\theta\ket{00} + \sin\theta\ket{11}\), and for \(\tfrac1{\sqrt3}(\ket{00} + \ket{01} + \ket{10})\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is about the rank of a \(2\times2\) matrix; part 2 is a statement about \(s_1s_2\) given \(s_1^2 + s_2^2 = 1\). Concurrence is a
+number in \([0, 1]\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A local unitary \(U\otimes V\) changes \(C\) to \(UCV^{\mathsf T}\), and \(|\det U| = |\det V| = 1\). In the Schmidt bases, \(C\) is diagonal.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "Choose unitaries \(U\), \(V\) taking the Schmidt vectors to the standard basis; then \((U\otimes V)\psi =
+s_1\ket{00} + s_2\ket{11}\) and \(|\det C| = |\det(UCV^{\mathsf T})| = s_1s_2\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Entanglement is the rank of \(C\); for \(2\times2\) that is the determinant. The determinant's size is the
+product of the Schmidt coefficients, which is largest when they are equal.</p>
+<p><strong>1.</strong> If \(\psi = u\otimes v\), then \(C = uv^{\mathsf T}\), whose two columns are \(v_0u\) and \(v_1u\), parallel: \(\det C = 0\). Conversely if
+\(\det C = 0\), the columns are dependent, and \(C \ne 0\) (as \(\sum|C_{ij}|^2 = 1\)), so some column \(u \ne 0\) spans both: \(C = uv^{\mathsf T}\) for
+some \(v\), i.e. \(\psi = u\otimes v\). Rescale so \(\lVert u\rVert = 1\); then \(\lVert v\rVert = \lVert\psi\rVert = 1\). So product \(\iff \det C = 0\), and entangled
+\(\iff \det C \ne 0\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Take a Schmidt form \(\psi = s_1a_1\otimes b_1 + s_2a_2\otimes b_2\) (for a product, \(s_2 = 0\) and \(a_2\), \(b_2\) are any unit vectors completing
+orthonormal bases). Let \(U\) be the unitary with
+\(Ua_k = \ket{k - 1}\) and \(V\) the one with \(Vb_k = \ket{k - 1}\). Then \((U\otimes V)\psi = s_1\ket{00} + s_2\ket{11}\), whose coefficient matrix is
+\(\mathrm{diag}(s_1, s_2) = UCV^{\mathsf T}\). Taking determinants, \(s_1s_2 = \det U\det C\det V\), and \(|\det U| = |\det V| = 1\) for unitaries, so
+\(|\det C| = s_1s_2\). Now \(s_1s_2 \le \tfrac12(s_1^2 + s_2^2) = \tfrac12\), since \((s_1 - s_2)^2 \ge 0\), with equality iff \(s_1 = s_2\), and then
+\(s_1 = s_2 = \tfrac1{\sqrt2}\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(\ket{\Phi^\pm}\): \(C = \tfrac1{\sqrt2}\mathrm{diag}(1, \pm1)\), \(|\det C| = \tfrac12\), concurrence \(1\). \(\ket{\Psi^\pm}\): \(C\) has \(\tfrac1{\sqrt2}\) and \(\pm\tfrac1{\sqrt2}\) off the
+diagonal, \(|\det C| = \tfrac12\), concurrence \(1\). \(\cos\theta\ket{00} + \sin\theta\ket{11}\): \(\det C = \cos\theta\sin\theta\), concurrence \(|2\sin\theta\cos\theta| = |\sin2\theta|\).
+\(\tfrac1{\sqrt3}(\ket{00} + \ket{01} + \ket{10})\): \(\det C = \tfrac13(0 - 1)\), concurrence \(\tfrac23 \approx 0.6667\).</p>
+<p><strong>Check.</strong> \(|\sin2\theta|\) is \(0\) at \(\theta = 0\) (the product \(\ket{00}\)) and \(1\) at \(\theta = \pi/4\) (\(\ket{\Phi^+}\)) ✓. The deck's worked example
+had \(s_1s_2 = \tfrac{\varphi(\varphi - 1)}3 = \tfrac13\), and \(2\cdot\tfrac13 = \tfrac23\) ✓. All values lie in \([0, 1]\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> No product, no mixture of products <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the Born rule on product states, the law of total probability, a quantitative bound ending in a number</p>
+<div class="statement">
+<p>Measure both photons in the \(z\) basis \(\{\ket0, \ket1\}\), or both in the \(x\) basis \(\{\ket+, \ket-\}\), and let \(P_z\), \(P_x\) be the probabilities
+that the two results are the same.</p>
+<ol>
+<li>Prove that no product state \(\ket a\otimes\ket b\) has \(P_z = P_x = 0\).</li>
+<li>Prove that no random choice among product states (state \(\ket{a_\lambda}\otimes\ket{b_\lambda}\) with probability \(p_\lambda\)) has \(P_z = P_x = 0\).</li>
+<li>Quantitatively: for a unit vector \(a\), let \(z_a := |a_0|^2 - |a_1|^2\) and \(x_a := |\braket{+|a}|^2 - |\braket{-|a}|^2\). Prove \(z_a^2 + x_a^2 \le 1\), and
+\(P_z + P_x = 1 + \tfrac12(z_az_b + x_ax_b)\) for \(\ket a\otimes\ket b\). Deduce \(P_z + P_x \ge \tfrac12\) for every product state and every random
+choice of them. What does the singlet give?</li>
+<li>Show that the pair \(\ket{22.5^\circ}\otimes\ket{112.5^\circ}\) attains the bound, with \(P_z = P_x = \tfrac14\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 4 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are the deck's two theorems; part 3 replaces "\(=0\) forces \(=\tfrac12\)" by an inequality. Every quantity is a
+probability computed by the Born rule from amplitudes \(a_ib_j\) or \(\braket{s|a}\braket{s|b}\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(p = |a_0|^2\), \(q = |b_0|^2\): \(P_z = pq + (1 - p)(1 - q)\). Write \(p = \tfrac12(1 + z_a)\), \(q = \tfrac12(1 + z_b)\). The same in the \(x\) basis with
+\(|\braket{+|a}|^2 = \tfrac12(1 + x_a)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(x_a = 2\,\mathrm{Re}(\bar a_0a_1)\), and \(|\mathrm{Re}\,w| \le |w|\). Then \(z_a^2 + x_a^2 \le (|a_0|^2 - |a_1|^2)^2 + 4|a_0|^2|a_1|^2\). For the deduction,
+Cauchy–Schwarz in \(\mathbb R^2\).</p>
+<details class="rung"><summary>Rung 4</summary><div>
+<p>First line of part 3: "\(P_z = \tfrac14(1 + z_a)(1 + z_b) + \tfrac14(1 - z_a)(1 - z_b) = \tfrac12(1 + z_az_b)\)."</p>
+</div></details></div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> For a product state the two photons' statistics are independent, so "same" probabilities are
+\(\tfrac12(1 + \text{product of biases})\). Perfect anticorrelation needs both biases \(-1\) in two unbiased bases at once, and a
+qubit cannot be fully biased in \(z\) and in \(x\) together.</p>
+<p><strong>1.</strong> \(P_z = |a_0b_0|^2 + |a_1b_1|^2 = 0\) forces \(a_0b_0 = a_1b_1 = 0\). If \(a_0 = 0\), then \(|a_1| = 1\), so \(b_1 = 0\): \(a\), \(b\) are \(\ket1\), \(\ket0\) up to
+phases. If \(a_0 \ne 0\), then \(b_0 = 0\), so \(|b_1| = 1\) and \(a_1 = 0\): \(a\), \(b\) are \(\ket0\), \(\ket1\). Either way the two "same" outcomes in \(x\) have
+probability \(|\braket{\pm|0}\braket{\pm|1}|^2 = \tfrac12\cdot\tfrac12\) each, so \(P_x = \tfrac12 \ne 0\). \(\blacksquare\)</p>
+<p><strong>2.</strong> By total probability \(P_z = \sum_\lambda p_\lambda P_z(\lambda)\), a sum of non-negative terms; if it is \(0\), every \(\lambda\) with \(p_\lambda \gt 0\)
+has \(P_z(\lambda) = 0\), hence \(P_x(\lambda) = \tfrac12\) by part 1, so \(P_x = \tfrac12\). \(\blacksquare\)</p>
+<p><strong>3.</strong> <em>The bound on biases.</em> \(\braket{+|a} = \tfrac1{\sqrt2}(a_0 + a_1)\), so \(|\braket{+|a}|^2 - |\braket{-|a}|^2 = \tfrac12(|a_0 + a_1|^2 - |a_0 - a_1|^2) =
+2\,\mathrm{Re}(\bar a_0a_1)\). Hence \(z_a^2 + x_a^2 \le (|a_0|^2 - |a_1|^2)^2 + 4|a_0|^2|a_1|^2 = (|a_0|^2 + |a_1|^2)^2 = 1\).</p>
+<p><em>The identity.</em> As in rung 4, \(P_z = \tfrac12(1 + z_az_b)\): expanding, \(\tfrac14[(1 + z_a + z_b + z_az_b) + (1 - z_a - z_b + z_az_b)]\). In the \(x\)
+basis, \(|\braket{\pm|a}|^2 = \tfrac12(1 \pm x_a)\) (they sum to \(1\) and differ by \(x_a\)), so the same computation gives \(P_x = \tfrac12(1 + x_ax_b)\). Adding:
+\(P_z + P_x = 1 + \tfrac12(z_az_b + x_ax_b)\).</p>
+<p><em>The deduction.</em> By Cauchy–Schwarz in \(\mathbb R^2\), \(|z_az_b + x_ax_b| \le \sqrt{z_a^2 + x_a^2}\sqrt{z_b^2 + x_b^2} \le 1\), so \(P_z + P_x \ge 1 - \tfrac12 = \tfrac12\) for
+every product state. A random choice averages these: \(P_z + P_x = \sum_\lambda p_\lambda(P_z(\lambda) + P_x(\lambda)) \ge \tfrac12\sum_\lambda p_\lambda = \tfrac12\). The singlet has
+\(P_z = P_x = 0\) (the deck's <em>Worked: opposite in every basis</em>), so \(P_z + P_x = 0 \lt \tfrac12\): no model of this kind reproduces it, by a margin
+of \(\tfrac12\).</p>
+<p><strong>4.</strong> \(a = (\cos\theta, \sin\theta)\), \(b = (-\sin\theta, \cos\theta)\) with \(\theta = 22.5^\circ\). \(P_z = |a_0b_0|^2 + |a_1b_1|^2 = 2\sin^2\theta\cos^2\theta = \tfrac12\sin^22\theta =
+\tfrac12\cdot\tfrac12 = \tfrac14\). In \(x\): \(\braket{+|\theta} = \cos(\theta - 45^\circ)\), \(\braket{+|\theta + 90^\circ} = \cos(\theta + 45^\circ)\), and \(\braket{-|\cdot}\) give the same moduli in the
+other order, so \(P_x = 2\cos^2(\theta - 45^\circ)\cos^2(\theta + 45^\circ) = \tfrac12\cos^22\theta = \tfrac14\). Sum \(\tfrac12\): the bound is attained.</p>
+<p><strong>Check.</strong> For the pair \(\ket0\otimes\ket1\) of part 1: \(z_a = 1\), \(z_b = -1\), \(x_a = x_b = 0\), so \(P_z + P_x = 1 - \tfrac12 = \tfrac12\), matching
+\(0 + \tfrac12\) ✓. For a general pair \(\ket\theta\otimes\ket{\theta + 90^\circ}\), \(P_z + P_x = \tfrac12(\sin^22\theta + \cos^22\theta) = \tfrac12\) for every \(\theta\) ✓. (The numbers
+\(z_a\), \(x_a\) are two coordinates of what unit 02 calls the Bloch vector; nothing here needs the name.)</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Counting <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: counting real parameters, the factors of a product, numbers for 50 qubits</p>
+<div class="statement">
+<ol>
+<li>Show that pure states of \(n\) qubits (unit vectors of \((\mathbb C^2)^{\otimes n}\) up to phase) have \(2^{n+1} - 2\) free real parameters, and
+product states \(\psi_1\otimes\cdots\otimes\psi_n\) have \(2n\). Include the lemma that \(a\otimes b = a'\otimes b' \ne 0\) forces \(a' = ca\), \(b' = b/c\).</li>
+<li>Tabulate both for \(n = 2, 3, 10, 50\), and give the ratio of the two at \(n = 50\).</li>
+<li>Storing a 50-qubit state as \(2^{50}\) complex numbers, each two 8-byte floating-point numbers: how many bytes?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Answers are integers, then one ratio and one byte count. "Free real parameters" means: real coordinates, minus
+independent real equations, minus directions that do not change the state.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\mathbb C^D\) has \(2D\) real coordinates. For products, count \(n\) unit vectors of \(\mathbb C^2\) (\(3\) real parameters each), then subtract the
+phase changes \(\psi_k \to e^{i\gamma_k}\psi_k\), which do not change the product's ray.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the lemma: "\(ab^{\mathsf T} = a'b'^{\mathsf T} \ne 0\) has column space \(\mathrm{span}(a) = \mathrm{span}(a')\), so \(a' = ca\) with \(c \ne 0\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> All states: a sphere modulo a circle. Products: one qubit's worth per factor, because the
+factorisation is unique up to scalars.</p>
+<p><strong>1.</strong> <em>All states.</em> \(D = 2^n\); \(\mathbb C^D\) is \(\mathbb R^{2D}\); \(\lVert\psi\rVert = 1\) is one real equation, leaving \(2D - 1\); multiplying by
+\(e^{i\gamma}\) moves along a circle without changing the state, leaving \(2D - 2 = 2^{n+1} - 2\).</p>
+<p><em>Lemma.</em> If \(a\otimes b = a'\otimes b' \ne 0\), all four vectors are nonzero, and \(ab^{\mathsf T} = a'b'^{\mathsf T}\) has column space \(\mathrm{span}(a) = \mathrm{span}(a')\),
+so \(a' = ca\), \(c \ne 0\). Then \(ab^{\mathsf T} = c\,ab'^{\mathsf T}\); comparing a row where \(a\) is nonzero, \(b = cb'\). For \(n\) factors, apply this to
+\((\psi_1\otimes\cdots\otimes\psi_{n-1})\otimes\psi_n\) and induct.</p>
+<p><em>Products.</em> Each \(\psi_k\) is a unit vector of \(\mathbb C^2\): \(4 - 1 = 3\) real parameters, \(3n\) in all. Changing \(\psi_k\) to \(e^{i\gamma_k}\psi_k\)
+multiplies the product by \(e^{i\sum\gamma_k}\), a global phase: \(n\) directions that do not change the ray. By the lemma (with unit
+vectors, the scalars have modulus one) there are no other coincidences. So \(3n - n = 2n\). \(\blacksquare\)</p>
+<p><strong>2.</strong></p>
+\[ \begin{array}{rrr} n &amp; 2n &amp; 2^{n+1} - 2\\ \hline 2 &amp; 4 &amp; 6\\ 3 &amp; 6 &amp; 14\\ 10 &amp; 20 &amp; 2\,046\\ 50 &amp; 100 &amp; 2\,251\,799\,813\,685\,246 \end{array} \]
+<p>At \(n = 50\) the ratio is \(100/(2^{51} - 2) \approx 4.44\times10^{-14}\).</p>
+<p><strong>3.</strong> \(2^{50}\times16 = 2^{54} = 18\,014\,398\,509\,481\,984\) bytes \(\approx 1.80\times10^{16}\) bytes — \(16\) pebibytes (\(16\times2^{50}\) bytes).</p>
+<p><strong>Check.</strong> \(n = 1\): both counts are \(2\), as they must be, since every one-qubit state is a "product" of one factor ✓.
+\(n = 2\): \(4 \lt 6\), so the products are a proper subfamily, and the singlet is outside it ✓. \(2^{51} = 2\,251\,799\,813\,685\,248\), minus \(2\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Schmidt</h2>
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Schmidt-decompose <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the SVD of a coefficient matrix, positive coefficients, non-uniqueness when coefficients are equal, a rectangular case</p>
+<div class="statement">
+<p>Find the Schmidt coefficients and a pair of Schmidt bases for each state. Check the squares sum to one.</p>
+<ol>
+<li>\(\ket{\psi_1} = \tfrac1{\sqrt{10}}(\ket{00} + 2\ket{01} + 2\ket{10} + \ket{11})\).</li>
+<li>\(\ket{\psi_2} = \tfrac1{\sqrt2}(\ket0\ket+ + \ket1\ket-)\). Then find a <em>second</em> Schmidt form with different vectors, and explain why
+that is possible here and not in part 1.</li>
+<li>\(\ket{\psi_3} = \tfrac1{\sqrt5}\big(\ket0(\ket0 + \ket1 + \ket2) + \ket1(\ket0 - \ket1)\big) \in \mathbb C^2\otimes\mathbb C^3\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a list of positive numbers whose squares sum to one, plus orthonormal vectors paired off. The
+squares are the eigenvalues of \(CC^\dagger\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For part 1, \(C\) is real symmetric: diagonalise it and move any negative sign into a \(b\) vector. For part 2, compute
+\(CC^\dagger\) and notice it is a multiple of \(I\). For part 3, \(C\) is \(2\times3\), and its two rows are already orthogonal.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(C = \tfrac1{\sqrt{10}}\begin{pmatrix}1&amp;2\\2&amp;1\end{pmatrix}\), with eigenvectors \((1, 1)\) and \((1, -1)\) and eigenvalues \(3\) and \(-1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Write \(C\), get its singular values from \(CC^\dagger\), and read the vectors off the SVD, remembering that
+coefficients are positive and \(b_k\) carries the conjugate.</p>
+<p><strong>1.</strong> \(C = \tfrac1{\sqrt{10}}M\), \(M = \begin{pmatrix}1&amp;2\\2&amp;1\end{pmatrix}\). \(M(1, 1)^{\mathsf T} = 3(1, 1)^{\mathsf T}\), \(M(1, -1)^{\mathsf T} = -(1, -1)^{\mathsf T}\), so
+\(M = 3\,v_+v_+^{\mathsf T} - v_-v_-^{\mathsf T}\) with \(v_\pm = \tfrac1{\sqrt2}(1, \pm1)^{\mathsf T}\), the coordinates of \(\ket\pm\). Move the minus sign into the right
+factor to make both coefficients positive: \(C = \tfrac3{\sqrt{10}}\,v_+v_+^{\mathsf T} + \tfrac1{\sqrt{10}}\,v_-(-v_-)^{\mathsf T}\), i.e.</p>
+\[ \ket{\psi_1} = \tfrac3{\sqrt{10}}\ket+\ket+ + \tfrac1{\sqrt{10}}\ket-\big(-\ket-\big). \]
+<p>Schmidt coefficients \(\tfrac3{\sqrt{10}} \approx 0.9487\) and \(\tfrac1{\sqrt{10}} \approx 0.3162\); squares \(0.9 + 0.1 = 1\) ✓. Check by multiplying out:
+\(3\ket{++} - \ket{--} = \tfrac12[(3, 3, 3, 3) - (1, -1, -1, 1)] = (1, 2, 2, 1)\) ✓. Also \(s_1s_2 = \tfrac3{10} = |\det C| = |1 - 4|/10\) ✓.</p>
+<p><strong>2.</strong> Coefficients: \(\ket0\ket+ = \tfrac1{\sqrt2}(1, 1, 0, 0)\), \(\ket1\ket- = \tfrac1{\sqrt2}(0, 0, 1, -1)\), so \(C = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix}\) and
+\(CC^\dagger = \tfrac14\begin{pmatrix}2&amp;0\\0&amp;2\end{pmatrix} = \tfrac12I\). Both Schmidt coefficients are \(\tfrac1{\sqrt2}\): maximally entangled. The given form is already a
+Schmidt form: \(a_1 = \ket0\), \(b_1 = \ket+\), \(a_2 = \ket1\), \(b_2 = \ket-\). A second one: take \(a_1 = \ket+\). Then \(s_1b_1 = (\bra+\otimes I)\psi_2 =
+\tfrac1{\sqrt2}\cdot\tfrac1{\sqrt2}(\ket+ + \ket-) = \tfrac1{\sqrt2}\ket0\), so \(b_1 = \ket0\); and \(a_2 = \ket-\) gives \(\tfrac12(\ket+ - \ket-) = \tfrac1{\sqrt2}\ket1\), so \(b_2 = \ket1\):</p>
+\[ \ket{\psi_2} = \tfrac1{\sqrt2}\big(\ket+\ket0 + \ket-\ket1\big). \]
+<p>Check: \(\ket{+0} + \ket{-1} = \tfrac1{\sqrt2}[(1, 0, 1, 0) + (0, 1, 0, -1)] = \tfrac1{\sqrt2}(1, 1, 1, -1)\), and so is \(\ket{0+} + \ket{1-}\) ✓. This is possible
+because \(CC^\dagger = \tfrac12I\) has a single repeated eigenvalue, so <em>every</em> orthonormal basis is an eigenbasis; in part 1 the
+eigenvalues \(0.9\) and \(0.1\) are distinct and the \(a_k\) are fixed up to phase.</p>
+<p><strong>3.</strong> \(C = \tfrac1{\sqrt5}\begin{pmatrix}1&amp;1&amp;1\\1&amp;-1&amp;0\end{pmatrix}\). The rows are orthogonal, so \(CC^\dagger = \tfrac15\mathrm{diag}(3, 2)\): Schmidt coefficients
+\(\sqrt{3/5} \approx 0.7746\) and \(\sqrt{2/5} \approx 0.6325\), squares \(0.6 + 0.4 = 1\) ✓. With \(a_1 = \ket0\), \(a_2 = \ket1\) (eigenvectors of \(CC^\dagger\)):</p>
+\[ \ket{\psi_3} = \sqrt{\tfrac35}\,\ket0\otimes\tfrac{\ket0 + \ket1 + \ket2}{\sqrt3} + \sqrt{\tfrac25}\,\ket1\otimes\tfrac{\ket0 - \ket1}{\sqrt2}. \]
+<p>The \(b\)'s are orthonormal: \(\braket{b_1|b_2} = \tfrac1{\sqrt6}(1 - 1 + 0) = 0\). Schmidt rank \(2 = \min(2, 3)\) ✓.</p>
+<p><strong>Check.</strong> Part 1 is the deck's checkpoint example; part 3 shows that a qubit entangled with a three-level
+system still has at most two Schmidt terms, as \(r \le \min(\dim H_A, \dim H_B)\) requires.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg
+a = np.array([1, 2, 2, 1]) / np.sqrt(10)
+b = np.array([1, 1, 1, -1]) / 2
+c = np.array([1, 1, 1, 1, -1, 0]) / np.sqrt(5)       # qubit ⊗ qutrit, |0⟩ first
+for psi, dim_a in [(a, 2), (b, 2), (c, 2)]:
+    s = linalg.schmidt_coefficients(psi, dim_a)
+    print(np.round(s, 4), round(float(np.sum(s**2)), 10))
+# [0.9487 0.3162] 1.0
+# [0.7071 0.7071] 1.0
+# [0.7746 0.6325] 1.0</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The Bell basis, and local unitaries <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: orthonormality checks, operators on one factor, invariance of Schmidt coefficients</p>
+<div class="statement">
+<ol>
+<li>Show that the four Bell states are an orthonormal basis of \(\mathbb C^2\otimes\mathbb C^2\).</li>
+<li>Show \(\ket{\Phi^+}\), \((I\otimes X)\ket{\Phi^+}\), \((I\otimes Z)\ket{\Phi^+}\), \((I\otimes XZ)\ket{\Phi^+}\) are \(\ket{\Phi^+}, \ket{\Psi^+}, \ket{\Phi^-}, \ket{\Psi^-}\).</li>
+<li>Prove that for unitaries \(U\), \(V\), the state \((U\otimes V)\psi\) has the same Schmidt coefficients as \(\psi\). Conclude that all four
+Bell states are maximally entangled.</li>
+<li>Act on qubit 0 instead: compute \((XZ\otimes I)\ket{\Phi^+}\). Is it \(\ket{\Psi^-}\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1, 2, 4 are four-component computations; part 3 is one line once you push a Schmidt form through
+\(U\otimes V\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(X\ket0 = \ket1\), \(X\ket1 = \ket0\), \(Z\ket0 = \ket0\), \(Z\ket1 = -\ket1\), so \(XZ\ket0 = \ket1\) and \(XZ\ket1 = -\ket0\). Unitaries send orthonormal sets to
+orthonormal sets.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "If \(\psi = \sum_ks_ka_k\otimes b_k\), then \((U\otimes V)\psi = \sum_ks_k\,Ua_k\otimes Vb_k\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Local unitaries move orthonormal sets to orthonormal sets, so they carry a Schmidt form to a
+Schmidt form with the same coefficients.</p>
+<p><strong>1.</strong> Each has squared norm \(\tfrac12 + \tfrac12 = 1\). \(\Phi^\pm\) lie in \(\mathrm{span}\{\ket{00}, \ket{11}\}\) and \(\Psi^\pm\) in \(\mathrm{span}\{\ket{01}, \ket{10}\}\), orthogonal
+subspaces. \(\braket{\Phi^+|\Phi^-} = \tfrac12(1 - 1) = 0\), \(\braket{\Psi^+|\Psi^-} = \tfrac12(1 - 1) = 0\). Four orthonormal vectors in dimension four: a basis.</p>
+<p><strong>2.</strong> \((I\otimes X)\tfrac1{\sqrt2}(\ket{00} + \ket{11}) = \tfrac1{\sqrt2}(\ket{01} + \ket{10}) = \ket{\Psi^+}\). \((I\otimes Z)\) gives \(\tfrac1{\sqrt2}(\ket{00} - \ket{11}) = \ket{\Phi^-}\).
+\((I\otimes XZ)\) gives \(\tfrac1{\sqrt2}(\ket0\ket1 + \ket1(-\ket0)) = \ket{\Psi^-}\).</p>
+<p><strong>3.</strong> With \(\psi = \sum_ks_ka_k\otimes b_k\), \((U\otimes V)\psi = \sum_ks_k\,Ua_k\otimes Vb_k\) by linearity and the definition of \(U\otimes V\). \(\{Ua_k\}\) and \(\{Vb_k\}\)
+are orthonormal (\(\braket{Ua_k|Ua_l} = \braket{a_k|U^\dagger Ua_l} = \delta_{kl}\)), so this is a Schmidt form with the same \(s_k\); by uniqueness of the
+coefficients, those are <em>the</em> Schmidt coefficients of \((U\otimes V)\psi\). \(\blacksquare\) Since \(\ket{\Phi^+}\) has coefficients \(\tfrac1{\sqrt2}, \tfrac1{\sqrt2}\) and the others
+are \((I\otimes V)\ket{\Phi^+}\) with \(V \in \{X, Z, XZ\}\) unitary, all four are maximally entangled.</p>
+<p><strong>4.</strong> \((XZ\otimes I)\tfrac1{\sqrt2}(\ket{00} + \ket{11}) = \tfrac1{\sqrt2}(\ket1\ket0 + (-\ket0)\ket1) = \tfrac1{\sqrt2}(\ket{10} - \ket{01}) = -\ket{\Psi^-}\). So it is \(\ket{\Psi^-}\) up
+to global phase, not equal to it.</p>
+<p><strong>Check.</strong> Coefficient matrices: \(\det\) of \(\tfrac1{\sqrt2}\mathrm{diag}(1, 1)\) is \(\tfrac12\), and part 3 predicts \(|\det| = \tfrac12\) for all four: \(\Phi^-\): \(-\tfrac12\);
+\(\Psi^\pm\): \(\mp\tfrac12\) ✓. Part 4 agrees with the lemma \(C \mapsto ACB^{\mathsf T}\): \(XZ\cdot\tfrac1{\sqrt2}I = \tfrac1{\sqrt2}\begin{pmatrix}0&amp;-1\\1&amp;0\end{pmatrix}\), which is \(-1\) times the singlet's
+matrix ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> The singlet and det U <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: bilinear expansion, the antisymmetric tensor, symmetric and antisymmetric subspaces</p>
+<div class="statement">
+<ol>
+<li>Prove \((U\otimes U)\ket{\Psi^-} = \det(U)\ket{\Psi^-}\) for every \(2\times2\) matrix \(U\), by expanding \(U\ket0\otimes U\ket1 - U\ket1\otimes U\ket0\).</li>
+<li>Check it for \(U = S = \mathrm{diag}(1, i)\) by direct computation.</li>
+<li>Prove the converse: if a two-qubit state \(\psi\) satisfies \((U\otimes U)\psi = \psi\) for every unitary \(U\) with \(\det U = 1\), then \(\psi\) is a
+multiple of \(\ket{\Psi^-}\). (The symmetric states \(\ket{00}\), \(\ket{11}\), \(\ket{\Psi^+}\) span the vectors with \(C^{\mathsf T} = C\).)</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is eight terms, four of which cancel. Part 3 splits \(\psi\) into a multiple of \(\Psi^-\) plus a symmetric part, and finds
+two particular determinant-one unitaries that together kill the symmetric part.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(U\otimes U\) maps symmetric tensors \(v\otimes w + w\otimes v\) to symmetric tensors. Try \(U = \mathrm{diag}(i, -i)\) and \(U = \begin{pmatrix}0&amp;1\\-1&amp;0\end{pmatrix}\); both have
+determinant \(1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "Write \(\psi = \alpha\ket{\Psi^-} + \sigma\) with \(\sigma \in \mathrm{span}\{\ket{00}, \ket{11}, \ket{\Psi^+}\}\); then \((U\otimes U)\psi = \alpha\ket{\Psi^-} + (U\otimes U)\sigma\), so
+\((U\otimes U)\sigma = \sigma\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The antisymmetric tensors of \(\mathbb C^2\otimes\mathbb C^2\) form a line, and \(U\otimes U\) acts on that line by the determinant;
+on the symmetric part it acts non-trivially for some determinant-one \(U\).</p>
+<p><strong>1.</strong> With \(U\ket0 = a\ket0 + c\ket1\), \(U\ket1 = b\ket0 + d\ket1\), bilinearity gives
+\(U\ket0\otimes U\ket1 = ab\ket{00} + ad\ket{01} + cb\ket{10} + cd\ket{11}\) and \(U\ket1\otimes U\ket0 = ba\ket{00} + bc\ket{01} + da\ket{10} + dc\ket{11}\). The difference is
+\((ad - bc)\ket{01} - (ad - bc)\ket{10}\). Dividing by \(\sqrt2\): \((U\otimes U)\ket{\Psi^-} = (ad - bc)\ket{\Psi^-}\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(S\ket0 = \ket0\), \(S\ket1 = i\ket1\): \((S\otimes S)\tfrac1{\sqrt2}(\ket{01} - \ket{10}) = \tfrac1{\sqrt2}(i\ket{01} - i\ket{10}) = i\ket{\Psi^-}\), and \(\det S = i\) ✓.</p>
+<p><strong>3.</strong> The four vectors \(\ket{00}, \ket{11}, \ket{\Psi^+}, \ket{\Psi^-}\) are an orthonormal basis, so \(\psi = \alpha\ket{\Psi^-} + \sigma\) with \(\sigma\) symmetric. For
+\(\det U = 1\), part 1 gives \((U\otimes U)\psi = \alpha\ket{\Psi^-} + (U\otimes U)\sigma\), and \((U\otimes U)\sigma\) is again symmetric (\(U\otimes U\) maps \(v\otimes w + w\otimes v\) to
+\(Uv\otimes Uw + Uw\otimes Uv\)). Comparing symmetric parts, \((U\otimes U)\sigma = \sigma\) for all such \(U\). Write \(\sigma = x\ket{00} + y\ket{11} + z\ket{\Psi^+}\).</p>
+<p><em>First</em> \(U = \mathrm{diag}(i, -i)\), unitary, \(\det = 1\): \(\ket{00} \mapsto i^2\ket{00} = -\ket{00}\), \(\ket{11} \mapsto (-i)^2\ket{11} = -\ket{11}\), \(\ket{\Psi^+} \mapsto (i)(-i)\ket{\Psi^+} = \ket{\Psi^+}\).
+So \(\sigma = -x\ket{00} - y\ket{11} + z\ket{\Psi^+}\) forces \(x = y = 0\). <em>Then</em> \(U = \begin{pmatrix}0&amp;1\\-1&amp;0\end{pmatrix}\), unitary, \(\det = 1\): \(U\ket0 = -\ket1\), \(U\ket1 = \ket0\), so
+\((U\otimes U)\ket{\Psi^+} = \tfrac1{\sqrt2}((-\ket1)\ket0 + \ket0(-\ket1)) = -\ket{\Psi^+}\), forcing \(z = 0\). Hence \(\sigma = 0\) and \(\psi = \alpha\ket{\Psi^-}\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> The converse is consistent with part 1: \(\ket{\Psi^-}\) itself is fixed by every determinant-one \(U\otimes U\) ✓. And
+\(\ket{\Phi^+}\), which is symmetric, is moved by the first test unitary: \((U\otimes U)\ket{\Phi^+} = -\ket{\Phi^+}\) for \(U = \mathrm{diag}(i, -i)\), consistent with the
+deck's statement that only the singlet has the same form in every basis ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Φ⁺ is invariant under U ⊗ Ū <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the coefficient-matrix lemma, complex conjugation of a basis, correlations in real and complex bases, a number</p>
+<div class="statement">
+<ol>
+<li>Prove \((U\otimes\bar U)\ket{\Phi^+} = \ket{\Phi^+}\) for every unitary \(U\), where \(\bar U\) is the entrywise conjugate.</li>
+<li>Deduce: measured with both analysers in the same <em>real</em> basis \(\{\ket n, \ket{n^\perp}\}\), \(\ket{\Phi^+}\) always gives the same result; measured
+with both in the \(y\) basis \(\{\ket{+i}, \ket{-i}\}\), it always gives opposite results.</li>
+<li>For the elliptical basis \(\ket n = \cos\alpha\ket0 + i\sin\alpha\ket1\), \(\ket{n^\perp} = i\sin\alpha\ket0 + \cos\alpha\ket1\), show the probability of the same result is
+\(\cos^22\alpha\), and evaluate it at \(\alpha = \pi/8\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is one line with \(C \mapsto ACB^{\mathsf T}\). Parts 2 and 3 rewrite \(\ket{\Phi^+}\) in the measured basis on one side and its
+conjugate on the other.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>With \(U = \ket n\!\bra0 + \ket{n^\perp}\!\bra1\), part 1 says \(\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket n\otimes\ket{\bar n} + \ket{n^\perp}\otimes\ket{\overline{n^\perp}})\). The amplitude of \(\ket n\ket n\) is
+then \(\tfrac1{\sqrt2}\braket{n|\bar n}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: "\(\braket{n|\bar n} = \sum_k\overline{n_k}\,\overline{n_k} = \cos^2\alpha + (-i\sin\alpha)^2 = \cos2\alpha\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(\ket{\Phi^+}\) has coefficient matrix \(\tfrac1{\sqrt2}I\), and \(U\cdot I\cdot\bar U^{\mathsf T} = UU^\dagger = I\). So \(\ket{\Phi^+}\) pairs each basis vector on
+A with its <em>complex conjugate</em> on B — the same vector only when the basis is real.</p>
+<p><strong>1.</strong> \((A\otimes B)\) sends \(C\) to \(ACB^{\mathsf T}\). With \(A = U\), \(B = \bar U\): \(\tfrac1{\sqrt2}I \mapsto \tfrac1{\sqrt2}U\bar U^{\mathsf T} = \tfrac1{\sqrt2}UU^\dagger = \tfrac1{\sqrt2}I\). \(\blacksquare\)</p>
+<p><strong>2.</strong> Let \(U = \ket n\!\bra0 + \ket{n^\perp}\!\bra1\), unitary. Then \(\bar U\ket0 = \ket{\bar n}\), \(\bar U\ket1 = \ket{\overline{n^\perp}}\), and part 1 gives
+\(\ket{\Phi^+} = (U\otimes\bar U)\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket n\ket{\bar n} + \ket{n^\perp}\ket{\overline{n^\perp}})\). <em>Real basis:</em> \(\bar n = n\), so \(\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{nn} + \ket{n^\perp n^\perp})\):
+outcomes \((n, n)\) and \((n^\perp, n^\perp)\), each \(\tfrac12\), sum \(1\) — always the same. <em>\(y\) basis:</em> \(\overline{\ket{+i}} = \ket{-i}\) and \(\overline{\ket{-i}} = \ket{+i}\), so
+\(\ket{\Phi^+} = \tfrac1{\sqrt2}(\ket{+i}\ket{-i} + \ket{-i}\ket{+i})\): always opposite.</p>
+<p><strong>3.</strong> \(\braket{nn|\Phi^+} = \tfrac1{\sqrt2}(\braket{n|n}\braket{n|\bar n} + \braket{n|n^\perp}\braket{n|\overline{n^\perp}}) = \tfrac1{\sqrt2}\braket{n|\bar n}\). And
+\(\braket{n|\bar n} = \sum_k\overline{n_k}\cdot\overline{n_k} = \cos^2\alpha + (-i\sin\alpha)^2 = \cos2\alpha\). Likewise \(\braket{n^\perp|\overline{n^\perp}} = (-i\sin\alpha)^2 + \cos^2\alpha = \cos2\alpha\). So
+\(P(\text{same}) = \tfrac12\cos^22\alpha + \tfrac12\cos^22\alpha = \cos^22\alpha\). At \(\alpha = \pi/8\): \(\cos^2(\pi/4) = \tfrac12\) — no correlation in agreement at all.</p>
+<p><strong>Check.</strong> \(\alpha = 0\) is the \(z\) basis, real: \(\cos^20 = 1\), always the same ✓. \(\alpha = \pi/4\) gives \(\ket n = \tfrac1{\sqrt2}(\ket0 + i\ket1) = \ket{+i}\):
+\(\cos^2(\pi/2) = 0\), always opposite, as in part 2 ✓. The basis is orthonormal: \(\braket{n|n^\perp} = \cos\alpha\cdot i\sin\alpha + (-i\sin\alpha)\cos\alpha = 0\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import library, linalg
+phi = library.bell_state("phi+")
+rng = np.random.default_rng(7)
+q, _ = np.linalg.qr(rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)))   # a random unitary
+print(np.allclose(linalg.kron(q, q.conj()) @ phi, phi))     # True
+a = np.pi / 8
+n, nperp = np.array([np.cos(a), 1j * np.sin(a)]), np.array([1j * np.sin(a), np.cos(a)])
+same = sum(abs(np.vdot(linalg.kron(v, v), phi))**2 for v in (n, nperp))
+print(round(same, 4))                                       # 0.5</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Measuring one photon</h2>
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Operators on a factor <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the product rule for tensor operators, the measurement postulate on a pair, the first glimpse of no-signalling</p>
+<div class="statement">
+<ol>
+<li>Show that \(A\otimes I\) and \(I\otimes B\) commute for all \(A\), \(B\).</li>
+<li>Let \(\{P_\lambda\}\) be a projective measurement on A and \(\{Q_\mu\}\) one on B. Prove that, for any state \(\psi\), the probability of B's
+outcome \(\mu\) is the same whether or not A is measured first (summing over A's outcomes), and is also unchanged if A
+first applies any unitary \(V\otimes I\).</li>
+<li>For the singlet, compute B's outcome probabilities in a basis \(\{\ket m, \ket{m^\perp}\}\) after A measures in \(\{\ket n, \ket{n^\perp}\}\), and say
+why A's choice of basis cannot be read off at B.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything follows from \((A\otimes B)(C\otimes D) = AC\otimes BD\) and \(\sum_\lambda P_\lambda = I\). The answer to part 3 is a pair of numbers that do not
+depend on \(n\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The probability of "\(\lambda\) then \(\mu\)" is \(\lVert(I\otimes Q_\mu)(P_\lambda\otimes I)\psi\rVert^2\). Sum over \(\lambda\), using that \(P_\lambda\otimes Q_\mu\) is a projector.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\sum_\lambda\lVert(P_\lambda\otimes Q_\mu)\psi\rVert^2 = \sum_\lambda\braket{\psi|(P_\lambda\otimes Q_\mu)|\psi} = \braket{\psi|(I\otimes Q_\mu)|\psi}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Operators on different factors commute, and summing A's projectors gives the identity on A:
+whatever A does, B's statistics are those of \(I\otimes Q_\mu\) on the original state.</p>
+<p><strong>1.</strong> \((A\otimes I)(I\otimes B) = A\otimes B = (I\otimes B)(A\otimes I)\) by the product rule. \(\blacksquare\)</p>
+<p><strong>2.</strong> <em>Without A's measurement</em>, B's outcome \(\mu\) has probability \(\braket{\psi|(I\otimes Q_\mu)|\psi}\) (unit 01's Born rule for the
+projector \(I\otimes Q_\mu\)). <em>With it</em>: A gets \(\lambda\) with probability \(\lVert(P_\lambda\otimes I)\psi\rVert^2\), leaving \(\psi_\lambda = (P_\lambda\otimes I)\psi/\lVert(P_\lambda\otimes I)\psi\rVert\); then B
+gets \(\mu\) with probability \(\lVert(I\otimes Q_\mu)\psi_\lambda\rVert^2\). The product is \(\lVert(P_\lambda\otimes Q_\mu)\psi\rVert^2 = \braket{\psi|(P_\lambda\otimes Q_\mu)|\psi}\) (a projector: \(R^\dagger R = R^2 = R\)).
+Summing over \(\lambda\): \(\braket{\psi|((\sum_\lambda P_\lambda)\otimes Q_\mu)|\psi} = \braket{\psi|(I\otimes Q_\mu)|\psi}\). Same. <em>With a unitary</em>: \(\braket{\psi|(V\otimes I)^\dagger(I\otimes Q_\mu)(V\otimes I)|\psi} =
+\braket{\psi|(V^\dagger V\otimes Q_\mu)|\psi} = \braket{\psi|(I\otimes Q_\mu)|\psi}\). \(\blacksquare\)</p>
+<p><strong>3.</strong> After A's \(n\) (probability \(\tfrac12\)), B is in \(\ket{n^\perp}\); after A's \(n^\perp\) (probability \(\tfrac12\)), B is in \(\ket n\) (deck, <i>Measure photon A,
+and photon B is left in n⊥</i>). So \(P(B = m) = \tfrac12|\braket{m|n^\perp}|^2 + \tfrac12|\braket{m|n}|^2 = \tfrac12\lVert m\rVert^2 = \tfrac12\), by Parseval in the basis \(\{n, n^\perp\}\);
+likewise \(P(B = m^\perp) = \tfrac12\). These do not depend on \(n\): B sees a fair coin in every basis whatever A chose, so no
+statistic at B reveals A's choice. The correlation only appears when the two records are compared.</p>
+<p><strong>Check.</strong> Without A measuring: \(\braket{\Psi^-|(I\otimes\ket m\!\bra m)|\Psi^-}\). Using the singlet's form in the basis \(\{m, m^\perp\}\),
+\(\ket{\Psi^-} = \tfrac c{\sqrt2}(\ket{mm^\perp} - \ket{m^\perp m})\), the projector keeps only the second term, of squared norm \(\tfrac12\) ✓ — the same \(\tfrac12\). This
+is no-signalling for projective measurements and unitaries; unit 04 proves it for every local operation.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Two analysers at different angles <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: a joint distribution from the singlet, normalisation, numbers that unit 06 will need</p>
+<div class="statement">
+<p>The singlet pair is analysed with linear analysers at \(\theta_A\) on A and \(\theta_B\) on B. Write \(\Delta = \theta_B - \theta_A\).</p>
+<ol>
+<li>Find the four joint probabilities of (A's exit, B's exit), each exit being \(\theta\) or \(\theta + 90^\circ\), and check they sum to one.</li>
+<li>Show that the probability of the same exit on both sides is \(\sin^2\Delta\), and evaluate it at \(\Delta = 30^\circ\) and \(\Delta = 22.5^\circ\).</li>
+<li>With outcomes scored \(\pm1\) (\(+1\) for the \(\theta\) exit), the correlation is \(E = P(\text{same}) - P(\text{different})\). Show \(E = -\cos2\Delta\) and give
+it at \(30^\circ\) and \(22.5^\circ\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Four probabilities, each \(\tfrac12\) times a squared cosine or sine of \(\Delta\). The rest is trigonometry.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Measure A first: it leaves B in the state at right angles to A's result. Then use \(|\braket{\beta|\alpha}|^2 = \cos^2(\alpha - \beta)\) for linear
+polarisations.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "\(P(\theta_A, \theta_B) = \tfrac12|\braket{\theta_B|\theta_A + 90^\circ}|^2 = \tfrac12\cos^2(\theta_A + 90^\circ - \theta_B) = \tfrac12\sin^2\Delta\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The singlet's A outcome is a fair coin, and it leaves B perpendicular to it; Malus's rule does the rest.</p>
+<p><strong>1.</strong> A's outcome \(\theta_A\) (probability \(\tfrac12\)) leaves B in \(\ket{\theta_A + 90^\circ}\); A's outcome \(\theta_A + 90^\circ\) leaves B in \(\ket{\theta_A + 180^\circ} = -\ket{\theta_A}\),
+the same ray as \(\ket{\theta_A}\). With \(|\braket{\beta|\alpha}|^2 = \cos^2(\alpha - \beta)\):</p>
+\[ \begin{array}{c|cc} &amp; \text{B: }\theta_B &amp; \text{B: }\theta_B + 90^\circ\\ \hline \text{A: }\theta_A &amp; \tfrac12\sin^2\Delta &amp; \tfrac12\cos^2\Delta\\ \text{A: }\theta_A + 90^\circ &amp; \tfrac12\cos^2\Delta &amp; \tfrac12\sin^2\Delta \end{array} \]
+<p>(e.g. top left: \(\tfrac12\cos^2(\theta_A + 90^\circ - \theta_B) = \tfrac12\sin^2\Delta\)). Sum: \(\sin^2\Delta + \cos^2\Delta = 1\) ✓.</p>
+<p><strong>2.</strong> Same exit: the diagonal, \(\sin^2\Delta\). At \(30^\circ\): \(\tfrac14\), with joint probabilities \(\tfrac18, \tfrac38, \tfrac38, \tfrac18\). At \(22.5^\circ\):
+\(\sin^222.5^\circ = \tfrac{2 - \sqrt2}4 \approx 0.1464\).</p>
+<p><strong>3.</strong> \(E = \sin^2\Delta - \cos^2\Delta = -\cos2\Delta\). At \(30^\circ\): \(-\cos60^\circ = -0.5\). At \(22.5^\circ\): \(-\cos45^\circ = -\tfrac1{\sqrt2} \approx -0.7071\).</p>
+<p><strong>Check.</strong> \(\Delta = 0\): same exit never, \(E = -1\) — the running example's perfect anticorrelation ✓. \(\Delta = 45^\circ\): same exit with
+probability \(\tfrac12\), \(E = 0\) — the analysers are unbiased to each other ✓. \(\Delta = 90^\circ\): \(\sin^290^\circ = 1\), the same exit
+always — B's \(\theta_B\) exit is then the line \(\theta_A + 90^\circ\), exactly where B's photon goes when A's goes out at \(\theta_A\) ✓.
+Unit 06 combines four such correlations at \(22.5^\circ\) spacings into the CHSH quantity.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 03</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

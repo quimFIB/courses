@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>08 · Problems — Entropy and the Holevo bound: how many bits a qubit holds</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="b">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part B · unit 08 · problems</p>
+<h1>Entropy and the Holevo bound: how many bits a qubit holds</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u08">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the Holevo bound from strong
+subadditivity — the register \(P\), the system \(Q\), the pointer \(M\); the measurement as a unitary on \(QM\);
+each step of the chain named, with the one inequality coming from discarding \(Q\) — and you compute
+\(\chi = 0.601\) bits for the \(\ket0/\ket+\) ensemble: \(\rho\), its eigenvalues \(\cos^2\frac\pi8\) and \(\sin^2\frac\pi8\), and
+\(S(\rho)\) to three decimals.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: logarithms are base 2 unless written \(\ln\), so entropies are in bits;
+\(0\log0 = 0\); \(h(p) = -p\log p - (1 - p)\log(1 - p)\). \(S(\rho) = -\operatorname{tr}\rho\log\rho\), and \(S(A)\) means \(S(\rho_A)\).
+\(I(A:B) = S(A) + S(B) - S(AB)\), \(S(A|B) = S(AB) - S(B)\), \(D(\rho\Vert\sigma) = \operatorname{tr}\rho\log\rho - \operatorname{tr}\rho\log\sigma\), and
+\(\chi = S(\sum_xp_x\rho_x) - \sum_xp_xS(\rho_x)\). \(\braket{u|v}\) is conjugate-linear in the first slot; \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\), \(\ket\pm = (\ket0 \pm \ket1)/\sqrt2\); in \(\ket{ab}\) the first symbol is qubit 0 (\(A\)).
+\(\ket{\Phi^+} = (\ket{00} + \ket{11})/\sqrt2\). The running ensemble is \(\ket0\) or \(\ket+\) with probability \(\tfrac12\) each,
+with average state \(\rho = \begin{pmatrix}3/4&amp;1/4\\1/4&amp;1/4\end{pmatrix}\). Strong subadditivity, \(I(A:BC) \ge I(A:B)\), is cited and may
+be used freely.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Typical sequences">P1</a></li>
+<li><a class="routine" href="#p2" title="Entanglement entropy of unit 03's state">P2</a></li>
+<li><a class="hard" href="#p3" title="Concavity, from both sides">P3</a></li>
+<li><a class="medium" href="#p4" title="Klein and subadditivity">P4</a></li>
+<li><a class="medium" href="#p5" title="Araki–Lieb">P5</a></li>
+<li><a class="medium" href="#p6" title="The whole can be smaller than a part">P6</a></li>
+<li><a class="routine" href="#p7" title="Mutual information of a Bell pair">P7</a></li>
+<li><a class="medium" href="#p8" title="Holevo for two pure states">P8</a></li>
+<li><a class="medium" href="#p9" title="Following the proof through">P9</a></li>
+<li><a class="medium" href="#p10" title="Dense coding saturates Holevo">P10</a></li>
+<li><a class="hard" href="#p11" title="Accessible information is less than chi: the trine">P11</a></li>
+<li><a class="medium" href="#p12" title="Schumacher by numbers">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Shannon and von Neumann entropy</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Typical sequences <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the binary entropy computed, the typical-sequence lemma, the source coding theorem, typical against most probable</p>
+<div class="statement">
+<p>A biased coin shows \(1\) with probability \(p = 0.11\) and \(0\) otherwise. It is tossed \(n = 1000\) times.</p>
+<ol>
+<li>Compute \(h(0.11)\) to four decimals.</li>
+<li>To leading order in the exponent, how many of the \(2^{1000}\) sequences are typical, and what fraction of all
+sequences is that? What probability does each typical sequence have?</li>
+<li>How many bits does Shannon's theorem say are needed to record the 1000 tosses with vanishing error? Show that
+a code using \(400\) bits fails almost surely as \(n\) grows at that rate.</li>
+<li>Find the single most probable sequence and its probability. Is it typical?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer is a power of two, or the exponent of one. The exponent per toss is always an entropy or an
+empirical entropy \(-\tfrac1n\log p(x^n)\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The typical set has between \(2^{n(H - \delta)}\) and \(2^{n(H + \delta)}\) members, each of probability about \(2^{-nH}\). For part
+3 use the converse half of the source coding theorem: a set of \(2^{nR}\) sequences has probability at most
+\(2^{nR}2^{-n(H - \delta)} + \Pr(T^c)\). For part 4, a sequence with \(k\) ones has probability \(p^k(1 - p)^{n - k}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(\log0.11 = -3.1844\) and \(\log0.89 = -0.1681\), so
+\(h(0.11) = 0.11\cdot3.1844 + 0.89\cdot0.1681\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A biased coin's long runs live on about \(2^{nh(p)}\) sequences, each about equally likely; \(h(0.11)\)
+happens to be almost exactly half a bit, so 1000 tosses behave like 500 fair ones.</p>
+<p><strong>1.</strong> \(\log_2 0.11 = \ln0.11/\ln2 = -3.18442\) and \(\log_2 0.89 = -0.16812\). So</p>
+\[ h(0.11) = 0.11\times3.18442 + 0.89\times0.16812 = 0.35029 + 0.14963 = 0.49992 \approx 0.4999 . \]
+<p><strong>2.</strong> To leading order, \(2^{nh} = 2^{499.9} \approx 2^{500}\) typical sequences, a fraction \(2^{500}/2^{1000} = 2^{-500}\) of all
+of them: about one sequence in \(10^{150}\). Each has probability about \(2^{-500}\), and together they carry almost
+all the probability. (The \(\pm\delta\) in the exponent is the "leading order" caveat: for \(\delta = 0.05\) the lemma pins the
+count between \(2^{450}\) and \(2^{550}\), up to a factor \(1 - \varepsilon\).)</p>
+<p><strong>3.</strong> \(nh = 499.9\), so about \(500\) bits, and any rate \(R &gt; h\) works as \(n \to \infty\). With \(400\) bits, \(R = 0.4 &lt; h\): choose
+\(\delta = 0.05\), so \(R &lt; h - \delta = 0.4499\). Any code decodes correctly only on its set \(S\) of at most \(2^{nR}\) sequences, and
+\(\Pr(S) \le 2^{nR}2^{-n(h - \delta)} + \Pr(T^c) = 2^{-0.0499n} + \Pr(T^c) \to 0\). At \(n = 1000\) the first term is already \(2^{-49.9}\).</p>
+<p><strong>4.</strong> Each toss is more likely \(0\), so the all-zeros sequence is the most probable:
+\(0.89^{1000} = 2^{1000\log0.89} = 2^{-168.1}\). Its empirical entropy is \(-\tfrac1{1000}\log0.89^{1000} = 0.168\), far from \(0.4999\): not typical
+for any \(\delta &lt; 0.33\). It is \(2^{332}\) times likelier than a typical sequence, and there is only one of it.</p>
+<p><strong>Check.</strong> A sequence with \(k\) ones has empirical entropy \(\tfrac1n\big(3.18442k + 0.16812(n - k)\big)\), which equals \(h\) at
+\(k = 110 = np\) — the expected number of ones, as it must be: \(0.11\times3.18442 + 0.89\times0.16812 = h\). The number of ones has
+standard deviation \(\sqrt{1000\times0.11\times0.89} = 9.89\); the empirical entropy moves by \(0.003016\) per extra one, so for \(\delta = 0.05\)
+the typical sequences are those with \(110 \pm 16\) ones.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Entanglement entropy of unit 03's state <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the reduced state of a pure state, eigenvalues of a \(2\times2\) matrix, the von Neumann entropy computed, both halves equal</p>
+<div class="statement">
+<p>Unit 03's state is \(\ket\psi = \tfrac1{\sqrt3}(\ket{00} + \ket{01} + \ket{10})\).</p>
+<ol>
+<li>Check it is normalised, and compute \(\rho_A\) and \(\rho_B\).</li>
+<li>Show that both have eigenvalues \(\tfrac16(3 \pm \sqrt5)\).</li>
+<li>Compute its entanglement entropy \(E(\psi) = S(\rho_A)\) to four decimals, and compare with the Bell state's.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a number between \(0\) and \(1\), the Shannon entropy of a two-outcome distribution: the squared
+Schmidt coefficients.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 04: for coefficient matrix \(C\) (rows indexed by \(A\)), \(\rho_A = CC^\dagger\). A \(2\times2\) matrix's eigenvalues come from
+its trace and determinant.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "\(C = \tfrac1{\sqrt3}\begin{pmatrix}1&amp;1\\1&amp;0\end{pmatrix}\), so \(\rho_A = CC^\dagger = \tfrac13\begin{pmatrix}2&amp;1\\1&amp;1\end{pmatrix}\), with trace \(1\) and determinant \(\tfrac19\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The two halves of a pure state share their non-zero spectrum, the squared Schmidt
+coefficients; the entanglement entropy is the Shannon entropy of that spectrum.</p>
+<p><strong>1.</strong> \(\lVert\psi\rVert^2 = \tfrac13(1 + 1 + 1) = 1\) ✓. With \(C = \tfrac1{\sqrt3}\begin{pmatrix}1&amp;1\\1&amp;0\end{pmatrix}\) (rows \(A = 0, 1\); columns \(B = 0, 1\)),</p>
+\[ \rho_A = CC^\dagger = \tfrac13\begin{pmatrix}2&amp;1\\1&amp;1\end{pmatrix}, \qquad \rho_B = (C^\dagger C)^{\mathsf T} = \tfrac13\begin{pmatrix}2&amp;1\\1&amp;1\end{pmatrix}, \]
+<p>the same matrix, because \(C\) is real and symmetric. Trace \(1\) ✓.</p>
+<p><strong>2.</strong> \(\det\rho_A = \tfrac19(2 - 1) = \tfrac19\), so the eigenvalues solve \(\lambda^2 - \lambda + \tfrac19 = 0\):
+\(\lambda = \tfrac12\big(1 \pm \sqrt{1 - \tfrac49}\big) = \tfrac12\big(1 \pm \tfrac{\sqrt5}3\big) = \tfrac16(3 \pm \sqrt5)\), that is \(0.87268\) and \(0.12732\). Sum \(1\) ✓.</p>
+<p><strong>3.</strong> \(\log0.87268 = -0.19647\) and \(\log0.12732 = -2.97345\), so</p>
+\[ E(\psi) = 0.87268\times0.19647 + 0.12732\times2.97345 = 0.17146 + 0.37859 = 0.5500 . \]
+<p>About \(0.55\) ebits: a bit more than half a Bell pair's worth, since \(E(\Phi^+) = 1\).</p>
+<p><strong>Check.</strong> The squared Schmidt coefficients are the squared singular values of \(C\): \(\sqrt3\,C\) has
+singular values \(\tfrac12(1 \pm \sqrt5)\) in absolute value (it is symmetric with eigenvalues the golden ratio and its
+negative reciprocal), so \(s^2 = \tfrac13\cdot\tfrac14(1 \pm \sqrt5)^2 = \tfrac1{12}(6 \pm 2\sqrt5) = \tfrac16(3 \pm \sqrt5)\) ✓. And \(0 &lt; 0.55 &lt; 1\), as for any
+entangled but not maximally entangled pair of qubits.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, linalg
+psi = Statevector(np.array([1, 1, 1, 0]) / np.sqrt(3))
+print(np.round(linalg.schmidt_coefficients(psi, 2) ** 2, 4))       # [0.8727 0.1273]
+rho = DensityMatrix.from_statevector(psi)
+print(round(rho.partial_trace([0]).entropy(), 4), round(rho.partial_trace([1]).entropy(), 4))   # 0.55 0.55</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Concavity, from both sides <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: subadditivity on a classical–quantum state, purification, the diagonal lemma and its equality case, the chain rule</p>
+<div class="statement">
+<p>Let \(\rho = \sum_ip_i\rho_i\) for density operators \(\rho_i\) and a distribution \(p\).</p>
+<ol>
+<li>Prove concavity, \(S(\rho) \ge \sum_ip_iS(\rho_i)\), in one line from subadditivity, using the register state
+\(\sum_ip_i\ket i\!\bra i\otimes\rho_i\). (The deck proved it another way.)</li>
+<li>For a pure-state ensemble, \(\rho = \sum_ip_i\ket{\psi_i}\!\bra{\psi_i}\), prove \(S(\rho) \le H(p)\), with equality iff the \(\psi_i\) with \(p_i &gt; 0\) are
+orthogonal. (Purify \(\rho\).)</li>
+<li>Deduce \(S(\sum_ip_i\rho_i) \le \sum_ip_iS(\rho_i) + H(p)\) in general, with equality iff the \(\rho_i\) have mutually orthogonal
+supports.</li>
+<li>Check both bounds on the running ensemble.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three inequalities between entropies of states you can write down. Parts 1 and 3 reduce to one each of the
+deck's lemmas; part 2 moves the question to the purifying system, where \(p\) appears as a diagonal.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: the register state has entropy \(H(p) + \sum p_iS(\rho_i)\) and marginals \(H(p)\) and \(S(\rho)\). Part 2: purify by
+\(\ket\Psi = \sum_i\sqrt{p_i}\ket{\psi_i}\ket i\); then \(S(\rho) = S(\rho_R)\), and look at \(\rho_R\)'s diagonal. Part 3: write each \(\rho_i\) in its
+eigenbasis and apply part 2 to the combined ensemble.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\rho_R = \operatorname{tr}_A\ket\Psi\!\bra\Psi = \sum_{i,j}\sqrt{p_ip_j}\braket{\psi_j|\psi_i}\ket i\!\bra j\), whose diagonal is \((p_i)\); by the diagonal
+lemma \(H(p) \ge S(\rho_R) = S(\rho)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Mixing adds at least nothing and at most the entropy of the label. The lower bound is
+subadditivity in disguise; the upper bound says the story's entropy \(H(p)\) exceeds the state's, because the
+label is a diagonal of the purifier's state and diagonals have more entropy than spectra.</p>
+<p><strong>1.</strong> Let \(\omega = \sum_ip_i\ket i\!\bra i\otimes\rho_i\). By the deck's classical–quantum lemma \(S(\omega) = H(p) + \sum_ip_iS(\rho_i)\);
+its marginals are \(\sum_ip_i\ket i\!\bra i\) (entropy \(H(p)\)) and \(\rho\). Subadditivity \(S(\omega) \le H(p) + S(\rho)\) is exactly
+\(\sum p_iS(\rho_i) \le S(\rho)\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\ket\Psi = \sum_i\sqrt{p_i}\ket{\psi_i}\ket i \in H\otimes\mathbb C^m\) has
+\(\lVert\Psi\rVert^2 = \sum_{i,j}\sqrt{p_ip_j}\braket{\psi_i|\psi_j}\braket{i|j} = \sum_ip_i = 1\) ✓, and \(\operatorname{tr}_R\ket\Psi\!\bra\Psi = \sum_ip_i\ket{\psi_i}\!\bra{\psi_i} = \rho\) (the cross terms
+carry \(\braket{j|i} = 0\)). So \(\Psi\) purifies \(\rho\), and the two halves of a pure state have equal entropy:
+\(S(\rho) = S(\rho_R)\). Tracing out \(H\) instead,</p>
+\[ \rho_R = \sum_{i,j}\sqrt{p_ip_j}\,\braket{\psi_j|\psi_i}\,\ket i\!\bra j, \qquad \braket{i|\rho_R|i} = p_i . \]
+<p>By the deck's lemma <i>Diagonals have more entropy than the spectrum</i>, \(H(p) \ge S(\rho_R) = S(\rho)\).</p>
+<p><em>Equality.</em> If the \(\psi_i\) are orthogonal, \(\rho_R = \mathrm{diag}(p)\) and \(S = H(p)\). Conversely, in the lemma's proof
+equality needs, for each \(k\), \(\eta(d_k) = \sum_jB_{kj}\eta(\lambda_j)\); \(\eta\) is strictly concave, so all \(\lambda_j\) with \(B_{kj} &gt; 0\) are equal, so
+\(\ket k\) lies in one eigenspace of \(\rho_R\): the basis \(\{\ket i\}\) diagonalises \(\rho_R\). The off-diagonal entries
+\(\sqrt{p_ip_j}\braket{\psi_j|\psi_i}\) vanish, so \(\braket{\psi_j|\psi_i} = 0\) whenever \(p_i, p_j &gt; 0\), \(i \ne j\). \(\blacksquare\)</p>
+<p><strong>3.</strong> Write \(\rho_i = \sum_k\lambda_{ik}\ket{e_{ik}}\!\bra{e_{ik}}\). Then \(\rho = \sum_{i,k}p_i\lambda_{ik}\ket{e_{ik}}\!\bra{e_{ik}}\) is a pure-state ensemble with
+weights \(q_{ik} = p_i\lambda_{ik}\), summing to \(1\). Part 2 and the chain rule give</p>
+\[ S(\rho) \le H(q) = -\sum_{i,k}p_i\lambda_{ik}\big(\log p_i + \log\lambda_{ik}\big) = H(p) + \sum_ip_iS(\rho_i). \]
+<p>Equality iff all \(e_{ik}\) with \(q_{ik} &gt; 0\) are orthogonal. For fixed \(i\) they already are; across different \(i\) this says
+every eigenvector of \(\rho_i\) in its support is orthogonal to every one of \(\rho_j\): orthogonal supports. \(\blacksquare\)</p>
+<p><strong>4.</strong> Running ensemble: \(\tfrac12\cdot0 + \tfrac12\cdot0 = 0 \le 0.601 \le 0 + 1 = 1\) ✓, and both are strict — the members are
+pure but different (lower bound) and not orthogonal (upper bound). For \(\ket0, \ket1\): \(0 \le 1 \le 1\), the upper bound
+attained, as the orthogonal case must.</p>
+<p><strong>Check.</strong> A consequence: \(\chi = S(\rho) - \sum p_xS(\rho_x) \le H(p)\), so the Holevo bound never claims more than
+the information Alice put in.</p>
+</div></details>
+</section>
+
+<h2 class="group">The inequalities</h2>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Klein and subadditivity <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Klein's inequality proved, the logarithm of a tensor product, the partial trace's defining property, a relative entropy computed</p>
+<div class="statement">
+<ol>
+<li>Prove Klein's inequality: \(D(\rho\Vert\sigma) \ge 0\), with equality iff \(\rho = \sigma\). (Assume \(\operatorname{supp}\rho \subseteq \operatorname{supp}\sigma\).)</li>
+<li>Deduce subadditivity, \(S(AB) \le S(A) + S(B)\), with equality iff \(\rho_{AB} = \rho_A\otimes\rho_B\).</li>
+<li>For \(\rho_{AB} = \tfrac12(\ket{00}\!\bra{00} + \ket{11}\!\bra{11})\), compute \(D(\rho_{AB}\Vert\rho_A\otimes\rho_B)\) directly from the definition, and
+check it against \(S(A) + S(B) - S(AB)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a double sum over two eigenbases with a scalar inequality inside; part 2 is part 1 with
+\(\sigma = \rho_A\otimes\rho_B\); part 3 is a number of bits.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: expand \(\operatorname{tr}\rho\log\sigma\) in \(\rho\)'s eigenbasis \(\{r_i\}\) and \(\log\sigma\) in its own \(\{s_j\}\); the weights \(P_{ij} = |\braket{r_i|s_j}|^2\)
+have all row and column sums \(1\). Then use \(a\ln(a/b) \ge a - b\). Part 2: \(\log(\rho_A\otimes\rho_B) = \log\rho_A\otimes I + I\otimes\log\rho_B\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "With \(\rho = \sum_ip_i\ket{r_i}\!\bra{r_i}\) and \(\sigma = \sum_jq_j\ket{s_j}\!\bra{s_j}\),
+\(\operatorname{tr}\rho\log\sigma = \sum_ip_i\braket{r_i|\log\sigma|r_i} = \sum_{i,j}p_iP_{ij}\log q_j\), and \(\operatorname{tr}\rho\log\rho = \sum_{i,j}p_iP_{ij}\log p_i\) since \(\sum_jP_{ij} = 1\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> In two eigenbases the quantum relative entropy is a weighted average of classical
+terms \(p_i\log(p_i/q_j)\), and each is bounded below by the tangent line of the logarithm. Mutual information is the
+relative entropy to the product of the marginals.</p>
+<p><strong>1.</strong> From the rung, \(D(\rho\Vert\sigma) = \sum_{i,j}P_{ij}\,p_i\log(p_i/q_j)\). (A term with \(P_{ij} &gt; 0\), \(p_i &gt; 0\) and \(q_j = 0\) cannot occur:
+\(r_i\) would have a component outside \(\operatorname{supp}\sigma\).) For \(a \ge 0\), \(b &gt; 0\): \(a\ln(a/b) \ge a - b\), from \(\ln t \le t - 1\) at \(t = b/a\), and
+trivially at \(a = 0\). So</p>
+\[ D(\rho\Vert\sigma)\ln2 \ \ge\ \sum_{i,j}P_{ij}(p_i - q_j) = \sum_ip_i - \sum_jq_j = 1 - 1 = 0, \]
+<p>using \(\sum_jP_{ij} = \lVert r_i\rVert^2 = 1\) and \(\sum_iP_{ij} = \lVert s_j\rVert^2 = 1\). <em>Equality</em> needs \(p_i = q_j\) for every pair with \(P_{ij} &gt; 0\);
+then \(\ket{r_i} = \sum_j\braket{s_j|r_i}\ket{s_j}\) uses only \(s_j\) with \(q_j = p_i\), so \(\sigma\ket{r_i} = p_i\ket{r_i}\) for all \(i\), and \(\sigma = \rho\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\rho_A\otimes\rho_B\) has eigenvectors \(\ket{e_if_j}\) and eigenvalues \(a_ib_j\), so on its support
+\(\log(\rho_A\otimes\rho_B) = \log\rho_A\otimes I + I\otimes\log\rho_B\). The partial trace satisfies \(\operatorname{tr}((X\otimes I)\rho_{AB}) = \operatorname{tr}(X\rho_A)\), so</p>
+\[ -\operatorname{tr}\rho_{AB}\log(\rho_A\otimes\rho_B) = -\operatorname{tr}\rho_A\log\rho_A - \operatorname{tr}\rho_B\log\rho_B = S(A) + S(B), \]
+<p>and \(D(\rho_{AB}\Vert\rho_A\otimes\rho_B) = S(A) + S(B) - S(AB)\). The support condition holds (\(\rho_{AB}\) has no weight outside
+\(\operatorname{supp}\rho_A\otimes\operatorname{supp}\rho_B\), since \(\operatorname{tr}(((I - \Pi_A)\otimes I)\rho_{AB}) = \operatorname{tr}((I - \Pi_A)\rho_A) = 0\)). Part 1 gives \(\ge 0\), and equality iff
+\(\rho_{AB} = \rho_A\otimes\rho_B\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(\rho_A = \rho_B = I/2\), so \(\rho_A\otimes\rho_B = I/4\) and \(\log(I/4) = -2I\). \(\rho_{AB}\) has eigenvalues \(\tfrac12, \tfrac12, 0, 0\), so
+\(\operatorname{tr}\rho_{AB}\log\rho_{AB} = -1\), and \(-\operatorname{tr}\rho_{AB}\log(I/4) = 2\operatorname{tr}\rho_{AB} = 2\). So \(D = -1 + 2 = 1\) bit.</p>
+<p><strong>Check.</strong> \(S(A) + S(B) - S(AB) = 1 + 1 - 1 = 1\) ✓. It is the classical answer too: two perfectly correlated fair bits
+share one bit. Compare \(\ket{\Phi^+}\), which has the same diagonal but \(I = 2\) (P7).</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Araki–Lieb <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: purification, entropies of complementary parts, subadditivity, the equality case</p>
+<div class="statement">
+<ol>
+<li>Prove \(|S(A) - S(B)| \le S(AB)\) from subadditivity and purification.</li>
+<li>Show it is tight for every pure \(\rho_{AB}\) and for every \(\rho_A\otimes\ket0\!\bra0\).</li>
+<li>Show that equality \(S(A) - S(B) = S(AB)\) holds iff, for a purification \(R\) of \(AB\), \(\rho_{BR} = \rho_B\otimes\rho_R\). Give an example
+that is neither pure nor of the form \(\rho_A\otimes\ket0\!\bra0\): let \(A = A_1A_2\) and \(\rho_{AB} = \tau_{A_1}\otimes\ket{\Phi^+}\!\bra{\Phi^+}_{A_2B}\).</li>
+<li>Evaluate both sides for the deck's state \(\rho = \tfrac12\ket{\Phi^+}\!\bra{\Phi^+} + \tfrac12\ket{00}\!\bra{00}\), for which \(S(A) = S(B) = 0.811\) and \(S(AB) = 0.601\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything follows from writing the same pure state of three systems \(ABR\) two ways, and applying
+subadditivity to a pair that does not contain \(B\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In a pure state \(ABR\), a part and its complement have equal entropies: \(S(R) = S(AB)\), \(S(AR) = S(B)\),
+\(S(BR) = S(A)\). Apply subadditivity to \(BR\) for the direction \(S(A) - S(B) \le S(AB)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: "Purify \(\rho_{AB}\) by \(R\). Then \(S(A) = S(BR) \le S(B) + S(R) = S(B) + S(AB)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Purification turns the unfamiliar inequality on \(AB\) into the familiar one on the
+complementary pair \(BR\), and its equality case into subadditivity's.</p>
+<p><strong>1.</strong> Unit 04 gives a purification \(\ket\Psi \in H_A\otimes H_B\otimes H_R\) of \(\rho_{AB}\). For a pure state the reduced states of
+complementary parts share their non-zero spectrum, so \(S(BR) = S(A)\) and \(S(R) = S(AB)\). Subadditivity on \(BR\):
+\(S(A) = S(BR) \le S(B) + S(R) = S(B) + S(AB)\). Exchanging the roles of \(A\) and \(B\) (subadditivity on \(AR\)) gives the other
+sign. \(\blacksquare\)</p>
+<p><strong>2.</strong> Pure: \(S(AB) = 0\) and \(S(A) = S(B)\), so \(0 \le 0\). Product with a pure \(B\): \(S(B) = 0\), \(S(AB) = S(A) + 0\) by
+additivity, so \(S(A) - 0 = S(AB)\).</p>
+<p><strong>3.</strong> The only inequality in the proof is subadditivity on \(BR\), so equality holds iff
+\(S(BR) = S(B) + S(R)\), iff \(\rho_{BR} = \rho_B\otimes\rho_R\) (the equality case of subadditivity, P4). Example: purify \(\tau\) by \(R\), so the whole
+state is \(\ket{\tau}_{A_1R}\otimes\ket{\Phi^+}_{A_2B}\), pure. Then \(\rho_{BR} = \tfrac I2\otimes\tau_R\), a product ✓. Directly:
+\(S(A) = S(\tau) + 1\), \(S(B) = 1\), \(S(AB) = S(\tau) + 0\), and \(S(A) - S(B) = S(\tau) = S(AB)\) ✓. In words: here \(A\) holds a
+purification of \(B\) — its half \(A_2\) of the Bell pair — and that is what leaves \(B\) uncorrelated with \(R\).</p>
+<p><strong>4.</strong> \(|0.811 - 0.811| = 0 \le 0.601\): true, and far from tight. Subadditivity on the other side: \(0.601 \le 1.623\).</p>
+<p><strong>Check.</strong> Combined, \(|S(A) - S(B)| \le S(AB) \le S(A) + S(B)\): the three entropies satisfy the triangle inequalities. For
+the running register-and-qubit state, \(S(P) = 1\), \(S(Q) = 0.601\), \(S(PQ) = 1\): \(0.399 \le 1 \le 1.601\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> The whole can be smaller than a part <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: pure entangled states, concavity of conditional entropy, separable states, an entanglement test with numbers</p>
+<div class="statement">
+<p>Recall (unit 04) that a state is <em>separable</em> if it is a mixture \(\sum_ip_i\,\alpha_i\otimes\beta_i\) of product states.</p>
+<ol>
+<li>Prove that every entangled pure state has \(S(AB) &lt; S(A)\).</li>
+<li>Prove that every separable state has \(S(AB) \ge S(A)\) and \(S(AB) \ge S(B)\). Use the deck's <i>Worked: conditioning, and a separable
+state</i>: \(S(B|A)\) is concave.</li>
+<li>Deduce that \(\tfrac12\ket{\Phi^+}\!\bra{\Phi^+} + \tfrac12\ket{00}\!\bra{00}\) is not separable. Then check that the register-and-qubit state
+\(\rho_{PQ}\) passes the test, as it must.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is a sign: of \(S(B|A) = S(AB) - S(A)\). For a pure entangled state it is negative; for a product it is
+\(S(B) \ge 0\); concavity carries the sign through mixtures.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: a pure state has \(S(AB) = 0\), and unit 04 says it is entangled iff \(\rho_A\) is mixed. Part 2: for
+\(\alpha\otimes\beta\), \(S(AB) = S(\alpha) + S(\beta)\) by additivity.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "By concavity of conditional entropy, \(S(B|A)_\rho \ge \sum_ip_iS(B|A)_{\alpha_i\otimes\beta_i} = \sum_ip_iS(\beta_i) \ge 0\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Negative conditional entropy is a signature of entanglement: products have
+non-negative conditional entropy, and mixing (by strong subadditivity) can only raise it.</p>
+<p><strong>1.</strong> A pure \(\rho_{AB}\) has \(S(AB) = 0\). If it is entangled, its Schmidt rank is at least \(2\) (unit 03), so \(\rho_A\) has at
+least two non-zero eigenvalues and \(S(A) &gt; 0\) (it is zero only for a pure \(\rho_A\)). Hence \(S(AB) = 0 &lt; S(A)\). \(\blacksquare\)</p>
+<p><strong>2.</strong> For a product \(\alpha\otimes\beta\): \(S(AB) = S(\alpha) + S(\beta)\) and \(S(A) = S(\alpha)\), so \(S(B|A) = S(\beta) \ge 0\). The deck proved, from
+strong subadditivity, that \(\rho \mapsto S(B|A)_\rho\) is concave: for \(\rho = \sum_ip_i\rho^{(i)}\),
+\(S(B|A)_\rho \ge \sum_ip_iS(B|A)_{\rho^{(i)}}\). With \(\rho^{(i)} = \alpha_i\otimes\beta_i\), \(S(B|A)_\rho \ge \sum_ip_iS(\beta_i) \ge 0\), that is \(S(AB) \ge S(A)\).
+Exchanging the roles of \(A\) and \(B\) (the same argument with \(S(A|B)\)) gives \(S(AB) \ge S(B)\). \(\blacksquare\)</p>
+<p><strong>3.</strong> For \(\rho = \tfrac12\ket{\Phi^+}\!\bra{\Phi^+} + \tfrac12\ket{00}\!\bra{00}\): \(\rho_A = \mathrm{diag}(\tfrac34, \tfrac14)\), \(S(A) = h(\tfrac14) = 0.811\), and the two
+members have overlap \(|\braket{00|\Phi^+}| = 1/\sqrt2\), so \(S(AB) = h(\tfrac12(1 + \tfrac1{\sqrt2})) = 0.601\) (P8's formula). So \(S(AB) = 0.601 &lt; 0.811 = S(A)\),
+and by part 2 the state is not separable. For \(\rho_{PQ} = \tfrac12\ket0\!\bra0\otimes\ket0\!\bra0 + \tfrac12\ket1\!\bra1\otimes\ket+\!\bra+\), already a mixture of
+products: \(S(PQ) = 1 \ge \max\{S(P), S(Q)\} = \max\{1, 0.601\}\) ✓.</p>
+<p><strong>Check.</strong> The test is one-sided. The Bell state mixed with white noise,
+\(\tfrac12\ket{\Phi^+}\!\bra{\Phi^+} + \tfrac12\cdot\tfrac I4\), is entangled — its partial transpose has the eigenvalue \(-\tfrac18\), which no separable
+state allows (Peres, <i>Phys. Rev. Lett.</i> 77, 1413, 1996, cited) — yet its spectrum is \((\tfrac58, \tfrac18, \tfrac18, \tfrac18)\), so
+\(S(AB) = 1.549 \ge 1 = S(A)\): the test is silent. Negative conditional entropy certifies entanglement; its absence proves
+nothing.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Mutual information of a Bell pair <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: quantum mutual information computed, Araki–Lieb applied, the classical bound, the link to dense coding</p>
+<div class="statement">
+<ol>
+<li>Compute \(I(A:B)\) for \(\ket{\Phi^+}\).</li>
+<li>Prove that classically \(I(X:Y) \le \min\{H(X), H(Y)\}\), and that quantumly \(I(A:B) \le 2\min\{S(A), S(B)\}\). For two qubits,
+which states reach \(I = 2\)?</li>
+<li>Alice and Bob measure their halves of \(\ket{\Phi^+}\) in \(z\). What is the mutual information of their outcomes? Where
+has the other bit gone, and which protocol of unit 07 spends it?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is three entropies; part 2 is two one-line inequalities; part 3 is a joint distribution of two bits.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 2, classical: \(H(XY) \ge \max\{H(X), H(Y)\}\). Quantum: Araki–Lieb gives \(S(AB) \ge |S(A) - S(B)|\). For which states
+are both \(S(A) = S(B) = 1\) and \(S(AB) = 0\)?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(I(A:B) = S(A) + S(B) - S(AB) \le S(A) + S(B) - |S(A) - S(B)| = 2\min\{S(A), S(B)\}\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A Bell pair's halves are each a full bit of uncertainty, yet the whole is pure; the mutual
+information double-counts, and that double count is exactly what dense coding cashes.</p>
+<p><strong>1.</strong> \(\rho_{AB}\) is pure: \(S(AB) = 0\). \(\rho_A = \rho_B = I/2\) (unit 04): \(S(A) = S(B) = 1\). So \(I(A:B) = 1 + 1 - 0 = 2\).</p>
+<p><strong>2.</strong> Classically \(H(XY) = H(X) + H(Y|X) \ge H(X)\), and likewise \(\ge H(Y)\); so \(I = H(X) + H(Y) - H(XY) \le \min\{H(X), H(Y)\}\).
+Quantumly, Araki–Lieb gives the rung's line, and \(S(A) + S(B) - |S(A) - S(B)| = 2\min\{S(A), S(B)\}\). For two qubits, \(S(A), S(B) \le 1\),
+so \(I \le 2\), with equality iff \(S(A) = S(B) = 1\) and \(S(AB) = 0\): a pure state whose halves are \(I/2\) — a maximally
+entangled state: both Schmidt coefficients \(1/\sqrt2\), so it is \(\tfrac1{\sqrt2}(\ket{a_0b_0} + \ket{a_1b_1}) = (U\otimes V)\ket{\Phi^+}\) with the local
+unitaries \(U\ket k = \ket{a_k}\), \(V\ket k = \ket{b_k}\). \(\blacksquare\)</p>
+<p><strong>3.</strong> The outcomes are \(00\) or \(11\), each with probability \(\tfrac12\): \(X = Y\), a fair bit, \(I(X:Y) = 1\). Measuring in \(z\) on
+each side sees only the correlation in one basis; the other bit is in the correlation in the \(x\) basis (also perfect for
+\(\ket{\Phi^+}\)), which a \(z\) measurement destroys. No pair of local measurements reads both. Dense coding (unit 07) spends
+the pair as a resource: Alice's local Pauli moves \(\ket{\Phi^+}\) to any of four orthogonal Bell states, and Bob's joint
+Bell measurement reads two bits — the deck's <i>Worked: dense coding saturates Holevo</i>.</p>
+<p><strong>Check.</strong> Classical maximum for two bits: \(Y = X\) fair, \(I = 1\) (P4's part 3). The quantum pair doubles it, and
+\(2 = 2\min\{1, 1\}\) is the Araki–Lieb ceiling, attained.</p>
+</div></details>
+</section>
+
+<h2 class="group">The Holevo bound</h2>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Holevo for two pure states <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Holevo quantity computed, the Gram-matrix trick for eigenvalues, special cases as checks</p>
+<div class="statement">
+<ol>
+<li>Compute \(\chi\) for \(\ket0\) or \(\ket+\), probability \(\tfrac12\) each, and for \(\ket0\) or \(\ket1\).</li>
+<li>For any two unit vectors \(\psi, \varphi\) with overlap \(c = |\braket{\psi|\varphi}|\), sent with probability \(\tfrac12\) each, prove that the
+average state has non-zero eigenvalues \(\tfrac12(1 \pm c)\), and hence \(\chi = h\big(\tfrac12(1 + c)\big)\).</li>
+<li>Check the formula at \(c = 0\), \(c = 1\) and \(c = 1/\sqrt2\). At what overlap does \(\chi\) fall to half a bit?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Both members are pure, so \(\chi\) is the entropy of the average state alone, and that state has rank at most two.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Write \(\rho = AA^\dagger\) with \(A = \tfrac1{\sqrt2}\big(\ket\psi\ \ \ket\varphi\big)\), a \(d\times2\) matrix. \(AA^\dagger\) and \(A^\dagger A\) have the same non-zero
+eigenvalues, and \(A^\dagger A\) is \(2\times2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(A^\dagger A = \tfrac12\begin{pmatrix}1&amp;\braket{\psi|\varphi}\\\braket{\varphi|\psi}&amp;1\end{pmatrix}\), whose eigenvalues are \(\tfrac12(1 \pm |\braket{\psi|\varphi}|)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The average of two pure states only sees their overlap: the Gram matrix of the pair
+carries the whole spectrum.</p>
+<p><strong>1.</strong> \(\ket0, \ket+\): \(\rho = \begin{pmatrix}3/4&amp;1/4\\1/4&amp;1/4\end{pmatrix}\), eigenvalues \(\cos^2\tfrac\pi8 = 0.8536\) and \(\sin^2\tfrac\pi8 = 0.1464\) (trace \(1\),
+determinant \(\tfrac18\)); \(S = 0.8536\times0.2284 + 0.1464\times2.7716 = 0.6009\). Both members pure, so \(\chi = 0.601\). \(\ket0, \ket1\): \(\rho = I/2\),
+\(\chi = 1 - 0 = 1\).</p>
+<p><strong>2.</strong> With \(A\) as in the rung, \(AA^\dagger = \tfrac12(\ket\psi\!\bra\psi + \ket\varphi\!\bra\varphi) = \rho\). For any matrix, \(AA^\dagger\) and \(A^\dagger A\) have the
+same non-zero eigenvalues (if \(A^\dagger Av = \lambda v\) with \(\lambda \ne 0\), then \(AA^\dagger(Av) = \lambda Av\) and \(Av \ne 0\); and symmetrically). Here
+\(A^\dagger A = \tfrac12\begin{pmatrix}1&amp;z\\\bar z&amp;1\end{pmatrix}\) with \(z = \braket{\psi|\varphi}\): trace \(1\), determinant \(\tfrac14(1 - |z|^2)\), so eigenvalues
+\(\tfrac12\big(1 \pm \sqrt{1 - (1 - c^2)}\big) = \tfrac12(1 \pm c)\). They sum to \(1\), so these are all of \(\rho\)'s non-zero eigenvalues, and
+\(\chi = S(\rho) - 0 = h\big(\tfrac12(1 + c)\big)\). \(\blacksquare\)</p>
+<p><strong>3.</strong> \(c = 0\): \(h(\tfrac12) = 1\) — orthogonal states carry a full bit ✓. \(c = 1\): \(h(1) = 0\) — identical states carry nothing ✓.
+\(c = 1/\sqrt2\): \(h(0.8536) = 0.601\), part 1 ✓. Half a bit: \(h(q) = 0.5\) at \(q = 0.8900\) (P1 found \(h(0.11) = 0.4999\)), so
+\(\tfrac12(1 + c) = 0.89\), \(c = 0.78\).</p>
+<p><strong>Check.</strong> Bloch picture, for qubits (unit 04, with unit 02's \(|\braket{\psi|\varphi}|^2 = \tfrac12(1 + r_\psi\cdot r_\varphi)\)): the average of two pure states has Bloch vector of length
+\(\tfrac12|r_\psi + r_\varphi| = \sqrt{\tfrac12(1 + r_\psi\cdot r_\varphi)} = |\braket{\psi|\varphi}| = c\), so eigenvalues \(\tfrac12(1 \pm c)\) ✓ — the same answer from geometry.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, linalg
+zero, plus, one = (Statevector.from_label(c) for c in "0+1")
+for a, b in [(zero, plus), (zero, one)]:
+    avg = DensityMatrix.mixture([0.5, 0.5], [a, b])
+    c = abs(a.inner(b))
+    print(round(avg.entropy(), 4), round(linalg.shannon_entropy([(1 + c) / 2, (1 - c) / 2]), 4))   # 0.6009 twice, then 1.0 twice</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Following the proof through <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the pointer unitary as CNOT, entropies of a three-qubit state, where the Holevo proof loses information</p>
+<div class="statement">
+<p>Run the Holevo proof on the running ensemble with Bob measuring in \(z\). Qubit 0 is the register \(P\), qubit 1 is
+\(Q\), qubit 2 is the pointer \(M\).</p>
+<ol>
+<li>Show that the pointer unitary for a \(z\) measurement is CNOT from \(Q\) to \(M\), and write \(\rho_{PQM}\) at \(t_1\).</li>
+<li>Compute \(S(P)\), \(S(QM)\), \(S(PQM)\) and \(I(P:QM)\) at \(t_1\).</li>
+<li>Discard \(Q\). Compute \(\rho_{PM}\), \(S(M)\), \(S(PM)\) and \(I(P:M)\) at \(t_2\). How much did the discard cost?</li>
+<li>Compute \(I(P:Q)\) at \(t_1\). Where, at \(t_1\), are the bits that the discard destroys?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every state here is classical–quantum in \(P\): a block for \(x = 0\) and a block for \(x = 1\). Use the lemma
+\(S(\sum p_x\ket x\!\bra x\otimes\omega_x) = H(p) + \sum p_xS(\omega_x)\) throughout.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>CNOT sends \(\ket0\ket0 \mapsto \ket{00}\) and \(\ket+\ket0 \mapsto \ket{\Phi^+}\). For \(S(QM)\) you need the entropy of an equal mixture of two
+pure states with overlap \(\braket{00|\Phi^+} = 1/\sqrt2\) — P8.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "\(V\ket\psi = P_0\ket\psi\otimes\ket0 + P_1\ket\psi\otimes\ket1\) sends \(\alpha\ket0 + \beta\ket1\) to \(\alpha\ket{00} + \beta\ket{11}\), which is CNOT\(_{QM}\) on
+\((\alpha\ket0 + \beta\ket1)\ket0\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The unitary keeps all \(0.601\) bits; they now sit in the correlation between \(Q\) and the pointer,
+and throwing \(Q\) away loses the part that the pointer alone does not carry.</p>
+<p><strong>1.</strong> As in the rung. So at \(t_1\):</p>
+\[ \rho_{PQM} = \tfrac12\ket0\!\bra0\otimes\ket{00}\!\bra{00} + \tfrac12\ket1\!\bra1\otimes\ket{\Phi^+}\!\bra{\Phi^+}, \qquad \operatorname{tr} = \tfrac12 + \tfrac12 = 1\ ✓. \]
+<p><strong>2.</strong> \(S(P) = H(\tfrac12, \tfrac12) = 1\). \(S(PQM) = 1 + \tfrac12\cdot0 + \tfrac12\cdot0 = 1\) (both blocks pure). \(\rho_{QM} = \tfrac12\ket{00}\!\bra{00} + \tfrac12\ket{\Phi^+}\!\bra{\Phi^+}\),
+with overlap \(1/\sqrt2\), so by P8 \(S(QM) = h(\tfrac12(1 + \tfrac1{\sqrt2})) = 0.601\). Hence \(I(P:QM) = 1 + 0.601 - 1 = 0.601 = \chi\) — unchanged
+by the unitary, as the proof says.</p>
+<p><strong>3.</strong> \(\operatorname{tr}_Q\ket{00}\!\bra{00} = \ket0\!\bra0\) and \(\operatorname{tr}_Q\ket{\Phi^+}\!\bra{\Phi^+} = I/2\), so
+\(\rho_{PM} = \tfrac12\ket0\!\bra0\otimes\ket0\!\bra0 + \tfrac12\ket1\!\bra1\otimes\tfrac I2 = \mathrm{diag}(\tfrac12, 0, \tfrac14, \tfrac14)\) — diagonal, the joint distribution of \((X, Y)\). \(S(M) = h(\tfrac34) = 0.811\),
+\(S(PM) = H(\tfrac12, \tfrac14, \tfrac14) = 1.5\), and \(I(P:M) = 1 + 0.811 - 1.5 = 0.311\): the deck's \(z\)-measurement value. The discard cost
+\(0.601 - 0.311 = 0.290\) bits.</p>
+<p><strong>4.</strong> \(\rho_{PQ}\) at \(t_1\) is \(\operatorname{tr}_M\) of the same blocks, which by the symmetry of \(\ket{00}\) and \(\ket{\Phi^+}\) under swapping \(Q, M\) is the same
+matrix as \(\rho_{PM}\): \(I(P:Q) = 0.311\) too. So at \(t_1\) each of \(Q\) and \(M\) alone shares \(0.311\) bits with \(P\), and the pair
+shares \(0.601\). The missing \(0.290\) bits are in the correlation between \(Q\) and \(M\) — in the entanglement of \(\ket{\Phi^+}\) — and
+exist in neither half. Discarding \(Q\) destroys them.</p>
+<p><strong>Check.</strong> \(0.311 \le 0.601\) ✓ (Holevo). And the order of the chain: \(I(P:M)_{t_2} = 0.311 \le I(P:QM)_{t_1} = 0.601 = I(P:QM)_{t_0}\).</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import DensityMatrix, Statevector, gates
+# qubits: 0 = register P, 1 = Q, 2 = pointer M
+rho = DensityMatrix.mixture([0.5, 0.5], [Statevector.from_label("000"), Statevector.from_label("1+0")])
+rho.apply(gates.CX, 1, 2)                                   # the pointer unitary for a z measurement
+S = lambda keep: rho.partial_trace(keep).entropy()
+print(round(S([0]) + S([1, 2]) - rho.entropy(), 4))        # I(P:QM) at t1: 0.6009
+print(round(S([0]) + S([2]) - S([0, 2]), 4))               # I(P:M) at t2: 0.3113
+print(round(S([0]) + S([1]) - S([0, 1]), 4))               # I(P:Q) at t1: 0.3113 too</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> Dense coding saturates Holevo <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Holevo quantity of an encoding, the Pauli twirl, subadditivity and no-signalling as an upper bound</p>
+<div class="statement">
+<ol>
+<li>Alice applies \(I, X, Z\) or \(XZ\), each with probability \(\tfrac14\), to her half of \(\ket{\Phi^+}\) and sends it to Bob. Prove that
+\(\chi = 2\) for Bob's two qubits and that his Bell measurement attains \(I(X:Y) = 2\).</li>
+<li>Replace \(\ket{\Phi^+}\) by \(\ket\psi = s_0\ket{00} + s_1\ket{11}\), \(s_0^2 + s_1^2 = 1\). Prove that the same encoding gives
+\(\chi = 1 + E(\psi)\).</li>
+<li>Prove that no encoding by unitaries on Alice's qubit can give more than \(1 + E(\psi)\).</li>
+<li>Evaluate for \(s_0 = \cos\tfrac\pi8\), \(s_1 = \sin\tfrac\pi8\) — the running mixture, purified.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each encoded state is pure, so \(\chi\) is the entropy of the average. The average over the four Paulis on one
+qubit erases that qubit completely.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 07: \(\tfrac14\sum_\sigma\sigma X\sigma^\dagger = (\operatorname{tr}X)\tfrac I2\) for every \(2\times2\) matrix \(X\). Apply it to product operators \(X_A\otimes X_B\) and extend
+by linearity. For part 3: \(\chi \le S(\bar\rho_{AB}) \le S(\bar\rho_A) + S(\bar\rho_B)\), and what can Alice's unitaries do to \(\rho_B\)?</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(\tfrac14\sum_\sigma(\sigma\otimes I)\ket\psi\!\bra\psi(\sigma\otimes I)^\dagger = \tfrac I2\otimes\operatorname{tr}_A\ket\psi\!\bra\psi = \tfrac I2\otimes\rho_B\), with \(\rho_B = \mathrm{diag}(s_0^2, s_1^2)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Alice's random Pauli makes her qubit maximally mixed and leaves Bob's alone, so the
+average state has entropy \(1 + S(\rho_B)\); every encoded state is pure, so that is \(\chi\). The bound \(\log4 = 2\) is reached
+exactly when \(\rho_B\) is maximally mixed — an ebit.</p>
+<p><strong>The twirl on two qubits.</strong> For \(Y = X_A\otimes X_B\): \(\tfrac14\sum_\sigma(\sigma X_A\sigma^\dagger)\otimes X_B = (\operatorname{tr}X_A)\tfrac I2\otimes X_B = \tfrac I2\otimes\operatorname{tr}_A(Y)\).
+Both sides are linear in \(Y\) and product operators span all operators on \(\mathbb C^2\otimes\mathbb C^2\), so
+\(\tfrac14\sum_\sigma(\sigma\otimes I)Y(\sigma\otimes I)^\dagger = \tfrac I2\otimes\operatorname{tr}_AY\) for every \(Y\).</p>
+<p><strong>1.</strong> With \(Y = \ket{\Phi^+}\!\bra{\Phi^+}\): the average is \(\tfrac I2\otimes\tfrac I2 = \tfrac I4\), entropy \(2\); each encoded state is a Bell state, pure; so
+\(\chi = 2\). The four encoded states are the orthonormal Bell basis (unit 07), so the Bell measurement returns \(y = x\) with
+probability \(1\): \(I(X:Y) = H(X) - H(X|Y) = 2 - 0 = 2 = \chi\). \(\blacksquare\)</p>
+<p><strong>2.</strong> The average is \(\tfrac I2\otimes\rho_B\) with \(\rho_B = \operatorname{tr}_A\ket\psi\!\bra\psi = \mathrm{diag}(s_0^2, s_1^2)\); by additivity its entropy is
+\(1 + h(s_0^2) = 1 + E(\psi)\). Each \((\sigma\otimes I)\ket\psi\) is pure, so \(\chi = 1 + E(\psi)\). \(\blacksquare\)</p>
+<p><strong>3.</strong> For any unitaries \(U_x\) on \(A\) with probabilities \(p_x\), each encoded state is pure, so \(\chi = S(\bar\rho_{AB})\), and by
+subadditivity \(\chi \le S(\bar\rho_A) + S(\bar\rho_B) \le 1 + S(\bar\rho_B)\). No-signalling (unit 04): \(U_x\otimes I\) leaves \(\rho_B\) unchanged, so
+\(\bar\rho_B = \rho_B\) and \(\chi \le 1 + E(\psi)\). The Paulis attain it. \(\blacksquare\)</p>
+<p><strong>4.</strong> \(E = h(\cos^2\tfrac\pi8) = 0.601\), so \(\chi = 1.601\) bits, against \(2\) with a full ebit and \(1\) with none.</p>
+<p><strong>Check.</strong> \(s_1 = 0\): product state, \(E = 0\), \(\chi = 1\) — plain qubit communication ✓. \(s_0 = s_1 = 1/\sqrt2\): \(E = 1\), \(\chi = 2\) ✓. Each
+ebit is worth one bit.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, gates, linalg
+c, s = np.cos(np.pi / 8), np.sin(np.pi / 8)
+psi = Statevector([c, 0, 0, s])                             # c|00⟩ + s|11⟩, E = h(c²)
+codes = [gates.I, gates.X, gates.Z, gates.X @ gates.Z]
+states = [Statevector(np.kron(u, gates.I) @ psi.vector) for u in codes]
+avg = DensityMatrix.mixture([0.25] * 4, states)
+print(round(avg.entropy(), 4), round(1 + linalg.shannon_entropy([c**2, s**2]), 4))   # 1.6009 1.6009</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Accessible information is less than \(\chi\): the trine <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: \(\chi\) for a three-state ensemble, mutual information of a measurement optimised over an angle, symmetry, classical data processing</p>
+<div class="statement">
+<p>Unit 04's trine: \(\ket{t_k} = \cos\tfrac{\pi k}3\ket0 + \sin\tfrac{\pi k}3\ket1\), \(k = 0, 1, 2\), each sent with probability \(\tfrac13\).</p>
+<ol>
+<li>Compute \(\chi\).</li>
+<li>Bob uses an analyser at angle \(\alpha\), the basis \(\{\ket\alpha, \ket{\alpha + 90^\circ}\}\). Compute \(I(X:Y)\) at \(\alpha = 0\), and show by symmetry
+that \(I(\alpha)\) is even and has period \(30^\circ\). Evaluate it at \(\alpha = 15^\circ\) and at a few angles between, and conclude that the
+best analyser gives \(1 - \tfrac23h(\tfrac14) \approx 0.459\) bits.</li>
+<li>Show that a basis with complex entries cannot do better than the best real one.</li>
+<li>It is known (Sasaki et al., <i>Phys. Rev. A</i> 59, 3325, 1999, cited) that the accessible information of the trine is
+\(\log3 - 1 \approx 0.585\) bits, attained by a three-outcome generalised measurement — unit 21's. Compare the three numbers.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is one entropy; part 2 is a \(3\times2\) joint distribution as a function of \(\alpha\); part 3 is a statement about
+a classical channel that adds noise.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: the average state is unit 04's. Part 2: Malus's law, \(p(y = 0|k) = \cos^2(\alpha - 60^\circ k)\). Rotating everything by
+\(60^\circ\) permutes the trine; rotating the analyser by \(90^\circ\) swaps its outcomes. Part 3: on the Bloch sphere, an axis
+\(n\) gives \(p(0|k) = \tfrac12(1 + n\cdot r_k)\), with \(r_k\) in the \(xz\) plane.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "At \(\alpha = 0\), \(p(y = 0|k) = \cos^2(60^\circ k) = 1, \tfrac14, \tfrac14\), so \(p(y = 0) = \tfrac13(1 + \tfrac14 + \tfrac14) = \tfrac12\), \(H(Y) = 1\), and
+\(H(Y|X) = \tfrac13(0 + h(\tfrac14) + h(\tfrac14))\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Three pure states with average \(I/2\) hold a full bit in \(\chi\), but no single two-outcome measurement
+can sort three states well; even the best measurement of all falls short of \(\chi\).</p>
+<p><strong>1.</strong> \(\tfrac13\sum_k\ket{t_k}\!\bra{t_k} = I/2\) (unit 04: the Bloch vectors \(120^\circ\) apart sum to zero). Each member is pure, so
+\(\chi = S(I/2) = 1\) bit.</p>
+<p><strong>2.</strong> At \(\alpha = 0\): rows \(p(y|k) = (1, 0), (\tfrac14, \tfrac34), (\tfrac14, \tfrac34)\), each summing to \(1\) ✓. \(p(y = 0) = \tfrac12\), \(H(Y) = 1\);
+\(H(Y|X) = \tfrac13(0 + 2h(\tfrac14)) = \tfrac23\times0.8113 = 0.5409\). So \(I(0) = 1 - \tfrac23h(\tfrac14) = 0.4591\).</p>
+<p><em>Symmetry.</em> The rotation of the plane by \(60^\circ\) sends \(\ket{t_k}\) to \(\pm\ket{t_{k+1}}\) (indices mod 3; a sign is a global phase) and
+the analyser at \(\alpha\) to the analyser at \(\alpha + 60^\circ\). Malus's law depends only on angle differences, so the analyser at
+\(\alpha + 60^\circ\) sees the same statistics with \(x\) relabelled: \(I(\alpha + 60^\circ) = I(\alpha)\). The analyser at \(\alpha + 90^\circ\) is the same
+basis with outcomes swapped: \(I(\alpha + 90^\circ) = I(\alpha)\). Together, \(I\) has period \(\gcd(60^\circ, 90^\circ) = 30^\circ\). Reflection in the \(z\) axis
+(\(\ket1 \mapsto -\ket1\)) fixes \(t_0\) and swaps \(t_1, t_2\) up to sign, and sends \(\alpha \mapsto -\alpha\): \(I\) is even. So \(I\) on \([0^\circ, 15^\circ]\)
+determines it everywhere.</p>
+<p>At \(\alpha = 15^\circ\): \(p(y = 0|k) = \cos^2 15^\circ, \cos^2 45^\circ, \cos^2 105^\circ = 0.9330, 0.5, 0.0670\); \(p(y = 0) = \tfrac12\);
+\(H(Y|X) = \tfrac13(h(0.067) + 1 + h(0.067)) = \tfrac13(0.3546 + 1 + 0.3546) = 0.5697\); \(I(15^\circ) = 0.4303\). In between, the same
+arithmetic gives \(I(5^\circ) = 0.4482\) and \(I(10^\circ) = 0.4354\): \(I\) falls steadily from \(0.4591\) to \(0.4303\) across \([0^\circ, 15^\circ]\). So the best
+analyser is along one of the trine states (or perpendicular to one), with \(I = 0.4591\) — a finding of this numerical
+optimisation over the angle, which is what part 2 asks for, not a proof that no angle in between does better.</p>
+<p><strong>3.</strong> On the Bloch sphere the trine's vectors \(r_k\) lie in the \(xz\) plane, so for a measurement axis \(n\),
+\(n\cdot r_k = n'\cdot r_k\) with \(n'\) the projection of \(n\) to that plane, \(|n'| = s \le 1\). Then
+\(p(0|k) = \tfrac12(1 + s\,\hat n'\cdot r_k) = s\cdot\tfrac12(1 + \hat n'\cdot r_k) + (1 - s)\cdot\tfrac12\): the outcome is that of the real analyser along \(\hat n'\),
+replaced with probability \(1 - s\) by a fair coin independent of everything. That is a classical channel \(X \to Y' \to Y\), and
+classically \(I(X:Y) \le I(X:Y')\) (the chain rule: \(I(X:Y'Y) = I(X:Y') + I(X:Y|Y') = I(X:Y')\), since \(Y\) depends on \(X\) only through \(Y'\),
+and \(I(X:Y'Y) = I(X:Y) + I(X:Y'|Y) \ge I(X:Y)\), a conditional mutual information being an average of
+mutual informations, each \(\ge 0\)). So no complex basis beats the best real one.</p>
+<p><strong>4.</strong> \(0.459 &lt; 0.585 &lt; 1\): the best projective measurement, the best measurement of any kind, and \(\chi\). Unlike the
+two-state case of the deck, here a generalised measurement beats every projective one, and still nothing reaches \(\chi\).</p>
+<p><strong>Check.</strong> \(I(0) = I(30^\circ)\): at \(30^\circ\) the rows are \(\cos^2 30^\circ, \cos^2 30^\circ, \cos^2 90^\circ = \tfrac34, \tfrac34, 0\) — the \(\alpha = 0\) table with outcomes
+swapped and \(k\) permuted ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, linalg
+trine = [Statevector([np.cos(np.pi * k / 3), np.sin(np.pi * k / 3)]) for k in range(3)]
+print(round(DensityMatrix.mixture([1 / 3] * 3, trine).entropy(), 4))    # chi = 1.0
+def info(a):                                                # analyser at angle a
+    b = [np.array([np.cos(a), np.sin(a)]), np.array([-np.sin(a), np.cos(a)])]
+    joint = np.array([[abs(v @ t.vector) ** 2 / 3 for v in b] for t in trine])
+    H = linalg.shannon_entropy
+    return H(joint.sum(1)) + H(joint.sum(0)) - H(joint.ravel())
+angles = np.linspace(0, np.pi, 1801)
+best = max(angles, key=info)
+print(round(info(best), 4), round(np.degrees(best) % 30, 1), round(info(np.pi / 12), 4))   # 0.4591 0.0 0.4303</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Schumacher compression</h2>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Schumacher by numbers <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the spectrum of \(\rho^{\otimes n}\), additivity, the Chebyshev bound for the typical subspace, a compression rate computed</p>
+<div class="statement">
+<p>The running source: \(\rho\) with eigenvalues \(\lambda_1 = \cos^2\tfrac\pi8\), \(\lambda_2 = \sin^2\tfrac\pi8\).</p>
+<ol>
+<li>List the eigenvalues of \(\rho^{\otimes3}\) with their multiplicities, check they sum to \(1\), and verify \(S(\rho^{\otimes3}) = 3S(\rho)\).</li>
+<li>Let \(L = -\log\lambda_K\), with \(K = 1, 2\) drawn with probabilities \(\lambda_1, \lambda_2\). Show that \(\mathrm{Var}\,L = \tfrac12\big(\log(1 + \sqrt2)\big)^2 \approx 0.808\).</li>
+<li>For \(n = 1000\) and \(\delta = 0.05\), what weight and what dimension does the typical-subspace lemma guarantee for \(\Pi\), using
+Chebyshev? How many qubits, and what fidelity does the deck's encoder then guarantee?</li>
+<li>How large must \(n\) be for Chebyshev to guarantee weight \(0.99\) at \(\delta = 0.05\), and how many qubits does the encoder then use?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything is about the binomial distribution of the number of factors \(e_2\) in an eigenvector of \(\rho^{\otimes n}\), and the
+Chebyshev bound \(1 - \sigma^2/(n\delta^2)\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: eigenvalue \(\lambda_1^{3-k}\lambda_2^k\) with multiplicity \(\binom3k\). Part 2: for a two-valued \(L\), \(\mathrm{Var}\,L = \lambda_1\lambda_2(L_2 - L_1)^2\), and
+\(\lambda_1\lambda_2 = \tfrac18\), \(\lambda_1/\lambda_2 = \cot^2\tfrac\pi8 = (1 + \sqrt2)^2\). Part 3: the deck's encoder has fidelity \(\ge 2\operatorname{tr}(\Pi\rho^{\otimes n}) - 1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: "\(L_2 - L_1 = \log(\lambda_1/\lambda_2) = 2\log(1 + \sqrt2)\), so \(\mathrm{Var}\,L = \tfrac18\cdot4\log^2(1 + \sqrt2) = \tfrac12\log^2(1 + \sqrt2)\)."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The spectrum of \(n\) copies is a binomial distribution, and Chebyshev bounds its tails with one
+number, the variance of \(-\log\lambda\). The bound is honest but loose; the exact count, which the deck gives, is much
+better.</p>
+<p><strong>1.</strong> With \(\lambda_1 = 0.85355\), \(\lambda_2 = 0.14645\):</p>
+<table>
+<thead><tr><th>\(k\) factors \(e_2\)</th><th>eigenvalue</th><th>multiplicity</th><th>weight</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>\(\lambda_1^3 = 0.62186\)</td><td>1</td><td>0.62186</td></tr>
+<tr><td>1</td><td>\(\lambda_1^2\lambda_2 = 0.10669\)</td><td>3</td><td>0.32008</td></tr>
+<tr><td>2</td><td>\(\lambda_1\lambda_2^2 = 0.01831\)</td><td>3</td><td>0.05492</td></tr>
+<tr><td>3</td><td>\(\lambda_2^3 = 0.00314\)</td><td>1</td><td>0.00314</td></tr>
+</tbody>
+</table>
+<p>Sum \(0.62186 + 0.32008 + 0.05492 + 0.00314 = 1.00000\) ✓ — it is \((\lambda_1 + \lambda_2)^3\). Entropy: \(S(\rho^{\otimes3}) = 3S(\rho) = 1.8026\) by additivity;
+directly, \(-\sum(\text{mult})\lambda\log\lambda = 0.62186\times0.6853 + 3\times0.10669\times3.2284 + 3\times0.01831\times5.7716 + 0.00314\times8.3147\)
+\(= 0.4262 + 1.0333 + 0.3170 + 0.0261 = 1.8026\) ✓.</p>
+<p><strong>2.</strong> \(L\) takes \(L_1 = -\log\lambda_1 = 0.2284\) with probability \(\lambda_1\) and \(L_2 = -\log\lambda_2 = 2.7716\) with probability \(\lambda_2\). For a
+two-valued variable \(\mathrm{Var}\,L = \lambda_1\lambda_2(L_2 - L_1)^2\). Here \(\lambda_1\lambda_2 = \tfrac14\sin^2\tfrac\pi4 = \tfrac18\) and
+\(\lambda_1/\lambda_2 = \cot^2\tfrac\pi8 = (1 + \sqrt2)^2\), so \(L_2 - L_1 = 2\log(1 + \sqrt2) = 2\times1.27155 = 2.5431\) and
+\(\mathrm{Var}\,L = \tfrac18\times6.4674 = 0.8084\). (Its mean is \(S(\rho) = 0.601\), as it must be.)</p>
+<p><strong>3.</strong> Weight \(\operatorname{tr}(\Pi\rho^{\otimes1000}) \ge 1 - \dfrac{0.8084}{1000\times0.05^2} = 1 - 0.3234 = 0.677\). Dimension \(\le 2^{1000(0.6009 + 0.05)} = 2^{650.9}\), so
+\(651\) qubits. Fidelity \(\ge 2\times0.677 - 1 = 0.353\). (The exact weight of this typical subspace is \(0.927\), which the deck
+computed: fidelity \(\ge 0.853\). Chebyshev is far from tight.)</p>
+<p><strong>4.</strong> Need \(0.8084/(n\times0.0025) \le 0.01\), so \(n \ge 0.8084/(0.01\times0.0025) = 32\,337\) (rounding \(32\,336.96\) up). Then
+\(n(S + \delta) = 32\,337\times0.6509 = 21\,047.4\), so \(21\,048\) qubits for \(32\,337\) symbols, fidelity \(\ge 0.98\): rate \(0.651\).</p>
+<p><strong>Check.</strong> The rate \(0.651 = S + \delta\) is above \(S = 0.601\) by exactly the \(\delta\) chosen, and smaller \(\delta\) costs larger \(n\):
+halving \(\delta\) multiplies the required \(n\) by four. Schumacher's theorem is the statement that any rate above \(0.601\) is
+reachable this way.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 08</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

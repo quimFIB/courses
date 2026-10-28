@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>20 · Problems — QMA and the local Hamiltonian problem: Cook–Levin, quantum</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="d">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part D · unit 20 · problems</p>
+<h1>QMA and the local Hamiltonian problem: Cook–Levin, quantum</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u20">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove the local Hamiltonian problem is in QMA — deriving
+the random-term test's acceptance probability \(1 - \bra\xi H\ket\xi/m\) and turning the energy gap into an acceptance gap; you construct the
+Feynman–Kitaev Hamiltonian for a given circuit — the four terms, the unary clock, the locality count; and you prove its propagation term
+is unitarily equivalent to \(I\otimes\frac12L\) with gap \(1 - \cos\frac\pi{T+1}\) — \(0.0489\) for nine gates.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(H\) is always a Hamiltonian, and the Hadamard gate is written \(\mathrm{Had}\); \(T\) is the number of
+gates in a circuit, never the \(T\) gate. Qubit 0 is the leftmost symbol of a ket and the top wire; \(\ket0 = (1, 0)\), \(\ket1 = (0, 1)\);
+\(R_P(\theta) = e^{-i\theta P/2}\); \(P(\varphi) = \mathrm{diag}(1, e^{i\varphi})\). A QMA verifier \(V_x\) acts on ancillas starting in \(\ket{0^a}\) (qubit 0 among
+them) and a witness \(\ket\xi\), and accepts when qubit 0 reads 1; its acceptance operator is \(Q_x = J^\dagger V_x^\dagger(\ket1\!\bra1_0\otimes I)V_xJ\) with
+\(J\ket\xi = \ket{0^a}\ket\xi\). \(A\ge0\) means \(A\) is Hermitian with \(\bra vA\ket v\ge0\) for all \(v\). Hoeffding: for independent \(X_i\in[0, 1]\) with
+\(\mathbb E\bar X = \mu\), \(\Pr[\bar X\ge\mu + t]\le e^{-2kt^2}\) and \(\Pr[\bar X\le\mu - t]\le e^{-2kt^2}\).</p>
+<p>The Feynman–Kitaev Hamiltonian of a circuit \(U_T\cdots U_1\) with a unary clock \(\ket t = \ket{1^t0^{T-t}}\) on qubits \(c_1, \dots, c_T\) is
+\(H = H_{\mathrm{in}} + H_{\mathrm{out}} + H_{\mathrm{clock}} + H_{\mathrm{prop}}\), with \(H_{\mathrm{in}} = \sum_{i\in\text{anc}}\ket1\!\bra1_i\otimes\ket0\!\bra0_{c_1}\),
+\(H_{\mathrm{out}} = \ket0\!\bra0_0\otimes\ket1\!\bra1_{c_T}\), \(H_{\mathrm{clock}} = \sum_{i=1}^{T-1}\ket{01}\!\bra{01}_{c_ic_{i+1}}\), and \(H_{\mathrm{prop}} = \sum_tH_t\),
+\(H_t = \frac12(I\otimes\ket t\!\bra t + I\otimes\ket{t-1}\!\bra{t-1} - U_t\otimes\ket t\!\bra{t-1} - U_t^\dagger\otimes\ket{t-1}\!\bra t)\). The path Laplacian on vertices
+\(0, \dots, T\) is \(L = \sum_{t=1}^T(\ket t - \ket{t-1})(\bra t - \bra{t-1})\).</p>
+<p>The running example is the deck's nine-gate verifier: qubit 0 starts in \(\ket0\), qubit 1 holds \(\ket\xi\), and the gates in time order are
+\(\mathrm{Had}_0\), \(R_z(\frac\pi2)_1\), \(\mathrm{CNOT}_{01}\), \(B_1\), \(\mathrm{CNOT}_{01}\), \(R_y(\frac\pi4)_1\), \(S_0\), \(\mathrm{Had}_0\), \(X_0\), with
+\(B = R_y(-\frac\pi4)R_z(-\frac\pi2)\); it accepts \(\xi\) with probability \(\frac12(1 + \bra\xi\mathrm{Had}\ket\xi)\). Its sister replaces gates 2, 4, 6, 7 by
+\(R_z(-\frac\pi8)\), \(R_z(-\frac\pi8)\), \(R_z(\frac\pi4)\), \(P(\frac{9\pi}8)\), compiling the Hadamard test of \(-P(\frac\pi4)\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="NP ⊆ QMA and BQP ⊆ QMA">P1</a></li>
+<li><a class="medium" href="#p2" title="Entangled witnesses do not help repetition">P2</a></li>
+<li><a class="routine" href="#p3" title="3-SAT as a Hamiltonian">P3</a></li>
+<li><a class="medium" href="#p4" title="Membership">P4</a></li>
+<li><a class="routine" href="#p5" title="Clock legality">P5</a></li>
+<li><a class="medium" href="#p6" title="Why unary">P6</a></li>
+<li><a class="medium" href="#p7" title="Zero propagation energy">P7</a></li>
+<li><a class="medium" href="#p8" title="The gap for nine gates">P8</a></li>
+<li><a class="routine" href="#p9" title="Gap scaling">P9</a></li>
+<li><a class="medium" href="#p10" title="A trial vector bounds the gap">P10</a></li>
+<li><a class="hard" href="#p11" title="The geometric lemma">P11</a></li>
+<li><a class="hard" href="#p12" title="Soundness for the sister circuit">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Quantum proofs</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> NP ⊆ QMA and BQP ⊆ QMA <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the definition of QMA, reversible computation (unit 10), the orthogonality that makes a superposed certificate harmless</p>
+<div class="statement">
+<ol>
+<li>Prove \(\mathsf{NP}\subseteq\mathsf{QMA}\). Your verifier must handle every witness Merlin might send, including superpositions of certificates.</li>
+<li>Prove \(\mathsf{BQP}\subseteq\mathsf{QMA}\).</li>
+<li>For the NP verifier, what is the acceptance operator \(Q_x\)? Check your answer against part 1's acceptance probability.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is a construction of a verifier followed by a check of completeness and soundness. The witness register in part 1 holds
+\(p(|x|)\) qubits, one per certificate bit; in part 2 it is not used at all.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 10 turns the polynomial-time predicate \(R(x, \cdot)\) into a reversible circuit that writes \(R(x, y)\) into qubit 0 and returns its work space to
+\(\ket0\), leaving \(\ket y\) untouched. Expand \(\ket\xi = \sum_y\alpha_y\ket y\) and use linearity.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(V_x\ket{0^a}\ket\xi = \sum_y\alpha_y\ket{R(x, y)}\ket{0^{a-1}}\ket y\), and the terms for different \(y\) are orthogonal because their last registers are.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A classical verifier run on a superposition of certificates accepts with the total weight of the valid ones, because it
+never mixes different certificates. A BQP verifier simply ignores Merlin.</p>
+<p><strong>1.</strong> Let \(L\in\mathsf{NP}\) with polynomial-time predicate \(R\) and certificates \(y\in\{0,1\}^{p(|x|)}\). By unit 10 (reversible computation with
+Bennett's uncomputation) there is a polynomial-size circuit \(C_x\) with \(C_x\ket{0^a}\ket y = \ket{R(x, y)}\ket{0^{a-1}}\ket y\) for every basis state \(\ket y\); the generator
+prints it from \(x\) in polynomial time. For \(\ket\xi = \sum_y\alpha_y\ket y\),
+\[C_x\ket{0^a}\ket\xi = \sum_y\alpha_y\ket{R(x, y)}\ket{0^{a-1}}\ket y .\]
+Projecting qubit 0 on \(\ket1\) keeps the terms with \(R(x, y) = 1\); they are orthonormal in \(y\), so
+\[\mathrm{acc}_x(\xi) = \Big\lVert\sum_{y:\,R(x,y)=1}\alpha_y\ket1\ket{0^{a-1}}\ket y\Big\rVert^2 = \sum_{y:\,R(x,y)=1}|\alpha_y|^2 .\]
+<em>Completeness:</em> if \(x\in L\) some \(y^*\) has \(R(x, y^*) = 1\); the witness \(\ket{y^*}\) is accepted with probability 1 \(\ge\frac23\).
+<em>Soundness:</em> if \(x\notin L\) every \(R(x, y) = 0\), so \(\mathrm{acc}_x(\xi) = 0\le\frac13\) for every unit \(\xi\).</p>
+<p><strong>2.</strong> Let \(L\in\mathsf{BQP}\) via a uniform family \(C_n\) acting on \(\ket{x, 0}\). Take \(V_x = (C_{|x|}\text{ with }x\text{ written into its input by }X\text{ gates})\otimes I_{\text{witness}}\),
+with a witness register of one qubit that no gate touches. Then \(V_x\ket{0^a}\ket\xi = (C\ket{x, 0})\otimes\ket\xi\), and the probability that qubit 0 reads 1 is
+\(\lVert(\ket1\!\bra1\otimes I)C\ket{x,0}\rVert^2\cdot\lVert\xi\rVert^2\), the BQP acceptance probability, independent of \(\xi\). Completeness and soundness are BQP's.</p>
+<p><strong>3.</strong> \(\bra\xi Q_x\ket\xi = \sum_y|\alpha_y|^2R(x, y)\) for every \(\xi\), so \(Q_x = \sum_yR(x, y)\ket y\!\bra y\): the projection onto the span of the valid certificates.
+(Two Hermitian operators with the same expectation in every state are equal.)</p>
+<p><strong>Check.</strong> The NP verifier has perfect completeness and perfect soundness, \(\lambda_{\max}(Q_x)\in\{0, 1\}\) — as a projection's eigenvalues must be.
+With a 2-bit certificate and valid set \(\{01, 10\}\), the witness \(\frac12(\ket{00} + \ket{01} + \ket{10} + \ket{11})\) is accepted with probability \(\frac14 + \frac14 = \frac12\):
+a mixture of right and wrong certificates is accepted with exactly the weight of the right ones.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Entangled witnesses do not help repetition <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: tensor products of operators (unit 03), simultaneous diagonalisation, the product-eigenbasis argument behind parallel repetition</p>
+<div class="statement">
+<p>A verifier has acceptance operator \(Q\) with \(\lambda_{\max}(Q) = s\). Arthur asks for two witness registers, runs the verifier on each with fresh ancillas, and
+accepts iff <b>both</b> runs accept.</p>
+<ol>
+<li>Show that the outcome pair \((b_1, b_2)\) has probability \(\bra\Xi Q_{b_1}\otimes Q_{b_2}\ket\Xi\), where \(Q_1 = Q\), \(Q_0 = I - Q\), for any state \(\ket\Xi\) of the two registers.</li>
+<li>Prove that \(\Pr[\text{both accept}]\le s^2\) for every \(\ket\Xi\), entangled or not, and that a product witness attains it.</li>
+<li>Take \(Q = \mathrm{diag}(\frac13, \frac14)\) on one qubit and the entangled \(\ket\Xi = \frac1{\sqrt2}(\ket{00} + \ket{11})\). Compute the probabilities of all four outcome pairs,
+and compare \(\Pr[\text{both accept}]\) with \(s^2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a computation with \((A\otimes B)(C\otimes D) = AC\otimes BD\); part 2 is a bound on the largest eigenvalue of \(Q\otimes Q\); part 3 is four numbers that sum to 1.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>In part 1 the state before measurement is \((V\otimes V)(J\otimes J)\ket\Xi\) (registers reordered), and the outcome projector is \(\Pi_{b_1}\otimes\Pi_{b_2}\) on the two output qubits.
+In part 2, the eigenvectors of \(Q\otimes Q\) are the products \(\ket{e_i}\ket{e_j}\) of eigenvectors of \(Q\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(Q\otimes Q\ket{e_i}\ket{e_j} = q_iq_j\ket{e_i}\ket{e_j}\), so \(\lambda_{\max}(Q\otimes Q) = \max_{i,j}q_iq_j = s^2\), and the variational principle finishes.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Each run's measurement is the same operator \(Q\), so in \(Q\)'s eigenbasis the two-register measurement is diagonal, and an entangled
+witness is a mixture of product pieces, none of which does better than the best eigenvector.</p>
+<p><strong>1.</strong> Let \(\Pi_b = \ket b\!\bra b\) on a verifier's output qubit. Run \(j\) applies \(V\) to its own ancillas and witness register, so the state is
+\((V\otimes V)(J\otimes J)\ket\Xi\) and
+\[\Pr[b_1, b_2] = \big\lVert(\Pi_{b_1}\otimes\Pi_{b_2})(V\otimes V)(J\otimes J)\Xi\big\rVert^2 = \bra\Xi(J^\dagger V^\dagger\Pi_{b_1}VJ)\otimes(J^\dagger V^\dagger\Pi_{b_2}VJ)\ket\Xi,\]
+using \((A\otimes B)^\dagger(A\otimes B) = A^\dagger A\otimes B^\dagger B\) and \(\Pi_b^\dagger\Pi_b = \Pi_b\). Since \(J^\dagger V^\dagger\Pi_1VJ = Q\) and \(\Pi_0 = I - \Pi_1\) with \(J^\dagger J = I\), the factors are \(Q_{b_1}\) and \(Q_{b_2}\).</p>
+<p><strong>2.</strong> Write \(Q = \sum_iq_i\ket{e_i}\!\bra{e_i}\), \(0\le q_i\le s\). Then \(Q\otimes Q\) has the orthonormal eigenbasis \(\ket{e_i}\ket{e_j}\) with eigenvalues \(q_iq_j\le s^2\).
+By the variational principle \(\bra\Xi Q\otimes Q\ket\Xi\le s^2\) for every unit \(\Xi\). The product \(\ket{e_{\max}}\ket{e_{\max}}\) gives exactly \(s^2\). More is true: writing
+\(\ket\Xi = \sum_{ij}c_{ij}\ket{e_i}\ket{e_j}\), every outcome has \(\Pr[b_1, b_2] = \sum_{ij}|c_{ij}|^2r_{i}(b_1)r_{j}(b_2)\) with \(r_i(1) = q_i\), \(r_i(0) = 1 - q_i\) — a mixture of pairs of
+independent coins.</p>
+<p><strong>3.</strong> \(Q\) is diagonal in \(\ket0, \ket1\), so \(c_{00} = c_{11} = \frac1{\sqrt2}\), and \(\Xi\) is the equal mixture of "both registers in \(\ket0\)" (coins \(\frac13, \frac13\)) and "both in
+\(\ket1\)" (coins \(\frac14, \frac14\)):</p>
+<ul>
+<li>both accept: \(\frac12(\frac19 + \frac1{16}) = 0.0868\);</li>
+<li>exactly the first: \(\frac12(\frac13\cdot\frac23 + \frac14\cdot\frac34) = 0.2049\), and exactly the second the same;</li>
+<li>both reject: \(\frac12(\frac49 + \frac9{16}) = 0.5035\).</li>
+</ul>
+<p>They sum to \(0.0868 + 2(0.2049) + 0.5035 = 1.000\) ✓. And \(0.0868\lt s^2 = \frac19 = 0.1111\) ✓: entanglement made the two runs' outcomes correlated but
+did not raise the chance that both accept.</p>
+<p><strong>Check.</strong> If Merlin sends the product \(\ket0\ket0\), both accept with \(\frac19\), the bound. The deck's majority-of-\(k\) argument is part 2's last sentence for \(k\)
+registers, followed by Hoeffding for each product piece.</p>
+</div></details>
+</section>
+
+<h2 class="group">The local Hamiltonian problem</h2>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> 3-SAT as a Hamiltonian <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: clause projectors, diagonal Hamiltonians, reading a ground energy and ground space off a diagonal</p>
+<div class="statement">
+<ol>
+<li>Write \(\varphi = (x_1\lor x_2\lor x_3)\land(x_1\lor x_2\lor x_4)\land(\lnot x_1\lor\lnot x_3\lor x_4)\land(\lnot x_2\lor\lnot x_3\lor\lnot x_4)\land(x_1\lor\lnot x_2\lor x_3)\) as a
+diagonal 3-local Hamiltonian \(H_\varphi\) on four qubits (qubit \(i - 1\) is \(x_i\)), with every term a projection.</li>
+<li>Find its ground energy, the dimension of its ground space, and its largest eigenvalue. Check \(\mathrm{tr}\,H_\varphi\) two ways.</li>
+<li>Do the same for \((x_1\lor x_2)\land(x_1\lor\lnot x_2)\land(\lnot x_1\lor x_2)\land(\lnot x_1\lor\lnot x_2)\), as a 2-local Hamiltonian.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answers are a sum of five operators, three numbers and a trace; then a second, smaller version. Every operator involved is diagonal in the computational basis.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A clause is false on exactly one assignment of its own variables. Its projector is the tensor product of \(\ket0\!\bra0\) or \(\ket1\!\bra1\) on those variables (whichever makes
+each literal false) with \(I\) on the rest. \(\bra zH_\varphi\ket z\) then counts the clauses \(z\) violates.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \((x_1\lor x_2\lor x_3)\) is false only on \(x_1x_2x_3 = 000\), so its term is \(\ket0\!\bra0\otimes\ket0\!\bra0\otimes\ket0\!\bra0\otimes I\), which fires on \(0000\) and \(0001\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One rank-one projector per clause on its three variables; summed, a diagonal matrix whose entries count violations.</p>
+<p><strong>1.</strong> The violating patterns: \(C_1\): \(x_1x_2x_3 = 000\); \(C_2\): \(x_1x_2x_4 = 000\); \(C_3\): \(x_1x_3x_4 = 110\); \(C_4\): \(x_2x_3x_4 = 111\); \(C_5\): \(x_1x_2x_3 = 010\). So, writing
+\(P_b = \ket b\!\bra b\),
+\[H_\varphi = P_0P_0P_0I + P_0P_0IP_0 + P_1IP_1P_0 + IP_1P_1P_1 + P_0P_1P_0I\]
+(tensor signs omitted, qubits in order). Each term is a product of commuting projections on distinct qubits, hence a projection.</p>
+<p><strong>2.</strong> The diagonal, assignment \(x_1x_2x_3x_4\): \(0000\!:\!2\) (\(C_1, C_2\)); \(0001\!:\!1\); \(0010\!:\!1\); \(0011\!:\!0\); \(0100\!:\!1\); \(0101\!:\!1\); \(0110\!:\!0\); \(0111\!:\!1\) (\(C_4\));
+\(1000\!:\!0\); \(1001\!:\!0\); \(1010\!:\!1\) (\(C_3\)); \(1011\!:\!0\); \(1100\!:\!0\); \(1101\!:\!0\); \(1110\!:\!1\) (\(C_3\)); \(1111\!:\!1\) (\(C_4\)). So \(E_0 = 0\), the ground space is spanned by the
+seven satisfying assignments \(0011, 0110, 1000, 1001, 1011, 1100, 1101\), and the largest eigenvalue is 2, at \(0000\).</p>
+<p><strong>Check.</strong> Each clause projector is rank one on its 3 qubits tensored with \(I\) on the fourth, so it has trace 2: \(\mathrm{tr}\,H_\varphi = 5\cdot2 = 10\). Summing the
+diagonal: \(2 + 1 + 1 + 0 + 1 + 1 + 0 + 1 + 0 + 0 + 1 + 0 + 0 + 0 + 1 + 1 = 10\) ✓.</p>
+<p><strong>3.</strong> The four clauses are false on \(x_1x_2 = 00, 01, 10, 11\) respectively, so the Hamiltonian is \(P_0P_0 + P_0P_1 + P_1P_0 + P_1P_1 = I\). Every eigenvalue is 1:
+\(E_0 = 1\), the ground space is all of \(\mathbb C^4\), and every state pays for exactly one clause. The formula is unsatisfiable and the promise gap from 0 is 1.
+Check: \(\mathrm{tr}\,I = 4 = 4\) clauses of trace 1 ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg
+
+P, I = [np.diag([1., 0]), np.diag([0., 1])], np.eye(2)
+def clause(false_at):            # {qubit: the value that makes its literal false}
+    return linalg.kron(*[P[false_at[q]] if q in false_at else I for q in range(4)])
+
+H = (clause({0: 0, 1: 0, 2: 0}) + clause({0: 0, 1: 0, 3: 0}) + clause({0: 1, 2: 1, 3: 0})
+     + clause({1: 1, 2: 1, 3: 1}) + clause({0: 0, 1: 1, 2: 0}))
+w = np.linalg.eigvalsh(H)
+print(round(w.min(), 12), int(np.isclose(w, 0).sum()), round(w.max(), 12), np.trace(H).real)
+# 0.0 7 2.0 10.0</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Membership <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the random-term test, the variational principle, amplification from a small gap</p>
+<div class="statement">
+<ol>
+<li>Prove that \(k\)-local Hamiltonian is in QMA for every constant \(k\): describe Arthur's test using only unitaries, projective measurements and coins, derive its
+acceptance probability, and prove completeness and soundness with a gap of at least \(1/\mathrm{poly}(n)\).</li>
+<li>An instance has \(m = 50\) terms, \(a = 0.1\), \(b = 0.6\). What are Arthur's single-run completeness \(c\) and soundness \(s\)? How many witness copies does the
+threshold rule "accept iff more than \(\frac{c+s}2\) of the runs accept" need for error at most \(\frac13\) on both sides, by the bound \(e^{-k(c-s)^2/2}\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a verifier and two inequalities; part 2 is two numbers and a whole number of copies.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Pick a term uniformly. Diagonalise its \(2^k\times2^k\) matrix \(h_j = \sum_i\lambda_i\ket{e_i}\!\bra{e_i}\), rotate its eigenbasis to the computational basis with a \(k\)-qubit unitary,
+measure, and reject outcome \(i\) with probability \(\lambda_i\). Then \(\sum_i(1 - \lambda_i)\ket{e_i}\!\bra{e_i} = I - h_j\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\Pr[\text{accept}] = \frac1m\sum_j\bra\xi(I - H_j)\ket\xi = 1 - \bra\xi H\ket\xi/m\). In a yes-instance send a ground state; in a no-instance use \(\bra\xi H\ket\xi\ge E_0\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Energy is an average over terms, and one term can be tested by a measurement whose rejection probability is that term's expectation.
+So the energy gap \(b - a\) becomes an acceptance gap \((b - a)/m\), which repetition amplifies.</p>
+<p><strong>1. The test.</strong> Choose \(j\) uniformly in \(\{1, \dots, m\}\). Let \(H_j = h_j\otimes I\) with \(h_j\) on \(k\) qubits, \(0\le h_j\le I\), \(h_j = \sum_i\lambda_i\ket{e_i}\!\bra{e_i}\) (computed
+classically, constant size). Apply \(V_j\) with \(V_j\ket{e_i} = \ket i\) (a \(k\)-qubit unitary, built exactly by unit 10 from \(O(k^24^k)\) gates); measure those \(k\) qubits; on
+outcome \(i\), toss a coin and reject with probability \(\lambda_i\). Outcome \(i\) occurs with probability \(\bra\xi P_i\ket\xi\), \(P_i = \ket{e_i}\!\bra{e_i}\otimes I\) (Born rule). So</p>
+\[\Pr[\text{acc}\mid j] = \sum_i(1 - \lambda_i)\bra\xi P_i\ket\xi = \bra\xi(I - H_j)\ket\xi,\qquad\Pr[\text{acc}] = 1 - \frac{\bra\xi H\ket\xi}m .\]
+<p><em>Completeness:</em> if \(E_0\le a\), Merlin sends a ground state \(\ket g\) (it exists: \(H\) is Hermitian), accepted with probability \(1 - E_0/m\ge1 - a/m = c\).
+<em>Soundness:</em> if \(E_0\ge b\), the variational principle gives \(\bra\xi H\ket\xi\ge E_0\ge b\) for every unit \(\xi\), so acceptance is \(\le1 - b/m = s\). The gap
+\(c - s = (b - a)/m\) is at least \(1/(p_1p_2)\) when \(b - a\ge1/p_1\) and \(m\le p_2\). Amplification: Arthur asks for \(K\) copies and uses the threshold \(\frac{c+s}2\); a product of
+honest ground states is rejected with probability \(\le e^{-K(c-s)^2/2}\), and any state of the \(K\) registers — decomposed in the product eigenbasis of the one-run
+acceptance operator \(I - H/m\), as in the deck's parallel repetition — is accepted with probability \(\le e^{-K(c-s)^2/2}\). \(K = O(p_1^2p_2^2)\) gives error \(\frac13\).</p>
+<p><strong>2.</strong> \(c = 1 - 0.1/50 = 0.998\), \(s = 1 - 0.6/50 = 0.988\), \(c - s = 0.01\). Need \(e^{-K(0.01)^2/2}\le\frac13\), i.e. \(K\ge2\ln3/10^{-4} = 21\,972.2\): \(K = 21\,973\) copies.</p>
+<p><strong>Check.</strong> On the 3-SAT shadow with \(a = 0\), \(b = 1\): \(c = 1\), \(s = 1 - 1/m\), and the test is "check a random clause" ✓. The count in part 2 scales as
+\(1/(c - s)^2 = m^2/(b - a)^2\): halving the energy gap quadruples the copies.</p>
+</div></details>
+</section>
+
+<h2 class="group">The history state and its clock</h2>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Clock legality <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the clock term as a 2-SAT formula, counting legal strings, the invariance of legality under the step operators</p>
+<div class="statement">
+<ol>
+<li>Show that a string \(c_1\cdots c_T\in\{0,1\}^T\) has zero energy under \(H_{\mathrm{clock}}\) iff it is \(1^t0^{T-t}\) for some \(t\); so the legal subspace of the clock has dimension \(T + 1\).</li>
+<li>For \(T = 9\), how many of the 512 strings have energy exactly 1? Find the whole distribution of energies, and check it sums to 512.</li>
+<li>Show that \(\ket{110}\!\bra{100}\) on \(c_{t-1}c_tc_{t+1}\) maps every basis string either to 0 or to a string with the same \(H_{\mathrm{clock}}\) energy.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Everything is about counting the "01" patterns in a bit string: \(H_{\mathrm{clock}}\) is diagonal with that count as its entry.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A string is a sequence of maximal blocks of 1s and 0s. Each "01" is a boundary from a 0-block to a following 1-block. A string with exactly \(r\) such boundaries looks like
+\(1^{a}0^{b_1}1^{c_1}0^{b_2}1^{c_2}\cdots\), and the block lengths are compositions of \(T\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: energy 1 means the form \(1^a0^b1^c0^d\) with \(b, c\ge1\) and \(a, d\ge0\), \(a + b + c + d = 9\); substitute \(b' = b - 1\), \(c' = c - 1\) and count non-negative solutions.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The energy of a string is its number of 0-to-1 boundaries; legal strings have none; and the step operator only ever turns a "100" into a "110",
+which creates and destroys no boundary of that kind.</p>
+<p><strong>1.</strong> \(\ket{01}\!\bra{01}_{c_ic_{i+1}}\) fires iff \(c_i = 0, c_{i+1} = 1\), so \(\bra cH_{\mathrm{clock}}\ket c = \#\{i : c_ic_{i+1} = 01\}\). Zero means no 0 is ever followed by a 1: once a 0
+occurs, all later bits are 0, so \(c = 1^t0^{T-t}\) with \(t\) the number of leading 1s, \(t\in\{0, \dots, T\}\). These \(T + 1\) strings are distinct, and conversely each has no "01".
+The zero-energy subspace of a diagonal positive operator is spanned by its zero-energy basis strings: dimension \(T + 1\).</p>
+<p><strong>2.</strong> With exactly \(r\) "01"s the string is \(1^{a}0^{b_1}1^{c_1}\cdots0^{b_r}1^{c_r}0^{d}\) with \(a, d\ge0\) and all \(b_i, c_i\ge1\): \(2r + 2\) block lengths summing to 9, \(2r\) of them
+at least 1. Subtracting 1 from those leaves \(2r + 2\) non-negative numbers summing to \(9 - 2r\): \(\binom{9 - 2r + 2r + 1}{2r + 1} = \binom{10}{2r + 1}\) strings. So</p>
+<ul>
+<li>energy 0: \(\binom{10}{1} = 10\) ✓ (part 1); energy 1: \(\binom{10}3 = 120\); energy 2: \(\binom{10}5 = 252\); energy 3: \(\binom{10}7 = 120\); energy 4: \(\binom{10}9 = 10\).</li>
+</ul>
+<p>Total \(10 + 120 + 252 + 120 + 10 = 512 = 2^9\) ✓ — the odd binomial coefficients of \(\binom{10}{\cdot}\) sum to \(2^9\).</p>
+<p><strong>3.</strong> The operator kills any string whose bits at \(c_{t-1}c_tc_{t+1}\) are not \(100\), and otherwise sets \(c_t = 1\). The only adjacent pairs that change are
+\((c_{t-1}c_t)\colon 10\to11\) and \((c_tc_{t+1})\colon 00\to10\); none of the four is \(01\), so the count of "01" is unchanged. (At the ends, \(t = 1\) or \(t = T\), one of the pairs is
+absent and the same holds.) Hence the step operators, and their adjoints, preserve the legal subspace and its complement.</p>
+<p><strong>Check.</strong> \(T = 2\): strings \(00, 01, 10, 11\); only \(01\) is illegal, energy 1; \(T + 1 = 3\) legal ✓, and the formula gives \(\binom31 = 3\), \(\binom33 = 1\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Why unary <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: locality of clock operators, why the construction is 5-local, the trade of qubits for locality</p>
+<div class="statement">
+<ol>
+<li>Suppose the clock stored \(t\) in binary on \(\ell = \lceil\log(T + 1)\rceil\) qubits. Show that the projector \(\ket t\!\bra t\) onto one clock value, and the transition operator
+\(\ket t\!\bra{t-1}\) for \(t = 2^{\ell-1}\), each act non-trivially on <b>every</b> clock qubit: neither can be written as \(A\otimes I_q\) for any clock qubit \(q\).</li>
+<li>Conclude that the propagation term \(H_t\) of a two-qubit gate would be \((\ell + 2)\)-local. Evaluate for \(T = 9\) and \(T = 1000\).</li>
+<li>With the unary clock, list the clock qubits each of \(\ket t\!\bra t\), \(\ket{t-1}\!\bra{t-1}\), \(\ket t\!\bra{t-1}\) is realised on (in the interior), and count the locality of \(H_t\). What is
+the price in qubits, for \(T = 1000\)?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is two short proofs by contradiction; parts 2 and 3 are counts.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>An operator of the form \(A\otimes I_q\) commutes with flipping qubit \(q\): \((A\otimes I_q)(I\otimes X_q) = (I\otimes X_q)(A\otimes I_q)\). And \(2^{\ell-1} - 1 = 01\cdots1\) while \(2^{\ell-1} = 10\cdots0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: if \(\ket t\!\bra t = A\otimes I_q\), then \(\ket t\!\bra t\) commutes with \(X_q\), so \(\ket t\!\bra t\,X_q\ket t = X_q\ket t\ne0\); but \(X_q\ket t\) is a different basis string, killed by \(\ket t\!\bra t\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A binary number's value depends on all its bits, and incrementing it can change all of them; a unary count is read from the boundary between
+its 1s and 0s, which is two bits wide, and incremented by moving that boundary one place, which is three bits wide.</p>
+<p><strong>1.</strong> Suppose \(\ket t\!\bra t = A\otimes I_q\) for some clock qubit \(q\). Operators acting on disjoint qubits commute, so \(\ket t\!\bra t\) commutes with \(X_q\). Then
+\(\ket t\!\bra t(X_q\ket t) = X_q\ket t\!\braket{t|t} = X_q\ket t\ne0\). But \(X_q\ket t = \ket{t'}\) with \(t'\) differing from \(t\) in bit \(q\), and \(\ket t\!\bra t\ket{t'} = 0\). Contradiction.
+For the transition with \(t = 2^{\ell-1}\): \(t - 1 = 01\cdots1\) and \(t = 10\cdots0\) differ in all \(\ell\) bits. An operator \(A\otimes I_q\) maps a basis string whose bit \(q\) is \(b\) to a
+combination of basis strings whose bit \(q\) is still \(b\), since it acts as the identity on qubit \(q\). But \(\ket t\!\bra{t-1}\) maps \(\ket{t-1}\) to \(\ket t\), whose bit \(q\) is the opposite
+of \(t - 1\)'s, for every \(q\). So \(\ket t\!\bra{t-1}\ne A\otimes I_q\) for every clock qubit \(q\).</p>
+<p><strong>2.</strong> \(H_t\) contains \(U_t\otimes\ket t\!\bra{t-1}\), on the gate's 2 qubits and all \(\ell\) clock qubits, and this cannot be split off any of them: locality \(\ell + 2\).
+\(T = 9\): \(\ell = \lceil\log10\rceil = 4\), so 6-local (the transition \(7\to8\), \(0111\to1000\), changes all four bits). \(T = 1000\): \(\ell = \lceil\log1001\rceil = 10\), so 12-local. In
+general \(\Theta(\log T)\), growing with the circuit.</p>
+<p><strong>3.</strong> Unary, interior \(t\): \(\ket t\!\bra t\to\ket{110}\!\bra{110}\), \(\ket{t-1}\!\bra{t-1}\to\ket{100}\!\bra{100}\), \(\ket t\!\bra{t-1}\to\ket{110}\!\bra{100}\), all on \(c_{t-1}c_tc_{t+1}\) — the same
+three clock qubits, so \(H_t\) is \(2 + 3 = 5\)-local, independent of \(T\). The price: \(T\) clock qubits instead of \(\ell\); for \(T = 1000\), 1000 instead of 10 — polynomial, so
+the reduction stays polynomial-time.</p>
+<p><strong>Check.</strong> \(T = 1\): binary and unary coincide (one clock qubit, \(\ell = 1\)), and both give a 3-local \(H_1\) (gate 2 + clock 1) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Zero propagation energy <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the history state, each penalty term evaluated on it, the output term as a weighted rejection probability</p>
+<div class="statement">
+<ol>
+<li>For any circuit and any input \(\ket\phi\), show that the history state \(\ket{\eta_\phi} = (T + 1)^{-1/2}\sum_tU_t\cdots U_1\ket\phi\otimes\ket t\) has \(H_{\mathrm{prop}}\ket{\eta_\phi} = 0\) and
+\(H_{\mathrm{clock}}\ket{\eta_\phi} = 0\).</li>
+<li>If \(\phi = \ket{0^a}\ket\xi\) and \(\xi\) is accepted with probability \(p\), show \(\bra\eta H_{\mathrm{in}}\ket\eta = 0\) and \(\bra\eta H_{\mathrm{out}}\ket\eta = (1 - p)/(T + 1)\).</li>
+<li>For the running example with the witness \(\ket{+i} = \frac1{\sqrt2}(\ket0 + i\ket1)\), compute the acceptance probability and the energy of the history state.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are four short computations, one per term; part 3 is one expectation value and a division by 10.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(H_t\) only sees the times \(t - 1\) and \(t\). Write \(\psi_t = U_t\cdots U_1\phi\), so \(\psi_t = U_t\psi_{t-1}\). For part 3, \(\mathrm{Had} = (X + Z)/\sqrt2\), and compute \(\bra{+i}X\ket{+i}\), \(\bra{+i}Z\ket{+i}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\sqrt{T + 1}\,H_t\ket\eta = \frac12\big(\psi_t\ket t + \psi_{t-1}\ket{t-1} - U_t\psi_{t-1}\ket t - U_t^\dagger\psi_t\ket{t-1}\big)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A history is correct at every step, so every propagation term sees the symmetric combination it does not charge; the clock is legal
+throughout; and the only penalty left is the output term, which sees the last row with weight \(\frac1{T+1}\).</p>
+<p><strong>1.</strong> The four pieces of \(H_t\), applied to \(\sqrt{T+1}\,\eta = \sum_s\psi_s\ket s\): \(I\otimes\ket t\!\bra t\) gives \(\psi_t\ket t\); \(I\otimes\ket{t-1}\!\bra{t-1}\) gives \(\psi_{t-1}\ket{t-1}\);
+\(U_t\otimes\ket t\!\bra{t-1}\) gives \(U_t\psi_{t-1}\ket t = \psi_t\ket t\); \(U_t^\dagger\otimes\ket{t-1}\!\bra t\) gives \(U_t^\dagger\psi_t\ket{t-1} = \psi_{t-1}\ket{t-1}\). With the signs \(+, +, -, -\) they cancel, so
+\(H_t\eta = 0\) for each \(t\) and \(H_{\mathrm{prop}}\eta = 0\). Every clock component is a legal string \(1^t0^{T-t}\), on which every \(\ket{01}\!\bra{01}\) vanishes: \(H_{\mathrm{clock}}\eta = 0\).</p>
+<p><strong>2.</strong> \(H_{\mathrm{in}}\) fires only at \(c_1 = 0\), i.e. at \(t = 0\), on an ancilla in \(\ket1\); \(\psi_0 = \ket{0^a}\ket\xi\) has none, so \(H_{\mathrm{in}}\eta = 0\). \(H_{\mathrm{out}}\) is diagonal in time and
+fires only at \(t = T\), on qubit 0 in \(\ket0\): \(\bra\eta H_{\mathrm{out}}\ket\eta = \frac1{T+1}\bra{\psi_T}(\ket0\!\bra0_0\otimes I)\ket{\psi_T} = \frac{1 - p}{T + 1}\), since \(\psi_T = V\ket{0^a}\ket\xi\) reads 1 on qubit 0 with
+probability \(p\).</p>
+<p><strong>3.</strong> \(\bra{+i}X\ket{+i} = \frac12(\bar1\cdot i + \bar i\cdot1) = \frac12(i - i) = 0\) and \(\bra{+i}Z\ket{+i} = \frac12(1 - 1) = 0\), so \(\bra{+i}\mathrm{Had}\ket{+i} = 0\) and
+\(p = \frac12(1 + 0) = \frac12\). The history state's energy is \(0 + 0 + 0 + \frac{1 - 1/2}{10} = 0.05\).</p>
+<p><strong>Check.</strong> \(\ket{+i}\) lies on the Bloch sphere's \(y\)-axis, perpendicular to \(\mathrm{Had}\)'s axis \((X + Z)/\sqrt2\), so it is "halfway" between \(\ket{h_+}\) (energy 0) and \(\ket{h_-}\)
+(energy \(\frac1{10}\)): \(0.05\) is their average ✓. The true ground energy is 0, attained by the history of \(\ket{h_+}\); \(0.05\) is only an upper bound for it.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+
+B = gates.ry(-np.pi/4) @ gates.rz(-np.pi/2)
+steps = [(gates.H, 0), (gates.rz(np.pi/2), 1), (gates.CX, 0, 1), (B, 1), (gates.CX, 0, 1),
+         (gates.ry(np.pi/4), 1), (gates.S, 0), (gates.H, 0), (gates.X, 0)]
+U = [Circuit(2).gate(g, *q).unitary() for g, *q in steps]
+T, I4 = len(U), np.eye(4)
+E = lambda i, j: np.outer(np.eye(T + 1)[i], np.eye(T + 1)[j])
+H_prop = sum(0.5 * (np.kron(I4, E(t, t) + E(t-1, t-1)) - np.kron(U[t-1], E(t, t-1))
+                    - np.kron(U[t-1].conj().T, E(t-1, t))) for t in range(1, T + 1))
+H_out = np.kron(np.kron(np.diag([1, 0]), np.eye(2)), E(T, T))   # qubit 0 reads 0 at t = T
+
+xi = np.array([1, 1j]) / np.sqrt(2)                              # |+i>
+rows = [np.kron([1, 0], xi)]
+for u in U:
+    rows.append(u @ rows[-1])
+eta = sum(np.kron(r, np.eye(T + 1)[t]) for t, r in enumerate(rows)) / np.sqrt(T + 1)
+energy = lambda h: (eta.conj() @ h @ eta).real
+print(round(np.linalg.norm(eta), 12), round(energy(H_prop), 12), round(energy(H_out), 6))
+# 1.0 0.0 0.05</code></pre>
+<p>The clock here is the legal subspace only, \(\ket0, \dots, \ket9\) — the unary strings themselves never need to be built, and \(H_{\mathrm{clock}} = 0\) there.</p>
+</div></details>
+</section>
+
+<h2 class="group">The propagation term</h2>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> The gap for nine gates <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the change of basis \(W\), the path Laplacian's cosine eigenvectors, the spectral gap as a number</p>
+<div class="statement">
+<ol>
+<li>For the running example (\(T = 9\), two qubits), show that \(W = \sum_tU_t\cdots U_1\otimes\ket t\!\bra t\) conjugates \(H_{\mathrm{prop}}\) to \(I_4\otimes\frac12L\), and write out \(L\) as a \(10\times10\) matrix.</li>
+<li>Prove that \(v_k(t) = \cos\frac{\pi k(t + 1/2)}{10}\) is an eigenvector of \(L\) with eigenvalue \(2 - 2\cos\frac{\pi k}{10}\), for \(k = 0, \dots, 9\), checking the two end rows separately.</li>
+<li>Give all the eigenvalues of \(H_{\mathrm{prop}}\) with multiplicities, the gap to four significant figures, and a trace check.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is ten numbers each repeated four times; the gap is the smallest non-zero one. Everything reduces to a real symmetric tridiagonal matrix.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Conjugating by \(W\) replaces each off-diagonal block \(U_t\) by \((U_t\cdots U_1)^\dagger U_t(U_{t-1}\cdots U_1) = I\). For the eigenvectors, use \(\cos(x - \alpha) + \cos(x + \alpha) = 2\cos x\cos\alpha\),
+and evaluate the formula for \(v_k\) at \(t = -1\) and \(t = 10\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2, interior: \((Lv)(t) = 2v(t) - v(t-1) - v(t+1) = 2v(t) - 2\cos\alpha\,v(t)\), \(\alpha = \pi k/10\). Ends: \(v(-1) = \cos(-\alpha/2) = v(0)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> All the gates can be absorbed into a time-dependent change of basis, leaving a particle hopping on a path of ten sites; its standing waves
+are cosines that reflect off the ends.</p>
+<p><strong>1.</strong> \(W\) is block diagonal with unitary blocks, so unitary. The diagonal pieces \(I\otimes\ket t\!\bra t\) commute with \(W\). For the hopping piece,
+\(W^\dagger(U_t\otimes\ket t\!\bra{t-1})W = (U_t\cdots U_1)^\dagger U_t(U_{t-1}\cdots U_1)\otimes\ket t\!\bra{t-1} = I\otimes\ket t\!\bra{t-1}\), and likewise its adjoint. So
+\(W^\dagger H_tW = \frac12I\otimes(\ket t - \ket{t-1})(\bra t - \bra{t-1})\), and summing, \(W^\dagger H_{\mathrm{prop}}W = I_4\otimes\frac12L\) with \(L\) tridiagonal: diagonal \((1, 2, 2, 2, 2, 2, 2, 2, 2, 1)\),
+\(-1\) on the first off-diagonals, 0 elsewhere.</p>
+<p><strong>2.</strong> Let \(\alpha = \pi k/10\), \(v(t) = \cos(\alpha(t + \frac12))\). Interior \(1\le t\le8\): \(v(t - 1) + v(t + 1) = 2\cos\alpha\,v(t)\), so \((Lv)(t) = (2 - 2\cos\alpha)v(t)\). Row 0 of \(L\)
+is \(v(0) - v(1)\); since \(v(-1) = \cos(-\frac\alpha2) = v(0)\), this equals \(2v(0) - v(-1) - v(1)\), and the interior identity at \(t = 0\) gives \((2 - 2\cos\alpha)v(0)\). Row 9 is
+\(v(9) - v(8)\); \(v(10) = \cos(10.5\alpha)\) and \(v(9) = \cos(9.5\alpha)\) have arguments summing to \(20\alpha = 2\pi k\), so \(v(10) = v(9)\), and the same argument works. The ten
+eigenvalues \(2 - 2\cos\alpha\) are distinct (cosine is injective on \([0, \pi]\)), so the \(v_k\) are an orthogonal eigenbasis; none is zero since \(v_k(0) = \cos\frac{\pi k}{20}\gt0\).</p>
+<p><strong>3.</strong> \(H_{\mathrm{prop}}\) has eigenvalues \(1 - \cos\frac{\pi k}{10}\): \(0, 0.0489, 0.1910, 0.4122, 0.6910, 1, 1.3090, 1.5878, 1.8090, 1.9511\), each with multiplicity 4
+(\(I_4\)). Gap \(1 - \cos\frac\pi{10} = 0.04894\).</p>
+<p><strong>Check.</strong> \(\mathrm{tr}\,H_{\mathrm{prop}} = 4\cdot\frac12\,\mathrm{tr}\,L = 4\cdot\frac12\cdot18 = 36\), and \(4\sum_k(1 - \cos\frac{\pi k}{10}) = 4(10 - 1) = 36\) ✓ (the cosines cancel in pairs \(k, 10 - k\),
+leaving \(\cos0 = 1\)). Also \(0.0200\le0.0489\le0.0493\), between \(2/(T+1)^2\) and \(\pi^2/2(T+1)^2\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+
+B = gates.ry(-np.pi/4) @ gates.rz(-np.pi/2)
+steps = [(gates.H, 0), (gates.rz(np.pi/2), 1), (gates.CX, 0, 1), (B, 1), (gates.CX, 0, 1),
+         (gates.ry(np.pi/4), 1), (gates.S, 0), (gates.H, 0), (gates.X, 0)]
+U = [Circuit(2).gate(g, *q).unitary() for g, *q in steps]      # nine 4x4 gates
+T, I4 = len(U), np.eye(4)
+E = lambda i, j: np.outer(np.eye(T + 1)[i], np.eye(T + 1)[j])  # clock |i><j|, legal times only
+
+H_prop = sum(0.5 * (np.kron(I4, E(t, t) + E(t-1, t-1)) - np.kron(U[t-1], E(t, t-1))
+                    - np.kron(U[t-1].conj().T, E(t-1, t))) for t in range(1, T + 1))
+w = np.linalg.eigvalsh(H_prop)
+print(abs(np.unique(w.round(4))), round(w[4], 6), round(w.sum(), 6))
+# [0.     0.0489 0.191  0.4122 0.691  1.     1.309  1.5878 1.809  1.9511] 0.048943 36.0</code></pre>
+<p>\(w\) is sorted, so \(w[4]\) is the first eigenvalue after the four zeros: the gap. The actual gates were used, and did not matter.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Gap scaling <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the gap formula as a number, its \(\Theta(1/T^2)\) scaling, what it does to the promise gap and to Arthur's acceptance gap</p>
+<div class="statement">
+<ol>
+<li>Compute the propagation gap \(1 - \cos\frac\pi{T+1}\) for \(T = 100\) and \(T = 1000\), and their ratio. Compare the ratio with \((1001/101)^2\).</li>
+<li>In Kitaev's reduction the amplified verifier has \(\varepsilon\le\frac1{4(T+1)^2}\) and the promise gap is guaranteed only as \(b - a\ge\frac1{4(T+1)^3}\). Evaluate this for both values of \(T\).</li>
+<li>Arthur's random-term test on that Hamiltonian has acceptance gap \((b - a)/m\). Taking \(m\approx2T\) (one propagation and one clock term per gate), estimate it for \(T = 1000\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Six numbers and a ratio. For small \(x\), \(1 - \cos x\approx x^2/2\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(1 - \cos x = 2\sin^2(x/2)\) avoids subtracting two nearly equal numbers on a calculator. The ratio of \(x^2/2\) at \(x = \pi/101\) and \(\pi/1001\) is \((1001/101)^2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(T = 100\): \(2\sin^2\frac\pi{202} = 2\,(0.015551)^2 = 4.837\times10^{-4}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The gap falls like \(\pi^2/2T^2\); the guaranteed promise gap falls like \(1/T^3\); and the verifier's acceptance gap loses another factor \(m\).</p>
+<p><strong>1.</strong> \(T = 100\): \(2\sin^2\frac\pi{202} = 4.837\times10^{-4}\). \(T = 1000\): \(2\sin^2\frac\pi{2002} = 4.925\times10^{-6}\). Ratio \(98.218\); \((1001/101)^2 = 98.226\) — they agree to
+within one part in \(10^4\) because \(\pi/101\) is already small enough for \(1 - \cos x = \frac{x^2}2(1 - \frac{x^2}{12} + \cdots)\).</p>
+<p><strong>2.</strong> \(T = 100\): \(\frac1{4\cdot101^3} = 2.43\times10^{-7}\). \(T = 1000\): \(\frac1{4\cdot1001^3} = 2.49\times10^{-10}\).</p>
+<p><strong>3.</strong> \(m\approx2000\): \((b - a)/m\approx2.49\times10^{-10}/2000 = 1.2\times10^{-13}\). The membership verifier would need of order \((c - s)^{-2}\sim10^{26}\) copies to amplify this by
+majority vote — polynomial, so the theorems hold, but a reminder that "polynomial" here is not "practical".</p>
+<p><strong>Check.</strong> Both gaps sit between \(2/(T+1)^2\) and \(\pi^2/2(T+1)^2\): \(1.961\times10^{-4}\le4.8372\times10^{-4}\le4.8376\times10^{-4}\) and
+\(1.996\times10^{-6}\le4.92494\times10^{-6}\le4.92495\times10^{-6}\) ✓ — the upper bound is nearly exact, as the small-angle expansion says.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> A trial vector bounds the gap <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the variational principle on an orthogonal complement, the Laplacian's quadratic form, a gap bound without solving the spectrum</p>
+<div class="statement">
+<ol>
+<li>Let \(A\ge0\) with null space \(N\) and smallest non-zero eigenvalue \(\lambda_1\). Show \(\lambda_1 = \min\{\bra vA\ket v : \lVert v\rVert = 1, v\perp N\}\).</li>
+<li>For the path on \(0, \dots, T\), take \(v(t) = \cos\frac{\pi t}T\). Show \(v\) is orthogonal to the constants, so \(\lambda_1(\frac12L)\le R = \frac{\frac12\sum_{t=1}^T(v_t - v_{t-1})^2}{\sum_{t=0}^Tv_t^2}\).</li>
+<li>Show \(R\le\frac{\pi^2}{T(T+2)}\), and compute \(R\) exactly for \(T = 9\). Compare with the true gap \(0.0489\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the variational principle restricted to a subspace; part 2 is a sum that cancels in pairs; part 3 is an inequality and a number.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(N^\perp\) is spanned by the eigenvectors with non-zero eigenvalues. For part 2, \(\cos(\pi(T - t)/T) = -\cos(\pi t/T)\). For part 3, \(|\cos a - \cos b|\le|a - b|\), and
+\(\sum_{t=0}^T\cos^2\frac{\pi t}T = \frac{T+1}2 + \frac12\sum_{t=0}^T\cos\frac{2\pi t}T\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: each \((v_t - v_{t-1})^2\le(\pi/T)^2\), so the numerator is at most \(\frac12T\cdot\pi^2/T^2 = \pi^2/2T\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Any vector orthogonal to the null space gives an upper bound on the gap. A slow half-wave costs about \(\pi^2/T^2\), which shows the gap is
+\(O(1/T^2)\) without knowing a single eigenvector.</p>
+<p><strong>1.</strong> \(A\) preserves \(N^\perp\) (it is the span of the other eigenvectors), and on \(N^\perp\) its eigenvalues are the non-zero ones, the least being \(\lambda_1\). The variational
+principle on \(N^\perp\) gives the claim, with the minimum attained at an eigenvector for \(\lambda_1\).</p>
+<p><strong>2.</strong> \(\sum_{t=0}^T\cos\frac{\pi t}T = 0\): the terms \(t\) and \(T - t\) cancel, and if \(T\) is even the middle term is \(\cos\frac\pi2 = 0\). So \(v\perp(1, \dots, 1)\), the null space of
+\(L\) (the path is connected), and part 1 gives \(\lambda_1(\frac12L)\le\bra v\frac12L\ket v/\lVert v\rVert^2 = R\), using \(\bra vL\ket v = \sum_t(v_t - v_{t-1})^2\).</p>
+<p><strong>3.</strong> \(|v_t - v_{t-1}|\le\pi/T\) (cosine is 1-Lipschitz), so the numerator is \(\le\pi^2/2T\). The denominator: \(\sum_{t=0}^T\cos\frac{2\pi t}T = 1\) (the sum over \(t = 0, \dots, T-1\) of the
+\(T\)-th roots of unity's real parts is 0, plus the \(t = T\) term), so \(\sum v_t^2 = \frac{T+1}2 + \frac12 = \frac{T+2}2\). Hence \(R\le\frac{\pi^2/2T}{(T+2)/2} = \frac{\pi^2}{T(T+2)}\). For \(T = 9\):
+\(\sum v_t^2 = 5.5\), and the exact \(R = 0.04934\), against the bound \(\pi^2/99 = 0.0997\) and the true gap \(0.04894\).</p>
+<p><strong>Check.</strong> \(R\ge\) the true gap, as it must be: \(0.04934\ge0.04894\) ✓, within 1 per cent, because \(\cos(\pi t/T)\) is close to the true eigenvector \(\cos(\pi(t + \frac12)/(T + 1))\).
+For \(T = 100\) the same computation gives \(R = 4.8376\times10^{-4}\) against \(4.8372\times10^{-4}\).</p>
+</div></details>
+</section>
+
+<h2 class="group">Soundness</h2>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> The geometric lemma <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: positive operators, projections, the angle between subspaces, the two-line eigenvalue computation</p>
+<div class="statement">
+<ol>
+<li>For unit vectors \(x, y\), show that \(\ket x\!\bra x + \ket y\!\bra y\) has largest eigenvalue \(1 + |\braket{x|y}|\).</li>
+<li>Prove Kitaev's lemma: if \(A, B\ge0\) have null spaces at angle \(\theta\) (\(\cos\theta = \max|\braket{x|y}|\) over unit \(x, y\) in the two null spaces), and every non-zero eigenvalue of \(A\) is
+\(\ge\lambda_A\) and of \(B\) is \(\ge\lambda_B\), then \(A + B\ge\min(\lambda_A, \lambda_B)\cdot2\sin^2\frac\theta2\).</li>
+<li>In \(\mathbb R^2\) take \(x = (1, 0)\), \(y = (\cos\frac\pi6, \sin\frac\pi6)\), \(A = I - \ket x\!\bra x\), \(B = 2(I - \ket y\!\bra y)\). Compute the lemma's bound and the true \(\lambda_{\min}(A + B)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is an eigenvalue computation in a two-dimensional subspace; part 2 is three operator inequalities chained; part 3 is two numbers, the second at least the first.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: after a phase on \(y\), \(\braket{x|y} = c\ge0\), and \(x\pm y\) are eigenvectors. Part 2: show \(A\ge\lambda_A(I - \Pi_A)\), and then bound \(\bra v(\Pi_A + \Pi_B)\ket v\) using \(x = \Pi_Av/\lVert\Pi_Av\rVert\),
+\(y = \Pi_Bv/\lVert\Pi_Bv\rVert\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2's key step: \(\bra v\Pi_A\ket v = \lVert\Pi_Av\rVert^2 = |\braket{x|v}|^2\), so \(\bra v(\Pi_A + \Pi_B)\ket v = \bra v(\ket x\!\bra x + \ket y\!\bra y)\ket v\le1 + |\braket{x|y}|\le1 + \cos\theta\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Two projections can sum to more than 1 only along a direction close to both ranges, and how much more is the cosine of the angle between
+them. A positive operator is at least its smallest non-zero eigenvalue times the projection off its null space; together these give the bound.</p>
+<p><strong>1.</strong> Replace \(y\) by \(e^{-i\gamma}y\) so that \(c = \braket{x|y} = |\braket{x|y}|\ge0\); \(\ket y\!\bra y\) is unchanged. Then \((\ket x\!\bra x + \ket y\!\bra y)(x\pm y) = x\pm cx + cy\pm y = (1\pm c)(x\pm y)\).
+On \(\mathrm{span}\{x, y\}^\perp\) the operator is 0. If \(c\lt1\), \(x\pm y\) are non-zero and orthogonal (\(\braket{x + y|x - y} = 1 - c + c - 1 = 0\)), so the spectrum is \(\{1 + c, 1 - c, 0\}\) and the largest is
+\(1 + c\). If \(c = 1\), \(x = y\) and the operator is \(2\ket x\!\bra x\), largest eigenvalue 2 ✓.</p>
+<p><strong>2.</strong> <em>Step 1.</em> In \(A\)'s eigenbasis, \(A = \sum_i\mu_iP_i\); on the null space both \(A\) and \(I - \Pi_A\) vanish, elsewhere \(\mu_i\ge\lambda_A\) and \(I - \Pi_A\) is 1. So
+\(A - \lambda_A(I - \Pi_A) = \sum_{\mu_i\gt0}(\mu_i - \lambda_A)P_i\ge0\). Likewise \(B\ge\lambda_B(I - \Pi_B)\), and with \(\lambda = \min(\lambda_A, \lambda_B)\), \(A + B\ge\lambda(2I - \Pi_A - \Pi_B)\).
+<em>Step 2.</em> For a unit \(v\) with \(\Pi_Av, \Pi_Bv\ne0\), put \(x = \Pi_Av/\lVert\Pi_Av\rVert\in N_A\) and \(y = \Pi_Bv/\lVert\Pi_Bv\rVert\in N_B\). Then \(\braket{x|v} = \lVert\Pi_Av\rVert\) (because
+\(\bra v\Pi_A^\dagger\ket v = \lVert\Pi_Av\rVert^2\)), so \(\bra v\Pi_A\ket v = |\braket{x|v}|^2\) and likewise for \(B\), and by part 1 and the variational principle
+\[\bra v(\Pi_A + \Pi_B)\ket v = \bra v(\ket x\!\bra x + \ket y\!\bra y)\ket v\le1 + |\braket{x|y}|\le1 + \cos\theta .\]
+If \(\Pi_Av = 0\) (or \(\Pi_Bv = 0\)), the left side is at most 1. So \(\Pi_A + \Pi_B\le(1 + \cos\theta)I\).
+<em>Step 3.</em> \(A + B\ge\lambda(2 - 1 - \cos\theta)I = \lambda(1 - \cos\theta)I = \lambda\cdot2\sin^2\frac\theta2\,I\).</p>
+<p><strong>3.</strong> \(A\) is the projection onto the second coordinate direction \((0, 1)\), null space the line of \(x\), \(\lambda_A = 1\); \(B\) is twice the projection perpendicular to \(y\), null space
+the line of \(y\), \(\lambda_B = 2\). The angle is \(\frac\pi6\). Bound: \(\min(1, 2)(1 - \cos\frac\pi6) = 1 - 0.8660 = 0.1340\). True: \(A + B = \begin{pmatrix}0&amp;0\\0&amp;1\end{pmatrix} + 2\begin{pmatrix}\sin^2\frac\pi6&amp;-\sin\frac\pi6\cos\frac\pi6\\-\sin\frac\pi6\cos\frac\pi6&amp;\cos^2\frac\pi6\end{pmatrix}
+= \begin{pmatrix}0.5&amp;-0.8660\\-0.8660&amp;2.5\end{pmatrix}\), trace 3, determinant \(1.25 - 0.75 = 0.5\), eigenvalues \(\frac{3\pm\sqrt{9 - 2}}2 = 0.1771, 2.8229\). So \(\lambda_{\min} = 0.1771\ge0.1340\) ✓.</p>
+<p><strong>Check.</strong> With \(B = I - \ket y\!\bra y\) instead (\(\lambda_B = 1\)), \(A + B = 2I - \ket x\!\bra x - \ket y\!\bra y\), whose least eigenvalue is \(2 - (1 + \cos\frac\pi6) = 0.1340\) — the bound,
+exactly. The lemma is tight for two lines with equal weights; the factor 2 on \(B\) is what makes the true value larger.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Soundness for the sister circuit <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the acceptance operator of a Hadamard test, the angle lemma, assembling Kitaev's soundness bound as a number</p>
+<div class="statement">
+<ol>
+<li>Show that the sister circuit (the Hadamard test of \(U = -P(\frac\pi4)\), accepting when qubit 0 reads 1) has acceptance operator \(Q = \mathrm{diag}(0, \sin^2\frac\pi8)\) on the witness, so
+every witness is accepted with probability at most \(\varepsilon = \sin^2\frac\pi8 = 0.1464\).</li>
+<li>Using the deck's angle lemma, \(\sin^2\theta\ge\frac{1 - \sqrt\varepsilon}{T+1}\), and the geometric lemma with \(\lambda_A = 1 - \cos\frac\pi{10}\), \(\lambda_B\ge1\), give a lower bound on the ground
+energy of its Feynman–Kitaev Hamiltonian. Evaluate both \(\lambda_A(1 - \cos\theta)\) and the simplified \(\lambda_A\cdot\frac12\sin^2\theta\).</li>
+<li>The true ground energy is \(0.00693\). Is the deck's pair — the running example (ground energy 0) and its sister — a valid yes/no pair for thresholds \(a = 0\), \(b = 0.0015\)?
+Explain why the bound is below the truth.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a \(2\times2\) diagonal matrix; part 2 is a chain of three numbers; part 3 is a yes or no with a reason.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The Hadamard test of \(U\), followed by \(X\), accepts with \(\frac12(1 + \mathrm{Re}\bra\xi U\ket\xi)\). Here \(U = \mathrm{diag}(-1, -e^{i\pi/4})\). For part 2, \(1 - \cos\theta = 1 - \sqrt{1 - \sin^2\theta}\), and use
+the smallest allowed \(\sin^2\theta\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\mathrm{Re}\bra\xi U\ket\xi = -|\xi_0|^2 - \cos\frac\pi4|\xi_1|^2\), so \(\Pr[\text{accept}] = \frac12(1 - |\xi_0|^2 - \cos\frac\pi4|\xi_1|^2) = |\xi_1|^2\cdot\frac12(1 - \cos\frac\pi4)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The sister rejects every witness with probability at least \(0.854\); that fixes the angle between "correct start" and "will accept", which
+fixes the angle between histories and good boundary conditions, which, through the propagation gap, bounds the energy.</p>
+<p><strong>1.</strong> As in the deck's derivation, gates 2–7 implement \(C(U)\) (unit 10's ABC construction with \(\alpha = \frac{9\pi}8\), \(A = R_z(\frac\pi4)\), \(B = C = R_z(-\frac\pi8)\)), and the
+state before measurement is \(\frac12(\ket0(\xi - U\xi) + \ket1(\xi + U\xi))\). Accept: \(\frac14\lVert\xi + U\xi\rVert^2 = \frac12(1 + \mathrm{Re}\bra\xi U\ket\xi)\). With \(U = \mathrm{diag}(-1, -e^{i\pi/4})\):
+\(\frac12(1 - |\xi_0|^2 - \cos\frac\pi4|\xi_1|^2) = \frac12(1 - \cos\frac\pi4)|\xi_1|^2 = \sin^2\frac\pi8\,|\xi_1|^2\), using \(|\xi_0|^2 + |\xi_1|^2 = 1\). So \(Q = \mathrm{diag}(0, \sin^2\frac\pi8)\), and the best
+witness \(\ket1\) is accepted with \(\varepsilon = \sin^2\frac\pi8 = 0.14645\).</p>
+<p><strong>2.</strong> \(\sqrt\varepsilon = \sin\frac\pi8 = 0.38268\), so \(\sin^2\theta\ge(1 - 0.38268)/10 = 0.061732\). Then \(\cos\theta\le\sqrt{0.938268} = 0.96864\) and \(1 - \cos\theta\ge0.031357\).
+\(\lambda_A = 0.048943\le1\le\lambda_B\), so the geometric lemma gives \(E_0\ge0.048943\times0.031357 = 0.001535\). The simplified form: \(\frac12\sin^2\theta\ge0.030866\), giving
+\(0.048943\times0.030866 = 0.001511\). (The closed form \((1 - \sqrt\varepsilon)/(T + 1)^3 = 0.000617\).)</p>
+<p><strong>3.</strong> Yes: the running example's Hamiltonian has \(E_0 = 0\le a\), and the sister's has \(E_0\ge0.001535\ge b = 0.0015\) by part 2 — guaranteed, not only computed. The true
+value \(0.00693\) is \(4.5\) times the bound because the lemma assumes the worst at every step at once: a state at the edge of \(A\)'s spectrum, at exactly the worst angle,
+and with all its non-null part in \(A\)'s lowest excitation; the actual ground state cannot be all of these together.</p>
+<p><strong>Check.</strong> Two limits. As \(\varepsilon\to1\): the bound goes to 0, as it must, since a verifier accepting some witness with certainty has a
+zero-energy history. And at \(\varepsilon = 0\) (Arthur rejects everything), \(\sin^2\theta\ge\frac1{10}\) and the bound is \(0.0489\times(1 - \sqrt{0.9}) = 0.00251\).</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+
+steps = [(gates.H, 0), (gates.rz(-np.pi/8), 1), (gates.CX, 0, 1), (gates.rz(-np.pi/8), 1),
+         (gates.CX, 0, 1), (gates.rz(np.pi/4), 1), (gates.phase(9*np.pi/8), 0), (gates.H, 0), (gates.X, 0)]
+U = [Circuit(2).gate(g, *q).unitary() for g, *q in steps]
+T, I4 = len(U), np.eye(4)
+E = lambda i, j: np.outer(np.eye(T + 1)[i], np.eye(T + 1)[j])
+H_prop = sum(0.5 * (np.kron(I4, E(t, t) + E(t-1, t-1)) - np.kron(U[t-1], E(t, t-1))
+                    - np.kron(U[t-1].conj().T, E(t-1, t))) for t in range(1, T + 1))
+q0 = lambda b: np.kron(np.diag([1 - b, b]), np.eye(2))           # qubit 0 reads b
+H = H_prop + np.kron(q0(1), E(0, 0)) + np.kron(q0(0), E(T, T))   # + H_in + H_out, legal clocks
+
+V = np.linalg.multi_dot(U[::-1])                                 # U_9 ... U_1
+Q = V[:, :2].conj().T @ q0(1) @ V[:, :2]                         # acceptance operator on the witness
+print(np.linalg.eigvalsh(Q).round(4), round(np.linalg.eigvalsh(H)[0], 5))
+# [0.     0.1464] 0.00693</code></pre>
+<p>Only the 40-dimensional legal block is built: the illegal clock strings cost at least 1 (the deck's lemma), far above \(0.00693\), so they cannot hold the ground state.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 20</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

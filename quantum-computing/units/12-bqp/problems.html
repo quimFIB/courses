@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12 · Problems — BQP, and where it sits among the classes you already know</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="c">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part C · unit 12 · problems</p>
+<h1>BQP, and where it sits among the classes you already know</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u12">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove \(\mathsf{BQP} \subseteq \mathsf{PP}\): you write the
+acceptance probability of a Hadamard-and-Toffoli circuit as \(g(x)/2^h\) with \(g\) a signed count of pairs of paths, show
+\(g\in\mathrm{GapP}\), and turn bounded error into \(2g - 2^h \gt 0\) — checking it on the running circuit (\(g = 9\), \(h = 4\)); and you
+explain in one paragraph why a proof that \(\mathsf{BQP} \ne \mathsf{BPP}\) would also prove \(\mathsf P \ne \mathsf{PSPACE}\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: qubit 0 is the leftmost symbol of a ket and the top wire; \(\ket0 = (1, 0)\), \(\ket1 = (0, 1)\);
+\(\bra aH\ket b = (-1)^{ab}/\sqrt2\); \(\mathrm{Toffoli}_{01\to2}\ket{a, b, c} = \ket{a, b, c\oplus ab}\). A BQP family is uniform (a polynomial-time
+machine prints \(C_n\) from \(1^n\)), runs on \(\ket{x, 0\cdots0}\), reads qubit 0, and errs with probability at most \(\tfrac13\) on every input;
+the deck's gate set is \(\mathcal G = \{H, T, \mathrm{CNOT}\}\). Certificates \(y\) range over \(\{0,1\}^{p(|x|)}\) and \(R\) is a polynomial-time
+predicate: #P counts \(\{y : R(x, y)\}\); GapP is differences of two #P functions, equivalently signed sums \(\sum_ys(x, y)\) with
+\(s \in \{-1, 0, 1\}\) polynomial-time; PP is "\(x\in L\) iff more than half the \(y\) satisfy \(R\)", equivalently "iff \(F(x) \gt 0\) for some
+\(F\in\mathrm{GapP}\)". Hoeffding: for independent \(X_i\in[0, 1]\) with mean \(\mu\), \(\Pr[\bar X \le \mu - t] \le e^{-2kt^2}\). Logarithms are base 2
+unless written \(\ln\).</p>
+<p>The running circuit is \(C = (H\otimes H\otimes I)\,\mathrm{Toffoli}_{01\to2}\,(H\otimes H\otimes I)\) on \(\ket{000}\), accepting on \(000\) with
+probability \(\tfrac9{16}\). Several problems use a second circuit, \(K\): in time order, \(H\) on qubits 0 and 1, the Toffoli, \(H\) on
+qubit 2, then \(H\) on qubits 0 and 1 again, started in \(\ket{000}\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it.</p>
+</div>
+<ul class="toc">
+<li><a class="routine" href="#p1" title="Repetitions">P1</a></li>
+<li><a class="routine" href="#p2" title="Complement">P2</a></li>
+<li><a class="medium" href="#p3" title="Uniformity matters">P3</a></li>
+<li><a class="medium" href="#p4" title="Gate-set independence">P4</a></li>
+<li><a class="medium" href="#p5" title="Path sums by hand">P5</a></li>
+<li><a class="medium" href="#p6" title="The space bill">P6</a></li>
+<li><a class="medium" href="#p7" title="The real-amplitude trick">P7</a></li>
+<li><a class="medium" href="#p8" title="GapP closure">P8</a></li>
+<li><a class="routine" href="#p9" title="NP sits inside PP">P9</a></li>
+<li><a class="medium" href="#p10" title="The PP condition">P10</a></li>
+<li><a class="hard" href="#p11" title="Postselection contains NP">P11</a></li>
+<li><a class="routine" href="#p12" title="P = PSPACE would collapse it">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The class</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Repetitions <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: amplification by majority vote, Hoeffding's inequality, how the cost scales with the gap</p>
+<div class="statement">
+<ol>
+<li>A BQP family has error at most \(\tfrac13\). Using the bound \(e^{-k/18}\) from the deck, find the least \(k\) for which the majority of \(k\)
+independent runs has error at most \(2^{-100}\).</li>
+<li>Another family has error at most \(0.49\) (so it is right with probability at least \(0.51\)). Apply Hoeffding's inequality directly
+to find the least \(k\) that guarantees error at most \(2^{-100}\).</li>
+<li>By what factor did the run count grow between parts 1 and 2? Explain the factor from the form of the bound.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a whole number of runs; part 3 is a ratio and one sentence. Everything follows from one inequality, solved for \(k\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The majority is wrong only if the fraction of correct runs is at most \(\tfrac12\), which is \(t\) below the mean \(\mu\), where \(t = \mu - \tfrac12\).
+So the error is at most \(e^{-2kt^2}\). Set that \(\le 2^{-100} = e^{-100\ln2}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(2kt^2 \ge 100\ln2\), so \(k \ge 50\ln2/t^2\). Part 1 has \(t = \tfrac16\); part 2 has \(t = 0.01\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Hoeffding's bound depends on the gap \(t = \mu - \tfrac12\) only through \(t^2\), so the number of runs needed scales as
+\(1/t^2\) — a constant factor for any constant gap, and an enormous one for a small gap.</p>
+<p><strong>1.</strong> \(e^{-k/18} \le 2^{-100}\) iff \(k/18 \ge 100\ln2\) iff \(k \ge 1800\ln2 = 1247.66\ldots\), so \(k = 1248\). Check:
+\(e^{-1248/18} = 7.74\times10^{-31} \le 2^{-100} = 7.89\times10^{-31}\), while \(e^{-1247/18} = 8.19\times10^{-31}\) is too large.</p>
+<p><strong>2.</strong> Here \(\mu \ge 0.51\), so \(t = 0.01\) and the bound is \(e^{-2k(0.01)^2} = e^{-k/5000}\). It is \(\le 2^{-100}\) iff
+\(k \ge 5000\cdot100\ln2 = 346\,573.6\), so \(k = 346\,574 \approx 3.47\times10^5\). Check: \(e^{-2\cdot346574\cdot10^{-4}} = 7.888\times10^{-31} \le 7.889\times10^{-31}\) ✓,
+and one run fewer gives \(7.8895\times10^{-31}\), just above.</p>
+<p><strong>3.</strong> \(346\,574/1248 = 277.7\). The bound needs \(k \ge 50\ln2/t^2\), so the ratio is \((t_1/t_2)^2 = \big(\tfrac{1/6}{0.01}\big)^2 = 277.8\); the
+small discrepancy is the rounding up of each \(k\) to an integer.</p>
+<p><strong>Check.</strong> A limit: as \(t\to\tfrac12\) (a family that is always right) the bound gives \(k \ge 50\ln2/0.25 = 138.6\), still positive
+— Hoeffding is not tight there, since one run would do; it is a bound, not the truth. And the running circuit, with \(t = \tfrac1{16}\),
+needs \(k \ge 50\cdot256\ln2 = 8872.3\), so \(8873\) runs for \(2^{-100}\): between the two answers above, as its gap is.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Complement <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the definition of BQP, uniformity, measurement of one qubit, a proof written in full</p>
+<div class="statement">
+<p>Prove that BQP is closed under complement: if \(L\in\mathsf{BQP}\) then \(\bar L = \{x : x\notin L\}\in\mathsf{BQP}\). Your proof must
+produce a uniform family over \(\mathcal G = \{H, T, \mathrm{CNOT}\}\) and verify both halves of the error condition. Then check your construction
+on the running circuit: what does the complemented circuit accept with?</p>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a circuit family and an inequality check. Change as little as possible: one gate at the end.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Flip qubit 0 just before it is read. You then need \(X\) in \(\mathcal G\): \(T^4 = Z\) and \(HZH = X\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: let \(C'_n = (X\otimes I)\,C_n\); then \(p'(x) = \lVert(\ket1\!\bra1\otimes I)(X\otimes I)C_n\ket{x,0}\rVert^2 = \lVert(X\otimes I)(\ket0\!\bra0\otimes I)C_n\ket{x,0}\rVert^2\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Reading the complement of qubit 0 turns acceptance into rejection; one \(X\) does it, and \(X\) is available exactly.</p>
+<p><strong>The family.</strong> Let \((C_n)\) decide \(L\). Put \(C'_n = (H\,T^4H\otimes I)\,C_n\): four \(T\)'s and two \(H\)'s appended on qubit 0. Since
+\(T^4 = \mathrm{diag}(1, e^{i\pi}) = Z\) and \(HZH = X\) (unit 02), the appended block is exactly \(X\) on qubit 0.</p>
+<p><strong>Uniform.</strong> The generator for \(C'_n\) runs the generator for \(C_n\) on \(1^n\) and prints six more gates: polynomial time.</p>
+<p><strong>The probability.</strong> \(X\ket1\!\bra1X = \ket0\!\bra0\), and \(X\) is unitary, so</p>
+\[ p'(x) = \lVert(\ket1\!\bra1\otimes I)(X\otimes I)C_n\ket{x,0}\rVert^2 = \lVert(X\otimes I)(\ket0\!\bra0\otimes I)C_n\ket{x,0}\rVert^2 = \lVert(\ket0\!\bra0\otimes I)C_n\ket{x,0}\rVert^2 . \]
+<p>Since \(\ket0\!\bra0 + \ket1\!\bra1 = I\) and the two projections of a unit vector are orthogonal, their squared norms add to 1 (Pythagoras), so
+\(p'(x) = 1 - p(x)\).</p>
+<p><strong>Error.</strong> If \(x\in\bar L\), then \(x\notin L\), so \(p(x) \le \tfrac13\) and \(p'(x) \ge \tfrac23\). If \(x\notin\bar L\), then \(x\in L\), \(p(x)\ge\tfrac23\) and
+\(p'(x) \le \tfrac13\). So \((C'_n)\) decides \(\bar L\) with error \(\le\tfrac13\). \(\blacksquare\)</p>
+<p><strong>Check, on the running circuit.</strong> Its acceptance predicate is "outcome \(= 000\)", which the deck computes into a fresh qubit and
+reads; flipping that qubit accepts on "outcome \(\ne 000\)", with probability \(1 - \tfrac9{16} = \tfrac7{16}\). From the state vector, the seven other outcomes each
+have probability \(\tfrac1{16}\): \(7\cdot\tfrac1{16} = \tfrac7{16}\) ✓.</p>
+<p><strong>Another way.</strong> Without changing the circuit, change what "accept" means: read qubit 0 and accept on 0. That is the same
+proof with the \(X\) moved into the classical post-processing; the circuit-only version is needed because the definition fixes "accept
+iff qubit 0 reads 1".</p>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Uniformity matters <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: circuit families as advice, undecidability, why the definition of BQP insists on a generator</p>
+<div class="statement">
+<p>Let \(M_1, M_2, \dots\) be an effective enumeration of Turing machines and \(U = \{1^n : M_n \text{ halts on the empty input}\}\).</p>
+<ol>
+<li>Build, for each \(n\), a circuit \(C_n\) of Toffoli, CNOT and \(X\) gates, on \(n\) input qubits and \(O(n)\) ancillas, such that measuring
+qubit 0 of \(C_n\ket{x, 0\cdots0}\) gives 1 with certainty if \(x = 1^n\in U\), and 0 with certainty otherwise. Count the gates.</li>
+<li>Prove that no uniform family decides \(U\) with error \(\le\tfrac13\).</li>
+<li>Your family in part 1 has error \(0\) and size \(O(n)\), yet decides an undecidable language. Which clause of BQP's definition
+does it violate, and why does that clause, and no other, block it?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a circuit drawn for general \(n\), with one bit of "advice" deciding its last gate; part 2 is a proof by contradiction; part 3 is
+one sentence naming the clause.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A chain of Toffolis computes \(x_1\wedge x_2\wedge\cdots\wedge x_n\) into an ancilla. For part 2: if a uniform family decided \(U\) with error \(\le\tfrac13\), run its
+generator on \(1^n\) and do something classical with the printed circuit that decides \(U\) — every BQP language is decidable.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\mathsf{BQP}\subseteq\mathsf{PSPACE}\) (the deck), and every PSPACE language is decidable; so a uniform family for \(U\) would make \(U\)
+decidable.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A non-uniform family can carry one uncomputable bit per input length in its wiring; uniformity demands that the
+wiring itself be computed, and then the bit would be computable.</p>
+<p><strong>1. The circuit.</strong> The input register holds \(x_1, \dots, x_n\) on qubits \(0, \dots, n - 1\), so qubit 0 starts as \(x_1\), not as
+\(\ket0\). Add ancillas \(a_2, \dots, a_n\) and an output qubit \(o\), all starting in \(\ket0\). Toffoli\((x_1, x_2\to a_2)\), then Toffoli\((a_{j-1}, x_j\to a_j)\)
+for \(j = 3, \dots, n\): now \(a_n = x_1\wedge\cdots\wedge x_n\) (unit 10: Toffoli computes AND into a \(\ket0\) target). If \(1^n\in U\), apply
+CNOT\((a_n\to o)\); if \(1^n\notin U\), add nothing, so \(o\) stays \(0\). (For \(n = 1\), use CNOT\((x_1\to o)\) or nothing.) Finally swap \(o\) with
+qubit 0 by three CNOTs. Every gate permutes basis states, so qubit 0 ends as a basis state: \(1\) iff \(x = 1^n\) and \(1^n\in U\). Gate count:
+\(n - 1\) Toffolis and at most four CNOTs. Error \(0\). (The ancillas keep garbage, \(x_1\) included, which does no harm when only qubit 0 is
+read.)</p>
+<p><strong>2. No uniform family.</strong> Suppose \((C_n)\) were uniform and decided \(U\) with error \(\le\tfrac13\). Then \(U\in\mathsf{BQP}\subseteq\mathsf{PSPACE}\), so some
+Turing machine decides \(U\) — it halts on every input. But then the halting problem on empty input is decidable: given a machine, compute
+its index \(n\) in the enumeration and ask whether \(1^n\in U\). That problem is undecidable (assumed background), a contradiction.
+\(\blacksquare\)</p>
+<p>Without citing PSPACE, directly: run the generator on \(1^n\), get \(C_n\), and compute \(p(1^n)\) exactly by the path sum — finitely many
+paths — then answer whether \(p \ge \tfrac23\). That is an algorithm deciding \(U\).</p>
+<p><strong>3. The clause.</strong> Uniformity: "a deterministic Turing machine prints \(C_n\) from \(1^n\) in polynomial time". The family of part 1 meets
+every other clause (finite gate set, polynomial size, bounded error). Uniformity is what forces the family to be one finite algorithm
+rather than an infinite table; an infinite table can encode any subset of \(\{1^n\}\), uncomputable ones included.</p>
+<p><strong>Check.</strong> The argument in part 2 used nothing about quantum mechanics beyond "a uniform BQP family can be simulated by an
+algorithm", which the deck proved twice (EXP, PSPACE). The same construction shows the classical class P/poly contains undecidable
+languages, for the same reason — a sanity check that the quantum setting adds nothing here.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Gate-set independence <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: error accumulation along a circuit, distance against probability, Solovay–Kitaev's overhead, a T-count</p>
+<div class="statement">
+<p>A BQP family over a finite gate set \(\mathcal G\) consisting of CNOT and single-qubit gates has circuits of \(s(n)\) gates. A second set
+\(\mathcal G'\) satisfies the Solovay–Kitaev hypotheses of unit 11.</p>
+<ol>
+<li>Show that replacing each single-qubit gate by a \(\mathcal G'\)-string within \(\delta = 1/(24s)\) of it (up to phase) gives a circuit of
+\(O(s\log^{3.97}s)\) gates whose acceptance probability differs from the original's by at most \(\tfrac1{12}\) on every input.</li>
+<li>Show that the new family decides the same language with error at most \(\tfrac5{12}\), and find how many majority runs bring it back
+to error \(\le\tfrac13\).</li>
+<li>Take \(\mathcal G' = \{H, T, \mathrm{CNOT}\}\) and \(s = 10^6\), and suppose every single-qubit gate of \(\mathcal G\) is a \(z\)-rotation. With the
+Ross–Selinger cost of about \(3\log(1/\delta)\) \(T\) gates per rotation (unit 11, <i>cited</i>), estimate the \(T\)-count per rotation.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is two inequalities from unit 11 chained together, plus a count; part 2 is arithmetic with \(\tfrac13\) and \(\tfrac1{12}\) and one use of
+Hoeffding; part 3 is one number.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 11: \(\lVert U_s\cdots U_1 - V_s\cdots V_1\rVert \le \sum\lVert U_i - V_i\rVert\), and any outcome probability moves by at most \(2\lVert U - V\rVert\). Phases on single
+gates multiply into one global phase. For part 2, the gap above \(\tfrac12\) is now \(\tfrac12 - \tfrac5{12} = \tfrac1{12}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\lVert U - e^{i\Phi}V\rVert \le s\delta = \tfrac1{24}\), so \(|p_V(x) - p_U(x)| \le 2\cdot\tfrac1{24}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Spend the error budget evenly: \(s\) gates each off by \(\delta\) cost \(s\delta\) in operator norm and twice that in probability, so
+\(\delta = 1/(24s)\) costs \(\tfrac1{12}\) — and Solovay–Kitaev makes each \(\delta\)-approximation only polylogarithmically long.</p>
+<p><strong>1.</strong> Let \(U = U_s\cdots U_1\). For each single-qubit \(U_j\), Solovay–Kitaev gives a \(\mathcal G'\)-string \(V_j\) and a phase \(\phi_j\) with
+\(\lVert U_j - e^{i\phi_j}V_j\rVert \le \delta\), of length \(O(\log^{c}(1/\delta))\), \(c \approx 3.97\); for CNOTs, \(V_j = U_j\), \(\phi_j = 0\) (CNOT is in \(\mathcal G'\)
+by hypothesis). The phases are scalars and come out of the product as \(e^{i\Phi}\), \(\Phi = \sum\phi_j\). By the telescoping bound,
+\(\lVert U - e^{i\Phi}V\rVert \le \sum_j\lVert U_j - e^{i\phi_j}V_j\rVert \le s\delta = \tfrac1{24}\). The acceptance probability of \(e^{i\Phi}V\) equals that of \(V\)
+(global phase), and differs from \(U\)'s by at most \(2\cdot\tfrac1{24} = \tfrac1{12}\). Size: \(s\) strings of length \(O(\log^{3.97}(24s)) = O(\log^{3.97}s)\), so
+\(O(s\log^{3.97}s)\).</p>
+<p><strong>2.</strong> If \(x\in L\): \(p_V \ge \tfrac23 - \tfrac1{12} = \tfrac7{12}\); if \(x\notin L\): \(p_V \le \tfrac13 + \tfrac1{12} = \tfrac5{12}\). Either way the error is \(\le\tfrac5{12}\), and the
+probability of the right answer is at least \(\tfrac7{12} = \tfrac12 + \tfrac1{12}\). Hoeffding with \(t = \tfrac1{12}\): error \(\le e^{-2k/144} = e^{-k/72}\), which is \(\le\tfrac13\) once
+\(k \ge 72\ln3 = 79.1\): \(k = 80\) runs.</p>
+<p><strong>3.</strong> \(\delta = 1/(24\times10^6) = 4.17\times10^{-8}\), \(\log(1/\delta) = \log(2.4\times10^7) = 24.52\), so about \(3\times24.52 = 73.5\): roughly 74 \(T\) gates
+per rotation. (Solovay–Kitaev's own bound, \(\log^{3.97}\), would be of order \(24.5^{3.97}\approx3\times10^5\) times an unknown constant —
+which is why Ross–Selinger, not Solovay–Kitaev, is what is used in practice.)</p>
+<p><strong>Check.</strong> Limits: with \(s = 1\) the budget is a single gate within \(\tfrac1{24}\), and its probability moves by at most \(\tfrac1{12}\) ✓. A
+case of the rule "probability moves by at most \(2\lVert U - V\rVert\)": for \(U = I\), \(V = R_x(\theta)\) on \(\ket0\), \(\Pr[1]\) moves from \(0\) to
+\(\sin^2(\theta/2)\approx\theta^2/4\), while \(2\lVert U - V\rVert = 4\sin(\theta/4)\approx\theta\) (the eigenvalues of \(R_x(\theta)\) are \(e^{\mp i\theta/2}\), and
+\(|1 - e^{i\theta/2}| = 2\sin(\theta/4)\)) — inside the bound ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Simulation and paths</h2>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Path sums by hand <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: labelling paths by free bits, signs from Hadamard entries, amplitudes as signed counts, normalisation</p>
+<div class="statement">
+<p>Take the circuit \(K\) of the preamble: \(H_0H_1\), Toffoli\(_{01\to2}\), \(H_2\), \(H_0H_1\), on \(\ket{000}\).</p>
+<ol>
+<li>How many Hadamards, and how many paths? Label each path by its free bits and write its endpoint and its sign \(\sigma\).</li>
+<li>Find \(\bra{111}K\ket{000}\) as a signed count of paths times \(2^{-h/2}\).</li>
+<li>Find \(\bra{000}K\ket{000}\) the same way, then every other amplitude, and check normalisation.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answers are numbers of the form (integer)\(/(4\sqrt2)\), one per output string, whose squares add to 1. Everything comes from one
+formula for the sign of a path.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Free bits: \(x_0, x_1\) (first two \(H\)'s), \(y_2\) (the \(H\) on qubit 2), \(y_0, y_1\) (last two). The first two \(H\)'s act on \(0\) and give sign \(+\). The
+\(H\) on qubit 2 acts on the bit \(x_0x_1\) the Toffoli wrote there.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: the path \(w = x_0x_1y_2y_0y_1\) ends at \(\ket{y_0\,y_1\,y_2}\) with \(\sigma(w) = (-1)^{x_0x_1y_2 + x_0y_0 + x_1y_1}\) and amplitude \(\sigma(w)/2^{5/2}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Follow one basis string through the gates; each Hadamard contributes a free bit and a sign \((-1)^{\text{old bit}\cdot\text{new bit}}\).</p>
+<p><strong>1.</strong> Five Hadamards, \(h = 5\), so \(2^5 = 32\) paths. With \(w = x_0x_1y_2y_0y_1\): \(\ket{000}\to\ket{x_0x_10}\to\ket{x_0x_1c}\) with
+\(c = x_0x_1\) \(\to\ket{x_0x_1y_2}\) (sign \((-1)^{cy_2}\)) \(\to\ket{y_0y_1y_2}\) (signs \((-1)^{x_0y_0}\), \((-1)^{x_1y_1}\)). So</p>
+\[ \mathrm{end}(w) = y_0y_1y_2,\qquad \sigma(w) = (-1)^{x_0x_1y_2 + x_0y_0 + x_1y_1},\qquad \text{amplitude} = \sigma(w)\,2^{-5/2} . \]
+<p><strong>2.</strong> Ending at \(111\): \(y_0 = y_1 = y_2 = 1\), and \(x_0, x_1\) free — four paths, with \(\sigma = (-1)^{x_0x_1 + x_0 + x_1}\): \(x = 00\colon +\); \(01\colon -\);
+\(10\colon -\); \(11\colon (-1)^{3} = -\). Net \(1 - 3 = -2\), so</p>
+\[ \bra{111}K\ket{000} = \frac{-2}{2^{5/2}} = -\frac{1}{2\sqrt2} \approx -0.3536 . \]
+<p><strong>3.</strong> Ending at \(000\): \(y = 000\), all four paths have \(\sigma = +1\): \(\bra{000}K\ket{000} = 4/2^{5/2} = 1/\sqrt2\). In general, for \(y_2 = 0\) the
+sign is \((-1)^{x_0y_0 + x_1y_1}\) and the sum over \(x_0x_1\) is \(\sum_{x_0}(-1)^{x_0y_0}\sum_{x_1}(-1)^{x_1y_1} = 4[y_0 = y_1 = 0]\): so \(010, 100, 110\) have amplitude 0.
+For \(y_2 = 1\): \(y_0y_1 = 00\colon (+, +, +, -)\), net \(+2\); \(01\colon (+, -, +, +)\), net \(+2\); \(10\colon (+, +, -, +)\), net \(+2\); \(11\colon\) net \(-2\) (part 2). So</p>
+\[ K\ket{000} = \tfrac1{\sqrt2}\ket{000} + \tfrac1{2\sqrt2}\big(\ket{001} + \ket{011} + \ket{101} - \ket{111}\big). \]
+<p><strong>Check.</strong> Normalisation: \(\tfrac12 + 4\cdot\tfrac18 = 1\) ✓. Path count: \(4 + 4\cdot4 + 3\cdot4\) (the three zero-amplitude outputs each have four paths
+that cancel, \(2 + 2\)) \(= 32\) ✓. A known case: before the last layer, qubit 2 is \(H\) applied to \(c = x_0x_1\); \(\Pr[z_2 = 1] = \tfrac34\cdot\tfrac12 + \tfrac14\cdot\tfrac12 = \tfrac12\),
+and the formula gives \(4\cdot\tfrac18 = \tfrac12\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+K = Circuit(3).h(0).h(1).ccx(0, 1, 2).h(2).h(0).h(1)
+amp = K.run().vector
+print(np.round((amp * 4 * np.sqrt(2)).real, 6))   # 2^(h/2) &lt;z|K|000&gt;, h = 5
+# [ 4.  2.  0.  2.  0.  2.  0. -2.]   for z = 000, 001, ..., 111</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> The space bill <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: space accounting for BQP ⊆ PSPACE, the flat path enumeration, the time–space trade against the state vector</p>
+<div class="statement">
+<p>The deck's recursion stores a stack of frames. A flatter algorithm computes \(p(x)\) as follows: for each output \(z\) with \(z_0 = 1\), set
+\(N = 0\); for each \(w\in\{0,1\}^h\), follow one string from the start through the \(T\) gates using the bits of \(w\) at the Hadamards, and if it
+ends at \(z\) add \(\sigma(w)\) to \(N\); then add \(N^2\) to \(S\). Finally accept iff \(2S \gt 2^h\).</p>
+<ol>
+<li>List the registers the algorithm keeps, with the number of bits each needs, in terms of \(m\), \(T\), \(h\). (Ignore the generator's own
+workspace, which is polynomial.)</li>
+<li>Evaluate it for \(m = 50\), \(T = 10^4\), \(h = 1000\), and compare with the recursion's \(1.07\times10^7\) bits and the state vector's 18 PB.</li>
+<li>Estimate the number of gate applications, as a power of ten.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is a table of six or seven registers; parts 2 and 3 are arithmetic. The algorithm keeps one path at a time — nothing grows with \(T\)
+except a gate counter.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Registers: the output \(z\), the path label \(w\), the current string, the gate index, the current sign, the counter \(N\), the accumulator \(S\).
+Bound \(|N|\) by the number of paths and \(S\) by normalisation: \(\sum_z N(z)^2 = 2^h\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(z\colon m\) bits, \(w\colon h\) bits, string: \(m\) bits, gate index: \(\lceil\log(T+1)\rceil\) bits, sign: 1 bit, \(N\) with \(|N|\le2^h\): \(h + 2\) bits.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Space is reused across paths and across outputs; only one path, one output and two counters are ever held.</p>
+<p><strong>1.</strong> The registers:</p>
+<table>
+<thead><tr><th>register</th><th>bits</th></tr></thead>
+<tbody>
+<tr><td>output \(z\)</td><td>\(m\)</td></tr>
+<tr><td>path label \(w\)</td><td>\(h\)</td></tr>
+<tr><td>current string</td><td>\(m\)</td></tr>
+<tr><td>gate index \(t\)</td><td>\(\lceil\log(T+1)\rceil\)</td></tr>
+<tr><td>current sign</td><td>\(1\)</td></tr>
+<tr><td>\(N\), with \(-2^h \le N \le 2^h\)</td><td>\(h + 2\)</td></tr>
+<tr><td>\(S \le 2^h\)</td><td>\(h + 1\)</td></tr>
+</tbody>
+</table>
+<p>Total \(2m + 3h + \lceil\log(T+1)\rceil + 4\) bits: linear in \(m\) and \(h\), logarithmic in \(T\). \(S \le 2^h\) because \(S = \sum_{z_0 = 1}N(z)^2 \le \sum_zN(z)^2 = 2^h\),
+the last equality being normalisation of \(C\ket s\) scaled by \(2^{h}\).</p>
+<p><strong>2.</strong> \(\lceil\log(10^4 + 1)\rceil = 14\). Total: \(50 + 1000 + 50 + 14 + 1 + 1002 + 1001 = 3118\) bits \(\approx 390\) bytes. The recursion's bill was
+\(10^4\) frames of \(1067\) bits, \(1.07\times10^7\) bits \(\approx 1.3\) MB — about 3400 times more, because it keeps a frame per gate. The state vector:
+\(16\cdot2^{50} = 1.8\times10^{16}\) bytes \(= 1.44\times10^{17}\) bits, about \(4.6\times10^{13}\) times the flat algorithm's bill.</p>
+<p><strong>3.</strong> \(2^{49}\) outputs with \(z_0 = 1\), times \(2^{1000}\) paths, times \(10^4\) gates: \(2^{1049}\times10^4 = 10^{1049\log_{10}2 + 4} = 10^{319.8}\).</p>
+<p><strong>Check.</strong> On the running circuit (\(m = 3\), \(T = 5\), \(h = 4\)): \(2\cdot3 + 3\cdot4 + 3 + 4 = 25\) bits, against the recursion's 73. With the running circuit's own acceptance rule the outer loop visits the single output \(000\), and
+the algorithm returns \(S = N(000)^2 = 3^2 = 9\), \(2S = 18 \gt 16\) ✓. (With the definition's rule \(z_0 = 1\) it would visit \(100, 101, 110, 111\), with
+\(N = 1, -1, -1, 1\): \(S = 4\), \(p = \tfrac4{16} = \tfrac14\). Together with the \(9\) from \(000\) and the \(1 + 1 + 1 = 3\) from \(001, 010, 011\), the
+squares make \(16 = 2^h\), the normalisation ✓.) The trade is visible at once: polynomial space, but time
+exponential in \(m + h\); the vector's time is exponential in \(m\) alone.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> The real-amplitude trick <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: real and imaginary parts of a unitary, tensor products, orthogonality, why the Hadamard–Toffoli reduction may assume real amplitudes</p>
+<div class="statement">
+<p>For a unitary \(U = A + iB\) on \(\mathbb C^N\), with \(A, B\) real, put \(\tilde U = A\otimes I + B\otimes J\) on \(\mathbb R^N\otimes\mathbb R^2\), where
+\(J = \begin{pmatrix}0&amp;-1\\1&amp;0\end{pmatrix}\), and encode \(E(a + ib) = a\otimes\ket0 + b\otimes\ket1\) for real vectors \(a, b\).</p>
+<ol>
+<li>Prove that \(\tilde U\) is real orthogonal, and that \(\tilde UE(v) = E(Uv)\) for every \(v\in\mathbb C^N\).</li>
+<li>Prove that measuring the original qubits of \(E(v)\) gives outcome \(z\) with probability \(|v_z|^2\).</li>
+<li>Write out \(\tilde S\) and \(\tilde T\) for \(S = \mathrm{diag}(1, i)\) and \(T = \mathrm{diag}(1, e^{i\pi/4})\), as \(4\times4\) matrices and in words.</li>
+<li>Check on the one-qubit circuit \(H\), \(T\), \(H\) from \(\ket0\): compute \(\Pr[0]\) both ways.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1 and 2 are short computations with block matrices; part 3 is two explicit \(4\times4\) matrices; part 4 is a number, about \(0.85\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unitarity of \(U\) splits into real and imaginary parts: \(A^{\mathsf T}A + B^{\mathsf T}B = I\) and \(A^{\mathsf T}B = B^{\mathsf T}A\). And \(J^{\mathsf T} = -J\), \(J^{\mathsf T}J = I\), \(J\ket0 = \ket1\),
+\(J\ket1 = -\ket0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(\tilde U^{\mathsf T}\tilde U = A^{\mathsf T}A\otimes I + A^{\mathsf T}B\otimes J + B^{\mathsf T}A\otimes J^{\mathsf T} + B^{\mathsf T}B\otimes J^{\mathsf T}J\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(J\) is "multiplication by \(i\)" acting on the pair (real part, imaginary part), so \(A\otimes I + B\otimes J\) is "\(A + iB\)" in real clothing.</p>
+<p><strong>1.</strong> From \(U^\dagger U = (A^{\mathsf T} - iB^{\mathsf T})(A + iB) = (A^{\mathsf T}A + B^{\mathsf T}B) + i(A^{\mathsf T}B - B^{\mathsf T}A) = I\), the real part gives
+\(A^{\mathsf T}A + B^{\mathsf T}B = I\) and the imaginary part \(A^{\mathsf T}B - B^{\mathsf T}A = 0\). Then, using \(J^{\mathsf T} = -J\) and \(J^{\mathsf T}J = I\),</p>
+\[ \tilde U^{\mathsf T}\tilde U = (A^{\mathsf T}A + B^{\mathsf T}B)\otimes I + (A^{\mathsf T}B - B^{\mathsf T}A)\otimes J = I\otimes I . \]
+<p>For the encoding, with \(v = a + ib\):
+\(\tilde U(a\otimes\ket0 + b\otimes\ket1) = Aa\otimes\ket0 + Ab\otimes\ket1 + Ba\otimes J\ket0 + Bb\otimes J\ket1 = (Aa - Bb)\otimes\ket0 + (Ab + Ba)\otimes\ket1\),
+and \(Uv = (A + iB)(a + ib) = (Aa - Bb) + i(Ab + Ba)\), whose encoding is the same. \(\blacksquare\)</p>
+<p><strong>2.</strong> \(E(v) = \sum_z\big(a_z\ket z\ket0 + b_z\ket z\ket1\big)\), so outcome \(z\) on the original qubits, summed over the extra qubit, has probability
+\(a_z^2 + b_z^2 = |a_z + ib_z|^2 = |v_z|^2\). And \(\lVert E(v)\rVert^2 = \sum_z(a_z^2 + b_z^2) = \lVert v\rVert^2\): the encoding preserves norms.</p>
+<p><strong>3.</strong> \(S\): \(A = \mathrm{diag}(1, 0)\), \(B = \mathrm{diag}(0, 1)\), so \(\tilde S = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes J\) — "apply \(J\) to the extra qubit if the qubit is
+1", a controlled-\(J\). \(T\): \(A = \mathrm{diag}(1, \tfrac1{\sqrt2})\), \(B = \mathrm{diag}(0, \tfrac1{\sqrt2})\), so \(\tilde T = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes\tfrac1{\sqrt2}(I + J)\), and
+\(\tfrac1{\sqrt2}(I + J) = \begin{pmatrix}\cos\frac\pi4&amp;-\sin\frac\pi4\\ \sin\frac\pi4&amp;\cos\frac\pi4\end{pmatrix}\) is the rotation of the plane by \(\pi/4\): a controlled rotation. As matrices,
+in the basis \(\ket{00}, \ket{01}, \ket{10}, \ket{11}\) (extra qubit last),</p>
+\[ \tilde S = \begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;1&amp;0&amp;0\\0&amp;0&amp;0&amp;-1\\0&amp;0&amp;1&amp;0\end{pmatrix},\qquad
+\tilde T = \begin{pmatrix}1&amp;0&amp;0&amp;0\\0&amp;1&amp;0&amp;0\\0&amp;0&amp;\frac1{\sqrt2}&amp;-\frac1{\sqrt2}\\0&amp;0&amp;\frac1{\sqrt2}&amp;\frac1{\sqrt2}\end{pmatrix}. \]
+<p><strong>4.</strong> Complex: \(H\ket0 = \tfrac1{\sqrt2}(1, 1)\), \(T\) gives \(\tfrac1{\sqrt2}(1, e^{i\pi/4})\), \(H\) gives amplitude of \(\ket0\) equal to \(\tfrac12(1 + e^{i\pi/4})\), so
+\(\Pr[0] = \tfrac14|1 + e^{i\pi/4}|^2 = \tfrac14(2 + 2\cos\tfrac\pi4) = \tfrac12(1 + \tfrac1{\sqrt2}) = 0.8536\). Real: \(\tilde H = H\otimes I\) (no imaginary part). Start
+\(\ket0\ket0\); \(\tilde H\) gives \(\tfrac1{\sqrt2}(\ket{00} + \ket{10})\); \(\tilde T\) rotates the extra qubit of the second term by \(\pi/4\):
+\(\tfrac1{\sqrt2}\ket{00} + \tfrac12(\ket{10} + \ket{11})\); \(\tilde H\) gives, on \(\ket{0\,\cdot}\), \(\tfrac12\ket{00} + \tfrac1{2\sqrt2}(\ket{00} + \ket{01})\). So
+\(\Pr[\text{qubit }0 = 0] = (\tfrac12 + \tfrac1{2\sqrt2})^2 + \tfrac18 = \tfrac14 + \tfrac1{2\sqrt2} + \tfrac18 + \tfrac18 = \tfrac12 + \tfrac1{2\sqrt2} = 0.8536\) ✓.</p>
+<p><strong>Check.</strong> \(\tilde T\) is orthogonal by inspection (its blocks are \(I\) and a rotation), and \(\tilde T^8 = I\) as \(T^8 = I\) (eight rotations by
+\(\pi/4\)). The real version uses one extra qubit for the whole circuit, not one per gate: every \(\tilde U\) acts on the same extra qubit.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+J = np.array([[0, -1], [1, 0]])
+def real(u):                                    # A (x) I + B (x) J, extra qubit last
+    return np.kron(u.real, np.eye(2)) + np.kron(u.imag, J)
+Tt = real(gates.T)
+print(np.allclose(Tt.T @ Tt, np.eye(4)))        # True: orthogonal
+print(Circuit(1).h(0).t(0).h(0).run().probabilities())
+print(Circuit(2).gate(real(gates.H), 0, 1).gate(Tt, 0, 1)
+      .gate(real(gates.H), 0, 1).run().probabilities([0]))
+# [0.85355339 0.14644661] both times</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Counting with signs</h2>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> GapP closure <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: #P and GapP from their definitions, padding certificates, products of counts</p>
+<div class="statement">
+<p>Working from the definition — GapP is the set of differences \(f - g\) of #P functions — prove:</p>
+<ol>
+<li>#P is closed under sums and products: if \(f, f'\in\#\mathrm P\) then \(f + f'\) and \(ff'\) are in #P.</li>
+<li>GapP is closed under subtraction and multiplication.</li>
+<li>\(F(x) = 2g(x) - 2^{h(|x|)}\) is in GapP whenever \(g\in\mathrm{GapP}\) and \(h(n)\) is a polynomial computable from \(1^n\) in polynomial time — the
+step that finishes \(\mathsf{BQP}\subseteq\mathsf{PP}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each part is a construction of a polynomial-time predicate on longer certificates, with a count of how many certificates it accepts.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Sum: let the first bit of the certificate choose which predicate to use. Product: concatenate certificates and accept iff both halves are
+accepted. Different lengths: pad, and reject unless the padding is all zeros. For GapP, expand \((f - g)(f' - g')\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of the product: \(\#\{(y, y') : R(x, y)\wedge R'(x, y')\} = \#\{y : R(x, y)\}\cdot\#\{y' : R'(x, y')\}\), a product of finite sets.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Counting is closed under disjoint union (a choice bit) and Cartesian product (concatenation); subtraction then rides
+along by algebra.</p>
+<p><strong>1.</strong> Let \(f = \#R\) with certificates of length \(p\), \(f' = \#R'\) with length \(p'\), and \(P = \max(p, p')\). <em>Sum:</em> on certificates \(by\) with
+\(b\) a bit and \(|y| = P\), let \(R_+(x, 0y)\) hold iff \(R(x, y_{1..p})\) and \(y_{p+1..P} = 0\cdots0\), and \(R_+(x, 1y)\) iff \(R'(x, y_{1..p'})\) and the rest of \(y\) is zero. Each
+accepted certificate of \(R\) appears exactly once among the \(0y\), and of \(R'\) among the \(1y\), so \(\#R_+ = f + f'\). <em>Product:</em> on certificates \(yy'\)
+of length \(p + p'\), \(R_\times(x, yy')\) iff \(R(x, y)\) and \(R'(x, y')\); the accepted set is the Cartesian product, of size \(ff'\). Both predicates are
+polynomial-time.</p>
+<p><strong>2.</strong> Let \(F = f - g\) and \(F' = f' - g'\) with all four in #P. <em>Subtraction:</em> \(F - F' = (f + g') - (g + f')\), a difference of two #P functions by
+part 1. <em>Multiplication:</em> \(FF' = (ff' + gg') - (fg' + gf')\), again a difference of two #P functions by part 1, used twice for products and
+once for each sum. \(\blacksquare\)</p>
+<p><strong>3.</strong> \(2g = g + g\in\mathrm{GapP}\) by part 2 (sums are differences: \(F + F' = F - (0 - F')\), and \(0\in\#\mathrm P\) via the predicate that is never true).
+The function \(x\mapsto2^{h(|x|)}\) is in #P: on certificates of length \(p(n) \ge h(n)\), accept iff all bits after the first \(h(n)\) are zero — exactly \(2^{h(n)}\) of
+them, and the predicate is polynomial-time because \(h(n)\) is computed from \(1^{|x|}\). So \(2g - 2^h\in\mathrm{GapP}\) by subtraction.</p>
+<p><strong>Check.</strong> On the running circuit, \(g = 9\), \(h = 4\): \(F = 2\) as the deck found. A sanity check of part 2's identity at numbers:
+\(f, g, f', g' = 5, 2, 3, 7\) gives \(FF' = 3\cdot(-4) = -12\) and \((15 + 14) - (35 + 6) = 29 - 41 = -12\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> NP sits inside PP <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the definition of PP, the GapP characterisation, building a majority predicate by hand</p>
+<div class="statement">
+<ol>
+<li>Prove \(\mathsf{NP}\subseteq\mathsf{PP}\) using the theorem "PP is GapP is positive".</li>
+<li>Prove it again directly from the definition of PP: given \(R\) and \(p\) for an NP language, build a predicate \(R'\) on certificates of length
+\(p + 1\) that accepts more than half of them iff some \(y\) satisfies \(R(x, y)\).</li>
+<li>Check part 2 on a formula with \(p = 2\) variables and exactly one satisfying assignment: count \(R'\)'s accepting certificates.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is one GapP function; part 2 is one predicate and a count; part 3 is a number out of 8.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(x\in L\) iff \(\#R(x)\ge1\) iff \(2\#R(x) - 1 \gt 0\). For part 2, double the certificate space: let half of it accept unconditionally, so the total
+exceeds half exactly when one more certificate accepts.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(R'(x, 0y) = 1\) for every \(y\), and \(R'(x, 1y) = R(x, y)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> NP asks whether a count is at least 1; shift the threshold so that "at least 1" becomes "more than half".</p>
+<p><strong>1.</strong> \(F(x) = \#R(x) + \#R(x) - 1\) is in GapP (\(\#R\in\#\mathrm P\); the constant 1 is \(2^0\), in #P). Since \(\#R(x)\) is a non-negative integer,
+\(F(x) \gt 0\) iff \(\#R(x) \ge 1\) iff \(x\in L\). By the theorem, \(L\in\mathsf{PP}\). \(\blacksquare\)</p>
+<p><strong>2.</strong> On certificates \(by\), \(|y| = p\): \(R'(x, 0y) = 1\), \(R'(x, 1y) = R(x, y)\). Then \(\#R'(x) = 2^p + \#R(x)\), out of \(2^{p+1}\) certificates, and
+\(2^p + \#R(x) \gt \tfrac12\cdot2^{p+1} = 2^p\) iff \(\#R(x)\ge1\). \(R'\) is polynomial-time. \(\blacksquare\)</p>
+<p><strong>3.</strong> \(p = 2\), one satisfying assignment: \(\#R' = 4 + 1 = 5\) of \(8\), and \(5 \gt 4\) ✓. With none, \(4\) of \(8\), exactly half — not more — so
+rejected ✓.</p>
+<p><strong>Check.</strong> The margin in part 2 is one certificate in \(2^{p+1}\): the acceptance probability is \(\tfrac12 + 2^{-(p+1)}\) at best when \(x\in L\) has
+a single witness. That is the "no gap" of PP in action — majority voting would need of order \(2^{2p}\) runs to see it, which is why this does not
+put NP inside BPP.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> The PP condition <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the GapP number of a circuit, same-sign and opposite-sign pairs, the strict threshold of PP</p>
+<div class="statement">
+<p>Use circuit \(K\) and your path table from P5 (or the amplitudes it found).</p>
+<ol>
+<li>Accept iff qubit 2 reads 1. Count same-sign and opposite-sign pairs of paths ending at each accepting output; find \(g\), \(p = g/2^h\) and
+\(F = 2g - 2^h\). Does the PP condition accept?</li>
+<li>Now accept iff qubit 2 reads 0. Same questions.</li>
+<li>Neither acceptance rule is "accepted" by the PP condition, yet each is the complement of the other. Explain why this does not
+contradict the fact that PP is closed under complement.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each of parts 1 and 2 ends in three integers and a yes or no; part 3 is a short explanation about strict and non-strict inequalities.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>An output reached by \(P\) paths of sign \(+\) and \(M\) of sign \(-\) has \(P^2 + M^2\) same-sign ordered pairs and \(2PM\) opposite-sign ones. From P5:
+the four outputs with \(z_2 = 1\) have \((P, M) = (3, 1)\) or \((1, 3)\); \(000\) has \((4, 0)\); the rest have \((2, 2)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: each accepting output contributes \(9 + 1 = 10\) same-sign and \(2\cdot3\cdot1 = 6\) opposite-sign pairs, net \(4\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(g\) is a signed count of pairs; \(p = g/2^h\); PP accepts only when \(p\) is <em>strictly</em> above \(\tfrac12\).</p>
+<p><strong>1.</strong> Accepting outputs \(001, 011, 101, 111\), each with \((P, M) = (3, 1)\) or \((1, 3)\): same-sign \(10\), opposite \(6\), net \(4 = (P - M)^2\). Total
+same-sign \(40\), opposite \(24\), \(g = 16\). With \(h = 5\): \(p = 16/32 = \tfrac12\), \(F = 32 - 32 = 0\). Not positive: the PP condition <strong>rejects</strong>.</p>
+<p><strong>2.</strong> Accepting outputs \(000, 010, 100, 110\): \(000\) has \((4, 0)\), \(16\) same-sign pairs; each of the others has \((2, 2)\), \(4 + 4 = 8\) same-sign and
+\(8\) opposite, net \(0\). So same-sign \(16 + 24 = 40\), opposite \(24\), \(g = 16\), \(p = \tfrac12\), \(F = 0\): <strong>rejects</strong> again.</p>
+<p><strong>3.</strong> PP's condition is \(p \gt \tfrac12\); its negation is \(p \le \tfrac12\), not \(p \lt \tfrac12\). So the complement of a PP language is not decided by
+"flip the output bit and use the same threshold" — at \(p = \tfrac12\) exactly, both rules reject. The closure proof instead uses the GapP function
+\(1 - 2F\): \(x\notin L\) iff \(F(x)\le0\) iff \(1 - 2F(x) \gt 0\), since \(F\) takes integer values. Here \(F = 0\) gives \(1 - 2F = 1 \gt 0\): the complement accepts ✓.
+For BQP this subtlety never arises, because its promise keeps \(p\) away from \(\tfrac12\).</p>
+<p><strong>Check.</strong> Parts 1 and 2 cover all eight outputs, so their \(g\)'s must add to \(2^h = 32\): \(16 + 16 = 32\) ✓. And from P5's amplitudes,
+\(\Pr[z_2 = 1] = 4\cdot\tfrac18 = \tfrac12\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+K = Circuit(3).h(0).h(1).ccx(0, 1, 2).h(2).h(0).h(1)
+p = K.run().probabilities()
+print(p[1::2].sum(), p[0::2].sum())    # P(qubit 2 = 1), P(qubit 2 = 0): 0.5 0.5 (to rounding)</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Postselection contains NP <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: designing a circuit around a conditioning event, conditional probability, why postselection is powerful</p>
+<div class="statement">
+<p><strong>PostBQP</strong> is the class of languages decided by uniform circuit families with two read-out qubits, an output \(o\) and a
+postselection qubit \(q\), such that on every input \(\Pr[q = 1] \gt 0\), and conditioned on \(q = 1\) the output \(o\) is correct with probability at
+least \(\tfrac23\).</p>
+<ol>
+<li>Let \(\varphi\) be a Boolean formula on \(n\) variables with \(s\) satisfying assignments. Design a circuit from \(H\) gates and classical
+reversible gates on registers \(x\) (\(n\) qubits), \(z\) (\(n + 1\) qubits) and ancillas, with \(o = \varphi(x)\) and \(q = \varphi(x)\vee[z = 0^{n+1}]\).</li>
+<li>Compute \(\Pr[q = 1]\) and \(\Pr[o = 1\mid q = 1]\) in terms of \(s\) and \(n\). Show the circuit is correct for \(s = 0\) and for every \(s\ge1\).</li>
+<li>Conclude \(\mathsf{NP}\subseteq\mathsf{PostBQP}\). Evaluate \(\Pr[o = 1\mid q = 1]\) for \(n = 3\), \(s = 1\), and say why no physical machine can run this efficiently.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The circuit makes uniformly random \(x\) and \(z\) and computes two bits reversibly; the analysis is a conditional probability in which the
+event \(z = 0^{n+1}\) is a tiny "escape hatch" that keeps \(\Pr[q = 1]\) positive.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Everything after the Hadamards permutes basis states, so the outcome probabilities are those of uniform classical \(x, z\). Split the event
+\(q = 1\) into the disjoint pieces \(\varphi(x) = 1\) and \(\varphi(x) = 0\wedge z = 0^{n+1}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: \(\Pr[q = 1] = \dfrac{s}{2^n} + \Big(1 - \dfrac{s}{2^n}\Big)2^{-(n+1)}\), and \(\Pr[o = 1, q = 1] = \dfrac{s}{2^n}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Guess a witness at random and keep only the runs where the guess worked — plus, so that the condition is never impossible, a
+one-in-\(2^{n+1}\) chance of keeping a run anyway. Then a single witness among \(2^n\) outweighs the escape hatch two to one.</p>
+<p><strong>1.</strong> Apply \(H\) to each of the \(2n + 1\) qubits of \(x\) and \(z\): \(2^{-(2n+1)/2}\sum_{x, z}\ket x\ket z\). Compute \(\varphi(x)\) into \(o\) with a reversible circuit
+(unit 10: Toffolis, garbage uncomputed). Compute \(e = [z = 0^{n+1}]\) into an ancilla: \(X\) on every qubit of \(z\), a multiply-controlled NOT built
+from Toffolis, \(X\) again. Compute \(q = o\vee e = \neg(\neg o\wedge\neg e)\) with \(X\)'s and a Toffoli into a fresh qubit. All of this is uniform and of
+polynomial size.</p>
+<p><strong>2.</strong> After the Hadamards every gate permutes basis states, so the final state is \(2^{-(2n+1)/2}\sum_{x, z}\ket{x, z, \varphi(x), e, q, \dots}\), with
+orthonormal terms. Measuring gives \((x, z)\) uniform, and the read-out bits are functions of them. Hence</p>
+\[ \Pr[o = 1, q = 1] = \Pr[\varphi(x) = 1] = \frac{s}{2^n},\qquad \Pr[q = 1] = \frac{s}{2^n} + \Big(1 - \frac{s}{2^n}\Big)2^{-(n+1)} \gt 0 . \]
+<p>If \(s = 0\): \(\Pr[q = 1] = 2^{-(n+1)} \gt 0\) and \(\Pr[o = 1\mid q = 1] = 0\): the output is "reject" with certainty ✓. If \(s \ge 1\):</p>
+\[ \Pr[o = 1\mid q = 1] = \frac{s/2^n}{s/2^n + (1 - s/2^n)2^{-(n+1)}} \ge \frac{2^{-n}}{2^{-n} + 2^{-(n+1)}} = \frac{1}{1 + \frac12} = \frac23, \]
+<p>using that the expression increases with \(s\) and that \(1 - s/2^n \lt 1\). So it is correct with probability \(\ge\tfrac23\) ✓.</p>
+<p><strong>3.</strong> For any NP language, Cook–Levin reduces membership to satisfiability of a formula \(\varphi_x\) computed in polynomial time, and the
+circuit above (built for \(\varphi_x\)) decides it in PostBQP. Uniformity: the generator writes \(\varphi_x\)'s evaluation circuit — strictly, it builds a
+circuit taking \(x\) as input and computing \(\varphi_x(y)\) on a witness register \(y\), the verifier \(R(x, y)\) itself; the analysis is unchanged with
+\(y\) in place of \(x\). So \(\mathsf{NP}\subseteq\mathsf{PostBQP}\). \(\blacksquare\) For \(n = 3\), \(s = 1\):</p>
+\[ \Pr[o = 1\mid q = 1] = \frac{1/8}{1/8 + (7/8)/16} = \frac{16}{23} = 0.696 \ge \tfrac23\ \checkmark \]
+<p>No machine can run this efficiently because postselection is conditioning on an event of probability about \(s2^{-n}\) or \(2^{-(n+1)}\);
+repeating until \(q = 1\) takes about \(2^n\) runs, which is brute-force search. The power of PostBQP is the power to discard exponentially many
+failed runs for free — and Aaronson's theorem (<i>cited</i>) says that power, added to BQP, gives exactly PP.</p>
+<p><strong>Check.</strong> As \(n\to\infty\) with \(s = 1\): \(\Pr[o = 1\mid q = 1] = 2^{n+1}/(2^{n+1} + 2^n - 1) \to \tfrac23\) from above; at \(n = 10\) it is
+\(2048/3071 = 0.6669\) ✓. The circuit uses only \(H\) and classical reversible gates — it is in fact a PostBPP (randomised) construction, which is
+why NP is the easy step and PP the hard one.</p>
+</div></details>
+</section>
+
+<h2 class="group">The placement</h2>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> P = PSPACE would collapse it <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the placement as a chain of inclusions, contrapositive arguments, what does and does not follow</p>
+<div class="statement">
+<ol>
+<li>Write the one-paragraph argument that a proof of \(\mathsf{BQP}\ne\mathsf{BPP}\) would also prove \(\mathsf P\ne\mathsf{PSPACE}\), naming where each
+inclusion you use is proved.</li>
+<li>Would a proof that \(\mathsf{BQP} = \mathsf{BPP}\) settle \(\mathsf P\) versus \(\mathsf{PSPACE}\)? Would a proof that \(\mathsf{BQP} = \mathsf{PP}\)?</li>
+<li>Relative to a PSPACE-complete oracle \(A\), \(\mathsf P^A = \mathsf{PSPACE}^A\) (Baker–Gill–Solovay, <i>cited</i>). What does that imply about
+\(\mathsf{BQP}^A\) and \(\mathsf{BPP}^A\), and what does it say about proof techniques?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Three short pieces of logic, no computation. Part 1 is a contrapositive; part 2 asks which direction of implication you have.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The chain is \(\mathsf P\subseteq\mathsf{BPP}\subseteq\mathsf{BQP}\subseteq\mathsf{PP}\subseteq\mathsf{PSPACE}\). If the two ends are equal, everything between them is. An equality in the
+middle says nothing about the ends.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: "Suppose \(\mathsf P = \mathsf{PSPACE}\). Then \(\mathsf{PSPACE} = \mathsf P\subseteq\mathsf{BPP}\subseteq\mathsf{BQP}\subseteq\mathsf{PSPACE}\), so all four are equal."</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> BQP and BPP are squeezed between P and PSPACE; a gap between them is a gap between the ends.</p>
+<p><strong>1.</strong> Every language in P is in BPP (a deterministic machine is a randomised one that ignores its coins); every language in BPP is in
+BQP (Hadamards supply the coins and unit 10's reversible circuits run the deterministic part — the deck's <i>BPP ⊆ BQP: coins from Hadamards</i>); every language in BQP is
+in PSPACE (the amplitude of each output is a sum over paths that can be added up one path at a time in polynomial memory — the deck's
+<i>BQP ⊆ PSPACE</i>). So \(\mathsf P\subseteq\mathsf{BPP}\subseteq\mathsf{BQP}\subseteq\mathsf{PSPACE}\). If \(\mathsf P\) were equal to \(\mathsf{PSPACE}\), the chain would begin and end at the same class,
+every inclusion in it would be an equality, and in particular \(\mathsf{BQP} = \mathsf{BPP}\). Contrapositively, a proof that \(\mathsf{BQP}\ne\mathsf{BPP}\) is a proof that
+\(\mathsf P\ne\mathsf{PSPACE}\) — a separation nobody knows how to prove, so an unconditional proof that quantum computers are more powerful than
+randomised classical ones is out of reach.</p>
+<p><strong>2.</strong> No, and no. \(\mathsf{BQP} = \mathsf{BPP}\) is consistent with both \(\mathsf P = \mathsf{PSPACE}\) and \(\mathsf P\ne\mathsf{PSPACE}\) as far as anyone knows: an equality in the
+middle of a chain constrains nothing at its ends. Likewise \(\mathsf{BQP} = \mathsf{PP}\) would be astonishing (it would put NP inside BQP, by P9), but it would
+not by itself decide whether \(\mathsf P = \mathsf{PSPACE}\). Only the direction "\(\ne\) in the middle \(\Rightarrow\) \(\ne\) at the ends" holds.</p>
+<p><strong>3.</strong> The chain relativises — each inclusion's proof works with an oracle — so \(\mathsf P^A\subseteq\mathsf{BPP}^A\subseteq\mathsf{BQP}^A\subseteq\mathsf{PSPACE}^A = \mathsf P^A\), and
+\(\mathsf{BQP}^A = \mathsf{BPP}^A\). So any proof that \(\mathsf{BQP}\ne\mathsf{BPP}\) must fail relative to \(A\): it cannot be a relativising argument, which rules out
+simulation and enumeration of the kind used throughout the unit.</p>
+<p><strong>Check.</strong> Consistency with what is known: \(\mathsf P\ne\mathsf{EXP}\) is proved, and it does not contradict anything here, since EXP lies above PSPACE;
+it says some link of \(\mathsf P\subseteq\dots\subseteq\mathsf{PSPACE}\subseteq\mathsf{EXP}\) is strict, not which.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 12</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

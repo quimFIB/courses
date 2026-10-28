@@ -1,0 +1,1958 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>22 · The first quantum codes, and the conditions that say when any code works</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="e">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="bf"><span class="ref-name">the running example: the bit-flip code</span>$\ket{0_L} = \ket{000}$, $\ket{1_L} = \ket{111}$, so $\alpha\ket0 + \beta\ket1 \mapsto \alpha\ket{000} + \beta\ket{111}$ by two CNOTs. <span class="ref-note">Checks $Z_0Z_1$ and $Z_1Z_2$. Under independent flips of probability $p$ it fails with probability $3p^2 - 2p^3$: $2.998\times10^{-6}$ at $p = 10^{-3}$, below $p$ exactly when $p &lt; \tfrac12$. A single $Z$ defeats it</span></template>
+  <template data-ref="syn"><span class="ref-name">the syndrome table</span>$s_1s_2 = 00$: no error. $10$: $X_0$. $11$: $X_1$. $01$: $X_2$. <span class="ref-note">$s_1$ is the parity of qubits 0, 1 and $s_2$ of qubits 1, 2. Each outcome has probability 1 given its error, and neither depends on $\alpha, \beta$</span></template>
+  <template data-ref="shor"><span class="ref-name">Shor's nine-qubit code</span>$\ket{0_L} = \big(\tfrac{\ket{000} + \ket{111}}{\sqrt2}\big)^{\otimes3}$, $\ \ket{1_L} = \big(\tfrac{\ket{000} - \ket{111}}{\sqrt2}\big)^{\otimes3}$. <span class="ref-note">The phase-flip code with each of its qubits replaced by a bit-flip code: concatenation. Six $ZZ$ checks inside the blocks, two six-qubit $X$ checks between them. Distance 3; degenerate, since $Z_0, Z_1, Z_2$ act alike on the code</span></template>
+  <template data-ref="rot"><span class="ref-name">the arbitrary error</span>$R_Y(\theta) = e^{-i\theta Y/2} = \cos\tfrac\theta2\, I - i\sin\tfrac\theta2\, Y$ on qubit 4 of Shor's code, $\theta = 0.2$. <span class="ref-note">Syndrome trivial with probability $\cos^2 0.1 = 0.990$; the $Y_4$ syndrome with probability $\sin^2 0.1 = 0.010$. Either way the corrected state is exactly $\ket{\psi_L}$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part E · noise and error correction · spine</p>
+  <div class="unit-no">22</div>
+  <h1>The first quantum codes, and the conditions that say when any code works</h1>
+  <p class="lede">Quantum error correction looks impossible three times over: no copies, a continuum of errors, and a measurement that destroys. One three-qubit code answers all three, and two theorems say exactly when any code works.</p>
+  <p class="meta"><span>needs 21, 10</span><span>~3 h slides + 5 h problems</span><span>problems: <code>./qc problems 22</code></span></p>
+  <aside class="notes">
+    <p>Unit 21 ended on a bleak theorem: trace distance contracts under every channel, so whatever noise has done to a qubit
+    no later processing <b>of that qubit</b> can undo. This unit is the way round it. Never let the information sit in one
+    qubit: spread it over several, so that noise on any one of them leaves the information intact somewhere it can be read
+    back from. The obvious way to spread it, copying, is forbidden; this unit finds the way that is allowed, and then proves
+    the two general theorems — the Knill–Laflamme conditions and the discretisation of errors — that say when any such scheme
+    works.</p>
+    <p>What this unit is not. It is not the stabiliser formalism: the codes here are handled directly as subspaces and their
+    errors as Kraus operators, and unit 23 then shows how the checks $Z_0Z_1$ and $Z_1Z_2$ are the generators of a group that
+    describes the code more economically. It is not fault tolerance either: here every syndrome circuit is assumed perfect,
+    which is false, and unit 24 is about what to do when the corrector is as noisy as the thing corrected. The last section
+    teaches exactly as much classical coding theory as unit 23 needs, and no more.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through it: the three-qubit bit-flip code, then Shor's nine-qubit code built from it. Proofs are on
+    the slides when they are one line and in these notes under <b>Full proof</b> when they are not; anything imported is
+    labelled <i>cited</i>, with where its proof is. Every number was computed.</p>
+    <p><b>Used from earlier units.</b> Unit 00: complex inner-product spaces, Dirac notation, projectors, Hermitian and unitary
+    operators, the spectral theorem. Unit 01: projective measurement of an observable, the Born rule and the post-measurement
+    state. Unit 02: the Pauli matrices, their products ($XY = iZ$ and cyclically), the fact that $I, X, Y, Z$ are a basis of
+    the $2\times2$ complex matrices, $H$, and $R_P(\theta) = e^{-i\theta P/2}$. Unit 03: tensor products, the ordering of
+    qubits, Schmidt rank. Unit 04: density operators and the partial trace. Unit 10: circuits, CNOT and the Toffoli gate,
+    open controls, and deferred measurement. Unit 21: completely positive maps and channels, Kraus operators
+    $\Phi(\rho) = \sum_kA_k\rho A_k^\dagger$, the Stinespring picture of noise as a unitary on system and environment, and the
+    bit-flip, phase-flip and amplitude-damping channels. No-cloning is unit 05's, which is not on this unit's path, so it is
+    proved again here in its two-line form. Linear algebra over $\mathbb F_2$ is unit 14's, also not on the path, so the
+    little that is needed is set up in section 6 from the field axioms.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · overview</p>
+  <h2>One qubit, three copies that are not copies</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="bf">the bit-flip code</span></span>
+        <p class="small">One qubit $\alpha\ket0 + \beta\ket1$, $|\alpha|^2 + |\beta|^2 = 1$, to be kept through noise that flips each of three qubits independently with probability $p$. Spread it as</p>
+        $$\alpha\ket0 + \beta\ket1 \;\longmapsto\; \alpha\ket{000} + \beta\ket{111}.$$
+        <p class="small"><b>The question.</b> Redundancy protects a classical bit. <b>Can it protect a qubit — and if so, which codes work, against which errors?</b></p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> three objections · <b>2</b> the bit-flip code · <b>3</b> phase flips and Shor's code · <b>4</b> Knill–Laflamme · <b>5</b> discretisation and distance · <b>6</b> classical linear codes.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 500 196" width="650" role="img" aria-label="a pipeline: one qubit psi is encoded by two CNOTs into three qubits; noise flips one of them; two parities are measured; one X is applied or none; two CNOTs decode back to psi">
+<line x1="14" y1="95" x2="62" y2="95" class="ink" stroke-width="1.6"/>
+<text x="14" y="82" font-size="14" text-anchor="start">|ψ⟩</text>
+<line x1="112" y1="50" x2="410" y2="50" class="ink" stroke-width="1.6"/>
+<line x1="112" y1="95" x2="410" y2="95" class="ink" stroke-width="1.6"/>
+<line x1="112" y1="140" x2="410" y2="140" class="ink" stroke-width="1.6"/>
+<line x1="456" y1="95" x2="486" y2="95" class="ink" stroke-width="1.6"/>
+<text x="486" y="82" font-size="14" text-anchor="end">|ψ⟩</text>
+<rect x="62" y="32" width="50" height="126" rx="5" class="fill-ground unit" stroke-width="1.6"/><text x="87" y="100" font-size="13" text-anchor="middle">encode</text><text x="87" y="182" font-size="11.5" text-anchor="middle" class="soft">two CNOTs</text>
+<rect x="132" y="32" width="70" height="126" rx="5" fill="none" class="warn" stroke-width="1.4" stroke-dasharray="5 4"/>
+<rect x="153" y="81" width="28" height="28" class="fill-ground warn" stroke-width="1.6"/><text x="167" y="100.2" font-size="15" text-anchor="middle">X</text>
+<text x="167" y="182" font-size="11.5" text-anchor="middle" class="soft">noise</text>
+<rect x="222" y="32" width="74" height="126" rx="5" class="fill-ground accent" stroke-width="1.6"/><text x="259" y="100" font-size="13" text-anchor="middle">syndrome</text><text x="259" y="182" font-size="11.5" text-anchor="middle" class="soft">two parities</text>
+<rect x="316" y="32" width="64" height="126" rx="5" class="fill-ground accent" stroke-width="1.6"/><text x="348" y="100" font-size="13" text-anchor="middle">correct</text><text x="348" y="182" font-size="11.5" text-anchor="middle" class="soft">one X, or none</text>
+<rect x="406" y="32" width="50" height="126" rx="5" class="fill-ground unit" stroke-width="1.6"/><text x="431" y="100" font-size="13" text-anchor="middle">decode</text><text x="431" y="182" font-size="11.5" text-anchor="middle" class="soft">two CNOTs</text>
+<text x="250" y="18" font-size="12" text-anchor="middle" class="soft">α|000⟩ + β|111⟩ on three qubits</text>
+</svg>
+        <p class="cap">One round of the bit-flip code. Every box is a circuit of unit 10's gates; section 2 builds each one.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="logical qubit">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="bf">the bit-flip code</span> is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the example goes.</b> Section 1 states the three objections against the bare qubit. Section 2 builds the
+    bit-flip code, draws its syndrome circuit, tabulates every outcome (<i>Worked: the syndrome table</i>) and computes its
+    failure rate (<i>Worked: the logical failure rate</i>). Section 3 breaks it with a single phase flip and repairs that
+    with Shor's nine-qubit code, which contains three copies of it. Section 4 checks the Knill–Laflamme conditions on it
+    (<i>Worked: Knill–Laflamme for the bit-flip code</i>) and on Shor's code. Section 5 hits Shor's code with an arbitrary
+    small rotation and corrects it exactly (<i>Worked: a small rotation on Shor's code</i>). Section 6 recognises its two
+    checks as the parity-check matrix of a classical code. The close answers the three objections in turn.</p>
+    <p><b>Why this example.</b> It is the smallest code that does something, and every general idea of the unit — encoding
+    by an isometry, measuring only what is constant on the code, the conditions on $P E_i^\dagger E_jP$ — can be checked on it
+    by hand. Its failure against phase flips is just as instructive as its success against bit flips. It is also the code
+    the first experiments ran, the first in its phase-flip form (<i>The phase-flip code: the same code, seen through $H$</i>): an NMR
+    experiment on three nuclear spins in a molecule that corrected phase errors (Cory et al., <i>Phys. Rev. Lett.</i>
+    81, 2152, 1998) and, at larger size, a row of nine superconducting qubits running a repetition code against bit flips
+    only (Kelly et al., <i>Nature</i> 519, 66, 2015).</p>
+    <p>Every circuit and every number in this deck can also be checked with the course's optional simulator; none needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>Why it looks impossible</h2>
+  <p>Classical error correction copies, fixes one kind of error, and reads the bits. A qubit forbids all three.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the objections</p>
+  <h2>Repetition protects a bit</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the classical <span class="term">repetition code</span></span>
+        <p class="small">Send $0$ as $000$ and $1$ as $111$. Each bit flips independently with probability $p$. Decode by <b>majority vote</b>.</p>
+        <p class="small">The vote is wrong only if two or three bits flipped: probability $3p^2(1 - p) + p^3 = 3p^2 - 2p^3$, which at $p = 10^{-3}$ is $2.998\times10^{-6}$. Section 2 derives the same number for the quantum code.</p>
+      </div>
+      <p class="small"><b>Why bother.</b> Gates on today's best devices err with probability of order $10^{-3}$ (unit 26). A circuit of a thousand such gates then fails with probability $1 - (1 - 10^{-3})^{1000} = 0.632$, and useful algorithms are far longer (unit 24 counts them).</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 140" width="546" role="img" aria-label="a bit 0 is copied to 000; noise flips the middle bit, giving 010; a majority vote returns 0">
+<rect x="20" y="60" width="26" height="30" rx="3" class="fill-ground ink" stroke-width="1.5"/><text x="33" y="81" font-size="16" text-anchor="middle" class="mono">0</text>
+<line x1="52" y1="75" x2="84.8" y2="75" class="ink" stroke-width="1.6"/><polygon points="92,75 83.6,78.3 83.6,71.7" class="fill-ink"/>
+<text x="72" y="62" font-size="11.5" text-anchor="middle" class="soft">copy</text>
+<rect x="98" y="60" width="26" height="30" rx="3" class="fill-ground ink" stroke-width="1.5"/><text x="111" y="81" font-size="16" text-anchor="middle" class="mono">0</text><rect x="128" y="60" width="26" height="30" rx="3" class="fill-ground ink" stroke-width="1.5"/><text x="141" y="81" font-size="16" text-anchor="middle" class="mono">0</text><rect x="158" y="60" width="26" height="30" rx="3" class="fill-ground ink" stroke-width="1.5"/><text x="171" y="81" font-size="16" text-anchor="middle" class="mono">0</text>
+<line x1="190" y1="75" x2="222.8" y2="75" class="ink" stroke-width="1.6"/><polygon points="230,75 221.6,78.3 221.6,71.7" class="fill-ink"/>
+<text x="210" y="62" font-size="11.5" text-anchor="middle" class="soft">noise</text>
+<rect x="236" y="60" width="26" height="30" rx="3" class="fill-ground ink" stroke-width="1.5"/><text x="249" y="81" font-size="16" text-anchor="middle" class="mono">0</text><rect x="266" y="60" width="26" height="30" rx="3" class="fill-ground warn" stroke-width="1.5"/><text x="279" y="81" font-size="16" text-anchor="middle" class="mono">1</text><rect x="296" y="60" width="26" height="30" rx="3" class="fill-ground ink" stroke-width="1.5"/><text x="309" y="81" font-size="16" text-anchor="middle" class="mono">0</text>
+<line x1="328" y1="75" x2="360.8" y2="75" class="ink" stroke-width="1.6"/><polygon points="368,75 359.6,78.3 359.6,71.7" class="fill-ink"/>
+<text x="348" y="62" font-size="11.5" text-anchor="middle" class="soft">vote</text>
+<rect x="374" y="60" width="26" height="30" rx="3" class="fill-ground ink" stroke-width="1.5"/><text x="387" y="81" font-size="16" text-anchor="middle" class="mono">0</text>
+<text x="210" y="125" font-size="12.5" text-anchor="middle" class="soft">fails only if two or three bits flip:  3p²(1 − p) + p³</text>
+<text x="210" y="30" font-size="13" text-anchor="middle">the classical repetition code</text>
+</svg>
+        <p class="cap">Copy, suffer, vote. Each of the three steps has a quantum objection.</p>
+      </div>
+      <div class="box warn"><span class="label">three objections</span>
+        <p class="small"><b>1.</b> Copying a qubit is impossible. <b>2.</b> A bit has one error, a qubit a continuum. <b>3.</b> A vote reads the bits, and reading a qubit destroys it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The model.</b> Each bit passes independently through a <i>binary symmetric channel</i>: it arrives flipped with
+    probability $p$ and intact with probability $1 - p$. The number of flips among three is binomial, so
+    $\Pr[\text{0 flips}] + \Pr[1] + \Pr[2] + \Pr[3] = (1-p)^3 + 3p(1-p)^2 + 3p^2(1-p) + p^3 = \big((1 - p) + p\big)^3 = 1$. Majority vote
+    returns the sent bit exactly when at most one flipped.</p>
+    <p><b>The 0.632.</b> If each of $N$ gates fails independently with probability $\varepsilon$, the circuit runs clean with
+    probability $(1 - \varepsilon)^N$; at $\varepsilon = 10^{-3}$, $N = 1000$, that is $0.3677$, so failure is $0.632$, close to
+    $1 - e^{-1}$. Treating any single failure as fatal is pessimistic, but not by much for an algorithm whose answer is one
+    precise number.</p>
+    <p><b>History.</b> Von Neumann showed in 1956 that classical logic built from unreliable gates can be made reliable by
+    repetition and majority votes ("Probabilistic logics and the synthesis of reliable organisms from unreliable components",
+    <i>Automata Studies</i>, 1956). In the early 1990s several physicists argued that nothing like this could work for a
+    quantum computer, for the three reasons on this slide (one published version: W. G. Unruh, <i>Phys. Rev. A</i> 51, 992,
+    1995). Shor's nine-qubit code, later the same year, was the answer — and section 3 builds it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the objections</p>
+  <h2>Objection one: there is no copier</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">no-cloning theorem</span> (Wootters–Zurek, Dieks, 1982)</span>
+        <p class="small">There is no unitary $U$ and fixed state $\ket e$ with $U(\ket\psi\otimes\ket e) = \ket\psi\otimes\ket\psi$ for every state $\ket\psi$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">If $U$ copies $\ket\psi$ and $\ket\varphi$, take inner products of the two equations; $U^\dagger U = I$ gives</p>
+        $$\braket{\varphi|\psi} = \braket{\varphi|\psi}\braket{e|e} = \braket{\varphi|\psi}^2 ,$$
+        <p class="small">so $\braket{\varphi|\psi}$ is $0$ or $1$. Two states that are neither equal nor orthogonal cannot both be copied. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 410 180" width="468" role="img" aria-label="a box U takes psi and a blank state e and is supposed to output psi twice; the output is crossed out">
+<rect x="150" y="30" width="80" height="110" rx="5" class="fill-ground ink" stroke-width="1.6"/>
+<text x="190" y="92" font-size="22" text-anchor="middle">U</text>
+<line x1="70" y1="60" x2="150" y2="60" class="ink" stroke-width="1.6"/>
+<line x1="230" y1="60" x2="310" y2="60" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="110" x2="150" y2="110" class="ink" stroke-width="1.6"/>
+<line x1="230" y1="110" x2="310" y2="110" class="ink" stroke-width="1.6"/>
+<text x="64" y="65" font-size="15" text-anchor="end">|ψ⟩</text>
+<text x="64" y="115" font-size="15" text-anchor="end">|e⟩</text>
+<text x="316" y="65" font-size="15" text-anchor="start">|ψ⟩</text>
+<text x="316" y="115" font-size="15" text-anchor="start">|ψ⟩</text>
+<line x1="358" y1="58" x2="398" y2="118" class="warn" stroke-width="3"/>
+<line x1="398" y1="58" x2="358" y2="118" class="warn" stroke-width="3"/>
+<text x="190" y="168" font-size="12.5" text-anchor="middle" class="soft">for every |ψ⟩: impossible</text>
+</svg>
+        <p class="cap">The machine that repetition needs.</p>
+      </div>
+      <div class="box good"><span class="label">what can be copied</span>
+        <p class="small">An orthonormal basis. CNOT does it: $\mathrm{CNOT}\ket x\ket0 = \ket x\ket x$ for $x = 0, 1$. On a superposition it does something else: $\alpha\ket{00} + \beta\ket{11}$, not $\ket\psi\ket\psi$. That something else is the code.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof, with an environment</h4>
+    <p>A copier might also change some third system, its own "machine state": $U\ket\psi\ket e\ket M = \ket\psi\ket\psi\ket{M_\psi}$.
+    Inner products now give $\braket{\varphi|\psi} = \braket{\varphi|\psi}^2\braket{M_\varphi|M_\psi}$. If $\braket{\varphi|\psi}\ne0$, divide:
+    $1 = \braket{\varphi|\psi}\braket{M_\varphi|M_\psi}$, and since both factors have modulus at most 1 (Cauchy–Schwarz, unit 00),
+    $|\braket{\varphi|\psi}| = 1$, so the two states are equal up to phase. The conclusion is unchanged: only mutually
+    orthogonal states can be cloned by one machine.</p>
+    <p><b>The CNOT line.</b> $\mathrm{CNOT}_{01}(\alpha\ket0 + \beta\ket1)\ket0 = \alpha\ket{00} + \beta\ket{11}$ by linearity, while
+    $\ket\psi\ket\psi = \alpha^2\ket{00} + \alpha\beta\ket{01} + \alpha\beta\ket{10} + \beta^2\ket{11}$. They agree only when
+    $\alpha\beta = 0$, that is on the basis states — the orthogonal pair the theorem allows.</p>
+    <p>For the learner who took unit 05: this is that unit's first theorem, and unit 05 goes on to the best approximate
+    cloner. Nothing here needs it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the objections</p>
+  <h2>Objection two: errors form a continuum</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="small">A classical bit has one error: the flip. A qubit can suffer any unitary near $I$ — for instance a small rotation of the Bloch sphere (unit 02), for every angle $\theta$:</p>
+      $$R_Y(\theta)\ket0 = \cos\tfrac\theta2\ket0 + \sin\tfrac\theta2\ket1 .$$
+      <p class="small">At $\theta = 0.2$ a later reading gives $1$ with probability $\sin^2 0.1 = 0.00997$. And not only unitaries: unit 21's noise is a channel, such as amplitude damping with Kraus operators $\mathrm{diag}(1, \sqrt{1 - \gamma})$ and $\sqrt\gamma\ket0\!\bra1$, for every $\gamma \in [0, 1]$.</p>
+      <div class="box warn"><span class="label">the worry</span>
+        <p class="small">A correction procedure must recognise the error before undoing it. Infinitely many errors seem to need infinitely many syndromes, and infinitely precise ones.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 340 290" width="468" role="img" aria-label="the Bloch sphere with ket 0 at the north pole; two small circles around the pole mark every state reached from ket 0 by a rotation of 0.2 and of 0.45 radians about some axis in the equatorial plane; one of them, R_Y of theta applied to ket 0, is drawn as an arrow">
+<circle cx="170" cy="150" r="110" fill="none" class="ink" stroke-width="1.4"/><path d="M 60 150 A 110 32.2 0 0 0 280 150" fill="none" class="rule" stroke-width="1.2"/><path d="M 60 150 A 110 32.2 0 0 1 280 150" fill="none" class="rule" stroke-width="1.2" stroke-dasharray="4 4"/><line x1="170" y1="40" x2="170" y2="260" class="rule" stroke-width="1" stroke-dasharray="2 3"/>
+<circle cx="170" cy="44.8" r="5" class="fill-unit"/>
+<text x="180" y="36.8" font-size="14" text-anchor="start" class="halo">|0⟩</text>
+<circle cx="170" cy="255.2" r="4" class="fill-ink"/>
+<text x="180" y="271.2" font-size="14" text-anchor="start" class="halo">|1⟩</text>
+<path d="M159.1,52.4 L160.8,52.7 L162.5,52.9 L164.3,53.1 L166.2,53.2 L168.1,53.3 L170,53.3 L171.9,53.3 L173.8,53.2 L175.7,53.1 L177.5,52.9 L179.2,52.7 L180.9,52.4 L182.5,52.1 L184,51.8 L185.5,51.4 L186.7,51 L187.9,50.6 L188.9,50.1 L189.8,49.6 L190.5,49.1 L191.1,48.6 L191.5,48 L191.8,47.5 L191.9,46.9 L191.8,46.3 L191.5,45.8 L191.1,45.2 L190.5,44.7 L189.8,44.2 L188.9,43.7 L187.9,43.2 L186.7,42.8 L185.5,42.4 L184,42 L182.5,41.7 L180.9,41.4 L179.2,41.1 L177.5,40.9 L175.7,40.7 L173.8,40.6 L171.9,40.5 L170,40.5 L168.1,40.5 L166.2,40.6 L164.3,40.7 L162.5,40.9 L160.8,41.1 L159.1,41.4 L157.5,41.7 L156,42 L154.5,42.4 L153.3,42.8 L152.1,43.2 L151.1,43.7 L150.2,44.2 L149.5,44.7 L148.9,45.2 L148.5,45.8 L148.2,46.3 L148.1,46.9 L148.2,47.5 L148.5,48 L148.9,48.6 L149.5,49.1 L150.2,49.6 L151.1,50.1 L152.1,50.6 L153.3,51 L154.5,51.4 L156,51.8 L157.5,52.1 L159.1,52.4" fill="none" class="alt" stroke-width="1.6"/>
+<path d="M146.1,67.4 L149.8,68 L153.6,68.4 L157.6,68.8 L161.7,69.1 L165.8,69.2 L170,69.3 L174.2,69.2 L178.3,69.1 L182.4,68.8 L186.4,68.4 L190.2,68 L193.9,67.4 L197.4,66.7 L200.8,66 L203.8,65.2 L206.7,64.3 L209.2,63.3 L211.4,62.3 L213.4,61.2 L215,60.1 L216.2,58.9 L217.1,57.7 L217.7,56.5 L217.8,55.3 L217.7,54.1 L217.1,52.8 L216.2,51.7 L215,50.5 L213.4,49.4 L211.4,48.3 L209.2,47.3 L206.7,46.3 L203.8,45.4 L200.8,44.6 L197.4,43.8 L193.9,43.2 L190.2,42.6 L186.4,42.1 L182.4,41.8 L178.3,41.5 L174.2,41.3 L170,41.3 L165.8,41.3 L161.7,41.5 L157.6,41.8 L153.6,42.1 L149.8,42.6 L146.1,43.2 L142.6,43.8 L139.2,44.6 L136.2,45.4 L133.3,46.3 L130.8,47.3 L128.6,48.3 L126.6,49.4 L125,50.5 L123.8,51.7 L122.9,52.8 L122.3,54.1 L122.2,55.3 L122.3,56.5 L122.9,57.7 L123.8,58.9 L125,60.1 L126.6,61.2 L128.6,62.3 L130.8,63.3 L133.3,64.3 L136.2,65.2 L139.2,66 L142.6,66.7 L146.1,67.4" fill="none" class="accent" stroke-width="1.6" stroke-dasharray="4 3"/>
+<line x1="170" y1="150" x2="148.1" y2="74.3" class="accent" stroke-width="1.8"/><polygon points="146.1,67.4 151.6,74.5 145.2,76.4" class="fill-accent"/>
+<line x1="170" y1="150" x2="170" y2="44.8" class="unit" stroke-width="1.8"/>
+<text x="138.1" y="85.4" font-size="13" text-anchor="end" class="halo">R<tspan baseline-shift="sub" font-size="9">Y</tspan>(θ)|0⟩</text>
+<text x="101.3" y="189.8" font-size="14" text-anchor="middle" class="soft">x</text>
+<text x="284.3" y="174.3" font-size="14" text-anchor="middle" class="soft">y</text>
+<text x="330" y="40" font-size="12.5" text-anchor="end" class="alt">θ = 0.2</text>
+<text x="330" y="58" font-size="12.5" text-anchor="end" class="fill-accent">θ = 0.45</text>
+</svg>
+      <p class="cap">Every point on either small circle is $\ket0$ after a different error. The arrow is one of them, $R_Y(0.45)\ket0$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The check.</b> $R_Y(\theta) = \cos\tfrac\theta2 I - i\sin\tfrac\theta2 Y$ (unit 02) and $Y\ket0 = i\ket1$, so
+    $R_Y(\theta)\ket0 = \cos\tfrac\theta2\ket0 + \sin\tfrac\theta2\ket1$: normalised, since $\cos^2 + \sin^2 = 1$; at $\theta = 0$ it is
+    $\ket0$; at $\theta = \pi$ it is $\ket1$, the full bit flip. Its Bloch vector is $(\sin\theta, 0, \cos\theta)$, at angle $\theta$
+    from the pole, as drawn.</p>
+    <p><b>Where such errors come from</b> (unit 21). A qubit's frequency is nudged by fields nobody controls, so its relative
+    phase wanders: a small $R_Z$ of random angle. A control pulse slightly too long over-rotates: a small $R_X$ or $R_Y$ of
+    fixed angle. Energy leaks to the surroundings: amplitude damping, which is not unitary at all. None of these is a flip.</p>
+    <p><b>Why this looks fatal.</b> Analogue computation has the same weakness: an error in a continuous
+    quantity cannot be detected by comparing against a finite set of allowed values, and small errors accumulate. Digital
+    computation works because each bit is forced back to $0$ or $1$ at every step. Section 5 proves that the syndrome
+    measurement does the same forcing for a code — and that this is a theorem about linearity, not an approximation.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the objections</p>
+  <h2>Objection three: to look is to disturb</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A majority vote reads every bit. Reading a qubit in the standard basis is a projective measurement (unit 01): outcome $0$ with probability $|\alpha|^2$ and the state becomes $\ket0$; outcome $1$ with probability $|\beta|^2$ and the state becomes $\ket1$. Probabilities $|\alpha|^2 + |\beta|^2 = 1$.</p>
+      <p class="small">One outcome is one sample of a coin with bias $|\alpha|^2$; the relative phase of $\alpha$ and $\beta$ is not even in the distribution. And afterwards the superposition is gone.</p>
+      <div class="box good"><span class="label">the way out, previewed</span>
+        <p class="small">Measure something whose value is <b>the same on every state of the code</b>. On $\alpha\ket{000} + \beta\ket{111}$ the parity of qubits 0 and 1 is even whatever $\alpha, \beta$ are. Measuring it returns "even" with probability 1 and changes nothing.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 190" width="572" role="img" aria-label="a qubit alpha 0 plus beta 1 enters a meter; with probability alpha squared the outcome is 0 and the state becomes ket 0, with probability beta squared the outcome is 1 and the state becomes ket 1">
+<line x1="90" y1="90" x2="150" y2="90" class="ink" stroke-width="1.6"/>
+<text x="84" y="84" font-size="14" text-anchor="end">α|0⟩ + β|1⟩</text>
+<rect x="150" y="76" width="34" height="28" class="fill-ground ink" stroke-width="1.5"/><path d="M 156 98 A 11 11 0 0 1 178 98" fill="none" class="ink" stroke-width="1.3"/><line x1="167" y1="98" x2="175" y2="82" class="ink" stroke-width="1.3"/>
+<line x1="186" y1="82" x2="253.6" y2="48.2" class="ink" stroke-width="1.6"/><polygon points="260,45 254,51.7 251,45.8" class="fill-ink"/>
+<line x1="186" y1="98" x2="253.6" y2="131.8" class="ink" stroke-width="1.6"/><polygon points="260,135 251,134.2 254,128.3" class="fill-ink"/>
+<text x="268" y="40" font-size="14" text-anchor="start">0,  prob |α|²  →  |0⟩</text>
+<text x="268" y="146" font-size="14" text-anchor="start">1,  prob |β|²  →  |1⟩</text>
+<text x="250" y="178" font-size="12.5" text-anchor="middle" class="soft">either way α and β are gone</text>
+</svg>
+        <p class="cap">Reading the bit: one sample, and the state collapses to what was read.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The rule used.</b> Unit 01: measuring an observable $A = \sum_a aP_a$ on $\ket\psi$ gives $a$ with probability
+    $\braket{\psi|P_a|\psi}$ and leaves $P_a\ket\psi/\lVert P_a\ket\psi\rVert$. For the standard basis $P_0 = \ket0\!\bra0$,
+    $P_1 = \ket1\!\bra1$: probabilities $|\alpha|^2, |\beta|^2$, states $\ket0, \ket1$ up to the phases of $\alpha$ and $\beta$.</p>
+    <p><b>The general lesson, which the preview uses.</b> If $\ket\psi$ lies entirely in one eigenspace of $A$, so that
+    $P_a\ket\psi = \ket\psi$, then outcome $a$ has probability $\braket{\psi|\psi} = 1$ and the post-measurement state is
+    $\ket\psi$ itself: such a measurement disturbs nothing and teaches nothing about $\psi$. Error correction is built from
+    exactly these measurements, chosen so that the <b>error</b> decides which eigenspace the state is in, while the encoded
+    information does not.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>The bit-flip code</h2>
+  <p>Encode by entangling, measure only parities, correct. It answers all three objections, for bit flips.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>Encode by entangling, not by copying</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">bit-flip code</span></span>
+        <p class="small">Three qubits; the <span class="term">logical qubit</span> has basis $\ket{0_L} = \ket{000}$, $\ket{1_L} = \ket{111}$, spanning the <span class="term">code space</span> $C$, with projector $P = \ket{000}\!\bra{000} + \ket{111}\!\bra{111}$. The encoding is</p>
+        $$V = \ket{000}\!\bra0 + \ket{111}\!\bra1 ,$$
+        <p class="small">so $V(\alpha\ket0 + \beta\ket1) = \alpha\ket{000} + \beta\ket{111}$.</p>
+        <p class="small">An <b>isometry</b>: $V^\dagger V = \ket0\!\bra0 + \ket1\!\bra1 = I$, so the encoded state is normalised, $|\alpha|^2 + |\beta|^2 = 1$.</p>
+      </div>
+      <div class="box warn"><span class="label">not three copies</span>
+        <p class="small">$(\alpha\ket0 + \beta\ket1)^{\otimes3}$ has amplitude $\alpha^2\beta$ on $\ket{001}$; the code has none. $V$ is linear, so no-cloning does not object.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 480 190" width="611" role="img" aria-label="the encoding circuit: psi on qubit 0, ket 0 on qubits 1 and 2; a CNOT from qubit 0 to qubit 1, then a CNOT from qubit 0 to qubit 2; the output is alpha 000 plus beta 111">
+<line x1="60" y1="40" x2="330" y2="40" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="90" x2="330" y2="90" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="140" x2="330" y2="140" class="ink" stroke-width="1.6"/>
+<text x="54" y="45" font-size="15" text-anchor="end">|ψ⟩</text>
+<text x="54" y="95" font-size="15" text-anchor="end">|0⟩</text>
+<text x="54" y="145" font-size="15" text-anchor="end">|0⟩</text>
+<line x1="130" y1="40" x2="130" y2="100" class="ink" stroke-width="1.6"/><circle cx="130" cy="40" r="5.5" class="fill-ink"/><circle cx="130" cy="90" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="120" y1="90" x2="140" y2="90" class="ink" stroke-width="1.6"/><line x1="130" y1="80" x2="130" y2="100" class="ink" stroke-width="1.6"/>
+<line x1="210" y1="40" x2="210" y2="150" class="ink" stroke-width="1.6"/><circle cx="210" cy="40" r="5.5" class="fill-ink"/><circle cx="210" cy="140" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="200" y1="140" x2="220" y2="140" class="ink" stroke-width="1.6"/><line x1="210" y1="130" x2="210" y2="150" class="ink" stroke-width="1.6"/>
+<text x="345" y="45" font-size="13" text-anchor="start" class="soft">q0</text>
+<text x="345" y="95" font-size="13" text-anchor="start" class="soft">q1</text>
+<text x="345" y="145" font-size="13" text-anchor="start" class="soft">q2</text>
+<path d="M 375 30 Q 385 30 385 50 L 385 80 Q 385 90 395 90 Q 385 90 385 100 L 385 130 Q 385 150 375 150" fill="none" class="ink" stroke-width="1.3"/>
+<text x="402" y="86" font-size="14" text-anchor="start">α|000⟩</text>
+<text x="402" y="106" font-size="14" text-anchor="start">+ β|111⟩</text>
+<text x="170" y="178" font-size="12" text-anchor="middle" class="soft">|x00⟩ → |xx0⟩ → |xxx⟩ for x = 0, 1, then linearity</text>
+</svg>
+        <p class="cap">$\mathrm{CNOT}_{02}\,\mathrm{CNOT}_{01}$ applied to $\ket\psi\ket{00}$. Each CNOT copies a basis state; together they entangle.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The circuit, checked.</b> On a basis input $\ket{x00}$: $\mathrm{CNOT}_{01}$ gives $\ket{xx0}$, then $\mathrm{CNOT}_{02}$ gives
+    $\ket{xxx}$. By linearity $\alpha\ket{000} + \beta\ket{100} \mapsto \alpha\ket{000} + \beta\ket{111}$. So the circuit equals $V$ on
+    inputs whose qubits 1 and 2 are $\ket{00}$, which is all it is ever given. Decoding is the same two CNOTs in reverse order
+    (each is its own inverse), which returns $\alpha\ket{000} + \beta\ket{100} = (\alpha\ket0 + \beta\ket1)\ket{00}$.</p>
+    <p><b>Where the information lives.</b> Trace out qubits 1 and 2 (unit 04): qubit 0 is left in
+    $|\alpha|^2\ket0\!\bra0 + |\beta|^2\ket1\!\bra1$, and by symmetry so is each of the others. No single qubit carries the
+    relative phase of $\alpha$ and $\beta$; it is held only in the correlations between them. When $\alpha\beta \ne 0$ the state is
+    entangled across any cut, with Schmidt rank 2 (unit 03). This is the precise sense of "encode by entangling".</p>
+    <p><b>Three copies, written out.</b> $(\alpha\ket0 + \beta\ket1)^{\otimes3} = \sum_x \alpha^{3 - |x|}\beta^{|x|}\ket x$ over all eight
+    strings, $|x|$ the number of ones. At $\alpha = \beta = 1/\sqrt2$ that is eight amplitudes of $1/(2\sqrt2) = 0.354$; the code
+    state has two amplitudes of $0.707$. They are different states, and only the second is reachable by a fixed unitary for
+    every input.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>Each bit flip moves the code to its own plane</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">Write $X_k$ for $X$ on qubit $k$. Each maps $C$ onto a two-dimensional subspace:</p>
+      $$X_0C = \mathrm{span}\{\ket{100}, \ket{011}\},$$
+      $$X_1C = \mathrm{span}\{\ket{010}, \ket{101}\},$$
+      $$X_2C = \mathrm{span}\{\ket{001}, \ket{110}\}.$$
+      <p class="small">They are spanned by disjoint sets of basis vectors, so $C, X_0C, X_1C, X_2C$ are <b>mutually orthogonal</b>, and $4\times 2 = 8$: they fill the whole space.</p>
+      <p class="small">$X_k$ is unitary, so the damaged state $\alpha X_k\ket{000} + \beta X_k\ket{111}$ still carries $\alpha, \beta$ intact. Only its plane has changed.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 530 270" width="676" role="img" aria-label="the cube of three-bit strings; 000 and 111 at opposite corners are the code; each of the other three pairs of opposite corners, 100 and 011, 010 and 101, 001 and 110, is the image of the code under one bit flip">
+<line x1="70" y1="235" x2="70" y2="85" class="rule" stroke-width="1.6"/>
+<line x1="70" y1="235" x2="145" y2="183" class="rule" stroke-width="1.6"/>
+<line x1="70" y1="235" x2="220" y2="235" class="rule" stroke-width="1.6"/>
+<line x1="70" y1="85" x2="145" y2="33" class="rule" stroke-width="1.6"/>
+<line x1="70" y1="85" x2="220" y2="85" class="rule" stroke-width="1.6"/>
+<line x1="145" y1="183" x2="145" y2="33" class="rule" stroke-width="1.6"/>
+<line x1="145" y1="183" x2="295" y2="183" class="rule" stroke-width="1.6"/>
+<line x1="145" y1="33" x2="295" y2="33" class="rule" stroke-width="1.6"/>
+<line x1="220" y1="235" x2="220" y2="85" class="rule" stroke-width="1.6"/>
+<line x1="220" y1="235" x2="295" y2="183" class="rule" stroke-width="1.6"/>
+<line x1="220" y1="85" x2="295" y2="33" class="rule" stroke-width="1.6"/>
+<line x1="295" y1="183" x2="295" y2="33" class="rule" stroke-width="1.6"/>
+<circle cx="70" cy="235" r="8" class="fill-unit"/>
+<text x="58" y="255" font-size="14" text-anchor="end" class="mono halo">000</text>
+<circle cx="70" cy="85" r="8" class="fill-good"/>
+<text x="58" y="90" font-size="14" text-anchor="end" class="mono halo">001</text>
+<circle cx="145" cy="183" r="8" class="fill-alt"/>
+<text x="133" y="175" font-size="14" text-anchor="end" class="mono halo">010</text>
+<circle cx="145" cy="33" r="8" class="fill-accent"/>
+<text x="133" y="27" font-size="14" text-anchor="end" class="mono halo">011</text>
+<circle cx="220" cy="235" r="8" class="fill-accent"/>
+<text x="232" y="255" font-size="14" text-anchor="start" class="mono halo">100</text>
+<circle cx="220" cy="85" r="8" class="fill-alt"/>
+<text x="232" y="105" font-size="14" text-anchor="start" class="mono halo">101</text>
+<circle cx="295" cy="183" r="8" class="fill-good"/>
+<text x="307" y="201" font-size="14" text-anchor="start" class="mono halo">110</text>
+<circle cx="295" cy="33" r="8" class="fill-unit"/>
+<text x="307" y="27" font-size="14" text-anchor="start" class="mono halo">111</text>
+<circle cx="395" cy="65" r="7" class="fill-unit"/>
+<text x="409" y="70" font-size="14" text-anchor="start">C</text>
+<text x="447" y="70" font-size="13" text-anchor="start" class="mono soft">000, 111</text>
+<circle cx="395" cy="105" r="7" class="fill-accent"/>
+<text x="409" y="110" font-size="14" text-anchor="start">X₀C</text>
+<text x="447" y="110" font-size="13" text-anchor="start" class="mono soft">100, 011</text>
+<circle cx="395" cy="145" r="7" class="fill-alt"/>
+<text x="409" y="150" font-size="14" text-anchor="start">X₁C</text>
+<text x="447" y="150" font-size="13" text-anchor="start" class="mono soft">010, 101</text>
+<circle cx="395" cy="185" r="7" class="fill-good"/>
+<text x="409" y="190" font-size="14" text-anchor="start">X₂C</text>
+<text x="447" y="190" font-size="13" text-anchor="start" class="mono soft">001, 110</text>
+<text x="389" y="32" font-size="12" text-anchor="start" class="soft">same colour = one plane</text>
+</svg>
+      <p class="cap">The eight basis states as the corners of a cube; one flip is one edge. The code is a pair of opposite corners, and so is each of its three images.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The decomposition.</b> $(\mathbb C^2)^{\otimes3} = C\oplus X_0C\oplus X_1C\oplus X_2C$, an orthogonal direct sum, with
+    projectors $P$ and $P_k = X_kPX_k$. Check that $P_k$ is a projector: it is Hermitian, and
+    $P_k^2 = X_kPX_kX_kPX_k = X_kP^2X_k = P_k$. Check completeness: the four projectors are the sums of $\ket x\!\bra x$ over the
+    four antipodal pairs of the cube, which partition the eight corners, so $P + P_0 + P_1 + P_2 = I$.</p>
+    <p><b>Why this is the whole idea.</b> If a measurement could tell which of the four planes the state lies in, without
+    telling where in the plane, the error would be identified and the information untouched. The planes are eigenspaces of
+    something; the next slide finds what.</p>
+    <p><b>What the picture does not show.</b> Two flips, $X_0X_1$, send $\ket{000}$ to $\ket{110}$ and $\ket{111}$ to $\ket{001}$: into
+    $X_2C$, the same plane as a single $X_2$. The code cannot tell these apart, and section 2's failure rate is exactly the
+    probability of being fooled.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>Parities, not values</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the two <span class="term">parity checks</span></span>
+        <p class="small">$Z_0Z_1 = Z\otimes Z\otimes I$ and $Z_1Z_2 = I\otimes Z\otimes Z$. Each is Hermitian and unitary, squares to $I$, and has eigenvalues $\pm1$. On basis states</p>
+        $$Z_0Z_1\ket{x_0x_1x_2} = (-1)^{x_0\oplus x_1}\ket{x_0x_1x_2} :$$
+        <p class="small">it reads the <b>parity</b> of two bits, never the bits.</p>
+      </div>
+      <p class="small">Measuring $Z_0Z_1$ means the projective measurement $\Pi_\pm = \tfrac12(I \pm Z_0Z_1)$. Projectors: Hermitian, and $\Pi_\pm^2 = \tfrac14(I \pm 2Z_0Z_1 + I) = \Pi_\pm$; complete: $\Pi_+ + \Pi_- = I$.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th>plane</th><th>basis</th><th class="num">$Z_0Z_1$</th><th class="num">$Z_1Z_2$</th></tr></thead>
+        <tbody>
+          <tr><td>$C$</td><td>$\ket{000}, \ket{111}$</td><td class="num">$+1$</td><td class="num">$+1$</td></tr>
+          <tr><td>$X_0C$</td><td>$\ket{100}, \ket{011}$</td><td class="num">$-1$</td><td class="num">$+1$</td></tr>
+          <tr><td>$X_1C$</td><td>$\ket{010}, \ket{101}$</td><td class="num">$-1$</td><td class="num">$-1$</td></tr>
+          <tr><td>$X_2C$</td><td>$\ket{001}, \ket{110}$</td><td class="num">$+1$</td><td class="num">$-1$</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">the answer to objection three</span>
+        <p class="small">Each plane is a joint eigenspace, with its own pair of signs. Both basis vectors of a plane give the same signs, so the measurement cannot tell $\alpha$ from $\beta$: it learns the plane, never the point in it.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The table, computed.</b> For $\ket{100}$: $x_0\oplus x_1 = 1$, $x_1\oplus x_2 = 0$, signs $(-1, +1)$. For $\ket{011}$:
+    $0\oplus1 = 1$, $1\oplus1 = 0$, the same. In general, complementing all three bits leaves every pairwise parity unchanged,
+    since $\bar x_i\oplus\bar x_j = x_i\oplus x_j$; the two basis vectors of each plane are complements of each other, so they
+    always agree.</p>
+    <p><b>Why both checks commute and can be measured together.</b> $Z_0Z_1$ and $Z_1Z_2$ are both diagonal in the standard
+    basis, so they commute, and unit 00's simultaneous diagonalisation gives joint eigenspaces: the four planes, each of
+    dimension 2. Measuring both is the projective measurement with the four projectors $P, P_0, P_1, P_2$ of the last slide.
+    (Unit 23 makes this the definition of a stabiliser code: the code is the joint $+1$ eigenspace of commuting Pauli checks.)</p>
+    <p><b>What one should not measure.</b> $Z_0$ alone would be a perfectly good observable, and on
+    $\alpha\ket{000} + \beta\ket{111}$ it returns $+1$ with probability $|\alpha|^2$ and collapses the state: problem P3 makes
+    this precise. The art is to measure products of $Z$'s that are constant on the code.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>The syndrome circuit</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">Two <span class="term">ancilla</span> qubits start in $\ket0$. CNOTs from data qubits 0 and 1 onto the first, from 1 and 2 onto the second, give on a basis state</p>
+      $$\ket{x}\ket{00} \mapsto \ket x\ket{x_0\oplus x_1}\ket{x_1\oplus x_2}.$$
+      <p class="small">After an error $X_k$ the data are $\alpha\ket x + \beta\ket{\bar x}$ with $\bar x$ the complement of $x$, and both terms have the same parities, so the ancillas factor out:</p>
+      $$\big(\alpha\ket x + \beta\ket{\bar x}\big)\ket{s_1s_2}.$$
+      <p class="small">Measuring the ancillas gives $s_1s_2$, the <span class="term">syndrome</span>, with probability 1, and leaves the data alone.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 540 250" width="689" role="img" aria-label="the syndrome circuit: three data qubits and two ancillas starting in ket 0; CNOTs from data qubits 0 and 1 onto the first ancilla, from data qubits 1 and 2 onto the second; both ancillas are measured, giving s1 = x0 xor x1 and s2 = x1 xor x2">
+<line x1="70" y1="40" x2="420" y2="40" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="80" x2="420" y2="80" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="120" x2="420" y2="120" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="180" x2="350" y2="180" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="225" x2="350" y2="225" class="ink" stroke-width="1.6"/>
+<text x="64" y="45" font-size="14" text-anchor="end">q0</text>
+<text x="64" y="85" font-size="14" text-anchor="end">q1</text>
+<text x="64" y="125" font-size="14" text-anchor="end">q2</text>
+<text x="64" y="185" font-size="14" text-anchor="end">|0⟩</text>
+<text x="64" y="230" font-size="14" text-anchor="end">|0⟩</text>
+<text x="16" y="84" font-size="12" text-anchor="start" class="soft">data</text>
+<text x="16" y="207" font-size="12" text-anchor="start" class="soft">ancillas</text>
+<line x1="130" y1="40" x2="130" y2="190" class="ink" stroke-width="1.6"/><circle cx="130" cy="40" r="5.5" class="fill-ink"/><circle cx="130" cy="180" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="120" y1="180" x2="140" y2="180" class="ink" stroke-width="1.6"/><line x1="130" y1="170" x2="130" y2="190" class="ink" stroke-width="1.6"/>
+<line x1="185" y1="80" x2="185" y2="190" class="ink" stroke-width="1.6"/><circle cx="185" cy="80" r="5.5" class="fill-ink"/><circle cx="185" cy="180" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="175" y1="180" x2="195" y2="180" class="ink" stroke-width="1.6"/><line x1="185" y1="170" x2="185" y2="190" class="ink" stroke-width="1.6"/>
+<line x1="245" y1="80" x2="245" y2="235" class="ink" stroke-width="1.6"/><circle cx="245" cy="80" r="5.5" class="fill-ink"/><circle cx="245" cy="225" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="235" y1="225" x2="255" y2="225" class="ink" stroke-width="1.6"/><line x1="245" y1="215" x2="245" y2="235" class="ink" stroke-width="1.6"/>
+<line x1="300" y1="120" x2="300" y2="235" class="ink" stroke-width="1.6"/><circle cx="300" cy="120" r="5.5" class="fill-ink"/><circle cx="300" cy="225" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="290" y1="225" x2="310" y2="225" class="ink" stroke-width="1.6"/><line x1="300" y1="215" x2="300" y2="235" class="ink" stroke-width="1.6"/>
+<rect x="350" y="166" width="34" height="28" class="fill-ground ink" stroke-width="1.5"/><path d="M 356 188 A 11 11 0 0 1 378 188" fill="none" class="ink" stroke-width="1.3"/><line x1="367" y1="188" x2="375" y2="172" class="ink" stroke-width="1.3"/>
+<rect x="350" y="211" width="34" height="28" class="fill-ground ink" stroke-width="1.5"/><path d="M 356 233 A 11 11 0 0 1 378 233" fill="none" class="ink" stroke-width="1.3"/><line x1="367" y1="233" x2="375" y2="217" class="ink" stroke-width="1.3"/>
+<line x1="384" y1="178" x2="425" y2="178" class="ink" stroke-width="1.1"/><line x1="384" y1="182" x2="425" y2="182" class="ink" stroke-width="1.1"/>
+<line x1="384" y1="223" x2="425" y2="223" class="ink" stroke-width="1.1"/><line x1="384" y1="227" x2="425" y2="227" class="ink" stroke-width="1.1"/>
+<text x="432" y="185" font-size="13" text-anchor="start">s₁ = x₀ ⊕ x₁</text>
+<text x="432" y="230" font-size="13" text-anchor="start">s₂ = x₁ ⊕ x₂</text>
+<text x="432" y="85" font-size="12" text-anchor="start" class="soft">data untouched</text>
+</svg>
+      <p class="cap">Qubit 0 on top, time left to right. Each ancilla collects the parity of two data qubits; the data qubits are only ever controls.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that the circuit measures $Z_0Z_1$ and $Z_1Z_2$</h4>
+    <p>Call the four CNOTs $W$. For a data basis state, $W\ket x\ket{00} = \ket x\ket{x_0\oplus x_1}\ket{x_1\oplus x_2}$: each CNOT
+    adds one data bit into one ancilla, and addition is mod 2. Measuring the ancillas in the standard basis with outcome
+    $(s_1, s_2)$ applies to the data the operator $M_{s_1s_2} = (I\otimes\bra{s_1s_2})W(I\otimes\ket{00})$, and on basis states
+    $M_{s_1s_2}\ket x = \ket x$ if $x_0\oplus x_1 = s_1$ and $x_1\oplus x_2 = s_2$, and $0$ otherwise. So $M_{s_1s_2}$ is the projector
+    onto the span of the $x$ with those parities — exactly $\tfrac12(I + (-1)^{s_1}Z_0Z_1)\cdot\tfrac12(I + (-1)^{s_2}Z_1Z_2)$, the
+    joint eigenprojector with eigenvalues $(-1)^{s_1}, (-1)^{s_2}$. Outcome bit $0$ is eigenvalue $+1$.</p>
+    <p><b>The general lesson.</b> To measure a product of $Z$'s, CNOT each factor's qubit onto a fresh ancilla and read the
+    ancilla. Problem P5 does the same for products of $X$'s, by conjugating with Hadamards.</p>
+    <p><b>Why ancillas at all.</b> One could imagine measuring $Z_0Z_1$ "directly", but real devices measure single qubits in
+    the standard basis and little else. The ancilla turns a two-qubit observable into a one-qubit one, at the cost of two
+    gates — and, in unit 24, of the new errors those gates introduce.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>Worked: the syndrome table</h2>
+  <div class="box ex"><span class="label">worked example 1 · <span class="ref" data-ref="syn">every outcome</span>, with $\alpha, \beta$ untouched</span>
+    <p class="small">Encoded state $\alpha\ket{000} + \beta\ket{111}$; at most one $X$ error; $s_1 = x_0\oplus x_1$, $s_2 = x_1\oplus x_2$ computed on <b>both</b> terms.</p>
+    <table class="dense">
+      <thead><tr><th>error</th><th>state after it</th><th>$s_1s_2$ from $\ket x$</th><th>from $\ket{\bar x}$</th><th>correction</th><th>after correction</th></tr></thead>
+      <tbody>
+        <tr><td>none</td><td>$\alpha\ket{000} + \beta\ket{111}$</td><td>$0\oplus0,\ 0\oplus0 = 00$</td><td>$1\oplus1,\ 1\oplus1 = 00$</td><td>none</td><td>$\alpha\ket{000} + \beta\ket{111}$</td></tr>
+        <tr><td>$X_0$</td><td>$\alpha\ket{100} + \beta\ket{011}$</td><td>$1\oplus0,\ 0\oplus0 = 10$</td><td>$0\oplus1,\ 1\oplus1 = 10$</td><td>$X_0$</td><td>$\alpha\ket{000} + \beta\ket{111}$</td></tr>
+        <tr><td>$X_1$</td><td>$\alpha\ket{010} + \beta\ket{101}$</td><td>$0\oplus1,\ 1\oplus0 = 11$</td><td>$1\oplus0,\ 0\oplus1 = 11$</td><td>$X_1$</td><td>$\alpha\ket{000} + \beta\ket{111}$</td></tr>
+        <tr><td>$X_2$</td><td>$\alpha\ket{001} + \beta\ket{110}$</td><td>$0\oplus0,\ 0\oplus1 = 01$</td><td>$1\oplus1,\ 1\oplus0 = 01$</td><td>$X_2$</td><td>$\alpha\ket{000} + \beta\ket{111}$</td></tr>
+      </tbody>
+    </table>
+    <p class="small"><b>Read off.</b> Four errors, four distinct syndromes, each obtained with probability 1. The syndrome is a function of the <b>error</b>, not of the state: the same table holds for every $\alpha, \beta$. Each correction is $X_k$ again, and $X_k^2 = I$.</p>
+  </div>
+  <div class="box good"><span class="label">check</span>
+    <p class="small">$\alpha = 1, \beta = 0$ is the classical repetition code: the syndrome then says which bit disagrees with the other two, and the correction is the majority vote.</p>
+  </div>
+  <aside class="notes">
+    <p><b>How to read a row.</b> Take the $X_1$ row. The error sends $\ket{000}\mapsto\ket{010}$ and $\ket{111}\mapsto\ket{101}$. For
+    $\ket{010}$: $s_1 = 0\oplus1 = 1$, $s_2 = 1\oplus0 = 1$. For $\ket{101}$: $s_1 = 1\oplus0 = 1$, $s_2 = 0\oplus1 = 1$. Both terms
+    give $11$, so the ancillas end in $\ket{11}$ whatever $\alpha, \beta$ are, and the data are not disturbed by reading them.
+    Applying $X_1$ restores $\alpha\ket{000} + \beta\ket{111}$, with the same $\alpha$ and $\beta$, phases included.</p>
+    <p><b>The decoder as a rule.</b> Syndrome $10$: the left check fails and the right one holds, so the odd qubit out is
+    qubit 0. $11$: qubit 1, the one both checks share. $01$: qubit 2. $00$: nothing. This is "assume the fewest flips
+    consistent with the syndrome", which is the most likely explanation when $p &lt; \tfrac12$; problem P2 asks what happens
+    when that assumption is wrong.</p>
+    <p><b>The three objections, so far.</b> No copy was made (the encoder is an isometry). The measurement learnt only the
+    error. The continuum is still waiting: so far the errors were exactly $X_k$, and section 5 removes that restriction.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>Correcting, by measurement or by gates</h2>
+  <div class="cols wide-right">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">recovery</span> as a channel</span>
+        <p class="small">Measure, then apply $X_k$ on the syndrome naming qubit $k$ and nothing on $00$, forgetting the outcome: unit 21's channel</p>
+        $$\mathcal R(\sigma) = P\sigma P + \sum_{k=0}^2 R_k\sigma R_k^\dagger ,$$
+        <p class="small">with $R_k = PX_k$. Trace-preserving: $\sum R_k^\dagger R_k = P + \sum_kX_kPX_k = I$.</p>
+      </div>
+      <p class="small"><b>Without measuring.</b> Unit 10's deferred measurement: a gate conditioned on a measured bit equals a controlled gate before the measurement. So three Toffolis, with open controls where the syndrome bit is $0$, correct the data coherently; the ancillas are then discarded.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 500 270" width="637" role="img" aria-label="coherent correction: after the syndrome circuit, three Toffoli gates controlled by the two ancillas flip data qubit 0 on syndrome 10, qubit 1 on 11, qubit 2 on 01, using open controls for the zeros; the ancillas are then discarded and reset">
+<line x1="70" y1="40" x2="360" y2="40" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="80" x2="360" y2="80" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="120" x2="360" y2="120" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="180" x2="330" y2="180" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="225" x2="330" y2="225" class="ink" stroke-width="1.6"/>
+<text x="64" y="45" font-size="14" text-anchor="end">q0</text>
+<text x="64" y="85" font-size="14" text-anchor="end">q1</text>
+<text x="64" y="125" font-size="14" text-anchor="end">q2</text>
+<text x="64" y="185" font-size="14" text-anchor="end">s₁</text>
+<text x="64" y="230" font-size="14" text-anchor="end">s₂</text>
+<line x1="130" y1="30" x2="130" y2="225" class="ink" stroke-width="1.6"/><circle cx="130" cy="180" r="5.5" class="fill-ink"/><circle cx="130" cy="225" r="5.5" class="fill-ground ink" stroke-width="1.6"/><circle cx="130" cy="40" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="120" y1="40" x2="140" y2="40" class="ink" stroke-width="1.6"/><line x1="130" y1="30" x2="130" y2="50" class="ink" stroke-width="1.6"/>
+<line x1="200" y1="70" x2="200" y2="225" class="ink" stroke-width="1.6"/><circle cx="200" cy="180" r="5.5" class="fill-ink"/><circle cx="200" cy="225" r="5.5" class="fill-ink"/><circle cx="200" cy="80" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="190" y1="80" x2="210" y2="80" class="ink" stroke-width="1.6"/><line x1="200" y1="70" x2="200" y2="90" class="ink" stroke-width="1.6"/>
+<line x1="270" y1="110" x2="270" y2="225" class="ink" stroke-width="1.6"/><circle cx="270" cy="180" r="5.5" class="fill-ground ink" stroke-width="1.6"/><circle cx="270" cy="225" r="5.5" class="fill-ink"/><circle cx="270" cy="120" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="260" y1="120" x2="280" y2="120" class="ink" stroke-width="1.6"/><line x1="270" y1="110" x2="270" y2="130" class="ink" stroke-width="1.6"/>
+<text x="130" y="258" font-size="12.5" text-anchor="middle" class="soft">10 → X₀</text>
+<text x="200" y="258" font-size="12.5" text-anchor="middle" class="soft">11 → X₁</text>
+<text x="270" y="258" font-size="12.5" text-anchor="middle" class="soft">01 → X₂</text>
+<rect x="330" y="166" width="78" height="72" rx="4" fill="none" class="rule" stroke-width="1.4" stroke-dasharray="4 3"/>
+<text x="369" y="198" font-size="12" text-anchor="middle" class="soft">discard,</text>
+<text x="369" y="214" font-size="12" text-anchor="middle" class="soft">reset to |0⟩</text>
+<text x="368" y="85" font-size="13" text-anchor="start">α|000⟩ + β|111⟩</text>
+</svg>
+      <p class="cap">Correction with no measurement at all. The error's record ends up in the ancillas, which must be reset to $\ket0$ before the next round.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The Kraus operators, read.</b> $R_k = PX_k$ first applies $X_k$ and then projects onto the code. On the plane
+    $X_kC$ it acts as $X_k$, mapping the plane onto $C$; on each of the other three planes $X_k$ lands outside $C$ (for instance
+    $X_0$ sends $X_1C$ to $X_0X_1C = X_2C$), and $P$ kills the result. So $\mathcal R$ maps each of the four planes back onto $C$ by
+    the right flip. It is a channel in unit 21's sense: completely
+    positive because it is in Kraus form, trace-preserving by the check on the slide, which uses $X_kPX_k = P_k$ and
+    $P + P_0 + P_1 + P_2 = I$.</p>
+    <p><b>Why the coherent version is the same channel.</b> After the syndrome circuit the joint state is
+    $\sum_s M_s\ket\phi\otimes\ket s$ (notes of <i>The syndrome circuit</i>). The Toffolis apply $X_{k(s)}$ to the data in the
+    branch with ancilla $\ket s$. Tracing out the ancillas (unit 04) leaves $\sum_s X_{k(s)}M_s\ket\phi\!\bra\phi M_sX_{k(s)}$, and
+    since $M_s$ is the projector $P_{k(s)} = X_{k(s)}PX_{k(s)}$ onto the plane of syndrome $s$, $X_{k(s)}M_s = PX_{k(s)}$: the
+    Kraus operators $R_k$ of the slide.</p>
+    <p><b>Where the error went.</b> The data are restored to a pure state, so their entropy fell; it went into the ancillas,
+    which now hold the syndrome. Resetting them to $\ket0$ dumps it into the environment. Error correction is, in this exact
+    sense, a refrigerator for qubits: it pumps entropy out, and fresh ancillas are its coolant.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>Worked: the logical failure rate</h2>
+  <div class="box ex"><span class="label">worked example 2 · independent flips</span>
+    <p class="small"><b>Model.</b> Unit 21's bit-flip channel $\rho\mapsto(1-p)\rho + pX\rho X$ on each qubit, independently. On three qubits that is $\rho\mapsto\sum_E \Pr(E)\,E\rho E$ over $E\in\{I, X\}^{\otimes3}$, with $\Pr(E) = p^{w}(1-p)^{3-w}$ for $E$ of weight $w$ (the number of $X$'s).</p>
+    <p class="small"><b>Probabilities.</b> $w = 0$: $(1-p)^3$. $w = 1$: three errors, $p(1-p)^2$ each. $w = 2$: three, $p^2(1-p)$ each. $w = 3$: $p^3$. Sum: $\big((1-p) + p\big)^3 = 1$.</p>
+    <p class="small"><b>Recovery.</b> $w \le 1$: restored (worked example 1). $w = 2$, say $X_0X_1$: syndrome $01$, so $X_2$ is applied, and $X_2X_0X_1 = X_0X_1X_2$. $w = 3$: syndrome $00$, nothing applied, $X_0X_1X_2$ remains. And $X_0X_1X_2$ maps $\alpha\ket{000} + \beta\ket{111}$ to $\alpha\ket{111} + \beta\ket{000}$: a <b>logical $X$</b>, $X_L$.</p>
+    <p class="small"><b>Result.</b> The encoded qubit ends in $(1 - q)\rho_L + q\,X_L\rho_LX_L$, a bit-flip channel on the logical qubit with</p>
+    $$q = 3p^2(1-p) + p^3 = 3p^2 - 2p^3 .$$
+    <p class="small"><b>The number.</b> At $p = 10^{-3}$: $q = 3\times10^{-6} - 2\times10^{-9} = 2.998\times10^{-6}$, about $334$ times smaller than $p$.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Why the output is exactly a mixture.</b> The three-qubit noise has Kraus operators $\sqrt{\Pr(E)}\,E$, and the recovery
+    sends each $E\rho E$ (with $\rho$ on the code) to $\rho$ when $w(E)\le1$ and to $X_L\rho X_L$ when $w(E)\ge2$. Composing the two
+    channels and grouping: weight $\le1$ contributes $\big((1-p)^3 + 3p(1-p)^2\big)\rho$, weight $\ge2$ contributes
+    $\big(3p^2(1-p) + p^3\big)X_L\rho X_L$, and the two coefficients sum to 1. No cross terms appear, because the bit-flip channel
+    already is a mixture of the $E$'s (unit 21).</p>
+    <p><b>Algebra.</b> $3p^2(1 - p) + p^3 = 3p^2 - 3p^3 + p^3 = 3p^2 - 2p^3$. The ratio $p/q$ at $p = 10^{-3}$ is
+    $10^{-3}/2.998\times10^{-6} = 333.6$. For small $p$ the ratio is $p/q \approx 1/(3p)$: the smaller the physical error, the
+    larger the gain.</p>
+    <p><b>The classical twin.</b> This is the same polynomial as the classical repetition code's failure, for the same reason:
+    against $X$ errors alone the bit-flip code is the repetition code, run on amplitudes instead of bits.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · the bit-flip code</p>
+  <h2>Below one half, the code wins</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">when the code helps</span>
+        <p class="small">For $0 &lt; p &lt; 1$, $\ 3p^2 - 2p^3 &lt; p \iff p &lt; \tfrac12$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        $$\begin{aligned}p - (3p^2 - 2p^3) &= p(1 - 3p + 2p^2)\\ &= p(1 - p)(1 - 2p),\end{aligned}$$
+        <p class="small">and the first two factors are positive, so the sign is that of $1 - 2p$. ∎</p>
+      </div>
+      <div class="box good"><span class="label">checks</span>
+        <p class="small">$p = \tfrac12$: $\tfrac34 - \tfrac14 = \tfrac12$, equal. $p = 0$ and $p = 1$: both sides equal. Small $p$: $q\approx3p^2$, so halving $p$ quarters $q$.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 410 280" width="520" role="img" aria-label="the logical failure 3p squared minus 2p cubed against the bare failure p, for p from 0 to 1; the curve lies below the diagonal for p below one half, where the region is shaded, crosses it at one half, and lies above it after">
+<rect x="50" y="30" width="165.0" height="220" class="fill-soft"/>
+<line x1="50" y1="250" x2="388" y2="250" class="ink" stroke-width="1.3"/>
+<line x1="50" y1="250" x2="50" y2="22" class="ink" stroke-width="1.3"/>
+<line x1="50" y1="250" x2="50" y2="255" class="ink" stroke-width="1.2"/>
+<text x="50" y="270" font-size="13" text-anchor="middle">0</text>
+<line x1="45" y1="250" x2="50" y2="250" class="ink" stroke-width="1.2"/>
+<line x1="215.0" y1="250" x2="215.0" y2="255" class="ink" stroke-width="1.2"/>
+<text x="215" y="270" font-size="13" text-anchor="middle">½</text>
+<line x1="45" y1="140.0" x2="50" y2="140.0" class="ink" stroke-width="1.2"/>
+<text x="41" y="145" font-size="13" text-anchor="end">½</text>
+<line x1="380" y1="250" x2="380" y2="255" class="ink" stroke-width="1.2"/>
+<text x="380" y="270" font-size="13" text-anchor="middle">1</text>
+<line x1="45" y1="30" x2="50" y2="30" class="ink" stroke-width="1.2"/>
+<text x="41" y="35" font-size="13" text-anchor="end">1</text>
+<line x1="215.0" y1="250" x2="215.0" y2="140.0" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+<line x1="50" y1="250" x2="380" y2="30" class="accent" stroke-width="2" stroke-dasharray="6 4"/>
+<path d="M50.0,250.0 L58.2,249.6 L66.5,248.4 L74.8,246.5 L83.0,243.8 L91.2,240.5 L99.5,236.6 L107.8,232.1 L116.0,227.1 L124.2,221.6 L132.5,215.6 L140.8,209.2 L149.0,202.5 L157.2,195.4 L165.5,188.0 L173.8,180.4 L182.0,172.6 L190.3,164.6 L198.5,156.4 L206.8,148.2 L215.0,140.0 L223.2,131.8 L231.5,123.6 L239.8,115.4 L248.0,107.4 L256.2,99.6 L264.5,92.0 L272.8,84.6 L281.0,77.5 L289.2,70.8 L297.5,64.4 L305.8,58.4 L314.0,52.9 L322.2,47.9 L330.5,43.4 L338.8,39.5 L347.0,36.2 L355.2,33.5 L363.5,31.6 L371.8,30.4 L380.0,30.0" fill="none" class="unit" stroke-width="2.4"/>
+<circle cx="215.0" cy="140.0" r="4.5" class="fill-ink"/>
+<text x="394" y="255" font-size="15" text-anchor="start">p</text>
+<text x="140" y="170" font-size="13" text-anchor="end" class="fill-accent halo">bare qubit: p</text>
+<text x="296" y="132" font-size="13" text-anchor="start" class="fill-unit halo">encoded:</text>
+<text x="296" y="149" font-size="13" text-anchor="start" class="fill-unit halo">3p² − 2p³</text>
+<text x="132" y="50" font-size="12.5" text-anchor="middle" class="soft">code helps</text>
+</svg>
+      <p class="cap">The bit-flip code's failure against independent flips (solid) and the bare qubit's (dashed). The shaded half is where encoding pays.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the picture.</b> At $p = \tfrac12$ each qubit's flip is a fair coin and no code can help: the noise has erased
+    the bit. Above $\tfrac12$ the code hurts, because "fewest flips" is then the least likely explanation (problem P2). The
+    dramatic part is the left end, which the plot cannot show: at $p = 10^{-3}$ the solid curve is at $3.0\times10^{-6}$,
+    indistinguishable from the axis at this scale.</p>
+    <p><b>A first glimpse of a threshold.</b> The code helps exactly when the physical error is below a constant. Unit 24's
+    threshold theorem is this statement grown up: when every component — including the syndrome circuit itself — fails
+    with probability below a threshold, repeating the construction drives the logical error down as fast as one likes. The
+    threshold there is much smaller than $\tfrac12$, because the circuits that measure syndromes make errors of their own.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Phase flips, and Shor's nine qubits</h2>
+  <p>One $Z$ defeats the bit-flip code. Turn it sideways with Hadamards, then put one code inside the other.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · phase flips</p>
+  <h2>One phase flip, undetected</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A phase flip $Z_k$ on any one qubit of <span class="ref" data-ref="bf">the bit-flip code</span>:</p>
+      $$Z_k(\alpha\ket{000} + \beta\ket{111}) = \alpha\ket{000} - \beta\ket{111}.$$
+      <p class="small">That is the logical operator $Z_L$, for every $k$. $Z_k$ commutes with both checks, so the state stays in $C$, the syndrome reads $00$, and nothing is done. The damage is maximal: $\ket{+_L}\mapsto\ket{-_L}$, an orthogonal state.</p>
+      <div class="box warn"><span class="label">worse than no code</span>
+        <p class="small">Under independent phase flips (unit 21's dephasing) a logical error needs an <b>odd</b> number of $Z$'s: probability $3p(1-p)^2 + p^3$, which at $p = 10^{-3}$ is $2.994\times10^{-3}$ — three times the bare qubit's.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 380 275" width="494" role="img" aria-label="the Bloch sphere of the logical qubit with 0_L and 1_L at the poles and plus_L and minus_L on the equator; a red arc carries plus_L half way round the equator to minus_L: a phase flip on any one qubit is a logical Z">
+<circle cx="160" cy="145" r="105" fill="none" class="ink" stroke-width="1.4"/><path d="M 55 145 A 105 30.7 0 0 0 265 145" fill="none" class="rule" stroke-width="1.2"/><path d="M 55 145 A 105 30.7 0 0 1 265 145" fill="none" class="rule" stroke-width="1.2" stroke-dasharray="4 4"/><line x1="160" y1="40" x2="160" y2="250" class="rule" stroke-width="1" stroke-dasharray="2 3"/>
+<circle cx="160" cy="44.6" r="5" class="fill-unit"/>
+<text x="170" y="38.6" font-size="14" text-anchor="start" class="halo">|0<tspan baseline-shift="sub" font-size="10">L</tspan>⟩</text>
+<circle cx="160" cy="245.4" r="5" class="fill-unit"/>
+<text x="170" y="263.4" font-size="14" text-anchor="start" class="halo">|1<tspan baseline-shift="sub" font-size="10">L</tspan>⟩</text>
+<circle cx="107.5" cy="171.6" r="5" class="fill-ink"/>
+<text x="97.5" y="187.6" font-size="14" text-anchor="end" class="halo">|+<tspan baseline-shift="sub" font-size="10">L</tspan>⟩</text>
+<circle cx="212.5" cy="118.4" r="5" class="fill-ink"/>
+<text x="222.5" y="110.4" font-size="14" text-anchor="start" class="halo">|−<tspan baseline-shift="sub" font-size="10">L</tspan>⟩</text>
+<path d="M103.3,173.7 L108.5,174.5 L113.9,175.3 L119.4,176 L125,176.5 L130.6,177 L136.4,177.4 L142.3,177.7 L148.1,178 L154.1,178.1 L160,178.2 L165.9,178.1 L171.9,178 L177.7,177.7 L183.6,177.4 L189.4,177 L195,176.5 L200.6,176 L206.1,175.3 L211.5,174.5 L216.7,173.7 L221.8,172.8 L226.7,171.8 L231.4,170.8 L235.9,169.6 L240.2,168.4 L244.3,167.2 L248.1,165.9 L251.7,164.5 L255.1,163.1 L258.2,161.6 L261,160.1 L263.6,158.5 L265.9,156.9 L267.8,155.2 L269.5,153.6 L270.9,151.9 L272,150.2 L272.8,148.5 L273.2,146.7 L273.4,145 L273.2,143.3 L272.8,141.5 L272,139.8 L270.9,138.1 L269.5,136.4 L267.8,134.8 L265.9,133.1 L263.6,131.5 L261,129.9 L258.2,128.4 L255.1,126.9 L251.7,125.5 L248.1,124.1 L244.3,122.8 L240.2,121.6 L235.9,120.4" fill="none" class="warn" stroke-width="2.2"/>
+<polygon points="235.9,120.4 246.8,119.3 244.5,127.1" class="fill-warn"/>
+<text x="238.3" y="193.3" font-size="13" text-anchor="start" class="halo">Z<tspan baseline-shift="sub" font-size="9">k</tspan> = Z<tspan baseline-shift="sub" font-size="9">L</tspan>: a half-turn</text>
+<text x="238.3" y="210.3" font-size="13" text-anchor="start" class="halo">about the logical z axis</text>
+</svg>
+      <p class="cap">The logical qubit's Bloch sphere. A single $Z$ on any one of the three qubits turns it half way round, and no check sees it.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why every $Z_k$ is $Z_L$.</b> $Z_k\ket{000} = \ket{000}$ and $Z_k\ket{111} = -\ket{111}$ for each $k$, since every bit of $111$ is 1.
+    On $C$, $Z_L = \ket{000}\!\bra{000} - \ket{111}\!\bra{111}$, so $Z_kP = Z_LP$. A pair $Z_kZ_l$ acts as $+1$ on both basis states:
+    the identity on $C$. Hence an even number of phase flips is harmless and an odd number is $Z_L$.</p>
+    <p><b>The number.</b> $\Pr[\text{odd}] = 3p(1 - p)^2 + p^3 = 3p - 6p^2 + 4p^3$; at $p = 10^{-3}$ that is
+    $0.003 - 0.000006 + 0.000000004 = 0.002994004$. Three qubits are three targets, and each one alone is enough.</p>
+    <p><b>The lesson.</b> A code is a bet on which errors occur. The bit-flip code bets on $X$ and loses to $Z$; problem P4 finds
+    the general reason, and section 4 will turn "the syndrome cannot see it" into the failed condition
+    $PZ_0P = \ket{000}\!\bra{000} - \ket{111}\!\bra{111}\ne cP$. In unit 21's terms, dephasing — the process $T_2$ measures —
+    is a stream of small random $Z$ rotations, and this code does nothing about it.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · phase flips</p>
+  <h2>The phase-flip code: the same code, seen through $H$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">phase-flip code</span></span>
+        <p class="small">$\ket{0_L} = \ket{+++}$, $\ \ket{1_L} = \ket{---}$, that is $H^{\otimes3}$ applied to the bit-flip code. Orthonormal: $\braket{+++|---} = \braket{+|-}^3 = 0$.</p>
+        <p class="small">Checks $X_0X_1$ and $X_1X_2$; corrections $Z_k$.</p>
+      </div>
+      <p class="small"><b>Why it works.</b> $HZH = X$ and $HXH = Z$ (unit 02), so conjugating by $H^{\otimes3}$ turns every statement about the bit-flip code into one about this code with $X$ and $Z$ exchanged: $H^{\otimes3}Z_kH^{\otimes3} = X_k$, $\ H^{\otimes3}(Z_0Z_1)H^{\otimes3} = X_0X_1$.</p>
+      <p class="small">So it corrects any single $Z$, fails with probability $3p^2 - 2p^3$ under independent phase flips — and is defeated by a single $X$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 190" width="585" role="img" aria-label="the phase-flip encoder: the bit-flip encoder of two CNOTs, then a Hadamard on each of the three qubits; the output is alpha plus plus plus, plus beta minus minus minus">
+<line x1="60" y1="40" x2="330" y2="40" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="90" x2="330" y2="90" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="140" x2="330" y2="140" class="ink" stroke-width="1.6"/>
+<text x="54" y="45" font-size="15" text-anchor="end">|ψ⟩</text>
+<text x="54" y="95" font-size="15" text-anchor="end">|0⟩</text>
+<text x="54" y="145" font-size="15" text-anchor="end">|0⟩</text>
+<line x1="110" y1="40" x2="110" y2="100" class="ink" stroke-width="1.6"/><circle cx="110" cy="40" r="5.5" class="fill-ink"/><circle cx="110" cy="90" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="100" y1="90" x2="120" y2="90" class="ink" stroke-width="1.6"/><line x1="110" y1="80" x2="110" y2="100" class="ink" stroke-width="1.6"/>
+<line x1="170" y1="40" x2="170" y2="150" class="ink" stroke-width="1.6"/><circle cx="170" cy="40" r="5.5" class="fill-ink"/><circle cx="170" cy="140" r="10" class="fill-ground ink" stroke-width="1.6"/><line x1="160" y1="140" x2="180" y2="140" class="ink" stroke-width="1.6"/><line x1="170" y1="130" x2="170" y2="150" class="ink" stroke-width="1.6"/>
+<rect x="236" y="26" width="28" height="28" class="fill-ground unit" stroke-width="1.6"/><text x="250" y="45.2" font-size="15" text-anchor="middle">H</text>
+<rect x="236" y="76" width="28" height="28" class="fill-ground unit" stroke-width="1.6"/><text x="250" y="95.2" font-size="15" text-anchor="middle">H</text>
+<rect x="236" y="126" width="28" height="28" class="fill-ground unit" stroke-width="1.6"/><text x="250" y="145.2" font-size="15" text-anchor="middle">H</text>
+<rect x="88" y="20" width="106" height="140" rx="5" fill="none" class="rule" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="141" y="178" font-size="12" text-anchor="middle" class="soft">bit-flip encoder</text>
+<text x="250" y="178" font-size="12" text-anchor="middle" class="soft">H⊗H⊗H</text>
+<path d="M 345 30 Q 355 30 355 50 L 355 80 Q 355 90 365 90 Q 355 90 355 100 L 355 130 Q 355 150 345 150" fill="none" class="ink" stroke-width="1.3"/>
+<text x="372" y="86" font-size="14" text-anchor="start">α|+++⟩</text>
+<text x="372" y="106" font-size="14" text-anchor="start">+ β|−−−⟩</text>
+</svg>
+        <p class="cap">The bit-flip encoder followed by $H$ on every qubit.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof that conjugation carries correction over</h4>
+    <p>Let $U$ be unitary. Suppose the code with projector $P$ corrects the errors $\{E_i\}$ with recovery Kraus operators
+    $\{R_k\}$. Take the code $UC$, projector $UPU^\dagger$, errors $UE_iU^\dagger$ and recovery $UR_kU^\dagger$. Then
+    $UR_kU^\dagger\cdot UE_iU^\dagger = U(R_kE_i)U^\dagger$, so everything that happened before happens again, conjugated. With
+    $U = H^{\otimes3}$: $U$ maps $\ket{000}, \ket{111}$ to $\ket{+++}, \ket{---}$ and $X_k$ to $Z_k$. The syndrome circuit carries
+    over the same way: problem P5 builds it.</p>
+    <p><b>Why a $Z$ is now visible.</b> $Z_0\ket{+++} = \ket{-++}$, which is orthogonal to both $\ket{+++}$ and $\ket{---}$: the error
+    moves the state out of the code, where a check can see it. In the bit-flip code a $Z$ stayed inside; here an $X$ does,
+    since $X\ket\pm = \pm\ket\pm$ and so $X_k$ multiplies $\ket{---}$ by $-1$: a logical error, undetected.</p>
+    <p><b>The trade.</b> Neither three-qubit code protects against both kinds of flip. The next slide puts one inside the
+    other.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Shor's code</p>
+  <h2>Shor's code: one code inside the other</h2>
+  <div class="cols wide-right">
+    <div>
+      <div class="box def"><span class="label"><span class="ref" data-ref="shor">Shor's nine-qubit code</span> (1995)</span>
+        $$\ket{0_L} = \tfrac{1}{2\sqrt2}(\ket{000} + \ket{111})^{\otimes3},$$
+        $$\ket{1_L} = \tfrac{1}{2\sqrt2}(\ket{000} - \ket{111})^{\otimes3}.$$
+      </div>
+      <p class="small">Encode with the phase-flip code, then encode each of its three qubits with the bit-flip code, which sends $\ket\pm$ to $(\ket{000}\pm\ket{111})/\sqrt2$. A code whose qubits are themselves encoded is a <span class="term">concatenation</span>.</p>
+      <p class="small"><b>Checks.</b> Each block $(\ket{000}\pm\ket{111})/\sqrt2$ is normalised, so the product is; and $\braket{0_L|1_L} = \big(\tfrac12(1 - 1)\big)^3 = 0$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 470 255" width="611" role="img" aria-label="Shor's encoder on nine wires: CNOTs from qubit 0 to qubits 3 and 6, Hadamards on 0, 3 and 6 — the phase-flip encoder; then in each block of three a CNOT from its first qubit to the other two — three bit-flip encoders">
+<line x1="52" y1="28" x2="300" y2="28" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="50" x2="300" y2="50" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="72" x2="300" y2="72" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="94" x2="300" y2="94" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="116" x2="300" y2="116" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="138" x2="300" y2="138" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="160" x2="300" y2="160" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="182" x2="300" y2="182" class="ink" stroke-width="1.6"/>
+<line x1="52" y1="204" x2="300" y2="204" class="ink" stroke-width="1.6"/>
+<text x="46" y="33" font-size="13" text-anchor="end">|ψ⟩</text>
+<text x="306" y="32" font-size="11" text-anchor="start" class="soft">0</text>
+<text x="46" y="55" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="54" font-size="11" text-anchor="start" class="soft">1</text>
+<text x="46" y="77" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="76" font-size="11" text-anchor="start" class="soft">2</text>
+<text x="46" y="99" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="98" font-size="11" text-anchor="start" class="soft">3</text>
+<text x="46" y="121" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="120" font-size="11" text-anchor="start" class="soft">4</text>
+<text x="46" y="143" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="142" font-size="11" text-anchor="start" class="soft">5</text>
+<text x="46" y="165" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="164" font-size="11" text-anchor="start" class="soft">6</text>
+<text x="46" y="187" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="186" font-size="11" text-anchor="start" class="soft">7</text>
+<text x="46" y="209" font-size="13" text-anchor="end">|0⟩</text>
+<text x="306" y="208" font-size="11" text-anchor="start" class="soft">8</text>
+<line x1="85" y1="28" x2="85" y2="102" class="ink" stroke-width="1.6"/><circle cx="85" cy="28" r="5.5" class="fill-ink"/><circle cx="85" cy="94" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="77" y1="94" x2="93" y2="94" class="ink" stroke-width="1.6"/><line x1="85" y1="86" x2="85" y2="102" class="ink" stroke-width="1.6"/>
+<line x1="118" y1="28" x2="118" y2="168" class="ink" stroke-width="1.6"/><circle cx="118" cy="28" r="5.5" class="fill-ink"/><circle cx="118" cy="160" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="110" y1="160" x2="126" y2="160" class="ink" stroke-width="1.6"/><line x1="118" y1="152" x2="118" y2="168" class="ink" stroke-width="1.6"/>
+<rect x="147" y="18" width="22" height="20" class="fill-ground unit" stroke-width="1.6"/><text x="158" y="32.5" font-size="13" text-anchor="middle">H</text>
+<rect x="147" y="84" width="22" height="20" class="fill-ground unit" stroke-width="1.6"/><text x="158" y="98.5" font-size="13" text-anchor="middle">H</text>
+<rect x="147" y="150" width="22" height="20" class="fill-ground unit" stroke-width="1.6"/><text x="158" y="164.6" font-size="13" text-anchor="middle">H</text>
+<line x1="205" y1="28" x2="205" y2="58" class="ink" stroke-width="1.6"/><circle cx="205" cy="28" r="5.5" class="fill-ink"/><circle cx="205" cy="50" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="197" y1="50" x2="213" y2="50" class="ink" stroke-width="1.6"/><line x1="205" y1="42" x2="205" y2="58" class="ink" stroke-width="1.6"/>
+<line x1="245" y1="28" x2="245" y2="80" class="ink" stroke-width="1.6"/><circle cx="245" cy="28" r="5.5" class="fill-ink"/><circle cx="245" cy="72" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="237" y1="72" x2="253" y2="72" class="ink" stroke-width="1.6"/><line x1="245" y1="64" x2="245" y2="80" class="ink" stroke-width="1.6"/>
+<line x1="205" y1="94" x2="205" y2="124" class="ink" stroke-width="1.6"/><circle cx="205" cy="94" r="5.5" class="fill-ink"/><circle cx="205" cy="116" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="197" y1="116" x2="213" y2="116" class="ink" stroke-width="1.6"/><line x1="205" y1="108" x2="205" y2="124" class="ink" stroke-width="1.6"/>
+<line x1="245" y1="94" x2="245" y2="146" class="ink" stroke-width="1.6"/><circle cx="245" cy="94" r="5.5" class="fill-ink"/><circle cx="245" cy="138" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="237" y1="138" x2="253" y2="138" class="ink" stroke-width="1.6"/><line x1="245" y1="130" x2="245" y2="146" class="ink" stroke-width="1.6"/>
+<line x1="205" y1="160" x2="205" y2="190" class="ink" stroke-width="1.6"/><circle cx="205" cy="160" r="5.5" class="fill-ink"/><circle cx="205" cy="182" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="197" y1="182" x2="213" y2="182" class="ink" stroke-width="1.6"/><line x1="205" y1="174" x2="205" y2="190" class="ink" stroke-width="1.6"/>
+<line x1="245" y1="160" x2="245" y2="212" class="ink" stroke-width="1.6"/><circle cx="245" cy="160" r="5.5" class="fill-ink"/><circle cx="245" cy="204" r="8" class="fill-ground ink" stroke-width="1.6"/><line x1="237" y1="204" x2="253" y2="204" class="ink" stroke-width="1.6"/><line x1="245" y1="196" x2="245" y2="212" class="ink" stroke-width="1.6"/>
+<rect x="68" y="14" width="110" height="196" rx="5" fill="none" class="alt" stroke-width="1.3" stroke-dasharray="4 3"/>
+<rect x="188" y="14" width="74" height="196" rx="5" fill="none" class="unit" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text x="123" y="228" font-size="12" text-anchor="middle" class="alt">outer: phase-flip</text>
+<text x="225" y="228" font-size="12" text-anchor="middle" class="fill-unit">inner: bit-flip ×3</text>
+<path d="M 322 20 Q 330 20 330 28 L 330 46.0 L 336 50.0 L 330 54.0 L 330 72 Q 330 80 322 80" fill="none" class="ink" stroke-width="1.2"/>
+<text x="342" y="55" font-size="12.5" text-anchor="start">block 0</text>
+<path d="M 322 86 Q 330 86 330 94 L 330 112.0 L 336 116.0 L 330 120.0 L 330 138 Q 330 146 322 146" fill="none" class="ink" stroke-width="1.2"/>
+<text x="342" y="121" font-size="12.5" text-anchor="start">block 1</text>
+<path d="M 322 152 Q 330 152 330 160 L 330 178.0 L 336 182.0 L 330 186.0 L 330 204 Q 330 212 322 212" fill="none" class="ink" stroke-width="1.2"/>
+<text x="342" y="187" font-size="12.5" text-anchor="start">block 2</text>
+<text x="462" y="245" font-size="12" text-anchor="end" class="soft">each block: (|000⟩ ± |111⟩)/√2</text>
+</svg>
+      <p class="cap">Qubits 0, 3, 6 carry the phase-flip code; each then fans out into a block of three.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The encoder, checked.</b> Input $\ket\psi\ket{0}^{\otimes8}$. The CNOTs $0\to3$ and $0\to6$ give
+    $\alpha\ket{0}_0\ket0_3\ket0_6 + \beta\ket1_0\ket1_3\ket1_6$ on the three block leaders (the other qubits still $\ket0$); the Hadamards
+    turn that into $\alpha\ket{+}\ket+\ket+ + \beta\ket-\ket-\ket-$ — the phase-flip code on qubits 0, 3, 6. Each pair of CNOTs from a
+    leader into its block maps $\ket{\pm}\ket{00} = (\ket{000}\pm\ket{100})/\sqrt2\mapsto(\ket{000}\pm\ket{111})/\sqrt2$. Linearity gives
+    $\alpha\ket{0_L} + \beta\ket{1_L}$, normalised.</p>
+    <p><b>Inner product.</b> In one block $\tfrac12(\bra{000} + \bra{111})(\ket{000} - \ket{111}) = \tfrac12(1 - 1) = 0$; the inner
+    product of tensor products is the product of the inner products (unit 03), so $\braket{0_L|1_L} = 0$.</p>
+    <p><b>History.</b> P. W. Shor, "Scheme for reducing decoherence in quantum computer memory", <i>Phys. Rev. A</i> 52, R2493
+    (1995): the first quantum error-correcting code, a year after his factoring algorithm. A. M. Steane found a seven-qubit
+    code independently soon after (<i>Phys. Rev. Lett.</i> 77, 793, 1996); it is unit 23's, built from section 6's Hamming
+    code. <b>Concatenation</b> is the idea that makes unit 24's threshold theorem work: encode, then encode the encoded
+    qubits again, and the failure rate falls doubly exponentially in the number of levels.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Shor's code</p>
+  <h2>Where Shor's code looks for errors</h2>
+  <div class="cols">
+    <div class="fig">
+      <svg viewBox="0 0 380 280" width="494" role="img" aria-label="nine qubits in a three by three grid, one row per block; within each row two ZZ checks join neighbouring qubits; a dashed outline around rows 0 and 1 and a dotted outline around rows 1 and 2 mark the two six-qubit X checks that compare the blocks' signs">
+<rect x="34" y="18" width="232" height="136" rx="16" fill="none" class="alt" stroke-width="1.8" stroke-dasharray="7 4"/>
+<rect x="42" y="92" width="232" height="132" rx="16" fill="none" class="accent" stroke-width="1.8" stroke-dasharray="2 4"/>
+<line x1="70" y1="50" x2="150" y2="50" class="unit" stroke-width="2.4"/>
+<rect x="98.0" y="41" width="24" height="18" rx="2" class="fill-ground unit" stroke-width="1.4"/>
+<text x="110" y="54.5" font-size="10.5" text-anchor="middle" class="mono">ZZ</text>
+<line x1="150" y1="50" x2="230" y2="50" class="unit" stroke-width="2.4"/>
+<rect x="178.0" y="41" width="24" height="18" rx="2" class="fill-ground unit" stroke-width="1.4"/>
+<text x="190" y="54.5" font-size="10.5" text-anchor="middle" class="mono">ZZ</text>
+<line x1="70" y1="122" x2="150" y2="122" class="unit" stroke-width="2.4"/>
+<rect x="98.0" y="113" width="24" height="18" rx="2" class="fill-ground unit" stroke-width="1.4"/>
+<text x="110" y="126.5" font-size="10.5" text-anchor="middle" class="mono">ZZ</text>
+<line x1="150" y1="122" x2="230" y2="122" class="unit" stroke-width="2.4"/>
+<rect x="178.0" y="113" width="24" height="18" rx="2" class="fill-ground unit" stroke-width="1.4"/>
+<text x="190" y="126.5" font-size="10.5" text-anchor="middle" class="mono">ZZ</text>
+<line x1="70" y1="194" x2="150" y2="194" class="unit" stroke-width="2.4"/>
+<rect x="98.0" y="185" width="24" height="18" rx="2" class="fill-ground unit" stroke-width="1.4"/>
+<text x="110" y="198.5" font-size="10.5" text-anchor="middle" class="mono">ZZ</text>
+<line x1="150" y1="194" x2="230" y2="194" class="unit" stroke-width="2.4"/>
+<rect x="178.0" y="185" width="24" height="18" rx="2" class="fill-ground unit" stroke-width="1.4"/>
+<text x="190" y="198.5" font-size="10.5" text-anchor="middle" class="mono">ZZ</text>
+<circle cx="70" cy="50" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="70" y="55" font-size="14" text-anchor="middle">0</text>
+<circle cx="150" cy="50" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="150" y="55" font-size="14" text-anchor="middle">1</text>
+<circle cx="230" cy="50" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="230" y="55" font-size="14" text-anchor="middle">2</text>
+<circle cx="70" cy="122" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="70" y="127" font-size="14" text-anchor="middle">3</text>
+<circle cx="150" cy="122" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="150" y="127" font-size="14" text-anchor="middle">4</text>
+<circle cx="230" cy="122" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="230" y="127" font-size="14" text-anchor="middle">5</text>
+<circle cx="70" cy="194" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="70" y="199" font-size="14" text-anchor="middle">6</text>
+<circle cx="150" cy="194" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="150" y="199" font-size="14" text-anchor="middle">7</text>
+<circle cx="230" cy="194" r="15" class="fill-ground ink" stroke-width="1.6"/>
+<text x="230" y="199" font-size="14" text-anchor="middle">8</text>
+<text x="292" y="54" font-size="13" text-anchor="start" class="soft">block 0</text>
+<text x="292" y="126" font-size="13" text-anchor="start" class="soft">block 1</text>
+<text x="292" y="198" font-size="13" text-anchor="start" class="soft">block 2</text>
+<text x="150" y="250" font-size="12.5" text-anchor="middle" class="fill-unit">ZZ: six bit-flip checks, two per block</text>
+<text x="150" y="268" font-size="12.5" text-anchor="middle" class="soft">X⁶ on blocks 0, 1 (dashed) and 1, 2 (dotted)</text>
+</svg>
+      <p class="cap">One row per block. $ZZ$ checks inside rows catch bit flips; the two $X^{\otimes6}$ checks compare rows and catch phase flips.</p>
+    </div>
+    <div>
+      <p class="small"><b>An $X_k$</b> flips one qubit in one block: that block's two $ZZ$ checks locate it, exactly as in the bit-flip code.</p>
+      <p class="small"><b>A $Z_k$</b> turns its block's $\ket{000} + \ket{111}$ into $\ket{000} - \ket{111}$. The operator $X_0X_1X_2$ is $+1$ on the first and $-1$ on the second, so $X_0\cdots X_5$ and $X_3\cdots X_8$ compare the signs of neighbouring blocks: block 0 gives $(-, +)$, block 1 $(-, -)$, block 2 $(+, -)$.</p>
+      <p class="small"><b>A $Y_k$</b> $= iX_kZ_k$ fires both.</p>
+      <div class="box warn"><span class="label">a new phenomenon</span>
+        <p class="small">$Z_0$, $Z_1$ and $Z_2$ give the same syndrome <b>and the same state</b>. The code cannot tell which happened, and does not need to: any one of them undoes any other.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The sign reader.</b> $X^{\otimes3}\ket{000} = \ket{111}$ and $X^{\otimes3}\ket{111} = \ket{000}$, so
+    $X^{\otimes3}(\ket{000}\pm\ket{111}) = \pm(\ket{000}\pm\ket{111})$: eigenvalue $\pm1$. On a code state each block has the same sign
+    in each branch, so $X_0\cdots X_5$, the product of block 0's and block 1's readers, is $+1$ on both $\ket{0_L}$ (signs $++$) and
+    $\ket{1_L}$ (signs $--$); likewise $X_3\cdots X_8$. A $Z$ in block $b$ flips that block's sign in both branches, flipping
+    exactly the checks that contain block $b$.</p>
+    <p><b>Do the checks commute?</b> They must, to be measured together. $Z_0Z_1$ and $X_0\cdots X_5$ overlap on qubits 0 and 1,
+    where $ZX = -XZ$ twice: two minus signs, so they commute. Every $ZZ$ check overlaps every $X^{\otimes6}$ check in zero or two
+    qubits, and checks of the same kind commute trivially. Unit 23 makes this counting the whole theory.</p>
+    <p><b>Eight checks, eight syndrome bits.</b> Six bit-flip bits (two per block) and two sign bits. The syndrome of a single
+    $Y_k$ is the union of $X_k$'s and $Z_k$'s; the worked example in section 5 uses $Y_4$, whose bits are $Z_3Z_4 = Z_4Z_5 = -1$
+    and both $X^{\otimes6}$ checks $-1$.</p>
+    <p><b>Degeneracy, previewed.</b> $Z_0Z_1$ is $+1$ on every code state (it is a check), so
+    $Z_1P = Z_0(Z_0Z_1)P = Z_0P$: the two errors act identically on the code. Section 4 names this.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>The Knill–Laflamme conditions</h2>
+  <p>Which codes correct which errors? One family of equations on $PE_i^\dagger E_jP$ answers it, both ways.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Knill–Laflamme</p>
+  <h2>What it means for a code to correct a set of errors</h2>
+  <div class="box def"><span class="label">codes, errors, recovery</span>
+    <p class="small">A <span class="term">quantum code</span> is a subspace $C$ of a Hilbert space $\mathcal H$, with projector $P$. An <span class="term">error set</span> is a finite list of operators $E_1, \dots, E_m$ on $\mathcal H$ — typically Kraus operators of the noise — defining the completely positive map $\mathcal E(\rho) = \sum_iE_i\rho E_i^\dagger$ (unit 21).</p>
+    <p class="small">$C$ <b>corrects</b> $\{E_i\}$ if there are a channel $\mathcal R$, the <span class="term">recovery channel</span>, and a constant $c &gt; 0$ with</p>
+    $$\mathcal R\big(\mathcal E(\rho)\big) = c\,\rho \quad\text{for every density operator } \rho \text{ with } P\rho P = \rho .$$
+  </div>
+  <div class="cols">
+    <div class="fig">
+      <svg viewBox="0 0 440 115" width="572" role="img" aria-label="a code state rho passes through the error map E, the sum of E_i rho E_i dagger, and then a recovery channel R, which returns c times rho">
+<text x="40" y="67" font-size="18" text-anchor="middle">ρ</text>
+<text x="40" y="100" font-size="11.5" text-anchor="middle" class="soft">on C</text>
+<line x1="56" y1="62" x2="90.8" y2="62" class="ink" stroke-width="1.6"/><polygon points="98,62 89.6,65.3 89.6,58.7" class="fill-ink"/>
+<rect x="100" y="40" width="90" height="44" rx="5" class="fill-ground warn" stroke-width="1.6"/><text x="145" y="67" font-size="14" text-anchor="middle">ℰ</text>
+<text x="145" y="104" font-size="12" text-anchor="middle" class="soft">Σ Eᵢ ρ Eᵢ†</text>
+<line x1="190" y1="62" x2="230.8" y2="62" class="ink" stroke-width="1.6"/><polygon points="238,62 229.6,65.3 229.6,58.7" class="fill-ink"/>
+<rect x="240" y="40" width="90" height="44" rx="5" class="fill-ground accent" stroke-width="1.6"/><text x="285" y="67" font-size="14" text-anchor="middle">ℛ</text>
+<text x="285" y="104" font-size="12" text-anchor="middle" class="soft">a channel</text>
+<line x1="330" y1="62" x2="364.8" y2="62" class="ink" stroke-width="1.6"/><polygon points="372,62 363.6,65.3 363.6,58.7" class="fill-ink"/>
+<text x="398" y="67" font-size="18" text-anchor="middle">c ρ</text>
+<text x="215" y="20" font-size="12.5" text-anchor="middle" class="soft">one ℛ for every ρ on C</text>
+</svg>
+      <p class="cap">$\mathcal R$ may depend on the code and the error set, never on $\rho$ or on which $E_i$ happened.</p>
+    </div>
+    <div>
+      <p class="small"><b>The running example.</b> <span class="ref" data-ref="bf">The bit-flip code</span>, $\{I, X_0, X_1, X_2\}$, and section 2's $\mathcal R$: each of the four terms of $\mathcal E(\rho)$ is restored, so $\mathcal R(\mathcal E(\rho)) = 4\rho$, and $c = 4$. Weighted as probabilities, $\{\sqrt{(1-p)^3}\,I, \sqrt{p(1-p)^2}\,X_k\}$ give $c = 1 - q$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why a constant $c$.</b> $\mathcal R$ preserves trace, so $c = \mathrm{tr}\,\mathcal E(\rho) = \mathrm{tr}\big(\sum_iE_i^\dagger E_i\,\rho\big)$.
+    When the $E_i$ are a channel's Kraus operators, $\sum E_i^\dagger E_i = I$ and $c = 1$. Allowing $c\ne1$ lets the definition
+    apply to an error set like $\{I, X_0, X_1, X_2\}$, which is not itself a channel but lists what the noise can do; or to
+    part of a channel, as in the weighted example, where the terms of weight 2 and 3 are left out and $c$ is the probability
+    of the terms kept. The requirement that $c$ not depend on $\rho$ is part of the definition: an error that shrank some
+    code states more than others would be distorting them.</p>
+    <p><b>The weighted example.</b> $(1-p)^3 + 3p(1-p)^2 = 1 - (3p^2 - 2p^3) = 1 - q$: the probability of the errors the
+    code handles, as worked example 2 found.</p>
+    <p><b>Why "for every $\rho$ on $C$".</b> The recovery must work without knowing the encoded state; that is the point of a
+    memory. By linearity it is enough to ask it for pure code states and their combinations, and the proof of necessity uses
+    only pure ones.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Knill–Laflamme</p>
+  <h2>The conditions</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Knill–Laflamme conditions</span> (1997)</span>
+        <p class="small">$C$ corrects $\{E_i\}$ if and only if there are complex numbers $\alpha_{ij}$ with</p>
+        $$PE_i^\dagger E_jP = \alpha_{ij}P \quad\text{for all } i, j .$$
+        <p class="small">The matrix $\alpha$ is then Hermitian and positive semidefinite.</p>
+      </div>
+      <p class="small"><b>Hermitian:</b> take the adjoint of the $(i,j)$ condition; it is the $(j,i)$ condition with $\bar\alpha_{ij}$. <b>Positive:</b> for any normalised code state, $\alpha_{ij} = \braket{\psi|E_i^\dagger E_j|\psi} = \braket{E_i\psi|E_j\psi}$, a Gram matrix.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 500 212" width="624" role="img" aria-label="two panels; in each, an orthonormal pair of code states is mapped by an error E; on the left, allowed, the images are orthogonal and of equal length; on the right, forbidden, the images overlap and have unequal lengths">
+<line x1="30" y1="150" x2="100" y2="150" class="unit" stroke-width="2"/><polygon points="100,150 91.6,153.3 91.6,146.7" class="fill-unit"/><line x1="30" y1="150" x2="30" y2="80" class="unit" stroke-width="2"/><polygon points="30,80 33.3,88.4 26.7,88.4" class="fill-unit"/><text x="104" y="168" font-size="12" text-anchor="middle">|0⟩</text><text x="24" y="76" font-size="12" text-anchor="end">|1⟩</text><line x1="160" y1="150" x2="207.1" y2="128" class="good" stroke-width="2"/><polygon points="207.1,128 201,134.6 198.1,128.5" class="fill-good"/><line x1="160" y1="150" x2="138" y2="102.9" class="good" stroke-width="2"/><polygon points="138,102.9 144.6,109 138.5,111.9" class="fill-good"/><line x1="80" y1="112" x2="123.6" y2="112" class="ink" stroke-width="1.3" stroke-dasharray="4 3"/><polygon points="130,112 122.6,115 122.6,109" class="fill-ink"/><text x="105" y="104" font-size="13" text-anchor="middle" class="halo">E</text><text x="135" y="200" font-size="12.5" text-anchor="middle" class="soft">orthogonal, equal lengths</text><text x="135" y="40" font-size="14" text-anchor="middle" class="fill-good">allowed</text>
+<line x1="270" y1="150" x2="340" y2="150" class="unit" stroke-width="2"/><polygon points="340,150 331.6,153.3 331.6,146.7" class="fill-unit"/><line x1="270" y1="150" x2="270" y2="80" class="unit" stroke-width="2"/><polygon points="270,80 273.3,88.4 266.7,88.4" class="fill-unit"/><text x="344" y="168" font-size="12" text-anchor="middle">|0⟩</text><text x="264" y="76" font-size="12" text-anchor="end">|1⟩</text><line x1="400" y1="150" x2="458" y2="134.5" class="warn" stroke-width="2"/><polygon points="458,134.5 450.7,139.9 449,133.4" class="fill-warn"/><line x1="400" y1="150" x2="414.4" y2="119.2" class="warn" stroke-width="2"/><polygon points="414.4,119.2 413.9,128.2 407.8,125.3" class="fill-warn"/><line x1="320" y1="112" x2="363.6" y2="112" class="ink" stroke-width="1.3" stroke-dasharray="4 3"/><polygon points="370,112 362.6,115 362.6,109" class="fill-ink"/><text x="345" y="104" font-size="13" text-anchor="middle" class="halo">E</text><text x="375" y="200" font-size="12.5" text-anchor="middle" class="soft">overlapping, unequal</text><text x="375" y="40" font-size="14" text-anchor="middle" class="fill-warn">forbidden</text>
+</svg>
+        <p class="cap">The diagonal says no code state is shrunk more than another; the off-diagonal, that orthogonal code states stay orthogonal.</p>
+      </div>
+      <p class="small"><b>Equivalent form.</b> $\braket{\varphi|E_i^\dagger E_j|\psi} = \alpha_{ij}\braket{\varphi|\psi}$ for all $\varphi, \psi \in C$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the conditions.</b> Because $\alpha_{ij} = \braket{\psi|E_i^\dagger E_j|\psi}$ for every normalised $\psi\in C$, it is the
+    same number for all code states. With $i = j$: $\lVert E_i\psi\rVert^2 = \alpha_{ii}$ for every $\psi$, so each error shrinks all
+    code states by the same factor — no distortion. With orthogonal $\varphi, \psi\in C$: $\braket{E_i\varphi|E_j\psi} = 0$, so no two
+    errors carry orthogonal code states to overlapping ones — otherwise they could never be told apart again. The figure is
+    the case $i = j$ for a two-dimensional code.</p>
+    <p><b>The equivalent form.</b> Sandwich $PE_i^\dagger E_jP = \alpha_{ij}P$ between $\bra\varphi$ and $\ket\psi$ with $\varphi, \psi\in C$
+    ($P\ket\psi = \ket\psi$). Conversely, if the sandwiched form holds for all code vectors, the operators $PE_i^\dagger E_jP$ and
+    $\alpha_{ij}P$ agree on $C\times C$ and both vanish when either side is in $C^\perp$, so they are equal.</p>
+    <p><b>Checks.</b> The trivial code $C = \mathcal H$ with the single error $I$: $P = I$, $\alpha = (1)$, and $\mathcal R = \mathrm{id}$
+    works. The same code with errors $\{I, X\}$ on one qubit: $PIXP = X$ is not a multiple of $I$, and indeed nothing can undo
+    a coin-flip $X$ on an unencoded qubit.</p>
+    <p><b>History.</b> E. Knill and R. Laflamme, "Theory of quantum error-correcting codes", <i>Phys. Rev. A</i> 55, 900 (1997).
+    Bennett, DiVincenzo, Smolin and Wootters found equivalent conditions at the same time (<i>Phys. Rev. A</i> 54, 3824, 1996).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Knill–Laflamme</p>
+  <h2>Sufficiency: diagonalise, then ask which subspace</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box proof"><span class="label">proof that the conditions suffice</span>
+        <p class="small"><b>1.</b> Diagonalise: $\alpha = UDU^\dagger$, $D = \mathrm{diag}(d_1, \dots, d_m)$, $d_k \ge 0$ (unit 00).</p>
+        <p class="small"><b>2.</b> Mix the errors: $F_k = \sum_iu_{ik}E_i$. Then $\sum_kF_k\rho F_k^\dagger = \sum_iE_i\rho E_i^\dagger$ (same $\mathcal E$), and $PF_k^\dagger F_lP = d_k\delta_{kl}P$.</p>
+        <p class="small"><b>3.</b> For $d_k &gt; 0$, $F_kP/\sqrt{d_k}$ maps $C$ isometrically onto $F_kC$, and these subspaces are mutually orthogonal; $P_k = F_kPF_k^\dagger/d_k$ projects onto $F_kC$. If $d_k = 0$, $F_kP = 0$.</p>
+        <p class="small"><b>4.</b> Recovery: Kraus operators $R_k = PF_k^\dagger/\sqrt{d_k}$ for $d_k &gt; 0$, and $Q = I - \sum_kP_k$. Then $R_kF_lP = \delta_{kl}\sqrt{d_k}\,P$ and $QF_lP = 0$, so</p>
+        $$\mathcal R(\mathcal E(\rho)) = \Big(\sum_kd_k\Big)\rho = (\mathrm{tr}\,\alpha)\,\rho. \ ∎$$
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 300" width="520" role="img" aria-label="three mutually orthogonal lines through a common point stand for the code C and its images F1 C and F2 C; a code state psi on C is carried by F1 and F2 to the other two; a dashed green arrow marks the recovery: find which subspace, then map it back">
+<line x1="200" y1="170" x2="200" y2="25" class="unit" stroke-width="3"/>
+<text x="200" y="15" font-size="15" text-anchor="middle" class="fill-unit halo">C</text>
+<line x1="180" y1="150" x2="325" y2="150" class="accent" stroke-width="3"/>
+<text x="340" y="155" font-size="15" text-anchor="middle" class="fill-accent halo">F₁C</text>
+<line x1="215" y1="136.7" x2="106.5" y2="233" class="alt" stroke-width="3"/>
+<text x="95.3" y="247.9" font-size="15" text-anchor="middle" class="alt halo">F₂C</text>
+<circle cx="200" cy="60" r="5" class="fill-unit"/>
+<text x="190" y="64" font-size="14" text-anchor="end" class="halo">|ψ⟩</text>
+<path d="M 206 64 Q 280 70 270 142" fill="none" class="ink" stroke-width="1.4"/><polygon points="270,142 267,134.6 273,134.6" class="fill-ink"/>
+<text x="292" y="90" font-size="13" text-anchor="start" class="halo">F₁</text>
+<path d="M 194 66 Q 96.41365573811876 80 134.4 198.4" fill="none" class="ink" stroke-width="1.4"/><polygon points="134.4,198.4 130.2,191.6 136,190.6" class="fill-ink"/>
+<text x="86.4" y="110" font-size="13" text-anchor="end" class="halo">F₂</text>
+<path d="M 270 160 Q 300 200 214 180" fill="none" class="good" stroke-width="1.6" stroke-dasharray="5 3"/>
+<text x="298" y="200" font-size="12.5" text-anchor="start" class="fill-good">measure which,</text>
+<text x="298" y="216" font-size="12.5" text-anchor="start" class="fill-good">then undo</text>
+<text x="200" y="292" font-size="12" text-anchor="middle" class="soft">each line stands for a whole subspace, as large as C</text>
+</svg>
+      <p class="cap">After diagonalising, the errors send $C$ into orthogonal copies of itself. Measuring which copy, then mapping it back, is the recovery.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p><b>Step 2.</b> $\sum_kF_k\rho F_k^\dagger = \sum_{i,j}\big(\sum_ku_{ik}\bar u_{jk}\big)E_i\rho E_j^\dagger = \sum_{i,j}(UU^\dagger)_{ij}E_i\rho E_j^\dagger = \sum_iE_i\rho E_i^\dagger$.
+    And $PF_k^\dagger F_lP = \sum_{i,j}\bar u_{ik}u_{jl}PE_i^\dagger E_jP = \big(\sum_{i,j}\bar u_{ik}\alpha_{ij}u_{jl}\big)P = (U^\dagger\alpha U)_{kl}P = d_k\delta_{kl}P$.</p>
+    <p><b>Step 3.</b> For $\psi, \varphi\in C$: $\braket{F_k\varphi|F_k\psi} = d_k\braket{\varphi|\psi}$, so $F_k/\sqrt{d_k}$ preserves inner products on $C$
+    and is an isometry onto its image $F_kC$. If $d_k = 0$ then $\lVert F_k\psi\rVert^2 = 0$ for all $\psi\in C$, so $F_kP = 0$. For
+    $k\ne l$, $\braket{F_k\varphi|F_l\psi} = 0$: the images are orthogonal. $P_k$ is Hermitian, and
+    $P_k^2 = F_k(PF_k^\dagger F_kP)F_k^\dagger/d_k^2 = F_kPF_k^\dagger/d_k = P_k$; its range is $F_kC$. Orthogonality gives
+    $P_kP_l = F_k(PF_k^\dagger F_lP)F_l^\dagger/(d_kd_l) = 0$, so $\sum_kP_k$ is a projector and $Q = I - \sum_kP_k$ is one too.</p>
+    <p><b>Step 4.</b> Trace preservation: $R_k^\dagger R_k = F_kPF_k^\dagger/d_k = P_k$, so $\sum_kR_k^\dagger R_k + Q^\dagger Q = \sum_kP_k + Q = I$: a
+    channel (unit 21). Next, $R_kF_lP = PF_k^\dagger F_lP/\sqrt{d_k} = \delta_{kl}\sqrt{d_k}P$, and $QF_lP = 0$ because $F_lP$ has range in
+    $F_lC$, inside the range of $\sum P_k$ (or is zero). So for $\rho = P\rho P$:
+    $\mathcal R(\mathcal E(\rho)) = \sum_{k}\sum_lR_kF_l\rho F_l^\dagger R_k^\dagger + \sum_lQF_l\rho F_l^\dagger Q = \sum_kd_k\,P\rho P = (\mathrm{tr}\,D)\rho$, and
+    $\mathrm{tr}\,D = \mathrm{tr}\,\alpha$. Since $c = \mathrm{tr}\,\alpha &gt; 0$ unless every $E_iP = 0$, the definition is met.</p>
+    <p><b>In words.</b> The recovery is a measurement with outcomes "which $F_kC$" (plus "none of them"), followed by
+    $PF_k^\dagger/\sqrt{d_k}$, which maps $F_kC$ back onto $C$ — exactly section 2's syndrome-and-correct, made general.
+    Diagonalising $\alpha$ is what makes the subspaces orthogonal; the original $E_iC$ need not be.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Knill–Laflamme</p>
+  <h2>Necessity: an error that can be undone has read nothing</h2>
+  <div class="cols">
+    <div>
+      <div class="box proof"><span class="label">proof that the conditions are necessary</span>
+        <p class="small">Let $\mathcal R$ have Kraus operators $R_k$, with $\sum_kR_k^\dagger R_k = I$. For every $\psi\in C$,</p>
+        $$\textstyle\sum_{k,i}R_kE_i\ket\psi\!\bra\psi E_i^\dagger R_k^\dagger = c\ket\psi\!\bra\psi .$$
+        <p class="small">Sandwich with any $\varphi\perp\psi$: $\sum_{k,i}|\braket{\varphi|R_kE_i|\psi}|^2 = 0$, so $R_kE_i\ket\psi$ is a multiple of $\ket\psi$ for every $\psi\in C$. An operator with every vector of $C$ as an eigenvector is a scalar on $C$: $R_kE_iP = \lambda_{ki}P$. Then</p>
+        $$\begin{aligned}PE_i^\dagger E_jP &= \textstyle\sum_kPE_i^\dagger R_k^\dagger R_kE_jP\\ &= \textstyle\big(\sum_k\bar\lambda_{ki}\lambda_{kj}\big)P. \ ∎\end{aligned}$$
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 540 190" width="676" role="img" aria-label="Stinespring picture of the noise: the code state psi and an environment in e0 enter a noise unitary; the system then passes through the recovery R and comes out as psi; the environment comes out in the state alpha transpose, which does not depend on psi">
+<line x1="70" y1="50" x2="380" y2="50" class="ink" stroke-width="1.6"/>
+<line x1="70" y1="130" x2="380" y2="130" class="ink" stroke-width="1.6"/>
+<text x="64" y="55" font-size="14" text-anchor="end">|ψ⟩ ∈ C</text>
+<text x="64" y="135" font-size="14" text-anchor="end">|e₀⟩</text>
+<text x="14" y="30" font-size="12" text-anchor="start" class="soft">system</text>
+<text x="14" y="112" font-size="12" text-anchor="start" class="soft">environment</text>
+<rect x="120" y="30" width="80" height="120" rx="5" class="fill-ground warn" stroke-width="1.6"/>
+<text x="160" y="96" font-size="14" text-anchor="middle">noise</text>
+<rect x="272" y="35" width="36" height="30" class="fill-ground accent" stroke-width="1.6"/><text x="290" y="55.6" font-size="16" text-anchor="middle">ℛ</text>
+<text x="386" y="55" font-size="14" text-anchor="start">|ψ⟩</text>
+<text x="386" y="128" font-size="14" text-anchor="start">ρ<tspan baseline-shift="sub" font-size="10">env</tspan> = αᵀ</text>
+<text x="386" y="146" font-size="12" text-anchor="start" class="soft">the same for every ψ</text>
+<text x="160" y="178" font-size="13" text-anchor="middle" class="soft">|ψ⟩|e₀⟩ ↦ Σᵢ Eᵢ|ψ⟩ ⊗ |i⟩</text>
+</svg>
+        <p class="cap">Noise as a unitary with an environment (unit 21). Correctability means the environment's record is the same for every code state.</p>
+      </div>
+      <div class="box good"><span class="label">the answer to objection three, in general</span>
+        <p class="small">The environment ends in $\sum_{ij}\braket{\psi|E_j^\dagger E_i|\psi}\ket i\!\bra j = \alpha^{\mathsf T}$: it learnt nothing about $\psi$. Whatever can be undone never knew the state.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the scalar step</h4>
+    <p>Let $A = R_kE_i$ and suppose $A\ket\psi = \lambda_\psi\ket\psi$ for every non-zero $\psi\in C$. Take independent
+    $\psi_1, \psi_2\in C$. Then $\lambda(\psi_1 + \psi_2) = A(\psi_1 + \psi_2) = \lambda_1\psi_1 + \lambda_2\psi_2$, and independence forces
+    $\lambda_1 = \lambda = \lambda_2$. So one scalar serves for all of $C$, and $AP = \lambda P$. The first step of the proof is also worth
+    seeing slowly: $\braket{\varphi|\big(\sum_{k,i}R_kE_i\ket\psi\!\bra\psi E_i^\dagger R_k^\dagger\big)|\varphi} = \sum_{k,i}|\braket{\varphi|R_kE_i|\psi}|^2$, while the
+    right side gives $c|\braket{\varphi|\psi}|^2 = 0$; a sum of non-negative terms that vanishes has every term zero.</p>
+    <p><b>The environment's state.</b> When the $E_i$ are a channel's Kraus operators, unit 21's Stinespring picture realises
+    the noise as the isometry $\ket\psi\mapsto\sum_iE_i\ket\psi\otimes\ket i$ into system $\otimes$ environment. Tracing out the system
+    (unit 04): $\mathrm{tr}_S\big(\sum_{i,j}E_i\ket\psi\!\bra\psi E_j^\dagger\otimes\ket i\!\bra j\big) = \sum_{i,j}\braket{\psi|E_j^\dagger E_i|\psi}\ket i\!\bra j$, whose
+    $(i,j)$ entry is $\alpha_{ji}$. The Knill–Laflamme conditions say precisely that this does not depend on $\psi\in C$.</p>
+    <p><b>A second proof of necessity</b>, for those who know unit 21's theorem on Kraus families: the families
+    $\{R_kE_iP\}$ and $\{\sqrt cP\}$ describe the same completely positive map $\rho\mapsto cP\rho P$, so they are related by an
+    isometry, and every $R_kE_iP$ is a multiple of $P$. The proof on the slide avoids needing that theorem for maps that are
+    not trace-preserving.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Knill–Laflamme</p>
+  <h2>Worked: Knill–Laflamme for the bit-flip code</h2>
+  <div class="box ex"><span class="label">worked example 3 · <span class="ref" data-ref="bf">the bit-flip code</span>, errors $E = (I, X_0, X_1, X_2)$</span>
+    <p class="small"><b>The products.</b> $E_i^\dagger E_j$ is $I$ when $i = j$; $X_k$ when one of them is $I$; $X_kX_l$ ($k\ne l$) otherwise.</p>
+    <p class="small"><b>Sandwich each with $P = \ket{000}\!\bra{000} + \ket{111}\!\bra{111}$.</b> $PIP = P$. $X_k$ sends $\ket{000}$ to a string with one 1 and $\ket{111}$ to a string with two: both orthogonal to $C$, so $PX_kP = 0$. $X_kX_l$ sends them to strings with two 1s and one 1: $PX_kX_lP = 0$.</p>
+    <div class="cols">
+      <div>
+        $$\alpha = \begin{pmatrix}1&0&0&0\\0&1&0&0\\0&0&1&0\\0&0&0&1\end{pmatrix} = I_4 .$$
+      </div>
+      <div>
+        <p class="small">Hermitian ✓, positive ✓, $\mathrm{tr}\,\alpha = 4 = c$ ✓. Already diagonal, so $F_k = E_k$ and $R_k = PE_k^\dagger = PX_k$: <b>section 2's recovery, recovered</b>.</p>
+      </div>
+    </div>
+    <p class="small"><b>Now add $Z_0$.</b> $PZ_0^\dagger Z_0P = P$ is fine, but $PI^\dagger Z_0P = \ket{000}\!\bra{000} - \ket{111}\!\bra{111}$, not a multiple of $P$. The conditions fail, and by necessity no recovery exists: section 3's undetected phase flip, now a theorem.</p>
+  </div>
+  <aside class="notes">
+    <p><b>The sixteen entries, listed.</b> Diagonal: $PE_i^\dagger E_iP = PE_i^2P = P$ since each $E_i$ is a Pauli, $E_i^2 = I$. Row 1,
+    columns 2–4: $PX_kP = 0$. Off-diagonal among $X$'s: $PX_kX_lP = 0$, e.g. $X_0X_1\ket{000} = \ket{110}$ and
+    $X_0X_1\ket{111} = \ket{001}$, both orthogonal to $\ket{000}$ and $\ket{111}$. So $\alpha = I_4$.</p>
+    <p><b>What $\alpha = I$ means.</b> The four images $E_iC$ are mutually orthogonal and none is shrunk: they are the four
+    planes of the cube, and the recovery measures which one. A diagonal $\alpha$ with distinct errors giving orthogonal images is the
+    "nondegenerate" case; the next slide shows a code where $\alpha$ is not diagonal at all.</p>
+    <p><b>The failed condition, read.</b> $PZ_0P = \ket{000}\!\bra{000} - \ket{111}\!\bra{111} = Z_LP$: the error does not leave
+    the code but acts on it as a non-trivial logical operator. An equivalent-form check: $\braket{0_L|Z_0|0_L} = 1$ but
+    $\braket{1_L|Z_0|1_L} = -1$; $\alpha_{I,Z_0}$ would have to equal both.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · Knill–Laflamme</p>
+  <h2>Shor's code passes, and is degenerate</h2>
+  <div class="cols wide-right">
+    <div>
+      <p class="small">Errors: $I$ and the 27 single-qubit Paulis $X_k, Y_k, Z_k$. Each $E_i^\dagger E_j$ is a Pauli of weight at most 2, up to a phase, and for $i\ne j$ it has $PE_i^\dagger E_jP = 0$ with one exception (problem P7): $Z_kZ_l$ with $k, l$ in the same block is $+1$ on $\ket{000}$ and on $\ket{111}$ of that block, so</p>
+      $$PZ_kZ_lP = P .$$
+      <p class="small">So $\alpha$ is $I_{28}$ except that its three $3\times3$ diagonal blocks on the $Z$'s of one block are all ones: <b>not diagonal, rank 22</b>. The conditions hold, so the code corrects every single-qubit Pauli.</p>
+      <div class="box def"><span class="label">a <span class="term">degenerate code</span></span>
+        <p class="small">One whose matrix $\alpha$ is singular: some non-trivial combination of errors acts on $C$ as zero — here $(Z_0 - Z_1)P = 0$.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 420 260" width="520" role="img" aria-label="the ten by ten corner of the Knill-Laflamme matrix of Shor's code for the errors I and Z0 to Z8: ones on the diagonal, and three three by three blocks of ones for Z errors in the same block; every other entry is zero">
+<rect x="60" y="40" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="81" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="102" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="123" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="144" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="165" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="186" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="207" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="228" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="249" y="40" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<text x="54" y="55" font-size="12" text-anchor="end">I</text>
+<text x="70" y="34" font-size="11" text-anchor="middle">I</text>
+<rect x="60" y="61" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="61" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="102" y="61" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="123" y="61" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="144" y="61" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="165" y="61" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="186" y="61" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="207" y="61" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="228" y="61" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="249" y="61" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<text x="54" y="76" font-size="12" text-anchor="end">Z₀</text>
+<text x="91" y="34" font-size="11" text-anchor="middle">Z₀</text>
+<rect x="60" y="82" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="82" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="102" y="82" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="123" y="82" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="144" y="82" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="165" y="82" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="186" y="82" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="207" y="82" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="228" y="82" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="249" y="82" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<text x="54" y="97" font-size="12" text-anchor="end">Z₁</text>
+<text x="112" y="34" font-size="11" text-anchor="middle">Z₁</text>
+<rect x="60" y="103" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="103" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="102" y="103" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="123" y="103" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="144" y="103" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="165" y="103" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="186" y="103" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="207" y="103" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="228" y="103" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="249" y="103" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<text x="54" y="118" font-size="12" text-anchor="end">Z₂</text>
+<text x="133" y="34" font-size="11" text-anchor="middle">Z₂</text>
+<rect x="60" y="124" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="124" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="102" y="124" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="123" y="124" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="144" y="124" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="165" y="124" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="186" y="124" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="207" y="124" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="228" y="124" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="249" y="124" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<text x="54" y="139" font-size="12" text-anchor="end">Z₃</text>
+<text x="154" y="34" font-size="11" text-anchor="middle">Z₃</text>
+<rect x="60" y="145" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="145" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="102" y="145" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="123" y="145" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="144" y="145" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="165" y="145" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="186" y="145" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="207" y="145" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="228" y="145" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="249" y="145" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<text x="54" y="160" font-size="12" text-anchor="end">Z₄</text>
+<text x="175" y="34" font-size="11" text-anchor="middle">Z₄</text>
+<rect x="60" y="166" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="166" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="102" y="166" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="123" y="166" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="144" y="166" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="165" y="166" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="186" y="166" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="207" y="166" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="228" y="166" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="249" y="166" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<text x="54" y="181" font-size="12" text-anchor="end">Z₅</text>
+<text x="196" y="34" font-size="11" text-anchor="middle">Z₅</text>
+<rect x="60" y="187" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="187" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="102" y="187" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="123" y="187" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="144" y="187" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="165" y="187" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="186" y="187" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="207" y="187" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="228" y="187" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="249" y="187" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<text x="54" y="202" font-size="12" text-anchor="end">Z₆</text>
+<text x="217" y="34" font-size="11" text-anchor="middle">Z₆</text>
+<rect x="60" y="208" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="208" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="102" y="208" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="123" y="208" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="144" y="208" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="165" y="208" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="186" y="208" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="207" y="208" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="228" y="208" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="249" y="208" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<text x="54" y="223" font-size="12" text-anchor="end">Z₇</text>
+<text x="238" y="34" font-size="11" text-anchor="middle">Z₇</text>
+<rect x="60" y="229" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="81" y="229" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="102" y="229" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="123" y="229" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="144" y="229" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="165" y="229" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="186" y="229" width="20" height="20" class="fill-ground rule" stroke-width="0.8"/>
+<rect x="207" y="229" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="228" y="229" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<rect x="249" y="229" width="20" height="20" class="fill-unit rule" stroke-width="0.8"/>
+<text x="54" y="244" font-size="12" text-anchor="end">Z₈</text>
+<text x="259" y="34" font-size="11" text-anchor="middle">Z₈</text>
+<rect x="79.5" y="59.5" width="65" height="65" fill="none" class="warn" stroke-width="2"/>
+<rect x="142.5" y="122.5" width="65" height="65" fill="none" class="warn" stroke-width="2"/>
+<rect x="205.5" y="185.5" width="65" height="65" fill="none" class="warn" stroke-width="2"/>
+<rect x="288" y="60" width="16" height="16" class="fill-unit"/>
+<text x="310" y="73" font-size="13" text-anchor="start">αᵢⱼ = 1</text>
+<rect x="288" y="88" width="16" height="16" class="fill-ground rule" stroke-width="1"/>
+<text x="310" y="101" font-size="13" text-anchor="start">αᵢⱼ = 0</text>
+<text x="288" y="140" font-size="12.5" text-anchor="start" class="fill-warn">three all-ones</text>
+<text x="288" y="156" font-size="12.5" text-anchor="start" class="fill-warn">blocks: rank 1</text>
+<text x="288" y="172" font-size="12.5" text-anchor="start" class="fill-warn">each, not 3</text>
+</svg>
+      <p class="cap">The corner of $\alpha$ for $I, Z_0, \dots, Z_8$. The rest of the $28\times28$ matrix is the identity.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why rank 22.</b> $\alpha$ is block diagonal. The nineteen errors $I$, $X_k$, $Y_k$ each contribute a $1$ on the
+    diagonal with nothing off it, and the nine $Z_k$ form three
+    $3\times3$ all-ones blocks, each of rank 1. Rank $= 19 + 3 = 22$, against size 28: singular, with null vectors such as
+    $(\dots, 1, -1, 0, \dots)$ on $Z_0, Z_1$, i.e. $(Z_0 - Z_1)P = 0$.</p>
+    <p><b>Why degeneracy is harmless.</b> The sufficiency proof never needed $\alpha$ invertible: zero eigenvalues give $F_kP = 0$,
+    errors that never happen as far as the code can tell. Here, after diagonalising the $Z$ block of block 0 one gets
+    $F = (Z_0 + Z_1 + Z_2)/\sqrt3$ with eigenvalue 3 and two combinations with eigenvalue 0. The recovery corrects "a $Z$ in
+    block 0" without learning which.</p>
+    <p><b>Why it is new.</b> A classical code that corrects two errors must distinguish them, because they produce different
+    received words. A quantum code need not: two different operators can act identically on every code state. Degenerate
+    codes escape counting arguments that bind non-degenerate ones; unit 23's quantum Hamming bound is proved only for the
+    non-degenerate case for exactly this reason.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>Discretisation, and distance</h2>
+  <p>Correct four errors and you have corrected a continuum. Then: how many qubits' worth of errors a code survives.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · discretisation</p>
+  <h2>Correctable errors form a linear space</h2>
+  <div class="box thm"><span class="label">linearity</span>
+    <p class="small">If $C$ corrects $\{E_i\}$, then it corrects every $\{F_k\}$ with each $F_k$ a linear combination of the $E_i$ — and the <b>same recovery</b> $\mathcal R$ does it.</p>
+  </div>
+  <div class="cols">
+    <div class="box proof"><span class="label">proof</span>
+      <p class="small">Write $F_k = \sum_im_{ki}E_i$. By necessity's proof, every Kraus operator of $\mathcal R$ has $R_rE_iP = \lambda_{ri}P$. So</p>
+      $$R_rF_kP = \Big(\sum_im_{ki}\lambda_{ri}\Big)P =: \mu_{rk}P ,$$
+      <p class="small">and for $\rho$ on $C$, $\ \mathcal R\big(\sum_kF_k\rho F_k^\dagger\big) = \big(\sum_{r,k}|\mu_{rk}|^2\big)\rho$. ∎</p>
+    </div>
+    <div>
+      <p class="small"><b>Also directly:</b> $PF_k^\dagger F_lP = \sum_{i,j}\bar m_{ki}m_{lj}\alpha_{ij}P$, so the conditions hold with $\bar M\alpha M^{\mathsf T}$.</p>
+      <div class="fig">
+        <svg viewBox="0 0 400 225" width="494" role="img" aria-label="a shaded plane spanned by two error operators E1 and E2, drawn as arrows; a third arrow F, a combination of them, lies in the same plane; the caption says the same recovery corrects every F in the span">
+<polygon points="27.5,190.5 303,176 404.5,38.2 129,52.8" class="fill-soft rule" stroke-width="1.2"/>
+<line x1="70" y1="170" x2="252.8" y2="160.4" class="accent" stroke-width="2.2"/><polygon points="260,160 251.8,163.8 251.5,157.1" class="fill-accent"/>
+<line x1="70" y1="170" x2="135.7" y2="80.8" class="alt" stroke-width="2.2"/><polygon points="140,75 137.7,83.7 132.4,79.7" class="fill-alt"/>
+<line x1="212.5" y1="162.5" x2="275.5" y2="77" class="ink" stroke-width="1.1" stroke-dasharray="3 3"/>
+<line x1="70" y1="170" x2="268.9" y2="80" class="unit" stroke-width="2.4"/><polygon points="275.5,77 269.3,83.5 266.5,77.4" class="fill-unit"/>
+<text x="266" y="178" font-size="14" text-anchor="start" class="fill-accent halo">E₁</text>
+<text x="134" y="71" font-size="14" text-anchor="end" class="alt halo">E₂</text>
+<text x="283.5" y="73" font-size="13.5" text-anchor="start" class="fill-unit halo">F = m₁E₁ + m₂E₂</text>
+<text x="200" y="214" font-size="12.5" text-anchor="middle" class="soft">every F in the span: the same ℛ corrects it</text>
+</svg>
+        <p class="cap">Correctability is a property of the span, not of the list.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof</h4>
+    <p>The necessity proof used only that $\mathcal R$ corrects $\{E_i\}$; it showed that then $R_rE_iP = \lambda_{ri}P$ for every Kraus
+    operator $R_r$ of $\mathcal R$ and every $i$. Linearity of operator multiplication gives $R_rF_kP = \sum_im_{ki}R_rE_iP = \mu_{rk}P$.
+    For $\rho = P\rho P$: $\mathcal R\big(\sum_kF_k\rho F_k^\dagger\big) = \sum_{r,k}R_rF_kP\rho PF_k^\dagger R_r^\dagger = \sum_{r,k}|\mu_{rk}|^2P\rho P$. That is
+    the definition of correcting $\{F_k\}$, with $c = \sum|\mu_{rk}|^2$, as long as $c &gt; 0$. If $c = 0$, every $F_kP = 0$ (sum
+    the conditions: $\mathrm{tr}$ of the output is $\sum_k\lVert F_k\psi\rVert^2 = 0$), so the $F_k$ annihilate the code and there is nothing to
+    correct.</p>
+    <p><b>The point is the same $\mathcal R$.</b> The direct check of the conditions shows that <i>some</i> recovery exists for the
+    new error set. The stronger statement — the recovery built for $\{E_i\}$ already works — is what makes error correction
+    practical: the device runs one fixed procedure, designed for a short list of errors, and it handles every noise process
+    whose Kraus operators lie in their span, including ones nobody characterised.</p>
+    <p><b>The matrix form.</b> $\sum_{i,j}\bar m_{ki}m_{lj}\alpha_{ij} = (\bar M\alpha M^{\mathsf T})_{kl}$, Hermitian and positive because
+    $\alpha$ is: for a vector $v$, $v^\dagger\bar M\alpha M^{\mathsf T}v = w^\dagger\alpha w$ with $w = M^{\mathsf T}v$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · discretisation</p>
+  <h2>The discretisation of errors</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">discretisation of errors</span></span>
+        <p class="small">A code on $n$ qubits that corrects $\{I\}\cup\{X_q, Y_q, Z_q : q = 0, \dots, n-1\}$ corrects every noise whose Kraus operators each act on a single qubit — in particular every channel, unitary or not, on any one qubit.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$I, X, Y, Z$ are a basis of the $2\times2$ complex matrices (unit 02): $A = \sum_\mu a_\mu\sigma_\mu$ with $a_\mu = \tfrac12\mathrm{tr}(\sigma_\mu A)$. So a Kraus operator $A$ on qubit $q$ lies in $\mathrm{span}\{I, X_q, Y_q, Z_q\}$; apply linearity. ∎</p>
+      </div>
+      <p class="small"><b>Example</b>, unit 21's amplitude damping: $\sqrt\gamma\ket0\!\bra1 = \tfrac{\sqrt\gamma}2(X + iY)$ and $\mathrm{diag}(1, \sqrt{1-\gamma}) = \tfrac{1 + \sqrt{1-\gamma}}2I + \tfrac{1 - \sqrt{1-\gamma}}2Z$.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 320 250" width="390" role="img" aria-label="an arbitrary two by two matrix A drawn as an arrow, built from three coloured components along axes labelled X, Y and Z; the identity component is not drawn">
+<line x1="130" y1="160" x2="243.6" y2="160" class="ink" stroke-width="1.4"/><polygon points="250,160 242.6,163 242.6,157" class="fill-ink"/>
+<text x="265.6" y="165" font-size="15" text-anchor="middle">X</text>
+<line x1="130" y1="160" x2="73" y2="206" class="ink" stroke-width="1.4"/><polygon points="68,210 71.9,203 75.6,207.6" class="fill-ink"/>
+<text x="59.9" y="221.5" font-size="15" text-anchor="middle">Y</text>
+<line x1="130" y1="160" x2="130" y2="46.4" class="ink" stroke-width="1.4"/><polygon points="130,40 133,47.4 127,47.4" class="fill-ink"/>
+<text x="130" y="29.4" font-size="15" text-anchor="middle">Z</text>
+<line x1="130" y1="160" x2="210" y2="160" class="accent" stroke-width="3"/>
+<line x1="210" y1="160" x2="180" y2="184" class="alt" stroke-width="3"/>
+<line x1="180" y1="184" x2="180" y2="99" class="good" stroke-width="3"/>
+<line x1="130" y1="160" x2="174.9" y2="105.2" class="unit" stroke-width="2.4"/><polygon points="180,99 177,108.5 171.2,103.8" class="fill-unit"/>
+<text x="188" y="93" font-size="16" text-anchor="start" class="fill-unit halo">A</text>
+<text x="170" y="178" font-size="13" text-anchor="middle" class="fill-accent">a₁</text>
+<text x="208" y="192" font-size="13" text-anchor="middle" class="alt">a₂</text>
+<text x="188" y="144" font-size="13" text-anchor="start" class="fill-good">a₃</text>
+<text x="150" y="238" font-size="12.5" text-anchor="middle" class="soft">A = a₀I + a₁X + a₂Y + a₃Z,  a_μ = ½ tr(σ_μ A)</text>
+</svg>
+      <p class="cap">Any error on one qubit is a vector in a four-dimensional space with the Paulis as axes. A code that corrects the axes corrects the space.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The basis, recalled.</b> The Paulis satisfy $\mathrm{tr}(\sigma_\mu\sigma_\nu) = 2\delta_{\mu\nu}$, so they are orthogonal for the
+    inner product $\mathrm{tr}(A^\dagger B)$ and four of them span the four-dimensional space of $2\times2$ matrices; the coefficient
+    formula follows by taking $\mathrm{tr}(\sigma_\nu\,\cdot)$ of $A = \sum a_\mu\sigma_\mu$.</p>
+    <p><b>The example, checked.</b> $\tfrac12(X + iY) = \tfrac12\begin{pmatrix}0&1\\1&0\end{pmatrix} + \tfrac i2\begin{pmatrix}0&-i\\i&0\end{pmatrix} = \begin{pmatrix}0&1\\0&0\end{pmatrix} = \ket0\!\bra1$ ✓.
+    And $\tfrac{1 + s}2I + \tfrac{1 - s}2Z = \mathrm{diag}(1, s)$ with $s = \sqrt{1 - \gamma}$ ✓. So a code correcting all single-qubit Paulis
+    — Shor's — corrects amplitude damping on any one qubit exactly. The bit-flip code corrects only $X$, and the $Y$ and $Z$
+    parts of amplitude damping slip through: problem P11 measures the cost.</p>
+    <p><b>The answer to objection two.</b> The continuum of errors is real, but a code never has to identify which member of
+    it occurred. It identifies a component in a fixed finite basis, and linearity guarantees the rest. Physically, the
+    syndrome measurement <i>projects</i> a superposition of error branches onto one of them, as the next two slides show on
+    Shor's code.</p>
+    <p><b>What it does not say.</b> Noise acting on two qubits at once is outside this theorem; a code correcting all
+    weight-1 Paulis corrects such noise only to the extent its Kraus operators are dominated by weight $\le1$ terms. That is
+    where distance, at the end of this section, comes in.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · discretisation</p>
+  <h2>Worked: a small rotation on Shor's code</h2>
+  <div class="box ex"><span class="label">worked example 4 · <span class="ref" data-ref="rot">$R_Y(\theta)$ on qubit 4</span> of <span class="ref" data-ref="shor">Shor's code</span></span>
+    <p class="small"><b>Expand in Paulis.</b> $R_Y(\theta) = e^{-i\theta Y/2} = \cos\tfrac\theta2\,I - i\sin\tfrac\theta2\,Y$ (unit 02). On $\ket{\psi_L} = \alpha\ket{0_L} + \beta\ket{1_L}$:</p>
+    $$R_Y(\theta)_4\ket{\psi_L} = \cos\tfrac\theta2\,\ket{\psi_L} - i\sin\tfrac\theta2\,Y_4\ket{\psi_L}.$$
+    <p class="small"><b>Syndromes of the two terms.</b> $\ket{\psi_L}$: all eight checks $+1$. $Y_4 = iX_4Z_4$: $X_4$ flips the middle qubit of block 1, so $Z_3Z_4 = Z_4Z_5 = -1$; $Z_4$ flips block 1's sign, so both $X^{\otimes6}$ checks are $-1$. The other four checks are $+1$.</p>
+    <p class="small"><b>Normalised.</b> The two terms lie in different joint eigenspaces, so they are orthogonal, and the squared norm is $\cos^2\tfrac\theta2 + \sin^2\tfrac\theta2 = 1$ ✓.</p>
+    <p class="small"><b>Outcome probabilities</b>, at $\theta = 0.2$: trivial syndrome $\cos^2 0.1 = 0.990033$; the $Y_4$ syndrome $\sin^2 0.1 = 0.009967$. Sum $1$ ✓. Neither depends on $\alpha, \beta$.</p>
+  </div>
+  <aside class="notes">
+    <p><b>Why the checks give those signs.</b> $Z_3Z_4$ and $Z_4Z_5$ anticommute with $X_4$ (they share one qubit, where $ZX = -XZ$)
+    and commute with $Z_4$; $X_0\cdots X_5$ and $X_3\cdots X_8$ commute with $X_4$ and anticommute with $Z_4$. So each of them
+    anticommutes with $Y_4 = iX_4Z_4$ exactly when it anticommutes with an odd number of the two factors: all four do. If $S$
+    is a check with $S\ket{\psi_L} = \ket{\psi_L}$ and $SY_4 = -Y_4S$, then $SY_4\ket{\psi_L} = -Y_4\ket{\psi_L}$: eigenvalue $-1$. The other
+    four checks ($Z_0Z_1, Z_1Z_2, Z_6Z_7, Z_7Z_8$) share no qubit with $Y_4$, so they stay $+1$.</p>
+    <p><b>The numbers.</b> $\cos^2(0.1) = 0.9900332889$ and $\sin^2(0.1) = 0.0099667111$. The general single-qubit unitary is
+    problem P10: for $e^{-i\theta\,\hat n\cdot\vec\sigma/2}$ on any qubit the four syndromes (none, $X$, $Y$, $Z$) come out with
+    probabilities $\cos^2\tfrac\theta2$ and $\sin^2\tfrac\theta2\,n_x^2, n_y^2, n_z^2$.</p>
+    <p><b>The orthogonality, once more.</b> $\braket{\psi_L|Y_4|\psi_L} = 0$ is Knill–Laflamme's $PY_4P = 0$ (problem P7), the
+    $(I, Y_4)$ entry of $\alpha$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · discretisation</p>
+  <h2>Two branches, one answer</h2>
+  <div class="fig">
+    <svg viewBox="0 0 560 240" width="728" role="img" aria-label="the state after the error, cos of theta over 2 times psi_L minus i sin of theta over 2 times Y4 psi_L, enters the syndrome measurement; with probability 0.990 all checks read plus one and psi_L is left alone; with probability 0.010 the checks for qubit 4 and block 1 fire, and X4 then Z3 return psi_L exactly">
+<rect x="8" y="88" width="168" height="64" rx="5" class="fill-ground warn" stroke-width="1.5"/>
+<text x="92" y="113" font-size="13" text-anchor="middle">cos(θ/2)|ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩</text>
+<text x="92" y="136" font-size="13" text-anchor="middle">− i sin(θ/2) Y₄|ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩</text>
+<rect x="183" y="106" width="34" height="28" class="fill-ground ink" stroke-width="1.5"/><path d="M 189 128 A 11 11 0 0 1 211 128" fill="none" class="ink" stroke-width="1.3"/><line x1="200" y1="128" x2="208" y2="112" class="ink" stroke-width="1.3"/>
+<line x1="219" y1="112" x2="257.5" y2="63.6" class="ink" stroke-width="1.6"/><polygon points="262,58 259.4,66.6 254.2,62.5" class="fill-ink"/>
+<line x1="219" y1="128" x2="257.5" y2="176.4" class="ink" stroke-width="1.6"/><polygon points="262,182 254.2,177.5 259.4,173.4" class="fill-ink"/>
+<text x="268" y="40" font-size="13" text-anchor="start" class="fill-good">all checks +1</text>
+<text x="268" y="58" font-size="12.5" text-anchor="start" class="soft">prob cos²(θ/2) = 0.990</text>
+<text x="268" y="78" font-size="13" text-anchor="start">|ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩  →  nothing to do  →  |ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩</text>
+<text x="268" y="170" font-size="13" text-anchor="start" class="fill-warn">Z₃Z₄, Z₄Z₅, both X⁶ fire</text>
+<text x="268" y="188" font-size="12.5" text-anchor="start" class="soft">prob sin²(θ/2) = 0.010</text>
+<text x="268" y="208" font-size="13" text-anchor="start">−iY₄|ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩  →  X₄  →  Z₄|ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩  →  Z₃</text>
+<text x="268" y="226" font-size="13" text-anchor="start">→  Z₃Z₄|ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩ = |ψ<tspan baseline-shift="sub" font-size="9">L</tspan>⟩</text>
+<text x="92" y="176" font-size="12.5" text-anchor="middle" class="soft">θ = 0.2</text>
+</svg>
+    <p class="cap wide">The syndrome measurement chooses a branch. In the likely one there is nothing to fix; in the unlikely one, two Pauli corrections restore the state exactly.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The second branch.</b> After the measurement the state is $-iY_4\ket{\psi_L}$, and $X_4$ turns it into $Z_4\ket{\psi_L}$, since $-iX_4Y_4 = -i(iZ_4) = Z_4$. Apply a $Z$ to block 1 — say $Z_3$: $Z_3Z_4\ket{\psi_L} = \ket{\psi_L}$, because $Z_3Z_4$ is a check. Or $Z_4$, since $Z_4^2 = I$. Either works: degeneracy.</p>
+    </div>
+    <div class="box good"><span class="label">checks</span>
+      <p class="small">$\theta = 0$: the second branch has probability 0. $\theta = \pi$: $R_Y(\pi) = -iY$, the second branch is certain, and it is still corrected. The size of the error never mattered — only that it was on one qubit.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Exactly, not approximately.</b> In both branches the final state is $\ket{\psi_L}$ itself — not up to a small error, and
+    not even up to a global phase. The first branch's state is $\cos\tfrac\theta2\ket{\psi_L}/|\cos\tfrac\theta2| = \ket{\psi_L}$ for
+    $|\theta| &lt; \pi$; the second is $-i\sin\tfrac\theta2\,Y_4\ket{\psi_L}/|\sin\tfrac\theta2| = -iY_4\ket{\psi_L}$ for $0 &lt; \theta &lt; 2\pi$, and the
+    corrections give $Z_3X_4(-iY_4) = Z_3Z_4$, which is the identity on the code.</p>
+    <p><b>What the measurement did.</b> Before it, the error was a continuous rotation; after it, the state is in one of two
+    branches, in each of which a definite Pauli happened. This is the discretisation in action: the continuum of errors is
+    projected onto the finite set of syndromes, and the rotation angle survives only as the probabilities of the branches.
+    That answers objection two.</p>
+    <p><b>Degeneracy at work.</b> The recovery knows only that a phase flip hit block 1; it cannot know which of qubits 3, 4, 5
+    took it, and here the honest answer is "qubit 4", yet correcting qubit 3 is just as good. In a nondegenerate code the
+    syndrome would have identified the qubit.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · distance</p>
+  <h2>Distance, and how many errors a code corrects</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">weight</span> and <span class="term">distance</span></span>
+        <p class="small">A Pauli on $n$ qubits is a tensor product of $I, X, Y, Z$; its weight is the number of non-$I$ factors. $C$ <b>detects</b> $E$ if $PEP = c_EP$. The distance $d$ is the least weight of a Pauli that $C$ does not detect. An $n$-qubit code of dimension $2^k$ and distance $d$ is an $[[n, k, d]]$ code.</p>
+      </div>
+      <div class="box thm"><span class="label">errors corrected</span>
+        <p class="small">A distance-$d$ code corrects every error on at most $t = \lfloor(d-1)/2\rfloor$ qubits.</p>
+      </div>
+      <p class="small"><b>Proof.</b> For Paulis of weight $\le t$, $E_i^\dagger E_j$ is a phase times a Pauli of weight $\le 2t \le d - 1$, so $PE_i^\dagger E_jP\propto P$: Knill–Laflamme. Then linearity. ∎</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 192" width="546" role="img" aria-label="a path of single bit flips from codeword 000 through 001 and 011 to codeword 111, three flips long; a shaded ball of radius one around each codeword; the balls do not overlap">
+<ellipse cx="85" cy="90" rx="72" ry="44" class="fill-soft unit" stroke-width="1.4" stroke-dasharray="5 3"/>
+<ellipse cx="335" cy="90" rx="72" ry="44" class="fill-soft unit" stroke-width="1.4" stroke-dasharray="5 3"/>
+<line x1="70" y1="90" x2="150" y2="90" class="ink" stroke-width="1.4"/>
+<text x="110" y="82" font-size="11" text-anchor="middle" class="soft">1 flip</text>
+<line x1="170" y1="90" x2="250" y2="90" class="ink" stroke-width="1.4"/>
+<text x="210" y="82" font-size="11" text-anchor="middle" class="soft">1 flip</text>
+<line x1="270" y1="90" x2="350" y2="90" class="ink" stroke-width="1.4"/>
+<text x="310" y="82" font-size="11" text-anchor="middle" class="soft">1 flip</text>
+<circle cx="60" cy="90" r="8" class="fill-unit"/>
+<text x="60" y="116" font-size="13" text-anchor="middle" class="mono">000</text>
+<circle cx="160" cy="90" r="5" class="fill-ink"/>
+<text x="160" y="116" font-size="13" text-anchor="middle" class="mono">001</text>
+<circle cx="260" cy="90" r="5" class="fill-ink"/>
+<text x="260" y="116" font-size="13" text-anchor="middle" class="mono">011</text>
+<circle cx="360" cy="90" r="8" class="fill-unit"/>
+<text x="360" y="116" font-size="13" text-anchor="middle" class="mono">111</text>
+<line x1="60" y1="160" x2="360" y2="160" class="ink" stroke-width="1.2"/>
+<line x1="60" y1="154" x2="60" y2="166" class="ink" stroke-width="1.2"/><line x1="360" y1="154" x2="360" y2="166" class="ink" stroke-width="1.2"/>
+<text x="210" y="180" font-size="12.5" text-anchor="middle">d = 3 flips from one codeword to the other</text>
+<text x="85" y="30" font-size="12.5" text-anchor="middle" class="fill-unit">radius t = 1</text>
+<text x="335" y="30" font-size="12.5" text-anchor="middle" class="fill-unit">radius t = 1</text>
+</svg>
+        <p class="cap">The classical picture: balls of radius $t$ around codewords are disjoint when $2t &lt; d$.</p>
+      </div>
+      <p class="small"><b>Examples.</b> The bit-flip code has $d = 1$: $Z_0$ is undetected. <span class="ref" data-ref="shor">Shor's code</span> is $[[9, 1, 3]]$: $X_0X_1X_2$ acts as $Z_L$, and every Pauli of weight $\le 2$ is detected (problem P7). So $t = 1$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Products of Paulis.</b> On one qubit the product of two Paulis is a phase ($\pm1, \pm i$) times a Pauli (unit 02:
+    $XY = iZ$ and so on). On $n$ qubits multiply factor by factor: $E_i^\dagger E_j$ is non-$I$ only where $E_i$ or $E_j$ is,
+    so its weight is at most $w(E_i) + w(E_j)\le 2t$.</p>
+    <p><b>From Paulis to all errors on $t$ qubits.</b> An operator acting on a fixed set of $t$ qubits is a combination of the
+    $4^t$ Paulis supported there (tensor products of single-qubit bases form a basis, unit 03). Knill–Laflamme for all Paulis
+    of weight $\le t$, then linearity, gives every such error.</p>
+    <p><b>Shor's distance.</b> $X_0X_1X_2$ maps each block-0 state $\ket{000}\pm\ket{111}$ to $\pm(\ket{000}\pm\ket{111})$, so it fixes
+    $\ket{0_L}$ and negates $\ket{1_L}$: $PX_0X_1X_2P = Z_LP$, not a multiple of $P$. Weight 3 undetected, and nothing lighter
+    is: $d = 3$. Likewise $Z_0Z_3Z_6$ flips every block's sign and swaps $\ket{0_L}$ and $\ket{1_L}$: a logical $X$.</p>
+    <p><b>Detecting versus correcting.</b> A distance-$d$ code detects every error of weight $\le d - 1$ (it can tell that
+    something happened), but corrects only up to $\lfloor(d - 1)/2\rfloor$. In the picture, a word that left one ball without
+    reaching another is detectably wrong, but if it is equally far from two codewords there is no telling which it came
+    from.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>Classical linear codes</h2>
+  <p>As far as unit 23 needs: parity checks over $\mathbb F_2$, distance, the Hamming code, and a code that contains its own dual.</p>
+</section>
+
+<section>
+  <p class="eyebrow">22 · classical codes</p>
+  <h2>Linear codes over $\mathbb F_2$</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">a <span class="term">linear code</span></span>
+        <p class="small">$\mathbb F_2 = \{0, 1\}$ with arithmetic mod 2. An $[n, k]$ linear code is a $k$-dimensional subspace $C\subseteq\mathbb F_2^n$. A <span class="term">generator matrix</span> $G$ ($k\times n$) has a basis of $C$ as rows. A <span class="term">parity-check matrix</span> $H$ ($(n-k)\times n$, rank $n - k$) has $C = \ker H$.</p>
+        <p class="small"><b>Syndrome.</b> If $y = c + e$ with $c\in C$, then $Hy = He$: it depends on the error alone.</p>
+        <p class="small"><b>Distance.</b> The <span class="term">Hamming weight</span> $\mathrm{wt}(x)$ counts 1s; $d$ is the least weight of a non-zero codeword — equal to the least distance between two codewords, since $x + y\in C$. An $[n, k, d]$ code.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 200" width="416" role="img" aria-label="the Tanner graph of the repetition code: three bit nodes x0, x1, x2 drawn as circles, two check nodes as squares; the first check is joined to x0 and x1, the second to x1 and x2">
+<line x1="120" y1="50" x2="70" y2="150" class="ink" stroke-width="1.6"/>
+<line x1="120" y1="50" x2="170" y2="150" class="ink" stroke-width="1.6"/>
+<line x1="220" y1="50" x2="170" y2="150" class="ink" stroke-width="1.6"/>
+<line x1="220" y1="50" x2="270" y2="150" class="ink" stroke-width="1.6"/>
+<rect x="105" y="35" width="30" height="30" class="fill-ground accent" stroke-width="1.8"/>
+<text x="120" y="26" font-size="12.5" text-anchor="middle">x₀ + x₁</text>
+<rect x="205" y="35" width="30" height="30" class="fill-ground accent" stroke-width="1.8"/>
+<text x="220" y="26" font-size="12.5" text-anchor="middle">x₁ + x₂</text>
+<circle cx="70" cy="150" r="15" class="fill-ground unit" stroke-width="1.8"/>
+<text x="70" y="155" font-size="13" text-anchor="middle">x₀</text>
+<circle cx="170" cy="150" r="15" class="fill-ground unit" stroke-width="1.8"/>
+<text x="170" y="155" font-size="13" text-anchor="middle">x₁</text>
+<circle cx="270" cy="150" r="15" class="fill-ground unit" stroke-width="1.8"/>
+<text x="270" y="155" font-size="13" text-anchor="middle">x₂</text>
+<text x="170" y="192" font-size="12" text-anchor="middle" class="soft">a row of H = a check; a column = a bit</text>
+</svg>
+        <p class="cap">The repetition code $[3, 1, 3]$: $G = (1\ 1\ 1)$ and $H = \begin{pmatrix}1&1&0\\0&1&1\end{pmatrix}$.</p>
+      </div>
+      <p class="small">The rows of $H$ are the supports of <span class="ref" data-ref="bf">the bit-flip code's</span> checks $Z_0Z_1$ and $Z_1Z_2$. Unit 23 turns this into a rule.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Linear algebra over $\mathbb F_2$.</b> $\mathbb F_2$ is a field (assumed background: arithmetic mod a prime), and every
+    theorem of linear algebra that uses only the field axioms holds over it verbatim: Gaussian elimination, rank, rank–nullity
+    ($\dim\ker H + \mathrm{rank}\,H = n$), bases and dimension. So $\ker H$ has dimension $n - (n - k) = k$, and $|C| = 2^k$. What does
+    <b>not</b> carry over is anything using order or positivity: there is no inner product, and the slide after next meets a
+    non-zero vector orthogonal to itself. (Unit 14 develops this for those who took it.)</p>
+    <p><b>The distance claim.</b> The Hamming distance $\mathrm{dist}(x, y)$, the number of positions where they differ, equals
+    $\mathrm{wt}(x + y)$, because $x_i + y_i = 1$ exactly when $x_i\ne y_i$. For $x\ne y$ in $C$, $x + y$ is a non-zero codeword, so
+    the least distance is at least the least weight; and $\mathrm{wt}(c) = \mathrm{dist}(c, 0)$ with $0\in C$ gives the reverse.</p>
+    <p><b>The repetition code, checked.</b> $H(1,1,1)^{\mathsf T} = (1 + 1, 1 + 1) = (0, 0)$, and $H$ has rank 2, so $\ker H$ is
+    one-dimensional: $\{000, 111\}$. Distance 3. The syndrome of a flip in position $j$ is column $j$ of $H$: $(1,0)$, $(1,1)$,
+    $(0,1)$ — worked example 1's table, bit for bit. The figure is the code's <i>Tanner graph</i>: one node per bit, one per
+    check, an edge where $H$ has a 1.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · classical codes</p>
+  <h2>The Hamming $[7, 4, 3]$ code</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">Hamming code</span> (1950)</span>
+        <p class="small">$C = \ker H\subseteq\mathbb F_2^7$, where column $j$ of $H$ is $j$ in binary, most significant bit on top. Columns 4, 2, 1 form the identity, so $\mathrm{rank}\,H = 3$ and $\dim C = 4$.</p>
+      </div>
+      <div class="box thm"><span class="label">distance 3</span>
+        <p class="small">No column is zero, so no codeword has weight 1 ($He_j$ is column $j$). No two columns are equal, so none has weight 2. Columns $1 + 2 + 3 = 001 + 010 + 011 = 000$, so $1110000\in C$: weight 3. ∎</p>
+      </div>
+      <p class="small"><b>Decoding.</b> One error in position $j$ has syndrome $He_j$ = column $j$ = $j$ in binary: <b>the syndrome spells the position</b>.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 340 180" width="442" role="img" aria-label="the Hamming parity-check matrix drawn as a three by seven grid; column j holds j in binary, most significant bit on top; column 5, which reads 1 0 1, is outlined">
+<text x="87" y="30" font-size="13" text-anchor="middle">1</text>
+<rect x="70" y="40" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="86" y="62" font-size="14" text-anchor="middle" class="mono">0</text>
+<rect x="70" y="74" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="86" y="96" font-size="14" text-anchor="middle" class="mono">0</text>
+<rect x="70" y="108" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="86" y="130" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<text x="121" y="30" font-size="13" text-anchor="middle">2</text>
+<rect x="104" y="40" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="120" y="62" font-size="14" text-anchor="middle" class="mono">0</text>
+<rect x="104" y="74" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="120" y="96" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="104" y="108" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="120" y="130" font-size="14" text-anchor="middle" class="mono">0</text>
+<text x="155" y="30" font-size="13" text-anchor="middle">3</text>
+<rect x="138" y="40" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="154" y="62" font-size="14" text-anchor="middle" class="mono">0</text>
+<rect x="138" y="74" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="154" y="96" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="138" y="108" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="154" y="130" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<text x="189" y="30" font-size="13" text-anchor="middle">4</text>
+<rect x="172" y="40" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="188" y="62" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="172" y="74" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="188" y="96" font-size="14" text-anchor="middle" class="mono">0</text>
+<rect x="172" y="108" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="188" y="130" font-size="14" text-anchor="middle" class="mono">0</text>
+<text x="223" y="30" font-size="13" text-anchor="middle">5</text>
+<rect x="206" y="40" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="222" y="62" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="206" y="74" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="222" y="96" font-size="14" text-anchor="middle" class="mono">0</text>
+<rect x="206" y="108" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="222" y="130" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<text x="257" y="30" font-size="13" text-anchor="middle">6</text>
+<rect x="240" y="40" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="256" y="62" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="240" y="74" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="256" y="96" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="240" y="108" width="32" height="32" class="fill-ground rule" stroke-width="1"/>
+<text x="256" y="130" font-size="14" text-anchor="middle" class="mono">0</text>
+<text x="291" y="30" font-size="13" text-anchor="middle">7</text>
+<rect x="274" y="40" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="290" y="62" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="274" y="74" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="290" y="96" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<rect x="274" y="108" width="32" height="32" class="fill-unit rule" stroke-width="1"/>
+<text x="290" y="130" font-size="14" text-anchor="middle" class="mono fill-ground">1</text>
+<text x="60" y="62" font-size="12" text-anchor="end" class="soft">4s</text>
+<text x="60" y="96" font-size="12" text-anchor="end" class="soft">2s</text>
+<text x="60" y="130" font-size="12" text-anchor="end" class="soft">1s</text>
+<rect x="203" y="36" width="38" height="106" fill="none" class="warn" stroke-width="2.2"/>
+<text x="223" y="164" font-size="12.5" text-anchor="middle" class="fill-warn">column 5 = 101</text>
+</svg>
+        <p class="cap">$H$ for the Hamming code: column $j$ is $j$ written in binary. The outlined column is the next slide's.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "no two equal columns" means no weight-2 codeword.</b> $H(e_i + e_j) = (\text{column } i) + (\text{column } j)$, which is
+    zero over $\mathbb F_2$ exactly when the columns are equal. Similarly a weight-3 codeword is three columns summing to zero,
+    and the distance of a code is the least number of columns of $H$ that sum to zero — a general fact worth remembering.</p>
+    <p><b>The count.</b> $7 = 2^3 - 1$ is every non-zero 3-bit column exactly once, which is why every single error has its own
+    syndrome and every non-zero syndrome means a single error. The 16 codewords have weights $0$ (one), $3$ (seven), $4$
+    (seven) and $7$ (one). Codes with this property — every syndrome a correctable error, no syndrome wasted — are called
+    perfect; the Hamming codes $[2^r - 1, 2^r - 1 - r, 3]$ are an infinite family of them.</p>
+    <p><b>History.</b> R. W. Hamming, "Error detecting and error correcting codes", <i>Bell System Technical Journal</i> 29, 147
+    (1950), written because the relay computers at Bell Labs, on detecting an error in an unattended weekend run, dropped the
+    job and moved on to the next: they could detect errors but not correct them.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · classical codes</p>
+  <h2>Worked: a single error spells its position</h2>
+  <div class="cols">
+    <div>
+      <div class="box ex"><span class="label">worked example 5 · an error in position 5</span>
+        <p class="small"><b>A codeword.</b> $c = 0001111$. Check $Hc$ row by row, counting shared 1s mod 2: $0001111\cdot0001111 = 4 \equiv 0$; $0110011\cdot0001111 = 2\equiv0$; $1010101\cdot0001111 = 2\equiv0$ ✓.</p>
+        <p class="small"><b>The error.</b> Flip position 5: $y = 0001011$.</p>
+        <p class="small"><b>The syndrome.</b> Row 1: $0001111\cdot0001011$ shares positions 4, 6, 7: $3\equiv1$. Row 2: $0110011\cdot0001011$ shares 6, 7: $0$. Row 3: $1010101\cdot0001011$ shares 7: $1$.</p>
+        $$Hy = (1, 0, 1)^{\mathsf T} = 5 \text{ in binary} .$$
+        <p class="small"><b>Correct.</b> Flip position 5: $0001111 = c$ ✓.</p>
+      </div>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 400 270" width="494" role="img" aria-label="three overlapping circles for the three parity checks; the seven regions hold the received bits; the 4s circle and the 1s circle have odd parity, the 2s circle even, and the only region inside exactly the two odd circles is position 5">
+<circle cx="150" cy="117" r="70" fill="none" class="warn" stroke-width="2.4"/>
+<circle cx="220" cy="117" r="70" fill="none" class="good" stroke-width="2.4"/>
+<circle cx="185" cy="177" r="70" fill="none" class="warn" stroke-width="2.4"/>
+<text x="105" y="102" font-size="17" text-anchor="middle" class="mono">1</text>
+<text x="105" y="117" font-size="10.5" text-anchor="middle" class="soft">pos 4</text>
+<text x="265" y="102" font-size="17" text-anchor="middle" class="mono">0</text>
+<text x="265" y="117" font-size="10.5" text-anchor="middle" class="soft">pos 2</text>
+<text x="185" y="226" font-size="17" text-anchor="middle" class="mono">0</text>
+<text x="185" y="241" font-size="10.5" text-anchor="middle" class="soft">pos 1</text>
+<text x="185" y="84" font-size="17" text-anchor="middle" class="mono">1</text>
+<text x="185" y="99" font-size="10.5" text-anchor="middle" class="soft">pos 6</text>
+<text x="140" y="167" font-size="17" text-anchor="middle" class="mono fill-warn">0</text>
+<text x="140" y="182" font-size="10.5" text-anchor="middle" class="soft">pos 5</text>
+<text x="230" y="167" font-size="17" text-anchor="middle" class="mono">0</text>
+<text x="230" y="182" font-size="10.5" text-anchor="middle" class="soft">pos 3</text>
+<text x="185" y="135" font-size="17" text-anchor="middle" class="mono">1</text>
+<text x="185" y="150" font-size="10.5" text-anchor="middle" class="soft">pos 7</text>
+<text x="14" y="30" font-size="12.5" text-anchor="start" class="fill-warn">4s: three 1s, odd</text>
+<text x="386" y="30" font-size="12.5" text-anchor="end" class="fill-good">2s: two 1s, even</text>
+<text x="262" y="258" font-size="12.5" text-anchor="start" class="fill-warn">1s: one 1, odd</text>
+</svg>
+      <p class="cap">The three checks as circles, the received bits in the seven regions. The two circles with odd parity meet the even one in exactly one region: position 5.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>A shortcut.</b> $Hy = Hc + He_5 = He_5$, column 5, which is $101$ by construction — the row-by-row computation only
+    confirms it. That is the content of "the syndrome depends only on the error".</p>
+    <p><b>The circles.</b> Circle "4s" holds the positions whose binary expansion has a 4 (positions 4, 5, 6, 7), "2s" those with a 2
+    (2, 3, 6, 7), "1s" those with a 1 (1, 3, 5, 7). Each circle is one row of $H$, and a codeword has even parity in every
+    circle. In $y$ the 4s circle holds $1, 0, 1, 1$ (odd), the 2s circle $0, 0, 1, 1$ (even), the 1s circle $0, 0, 0, 1$ (odd);
+    the position inside both odd circles and outside the even one is $4 + 1 = 5$.</p>
+    <p><b>A two-error warning.</b> Flip positions 5 and 6: the syndrome is $101 + 110 = 011$, and the decoder confidently flips
+    position 3 — producing $c + e_3 + e_5 + e_6$, which is itself a codeword ($011 + 101 + 110 = 000$), at distance 3 from $c$.
+    Distance 3 corrects one error, and two errors are silently miscorrected, exactly as in the bit-flip code.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · classical codes</p>
+  <h2>The dual code, and a code inside its dual</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">dual code</span></span>
+        <p class="small">With $x\cdot y = \sum_ix_iy_i$ mod 2, $\ C^\perp = \{y : y\cdot c = 0 \text{ for all } c\in C\}$. It has dimension $n - k$ ($C^\perp = \ker G$; rank–nullity). For $C = \ker H$, $C^\perp$ is the row space of $H$.</p>
+      </div>
+      <p class="small">The Hamming code's dual is spanned by $H$'s rows: the <span class="term">simplex code</span> $[7, 3, 4]$, whose seven non-zero words all have weight 4.</p>
+      <div class="box thm"><span class="label">the simplex code lies inside the Hamming code</span>
+        <p class="small">Each row of $H$ has weight 4, and any two rows share exactly two 1s; so every row is orthogonal to every row, $HH^{\mathsf T} = 0$, every row is in $\ker H = C$, and so $C^\perp\subseteq C$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 230" width="494" role="img" aria-label="nested regions: all 128 words of length seven, inside them the 16 words of the Hamming code, and inside that the 8 words of the simplex code, its dual">
+<rect x="20" y="20" width="360" height="190" rx="14" class="fill-ground ink" stroke-width="1.4"/>
+<text x="36" y="44" font-size="13" text-anchor="start">𝔽₂⁷: 128 words</text>
+<ellipse cx="215" cy="125" rx="150" ry="72" class="fill-soft unit" stroke-width="1.8"/>
+<text x="132" y="112" font-size="13" text-anchor="middle" class="fill-unit">Hamming</text>
+<text x="132" y="128" font-size="13" text-anchor="middle" class="fill-unit">[7, 4, 3]</text>
+<text x="132" y="146" font-size="12" text-anchor="middle" class="soft">16 words = ker H</text>
+<ellipse cx="270" cy="128" rx="78" ry="44" class="fill-ground accent" stroke-width="1.8"/>
+<text x="270" y="120" font-size="13" text-anchor="middle" class="fill-accent">simplex [7, 3, 4]</text>
+<text x="270" y="138" font-size="12" text-anchor="middle" class="soft">8 words = C⊥</text>
+<text x="270" y="154" font-size="12" text-anchor="middle" class="soft">= rows of H</text>
+</svg>
+        <p class="cap">A code containing its own dual. Unit 23 builds Steane's seven-qubit code from exactly this pair.</p>
+      </div>
+      <div class="box warn"><span class="label">not an inner product</span>
+        <p class="small">$x\cdot x = \mathrm{wt}(x)$ mod 2, so $1100\cdot1100 = 0$: a non-zero vector can be orthogonal to itself.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <h4>Full proof of the dual facts</h4>
+    <p><b>Dimension.</b> $y\in C^\perp$ iff $y$ is orthogonal to each row of $G$, i.e. $Gy = 0$. So $C^\perp = \ker G$, and since $G$ has
+    rank $k$, rank–nullity gives $\dim C^\perp = n - k$. <b>Row space.</b> If $C = \ker H$, each row $h$ of $H$ satisfies $h\cdot c = 0$
+    for $c\in C$ (that is what $Hc = 0$ says), so the row space is inside $C^\perp$; both have dimension $n - k$, so they are equal.</p>
+    <p><b>The rows of Hamming's $H$.</b> $r_1 = 0001111$, $r_2 = 0110011$, $r_3 = 1010101$. Overlaps: $r_1, r_2$ share positions 6, 7;
+    $r_1, r_3$ share 5, 7; $r_2, r_3$ share 3, 7. Each count is 2, and each row with itself gives 4: all even, so $HH^{\mathsf T} = 0$
+    over $\mathbb F_2$. Hence each row lies in $\ker H$, and so does their span.</p>
+    <p><b>The simplex weights.</b> $r_1 + r_2 = 0111100$, $r_1 + r_3 = 1011010$, $r_2 + r_3 = 1100110$, $r_1 + r_2 + r_3 = 1101001$: with
+    the three rows, seven words, each of weight 4. So the simplex code is $[7, 3, 4]$; and since the Hamming code has exactly
+    seven words of weight 4, they are these seven.</p>
+    <p><b>Why unit 23 wants this.</b> The CSS construction makes a quantum code from a classical code $C$ with $C^\perp\subseteq C$:
+    the rows of $H$ become $Z$-type checks <i>and</i> $X$-type checks, and the containment is what makes the two kinds of check
+    commute. Steane's $[[7, 1, 3]]$ code is the result.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section>
+  <p class="eyebrow">22 · close</p>
+  <h2>Three objections, three answers</h2>
+  <table>
+    <thead><tr><th>objection</th><th>answer</th><th>where</th></tr></thead>
+    <tbody>
+      <tr><td>no-cloning forbids repetition</td><td>encode by an isometry: copy the basis, not the state; the information lives in correlations</td><td>the bit-flip encoder</td></tr>
+      <tr><td>errors form a continuum</td><td>correct a basis of errors; linearity does the rest, and the syndrome measurement projects the continuum onto finitely many branches</td><td>discretisation; the rotation on Shor's code</td></tr>
+      <tr><td>measurement destroys</td><td>measure only what is constant on the code; correctability means the noise, and hence the syndrome, learnt nothing about the state</td><td>parity checks; Knill–Laflamme</td></tr>
+    </tbody>
+  </table>
+  <div class="cols">
+    <div class="box good"><span class="label">the running example, closed</span>
+      <p class="small"><span class="ref" data-ref="bf">The bit-flip code</span> turns flips at $p = 10^{-3}$ into logical flips at $2.998\times10^{-6}$, and fails to a single $Z$. <span class="ref" data-ref="shor">Shor's code</span> corrects every error on any one of its nine qubits, exactly: <span class="ref" data-ref="rot">the rotation</span> was undone in both branches.</p>
+    </div>
+    <div class="box warn"><span class="label">assumed, and false</span>
+      <p class="small">Every syndrome circuit here was perfect. Real ones are built from the same noisy gates as everything else. Unit 24 is about correcting with a corrector that errs.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What changed.</b> The bare qubit of unit 21 lost information irreversibly, and that theorem still stands: no channel on
+    one qubit undoes noise on that qubit. Error correction evades it by never letting the information sit in one qubit.
+    Noise on one qubit of a code reaches only that qubit, and the information is held in correlations that a single-qubit
+    error cannot read — Knill–Laflamme's "the environment learns nothing".</p>
+    <p><b>The price.</b> Nine physical qubits for one logical one, eight checks per round, each round a dozen or more gates.
+    Shor's code also has only $d = 3$: two errors in a round defeat it. Getting from here to arbitrary reliability needs larger
+    codes with structure that makes checks cheap (unit 23), and an analysis in which the checking itself is noisy (unit 24).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · summary</p>
+  <h2>Summary, reading, next</h2>
+  <div class="cols">
+    <div>
+      <ul class="small">
+        <li><b>The bit-flip code</b> $\alpha\ket{000} + \beta\ket{111}$: two CNOTs, two parity checks, four syndromes; failure $3p^2 - 2p^3$, below $p$ iff $p &lt; \tfrac12$.</li>
+        <li><b>The phase-flip code</b> by $H^{\otimes3}$; <b>Shor's code</b> by concatenation, $[[9, 1, 3]]$, degenerate.</li>
+        <li><b>Knill–Laflamme</b>: $PE_i^\dagger E_jP = \alpha_{ij}P$, necessary and sufficient, with the recovery built by diagonalising $\alpha$.</li>
+        <li><b>Discretisation</b>: correcting $I, X, Y, Z$ on each qubit corrects every single-qubit channel. <b>Distance</b> $d$ corrects $\lfloor(d - 1)/2\rfloor$.</li>
+        <li><b>Classical codes</b>: $\ker H$, syndromes $He$, Hamming $[7, 4, 3]$ containing its dual, the simplex $[7, 3, 4]$.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Nielsen and Chuang, <i>Quantum Computation and Quantum Information</i>, §10.1 (the three-qubit codes), §10.2 (Shor's code), §10.3 (the theory: their Theorem 10.1 is Knill–Laflamme, Theorem 10.2 the discretisation), and §10.4.1 (classical linear codes). Stop before §10.4.2 (CSS codes, unit 23); §10.5 is unit 23 and §10.6 unit 24. Preskill, <i>Lecture Notes for Physics 219</i>, chapter 7, the sections before stabiliser codes.</p>
+      <h3>Next</h3>
+      <p class="small"><b>23</b> stabilisers: the checks as an abelian group, and the CSS codes. <b>24</b> fault tolerance and the threshold. <b>25</b> where a real qubit's errors come from.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, on purpose.</b> The stabiliser formalism, which would describe Shor's code by its eight checks
+    rather than its two codewords (unit 23). The five-qubit code, the smallest correcting every single-qubit error (unit 23).
+    Fault-tolerant syndrome extraction, in which one faulty gate must not spread into two errors (unit 24). Decoders for large
+    codes, which are an algorithmic subject of their own. Approximate error correction, in which the Knill–Laflamme
+    conditions hold only to small error.</p>
+    <p><b>Reading notes.</b> Nielsen and Chuang write the conditions as $PE_i^\dagger E_jP = \alpha_{ij}P$ with the same convention;
+    their proof of sufficiency uses a polar decomposition where this deck uses $PF_k^\dagger/\sqrt{d_k}$ directly; the two give the
+    same recovery. Their syndrome table for the bit-flip code uses projectors where this deck uses the two parities; the
+    outcomes correspond row by row.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">22 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>prove the Knill–Laflamme conditions in both directions — building the recovery by diagonalising $\alpha$, and deriving the conditions from any recovery;</li>
+      <li>prove the discretisation of errors from them;</li>
+      <li>verify that Shor's code corrects an arbitrary single-qubit error: for $R_Y(0.2)$ on qubit 4, the two syndromes with probabilities $0.990$ and $0.010$, and the corrected state equal to the original exactly in both.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">A sufficiency proof whose recovery is not trace-preserving, or that assumes the $E_iC$ orthogonal before diagonalising. A necessity proof that assumes the recovery measures which $E_i$ occurred. A discretisation argument that corrects $X$ and $Z$ but forgets the code must also handle $Y$ — or a Shor calculation whose branch probabilities do not sum to 1.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./qc problems 22</code>. When the checkpoint is true: <code>./qc done 22</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try one thing not in the deck before opening the sheet: write the Knill–Laflamme matrix for the phase-flip code with
+    errors $\{I, Z_0, Z_1, Z_2\}$, and confirm it is the bit-flip code's $\alpha = I_4$ — conjugation by $H^{\otimes3}$ changes nothing
+    in it.</p>
+    <p><b>The trap in the third item.</b> Correcting $Y_4$ as "an $X$ and a $Z$" works because $Y = iXZ$ and a global phase is
+    harmless — but only if the syndrome measurement treats the $Y$ branch as one branch. It does: $Y_4\ket{\psi_L}$ is a single
+    vector in a single joint eigenspace. Students who expand $R_Y(\theta)$ into three Paulis instead of two have made an
+    arithmetic slip: $e^{-i\theta Y/2}$ contains only $I$ and $Y$.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

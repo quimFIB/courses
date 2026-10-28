@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>21 · Problems — Open systems: measurements and channels in full generality</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="e">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part E · unit 21 · problems</p>
+<h1>Open systems: measurements and channels in full generality</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u21">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove Choi's theorem — \(\Phi\) is
+completely positive iff \(J(\Phi) \ge 0\), trace-preserving iff \(\operatorname{tr}_2J = I\) — building the Kraus
+operators from the eigenvectors of \(J\); you show the transpose is positive but not completely positive, with
+\((\mathrm{id}\otimes T)(\ket{\Phi^+}\!\bra{\Phi^+}) = \tfrac12\mathrm{SWAP}\) and its eigenvalue \(-\tfrac12\) on
+\(\ket{\Psi^-}\); and you derive \(T_2 \le 2T_1\) from amplitude damping's coherence factor \(e^{-t/2T_1}\) and
+\(1/T_2 = 1/2T_1 + 1/T_\varphi\) — for \(T_1 = 100\ \mu\)s, \(T_\varphi = 150\ \mu\)s, \(T_2 \approx 85.7\ \mu\)s.</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the first slot. \(\ket0 = (1, 0)\),
+\(\ket1 = (0, 1)\), \(\ket\pm = (\ket0 \pm \ket1)/\sqrt2\); \(X, Y, Z\) are the Pauli matrices and
+\(H = (X + Z)/\sqrt2\). In \(\ket{ab}\) the first symbol is qubit 0 and is the most significant: the order is
+\(00, 01, 10, 11\). A qubit state is \(\rho = \tfrac12(I + xX + yY + zZ)\) with Bloch vector \((x, y, z)\). A POVM is
+\(\{E_m \ge 0\}\) with \(\sum_mE_m = I\); a channel is a completely positive trace-preserving map. The Choi matrix is
+\(J(\Phi) = \sum_{ij}\ket i\!\bra j\otimes\Phi(\ket i\!\bra j)\), with \(\Phi\) on the second factor and no \(1/d\).
+Depolarising is \(\rho \mapsto (1 - p)\rho + p\,I/2\); amplitude damping has Kraus operators
+\(A_0 = \mathrm{diag}(1, \sqrt{1 - \gamma})\), \(A_1 = \sqrt\gamma\ket0\!\bra1\). Trace distance is
+\(D = \tfrac12\lVert\rho - \sigma\rVert_1\); fidelity is \(F = \lVert\sqrt\rho\sqrt\sigma\rVert_1\), not its square.</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it. Two of the referee's
+conventions differ from the deck's, and the snippets say so where it matters: its
+<code>channels.depolarizing(q)</code> is this sheet's depolarising with \(q = 3p/4\), and its
+<code>linalg.fidelity</code> returns \(F^2\).</p>
+</div>
+<ul class="toc">
+<li><a class="hard" href="#p1" title="Never wrong, sometimes silent">P1</a></li>
+<li><a class="medium" href="#p2" title="The unambiguous test on a qutrit">P2</a></li>
+<li><a class="medium" href="#p3" title="Naimark for the trine">P3</a></li>
+<li><a class="routine" href="#p4" title="Measurements as channels">P4</a></li>
+<li><a class="medium" href="#p5" title="Positive but not completely positive">P5</a></li>
+<li><a class="hard" href="#p6" title="Choi's theorem">P6</a></li>
+<li><a class="medium" href="#p7" title="Two Kraus families for the phase flip">P7</a></li>
+<li><a class="medium" href="#p8" title="Amplitude damping from a Stinespring unitary">P8</a></li>
+<li><a class="medium" href="#p9" title="Depolarising: Kraus form, shrinking, and where it stops">P9</a></li>
+<li><a class="medium" href="#p10" title="T2 at most 2T1">P10</a></li>
+<li><a class="routine" href="#p11" title="The best one-shot guess">P11</a></li>
+<li><a class="hard" href="#p12" title="Contractivity">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">Generalised measurement</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Never wrong, sometimes silent <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: POVMs, positivity from a determinant, a constrained optimisation, the Ivanovic–Dieks–Peres bound for one pair, a number</p>
+<div class="statement">
+<p>A fair coin prepares a qubit in \(\ket0\) or in \(\ket+\). You measure it with a three-outcome POVM \(\{E_0, E_+, E_?\}\)
+and announce "\(0\)", "\(+\)" or "don't know". The test must be <b>never wrong</b>: \(E_+\) never fires on \(\ket0\), and
+\(E_0\) never fires on \(\ket+\). (If you took unit 05, this is the problem it promised; nothing from it is used.)</p>
+<ol>
+<li>Show that "never wrong" forces \(E_+ = a\ket1\!\bra1\) and \(E_0 = b\ket-\!\bra-\) for some \(a, b \ge 0\).</li>
+<li>Show the success probability is \(\tfrac14(a + b)\), and that \(E_? = I - E_+ - E_0 \ge 0\) holds iff
+\(1 - a - b + \tfrac{ab}2 \ge 0\) together with \(a + \tfrac b2 \le 1\) and \(\tfrac b2 \le 1\).</li>
+<li>Prove that the success probability is at most \(1 - \tfrac1{\sqrt2}\), with equality at \(a = b = 2 - \sqrt2\) — the
+deck's test is optimal. Give the number.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is about positive operators with a zero on a given vector; part 2 is about when a \(2\times2\) Hermitian matrix
+is positive; part 3 is an inequality in two real variables.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A positive operator \(A\) with \(\braket{v|A|v} = 0\) satisfies \(Av = 0\) (unit 04). On \(\mathbb C^2\), an operator killing \(\ket0\)
+and positive is a multiple of the projector onto \(\ket1\). For part 3, use \(ab \le \big(\tfrac{a + b}2\big)^2\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>With \(\ket-\!\bra- = \tfrac12\begin{pmatrix}1&amp;-1\\-1&amp;1\end{pmatrix}\), the first line is
+\(E_? = \begin{pmatrix}1 - \tfrac b2 &amp; \tfrac b2\\ \tfrac b2 &amp; 1 - a - \tfrac b2\end{pmatrix}\). Its determinant is \(1 - a - b + \tfrac{ab}2\).</p>
+</div></details>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> "Never wrong" pins each definite effect to a single direction, leaving one number each; positivity
+of the leftover effect is one determinant; the optimisation is then two-variable calculus, done by AM–GM.</p>
+<p><strong>1.</strong> \(\Pr(+ \mid \ket0) = \braket{0|E_+|0} = 0\) with \(E_+ \ge 0\) gives \(E_+\ket0 = 0\) (unit 04: if \(A \ge 0\) and
+\(\braket{v|Av} = 0\) then \(Av = 0\)). \(E_+\) is Hermitian, so its range is orthogonal to its kernel, which contains \(\ket0\); so its
+range is inside \(\mathbb C\ket1\) and \(E_+ = a\ket1\!\bra1\), with \(a = \braket{1|E_+|1} \ge 0\). The same argument with \(\ket+\) and \(\ket-\) gives
+\(E_0 = b\ket-\!\bra-\).</p>
+<p><strong>2.</strong> With equal priors, success is \(\tfrac12\braket{0|E_0|0} + \tfrac12\braket{+|E_+|+} = \tfrac12\cdot\tfrac b2 + \tfrac12\cdot\tfrac a2 = \tfrac14(a + b)\), since
+\(|\braket{-|0}|^2 = |\braket{1|+}|^2 = \tfrac12\). Then \(E_+ + E_0 = \begin{pmatrix}\tfrac b2 &amp; -\tfrac b2\\ -\tfrac b2 &amp; a + \tfrac b2\end{pmatrix}\), so
+\(E_?\) is as in rung 3. A \(2\times2\) Hermitian matrix is positive iff both diagonal entries and the determinant are
+\(\ge 0\) (the eigenvalues have product \(\det\) and sum \(\operatorname{tr}\)). Diagonal: \(1 - \tfrac b2 \ge 0\) and \(1 - a - \tfrac b2 \ge 0\).
+Determinant: \((1 - \tfrac b2)(1 - a - \tfrac b2) - \tfrac{b^2}4 = 1 - a - b + \tfrac{ab}2\).</p>
+<p><strong>3.</strong> Let \(S = a + b\). From the determinant and \(ab \le S^2/4\):
+\(0 \le 1 - S + \tfrac{ab}2 \le 1 - S + \tfrac{S^2}8\), i.e. \(S^2 - 8S + 8 \ge 0\), so \(S \le 4 - 2\sqrt2\) or \(S \ge 4 + 2\sqrt2\). The
+second is impossible: the diagonal conditions give \(a + \tfrac b2 \le 1\) and \(b \le 2\), so \(S \le 1 + \tfrac b2 \le 2\). Hence
+\(S \le 4 - 2\sqrt2\) and</p>
+\[P_{\text{succ}} = \tfrac S4 \le 1 - \tfrac{\sqrt2}2 = 1 - \tfrac1{\sqrt2} \approx 0.2929 .\]
+<p>Equality needs \(ab = S^2/4\), so \(a = b = 2 - \sqrt2\); then the determinant is \(1 - 2c + \tfrac{c^2}2 = 0\) with \(c = 2 - \sqrt2\)
+(as \(c^2 - 4c + 2 = 0\)), and the diagonal entries \(1 - \tfrac c2 = 0.7071\) and \(1 - \tfrac{3c}2 = 0.1213\) are positive. So the deck's test
+is feasible and optimal.</p>
+<p><strong>Check.</strong> The general Ivanovic–Dieks–Peres bound for two equiprobable pure states is \(1 - |\braket{\psi|\varphi}|\)
+(cited: Peres, <i>Phys. Lett. A</i> 128, 19 (1988)). Here \(|\braket{0|+}| = \tfrac1{\sqrt2}\), giving \(1 - \tfrac1{\sqrt2}\) ✓. Limits: orthogonal states give
+\(1\), identical states \(0\), as they must. And the best <i>basis</i> (the deck's <i>A question with three answers</i>) gave \(\tfrac14 = 0.25 \lt 0.2929\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> The unambiguous test on a qutrit <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Naimark's dilation for rank-one effects, an isometry as a matrix, completing an isometry to a unitary</p>
+<div class="statement">
+<p>The deck's test has rank-one effects \(E_m = \ket{w_m}\!\bra{w_m}\) with \(c = 2 - \sqrt2\) and</p>
+\[w_+ = \sqrt c\,\ket1, \qquad w_0 = \sqrt c\,\ket-, \qquad w_? = \sqrt{2\sqrt2 - 2}\,\big(\cos\tfrac\pi8\ket0 + \sin\tfrac\pi8\ket1\big).\]
+<ol>
+<li>Write \(V = \sum_m\ket{e_m}\!\bra{w_m}\colon\mathbb C^2 \to \mathbb C^3\) as a \(3\times2\) matrix (rows \(m = +, 0, ?\); \(\{e_m\}\) the qutrit's basis),
+with closed-form entries, and check \(V^\dagger V = I\).</li>
+<li>Find a third column making \(V\) a \(3\times3\) unitary \(U\).</li>
+<li>Embed the qubit in the qutrit as the span of its first two basis vectors, apply \(U\), and measure in the basis
+\(\{e_m\}\). Compute the outcome distribution for inputs \(\ket0\), \(\ket+\) and \(\ket1\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Row \(m\) of \(V\) is the row vector \(\bra{w_m}\): the conjugate transpose of \(w_m\), here just its transpose. Orthonormal columns is
+the same statement as \(V^\dagger V = I\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\sqrt{2\sqrt2 - 2}\cos\tfrac\pi8\) and \(\sqrt{2\sqrt2 - 2}\sin\tfrac\pi8\) simplify: use \(\cos^2\tfrac\pi8 = \tfrac12(1 + \tfrac1{\sqrt2})\). For the third column,
+real columns in \(\mathbb R^3\) have an obvious orthogonal partner.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>The squared entries of the bottom row are \((2\sqrt2 - 2)\cdot\tfrac12(1 \pm \tfrac1{\sqrt2})\), which are \(\tfrac1{\sqrt2}\) and \(\tfrac{(\sqrt2 - 1)^2}{\sqrt2}\). The
+third column is the cross product of the first two.</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A POVM with rank-one effects is literally an orthonormal basis of a bigger space seen from a plane
+inside it; writing the plane's embedding as a matrix and completing it is Gram–Schmidt.</p>
+<p><strong>1.</strong> \(\sqrt c = \sqrt{2 - \sqrt2} \approx 0.7654\), \(\sqrt{c/2} = \sqrt{1 - \tfrac1{\sqrt2}} \approx 0.5412\). From rung 3 the bottom row is
+\(2^{-1/4} \approx 0.8409\) and \((\sqrt2 - 1)2^{-1/4} \approx 0.3483\). So</p>
+\[V = \begin{pmatrix}0 &amp; \sqrt c\\ \sqrt{c/2} &amp; -\sqrt{c/2}\\ 2^{-1/4} &amp; (\sqrt2 - 1)2^{-1/4}\end{pmatrix} \approx \begin{pmatrix}0 &amp; 0.7654\\ 0.5412 &amp; -0.5412\\ 0.8409 &amp; 0.3483\end{pmatrix}.\]
+<p>Column norms: \(0 + \tfrac c2 + \tfrac1{\sqrt2} = 1 - \tfrac1{\sqrt2} + \tfrac1{\sqrt2} = 1\) and \(c + \tfrac c2 + \tfrac{(\sqrt2 - 1)^2}{\sqrt2} = \tfrac32(2 - \sqrt2) + \tfrac{3 - 2\sqrt2}{\sqrt2} = 3 - \tfrac{3\sqrt2}2 + \tfrac{3\sqrt2}2 - 2 = 1\).
+Inner product: \(0 - \tfrac c2 + 2^{-1/2}(\sqrt2 - 1) = -(1 - \tfrac1{\sqrt2}) + 1 - \tfrac1{\sqrt2} = 0\). So \(V^\dagger V = I\) ✓ — equivalently \(\sum_mE_m = I\).</p>
+<p><strong>2.</strong> The cross product of the columns, normalised, is</p>
+\[u_3 = \big(\sqrt{\sqrt2 - 1},\ \sqrt{\sqrt2 - 1},\ 1 - \sqrt2\big) \approx (0.6436, 0.6436, -0.4142),\]
+<p>with \(\lVert u_3\rVert^2 = 2(\sqrt2 - 1) + (3 - 2\sqrt2) = 1\). Orthogonality, exactly: with \(\sqrt c = 2^{1/4}\sqrt{\sqrt2 - 1}\) and \(\sqrt{c/2} = 2^{-1/4}\sqrt{\sqrt2 - 1}\), column 1 gives
+\(\sqrt{\sqrt2 - 1}\cdot2^{-1/4}\sqrt{\sqrt2 - 1} + (1 - \sqrt2)2^{-1/4} = 0\), and column 2 gives
+\(\sqrt{\sqrt2 - 1}\big(\sqrt c - \sqrt{c/2}\big) + (1 - \sqrt2)(\sqrt2 - 1)2^{-1/4} = (\sqrt2 - 1)^2\,2^{-1/4} - (\sqrt2 - 1)^2\,2^{-1/4} = 0\) ✓
+(numerically \(0.3483 - 0.3483\) and \(0.1443 - 0.1443\)).
+\(U = (V \mid u_3)\) is real orthogonal, hence unitary. (Its negative also works: the third column is fixed only up to a phase.)</p>
+<p><strong>3.</strong> The input \(\alpha\ket0 + \beta\ket1\) becomes the qutrit vector \((\alpha, \beta, 0)\), and \(U\) sends it to \(\alpha\,\mathrm{col}_1 + \beta\,\mathrm{col}_2 = V(\alpha, \beta)\): the
+third column never acts on an embedded qubit. Outcome probabilities are the squared entries:</p>
+<ul>
+<li>\(\ket0\): \(V\ket0 = (0, 0.5412, 0.8409)\), probabilities \((0, 0.2929, 0.7071)\) for \((+, 0, ?)\);</li>
+<li>\(\ket+\): \(V\ket+ = \tfrac1{\sqrt2}(0.7654, 0, 1.1892)\), probabilities \((0.2929, 0, 0.7071)\);</li>
+<li>\(\ket1\): \(V\ket1 = (0.7654, -0.5412, 0.3483)\), probabilities \((0.5858, 0.2929, 0.1213)\).</li>
+</ul>
+<p><strong>Check.</strong> Each row sums to one. On \(\ket0\) outcome \(+\) is impossible and on \(\ket+\) outcome \(0\) is impossible — never wrong ✓ —
+and each succeeds with \(0.2929\), the deck's number. On \(\ket1\), neither of the two promised states, the test answers
+"\(0\)" with probability \(0.29\): unambiguity is a promise about the two inputs, not about all inputs.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg
+s2, c = np.sqrt(2), 2 - np.sqrt(2)
+V = np.array([[0, np.sqrt(c)], [np.sqrt(c / 2), -np.sqrt(c / 2)], [2**-0.25, (s2 - 1) * 2**-0.25]])
+U = np.column_stack([V, np.cross(V[:, 0], V[:, 1])])
+print(linalg.is_unitary(U), np.round(U[:, 2], 4))            # True [ 0.6436  0.6436 -0.4142]
+for psi in ([1, 0], [1 / s2, 1 / s2], [0, 1]):
+    print(np.round(np.abs(U @ np.append(psi, 0)) ** 2, 4))     # (+, 0, ?) probabilities</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> Naimark for the trine <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a POVM from unit 04's trine, Naimark's dilation, completing an isometry, outcome distributions</p>
+<div class="statement">
+<p>Unit 04's trine is \(\ket{t_k} = \cos\tfrac{\pi k}3\ket0 + \sin\tfrac{\pi k}3\ket1\), \(k = 0, 1, 2\). Let \(E_k = \tfrac23\ket{t_k}\!\bra{t_k}\).</p>
+<ol>
+<li>Show \(\{E_0, E_1, E_2\}\) is a POVM.</li>
+<li>Write its rank-one Naimark isometry \(V\colon\mathbb C^2 \to \mathbb C^3\), check \(V^\dagger V = I\), and complete it to a \(3\times3\) unitary.</li>
+<li>Find the outcome distributions on \(\ket0\) and on \(\ket1\). Which outcome never occurs on \(\ket1\), and why, geometrically?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is unit 04's computation of the trine's density operator, scaled. Part 2 is P2's recipe with \(w_k = \sqrt{2/3}\,t_k\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Unit 04 showed \(\tfrac13\sum_k\ket{t_k}\!\bra{t_k} = I/2\). The rows of \(V\) are \(\sqrt{2/3}(\cos\tfrac{\pi k}3, \sin\tfrac{\pi k}3)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>The rows are \(\sqrt{2/3}\,(1, 0)\), \(\sqrt{2/3}\,(\tfrac12, \tfrac{\sqrt3}2)\), \(\sqrt{2/3}\,(-\tfrac12, \tfrac{\sqrt3}2)\). A third column orthogonal to both columns
+has \(a + \tfrac b2 - \tfrac c2 = 0\) and \(b + c = 0\).</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The trine is three vectors \(120^\circ\) apart on the Bloch sphere; scaled by \(\tfrac23\) its projectors sum to \(I\), and the
+dilation is a \(3\times3\) rotation whose first two columns are the scaled trine.</p>
+<p><strong>1.</strong> Each \(E_k \ge 0\) as a positive multiple of a projector. Sum: \(\tfrac23\sum_k\ket{t_k}\!\bra{t_k} = \tfrac23\cdot\tfrac32I = I\), by unit 04
+(\(\tfrac13\sum = I/2\)). Directly: the diagonals of \(\sum_k\ket{t_k}\!\bra{t_k}\) are \(1 + \tfrac14 + \tfrac14 = \tfrac32\) and \(0 + \tfrac34 + \tfrac34 = \tfrac32\), the off-diagonals
+\(0 + \tfrac{\sqrt3}4 - \tfrac{\sqrt3}4 = 0\) ✓.</p>
+<p><strong>2.</strong> With \(w_k = \sqrt{2/3}\,t_k\),</p>
+\[V = \sqrt{\tfrac23}\begin{pmatrix}1 &amp; 0\\ \tfrac12 &amp; \tfrac{\sqrt3}2\\ -\tfrac12 &amp; \tfrac{\sqrt3}2\end{pmatrix}, \qquad U = \begin{pmatrix}\sqrt{2/3} &amp; 0 &amp; 1/\sqrt3\\ 1/\sqrt6 &amp; 1/\sqrt2 &amp; -1/\sqrt3\\ -1/\sqrt6 &amp; 1/\sqrt2 &amp; 1/\sqrt3\end{pmatrix}.\]
+<p>Column norms of \(V\): \(\tfrac23(1 + \tfrac14 + \tfrac14) = 1\), \(\tfrac23(\tfrac34 + \tfrac34) = 1\); inner product \(\tfrac23(0 + \tfrac{\sqrt3}4 - \tfrac{\sqrt3}4) = 0\): \(V^\dagger V = I\) ✓.
+Rung 3's equations give \(c = -b\), \(a = -b\): the third column \(\tfrac1{\sqrt3}(1, -1, 1)\), unit length, orthogonal to both
+(\(\sqrt{2/3}(1 - \tfrac12 - \tfrac12) = 0\), \(\sqrt{2/3}(0 - \tfrac{\sqrt3}2 + \tfrac{\sqrt3}2) = 0\)) ✓.</p>
+<p><strong>3.</strong> \(\Pr(k) = \tfrac23|\braket{t_k|\psi}|^2\). For \(\ket0\): \(\tfrac23(1, \tfrac14, \tfrac14) = (\tfrac23, \tfrac16, \tfrac16)\). For \(\ket1\): \(\tfrac23(0, \tfrac34, \tfrac34) = (0, \tfrac12, \tfrac12)\).
+Outcome \(0\) never occurs on \(\ket1\) because \(\ket{t_0} = \ket0 \perp \ket1\) — on the Bloch sphere, \(\ket1\) is antipodal to \(t_0\)'s point. In
+general a trine outcome \(k\) is impossible exactly on the state antipodal to \(t_k\): the trine POVM rules out one of
+three states with certainty.</p>
+<p><strong>Check.</strong> Both distributions sum to one. On \(I/2\) every outcome has \(\tfrac23\cdot\tfrac12 = \tfrac13\), as symmetry demands.</p>
+</div></details>
+</section>
+
+<h2 class="group">Channels</h2>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> Measurements as channels <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: Kraus operators of measurement processes, trace preservation, a Choi matrix, a Bloch-ball action</p>
+<div class="statement">
+<ol>
+<li>Unit 04's non-selective measurement \(\rho \mapsto \sum_\lambda P_\lambda\rho P_\lambda\): give Kraus operators and check trace preservation.
+Show that doing it twice is the same as doing it once.</li>
+<li>Measure and <i>record</i>: the outcome is written into a classical register \(\mathbb C^L\),
+\(\rho \mapsto \sum_\lambda P_\lambda\rho P_\lambda\otimes\ket\lambda\!\bra\lambda\). Give Kraus operators \(H \to H\otimes\mathbb C^L\) and check them.</li>
+<li>For the qubit \(z\) measurement, compute the Choi matrix of the non-selective map and check it is positive.</li>
+<li>The trine POVM of P3, measured and forgotten with Kraus operators \(\sqrt{E_k}\): find its action on Bloch vectors.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each map is already written as a sum of terms \(A\rho A^\dagger\); read the \(A\)'s off. The Bloch action is found by feeding in
+\(\tfrac12(I + X)\), \(\tfrac12(I + Y)\), \(\tfrac12(I + Z)\) and using linearity.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(P_\lambda\rho P_\lambda\otimes\ket\lambda\!\bra\lambda = (P_\lambda\otimes\ket\lambda)\rho(P_\lambda\otimes\bra\lambda)\). For a projector, \(\sqrt{\tfrac23\ket t\!\bra t} = \sqrt{\tfrac23}\ket t\!\bra t\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>For part 4 the trine channel is \(\rho \mapsto \tfrac23\sum_k\braket{t_k|\rho|t_k}\ket{t_k}\!\bra{t_k}\). Start with \(\rho = \tfrac12(I + Y)\): every \(\braket{t_k|Y|t_k}\) is zero
+because \(t_k\) is real.</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Every measurement whose result is not kept, or is kept classically, is a channel; the Kraus operators are
+the measurement operators themselves.</p>
+<p><strong>1.</strong> \(A_\lambda = P_\lambda\); \(\sum_\lambda P_\lambda^\dagger P_\lambda = \sum_\lambda P_\lambda = I\) ✓. Twice: \(\sum_\mu P_\mu\big(\sum_\lambda P_\lambda\rho P_\lambda\big)P_\mu = \sum_\lambda P_\lambda\rho P_\lambda\), since
+\(P_\mu P_\lambda = \delta_{\mu\lambda}P_\lambda\). Idempotent, as a measurement repeated should be.</p>
+<p><strong>2.</strong> \(B_\lambda = P_\lambda\otimes\ket\lambda\colon v \mapsto P_\lambda v\otimes\ket\lambda\), adjoint \(P_\lambda\otimes\bra\lambda\). Then
+\(\sum_\lambda B_\lambda^\dagger B_\lambda = \sum_\lambda P_\lambda\braket{\lambda|\lambda} = I\) ✓, and \(B_\lambda\rho B_\lambda^\dagger = P_\lambda\rho P_\lambda\otimes\ket\lambda\!\bra\lambda\) ✓. Tracing out the register recovers part 1;
+tracing out the system gives the classical distribution \(\sum_\lambda\operatorname{tr}(P_\lambda\rho)\ket\lambda\!\bra\lambda\).</p>
+<p><strong>3.</strong> \(\Phi(\ket i\!\bra j) = \delta_{ij}\ket i\!\bra i\), so \(J = \ket0\!\bra0\otimes\ket0\!\bra0 + \ket1\!\bra1\otimes\ket1\!\bra1 = \ket{00}\!\bra{00} + \ket{11}\!\bra{11}\): a projector,
+eigenvalues \(1, 1, 0, 0\), positive ✓; \(\operatorname{tr}_2J = \ket0\!\bra0 + \ket1\!\bra1 = I\) ✓. Compare the identity channel's \(J = \ket{00}\!\bra{00} + \ket{00}\!\bra{11} + \ket{11}\!\bra{00} + \ket{11}\!\bra{11}\): the
+measurement removed exactly the coherences between the blocks.</p>
+<p><strong>4.</strong> The channel is \(\Phi(\rho) = \tfrac23\sum_k\ket{t_k}\!\braket{t_k|\rho|t_k}\!\bra{t_k}\). The \(t_k\) are real, so \(\braket{t_k|Y|t_k} = 0\) and \(\Phi(\tfrac12(I + Y)) = \Phi(\tfrac I2) = \tfrac I2\):
+\(y\) is sent to \(0\) and so is everything, \((0, 1, 0) \mapsto (0, 0, 0)\). For \(\tfrac12(I + Z)\): \(\braket{t_k|0}^2 = 1, \tfrac14, \tfrac14\), so
+\(\Phi = \tfrac23(\ket{t_0}\!\bra{t_0} + \tfrac14\ket{t_1}\!\bra{t_1} + \tfrac14\ket{t_2}\!\bra{t_2})\), whose Bloch vector is \(\tfrac23\big((0,0,1) + \tfrac14(\tfrac{\sqrt3}2, 0, -\tfrac12) + \tfrac14(-\tfrac{\sqrt3}2, 0, -\tfrac12)\big) =
+\tfrac23(0, 0, \tfrac34) = (0, 0, \tfrac12)\). By the symmetry of the trine under \(120^\circ\) turns about \(y\), every direction in the \(xz\) plane is halved:</p>
+\[(x, y, z) \mapsto \big(\tfrac x2,\ 0,\ \tfrac z2\big).\]
+<p><strong>Check.</strong> The centre is fixed (\(\Phi(I/2) = \tfrac23\cdot\tfrac12\sum_k\ket{t_k}\!\bra{t_k} = I/2\) ✓). The pure state \(\ket0\) goes to Bloch length \(\tfrac12\), a mixed state —
+measuring and forgetting loses information, as it should. Trace preservation: \(\sum_k\sqrt{E_k}^2 = \sum_kE_k = I\) ✓.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Positive but not completely positive <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the transpose in any dimension, the swap's spectrum, a CP map that is not trace-preserving, completing it to a channel, a number</p>
+<div class="statement">
+<ol>
+<li>Show the transpose on \(L(\mathbb C^d)\) is positive and trace-preserving, and that
+\((\mathrm{id}\otimes T)(\ket{\Phi^+_d}\!\bra{\Phi^+_d}) = \tfrac1d\mathrm{SWAP}_d\) with \(\ket{\Phi^+_d} = d^{-1/2}\sum_i\ket{ii}\). Find its least eigenvalue and its
+multiplicity; give the value for \(d = 3\).</li>
+<li>Show \(\Phi(\rho) = P\rho P\) with \(P = \ket0\!\bra0\) on a qubit is completely positive but not trace-preserving.</li>
+<li>Find two different ways to add Kraus operators that make it a channel, and describe each in words.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answers to 1 are an operator identity and an eigenvalue. For 2 and 3: a map with Kraus form is CP; it is TP iff
+\(\sum A_k^\dagger A_k = I\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\mathrm{SWAP}_d\) squares to \(I\), so its eigenvalues are \(\pm1\). Its \(-1\) eigenspace is spanned by the antisymmetric vectors \(\ket{ij} - \ket{ji}\),
+\(i \lt j\). In part 3 you need extra operators with \(\sum_kA_k^\dagger A_k = I - P\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>The first line of part 1: \(\ket{\Phi^+_d}\!\bra{\Phi^+_d} = \tfrac1d\sum_{ij}\ket i\!\bra j\otimes\ket i\!\bra j\). For part 3, try \(A_1 = \ket1\!\bra1\) and, separately, \(A_1 = \ket0\!\bra1\).</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The transpose turns the maximally entangled state into the swap, whose antisymmetric eigenvectors carry a
+negative eigenvalue. Conversely, being CP is easy and being TP is a single operator equation, which can be completed
+in many ways.</p>
+<p><strong>1.</strong> Positivity: for \(\rho \ge 0\), \(\rho^{\mathsf T} = \bar\rho\) and \(\braket{v|\bar\rho|v} = \overline{\braket{\bar v|\rho|\bar v}} \ge 0\), as in the deck, in any dimension; the diagonal
+and so the trace are unchanged. Then \((\mathrm{id}\otimes T)\) of \(\tfrac1d\sum_{ij}\ket i\!\bra j\otimes\ket i\!\bra j\) is \(\tfrac1d\sum_{ij}\ket i\!\bra j\otimes\ket j\!\bra i\), which sends
+\(\ket{ab} \mapsto \tfrac1d\ket{ba}\): \(\tfrac1d\mathrm{SWAP}_d\). \(\mathrm{SWAP}_d^2 = I\), and it fixes the \(\tfrac{d(d+1)}2\) symmetric vectors (\(\ket{ii}\), \(\ket{ij} + \ket{ji}\)) and negates the
+\(\tfrac{d(d-1)}2\) antisymmetric ones; together they are an orthogonal basis of \(\mathbb C^{d^2}\). So the least eigenvalue is \(-\tfrac1d\),
+with multiplicity \(\tfrac{d(d-1)}2\). For \(d = 3\): \(-\tfrac13 \approx -0.3333\), three times. (In the Choi convention, \(J(T) = \mathrm{SWAP}_d\), least eigenvalue
+\(-1\) for every \(d\).)</p>
+<p><strong>2.</strong> One Kraus operator, \(P\), so CP by the deck's Kraus theorem (its "if" direction needs only the form). Trace:
+\(\operatorname{tr}(P\ket1\!\bra1P) = 0 \ne 1\). In operator form \(P^\dagger P = P \ne I\).</p>
+<p><strong>3.</strong> Need \(A_1^\dagger A_1 = I - P = \ket1\!\bra1\). (a) \(A_1 = \ket1\!\bra1\): \(\rho \mapsto P\rho P + (I - P)\rho(I - P)\), the non-selective \(z\) measurement
+of P4. (b) \(A_1 = \ket0\!\bra1\): \(A_1^\dagger A_1 = \ket1\!\braket{0|0}\!\bra1 = \ket1\!\bra1\) ✓; the channel is \(\rho \mapsto \rho_{00}\ket0\!\bra0 + \rho_{11}\ket0\!\bra0 = \ket0\!\bra0\), reset to \(\ket0\) — amplitude
+damping with \(\gamma = 1\). Same \(P\) branch, different completion, different channel: "keep the \(\ket0\) part" says nothing
+about what happens to the rest.</p>
+<p><strong>Check.</strong> \(d = 2\) in part 1 gives \(-\tfrac12\), once, on \(\ket{\Psi^-}\): the deck's worked example ✓. Both completions in 3 have
+\(\sum A_k^\dagger A_k = P + \ket1\!\bra1 = I\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import channels
+for d in (2, 3):
+    J = channels.choi_of_map(lambda m: m.T, d)                # Choi convention: no 1/d
+    print(d, np.round(np.linalg.eigvalsh(J) / d, 4))          # least -1/d, multiplicity d(d-1)/2
+reset = [np.diag([1, 0]), np.array([[0, 1], [0, 0]])]
+print(channels.is_trace_preserving(reset), channels.is_trace_preserving(reset[:1]))   # True False</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> Choi's theorem <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the Choi matrix, unfolding vectors into operators, spectral decomposition, a full proof in both directions</p>
+<div class="statement">
+<p>Let \(\Phi\colon L(\mathbb C^d) \to L(\mathbb C^{d'})\) be linear, with \(J = \sum_{ij}\ket i\!\bra j\otimes\Phi(\ket i\!\bra j)\).</p>
+<ol>
+<li>Prove: \(\Phi\) is completely positive \(\iff\) \(J \ge 0\).</li>
+<li>Prove: \(\Phi\) is trace-preserving \(\iff\) \(\operatorname{tr}_2J = I_d\).</li>
+<li>Deduce that if \(\mathrm{id}_d\otimes\Phi\) is positive, then \(\mathrm{id}_k\otimes\Phi\) is positive for every \(k\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>One direction of part 1 is a single application of the definition to one particular state. The other direction must
+<i>construct</i> something that is obviously CP.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(J = d(\mathrm{id}\otimes\Phi)(\ket{\Phi^+_d}\!\bra{\Phi^+_d})\). For the converse, decompose \(J = \sum_k\ket{a_k}\!\bra{a_k}\) and turn each vector \(a_k \in \mathbb C^d\otimes\mathbb C^{d'}\) into a
+map \(A_k\colon\mathbb C^d \to \mathbb C^{d'}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Write \(\ket{a_k} = \sum_i\ket i\otimes v_{ik}\) and set \(A_k\ket i = v_{ik}\). The first line of the converse is then
+\(\ket{a_k}\!\bra{a_k} = \sum_{ij}\ket i\!\bra j\otimes A_k\ket i\!\bra jA_k^\dagger\).</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The Choi matrix is the channel applied to half of a maximally entangled state, so CP makes it positive.
+Conversely, a positive Choi matrix has a spectral decomposition, and each eigenvector, read as a matrix, is a Kraus
+operator; a Kraus form is CP on its face.</p>
+<p><strong>1, \(\Rightarrow\).</strong> \(\ket{\Phi^+_d}\!\bra{\Phi^+_d} = \tfrac1d\sum_{ij}\ket{ii}\!\bra{jj} = \tfrac1d\sum_{ij}\ket i\!\bra j\otimes\ket i\!\bra j\) is a positive operator on \(\mathbb C^d\otimes\mathbb C^d\). If \(\Phi\) is
+CP, then \(\mathrm{id}_d\otimes\Phi\) is positive, so \((\mathrm{id}\otimes\Phi)(\ket{\Phi^+_d}\!\bra{\Phi^+_d}) = \tfrac1dJ \ge 0\), hence \(J \ge 0\).</p>
+<p><strong>1, \(\Leftarrow\).</strong> (i) \(J\) is Hermitian with eigenvalues \(\lambda_k \ge 0\) and orthonormal eigenvectors \(e_k\) (spectral theorem; \(J \ge 0\)). Put
+\(a_k = \sqrt{\lambda_k}e_k\): \(J = \sum_k\ket{a_k}\!\bra{a_k}\). (ii) Every vector of \(\mathbb C^d\otimes\mathbb C^{d'}\) is uniquely \(\sum_i\ket i\otimes v_i\) (unit 03), so define
+\(A_k\colon\mathbb C^d \to \mathbb C^{d'}\) by \(A_k\ket i = v_{ik}\), where \(\ket{a_k} = \sum_i\ket i\otimes v_{ik}\). (iii) Then</p>
+\[\ket{a_k}\!\bra{a_k} = \sum_{ij}\big(\ket i\otimes A_k\ket i\big)\big(\bra j\otimes\bra jA_k^\dagger\big) = \sum_{ij}\ket i\!\bra j\otimes A_k\ket i\!\bra jA_k^\dagger .\]
+<p>Summing over \(k\) and comparing the \((i, j)\) blocks with the definition of \(J\): \(\Phi(\ket i\!\bra j) = \sum_kA_k\ket i\!\bra jA_k^\dagger\). Both sides are
+linear in the matrix unit, and the matrix units span \(L(\mathbb C^d)\), so \(\Phi(X) = \sum_kA_kXA_k^\dagger\) for all \(X\). (iv) For any \(k'\) and any
+\(Y \ge 0\) on \(\mathbb C^{k'}\otimes\mathbb C^d\): on products, \((\mathrm{id}\otimes\Phi)(S\otimes R) = S\otimes\sum_kA_kRA_k^\dagger = \sum_k(I\otimes A_k)(S\otimes R)(I\otimes A_k)^\dagger\), so by linearity
+\((\mathrm{id}\otimes\Phi)(Y) = \sum_k(I\otimes A_k)Y(I\otimes A_k)^\dagger\). Each term is \(BYB^\dagger\) with \(\braket{v|BYB^\dagger|v} = \braket{B^\dagger v|Y|B^\dagger v} \ge 0\). So \(\Phi\) is CP.</p>
+<p><strong>2.</strong> \(\operatorname{tr}_2(\ket i\!\bra j\otimes B) = (\operatorname{tr}B)\ket i\!\bra j\) (unit 04), so \(\operatorname{tr}_2J = \sum_{ij}\operatorname{tr}\Phi(\ket i\!\bra j)\,\ket i\!\bra j\). This equals \(I = \sum_{ij}\delta_{ij}\ket i\!\bra j\)
+iff \(\operatorname{tr}\Phi(\ket i\!\bra j) = \delta_{ij} = \operatorname{tr}\ket i\!\bra j\) for all \(i, j\), which — both sides being linear and the \(\ket i\!\bra j\) a basis — is iff \(\operatorname{tr}\Phi(X) = \operatorname{tr}X\) for all \(X\).</p>
+<p><strong>3.</strong> The proof of \(\Rightarrow\) used positivity of \(\mathrm{id}_d\otimes\Phi\) only. So \(\mathrm{id}_d\otimes\Phi\) positive \(\Rightarrow\) \(J \ge 0\) \(\Rightarrow\) (by \(\Leftarrow\)) \(\Phi\) is CP,
+i.e. \(\mathrm{id}_k\otimes\Phi\) is positive for every \(k\).</p>
+<p><strong>Check.</strong> On the identity channel, \(J = d\ket{\Phi^+_d}\!\bra{\Phi^+_d}\) has one nonzero eigenvalue \(d\), eigenvector \(\sqrt d\,\Phi^+_d\), i.e. \(a = \sum_i\ket i\otimes\ket i\); unfolding
+gives \(A\ket i = \ket i\), \(A = I\): the single Kraus operator of the identity ✓. On the transpose, \(J = \mathrm{SWAP} \not\ge 0\), so the proof
+correctly fails to produce Kraus operators ✓. On amplitude damping, the deck's worked example ran steps (i)–(iii) backwards.</p>
+</div></details>
+</section>
+
+<h2 class="group">Kraus and Stinespring</h2>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Two Kraus families for the phase flip <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: unitary freedom of Kraus operators, phase flip versus pure dephasing, a Choi matrix, a number</p>
+<div class="statement">
+<p>The phase flip with probability \(p\) has Kraus operators \(A_0 = \sqrt{1 - p}\,I\), \(A_1 = \sqrt p\,Z\).</p>
+<ol>
+<li>Find \(\lambda\) such that pure dephasing, \(B_0 = \mathrm{diag}(1, \sqrt{1 - \lambda})\), \(B_1 = \mathrm{diag}(0, \sqrt\lambda)\), is the same channel, for \(0 \le p \le \tfrac12\).</li>
+<li>Find the \(2\times2\) matrix \(u\) with \(A_k = \sum_lu_{kl}B_l\), and check it is unitary.</li>
+<li>Give \(\lambda\) and \(u\) numerically for \(p = 0.1\), and compute the Choi matrix of the channel.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two qubit channels that fix the diagonal agree iff they multiply the off-diagonal entry by the same number.
+\(u\) is found by matching entries.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The phase flip multiplies \(\rho_{01}\) by \(1 - 2p\); pure dephasing by \(\sqrt{1 - \lambda}\). Everything is diagonal, so \(A_k = u_{k0}B_0 + u_{k1}B_1\) is
+two scalar equations per \(k\), one per diagonal entry.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(\lambda = 1 - (1 - 2p)^2 = 4p(1 - p)\), so \(\sqrt\lambda = 2\sqrt{p(1 - p)}\). The \((0, 0)\) entries give \(u_{00} = \sqrt{1 - p}\) and \(u_{10} = \sqrt p\) at once.</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Same channel means same action; then unit 04's HJW, through the Choi matrix, promises a unitary between
+the families, and here it can be read off entry by entry.</p>
+<p><strong>1.</strong> Phase flip: \((1 - p)\rho + pZ\rho Z\) keeps the diagonal and sends \(\rho_{01} \mapsto (1 - p)\rho_{01} - p\rho_{01} = (1 - 2p)\rho_{01}\). Pure dephasing keeps the diagonal
+and multiplies \(\rho_{01}\) by \(\sqrt{1 - \lambda}\). For \(p \le \tfrac12\), \(1 - 2p \ge 0\), and equality needs \(\sqrt{1 - \lambda} = 1 - 2p\):</p>
+\[\lambda = 1 - (1 - 2p)^2 = 4p(1 - p), \qquad \sqrt\lambda = 2\sqrt{p(1 - p)} .\]
+<p>A linear map on \(2\times2\) matrices is fixed by its action on the four matrix units, and these two agree on all four.</p>
+<p><strong>2.</strong> \(A_0 = u_{00}B_0 + u_{01}B_1\): entry \((0,0)\): \(\sqrt{1 - p} = u_{00}\); entry \((1,1)\): \(\sqrt{1 - p} = u_{00}(1 - 2p) + u_{01}\cdot2\sqrt{p(1 - p)}\), so
+\(u_{01} = \sqrt{1 - p}\cdot2p/\big(2\sqrt{p(1 - p)}\big) = \sqrt p\). \(A_1\): \((0,0)\): \(\sqrt p = u_{10}\); \((1,1)\): \(-\sqrt p = \sqrt p(1 - 2p) + u_{11}\cdot2\sqrt{p(1 - p)}\), so
+\(u_{11} = -\sqrt p(2 - 2p)/\big(2\sqrt{p(1 - p)}\big) = -\sqrt{1 - p}\). Hence</p>
+\[u = \begin{pmatrix}\sqrt{1 - p} &amp; \sqrt p\\ \sqrt p &amp; -\sqrt{1 - p}\end{pmatrix}, \qquad u^\dagger u = \begin{pmatrix}1 - p + p &amp; \sqrt{p(1-p)} - \sqrt{p(1-p)}\\ \cdot &amp; p + 1 - p\end{pmatrix} = I\ \checkmark\]
+<p>— a real reflection.</p>
+<p><strong>3.</strong> \(p = 0.1\): \(\lambda = 0.36\), \(\sqrt{1 - \lambda} = 0.8 = 1 - 2p\) ✓; \(u = \begin{pmatrix}0.9487 &amp; 0.3162\\ 0.3162 &amp; -0.9487\end{pmatrix}\). The Choi matrix: \(\Phi(\ket0\!\bra0) = \ket0\!\bra0\),
+\(\Phi(\ket1\!\bra1) = \ket1\!\bra1\), \(\Phi(\ket0\!\bra1) = 0.8\ket0\!\bra1\), so \(J = \ket{00}\!\bra{00} + \ket{11}\!\bra{11} + 0.8(\ket{00}\!\bra{11} + \ket{11}\!\bra{00})\), eigenvalues \(1.8, 0.2, 0, 0\) — rank two,
+as two Kraus operators require.</p>
+<p><strong>Check.</strong> \(p = 0\): \(\lambda = 0\), \(u = \begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix}\), and \(A_1 = 0 = -B_1\) ✓. \(p = \tfrac12\): \(\lambda = 1\), \(B = \{\ket0\!\bra0, \ket1\!\bra1\}\), and \(u = \tfrac1{\sqrt2}\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix} = H\),
+the deck's example ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import channels
+p = 0.1; lam = 4 * p * (1 - p)
+A = channels.phase_flip(p)
+B = channels.phase_damping(lam)
+u = np.array([[np.sqrt(1 - p), np.sqrt(p)], [np.sqrt(p), -np.sqrt(1 - p)]])
+print(np.allclose(channels.choi(A), channels.choi(B)))                         # True: one channel
+print(all(np.allclose(A[k], u[k, 0] * B[0] + u[k, 1] * B[1]) for k in (0, 1)))  # True
+print(np.round(np.linalg.eigvalsh(channels.choi(A)), 4) + 0)                     # [0. 0. 0.2 1.8]</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Amplitude damping from a Stinespring unitary <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a two-qubit Hamiltonian, the functional calculus, Kraus operators from a dilation, composing channels, a number</p>
+<div class="statement">
+<p>A qubit (system, first) and one environment qubit in \(\ket0\) interact by \(U = e^{-i\theta K}\) with \(K = \tfrac12(X\otimes X + Y\otimes Y)\).</p>
+<ol>
+<li>Show \(K = \ket{01}\!\bra{10} + \ket{10}\!\bra{01}\), and compute \(U\ket{00}\) and \(U\ket{10}\).</li>
+<li>Find the Kraus operators \(A_k = (I\otimes\bra k)U(I\otimes\ket0)\), and show the channel is amplitude damping with \(\gamma = \sin^2\theta\), even though
+the Kraus operators differ from the deck's.</li>
+<li>The qubit then meets a second fresh environment qubit with the same \(\theta\). Show the total is amplitude damping, and
+give \(\gamma_{\text{total}}\) for \(\theta = \pi/6\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Compute \(K\) on the four basis states. \(K\) acts as \(X\) on the plane spanned by \(\ket{01}, \ket{10}\) and as \(0\) on \(\ket{00}, \ket{11}\); exponentiate it on each piece.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(X\otimes X\) flips both bits. For \(Y\otimes Y\) use \(Y\ket0 = i\ket1\) and \(Y\ket1 = -i\ket0\) on each factor. On the plane,
+\(e^{-i\theta X} = \cos\theta\,I - i\sin\theta\,X\) (unit 00's functional calculus, as \(X^2 = I\)).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(U\ket{00} = \ket{00}\) and \(U\ket{10} = \cos\theta\ket{10} - i\sin\theta\ket{01}\). So \(A_0 = \mathrm{diag}(1, \cos\theta)\) and \(A_1 = -i\sin\theta\ket0\!\bra1\).</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> \(K\) is the excitation-exchange coupling; running it for "angle" \(\theta\) is a complex partial swap, and the phase it
+introduces sits on a Kraus operator, where unitary freedom makes it invisible.</p>
+<p><strong>1.</strong> \(X\otimes X\) maps \(\ket{00} \leftrightarrow \ket{11}\), \(\ket{01} \leftrightarrow \ket{10}\). \(Y\otimes Y\): \(\ket{00} \mapsto (i)(i)\ket{11} = -\ket{11}\), \(\ket{11} \mapsto (-i)(-i)\ket{00} = -\ket{00}\),
+\(\ket{01} \mapsto (i)(-i)\ket{10} = \ket{10}\), \(\ket{10} \mapsto \ket{01}\). Adding and halving: \(\ket{00}, \ket{11} \mapsto 0\), \(\ket{01} \leftrightarrow \ket{10}\). So \(K = \ket{01}\!\bra{10} + \ket{10}\!\bra{01}\),
+Hermitian. On the plane it is \(X\), with \(X^2 = I\), so \(e^{-i\theta K}\) is \(\cos\theta - i\sin\theta\,X\) there and \(1\) on \(\ket{00}, \ket{11}\) (\(K = 0\) there). Hence
+\(U\ket{00} = \ket{00}\) and \(U\ket{10} = \cos\theta\ket{10} - i\sin\theta\ket{01}\). Norm: \(\cos^2\theta + \sin^2\theta = 1\) ✓.</p>
+<p><strong>2.</strong> Environment \(0\) part: \(A_0\ket0 = \ket0\), \(A_0\ket1 = \cos\theta\ket1\). Environment \(1\) part: \(A_1\ket0 = 0\), \(A_1\ket1 = -i\sin\theta\ket0\). So</p>
+\[A_0 = \begin{pmatrix}1 &amp; 0\\ 0 &amp; \cos\theta\end{pmatrix}, \qquad A_1 = \begin{pmatrix}0 &amp; -i\sin\theta\\ 0 &amp; 0\end{pmatrix}, \qquad A_0^\dagger A_0 + A_1^\dagger A_1 = \mathrm{diag}(1, \cos^2\theta + \sin^2\theta) = I\ \checkmark\]
+<p>With \(\gamma = \sin^2\theta\) (\(0 \le \theta \le \tfrac\pi2\)), \(A_0\) is the deck's \(\mathrm{diag}(1, \sqrt{1 - \gamma})\), and \(A_1 = -i\cdot\sqrt\gamma\ket0\!\bra1\). The two families are related by
+\(u = \mathrm{diag}(1, -i)\), unitary, so they give the same channel; directly, \(A_1\rho A_1^\dagger\) does not see the phase \(-i\).</p>
+<p><strong>3.</strong> Each step is amplitude damping with \(\gamma_1 = \sin^2\theta\), so by the deck's composition rule the total is amplitude damping with
+\(1 - \gamma_{\text{total}} = (1 - \gamma_1)^2 = \cos^4\theta\). For \(\theta = \pi/6\): \(\gamma_1 = \tfrac14\), \(\gamma_{\text{total}} = 1 - \tfrac9{16} = \tfrac7{16} = 0.4375\). Kraus operators of the
+composition are the products \(A_kA_l\): \(A_0A_0 = \mathrm{diag}(1, \cos^2\theta)\), \(A_1A_0 = -i\sin\theta\cos\theta\ket0\!\bra1\), \(A_0A_1 = -i\sin\theta\ket0\!\bra1\), \(A_1A_1 = 0\) —
+three nonzero operators for a channel that needs only two, an illustration that Kraus families need not be minimal.</p>
+<p><strong>Check.</strong> \(\theta = 0\): no interaction, \(\gamma = 0\) ✓. \(\theta = \tfrac\pi2\): full swap up to phase, \(\gamma = 1\), reset to \(\ket0\) ✓. Many steps: \(\cos^{2n}\theta \to 0\) — a
+fresh environment qubit per step is the deck's picture of exponential decay.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import channels, gates, linalg
+theta = np.pi / 6
+K = (linalg.kron(gates.X, gates.X) + linalg.kron(gates.Y, gates.Y)) / 2
+U = linalg.exp_hermitian(K, -1j * theta)
+V = U[:, [0, 2]]                       # inputs |0>|0> and |1>|0>
+A0, A1 = V[[0, 2], :], V[[1, 3], :]    # rows with the environment in 0, then in 1
+g = np.sin(theta) ** 2
+print(np.allclose(channels.choi([A0, A1]), channels.choi(channels.amplitude_damping(g))))   # True
+two = [a @ b for a in (A0, A1) for b in (A0, A1)]
+print(np.allclose(channels.choi(two), channels.choi(channels.amplitude_damping(7 / 16))))   # True</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Noise models, T₁ and T₂</h2>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> Depolarising: Kraus form, shrinking, and where it stops <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the Pauli twirl, a Kraus form, the Bloch-ball action, Choi's theorem as a test, positive versus completely positive, a number</p>
+<div class="statement">
+<p>Let \(\Delta_p(\rho) = (1 - p)\rho + p\,\tfrac{\operatorname{tr}\rho}2I\) on a qubit, for real \(p\).</p>
+<ol>
+<li>Prove \(\tfrac14(M + XMX + YMY + ZMZ) = \tfrac{\operatorname{tr}M}2I\) for every \(2\times2\) matrix \(M\), by checking the four matrix units.</li>
+<li>Deduce a Kraus form for \(\Delta_p\) with the four Paulis, and its action on Bloch vectors.</li>
+<li>Compute \(J(\Delta_p)\) and its eigenvalues. For which \(p\) is \(\Delta_p\) completely positive? For which is it positive? Give the CP
+endpoint, and identify \(\Delta_2\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is four small computations, using linearity. Part 3: the Choi matrix of a map built from the identity and
+a constant is a combination of \(\ket{\Phi^+}\!\bra{\Phi^+}\) and \(I\otimes I\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>For \(\ket0\!\bra1\): \(X\ket0\!\bra1X = \ket1\!\bra0\), \(Y\ket0\!\bra1Y = -\ket1\!\bra0\), \(Z\ket0\!\bra1Z = -\ket0\!\bra1\). For part 3, \(J(\mathrm{id}) = 2\ket{\Phi^+}\!\bra{\Phi^+}\) and the map
+\(M \mapsto \tfrac{\operatorname{tr}M}2I\) has \(J = \tfrac12I\otimes I\). Positivity: a map of the ball \(r \mapsto (1 - p)r\) stays inside it iff \(|1 - p| \le 1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(J(\Delta_p) = 2(1 - p)\ket{\Phi^+}\!\bra{\Phi^+} + \tfrac p2I\otimes I\). Its eigenvalues are \(2(1 - p) + \tfrac p2\) on \(\ket{\Phi^+}\) and \(\tfrac p2\) on the three-dimensional
+complement.</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Averaging over the four Paulis erases everything but the trace; that rewrites depolarising as "a random Pauli
+error". Choi's theorem then reads off exactly how far the formula can be pushed before it stops being a channel.</p>
+<p><strong>1.</strong> Both sides are linear in \(M\); check \(\ket i\!\bra j\). \(\ket0\!\bra0\): \(\ket0\!\bra0 + \ket1\!\bra1 + \ket1\!\bra1 + \ket0\!\bra0 = 2I\) (using \(Y\ket0 = i\ket1\), \(\bra0Y = -i\bra1\)), so
+\(\tfrac14\cdot2I = \tfrac12I = \tfrac{\operatorname{tr}}2I\) ✓. \(\ket1\!\bra1\): the same ✓. \(\ket0\!\bra1\): \(\ket0\!\bra1 + \ket1\!\bra0 - \ket1\!\bra0 - \ket0\!\bra1 = 0 = \tfrac{\operatorname{tr}}2I\) ✓ (rung 2's three conjugations).
+\(\ket1\!\bra0\): its adjoint, \(0\) ✓.</p>
+<p><strong>2.</strong> Substituting, \(\Delta_p(\rho) = (1 - p)\rho + \tfrac p4(\rho + X\rho X + Y\rho Y + Z\rho Z) = (1 - \tfrac{3p}4)\rho + \tfrac p4(X\rho X + Y\rho Y + Z\rho Z)\): Kraus operators
+\(\sqrt{1 - 3p/4}\,I\), \(\tfrac{\sqrt p}2X\), \(\tfrac{\sqrt p}2Y\), \(\tfrac{\sqrt p}2Z\), valid when \(0 \le p \le \tfrac43\), with \(\sum A_k^\dagger A_k = (1 - \tfrac{3p}4 + \tfrac{3p}4)I = I\) ✓. On Bloch
+vectors: \(\tfrac{\operatorname{tr}\rho}2I\) has \(r = 0\), so \(r \mapsto (1 - p)r\) — uniform shrinking.</p>
+<p><strong>3.</strong> By linearity of \(\Phi \mapsto J(\Phi)\), \(J(\Delta_p) = (1 - p)J(\mathrm{id}) + pJ(M \mapsto \tfrac{\operatorname{tr}M}2I)\). The first is \(2\ket{\Phi^+}\!\bra{\Phi^+}\); the second is
+\(\sum_{ij}\ket i\!\bra j\otimes\delta_{ij}\tfrac I2 = \tfrac12I\otimes I\). Both terms are diagonal in any orthonormal basis containing \(\ket{\Phi^+}\), so the eigenvalues are</p>
+\[2 - \tfrac{3p}2 \ \text{(once, on } \ket{\Phi^+}\text{)}, \qquad \tfrac p2 \ \text{(three times)}.\]
+<p>CP iff both \(\ge 0\): \(0 \le p \le \tfrac43\). Positive iff it maps the ball into itself (unit 04: the qubit states are exactly the ball),
+iff \(|1 - p| \le 1\): \(0 \le p \le 2\). TP for every \(p\) (\(\operatorname{tr}_2J = (1 - p)I + pI = I\)). So for \(\tfrac43 \lt p \le 2\), \(\Delta_p\) is positive and trace-preserving
+but not CP. \(\Delta_2\): \(r \mapsto -r\), the point reflection of the ball; its Choi eigenvalue on \(\ket{\Phi^+}\) is \(2 - 3 = -1\) — like the transpose, a
+symmetry of the ball no device performs. The CP endpoint \(p = \tfrac43\) sends \(r \mapsto -\tfrac13r\): inversion is allowed only after shrinking
+the ball to a third.</p>
+<p><strong>Check.</strong> \(p = 0\): \(J = 2\ket{\Phi^+}\!\bra{\Phi^+}\), the identity ✓. \(p = 1\): \(J = \tfrac12I\otimes I\), every eigenvalue \(\tfrac12\), the channel to \(I/2\) ✓. \(p = \tfrac12\):
+eigenvalues \(1.25, 0.25, 0.25, 0.25\), summing to \(2 = d\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import channels
+for p in (0.5, 4 / 3, 2):
+    J = channels.choi_of_map(lambda m: (1 - p) * m + p * np.trace(m) * np.eye(2) / 2, 2)
+    print(p, np.round(np.linalg.eigvalsh(J), 4))      # least eigenvalue 0.25, then 0, then -1
+# the referee's depolarizing(q) is this sheet's p = 4q/3:
+print(np.allclose(channels.choi(channels.depolarizing(0.375)),
+                  channels.choi_of_map(lambda m: 0.5 * m + 0.5 * np.trace(m) * np.eye(2) / 2, 2)))   # True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> \(T_2 \le 2T_1\) <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: composing amplitude damping and pure dephasing, the coherence of the running example, the Choi bound, numbers in microseconds</p>
+<div class="statement">
+<ol>
+<li>In the model where waiting \(t\) applies amplitude damping with \(\gamma = 1 - e^{-t/T_1}\) and pure dephasing with off-diagonal factor
+\(e^{-t/T_\varphi}\), show that \(\rho_{01}(t) = \rho_{01}(0)e^{-t/T_2}\) with \(1/T_2 = 1/2T_1 + 1/T_\varphi\), and conclude \(T_2 \le 2T_1\).</li>
+<li>Without assuming that model: let \(\Phi\) be any qubit channel with \(\Phi(\ket0\!\bra0) = \ket0\!\bra0\), \(\Phi(\ket1\!\bra1) = \gamma\ket0\!\bra0 + (1 - \gamma)\ket1\!\bra1\),
+\(\Phi(\ket0\!\bra1) = a\ket0\!\bra1\). Prove \(|a|^2 \le 1 - \gamma\).</li>
+<li>For \(T_1 = 100\ \mu\)s and \(T_\varphi = 150\ \mu\)s, compute \(T_2\). A qubit is prepared in \(\ket+\), waits \(50\ \mu\)s and is measured along \(x\): compute
+\(\Pr(+)\).</li>
+<li>A datasheet lists \(T_1 = 50\ \mu\)s and \(T_2 = 120\ \mu\)s for the same qubit. What do you conclude?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 multiplies two numbers; part 2 is a statement about a \(2\times2\) block of a positive matrix; part 3 is arithmetic with
+part 1's formula and unit 04's \(\Pr(+n) = \tfrac12(1 + r\cdot n)\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Amplitude damping multiplies \(\rho_{01}\) by \(\sqrt{1 - \gamma}\). In part 2, write the Choi matrix entry by entry and look at rows and columns
+\(00\) and \(11\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(1/T_2 = 1/200 + 1/150\) per microsecond. For \(\ket+\) the Bloch \(x\) coordinate at time \(t\) is \(e^{-t/T_2}\), so \(\Pr(+) = \tfrac12(1 + e^{-t/T_2})\).</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Coherence is an amplitude, so it decays at half the rate of the population; any extra dephasing only
+adds a rate. Complete positivity enforces the same inequality on any channel of this shape, model or no model.</p>
+<p><strong>1.</strong> Amplitude damping maps \(\rho_{01} \mapsto A_0\rho A_0^\dagger\) entry \((0,1)\), which is \(1\cdot\rho_{01}\cdot\sqrt{1 - \gamma}\) (\(A_1\rho A_1^\dagger \propto \ket0\!\bra0\) has no off-diagonal),
+and \(\sqrt{1 - \gamma} = e^{-t/2T_1}\). Pure dephasing multiplies by \(e^{-t/T_\varphi}\). Both are scalar factors on \(\rho_{01}\), so in either order
+\(\rho_{01}(t) = \rho_{01}(0)e^{-t/2T_1}e^{-t/T_\varphi}\), and \(1/T_2 = 1/2T_1 + 1/T_\varphi \ge 1/2T_1\) as \(T_\varphi \gt 0\). So \(T_2 \le 2T_1\), equality iff \(T_\varphi = \infty\).</p>
+<p><strong>2.</strong> Linearity and \(\Phi(X^\dagger) = \Phi(X)^\dagger\) (true for any Kraus map) give \(\Phi(\ket1\!\bra0) = \bar a\ket1\!\bra0\). Then
+\(J = \ket0\!\bra0\otimes\ket0\!\bra0 + \ket0\!\bra1\otimes a\ket0\!\bra1 + \ket1\!\bra0\otimes\bar a\ket1\!\bra0 + \ket1\!\bra1\otimes(\gamma\ket0\!\bra0 + (1 - \gamma)\ket1\!\bra1)\): entries \(1\) at \((00, 00)\), \(a\) at \((00, 11)\), \(\bar a\) at
+\((11, 00)\), \(\gamma\) at \((10, 10)\), \(1 - \gamma\) at \((11, 11)\). By Choi, \(J \ge 0\); restricting its quadratic form to \(\mathrm{span}\{\ket{00}, \ket{11}\}\) shows
+\(\begin{pmatrix}1 &amp; a\\ \bar a &amp; 1 - \gamma\end{pmatrix} \ge 0\), whose determinant gives \(1 - \gamma - |a|^2 \ge 0\). With \(|a| = e^{-t/T_2}\) and \(1 - \gamma = e^{-t/T_1}\) for all \(t\):
+\(e^{-2t/T_2} \le e^{-t/T_1}\), so \(2/T_2 \ge 1/T_1\): \(T_2 \le 2T_1\) again, now from complete positivity alone.</p>
+<p><strong>3.</strong> \(1/T_2 = 1/200 + 1/150 = 3/600 + 4/600 = 7/600\ \mu\text{s}^{-1}\), so</p>
+\[T_2 = \tfrac{600}7\ \mu\text{s} \approx 85.71\ \mu\text{s}.\]
+<p>At \(t = 50\ \mu\)s, \(x = e^{-50/85.71} = e^{-0.5833} = 0.5580\), and \(\Pr(+) = \tfrac12(1 + 0.5580) = 0.7790\). (The \(z\) coordinate, \(\gamma = 1 - e^{-0.5} = 0.3935\), does
+not enter an \(x\) measurement.)</p>
+<p><strong>4.</strong> \(2T_1 = 100\ \mu\text{s} \lt 120\ \mu\)s, which no channel of this shape allows (part 2). Either the two numbers were not measured
+under the same conditions (they drift over hours on real devices), or one of the fits is wrong, or the qubit is not
+behaving as a two-level system with decay of this shape at all. Quoting an echo \(T_2\) does not rescue the datasheet: a
+\(\pi\)-pulse at \(t/2\) only conjugates \(\rho_{01}\), and each half of the wait still multiplies \(|\rho_{01}|\) by at most \(e^{-t/4T_1}\), so the
+echoed coherence is at most \(e^{-t/2T_1}\) too. The bound is a sanity check on data.</p>
+<p><strong>Check.</strong> \(T_2 = 85.7 \lt 2T_1 = 200\) ✓ and \(T_2 \lt T_\varphi = 150\) ✓ (adding rates gives less than either). \(t = 0\): \(\Pr(+) = 1\) ✓; \(t \to \infty\): \(\tfrac12\) ✓.</p>
+</div></details>
+</section>
+
+<h2 class="group">Distinguishability</h2>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> The best one-shot guess <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: trace distance two ways, the Helstrom measurement, minimum error against unambiguous discrimination, numbers</p>
+<div class="statement">
+<ol>
+<li>Compute \(D(\ket0\!\bra0, \ket+\!\bra+)\) from the pure-state formula and from Bloch vectors. Find the optimal two-outcome measurement and
+its success probability.</li>
+<li>Compare with P1's unambiguous test: probabilities of a right answer, a wrong answer, and no answer, for each.</li>
+<li>\(\ket+\) and \(\ket-\) are stored in a qubit with \(T_1 = 100\ \mu\)s and no pure dephasing. Give \(D\) and the best guessing probability after
+\(100\ \mu\)s, and the time at which \(D = \tfrac12\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Every answer is a number, and the optimal measurement is the projector onto the positive eigenspace of \(\rho - \sigma\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\ket0\!\bra0 - \ket+\!\bra+ = \tfrac12(Z - X)\), a multiple of \(n\cdot\sigma\) for a unit vector \(n\) in the \(xz\) plane. For part 3 the deck found
+\(D(t) = e^{-t/2T_1}\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>\(\tfrac12(Z - X) = \tfrac1{\sqrt2}\,n\cdot\sigma\) with \(n = \tfrac1{\sqrt2}(-1, 0, 1)\), eigenvalues \(\pm\tfrac1{\sqrt2}\). The positive eigenvector is the pure state with Bloch vector
+\(n\).</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> For qubits, trace distance is half a Euclidean distance and the optimal test measures along the line
+joining the two Bloch vectors.</p>
+<p><strong>1.</strong> \(|\braket{0|+}|^2 = \tfrac12\), so \(D = \sqrt{1 - \tfrac12} = \tfrac1{\sqrt2} \approx 0.7071\). Bloch vectors \((0, 0, 1)\) and \((1, 0, 0)\), distance \(\sqrt2\), half is
+\(\tfrac1{\sqrt2}\) ✓. The positive eigenvector of \(\tfrac12(Z - X)\) has Bloch vector \(n = \tfrac1{\sqrt2}(-1, 0, 1)\): polar angle \(\tfrac\pi4\), azimuth \(\pi\), i.e.
+\(\cos\tfrac\pi8\ket0 - \sin\tfrac\pi8\ket1\). Measure in the basis \(\{\cos\tfrac\pi8\ket0 - \sin\tfrac\pi8\ket1,\ \sin\tfrac\pi8\ket0 + \cos\tfrac\pi8\ket1\}\); guess \(\ket0\) on the first.
+Success \(\tfrac12(1 + \tfrac1{\sqrt2}) = \cos^2\tfrac\pi8 \approx 0.8536\).</p>
+<p><strong>2.</strong></p>
+<ul>
+<li>Minimum error: right \(0.8536\), wrong \(0.1464\), no answer \(0\).</li>
+<li>Unambiguous (P1): right \(0.2929\), wrong \(0\), no answer \(0.7071\).</li>
+</ul>
+<p>Neither dominates. If a wrong answer is a disaster (accusing a sender, say), the unambiguous test is the right tool;
+if every answer costs the same, Helstrom's.</p>
+<p><strong>3.</strong> \(D(t) = e^{-t/2T_1}\); at \(t = 100\ \mu\)s, \(D = e^{-1/2} = 0.6065\) and \(P_{\text{succ}} = \tfrac12(1 + 0.6065) = 0.8033\). \(D = \tfrac12\) at \(t = 2T_1\ln2 = 200\ln2\ \mu\text{s} \approx 138.6\ \mu\)s.</p>
+<p><strong>Check.</strong> The measurement basis is orthonormal: \(\cos\tfrac\pi8\sin\tfrac\pi8 - \sin\tfrac\pi8\cos\tfrac\pi8 = 0\). Direct probability: \(|\braket{0|\cdot}|^2 = \cos^2\tfrac\pi8 = 0.8536\) and
+\(|\braket{+|\sin\tfrac\pi8, \cos\tfrac\pi8}|^2 = \tfrac12(\sin\tfrac\pi8 + \cos\tfrac\pi8)^2 = \tfrac12(1 + \sin\tfrac\pi4) = 0.8536\): both inputs are identified equally well ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import DensityMatrix, Statevector, channels
+zero = DensityMatrix.from_statevector(Statevector([1, 0]))
+plus = DensityMatrix.from_statevector(Statevector(np.array([1, 1]) / np.sqrt(2)))
+print(round(zero.trace_distance(plus), 4))                       # 0.7071
+minus = DensityMatrix.from_statevector(Statevector(np.array([1, -1]) / np.sqrt(2)))
+g = 1 - np.exp(-1)                                               # t = T1
+a = plus.copy().apply_channel(channels.amplitude_damping(g), 0)
+b = minus.copy().apply_channel(channels.amplitude_damping(g), 0)
+print(round(a.trace_distance(b), 4), round(200 * np.log(2), 1))  # 0.6065 138.6</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Contractivity <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: the Helstrom characterisation, the adjoint map, the partial trace as a channel, fidelity under channels via Uhlmann and Stinespring</p>
+<div class="statement">
+<ol>
+<li>Prove \(D(\Phi(\rho), \Phi(\sigma)) \le D(\rho, \sigma)\) for every channel \(\Phi\), from the Helstrom theorem.</li>
+<li>Deduce \(D(\rho_A, \sigma_A) \le D(\rho_{AB}, \sigma_{AB})\), and show it can be strict in the extreme: give two orthogonal two-qubit states with
+equal reduced states.</li>
+<li>Show amplitude damping maps \(\ket0\), \(\ket1\) to states at distance \(1 - \gamma\).</li>
+<li>Using Uhlmann's theorem (cited) and a Stinespring dilation, prove \(F(\Phi(\rho), \Phi(\sigma)) \ge F(\rho, \sigma)\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1: a test after the channel is a test before it. Part 2: the partial trace is a channel. Part 4: purifications of the
+inputs, pushed through a unitary, are purifications of the outputs.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Use \(\Phi^\dagger(E) = \sum_kA_k^\dagger EA_k\), with \(0 \le \Phi^\dagger(E) \le I\) when \(0 \le E \le I\). For part 2, the partial trace has Kraus operators \(I\otimes\bra j\). For part 4, if
+\(\ket\Psi\) on \(S\otimes R\) purifies \(\rho\), then \((U\otimes I_R)(\ket\Psi\otimes\ket0_E)\) is a vector on \(S\otimes E\otimes R\) whose reduced state on \(S\) is \(\Phi(\rho)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>Part 1's first line: for the optimal \(E\) after the channel, \(\tfrac12(1 + D(\Phi\rho, \Phi\sigma)) = \tfrac12\operatorname{tr}(E\Phi(\rho)) + \tfrac12\operatorname{tr}((I - E)\Phi(\sigma)) = \tfrac12\operatorname{tr}(\Phi^\dagger(E)\rho) + \tfrac12\operatorname{tr}((I - \Phi^\dagger(E))\sigma)\).
+Part 2's example: two Bell states.</p>
+</div></details>
+</div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Distinguishability is defined by what measurements can do, and every measurement on the output is
+a measurement on the input. Fidelity is defined by what overlaps purifications can have, and every purification of
+the input becomes one of the output.</p>
+<p><strong>1.</strong> Let \(\{E, I - E\}\) be optimal for \(\Phi(\rho)\) versus \(\Phi(\sigma)\). \(\Phi^\dagger(E) = \sum_kA_k^\dagger EA_k \ge 0\) (each term \(\braket{v|A_k^\dagger EA_k|v} = \braket{A_kv|E|A_kv} \ge 0\)) and
+\(I - \Phi^\dagger(E) = \Phi^\dagger(I - E) \ge 0\) since \(\Phi^\dagger(I) = \sum A_k^\dagger A_k = I\). So \(\{\Phi^\dagger(E), I - \Phi^\dagger(E)\}\) is a POVM on the input, and by cyclicity
+\(\operatorname{tr}(E\Phi(\tau)) = \operatorname{tr}(\Phi^\dagger(E)\tau)\) its success probability equals rung 3's left side. Helstrom bounds it by \(\tfrac12(1 + D(\rho, \sigma))\). So
+\(D(\Phi\rho, \Phi\sigma) \le D(\rho, \sigma)\). \(\blacksquare\)</p>
+<p><strong>2.</strong> \(\operatorname{tr}_B\) is linear, trace-preserving, and has Kraus operators \(A_j = I\otimes\bra j\) (unit 04's formula
+\(\operatorname{tr}_BX = \sum_j(I\otimes\bra j)X(I\otimes\ket j)\); \(\sum_jA_j^\dagger A_j = \sum_jI\otimes\ket j\!\bra j = I\)). So it is a channel, and part 1 applies. Example: \(\ket{\Phi^\pm} = (\ket{00} \pm \ket{11})/\sqrt2\) are
+orthogonal (\(\tfrac12 - \tfrac12 = 0\)), so \(D = 1\); both have \(\rho_A = I/2\) (unit 04), so \(D(\rho_A, \sigma_A) = 0\). All of the difference is in the correlations: a sign in
+the entanglement, invisible to either half.</p>
+<p><strong>3.</strong> Bloch vectors \((0, 0, \pm1)\) go to \((0, 0, \gamma + (1 - \gamma)(\pm1))\), i.e. \((0, 0, 1)\) and \((0, 0, 2\gamma - 1)\). Half the distance:
+\(\tfrac12(1 - (2\gamma - 1)) = 1 - \gamma\). For \(\gamma = 0.3\), \(0.7 \lt 1\) ✓ — strict contraction, and the \(T_1\) law: the distance between \(\ket0\) and \(\ket1\) decays as \(e^{-t/T_1}\),
+while that between \(\ket\pm\) decays as \(e^{-t/2T_1}\).</p>
+<p><strong>4.</strong> Uhlmann (cited): \(F(\rho, \sigma) = \max|\braket{\Psi|\Phi'}|\) over purifications on a common space, and the maximum is attained. Take
+optimal purifications \(\ket\Psi, \ket{\Phi'}\) on \(S\otimes R\), so \(F(\rho, \sigma) = |\braket{\Psi|\Phi'}|\). Let \(U\) be a Stinespring unitary on \(S\otimes E\) for \(\Phi\), and put
+\(\ket{\Psi'} = (U\otimes I_R)(\ket\Psi\otimes\ket0_E)\), likewise \(\ket{\Phi''}\). Tracing out \(E\otimes R\) from \(\ket{\Psi'}\): first \(R\) (it is untouched by \(U\), so this commutes with
+applying \(U\)) gives \(U(\rho\otimes\ket0\!\bra0)U^\dagger\), then \(E\) gives \(\Phi(\rho)\). So \(\ket{\Psi'}, \ket{\Phi''}\) purify \(\Phi(\rho), \Phi(\sigma)\), with purifying system \(E\otimes R\), and
+\(\braket{\Psi'|\Phi''} = \braket{\Psi|\Phi'}\braket{0|0}\). Uhlmann's maximum is at least this one value: \(F(\Phi(\rho), \Phi(\sigma)) \ge |\braket{\Psi|\Phi'}| = F(\rho, \sigma)\). \(\blacksquare\)</p>
+<p><strong>Check.</strong> Part 1 with \(\Phi\) unitary gives equality both ways (apply \(U^\dagger\)), as it must, since a unitary can be undone. Part
+4 on part 3's example: \(F(\ket0, \ket1) = 0\), and after damping \(F = \sqrt{\braket{0|\Phi(\ket1\!\bra1)|0}} = \sqrt\gamma \ge 0\) ✓ (one output is the pure \(\ket0\)).
+Fuchs–van de Graaf: \(1 - \sqrt\gamma \le 1 - \gamma \le \sqrt{1 - \gamma}\), true for \(0 \le \gamma \le 1\) ✓.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 21</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

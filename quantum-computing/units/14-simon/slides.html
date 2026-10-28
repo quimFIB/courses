@@ -1,0 +1,1715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 · Simon's problem: the first exponential separation, and the algorithm Shor read</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="d">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="simon"><span class="ref-name">the running example: $n = 3$, $s = 110$</span>$f$: $000, 110 \mapsto 101$; $\ 001, 111 \mapsto 010$; $\ 010, 100 \mapsto 000$; $\ 011, 101 \mapsto 110$. <span class="ref-note">Four pairs $\{x, x\oplus s\}$, each a coset of $\{000, 110\}$ in $(\{0,1\}^3, \oplus)$, with four distinct values. The question: find $s$ from queries to $f$ alone</span></template>
+  <template data-ref="run"><span class="ref-name">one run on the running example</span>After the query and the second $H^{\otimes3}$: sixteen amplitudes $\pm\tfrac14$, on $\ket y\ket v$ with $y\in\{000, 001, 110, 111\}$. <span class="ref-note">So $y$ is uniform on $s^\perp = \{y : y_0\oplus y_1 = 0\}$, each with probability $4\times\tfrac1{16} = \tfrac14$, and the other four outcomes never occur. Sum: $4\times\tfrac14 = 1$</span></template>
+  <template data-ref="solve"><span class="ref-name">two samples, one answer</span>Samples $001$ and $110$: the equations $s_2 = 0$ and $s_0\oplus s_1 = 0$. <span class="ref-note">Solutions $\{000, 110\}$; the nonzero one is $s = 110$. Two runs give two independent samples with probability $\tfrac34\cdot\tfrac12 = \tfrac38$; the expected number of runs to a basis is $2 + \tfrac43 = \tfrac{10}3$</span></template>
+  <template data-ref="coll"><span class="ref-name">the classical side of the running example</span>Queries $000, 001, 010, 100$ return $101, 010, 000, 000$: a collision, so $s = 010\oplus100 = 110$. <span class="ref-note">Four queries, against $2^{3/2}\approx 2.8$. At $n = 100$ a randomised algorithm needs at least $1.3\times10^{15}$ queries to succeed with probability $\tfrac23$; the quantum algorithm needs about $101$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part D · algorithms · spine</p>
+  <div class="unit-no">14</div>
+  <h1>Simon's problem: the first exponential separation, and the algorithm Shor read</h1>
+  <p class="lede">A two-to-one function hides an $n$-bit string. A quantum computer finds it with about $n$ queries and some linear algebra over $\mathbb F_2$; every randomised classical algorithm needs about $2^{n/2}$. Both are proved here.</p>
+  <p class="meta"><span>needs 13</span><span>~2 h slides + 4½ h problems</span><span>problems: <code>./qc problems 14</code></span></p>
+  <aside class="notes">
+    <p>Unit 13 ended on an honest scorecard. Deutsch–Jozsa's exponential advantage disappears as soon as the classical side
+    may flip coins; Bernstein–Vazirani's survives coin flips but is only $n$ queries against $1$. Neither is an
+    <b>exponential separation against randomised algorithms</b>, which is the only kind worth having: BPP, not P, is the
+    classical class a quantum computer has to beat. This unit supplies the first one, Daniel Simon's (1994), and proves both
+    sides of it — the quantum algorithm's $O(n)$ queries and every randomised algorithm's $\Omega(2^{n/2})$.</p>
+    <p>The history is part of the argument. Simon's paper is the one Peter Shor read before finding the factoring
+    algorithm; replace the group $\mathbb Z_2^n$ by $\mathbb Z_N$ and the Hadamard transform by the Fourier transform over
+    $\mathbb Z_N$, and you are most of the way to unit 16. Units 15 and 16 cash that remark.</p>
+    <p>What this unit is not: the hidden subgroup problem in general (unit 16 frames it), and not a course in linear algebra
+    over finite fields — only the three facts about $\mathbb F_2$ that Simon's algorithm uses.</p>
+    <h4>How to read this deck</h4>
+    <p>One example runs through it: $n = 3$ with hidden string $s = 110$, introduced on the next slide and solved by the end
+    three ways — by the circuit, by elimination, and by a lucky classical collision. Proofs are on the slides when they are
+    one line and in these notes under <b>Full proof</b> when they are not; anything imported is labelled <i>cited</i>, with
+    where its proof is. Every number was computed.</p>
+    <p><b>Used from earlier units.</b> Unit 00: complex inner-product spaces, Dirac notation, unitaries preserve norms.
+    Unit 01: the Born rule and the post-measurement state. Unit 03: tensor products, measuring one register of two. Unit 10:
+    circuits, the garbage-free oracle $U_f$ as a polynomial-size circuit, deferred and implicit measurement. Unit 13: the query
+    model (an algorithm charged per oracle call), deterministic and randomised query algorithms (decision trees, and
+    distributions over them, with bounded error), $x\cdot y = \bigoplus_i x_iy_i$, and the Hadamard transform
+    $H^{\otimes n}\ket x = 2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y$ with its characters $(-1)^{x\cdot y}$. From the assumed
+    background: linear algebra over a field (dimension, rank–nullity, elimination), cosets of a subgroup, the geometric
+    distribution, linearity of expectation, the union bound and Markov's inequality, and the class BPP.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · overview</p>
+  <h2>Eight inputs, four pairs, one hidden string</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="simon">$n = 3$, $s = 110$</span></span>
+        <p class="small">A function on three bits, given only as a black box:</p>
+        <table class="dense">
+          <thead><tr><th>$x$</th><td>000</td><td>001</td><td>010</td><td>011</td><td>100</td><td>101</td><td>110</td><td>111</td></tr></thead>
+          <tbody><tr><th>$f(x)$</th><td>101</td><td>010</td><td>000</td><td>110</td><td>000</td><td>110</td><td>101</td><td>010</td></tr></tbody>
+        </table>
+        <p class="small">Every value occurs exactly twice, and the two inputs sharing a value always differ by the same string: $000\oplus110 = 001\oplus111 = 010\oplus100 = 011\oplus101 = 110$.</p>
+        <p class="small"><b>The question.</b> You do not see the table, only answers to queries. <b>Find $s = 110$.</b> How many queries does that take — classically, and quantumly?</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> the problem · <b>2</b> one run of the circuit · <b>3</b> linear algebra over $\mathbb F_2$ · <b>4</b> how many runs · <b>5</b> the classical lower bound · <b>6</b> from Simon to Shor.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 200" width="470" role="img" aria-label="a black box labelled U f with three input wires carrying x and three carrying w; out come x unchanged and w XOR f of x">
+<line x1="60" y1="30" x2="150" y2="30" class="ink" stroke-width="1.6"/><line x1="60" y1="60" x2="150" y2="60" class="ink" stroke-width="1.6"/><line x1="60" y1="90" x2="150" y2="90" class="ink" stroke-width="1.6"/>
+<line x1="60" y1="120" x2="150" y2="120" class="ink" stroke-width="1.6"/><line x1="60" y1="150" x2="150" y2="150" class="ink" stroke-width="1.6"/><line x1="60" y1="180" x2="150" y2="180" class="ink" stroke-width="1.6"/>
+<line x1="270" y1="30" x2="350" y2="30" class="ink" stroke-width="1.6"/><line x1="270" y1="60" x2="350" y2="60" class="ink" stroke-width="1.6"/><line x1="270" y1="90" x2="350" y2="90" class="ink" stroke-width="1.6"/>
+<line x1="270" y1="120" x2="350" y2="120" class="ink" stroke-width="1.6"/><line x1="270" y1="150" x2="350" y2="150" class="ink" stroke-width="1.6"/><line x1="270" y1="180" x2="350" y2="180" class="ink" stroke-width="1.6"/>
+<rect x="150" y="14" width="120" height="182" rx="6" class="fill-ground unit" stroke-width="2"/>
+<text x="205" y="100" font-size="22" text-anchor="middle">U</text><text x="214" y="106" font-size="14" text-anchor="start">f</text>
+<text x="210" y="130" font-size="12" text-anchor="middle" class="soft">one query</text>
+<path d="M 48 22 Q 40 22 40 34 L 40 52 Q 40 60 32 60 Q 40 60 40 68 L 40 86 Q 40 98 48 98" fill="none" class="ink" stroke-width="1.3"/>
+<path d="M 48 112 Q 40 112 40 124 L 40 142 Q 40 150 32 150 Q 40 150 40 158 L 40 176 Q 40 188 48 188" fill="none" class="ink" stroke-width="1.3"/>
+<text x="26" y="65" font-size="15" text-anchor="end">|x⟩</text><text x="26" y="155" font-size="15" text-anchor="end">|w⟩</text>
+<path d="M 362 22 Q 370 22 370 34 L 370 52 Q 370 60 378 60 Q 370 60 370 68 L 370 86 Q 370 98 362 98" fill="none" class="ink" stroke-width="1.3"/>
+<path d="M 362 112 Q 370 112 370 124 L 370 142 Q 370 150 378 150 Q 370 150 370 158 L 370 176 Q 370 188 362 188" fill="none" class="ink" stroke-width="1.3"/>
+<text x="384" y="65" font-size="15">|x⟩</text><text x="384" y="155" font-size="15" class="unit">|w⊕f(x)⟩</text>
+</svg>
+        <p class="cap">The only access to $f$: unit 10's reversible oracle, which unit 13 charges one query per use.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="Simon's problem">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="simon">$s = 110$</span> is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the running example goes.</b> Section 1 draws the pairing as four diagonals of a cube. Section 2 runs the circuit
+    once and computes every amplitude (<i>Worked: the running example's post-query state</i>): the outcome is uniform on
+    $\{000, 001, 110, 111\}$. Section 3 solves for $s$ from two samples (<i>Running example: two samples, one answer</i>).
+    Section 4 counts the runs that takes: $\tfrac{10}3$ on average. Section 5 plays the classical side: four queries and a
+    collision. The close (<i>The running example, closed</i>) puts the three together and draws the line to Shor.</p>
+    <p><b>Why these values.</b> The table is arbitrary on purpose: apart from the pairing, the values carry no pattern a
+    classical algorithm could exploit. Only the structure "two-to-one, with the same difference in every pair" is promised,
+    and that is all either kind of algorithm may use.</p>
+    <p>Every amplitude in the deck can also be checked with the course's optional simulator; none needs it.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The problem</h2>
+  <p>A function that is two-to-one in a rigid way, and why it is the right test of a quantum computer.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the problem</p>
+  <h2>Simon's problem</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Simon's problem</span></span>
+        <p class="small">Given oracle access to $f:\{0,1\}^n\to\{0,1\}^n$, with the <b>promise</b> that for some $s\ne 0^n$,</p>
+        $$f(x) = f(x') \iff x' \in \{x,\ x\oplus s\},$$
+        <p class="small">find $s$, the <span class="term">hidden XOR-period</span>.</p>
+      </div>
+      <p class="small"><b>What the promise says.</b> $f$ is <span class="term">two-to-one</span>: the inputs fall into $2^{n-1}$ pairs $\{x, x\oplus s\}$, $f$ is constant on each pair and takes different values on different pairs. The pairs are the cosets of the subgroup $\{0, s\}$ of the group $(\{0,1\}^n, \oplus)$.</p>
+      <p class="small"><b>Check</b> on <span class="ref" data-ref="simon">the running example</span>: $x\mapsto x\oplus110$ has no fixed point and squares to the identity, so it splits the eight inputs into four pairs; the table gives each pair one value and the four values $101, 010, 000, 110$ are distinct ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 480 290" width="460" role="img" aria-label="the eight three-bit strings as the corners of a cube; the four pairs x and x XOR 110 are the diagonals of the top and bottom faces, each drawn in its own colour and labelled with its value of f">
+<line x1="110" y1="250" x2="290" y2="250" class="rule" stroke-width="1.4"/><line x1="290" y1="250" x2="380" y2="180" class="rule" stroke-width="1.4"/><line x1="380" y1="180" x2="200" y2="180" class="rule" stroke-width="1.4"/><line x1="200" y1="180" x2="110" y2="250" class="rule" stroke-width="1.4"/>
+<line x1="110" y1="100" x2="290" y2="100" class="rule" stroke-width="1.4"/><line x1="290" y1="100" x2="380" y2="30" class="rule" stroke-width="1.4"/><line x1="380" y1="30" x2="200" y2="30" class="rule" stroke-width="1.4"/><line x1="200" y1="30" x2="110" y2="100" class="rule" stroke-width="1.4"/>
+<line x1="110" y1="250" x2="110" y2="100" class="rule" stroke-width="1.4"/><line x1="290" y1="250" x2="290" y2="100" class="rule" stroke-width="1.4"/><line x1="380" y1="180" x2="380" y2="30" class="rule" stroke-width="1.4"/><line x1="200" y1="180" x2="200" y2="30" class="rule" stroke-width="1.4"/>
+<line x1="110" y1="250" x2="380" y2="180" class="unit" stroke-width="3.2"/>
+<line x1="110" y1="100" x2="380" y2="30" class="accent" stroke-width="3.2"/>
+<line x1="200" y1="180" x2="290" y2="250" class="alt" stroke-width="3.2"/>
+<line x1="200" y1="30" x2="290" y2="100" class="good" stroke-width="3.2"/>
+<circle cx="110" cy="250" r="5" class="fill-ink"/><circle cx="290" cy="250" r="5" class="fill-ink"/><circle cx="200" cy="180" r="5" class="fill-ink"/><circle cx="380" cy="180" r="5" class="fill-ink"/>
+<circle cx="110" cy="100" r="5" class="fill-ink"/><circle cx="290" cy="100" r="5" class="fill-ink"/><circle cx="200" cy="30" r="5" class="fill-ink"/><circle cx="380" cy="30" r="5" class="fill-ink"/>
+<text x="110" y="274" font-size="13" text-anchor="middle" class="mono">000 ↦ 101</text>
+<text x="290" y="274" font-size="13" text-anchor="middle" class="mono">100 ↦ 000</text>
+<text x="190" y="198" font-size="13" text-anchor="end" class="mono halo">010 ↦ 000</text>
+<text x="392" y="185" font-size="13" class="mono">110 ↦ 101</text>
+<text x="100" y="96" font-size="13" text-anchor="end" class="mono">001 ↦ 010</text>
+<text x="298" y="120" font-size="13" class="mono halo">101 ↦ 110</text>
+<text x="190" y="24" font-size="13" text-anchor="end" class="mono">011 ↦ 110</text>
+<text x="392" y="35" font-size="13" class="mono">111 ↦ 010</text>
+<text x="30" y="180" font-size="12" class="soft">bit 2 ↑</text>
+</svg>
+        <p class="cap">Bit 0 runs left to right, bit 1 into the page, bit 2 upwards. Flipping bits 0 and 1 together is a diagonal of a horizontal face: the four pairs, one colour per value of $f$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why "XOR-period".</b> A function on the integers with period $r$ satisfies $f(x) = f(x + r)$. Here the group
+    operation is $\oplus$, bitwise addition mod 2, so the analogue is $f(x) = f(x\oplus s)$; the promise adds that this is the
+    <i>only</i> coincidence of values. Unit 16's period finding is the same problem with $\oplus$ replaced by $+$ — the subject of
+    section 6.</p>
+    <p><b>The coset statement, proved.</b> $K = \{0, s\}$ is a subgroup of $(\{0,1\}^n, \oplus)$: it contains $0$, and
+    $s\oplus s = 0$. Its cosets are $x\oplus K = \{x, x\oplus s\}$, each of size 2 because $s\ne0$, and they partition the
+    $2^n$ strings into $2^n/2 = 2^{n-1}$ classes (Lagrange). The promise says exactly: $f$ is constant on each coset and
+    injective on the set of cosets.</p>
+    <p><b>Simon's own formulation</b> (D. R. Simon, "On the power of quantum computation", <i>Proc. 35th FOCS</i>, 1994,
+    116–123; <i>SIAM J. Comput.</i> 26, 1474, 1997) is a decision problem: decide whether $f$ is one-to-one or two-to-one with
+    such an $s$. The search version here is at least as hard for a classical algorithm (a found $s$ is checked with two queries, $f(0) = f(s)$) and no harder for the quantum one; problem P10
+    on the sheet does the decision version. The codomain can be any set with at least $2^{n-1}$ elements; $n$ bits is the
+    standard choice.</p>
+    <p><b>Reading the cube.</b> In the running example $s = 110$ flips bits 0 and 1, which on the cube is a move one step
+    right and one step back: a diagonal of a horizontal face. A different $s$ would pair the corners along a different family
+    of parallel segments — for $s = 111$ the four long diagonals of the cube.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the problem</p>
+  <h2>The query model, recalled</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Classical.</b> A <b>deterministic</b> algorithm is a decision tree: each node names an input $x$, learns $f(x)$ and branches; each leaf outputs. A <b>randomised</b> one is a probability distribution over trees, <b>correct</b> if on every valid $f$ it is right with probability $\ge\tfrac23$ (unit 13).</p>
+      <p class="small"><b>Quantum.</b> Oracle-independent unitaries alternate with $U_f\ket x\ket w = \ket x\ket{w\oplus f(x)}$, then a measurement. Unit 10 builds $U_f$ from any circuit for $f$, garbage-free.</p>
+      <p class="small"><b>Cost.</b> Only oracle calls count; section 4 checks the rest is cheap too.</p>
+      <div class="box warn"><span class="label">why queries</span>
+        <p class="small">Proving that some problem needs more classical <b>gates</b> than quantum ones would separate P from PSPACE (unit 12), and nobody can. <b>Query</b> lower bounds can be proved, so separations live here.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 300" width="430" role="img" aria-label="left, a classical decision tree: query x1, branch on the answer to query x2 or x3, then output; right, a quantum query algorithm drawn as a row of boxes U0, the oracle, U1, the oracle, U2, then a meter">
+<text x="110" y="18" font-size="13" text-anchor="middle" class="soft">classical: a decision tree</text>
+<rect x="80" y="30" width="60" height="28" rx="5" class="fill-ground unit" stroke-width="1.6"/><text x="110" y="49" font-size="13" text-anchor="middle" class="mono">f(x₁)?</text>
+<line x1="95" y1="58" x2="50" y2="100" class="ink" stroke-width="1.3"/><line x1="125" y1="58" x2="170" y2="100" class="ink" stroke-width="1.3"/>
+<text x="58" y="80" font-size="11" class="soft">a</text><text x="152" y="80" font-size="11" class="soft">b</text>
+<rect x="20" y="100" width="60" height="28" rx="5" class="fill-ground unit" stroke-width="1.6"/><text x="50" y="119" font-size="13" text-anchor="middle" class="mono">f(x₂)?</text>
+<rect x="140" y="100" width="60" height="28" rx="5" class="fill-ground unit" stroke-width="1.6"/><text x="170" y="119" font-size="13" text-anchor="middle" class="mono">f(x₃)?</text>
+<line x1="40" y1="128" x2="25" y2="165" class="ink" stroke-width="1.3"/><line x1="60" y1="128" x2="75" y2="165" class="ink" stroke-width="1.3"/>
+<line x1="160" y1="128" x2="145" y2="165" class="ink" stroke-width="1.3"/><line x1="180" y1="128" x2="195" y2="165" class="ink" stroke-width="1.3"/>
+<text x="25" y="182" font-size="12" text-anchor="middle" class="accent">out</text><text x="75" y="182" font-size="12" text-anchor="middle" class="accent">out</text><text x="145" y="182" font-size="12" text-anchor="middle" class="accent">out</text><text x="195" y="182" font-size="12" text-anchor="middle" class="accent">out</text>
+<text x="110" y="215" font-size="12" text-anchor="middle" class="soft">depth = number of queries</text>
+<line x1="230" y1="10" x2="230" y2="225" class="rule" stroke-width="1"/>
+<text x="340" y="18" font-size="13" text-anchor="middle" class="soft">quantum: gates and oracles</text>
+<line x1="245" y1="70" x2="430" y2="70" class="ink" stroke-width="1.6"/><line x1="245" y1="110" x2="430" y2="110" class="ink" stroke-width="1.6"/><line x1="245" y1="150" x2="430" y2="150" class="ink" stroke-width="1.6"/>
+<rect x="252" y="56" width="26" height="108" class="fill-ground ink" stroke-width="1.4"/><text x="265" y="115" font-size="13" text-anchor="middle">U₀</text>
+<rect x="288" y="56" width="26" height="108" class="fill-ground unit" stroke-width="2"/><text x="301" y="115" font-size="13" text-anchor="middle" class="unit">O</text>
+<rect x="324" y="56" width="26" height="108" class="fill-ground ink" stroke-width="1.4"/><text x="337" y="115" font-size="13" text-anchor="middle">U₁</text>
+<rect x="360" y="56" width="26" height="108" class="fill-ground unit" stroke-width="2"/><text x="373" y="115" font-size="13" text-anchor="middle" class="unit">O</text>
+<rect x="396" y="56" width="26" height="108" class="fill-ground ink" stroke-width="1.4"/><text x="409" y="115" font-size="13" text-anchor="middle">U₂</text>
+<text x="337" y="190" font-size="12" text-anchor="middle" class="soft">cost = number of O boxes (here 2)</text>
+<text x="220" y="260" font-size="13" text-anchor="middle">O = U<tspan font-size="10" dy="3">f</tspan><tspan dy="-3">: |x⟩|w⟩ ↦ |x⟩|w ⊕ f(x)⟩</tspan></text>
+<text x="220" y="284" font-size="12" text-anchor="middle" class="soft">the U's may not depend on f; a final meter reads the answer</text>
+</svg>
+        <p class="cap">Both models pay only for looking at $f$. A randomised algorithm is a coin-weighted choice of trees.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What is being recalled.</b> All of this is unit 13's set-up, repeated so that the two bounds of this unit have a
+    precise target. The query complexity of a problem in a model is the least worst-case number of queries of a correct
+    algorithm in that model. Unit 13 wrote $D$ for the deterministic version, $R_\varepsilon$ and $Q_\varepsilon$ for the
+    randomised and quantum versions with error at most $\varepsilon$, and $Q_E$ for exact quantum algorithms; bounded error
+    means $\varepsilon = \tfrac13$, so $R_{1/3}$ is the randomised column of the next slide.</p>
+    <p><b>Why $\tfrac23$.</b> Any constant above $\tfrac12$ would do for a problem with a checkable answer, and for Simon's
+    problem the answer is checkable with two queries ($f(0) = f(s)$; problem P7). Amplification by repetition — the
+    background fact behind BPP — turns $\tfrac23$ into $1 - 2^{-k}$ at a constant factor $O(k)$ in queries, so the choice
+    does not affect any bound up to constants.</p>
+    <p><b>What the oracle costs in practice.</b> If $f$ is given by a classical circuit of size $g$, unit 10's construction
+    (compute, copy, uncompute) gives $U_f$ with $O(g)$ gates and some ancillas returned to $\ket0$. So a quantum algorithm
+    with $q$ queries and $t$ other gates runs in time $O(qg + t)$. That is what makes a query-efficient algorithm an efficient
+    one whenever $f$ is efficiently computable.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the problem</p>
+  <h2>Unit 13's scorecard, and the target</h2>
+  <div class="cols wide-left">
+    <div>
+      <table class="dense">
+        <thead><tr><th>problem</th><th class="num">quantum</th><th class="num">deterministic</th><th class="num">randomised</th></tr></thead>
+        <tbody>
+          <tr><td>Deutsch–Jozsa (unit 13)</td><td class="num">$1$</td><td class="num">$2^{n-1} + 1$</td><td class="num">$O(1)$</td></tr>
+          <tr><td>Bernstein–Vazirani (unit 13)</td><td class="num">$1$</td><td class="num">$n$</td><td class="num">$n$</td></tr>
+          <tr><td><b>Simon (this unit)</b></td><td class="num">$O(n)$</td><td class="num">$\Omega(2^{n/2})$</td><td class="num">$\Omega(2^{n/2})$</td></tr>
+        </tbody>
+      </table>
+      <div class="box def"><span class="label">an <span class="term">exponential separation</span></span>
+        <p class="small">A family of problems, one for each $n$, whose quantum query complexity is polynomial in $n$ and whose <b>randomised</b> query complexity is at least $2^{cn}$ for some constant $c &gt; 0$.</p>
+      </div>
+      <p class="small">Deutsch–Jozsa beats only deterministic algorithms; Bernstein–Vazirani beats randomised ones by a factor $n$. Simon's problem is the first row with an exponential gap in the randomised column, with both entries <b>proved</b>: the quantum one in section 4, the classical one in section 5.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">why randomised</span>
+        <p class="small">A quantum computer's output is random anyway. The fair classical rival may flip coins too and err with probability $\tfrac13$; beating only deterministic algorithms is beating a straw man.</p>
+      </div>
+      <div class="box good"><span class="label">what the promise buys</span>
+        <p class="small">Simon's problem is a <b>promise problem</b>: on functions that are neither one-to-one nor two-to-one with a single $s$, nothing is asked. Some promise is necessary for any exponential gap — a theorem unit 18 states, with its proof cited.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The entries, and where each is proved.</b> Deutsch–Jozsa's deterministic $2^{n-1} + 1$ and randomised $O(1)$, and
+    Bernstein–Vazirani's $n$ in both classical columns, are unit 13's. Simon's quantum $O(n)$ is the theorem <i>The quantum
+    upper bound</i>; its randomised $\Omega(2^{n/2})$ is <i>The collision bound</i> with its corollary, and the deterministic
+    lower bound follows from it (a deterministic algorithm is a randomised one that does not flip coins). Problem P9 sharpens the
+    deterministic bound to $\binom q2 \ge 2^n - 2$.</p>
+    <p><b>A remark for later.</b> In unit 12's language (not needed here, and not on this unit's path), Simon's problem gives an
+    oracle $O$ relative to which $\mathrm{BQP}^O \ne \mathrm{BPP}^O$: a language decided by a polynomial-time quantum
+    machine with access to $O$ that no polynomial-time randomised machine with access to $O$ decides. Unit 12 states that
+    reading; this unit proves the query bounds it rests on.</p>
+    <p><b>Unit 18's theorem, in one line</b> (cited there: Aaronson, Ben-David, Kothari, Rao and Tal, 2021). For total Boolean
+    functions — no promise — deterministic query complexity is at most a polynomial (the fourth power) of quantum query
+    complexity. So every exponential quantum speed-up in the query model needs a promise, as Simon's and Shor's have and
+    unstructured search does not.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>One run of the circuit</h2>
+  <p>Hadamards, one query, Hadamards. The outcome is a uniformly random string orthogonal to $s$ — proved by watching amplitudes cancel in pairs.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · one run</p>
+  <h2>The circuit</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 560 290" width="600" role="img" aria-label="six wires; the top three, register one, start in zero, get a Hadamard each, enter the oracle, get a Hadamard each again and are measured, giving y; the bottom three, register two, start in zero, enter the oracle and are optionally measured, giving v">
+<line x1="70" y1="30" x2="355" y2="30" class="ink" stroke-width="1.6"/><line x1="70" y1="75" x2="355" y2="75" class="ink" stroke-width="1.6"/><line x1="70" y1="120" x2="355" y2="120" class="ink" stroke-width="1.6"/>
+<g class="ink" stroke-width="1.2"><line x1="389" y1="28" x2="422" y2="28"/><line x1="389" y1="32" x2="422" y2="32"/><line x1="389" y1="73" x2="422" y2="73"/><line x1="389" y1="77" x2="422" y2="77"/><line x1="389" y1="118" x2="422" y2="118"/><line x1="389" y1="122" x2="422" y2="122"/></g>
+<line x1="70" y1="170" x2="420" y2="170" class="ink" stroke-width="1.6"/><line x1="70" y1="215" x2="420" y2="215" class="ink" stroke-width="1.6"/><line x1="70" y1="260" x2="420" y2="260" class="ink" stroke-width="1.6"/>
+<text x="62" y="35" font-size="14" text-anchor="end">|0⟩</text><text x="62" y="80" font-size="14" text-anchor="end">|0⟩</text><text x="62" y="125" font-size="14" text-anchor="end">|0⟩</text>
+<text x="62" y="175" font-size="14" text-anchor="end">|0⟩</text><text x="62" y="220" font-size="14" text-anchor="end">|0⟩</text><text x="62" y="265" font-size="14" text-anchor="end">|0⟩</text>
+<rect x="95" y="14" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="111" y="35" font-size="15" text-anchor="middle">H</text>
+<rect x="95" y="59" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="111" y="80" font-size="15" text-anchor="middle">H</text>
+<rect x="95" y="104" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="111" y="125" font-size="15" text-anchor="middle">H</text>
+<rect x="165" y="12" width="80" height="266" rx="6" class="fill-ground accent" stroke-width="2"/><text x="200" y="150" font-size="20" text-anchor="middle">U</text><text x="208" y="156" font-size="13">f</text>
+<rect x="285" y="14" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="301" y="35" font-size="15" text-anchor="middle">H</text>
+<rect x="285" y="59" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="301" y="80" font-size="15" text-anchor="middle">H</text>
+<rect x="285" y="104" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="301" y="125" font-size="15" text-anchor="middle">H</text>
+<rect x="355" y="14" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 361 40 A 11 11 0 0 1 383 40" fill="none" class="ink" stroke-width="1.3"/><line x1="372" y1="40" x2="381" y2="21" class="ink" stroke-width="1.3"/>
+<rect x="355" y="59" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 361 85 A 11 11 0 0 1 383 85" fill="none" class="ink" stroke-width="1.3"/><line x1="372" y1="85" x2="381" y2="66" class="ink" stroke-width="1.3"/>
+<rect x="355" y="104" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 361 130 A 11 11 0 0 1 383 130" fill="none" class="ink" stroke-width="1.3"/><line x1="372" y1="130" x2="381" y2="111" class="ink" stroke-width="1.3"/>
+<rect x="355" y="154" width="34" height="32" class="fill-ground rule" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M 361 180 A 11 11 0 0 1 383 180" fill="none" class="rule" stroke-width="1.3"/><line x1="372" y1="180" x2="381" y2="161" class="rule" stroke-width="1.3"/>
+<rect x="355" y="199" width="34" height="32" class="fill-ground rule" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M 361 225 A 11 11 0 0 1 383 225" fill="none" class="rule" stroke-width="1.3"/><line x1="372" y1="225" x2="381" y2="206" class="rule" stroke-width="1.3"/>
+<rect x="355" y="244" width="34" height="32" class="fill-ground rule" stroke-width="1.5" stroke-dasharray="4 3"/><path d="M 361 270 A 11 11 0 0 1 383 270" fill="none" class="rule" stroke-width="1.3"/><line x1="372" y1="270" x2="381" y2="251" class="rule" stroke-width="1.3"/>
+<path d="M 432 22 Q 440 22 440 40 L 440 67 Q 440 75 448 75 Q 440 75 440 83 L 440 110 Q 440 128 432 128" fill="none" class="ink" stroke-width="1.3"/>
+<path d="M 432 162 Q 440 162 440 180 L 440 207 Q 440 215 448 215 Q 440 215 440 223 L 440 250 Q 440 268 432 268" fill="none" class="ink" stroke-width="1.3"/>
+<text x="456" y="72" font-size="14" class="unit">y: uniform on</text><text x="456" y="90" font-size="14" class="unit">{y : y·s = 0}</text>
+<text x="456" y="212" font-size="13" class="soft">v = f(x),</text><text x="456" y="230" font-size="13" class="soft">optional</text>
+<text x="8" y="80" font-size="12" class="soft" transform="rotate(-90 8 80)">register 1</text>
+<text x="8" y="215" font-size="12" class="soft" transform="rotate(-90 8 215)">register 2</text>
+</svg>
+        <p class="cap">One run, drawn for $n = 3$: qubits 0–2 hold $x$, qubits 3–5 receive $f(x)$. One query.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box def"><span class="label"><span class="term">Simon's algorithm</span>, one run</span>
+        <ol class="small">
+          <li>Prepare $\ket{0^n}\ket{0^n}$.</li>
+          <li>Apply $H^{\otimes n}$ to register 1.</li>
+          <li>Query: apply $U_f$.</li>
+          <li>Apply $H^{\otimes n}$ to register 1.</li>
+          <li>Measure register 1: a string $y$.</li>
+        </ol>
+      </div>
+      <p class="small">Repeat about $n$ times, then solve the linear equations $y\cdot s = 0$ for $s$ (section 3).</p>
+      <p class="small muted">No $\ket-$ on the target this time: unit 13's phase kickback is not used. The interference comes from the second register's <b>entanglement</b> with the first.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Gate count of one run.</b> $2n$ Hadamards, one oracle call, $n$ meters. With $U_f$ built from a classical circuit of
+    size $g$, one run costs $O(n + g)$ gates; all runs together, $O(n(n + g))$.</p>
+    <p><b>Why no phase kickback.</b> In Deutsch–Jozsa and Bernstein–Vazirani the target was $\ket-$ and the oracle wrote
+    $(-1)^{f(x)}$ into a phase; that works for one output bit. Here $f$ has $n$ output bits and the second register starts in
+    $\ket{0^n}$: the oracle writes $f(x)$ into the second register itself, which entangles the two registers. The useful
+    interference is then among the inputs that share a value of $f$ — the pairs. The dashed meters show that whether register 2 is
+    read changes nothing (<i>Measure the second register first: the coset state</i>).</p>
+    <p><b>Order of qubits.</b> As everywhere in the course, qubit 0 is the top wire and the leftmost symbol of a ket; bit $x_0$
+    of $x$ is on qubit 0. The circuit is symmetric in the qubits of each register, so the order matters only when strings
+    are written down.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · one run</p>
+  <h2>The state, layer by layer</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Unit 13's Hadamard transform: $H^{\otimes n}\ket x = 2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y$, with $x\cdot y = x_0y_0\oplus\cdots\oplus x_{n-1}y_{n-1}$.</p>
+      $$\begin{aligned}
+      \ket{0^n}\ket{0^n} &\xrightarrow{\,H\,} 2^{-n/2}\textstyle\sum_x\ket x\ket{0^n}\\
+      &\xrightarrow{U_f} 2^{-n/2}\textstyle\sum_x\ket x\ket{f(x)}\\
+      &\xrightarrow{\,H\,} 2^{-n}\textstyle\sum_{y}\sum_x(-1)^{x\cdot y}\ket y\ket{f(x)}.
+      \end{aligned}$$
+      <p class="small muted">Here $H$ means $H^{\otimes n}\otimes I$: Hadamards on register 1 only.</p>
+      <p class="small"><b>Normalised</b> after the query: the $2^n$ vectors $\ket x\ket{f(x)}$ are orthonormal (distinct $x$), so the squared norm is $2^n\cdot2^{-n} = 1$ ✓. The last step is unitary, so the norm stays $1$.</p>
+    </div>
+    <div>
+      <p class="small"><b>Group by value.</b> Write $v$ for a value of $f$ and $\{x_v, x_v\oplus s\}$ for the pair mapping to it. There are $2^{n-1}$ values, and</p>
+      $$\ket{\Psi} = \sum_y\sum_v a(y, v)\,\ket y\ket v,$$
+      $$a(y, v) = 2^{-n}\big[(-1)^{x_v\cdot y} + (-1)^{(x_v\oplus s)\cdot y}\big].$$
+      <p class="small">The $\ket y\ket v$ are orthonormal, so by the Born rule for register 1 (unit 03),</p>
+      $$P(y) = \sum_v |a(y, v)|^2 .$$
+      <p class="small">Everything now rests on the bracket: two signs, one from each member of a pair.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each step.</b> $H^{\otimes n}\ket{0^n} = 2^{-n/2}\sum_x(-1)^{0\cdot x}\ket x = 2^{-n/2}\sum_x\ket x$. $U_f$ is linear and
+    $U_f\ket x\ket{0^n} = \ket x\ket{0^n\oplus f(x)} = \ket x\ket{f(x)}$. The last Hadamard acts on register 1 only:
+    $(H^{\otimes n}\otimes I)\ket x\ket{f(x)} = 2^{-n/2}\sum_y(-1)^{x\cdot y}\ket y\ket{f(x)}$, and the two factors $2^{-n/2}$ make
+    $2^{-n}$.</p>
+    <p><b>The regrouping.</b> The sum over $x$ is a sum over pairs: each $x$ lies in exactly one pair $\{x_v, x_v\oplus s\}$,
+    and both members contribute to the same $\ket{f(x)} = \ket v$. So the coefficient of $\ket y\ket v$ collects exactly two
+    terms. Which member is called $x_v$ does not matter: swapping them swaps the two terms.</p>
+    <p><b>The Born rule for one register.</b> Measuring register 1 of a state $\sum_{y,v}a(y,v)\ket y\ket v$ with $\{\ket y\}$
+    and $\{\ket v\}$ orthonormal gives $y$ with probability $\lVert(\ket y\!\bra y\otimes I)\Psi\rVert^2 = \sum_v|a(y,v)|^2$
+    (unit 03, measuring one subsystem with $P\otimes I$).</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · one run · example</p>
+  <h2>Worked: the amplitude of $y$, for any $s$</h2>
+  <div class="box ex"><span class="label">compute $a(y, v) = 2^{-n}\big[(-1)^{x_v\cdot y} + (-1)^{(x_v\oplus s)\cdot y}\big]$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Step 1: the dot product is linear in each slot, mod 2.</b> Since $x_i\oplus s_i \equiv x_i + s_i \pmod 2$,</p>
+      $$(x\oplus s)\cdot y = \textstyle\sum_i(x_i + s_i)y_i = x\cdot y\ \oplus\ s\cdot y .$$
+      <p class="small"><b>Step 2: factor out the first sign.</b> As $(-1)^{a\oplus b} = (-1)^a(-1)^b$ for bits,</p>
+      $$a(y, v) = 2^{-n}(-1)^{x_v\cdot y}\big[1 + (-1)^{s\cdot y}\big].$$
+      <p class="small"><b>Step 3: two cases.</b></p>
+      $$a(y, v) = \begin{cases}2^{1-n}(-1)^{x_v\cdot y} & s\cdot y = 0,\\[2pt] 0 & s\cdot y = 1.\end{cases}$$
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 150" width="420" role="img" aria-label="left panel, s dot y equals 0: an arrow from 0 to 1 and another from 1 to 2, the two contributions add; right panel, s dot y equals 1: an arrow from 0 to 1 and another back from 1 to 0, they cancel">
+<line x1="20" y1="100" x2="200" y2="100" class="rule" stroke-width="1.2"/>
+<line x1="110" y1="94" x2="110" y2="106" class="ink" stroke-width="1.2"/><line x1="150" y1="94" x2="150" y2="106" class="ink" stroke-width="1.2"/><line x1="190" y1="94" x2="190" y2="106" class="ink" stroke-width="1.2"/>
+<text x="110" y="122" font-size="12" text-anchor="middle">0</text><text x="150" y="122" font-size="12" text-anchor="middle">1</text><text x="190" y="122" font-size="12" text-anchor="middle">2</text>
+<line x1="110" y1="80" x2="146" y2="80" class="unit" stroke-width="2.5"/><polygon points="150,80 141,75 141,85" class="fill-unit"/>
+<line x1="150" y1="64" x2="186" y2="64" class="unit" stroke-width="2.5"/><polygon points="190,64 181,59 181,69" class="fill-unit"/>
+<text x="110" y="30" font-size="13" text-anchor="middle" class="unit">s·y = 0: 1 + 1 = 2</text>
+<line x1="240" y1="100" x2="420" y2="100" class="rule" stroke-width="1.2"/>
+<line x1="330" y1="94" x2="330" y2="106" class="ink" stroke-width="1.2"/><line x1="370" y1="94" x2="370" y2="106" class="ink" stroke-width="1.2"/><line x1="290" y1="94" x2="290" y2="106" class="ink" stroke-width="1.2"/>
+<text x="290" y="122" font-size="12" text-anchor="middle">−1</text><text x="330" y="122" font-size="12" text-anchor="middle">0</text><text x="370" y="122" font-size="12" text-anchor="middle">1</text>
+<line x1="330" y1="80" x2="366" y2="80" class="unit" stroke-width="2.5"/><polygon points="370,80 361,75 361,85" class="fill-unit"/>
+<line x1="370" y1="64" x2="334" y2="64" class="warn" stroke-width="2.5"/><polygon points="330,64 339,59 339,69" class="fill-warn"/>
+<text x="330" y="30" font-size="13" text-anchor="middle" class="warn">s·y = 1: 1 − 1 = 0</text>
+<text x="220" y="145" font-size="12" text-anchor="middle" class="soft">the bracket 1 + (−1)^(s·y), before the common sign (−1)^(x·y)</text>
+</svg>
+        <p class="cap">The two members of a pair contribute the same sign or opposite signs, according to $s\cdot y$ alone.</p>
+      </div>
+      <p class="small"><b>Step 4: the probability.</b> For $s\cdot y = 0$, $P(y) = \sum_v 2^{2-2n} = 2^{n-1}\cdot2^{2-2n} = 2^{1-n}$; for $s\cdot y = 1$, $P(y) = 0$.</p>
+      <p class="small"><b>Check</b>, $n = 1$: $s = 1$, $f$ constant, and $\{y : y\cdot1 = 0\} = \{0\}$, so $P(0) = 2^0 = 1$. Directly, with $c = f(0) = f(1)$: $\ket0\ket0 \to \tfrac1{\sqrt2}(\ket0 + \ket1)\ket0 \to \tfrac1{\sqrt2}(\ket0 + \ket1)\ket c \to \ket0\ket c$ ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>The point of step 3.</b> The sign $(-1)^{x_v\cdot y}$ depends on which pair you are in; the bracket does not. So whether a
+    given $y$ can ever be seen is decided by $s$ alone, uniformly across all pairs. That is the whole mechanism: the random,
+    useless $x_v$ goes into a sign, and the useful $s$ goes into an on/off switch.</p>
+    <p><b>Step 1 in detail.</b> For bits, $a\oplus b = a + b - 2ab \equiv a + b \pmod 2$. So
+    $(x\oplus s)\cdot y \equiv \sum_i(x_i + s_i)y_i = \sum_ix_iy_i + \sum_is_iy_i \equiv x\cdot y + s\cdot y \pmod 2$. The dot
+    product is a bilinear form over the field $\mathbb F_2$ — the language of section 3.</p>
+    <p><b>Step 4 in detail.</b> There are $2^{n-1}$ values $v$, one per pair, and each contributes $|2^{1-n}|^2 = 2^{2-2n}$.
+    The check at $n = 1$: $s$ must be $1$ (the only nonzero string), the promise makes $f(0) = f(1)$, and the circuit is
+    $H$, a query that writes the same $f$ on both branches (so the registers stay unentangled), $H$: since $H^2 = I$ it returns
+    $\ket0$ with certainty, as the formula says.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · one run</p>
+  <h2>Each run samples $s^\perp$ uniformly</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (Simon, 1994)</span>
+        <p class="small">One run of the circuit returns $y$ with probability</p>
+        $$P(y) = \begin{cases}2^{1-n} & y\cdot s = 0,\\ 0 & y\cdot s = 1.\end{cases}$$
+        <p class="small">So $y$ is <b>uniform</b> on $s^\perp = \{y : y\cdot s = 0\}$, a set of exactly $2^{n-1}$ strings.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The distribution is <i>Worked: the amplitude of y, for any s</i>. For the count: pick $i$ with $s_i = 1$. Flipping bit $i$ of $y$ flips $y\cdot s$, so it is a bijection from $\{y\cdot s = 0\}$ to $\{y\cdot s = 1\}$; the two halves have $2^{n-1}$ elements each. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="box good"><span class="label">normalised</span>
+        <p class="small">$\sum_y P(y) = 2^{n-1}\cdot 2^{1-n} = 1$ ✓.</p>
+      </div>
+      <p class="small"><b>What one run tells you.</b> One linear equation in the unknown bits of $s$: $y_0s_0\oplus\cdots\oplus y_{n-1}s_{n-1} = 0$. One query, one equation; $s$ has $n$ bits, and section 3 shows that $n - 1$ independent equations fix it.</p>
+      <p class="small"><b>Check</b> on <span class="ref" data-ref="simon">$s = 110$</span>: $y\cdot s = y_0\oplus y_1$, which vanishes on $\{000, 001, 110, 111\}$ — four strings, $= 2^{3-1}$ ✓.</p>
+      <p class="small muted">Why each run is independent of the last: every run starts afresh from $\ket{0^n}\ket{0^n}$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The notation $s^\perp$.</b> Section 3 justifies the symbol: $s^\perp$ is the orthogonal complement of $s$ for the
+    bilinear form $x\cdot y$ over $\mathbb F_2$, and it is a subspace of dimension $n - 1$. Here only its size is needed, and the
+    flipping argument gives that without any linear algebra.</p>
+    <p><b>Independence of runs.</b> Each run is a fresh preparation, the same circuit and a fresh measurement. By the Born rule
+    applied to the product of the runs' state spaces — or simply because nothing carries over — the outcomes of different
+    runs are independent random variables, each with the distribution of the theorem. Section 4 uses that independence.</p>
+    <p><b>An honest remark about the classical analogue.</b> A classical algorithm can also produce a uniformly random $x$
+    and learn $f(x)$; what it gets is a random point of a random pair, which carries no information about $s$ until a second
+    point of the same pair turns up. The quantum run gets a different kind of sample — a random element of $s^\perp$ — and
+    every such sample carries information about $s$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · one run</p>
+  <h2>Measure the second register first: the coset state</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Read register 2 straight after the query. Outcome $v$ has probability $2\cdot2^{-n} = 2^{1-n}$, and register 1 is left in a <span class="term">coset state</span>:</p>
+      $$\ket{C_v} = \tfrac1{\sqrt2}\big(\ket{x_v} + \ket{x_v\oplus s}\big).$$
+      <p class="small">Now apply $H^{\otimes n}$, using Step 3 of the worked example:</p>
+      $$H^{\otimes n}\ket{C_v} = 2^{-(n-1)/2}\!\!\sum_{y\,:\,y\cdot s = 0}\!\!(-1)^{x_v\cdot y}\ket y .$$
+      <p class="small">Normalised: $2^{n-1}$ terms of squared size $2^{-(n-1)}$ ✓. Every $v$ gives the <b>same</b> distribution, uniform on $s^\perp$: the unknown $x_v$ survives only as a sign.</p>
+      <div class="box good"><span class="label">nothing changes</span>
+        <p class="small">Unit 10's implicit measurement: register 2 is never touched again, so reading it or not leaves the statistics of register 1 unchanged.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 290" width="430" role="img" aria-label="four rounded boxes, one per pair of the running example, each with its value of f and probability one quarter; measuring register 2 picks one box, here the pair 010 and 100 with value 000, leaving their equal superposition">
+<text x="20" y="20" font-size="12" class="soft">after the query: 2^(−3/2) × (sum of the four rows)</text>
+<rect x="20" y="32" width="250" height="34" rx="8" fill="none" class="unit" stroke-width="1.8"/><text x="34" y="54" font-size="14" class="mono">|000⟩+|110⟩  ⊗ |101⟩</text>
+<rect x="20" y="76" width="250" height="34" rx="8" fill="none" class="accent" stroke-width="1.8"/><text x="34" y="98" font-size="14" class="mono">|001⟩+|111⟩  ⊗ |010⟩</text>
+<rect x="20" y="120" width="250" height="34" rx="8" class="fill-soft alt" stroke-width="3"/><text x="34" y="142" font-size="14" class="mono">|010⟩+|100⟩  ⊗ |000⟩</text>
+<rect x="20" y="164" width="250" height="34" rx="8" fill="none" class="good" stroke-width="1.8"/><text x="34" y="186" font-size="14" class="mono">|011⟩+|101⟩  ⊗ |110⟩</text>
+<text x="290" y="54" font-size="13" class="soft">¼</text><text x="290" y="98" font-size="13" class="soft">¼</text><text x="290" y="142" font-size="13" class="alt">¼  ← v = 000</text><text x="290" y="186" font-size="13" class="soft">¼</text>
+<line x1="145" y1="200" x2="145" y2="232" class="alt" stroke-width="1.8"/><polygon points="145,238 140,228 150,228" class="fill-alt"/>
+<text x="145" y="262" font-size="15" text-anchor="middle" class="mono">(|010⟩ + |100⟩)/√2</text>
+<text x="145" y="282" font-size="12" text-anchor="middle" class="soft">a coset state; 010 ⊕ 100 = 110 = s</text>
+</svg>
+        <p class="cap">The <span class="ref" data-ref="simon">running example</span>'s four pairs. Each outcome $v$ has probability $\tfrac14$ (sum $1$ ✓) and leaves its pair in equal superposition.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof that both routes agree.</b> Route A (measure only register 1 at the end) gives $P_A(y) = \sum_v|a(y,v)|^2$,
+    computed in the worked example. Route B: after the query the state is $\sum_v 2^{-n/2}\sqrt2\,\ket{C_v}\ket v$, since each
+    $\ket v$ is attached to $2^{-n/2}(\ket{x_v} + \ket{x_v\oplus s})$. Measuring register 2 gives $v$ with probability
+    $(2^{-n/2}\sqrt2)^2 = 2^{1-n}$ and leaves $\ket{C_v}$. Then $H^{\otimes n}$ and a measurement give $y$ with probability
+    $|\braket{y|H^{\otimes n}|C_v}|^2 = 2^{-(n-1)}[y\cdot s = 0]$. So
+    $P_B(y) = \sum_v 2^{1-n}\cdot2^{1-n}[y\cdot s = 0] = 2^{n-1}\cdot2^{2-2n}[y\cdot s = 0] = 2^{1-n}[y\cdot s = 0] = P_A(y)$.
+    The general reason is unit 10's: a measurement on a register that no later gate touches commutes with everything after it.</p>
+    <p><b>The amplitude of $H^{\otimes n}\ket{C_v}$.</b> By the Hadamard formula,
+    $\braket{y|H^{\otimes n}|C_v} = 2^{-n/2}\cdot2^{-1/2}[(-1)^{x_v\cdot y} + (-1)^{(x_v\oplus s)\cdot y}] = 2^{-(n+1)/2}(-1)^{x_v\cdot y}[1 + (-1)^{s\cdot y}]$,
+    which is $2^{-(n-1)/2}(-1)^{x_v\cdot y}$ when $s\cdot y = 0$ and $0$ otherwise.</p>
+    <p><b>Why this picture is worth having.</b> It is the one Shor generalised. Measuring the value register leaves a uniform
+    superposition over a <b>coset</b> of the hidden subgroup — here $x_v\oplus\{0, s\}$; in unit 16, $x_0 + r\mathbb Z$. A
+    Fourier transform then turns "which coset" into an unobservable phase and "which subgroup" into the support of the output
+    distribution.</p>
+    <p><b>The classical temptation.</b> Measuring register 1 of $\ket{C_v}$ directly would give $x_v$ or $x_v\oplus s$, each with
+    probability $\tfrac12$ — one random point of a random pair, exactly what a classical query gives. The Hadamards are what
+    turn the pair into information about $s$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · one run · example</p>
+  <h2>Worked: the running example's post-query state</h2>
+  <div class="box ex"><span class="label"><span class="ref" data-ref="run">$n = 3$, $s = 110$</span>: every amplitude $a(y, v)$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Step 1: pick a representative of each pair.</b> $x_{101} = 000$, $x_{010} = 001$, $x_{000} = 010$, $x_{110} = 011$.</p>
+      <p class="small"><b>Step 2: the switch.</b> $y\cdot s = y_0\oplus y_1$, so $a(y, v) = 0$ for $y \in\{010, 011, 100, 101\}$.</p>
+      <p class="small"><b>Step 3: the signs.</b> For the other four $y$, $a(y, v) = 2^{1-3}(-1)^{x_v\cdot y} = \pm\tfrac14$:</p>
+      <ul class="small">
+        <li>$y = 000$: $x\cdot y = 0$ always — four $+$.</li>
+        <li>$y = 001$: $x\cdot y = x_2$ — signs $+, -, +, -$.</li>
+        <li>$y = 110$: $x\cdot y = x_0\oplus x_1$ — signs $+, +, -, -$.</li>
+        <li>$y = 111$: $x\cdot y = x_0\oplus x_1\oplus x_2$ — signs $+, -, -, +$.</li>
+      </ul>
+      <p class="small"><b>Step 4: normalised.</b> Sixteen amplitudes of size $\tfrac14$: $16\times\tfrac1{16} = 1$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 330 270" width="450" role="img" aria-label="a grid of amplitudes: rows are the eight outcomes y, columns the four values v; rows 000, 001, 110, 111 hold plus or minus one quarter, the other four rows hold zero">
+<text x="182" y="16" font-size="12" text-anchor="middle" class="soft">columns: v, and below it x_v</text>
+<text x="112" y="38" font-size="12" text-anchor="middle" class="mono">101</text><text x="160" y="38" font-size="12" text-anchor="middle" class="mono">010</text><text x="208" y="38" font-size="12" text-anchor="middle" class="mono">000</text><text x="256" y="38" font-size="12" text-anchor="middle" class="mono">110</text>
+<text x="112" y="52" font-size="10" text-anchor="middle" class="soft">000</text><text x="160" y="52" font-size="10" text-anchor="middle" class="soft">001</text><text x="208" y="52" font-size="10" text-anchor="middle" class="soft">010</text><text x="256" y="52" font-size="10" text-anchor="middle" class="soft">011</text>
+<text x="30" y="40" font-size="12" class="soft">y</text>
+<rect x="88" y="58" width="192" height="26" class="fill-soft"/><rect x="88" y="84" width="192" height="26" class="fill-soft"/><rect x="88" y="214" width="192" height="26" class="fill-soft"/><rect x="88" y="240" width="192" height="26" class="fill-soft"/>
+<text x="30" y="76" font-size="13" class="mono">000</text><text x="30" y="102" font-size="13" class="mono">001</text><text x="30" y="128" font-size="13" class="mono soft">010</text><text x="30" y="154" font-size="13" class="mono soft">011</text><text x="30" y="180" font-size="13" class="mono soft">100</text><text x="30" y="206" font-size="13" class="mono soft">101</text><text x="30" y="232" font-size="13" class="mono">110</text><text x="30" y="258" font-size="13" class="mono">111</text>
+<g font-size="14" text-anchor="middle">
+<text x="112" y="76" class="unit">+¼</text><text x="160" y="76" class="unit">+¼</text><text x="208" y="76" class="unit">+¼</text><text x="256" y="76" class="unit">+¼</text>
+<text x="112" y="102" class="unit">+¼</text><text x="160" y="102" class="warn">−¼</text><text x="208" y="102" class="unit">+¼</text><text x="256" y="102" class="warn">−¼</text>
+<text x="112" y="128" class="soft">0</text><text x="160" y="128" class="soft">0</text><text x="208" y="128" class="soft">0</text><text x="256" y="128" class="soft">0</text>
+<text x="112" y="154" class="soft">0</text><text x="160" y="154" class="soft">0</text><text x="208" y="154" class="soft">0</text><text x="256" y="154" class="soft">0</text>
+<text x="112" y="180" class="soft">0</text><text x="160" y="180" class="soft">0</text><text x="208" y="180" class="soft">0</text><text x="256" y="180" class="soft">0</text>
+<text x="112" y="206" class="soft">0</text><text x="160" y="206" class="soft">0</text><text x="208" y="206" class="soft">0</text><text x="256" y="206" class="soft">0</text>
+<text x="112" y="232" class="unit">+¼</text><text x="160" y="232" class="unit">+¼</text><text x="208" y="232" class="warn">−¼</text><text x="256" y="232" class="warn">−¼</text>
+<text x="112" y="258" class="unit">+¼</text><text x="160" y="258" class="warn">−¼</text><text x="208" y="258" class="warn">−¼</text><text x="256" y="258" class="unit">+¼</text>
+</g>
+</svg>
+        <p class="cap">$a(y, v)$ for all 32 pairs $(y, v)$. Rows with $y_0\oplus y_1 = 1$ are empty: there the two members of every pair cancel.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 3, one entry in full.</b> Take $y = 110$, $v = 000$. The pair is $\{010, 100\}$. Directly:
+    $a = 2^{-3}[(-1)^{010\cdot110} + (-1)^{100\cdot110}] = \tfrac18[(-1)^{1} + (-1)^{1}] = -\tfrac14$. By the formula:
+    $2^{-2}(-1)^{x_{000}\cdot y} = \tfrac14(-1)^{010\cdot110} = -\tfrac14$. Same.</p>
+    <p><b>One cancelling entry in full.</b> $y = 100$, $v = 101$: the pair $\{000, 110\}$ gives
+    $\tfrac18[(-1)^{000\cdot100} + (-1)^{110\cdot100}] = \tfrac18[1 - 1] = 0$, because $100\cdot110 = 1$. The bit that makes
+    the pair's two members differ in sign is exactly $y\cdot s = 1\oplus0 = 1$.</p>
+    <p><b>Representatives.</b> Choosing the other member of a pair as $x_v$ multiplies that column by $(-1)^{s\cdot y}$,
+    which is $+1$ on every non-empty row: the grid does not depend on the choice, as it must not.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · one run</p>
+  <h2>Running example: what one run returns</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 220" width="540" role="img" aria-label="a bar chart over the eight outcomes: bars of height one quarter at 000, 001, 110 and 111, nothing at the other four">
+<line x1="40" y1="170" x2="400" y2="170" class="ink" stroke-width="1.4"/>
+<line x1="40" y1="60" x2="400" y2="60" class="rule" stroke-width="1" stroke-dasharray="5 4"/><text x="34" y="64" font-size="13" text-anchor="end">¼</text><text x="34" y="174" font-size="13" text-anchor="end">0</text>
+<rect x="52" y="60" width="30" height="110" class="fill-unit"/>
+<rect x="96" y="60" width="30" height="110" class="fill-unit"/>
+<rect x="316" y="60" width="30" height="110" class="fill-unit"/>
+<rect x="360" y="60" width="30" height="110" class="fill-unit"/>
+<g font-size="12" text-anchor="middle" class="mono"><text x="67" y="190">000</text><text x="111" y="190">001</text><text x="155" y="190">010</text><text x="199" y="190">011</text><text x="243" y="190">100</text><text x="287" y="190">101</text><text x="331" y="190">110</text><text x="375" y="190">111</text></g>
+<text x="221" y="130" font-size="12" text-anchor="middle" class="soft">y₀ ⊕ y₁ = 1: never</text>
+<text x="221" y="210" font-size="12" text-anchor="middle" class="soft">outcome y of one run</text>
+</svg>
+        <p class="cap">The distribution of $y$: uniform on $s^\perp = \{000, 001, 110, 111\}$.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small">From the grid, $P(y)$ is the sum of the squares along row $y$:</p>
+      $$\begin{aligned}P(000) = P(001) &= P(110) = P(111)\\ &= 4\times\tfrac1{16} = \tfrac14,\end{aligned}$$
+      <p class="small">and the other four are $0$. <b>Sum</b>: $4\times\tfrac14 = 1$ ✓, matching the theorem's $2^{1-n} = \tfrac14$.</p>
+      <p class="small"><b>What a sample says.</b> Each $y$ gives one equation on $(s_0, s_1, s_2)$:</p>
+      <table class="dense">
+        <thead><tr><th>sample $y$</th><th>equation $y\cdot s = 0$</th></tr></thead>
+        <tbody>
+          <tr><td>$000$</td><td>$0 = 0$ — nothing</td></tr>
+          <tr><td>$001$</td><td>$s_2 = 0$</td></tr>
+          <tr><td>$110$</td><td>$s_0\oplus s_1 = 0$</td></tr>
+          <tr><td>$111$</td><td>$s_0\oplus s_1\oplus s_2 = 0$</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Any two different nonzero rows together force $s\in\{000, 110\}$. Section 3 says why, in general.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>A useless sample.</b> $y = 000$ turns up with probability $\tfrac14$ in every run, for every $s$, and says nothing. In
+    general $y = 0^n$ has probability $2^{1-n}$, negligible for large $n$; but every repeated or otherwise dependent sample is
+    equally useless, and section 4 counts how many runs that wastes.</p>
+    <p><b>Checking the last claim of the slide.</b> $001$ and $110$: $s_2 = 0$ and $s_0 = s_1$, so $s\in\{000, 110\}$.
+    $001$ and $111$: $s_2 = 0$, then $s_0\oplus s_1 = 0$, the same. $110$ and $111$: subtracting gives $s_2 = 0$ and then
+    $s_0 = s_1$, the same. In every case the nonzero solution is $s = 110$.</p>
+    <p><b>The same chart for another $s$.</b> Problem P1 on the sheet runs this circuit by hand for $s = 011$: the bars move
+    to $\{000, 011, 100, 111\}$, the strings with $y_1\oplus y_2 = 0$, and still sum to $1$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Linear algebra over $\mathbb F_2$</h2>
+  <p>Each run gives an equation $y\cdot s = 0$. Three facts about bits as a field say when $n - 1$ of them pin $s$ down, and how to solve them.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · linear algebra over F₂</p>
+  <h2>The field with two elements</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">field with two elements</span>, $\mathbb F_2$</span>
+        <p class="small">$\{0, 1\}$ with addition $\oplus$ (XOR) and multiplication $\wedge$ (AND):</p>
+        <table class="dense">
+          <thead><tr><th>$\oplus$</th><th>0</th><th>1</th><th></th><th>$\cdot$</th><th>0</th><th>1</th></tr></thead>
+          <tbody><tr><th>0</th><td>0</td><td>1</td><td></td><th>0</th><td>0</td><td>0</td></tr>
+          <tr><th>1</th><td>1</td><td>0</td><td></td><th>1</th><td>0</td><td>1</td></tr></tbody>
+        </table>
+        <p class="small">It is $\mathbb Z/2\mathbb Z$, a field because 2 is prime: $1$ is its own inverse, and $-1 = 1$.</p>
+      </div>
+      <p class="small">$\mathbb F_2^n = \{0,1\}^n$ is an $n$-dimensional vector space over it: vectors add by XOR, and the only scalars are $0$ and $1$.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">what carries over from $\mathbb R$</span>
+        <p class="small">Every theorem of linear algebra whose proof uses only the field axioms holds over $\mathbb F_2$ unchanged: bases and <b>dimension</b>, <b>rank–nullity</b> $\dim\ker A + \operatorname{rank}A = n$, and <b>Gaussian elimination</b>. A $k$-dimensional subspace has exactly $2^k$ elements.</p>
+      </div>
+      <div class="box warn"><span class="label">what does not</span>
+        <p class="small">Anything using order or positivity. Over $\mathbb R$, $y\cdot y = \sum y_i^2 &gt; 0$ for $y\ne 0$. Over $\mathbb F_2$, $y\cdot y$ is the parity of the number of 1s in $y$: $110\cdot110 = 1\oplus1 = 0$. There is no Gram–Schmidt, and a nonzero vector can be orthogonal to itself.</p>
+      </div>
+      <p class="small"><b>Check</b>: the subspace $\{000, 001, 110, 111\}$ has basis $\{001, 110\}$, dimension 2, and $2^2 = 4$ elements ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the theorems carry over.</b> The proofs of the exchange lemma (any two bases have the same size), of rank–nullity,
+    and of the correctness of row reduction use addition, multiplication, additive and multiplicative inverses, and the
+    distributive law — the field axioms — and nothing else. They never compare sizes of scalars or take square roots. So they
+    are theorems about vector spaces over any field, and the background course's proofs over $\mathbb R$ are proofs over
+    $\mathbb F_2$ word for word.</p>
+    <p><b>Counting a subspace.</b> If $b_1, \dots, b_k$ is a basis of $W$, the map $(c_1, \dots, c_k)\mapsto\sum c_ib_i$ from
+    $\mathbb F_2^k$ to $W$ is a bijection (onto by spanning, one-to-one by independence), so $|W| = 2^k$.</p>
+    <p><b>What fails, and where.</b> The spectral theorem, Gram–Schmidt and orthogonal projection all rest on $y\cdot y &gt; 0$
+    for $y\ne0$, which is false here. Of section 3's three facts only one could have been affected — the dimension of an
+    orthogonal complement — and the next slide proves it without positivity.</p>
+    <p><b>Notation.</b> The course writes $\oplus$ for addition in $\mathbb F_2^n$ (as in the oracle) and $x\cdot y$ for
+    $\bigoplus_ix_iy_i$; in $\mathbb F_2$ the symbols $+$ and $\oplus$ mean the same thing, and $-$ means $+$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · linear algebra over F₂</p>
+  <h2>Orthogonal complements over $\mathbb F_2$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the <span class="term">orthogonal complement</span></span>
+        <p class="small">For a subspace $W\subseteq\mathbb F_2^n$, a subspace again:</p>
+        $$W^\perp = \{y : y\cdot w = 0 \text{ for all } w\in W\}.$$
+        <p class="small">For one vector, $s^\perp = \{0, s\}^\perp$.</p>
+      </div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">(a) $\dim W^\perp = n - \dim W$. &nbsp;(b) $(W^\perp)^\perp = W$.</p>
+        <p class="small">So, for $s\ne0$, $\ \dim s^\perp = n - 1$ and $(s^\perp)^\perp = \{0, s\}$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">(a) Put a basis $w_1, \dots, w_k$ of $W$ as the rows of a $k\times n$ matrix $A$. Then $W^\perp = \ker A$ and $\operatorname{rank}A = k$; rank–nullity gives $\dim\ker A = n - k$. (b) $W\subseteq(W^\perp)^\perp$ by definition; by (a) twice both have dimension $k$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 280" width="430" role="img" aria-label="the cube of three-bit strings; the four corners 000, 110, 111 and 001 form a shaded diagonal plane, which is s perp; the arrow s from 000 to 110 lies inside that plane">
+<polygon points="110,250 380,180 380,30 110,100" class="fill-soft"/>
+<line x1="110" y1="250" x2="290" y2="250" class="rule" stroke-width="1.3"/><line x1="290" y1="250" x2="380" y2="180" class="rule" stroke-width="1.3"/><line x1="380" y1="180" x2="200" y2="180" class="rule" stroke-width="1.3"/><line x1="200" y1="180" x2="110" y2="250" class="rule" stroke-width="1.3"/>
+<line x1="110" y1="100" x2="290" y2="100" class="rule" stroke-width="1.3"/><line x1="290" y1="100" x2="380" y2="30" class="rule" stroke-width="1.3"/><line x1="380" y1="30" x2="200" y2="30" class="rule" stroke-width="1.3"/><line x1="200" y1="30" x2="110" y2="100" class="rule" stroke-width="1.3"/>
+<line x1="110" y1="250" x2="110" y2="100" class="rule" stroke-width="1.3"/><line x1="290" y1="250" x2="290" y2="100" class="rule" stroke-width="1.3"/><line x1="380" y1="180" x2="380" y2="30" class="rule" stroke-width="1.3"/><line x1="200" y1="180" x2="200" y2="30" class="rule" stroke-width="1.3"/>
+<line x1="110" y1="250" x2="372" y2="182" class="accent" stroke-width="3"/><polygon points="380,180 368,176 371,188" class="fill-accent"/>
+<text x="250" y="226" font-size="15" class="accent halo">s</text>
+<circle cx="110" cy="250" r="6" class="fill-unit"/><circle cx="380" cy="180" r="6" class="fill-unit"/><circle cx="380" cy="30" r="6" class="fill-unit"/><circle cx="110" cy="100" r="6" class="fill-unit"/>
+<circle cx="290" cy="250" r="4" class="fill-ink"/><circle cx="200" cy="180" r="4" class="fill-ink"/><circle cx="290" cy="100" r="4" class="fill-ink"/><circle cx="200" cy="30" r="4" class="fill-ink"/>
+<text x="110" y="274" font-size="13" text-anchor="middle" class="mono unit">000</text><text x="392" y="185" font-size="13" class="mono unit">110</text><text x="392" y="35" font-size="13" class="mono unit">111</text><text x="100" y="96" font-size="13" text-anchor="end" class="mono unit">001</text>
+<text x="290" y="274" font-size="13" text-anchor="middle" class="mono soft">100</text><text x="190" y="196" font-size="13" text-anchor="end" class="mono soft">010</text><text x="298" y="118" font-size="13" class="mono soft">101</text><text x="190" y="24" font-size="13" text-anchor="end" class="mono soft">011</text>
+<text x="240" y="150" font-size="14" text-anchor="middle" class="unit halo">s⊥</text>
+</svg>
+        <p class="cap">$s = 110$: $s^\perp$ is the shaded plane of four corners, and $s$ lies <b>in</b> it, since $s\cdot s = 0$.</p>
+      </div>
+      <div class="box warn"><span class="label">a <span class="term">self-orthogonal vector</span></span>
+        <p class="small">Here $W\cap W^\perp\ne\{0\}$ can happen, so $W^\perp$ need not be a complement in the sense of $W\oplus W^\perp = \mathbb F_2^n$. Nothing below uses that; only (a) and (b).</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of (a), with the step rank–nullity hides.</b> $y\in W^\perp$ iff $y\cdot w_i = 0$ for each basis vector
+    $w_i$ (then $y\cdot w = 0$ for every combination, by linearity), iff $Ay = 0$ for the matrix $A$ with rows $w_i$. So
+    $W^\perp = \ker A$. The row space of $A$ is $W$, of dimension $k$, so $\operatorname{rank}A = k$ (row rank equals column rank —
+    another field-axiom theorem). Rank–nullity: $\dim\ker A = n - k$.</p>
+    <p><b>Full proof of (b).</b> If $w\in W$ and $y\in W^\perp$ then $w\cdot y = y\cdot w = 0$, so every $w$ is in $(W^\perp)^\perp$.
+    By (a) applied to $W^\perp$, $\dim(W^\perp)^\perp = n - (n - k) = k = \dim W$. A subspace of a finite-dimensional space
+    containing another of the same dimension equals it.</p>
+    <p><b>For Simon.</b> $W = \{0, s\}$ has dimension 1, so $s^\perp$ has dimension $n - 1$ and $2^{n-1}$ elements — the count of
+    the theorem in section 2, now by linear algebra — and $(s^\perp)^\perp = \{0, s\}$. That last equation is the one that
+    recovers $s$.</p>
+    <p><b>Self-orthogonality, and why it is harmless.</b> In the running example $s = 110$ has two 1s, so $s\cdot s = 0$ and
+    $s\in s^\perp$: the run can return $y = s$ itself. Nothing breaks: the argument above never needed $W\cap W^\perp = \{0\}$.
+    Over $\mathbb R$ that intersection is always $\{0\}$ because $w\cdot w &gt; 0$; here $W\cap W^\perp$ is the set of
+    self-orthogonal vectors of $W$ — for $W = \{0, s\}$, it is $\{0, s\}$ if $s$ has even weight and $\{0\}$ if odd. Coding
+    theorists call a subspace with $W\subseteq W^\perp$ self-orthogonal; unit 23 meets them as the source of stabiliser codes.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · linear algebra over F₂</p>
+  <h2>$n - 1$ independent samples pin down $s$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">If $y_1, \dots, y_{n-1}\in s^\perp$ are linearly independent, then the system</p>
+        $$y_j\cdot t = 0\qquad (j = 1, \dots, n-1)$$
+        <p class="small">has exactly two solutions $t$: $t = 0$ and $t = s$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$n - 1$ independent vectors in the $(n-1)$-dimensional $s^\perp$ span it. The solutions are $\operatorname{span}(y_j)^\perp = (s^\perp)^\perp = \{0, s\}$ by (b). ∎</p>
+      </div>
+      <p class="small"><b>Check</b>, $n = 2$, $s = 11$: $s^\perp = \{00, 11\}$; one independent sample is $y_1 = 11$, and $t_0\oplus t_1 = 0$ has solutions $\{00, 11\}$ ✓.</p>
+    </div>
+    <div>
+      <p class="small"><b>The <span class="term">rank</span> is the thing to watch.</b> Fewer than $n - 1$ independent samples leave $(\operatorname{span} y_j)^\perp$ of dimension at least 2: at least three nonzero candidates, and the samples cannot tell them apart.</p>
+      <p class="small"><b>Dependent samples are wasted, not harmful.</b> A sample in the span of the others adds no new equation. Samples are never <b>wrong</b>: every one satisfies $y\cdot s = 0$.</p>
+      <div class="box warn"><span class="label">the samples never reach rank $n$</span>
+        <p class="small">All samples lie in $s^\perp$, of dimension $n - 1$. Rank $n - 1$ is the most one can get, and it is exactly enough because $t = 0$ is excluded by $s\ne0$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Let $Y = \operatorname{span}(y_1, \dots, y_{n-1})$. Since the $y_j$ are independent, $\dim Y = n - 1$; since
+    they lie in $s^\perp$, $Y\subseteq s^\perp$, which also has dimension $n - 1$ (previous slide, (a)); so $Y = s^\perp$. A vector
+    $t$ solves every equation iff $t\cdot y_j = 0$ for all $j$, iff $t\in Y^\perp$ (linearity again). And
+    $Y^\perp = (s^\perp)^\perp = \{0, s\}$ by (b).</p>
+    <p><b>Fewer samples, more candidates.</b> If $\dim Y = k &lt; n - 1$ then $\dim Y^\perp = n - k \ge 2$, so $Y^\perp$ has at
+    least $4$ elements, at least $3$ of them nonzero. Each is consistent with every sample seen, and since the samples'
+    distribution would be uniform on a different $(n-1)$-space for each candidate, no rule can pick the right one with
+    certainty.</p>
+    <p><b>The decision version.</b> If $f$ were one-to-one ($s = 0$ allowed, the case Simon actually posed), the samples would be
+    uniform on all of $\mathbb F_2^n$ and could reach rank $n$, whose only solution is $t = 0$. That is how problem P10
+    tells the two cases apart.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · linear algebra over F₂</p>
+  <h2>Gaussian elimination over $\mathbb F_2$</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label"><span class="term">Gaussian elimination</span>, as samples arrive</span>
+        <p class="small">Keep a list of rows in echelon form, each with a <span class="term">pivot</span>: its leftmost 1. For each new sample $y$:</p>
+        <ol class="small">
+          <li>For each row in order of pivot column: if $y$ has a 1 there, replace $y$ by $y\oplus\text{row}$.</li>
+          <li>If $y$ is now $0$, it was dependent: discard it.</li>
+          <li>Otherwise keep it; its leftmost 1 is a new pivot.</li>
+        </ol>
+        <p class="small">At rank $n - 1$ exactly one column has no pivot. Set that bit of $t$ to $1$ and <b>back-substitute</b>, bottom row first.</p>
+      </div>
+      <p class="small"><b>Cost.</b> Each sample is XORed with at most $n - 1$ rows of $n$ bits: $O(n^2)$ bit operations; $O(n)$ samples make $O(n^3)$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 380 260" width="370" role="img" aria-label="a four by five grid of bits in echelon form; the pivots, the leftmost 1 of each row, are shaded and step down to the right; column 3 has no pivot and is marked free, set to 1">
+<g class="mono" font-size="16" text-anchor="middle">
+<rect x="60" y="40" width="40" height="40" class="fill-soft"/><rect x="100" y="80" width="40" height="40" class="fill-soft"/><rect x="140" y="120" width="40" height="40" class="fill-soft"/><rect x="220" y="160" width="40" height="40" class="fill-soft"/>
+<rect x="180" y="40" width="40" height="160" fill="none" class="accent" stroke-width="2" stroke-dasharray="5 4"/>
+<text x="80" y="66">1</text><text x="120" y="66">1</text><text x="160" y="66">0</text><text x="200" y="66">1</text><text x="240" y="66">0</text>
+<text x="80" y="106" class="soft">0</text><text x="120" y="106">1</text><text x="160" y="106">0</text><text x="200" y="106">0</text><text x="240" y="106">1</text>
+<text x="80" y="146" class="soft">0</text><text x="120" y="146" class="soft">0</text><text x="160" y="146">1</text><text x="200" y="146">1</text><text x="240" y="146">0</text>
+<text x="80" y="186" class="soft">0</text><text x="120" y="186" class="soft">0</text><text x="160" y="186" class="soft">0</text><text x="200" y="186" class="soft">0</text><text x="240" y="186">1</text>
+</g>
+<g font-size="12" text-anchor="middle" class="soft"><text x="80" y="30">t₀</text><text x="120" y="30">t₁</text><text x="160" y="30">t₂</text><text x="200" y="30">t₃</text><text x="240" y="30">t₄</text></g>
+<rect x="60" y="40" width="200" height="160" fill="none" class="ink" stroke-width="1.2"/>
+<text x="200" y="224" font-size="13" text-anchor="middle" class="accent">free: t₃ = 1</text>
+<text x="290" y="66" font-size="13" class="mono">= 0</text><text x="290" y="106" font-size="13" class="mono">= 0</text><text x="290" y="146" font-size="13" class="mono">= 0</text><text x="290" y="186" font-size="13" class="mono">= 0</text>
+<text x="190" y="252" font-size="12" text-anchor="middle" class="soft">back-substitute: t₄, then t₂, t₁, t₀</text>
+</svg>
+        <p class="cap">Echelon form at rank $n - 1 = 4$ (the worked example two slides on). Pivots shaded; the one pivot-free column is set to $1$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why step 1 keeps the echelon form.</b> A row with pivot $p$ has zeros in every column left of $p$, so XORing it into
+    $y$ changes no column left of $p$. Processing rows in increasing pivot order therefore clears the pivot columns one by one
+    without disturbing those already cleared. A surviving $y$ has zeros in every existing pivot column; its leftmost 1 is in a
+    new column, which becomes its pivot. The kept rows are independent (each has a 1 where all the others with smaller pivots
+    have 0s — an echelon matrix has full row rank) and span the same space as the samples kept so far.</p>
+    <p><b>Why back-substitution works.</b> At rank $n - 1$ there are $n - 1$ pivot columns among $n$, so exactly one free
+    column $j$. The solution space $\{0, s\}$ has dimension 1, so a nonzero solution must have $t_j = 1$ (if $t_j = 0$, back-
+    substitution forces every pivot variable to $0$). With $t_j = 1$, the bottom row's equation determines its pivot variable
+    from the variables to its right, which are already known; then the row above; and so on to the top.</p>
+    <p><b>The count.</b> At most $n - 1$ rows, each XOR is $n$ bit operations, so reducing one sample is at most $(n - 1)n$
+    operations; at $n = 100$ with about $n$ samples that is about $99\cdot99\cdot100 \approx 10^6$. A computer packs 64 bits
+    into a word and does a row XOR in two instructions, so it is less in practice.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · linear algebra over F₂</p>
+  <h2>Running example: two samples, one answer</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Suppose two runs on <span class="ref" data-ref="solve">the running example</span> return $001$ and then $110$.</p>
+      <p class="small"><b>Eliminate.</b> Row 1: $001$, pivot column 2. Sample $110$ has a $0$ in column 2, so it is kept unchanged; pivot column 0. Echelon form, sorted by pivot:</p>
+      $$\begin{array}{ccc|c} t_0 & t_1 & t_2 & \\ \hline \mathbf 1 & 1 & 0 & 0\\ 0 & 0 & \mathbf 1 & 0\end{array}$$
+      <p class="small">Rank $2 = n - 1$; column 1 is free. <b>Back-substitute</b> with $t_1 = 1$: row 2 gives $t_2 = 0$; row 1 gives $t_0\oplus1 = 0$, so $t_0 = 1$.</p>
+      $$s = 110 \ ✓$$
+    </div>
+    <div>
+      <div class="box good"><span class="label">checked</span>
+        <p class="small">$001\cdot110 = 0$ and $110\cdot110 = 1\oplus1 = 0$: both samples are orthogonal to the answer. And $t = 000$ is the other solution, excluded by the promise.</p>
+      </div>
+      <p class="small"><b>Dependent samples.</b> In this example $s^\perp$ has four elements, so a run is wasted if it returns $000$, or repeats a sample already held. Had the second run returned $001$ again, step 1 would reduce it to $001\oplus001 = 000$: discarded, run again.</p>
+      <p class="small"><b>How likely is a clean start?</b> The first sample is nonzero with probability $\tfrac34$; given that, the second avoids the two-element span $\{000, y_1\}$ with probability $\tfrac24$. So two runs suffice with probability $\tfrac34\cdot\tfrac12 = \tfrac38$. Section 4 does this in general.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Self-orthogonality in action.</b> The second sample $110$ <i>is</i> $s$. It is orthogonal to itself because it has an even
+    number of 1s, so the circuit is allowed to return it, and it is as good a sample as any other: it contributes the equation
+    $t_0\oplus t_1 = 0$. A learner trained over $\mathbb R$ might expect a vector's own direction to be "excluded" from its
+    orthogonal complement; over $\mathbb F_2$ it need not be.</p>
+    <p><b>The $\tfrac38$ is the theorem of section 4 at $n = 3$:</b> $\prod_{k=1}^{2}(1 - 2^{-k}) = \tfrac12\cdot\tfrac34 = \tfrac38$.
+    The order of the factors differs — the slide multiplies $\tfrac34$ (first sample nonzero) by $\tfrac12$ (second outside the
+    span of the first) — but the product is the same.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · linear algebra over F₂ · example</p>
+  <h2>Worked: elimination on five bits, with a dependent sample</h2>
+  <div class="box ex"><span class="label">$n = 5$; samples arrive in the order $11010,\ 00110,\ 11100,\ 01001,\ 01110$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1.</b> $11010$: no rows yet. Keep; pivot column 0.</p>
+      <p class="small"><b>2.</b> $00110$: column 0 is $0$. Keep; pivot column 2.</p>
+      <p class="small"><b>3.</b> $11100$: column 0 is $1$, so $\oplus\,11010 \to 00110$; column 2 is $1$, so $\oplus\,00110 \to 00000$. <b>Dependent</b> (it was the sum of the first two): discard.</p>
+      <p class="small"><b>4.</b> $01001$: columns 0 and 2 are $0$. Keep; pivot column 1.</p>
+      <p class="small"><b>5.</b> $01110$: column 1 is $1$, $\oplus\,01001 \to 00111$; column 2 is $1$, $\oplus\,00110 \to 00001$. Keep; pivot column 4.</p>
+      <p class="small">Rank $4 = n - 1$ after five runs, one of them wasted.</p>
+    </div>
+    <div>
+      $$\begin{array}{ccccc|c} t_0&t_1&t_2&t_3&t_4&\\\hline \mathbf1&1&0&1&0&0\\ 0&\mathbf1&0&0&1&0\\ 0&0&\mathbf1&1&0&0\\ 0&0&0&0&\mathbf1&0\end{array}$$
+      <p class="small"><b>Back-substitute</b> with the free bit $t_3 = 1$:</p>
+      <ul class="small">
+        <li>row 4: $t_4 = 0$;</li>
+        <li>row 3: $t_2\oplus t_3 = 0$, so $t_2 = 1$;</li>
+        <li>row 2: $t_1\oplus t_4 = 0$, so $t_1 = 0$;</li>
+        <li>row 1: $t_0\oplus t_1\oplus t_3 = 0$, so $t_0 = 1$.</li>
+      </ul>
+      <p class="small">$s = 10110$. <b>Check</b> against all five samples, discarded one included: $11010\cdot s = 1\oplus1 = 0$, $00110\cdot s = 1\oplus1 = 0$, $11100\cdot s = 1\oplus1 = 0$, $01001\cdot s = 0$, $01110\cdot s = 1\oplus1 = 0$ ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step 5 in full.</b> The current rows, in pivot order, are $11010$ (pivot 0), $01001$ (pivot 1), $00110$ (pivot 2). The
+    sample $01110$ has $0$ in column 0, so row 1 is skipped; $1$ in column 1, so XOR row 2: $01110\oplus01001 = 00111$; $1$ in
+    column 2, so XOR row 3: $00111\oplus00110 = 00001$. Nonzero, with its leftmost 1 in column 4.</p>
+    <p><b>Each dot product in the check.</b> $s = 10110$ has 1s in positions 0, 2, 3, so $y\cdot s = y_0\oplus y_2\oplus y_3$:
+    $11010 \to 1\oplus0\oplus1$; $00110\to 0\oplus1\oplus1$; $11100\to1\oplus1\oplus0$; $01001\to0\oplus0\oplus0$;
+    $01110\to0\oplus1\oplus1$. All zero.</p>
+    <p><b>Why only one free column matters.</b> Setting $t_3 = 0$ instead forces $t_4 = 0$, $t_2 = 0$, $t_1 = 0$, $t_0 = 0$: the
+    trivial solution. The solution set is $\{00000, 10110\}$, as the theorem said it must be.</p>
+    <p><b>How unlucky was the wasted run?</b> After two independent samples the span has $4$ of the $16$ elements of
+    $s^\perp$, so a third sample is dependent with probability $\tfrac4{16} = \tfrac14$. Section 4 multiplies such factors.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>How many runs</h2>
+  <p>Samples are random, so a basis might take a while. A product, a tail bound and a sum of waiting times say how long: fewer than $n + 1$ runs on average.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · how many runs</p>
+  <h2>The chance that $n - 1$ samples are independent</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$n - 1$ independent uniform samples from $s^\perp$ are linearly independent with probability</p>
+        $$p_{n-1} = \prod_{k=1}^{n-1}\big(1 - 2^{-k}\big).$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Write $m = n - 1$. If the first $j$ samples are independent, they span $2^j$ of the $2^m$ elements, so the next one is outside their span with probability $1 - 2^{j-m}$, whatever they were. Multiply over $j = 0, \dots, m - 1$ and put $k = m - j$. ∎</p>
+      </div>
+      <p class="small"><b>Check</b>, $n = 2$: one sample from $\{0, s\}$ is independent iff it is $s$: probability $\tfrac12 = 1 - 2^{-1}$ ✓. And at $n = 3$: $\tfrac12\cdot\tfrac34 = \tfrac38$, as on <i>Running example: two samples, one answer</i> ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 200" width="540" role="img" aria-label="four rows of sixteen cells, the elements of a four-dimensional space; in row j the span of j independent samples fills one, two, four, then eight cells, and the chance a new sample lands outside is fifteen, fourteen, twelve, then eight sixteenths">
+<g class="rule" stroke-width="1">
+<rect x="70" y="30" width="288" height="18" fill="none"/><rect x="70" y="70" width="288" height="18" fill="none"/><rect x="70" y="110" width="288" height="18" fill="none"/><rect x="70" y="150" width="288" height="18" fill="none"/>
+</g>
+<rect x="70" y="30" width="18" height="18" class="fill-unit"/>
+<rect x="70" y="70" width="36" height="18" class="fill-unit"/>
+<rect x="70" y="110" width="72" height="18" class="fill-unit"/>
+<rect x="70" y="150" width="144" height="18" class="fill-unit"/>
+<g class="rule" stroke-width="0.8"><line x1="88" y1="26" x2="88" y2="172"/><line x1="106" y1="26" x2="106" y2="172"/><line x1="124" y1="26" x2="124" y2="172"/><line x1="142" y1="26" x2="142" y2="172"/><line x1="160" y1="26" x2="160" y2="172"/><line x1="178" y1="26" x2="178" y2="172"/><line x1="196" y1="26" x2="196" y2="172"/><line x1="214" y1="26" x2="214" y2="172"/><line x1="232" y1="26" x2="232" y2="172"/><line x1="250" y1="26" x2="250" y2="172"/><line x1="268" y1="26" x2="268" y2="172"/><line x1="286" y1="26" x2="286" y2="172"/><line x1="304" y1="26" x2="304" y2="172"/><line x1="322" y1="26" x2="322" y2="172"/><line x1="340" y1="26" x2="340" y2="172"/></g>
+<g font-size="13"><text x="60" y="44" text-anchor="end">j = 0</text><text x="60" y="84" text-anchor="end">j = 1</text><text x="60" y="124" text-anchor="end">j = 2</text><text x="60" y="164" text-anchor="end">j = 3</text></g>
+<g font-size="13" class="unit"><text x="368" y="44">15/16</text><text x="368" y="84">14/16</text><text x="368" y="124">12/16</text><text x="368" y="164">8/16</text></g>
+<text x="214" y="192" font-size="12" text-anchor="middle" class="soft">shaded: the span so far (2^j of 2^4 = 16)</text>
+<text x="214" y="16" font-size="12" text-anchor="middle" class="soft">n = 5: s⊥ has 16 elements</text>
+</svg>
+        <p class="cap">$n = 5$: the span doubles with each new independent sample. Product $\tfrac{15\cdot14\cdot12\cdot8}{16^4} = \tfrac{20160}{65536} = 0.3076$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Let $y_1, \dots, y_m$ be independent and uniform on $s^\perp$, an $m$-dimensional space with $2^m$
+    elements. Let $E_j$ be the event that $y_1, \dots, y_j$ are linearly independent ($E_0$ is certain). On $E_j$ their span $S_j$
+    has exactly $2^j$ elements, and $E_{j+1} = E_j\cap\{y_{j+1}\notin S_j\}$. Conditioning on the values of $y_1, \dots, y_j$, the
+    sample $y_{j+1}$ is still uniform (independence of runs), so
+    $P(y_{j+1}\notin S_j \mid y_1, \dots, y_j) = 1 - 2^j/2^m$ on $E_j$, a number that does not depend on which values occurred.
+    Hence $P(E_{j+1}) = (1 - 2^{j-m})P(E_j)$, and by induction $P(E_m) = \prod_{j=0}^{m-1}(1 - 2^{j-m}) = \prod_{k=1}^{m}(1 - 2^{-k})$.</p>
+    <p><b>The factor that hurts.</b> The last factor, $j = m - 1$, is $1 - \tfrac12$: when the span is already half the space,
+    a new sample is a coin flip. Most of the loss is there, at the end; the early samples are almost always new.</p>
+    <p><b>The figure's number.</b> $\tfrac{15}{16}\cdot\tfrac{14}{16}\cdot\tfrac{12}{16}\cdot\tfrac8{16} = \tfrac{20160}{65536} = 0.30762$, and
+    $\prod_{k=1}^4(1 - 2^{-k}) = \tfrac12\cdot\tfrac34\cdot\tfrac78\cdot\tfrac{15}{16} = \tfrac{315}{1024} = 0.30762$ — the same
+    product, factors in the other order.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · how many runs · example</p>
+  <h2>Worked: the product, term by term</h2>
+  <div class="box ex"><span class="label">$P_m = \prod_{k=1}^{m}(1 - 2^{-k})$ for growing $m$</span>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th>$m$</th><th>new factor</th><th class="num">$P_m$</th><th class="num">$P_m(1 - 2^{-m})$</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>$\tfrac12$</td><td class="num">0.5</td><td class="num">0.25</td></tr>
+          <tr><td>2</td><td>$\tfrac34$</td><td class="num">0.375</td><td class="num">0.28125</td></tr>
+          <tr><td>3</td><td>$\tfrac78$</td><td class="num">0.328125</td><td class="num">0.287109</td></tr>
+          <tr><td>5</td><td>$\tfrac{31}{32}$</td><td class="num">0.298004</td><td class="num">0.288692</td></tr>
+          <tr><td>10</td><td>$\tfrac{1023}{1024}$</td><td class="num">0.289070</td><td class="num">0.288788</td></tr>
+          <tr><td>20</td><td>$1 - 2^{-20}$</td><td class="num">0.2887884</td><td class="num">0.2887881</td></tr>
+        </tbody>
+      </table>
+      <p class="small"><b>Step 1.</b> $P_1 = \tfrac12$; $P_2 = \tfrac12\cdot\tfrac34 = \tfrac38$; $P_3 = \tfrac38\cdot\tfrac78 = \tfrac{21}{64} = 0.328125$.</p>
+      <p class="small"><b>Step 2.</b> Each factor is below 1, so $P_m$ <b>decreases</b>; it is positive, so it converges.</p>
+      <p class="small"><b>Step 3.</b> The last column is a <b>lower</b> bound on the limit (next slide). At $m = 20$ the two columns agree to six places: $P_\infty = 0.288788$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 240" width="410" role="img" aria-label="partial products P m for m from 1 to 12, decreasing from 0.5 towards 0.2888, and the lower bounds P m times 1 minus 2 to the minus m increasing towards the same limit from below; a dashed line at the limit and another at one quarter">
+<line x1="50" y1="210" x2="400" y2="210" class="ink" stroke-width="1.2"/><line x1="50" y1="30" x2="50" y2="210" class="ink" stroke-width="1.2"/>
+<line x1="50" y1="178.6" x2="400" y2="178.6" class="alt" stroke-width="1.4" stroke-dasharray="6 4"/>
+<line x1="50" y1="203.6" x2="400" y2="203.6" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+<g font-size="11" text-anchor="end"><text x="45" y="47">0.5</text><text x="45" y="111">0.4</text><text x="45" y="175">0.3</text><text x="45" y="214" class="soft">¼</text></g>
+<line x1="47" y1="42.9" x2="53" y2="42.9" class="ink"/><line x1="47" y1="107.1" x2="53" y2="107.1" class="ink"/><line x1="47" y1="171.4" x2="53" y2="171.4" class="ink"/>
+<polyline points="60,42.9 90,123.2 120,153.3 150,166.5 180,172.7 210,175.7 240,177.2 270,177.9 300,178.3 330,178.5 360,178.5 390,178.6" fill="none" class="unit" stroke-width="1.8"/>
+<g class="fill-unit"><circle cx="60" cy="42.9" r="3.5"/><circle cx="90" cy="123.2" r="3.5"/><circle cx="120" cy="153.3" r="3.5"/><circle cx="150" cy="166.5" r="3.5"/><circle cx="180" cy="172.7" r="3.5"/><circle cx="210" cy="175.7" r="3.5"/><circle cx="240" cy="177.2" r="3.5"/><circle cx="270" cy="177.9" r="3.5"/></g>
+<polyline points="60,203.6 90,183.5 120,179.7 150,178.9 180,178.7 210,178.7 240,178.6" fill="none" class="accent" stroke-width="1.8"/>
+<g class="fill-accent"><circle cx="60" cy="203.6" r="3.5"/><circle cx="90" cy="183.5" r="3.5"/><circle cx="120" cy="179.7" r="3.5"/><circle cx="150" cy="178.9" r="3.5"/></g>
+<g font-size="11" text-anchor="middle"><text x="60" y="226">1</text><text x="150" y="226">4</text><text x="240" y="226">7</text><text x="330" y="226">10</text><text x="390" y="226">12</text></g>
+<text x="225" y="238" font-size="11" text-anchor="middle" class="soft">m</text>
+<text x="150" y="100" font-size="12" class="unit">Pₘ, from above</text>
+<text x="160" y="198" font-size="12" class="accent halo">Pₘ(1 − 2⁻ᵐ), from below</text>
+<text x="398" y="170" font-size="12" text-anchor="end" class="alt">0.2888</text>
+</svg>
+        <p class="cap">The two sequences squeeze the limit; by $m = 6$ they are within $0.005$ of it.</p>
+      </div>
+      <p class="small"><b>Check</b>: $P_3 = \tfrac{21}{64}$ is the chance that three samples are independent at $n = 4$; and every $P_m$ exceeds $0.2888 &gt; \tfrac14$ ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each row, computed.</b> $P_5 = \tfrac{21}{64}\cdot\tfrac{15}{16}\cdot\tfrac{31}{32} = \tfrac{9765}{32768} = 0.298004$. $P_{10} = 0.2890703$;
+    $P_{10}(1 - 2^{-10}) = 0.2890703\times0.9990234 = 0.2887880$. $P_{20} = 0.28878837$ and $P_{20}(1 - 2^{-20}) = 0.28878810$. The limit is
+    $0.2887880951\ldots$ All were computed in exact or double-precision arithmetic.</p>
+    <p><b>Why "decreasing and positive" is not yet enough.</b> It shows the limit exists, but a decreasing positive sequence can
+    converge to $0$ — the product $\prod(1 - \tfrac1{k+1})$ does, since its partial products are $\tfrac1{m+1}$. What keeps this limit away
+    from $0$ is that $\sum 2^{-k}$ converges; the next slide turns that into the lower bound in the last column.</p>
+    <p><b>A name for the number.</b> $\prod_{k\ge1}(1 - 2^{-k})$ is the probability that a large random square matrix over
+    $\mathbb F_2$ is invertible; it is also the value at $q = \tfrac12$ of Euler's function $\prod_k(1 - q^k)$. Neither fact is
+    needed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · how many runs</p>
+  <h2>The tail, and why the limit is 0.2888</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">the <span class="term">Weierstrass product inequality</span></span>
+        <p class="small">For $a_1, \dots, a_r\in[0, 1]$: $\ \prod_{k=1}^{r}(1 - a_k) \ \ge\ 1 - \sum_{k=1}^{r}a_k$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, by induction on $r$</span>
+        <p class="small">$r = 1$ is equality. If it holds for $r$, write $A = \sum_{k\le r}a_k$ and multiply both sides by $1 - a_{r+1}\ge0$:</p>
+        $$\begin{aligned}\textstyle\prod_{k\le r+1}(1 - a_k) &amp;\ge (1 - A)(1 - a_{r+1})\\ &amp;= 1 - A - a_{r+1} + a_{r+1}A,\end{aligned}$$
+        <p class="small">and $a_{r+1}A\ge 0$. ∎</p>
+      </div>
+      <p class="small"><b>Check</b>, $a_k = 2^{-k}$, $r = 2$: $\tfrac12\cdot\tfrac34 = \tfrac38 \ge 1 - \tfrac12 - \tfrac14 = \tfrac14$ ✓.</p>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">the tail bound</span>
+        $$P_m\,(1 - 2^{-m}) \ \le\ P_\infty \ \le\ P_m .$$
+        <p class="small">Proof: $P_\infty = P_m\cdot\prod_{k&gt;m}(1 - 2^{-k})$, and the tail product lies between $1 - \sum_{k&gt;m}2^{-k} = 1 - 2^{-m}$ and $1$.</p>
+      </div>
+      <table class="dense">
+        <thead><tr><th>$m$</th><th class="num">lower, $P_m(1 - 2^{-m})$</th><th class="num">upper, $P_m$</th></tr></thead>
+        <tbody><tr><td>10</td><td class="num">0.2887880</td><td class="num">0.2890703</td></tr>
+        <tr><td>20</td><td class="num">0.2887881</td><td class="num">0.2887884</td></tr></tbody>
+      </table>
+      <p class="small">So</p>
+      $$P_\infty = 0.2888 \text{ to four places.}$$
+      <p class="small"><b>Above a quarter.</b> $m = 2$: $P_\infty \ge \tfrac38\cdot\tfrac34 = \tfrac9{32} = 0.28125 &gt; \tfrac14$. So for <b>every</b> $n$, $n - 1$ runs give a basis with probability more than $\tfrac14$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The infinite tail.</b> The inequality is for finite products; apply it to $\prod_{k=m+1}^{R}(1 - 2^{-k}) \ge 1 - \sum_{k=m+1}^R2^{-k} \ge 1 - 2^{-m}$ for every
+    $R$, then let $R\to\infty$ (the partial products decrease to the infinite product, and a limit of numbers $\ge c$ is $\ge c$).
+    The geometric sum is $\sum_{k&gt;m}2^{-k} = 2^{-m}(\tfrac12 + \tfrac14 + \cdots) = 2^{-m}$.</p>
+    <p><b>Why $P_m$ bounds every $p_{n-1}$ from below too.</b> The probability that $n - 1$ samples are independent is $P_{n-1}$,
+    and $P_{n-1}\ge P_\infty$ because the sequence decreases. So the statement "more than $0.2888$, for every $n$" is exact, not
+    asymptotic: at $n = 3$ it is $0.375$, at $n = 6$ it is $0.298$, and it never goes below the limit.</p>
+    <p><b>The history of the inequality.</b> It is elementary and goes back to Weierstrass's work on infinite products; the
+    form with $\ge 1 - \sum a_k$ is sometimes called the Weierstrass inequality or the union bound in disguise — indeed, for
+    independent events $A_k$ of probabilities $a_k$, it says $P(\text{none of the }A_k)\ge 1 - \sum P(A_k)$, which is the union
+    bound.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · how many runs</p>
+  <h2>Expected runs: fewer than $n + 1$</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Run until the samples have rank $n - 1$. The expected number of runs $T$ is</p>
+        $$\mathbb E[T] = \sum_{k=1}^{n-1}\frac1{1 - 2^{-k}} \ &lt;\ n + 1 .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Split $T$ into stages: $T_j$ runs to go from rank $j$ to $j + 1$. Each run in stage $j$ succeeds independently with probability $q_j = 1 - 2^{j-(n-1)}$, so $T_j$ is a <span class="term">geometric waiting time</span> with $\mathbb E[T_j] = 1/q_j$. Sum by linearity; put $k = n - 1 - j$. Then $\frac1{1 - 2^{-k}} = 1 + \frac1{2^k - 1} \le 1 + 2^{1-k}$, and $\sum_{k=1}^{n-1}2^{1-k} &lt; 2$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 150" width="530" role="img" aria-label="a horizontal bar of length 5.54 runs for n equals 5, split into four stages of lengths 1.07, 1.14, 1.33 and 2; tick marks at n minus 1 equals 4 and n plus 1 equals 6">
+<line x1="30" y1="96" x2="420" y2="96" class="ink" stroke-width="1.2"/>
+<g font-size="11" text-anchor="middle"><text x="30" y="112">0</text><text x="90" y="112">1</text><text x="150" y="112">2</text><text x="210" y="112">3</text><text x="270" y="112">4</text><text x="330" y="112">5</text><text x="390" y="112">6</text></g>
+<g class="ink" stroke-width="1"><line x1="90" y1="92" x2="90" y2="100"/><line x1="150" y1="92" x2="150" y2="100"/><line x1="210" y1="92" x2="210" y2="100"/><line x1="270" y1="92" x2="270" y2="100"/><line x1="330" y1="92" x2="330" y2="100"/><line x1="390" y1="92" x2="390" y2="100"/></g>
+<rect x="30" y="50" width="64" height="30" class="fill-soft unit" stroke-width="1.4"/>
+<rect x="94" y="50" width="68.6" height="30" class="fill-soft unit" stroke-width="1.4"/>
+<rect x="162.6" y="50" width="80" height="30" class="fill-soft unit" stroke-width="1.4"/>
+<rect x="242.6" y="50" width="120" height="30" class="fill-soft unit" stroke-width="1.4"/>
+<g font-size="11" text-anchor="middle"><text x="62" y="70">16/15</text><text x="128" y="70">16/14</text><text x="203" y="70">16/12</text><text x="303" y="70">16/8</text></g>
+<line x1="270" y1="30" x2="270" y2="96" class="accent" stroke-width="1.4" stroke-dasharray="4 3"/><text x="270" y="24" font-size="12" text-anchor="middle" class="accent">n − 1</text>
+<line x1="390" y1="30" x2="390" y2="96" class="warn" stroke-width="1.4" stroke-dasharray="4 3"/><text x="390" y="24" font-size="12" text-anchor="middle" class="warn">n + 1</text>
+<text x="363" y="45" font-size="12" text-anchor="middle" class="unit">5.54</text>
+<text x="225" y="138" font-size="12" text-anchor="middle" class="soft">expected runs per stage, n = 5: the last stage costs 2</text>
+</svg>
+        <p class="cap">$n = 5$: $\tfrac{16}{15} + \tfrac{16}{14} + \tfrac{16}{12} + \tfrac{16}8 = 5.543$, between $n - 1 = 4$ and $n + 1 = 6$.</p>
+      </div>
+      <p class="small"><b>Check</b>, $n = 3$ (<span class="ref" data-ref="solve">running example</span>): $\tfrac1{1/2} + \tfrac1{3/4} = 2 + \tfrac43 = \tfrac{10}3 = 3.33 &lt; 4$ ✓. And $n = 100$: $\mathbb E[T] = 100.61$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Let $T_j$ be the number of runs made while the rank is $j$, for $j = 0, \dots, n-2$. While the rank is $j$
+    the held rows span $2^j$ of the $2^{n-1}$ elements of $s^\perp$, and each new run, independent of everything before it, is
+    outside that span with probability $q_j = 1 - 2^{j-(n-1)}$. So $P(T_j = t) = (1 - q_j)^{t-1}q_j$ for $t\ge1$, whose mean is
+    $\sum_tt(1 - q_j)^{t-1}q_j = 1/q_j$ (differentiate the geometric series). $T = \sum_jT_j$, and expectation is linear —
+    no independence between the $T_j$ is needed for that.</p>
+    <p><b>The bound.</b> $2^k - 1\ge 2^{k-1}$ for $k\ge1$, so $\frac1{2^k - 1}\le 2^{1-k}$. Then
+    $\mathbb E[T]\le\sum_{k=1}^{n-1}(1 + 2^{1-k}) = (n - 1) + 2(1 - 2^{-(n-1)}) &lt; n + 1$. The exact excess over $n - 1$
+    tends to $\sum_{k\ge1}\frac1{2^k - 1} = 1.6067$, so $\mathbb E[T]\approx n + 0.607$ for large $n$; at $n = 100$ it is $100.607$.</p>
+    <p><b>Why the bound is not $n - 1$.</b> The last stage is the expensive one: with the span already half of $s^\perp$, each
+    run is a coin flip, and costs $2$ on average. The early stages cost barely more than 1 each.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · how many runs</p>
+  <h2>The quantum upper bound</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">Simon's problem has quantum query complexity $O(n)$:</p>
+        <ul class="small">
+          <li><b>zero error</b>, a <span class="term">Las Vegas algorithm</span>: running until rank $n - 1$ returns $s$ with certainty, after fewer than $n + 1$ queries on average;</li>
+          <li><b>bounded error</b>: stopping after $3(n + 1)$ runs fails with probability below $\tfrac13$.</li>
+        </ul>
+        <p class="small">With a polynomial-size circuit for $f$, the whole algorithm runs in polynomial time: $O(n)$ circuits of $O(n)$ gates plus the oracle, and $O(n^3)$ bit operations of elimination.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Correctness: at rank $n - 1$ the solution is $s$ (section 3). Mean: previous slide. Markov's inequality: $P(T\ge3(n + 1))\le\mathbb E[T]/3(n + 1) &lt; \tfrac13$. ∎</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 260" width="400" role="img" aria-label="a flowchart: run the circuit to get y; reduce y against the rows; if the rank is below n minus 1 loop back to run again; otherwise back-substitute and output s">
+<rect x="110" y="10" width="200" height="38" rx="6" class="fill-ground unit" stroke-width="1.8"/><text x="210" y="34" font-size="14" text-anchor="middle">run the circuit → y</text>
+<line x1="210" y1="48" x2="210" y2="70" class="ink" stroke-width="1.4"/><polygon points="210,76 205,66 215,66" class="fill-ink"/>
+<rect x="110" y="76" width="200" height="38" rx="6" class="fill-ground ink" stroke-width="1.4"/><text x="210" y="100" font-size="14" text-anchor="middle">reduce y against rows</text>
+<line x1="210" y1="114" x2="210" y2="136" class="ink" stroke-width="1.4"/><polygon points="210,142 205,132 215,132" class="fill-ink"/>
+<polygon points="210,142 290,172 210,202 130,172" class="fill-ground accent" stroke-width="1.8"/><text x="210" y="177" font-size="14" text-anchor="middle">rank n − 1?</text>
+<line x1="130" y1="172" x2="60" y2="172" class="ink" stroke-width="1.4"/><line x1="60" y1="172" x2="60" y2="29" class="ink" stroke-width="1.4"/><line x1="60" y1="29" x2="104" y2="29" class="ink" stroke-width="1.4"/><polygon points="110,29 100,24 100,34" class="fill-ink"/>
+<text x="70" y="164" font-size="12" class="soft">no</text>
+<line x1="210" y1="202" x2="210" y2="214" class="ink" stroke-width="1.4"/><polygon points="210,220 205,210 215,210" class="fill-ink"/>
+<text x="220" y="214" font-size="12" class="soft">yes</text>
+<rect x="110" y="220" width="200" height="36" rx="6" class="fill-soft good" stroke-width="1.8"/><text x="210" y="243" font-size="14" text-anchor="middle">back-substitute: output s</text>
+<text x="330" y="100" font-size="12" class="soft">O(n²) bit ops</text><text x="330" y="34" font-size="12" class="soft">1 query</text>
+</svg>
+        <p class="cap">The whole algorithm. The loop runs fewer than $n + 1$ times on average.</p>
+      </div>
+      <p class="small"><b>Check</b> on the <span class="ref" data-ref="solve">running example</span>: rank 2 is reached after $\tfrac{10}3$ runs on average, and then the output is $110$ ✓.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Zero error, but a random running time.</b> Under the promise the loop always ends (rank $n - 1$ is reached with
+    probability 1, since each stage ends with probability 1), and when it ends the answer is right. Such an algorithm — always
+    right, random cost — is a Las Vegas algorithm. Cutting it off at a fixed budget and accepting a
+    small failure probability makes it a Monte Carlo algorithm, the bounded-error kind the query model of unit 13 counts.</p>
+    <p><b>Markov's inequality</b> (background): for a nonnegative random variable, $P(T\ge a)\le\mathbb E[T]/a$. With
+    $a = 3(n + 1)$ and $\mathbb E[T] &lt; n + 1$ the bound is below $\tfrac13$. A sharper budget: in blocks of $n - 1$ runs,
+    each block independently gives a basis with probability above $0.2888$, so $k$ blocks all fail with probability below
+    $0.7112^k$; four blocks already fail with probability below $0.26$.</p>
+    <p><b>Without the promise.</b> If $f$ might violate the promise, a candidate $s$ can be checked with two classical
+    queries, $f(0^n) = f(s)$; problem P7 builds the zero-error version that also survives a broken promise, and P10 the
+    one-to-one versus two-to-one test.</p>
+    <p><b>An exact algorithm exists.</b> Brassard and Høyer (1997, cited on the sheet) modify each run so that every sample is
+    guaranteed new: $O(n)$ queries, zero error, worst-case bound. Not needed here.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>The classical lower bound</h2>
+  <p>A classical algorithm learns nothing about $s$ until two of its queries collide, and $q$ queries make a collision with probability about $q^2/2^{n+1}$.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the classical lower bound</p>
+  <h2>What a classical algorithm sees</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Each query returns a value. Until two queries return the <b>same</b> value, every answer is a value not seen before — exactly what a one-to-one function would give.</p>
+      <div class="box def"><span class="label">a <span class="term">collision</span></span>
+        <p class="small">Two queries $x\ne x'$ with $f(x) = f(x')$. Under the promise it reveals everything: $s = x\oplus x'$.</p>
+      </div>
+      <p class="small"><b>Without a collision</b>, $q$ distinct queries rule out only the $\binom q2$ differences $x_i\oplus x_j$ as candidates for $s$: had $s$ been one of them, that pair would have collided. Every other nonzero string is still possible.</p>
+      <p class="small">The algorithm's whole record — queries and answers, in order — is its <span class="term">transcript</span>. The proof shows that, without a collision, the transcript carries almost no information about $s$.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 480 250" width="540" role="img" aria-label="the running example played classically: four queries in rows, each followed by the seven candidates for s; candidates ruled out by pairs of earlier queries are struck through; the fourth query collides with the third and reveals s equals 110">
+<g font-size="12" text-anchor="middle" class="mono soft"><text x="166" y="22">001</text><text x="210" y="22">010</text><text x="254" y="22">011</text><text x="298" y="22">100</text><text x="342" y="22">101</text><text x="386" y="22">110</text><text x="430" y="22">111</text></g>
+<text x="300" y="8" font-size="11" text-anchor="middle" class="soft">candidates for s</text>
+<g font-size="13" class="mono"><text x="10" y="58">000 ↦ 101</text><text x="10" y="108">001 ↦ 010</text><text x="10" y="158">010 ↦ 000</text><text x="10" y="208">100 ↦ 000</text></g>
+<g class="fill-unit"><circle cx="166" cy="54" r="7"/><circle cx="210" cy="54" r="7"/><circle cx="254" cy="54" r="7"/><circle cx="298" cy="54" r="7"/><circle cx="342" cy="54" r="7"/><circle cx="386" cy="54" r="7"/><circle cx="430" cy="54" r="7"/></g>
+<circle cx="166" cy="104" r="7" fill="none" class="warn" stroke-width="1.5"/><line x1="156" y1="114" x2="176" y2="94" class="warn" stroke-width="2"/>
+<g class="fill-unit"><circle cx="210" cy="104" r="7"/><circle cx="254" cy="104" r="7"/><circle cx="298" cy="104" r="7"/><circle cx="342" cy="104" r="7"/><circle cx="386" cy="104" r="7"/><circle cx="430" cy="104" r="7"/></g>
+<circle cx="166" cy="154" r="7" fill="none" class="warn" stroke-width="1.5"/><circle cx="210" cy="154" r="7" fill="none" class="warn" stroke-width="1.5"/><line x1="200" y1="164" x2="220" y2="144" class="warn" stroke-width="2"/><circle cx="254" cy="154" r="7" fill="none" class="warn" stroke-width="1.5"/><line x1="244" y1="164" x2="264" y2="144" class="warn" stroke-width="2"/>
+<g class="fill-unit"><circle cx="298" cy="154" r="7"/><circle cx="342" cy="154" r="7"/><circle cx="386" cy="154" r="7"/><circle cx="430" cy="154" r="7"/></g>
+<rect x="370" y="190" width="32" height="30" rx="5" class="fill-soft good" stroke-width="2"/><circle cx="386" cy="205" r="7" class="fill-good"/>
+<text x="355" y="210" font-size="13" text-anchor="end" class="good">collision: s = 010 ⊕ 100 = 110 →</text>
+<text x="250" y="244" font-size="12" text-anchor="middle" class="soft">after 3 queries: 3 of 7 candidates ruled out; the 4th query collides</text>
+</svg>
+        <p class="cap">The <span class="ref" data-ref="coll">running example</span>, played classically: queries $000, 001, 010, 100$. The fourth answer repeats the third, so $s = 010\oplus100 = 110$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading the figure.</b> After $000$ and $001$, the candidate $000\oplus001 = 001$ is ruled out: if $s$ were $001$,
+    those two queries would have returned the same value, and they did not. After $010$, two more: $000\oplus010 = 010$ and
+    $001\oplus010 = 011$. The fourth query $100$ returns $000$, the value already returned by $010$: a collision, and the
+    promise says the colliding inputs differ by $s$.</p>
+    <p><b>Here the classical algorithm wins quickly.</b> At $n = 3$ there are only seven candidates, and problem P9 shows that
+    these four queries find $s$ for <i>every</i> $s$: if no collision occurs, the six differences of the four queries are
+    $001, 010, 011, 100, 101, 110$, so $s = 111$. The separation is asymptotic; at $n = 3$ there is none worth the name.</p>
+    <p><b>Why "almost no information".</b> Without a collision the answers are distinct values, and which distinct values
+    appear is (by the lazy-sampling lemma two slides on) a uniformly random choice made independently of $s$. The only thing the
+    transcript says about $s$ is "not one of these $\binom q2$ differences".</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the classical lower bound</p>
+  <h2>From randomised to deterministic: averaging</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label"><span class="term">Yao's principle</span>, the easy direction</span>
+        <p class="small">If a randomised algorithm with $q$ queries succeeds with probability $\ge\tfrac23$ on <b>every</b> valid input, then for any probability distribution $\mu$ on inputs, some <b>deterministic</b> algorithm with $q$ queries succeeds with probability $\ge\tfrac23$ when the input is drawn from $\mu$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The randomised algorithm picks a tree $D$ with probability $p_D$. Then $\sum_\mu\mu(f)\sum_Dp_D[D\text{ right on }f]\ge\tfrac23$. Swap the sums: $\sum_Dp_D\,\Pr_\mu[D\text{ right}]\ge\tfrac23$, so some $D$ has $\Pr_\mu[D\text{ right}]\ge\tfrac23$. ∎</p>
+      </div>
+      <p class="small"><b>So</b>: to show every randomised algorithm needs many queries, pick one hard distribution $\mu$ and show every deterministic algorithm fails on it.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 230" width="500" role="img" aria-label="a grid with three rows, deterministic trees, and six columns, inputs; filled cells mark success; every column has two of three cells filled, and so every row averages four of six, at least one row reaching two thirds">
+<g font-size="12" text-anchor="middle" class="soft"><text x="128" y="30">f₁</text><text x="164" y="30">f₂</text><text x="200" y="30">f₃</text><text x="236" y="30">f₄</text><text x="272" y="30">f₅</text><text x="308" y="30">f₆</text></g>
+<g font-size="13" text-anchor="end"><text x="100" y="60">D₁</text><text x="100" y="96">D₂</text><text x="100" y="132">D₃</text></g>
+<g class="fill-unit">
+<rect x="112" y="40" width="32" height="30"/><rect x="148" y="40" width="32" height="30"/><rect x="220" y="40" width="32" height="30"/><rect x="256" y="40" width="32" height="30"/>
+<rect x="112" y="76" width="32" height="30"/><rect x="184" y="76" width="32" height="30"/><rect x="220" y="76" width="32" height="30"/><rect x="292" y="76" width="32" height="30"/>
+<rect x="148" y="112" width="32" height="30"/><rect x="184" y="112" width="32" height="30"/><rect x="256" y="112" width="32" height="30"/><rect x="292" y="112" width="32" height="30"/>
+</g>
+<g fill="none" class="rule" stroke-width="1">
+<rect x="184" y="40" width="32" height="30"/><rect x="292" y="40" width="32" height="30"/><rect x="148" y="76" width="32" height="30"/><rect x="256" y="76" width="32" height="30"/><rect x="112" y="112" width="32" height="30"/><rect x="220" y="112" width="32" height="30"/>
+</g>
+<g font-size="12" class="accent"><text x="334" y="60">4/6</text><text x="334" y="96">4/6</text><text x="334" y="132">4/6</text></g>
+<g font-size="12" text-anchor="middle" class="unit"><text x="128" y="162">⅔</text><text x="164" y="162">⅔</text><text x="200" y="162">⅔</text><text x="236" y="162">⅔</text><text x="272" y="162">⅔</text><text x="308" y="162">⅔</text></g>
+<text x="210" y="190" font-size="12" text-anchor="middle" class="soft">columns: each input is solved with probability ⅔</text>
+<text x="210" y="210" font-size="12" text-anchor="middle" class="soft">rows: so some tree is right on ⅔ of the inputs</text>
+</svg>
+        <p class="cap">Equal weights, for the picture: averaging the grid by columns or by rows gives the same total, $12$ of $18$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> A randomised query algorithm with $q$ queries is a probability distribution $(p_D)$ over deterministic
+    trees $D$ of depth at most $q$ (unit 13). Write $c(D, f) = 1$ if $D$ outputs the right answer on $f$ and $0$ otherwise.
+    Correctness says $\sum_Dp_Dc(D, f)\ge\tfrac23$ for every valid $f$. Multiply by $\mu(f)$ and sum over $f$ (the weights sum
+    to 1): $\sum_f\mu(f)\sum_Dp_Dc(D,f)\ge\tfrac23$. Both sums are finite, so they can be exchanged:
+    $\sum_Dp_D\big(\sum_f\mu(f)c(D, f)\big)\ge\tfrac23$. A weighted average of the numbers $\sum_f\mu(f)c(D,f)$ that is at least
+    $\tfrac23$ has at least one term at least $\tfrac23$.</p>
+    <p><b>The name.</b> A. C.-C. Yao, "Probabilistic computations: toward a unified measure of complexity", <i>Proc. 18th
+    FOCS</i>, 1977, 222–227, proved that the best a randomised algorithm can guarantee equals the best a deterministic one can
+    do against the worst distribution — a minimax theorem. Only the inequality proved here is needed, and it is just an exchange of
+    two finite sums.</p>
+    <p><b>The hard distribution for Simon.</b> $s$ uniform on the $2^n - 1$ nonzero strings; given $s$, $f$ uniform among the
+    functions satisfying the promise with that $s$. Next slide: how such an $f$ answers queries.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the classical lower bound</p>
+  <h2>A random Simon function, sampled lazily</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma (<span class="term">lazy sampling</span>)</span>
+        <p class="small">Fix $s$; let $f$ be uniform among functions with XOR-period $s$. Against any deterministic algorithm, the answer to a new query $x$, given the answers so far, is</p>
+        <ul class="small">
+          <li>$f(x')$, if an earlier query $x'$ has $x = x'\oplus s$;</li>
+          <li>otherwise <b>uniform over the values not yet returned</b>.</li>
+        </ul>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$f$ is a uniform injective assignment of values to the $2^{n-1}$ pairs. Given its values on some pairs, each unused value is equally likely on a new pair: each leaves the same number of ways to finish. ∎</p>
+      </div>
+      <p class="small">The <span class="term">free oracle</span> answers <b>every</b> new query with a fresh uniform unused value, ignoring $s$: a random one-to-one function.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 210" width="560" role="img" aria-label="two rows of answer boxes for queries one to five: the real oracle and the free oracle; they agree on queries one to three; at query four, which is query two XOR s, the real oracle repeats a two while the free oracle gives a fresh a four; after that the runs may differ">
+<text x="10" y="64" font-size="13">real (period s)</text><text x="10" y="144" font-size="13">free (fresh values)</text>
+<g font-size="12" text-anchor="middle" class="soft"><text x="166" y="24">x₁</text><text x="222" y="24">x₂</text><text x="278" y="24">x₃</text><text x="334" y="24">x₄</text><text x="390" y="24">x₅</text></g>
+<g class="fill-ground unit" stroke-width="1.6"><rect x="146" y="42" width="40" height="32" rx="4"/><rect x="202" y="42" width="40" height="32" rx="4"/><rect x="258" y="42" width="40" height="32" rx="4"/></g>
+<g class="fill-ground unit" stroke-width="1.6"><rect x="146" y="122" width="40" height="32" rx="4"/><rect x="202" y="122" width="40" height="32" rx="4"/><rect x="258" y="122" width="40" height="32" rx="4"/></g>
+<rect x="314" y="42" width="40" height="32" rx="4" class="fill-soft warn" stroke-width="2"/><rect x="314" y="122" width="40" height="32" rx="4" class="fill-ground accent" stroke-width="2"/>
+<rect x="370" y="42" width="40" height="32" rx="4" fill="none" class="rule" stroke-width="1.4" stroke-dasharray="4 3"/><rect x="370" y="122" width="40" height="32" rx="4" fill="none" class="rule" stroke-width="1.4" stroke-dasharray="4 3"/>
+<g font-size="14" text-anchor="middle"><text x="166" y="63">a₁</text><text x="222" y="63">a₂</text><text x="278" y="63">a₃</text><text x="334" y="63" class="warn">a₂</text><text x="390" y="63" class="soft">…</text>
+<text x="166" y="143">a₁</text><text x="222" y="143">a₂</text><text x="278" y="143">a₃</text><text x="334" y="143" class="accent">a₄</text><text x="390" y="143" class="soft">…</text></g>
+<g font-size="16" text-anchor="middle" class="good"><text x="166" y="104">=</text><text x="222" y="104">=</text><text x="278" y="104">=</text></g>
+<text x="334" y="104" font-size="16" text-anchor="middle" class="warn">≠</text>
+<text x="300" y="190" font-size="12" text-anchor="middle" class="soft">identical until a query is an earlier one ⊕ s (here x₄ = x₂ ⊕ s)</text>
+</svg>
+        <p class="cap">Drive both oracles with the same fresh values: the transcripts agree up to the first collision, and the free one never sees $s$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof of the lemma.</b> A function with XOR-period $s$ is the same thing as an injective map $g$ from the set
+    $\mathcal P$ of $2^{n-1}$ pairs into $\{0,1\}^n$ ($f(x) = g(\text{pair of }x)$); "uniform" means each of the
+    $(2^n)!/(2^n - 2^{n-1})!$ injections is equally likely. Suppose the values on $c$ pairs are known to be $v_1, \dots, v_c$
+    (distinct), and $P$ is another pair. For an unused value $u$, the injections with those $c$ values and $g(P) = u$ number
+    $(2^n - c - 1)!/(2^n - 2^{n-1})!$ — the same for every $u$. So conditionally $g(P)$ is uniform on the $2^n - c$ unused values.
+    A deterministic algorithm's next query is a function of the answers so far, so conditioning on the transcript is
+    conditioning on $g$'s values at the queried pairs: the lemma follows. A repeated query, or one in a pair already queried,
+    is answered by the first bullet.</p>
+    <p><b>The coupling, precisely.</b> Fix the algorithm; assume it never repeats a query (a repeat is answered from memory at no
+    cost). Draw the fresh values $u_1, u_2, \dots$ once: $u_t$ uniform among the values not among the first $t - 1$ answers.
+    The free oracle answers query $t$ with $u_t$. The real oracle answers with $u_t$ unless query $t$ is $x_i\oplus s$ for an
+    earlier $x_i$, in which case it repeats $x_i$'s answer. (Up to the first such repeat the two runs have returned the same
+    answers, so "values not yet returned" means the same set for both; after it, the real run draws its own fresh values,
+    and nothing below looks past that point.) By the lemma the real oracle so defined has exactly the distribution
+    of a uniform Simon function with period $s$. The two runs make identical queries and receive identical answers up to the
+    first such $t$, since each query is determined by the earlier answers.</p>
+    <p><b>The name.</b> "Lazy sampling" is the cryptographers' term: instead of choosing the whole random function in advance,
+    choose each value only when it is first asked for. It is standard in the analysis of hash functions and block ciphers.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the classical lower bound</p>
+  <h2>The collision bound</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (the <span class="term">collision bound</span>)</span>
+        <p class="small">Draw $s$ uniformly from the $2^n - 1$ nonzero strings and $f$ uniformly with period $s$. A deterministic algorithm making $q$ queries finds a collision with probability at most $\binom q2\big/(2^n - 1)$, and outputs $s$ with probability at most</p>
+        $$\frac{\binom q2 + 1}{2^n - 1}.$$
+      </div>
+      <p class="small"><b>Check</b>, $q = 1$: no collision is possible, and the bound $\tfrac1{2^n - 1}$ is a blind guess among the nonzero strings ✓.</p>
+    </div>
+    <div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>1.</b> Run the algorithm against the free oracle. Its queries $X_1, \dots, X_q$ and its output $\hat s$ depend only on the fresh values, so they are <b>independent of $s$</b>.</p>
+        <p class="small"><b>2.</b> The real run collides iff some $X_j = X_i\oplus s$, i.e. iff $s\in D = \{X_i\oplus X_j : i &lt; j\}$. Since $|D|\le\binom q2$ and $s$ is uniform on $2^n - 1$ strings independently of $D$: $P(\text{collision})\le\binom q2/(2^n - 1)$.</p>
+        <p class="small"><b>3.</b> With no collision the real output is $\hat s$, and $P(\hat s = s)\le\frac1{2^n - 1}$ by independence.</p>
+        <p class="small"><b>4.</b> $P(\text{output } s)\le P(\text{collision}) + P(\hat s = s)$. ∎</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof, step 2.</b> By the coupling, the real and free runs agree up to the first index $t$ at which $X_t = X_i\oplus s$
+    for some $i &lt; t$; if there is no such $t\le q$, they agree throughout, and the real run sees $q$ distinct values — no
+    collision. If there is such a $t$, the real run's $t$-th answer repeats the $i$-th: a collision. So the event "the real run
+    collides" equals the event "$s\in D$", with $D$ computed from the free run. The free queries are distinct, so every element
+    of $D$ is nonzero; $D$ is a random set, but independent of $s$, so conditioning on $D$:
+    $P(s\in D\mid D) = |D|/(2^n - 1)\le\binom q2/(2^n - 1)$. Average over $D$.</p>
+    <p><b>Step 3.</b> On the event "no collision" the two runs agree throughout, so the real output equals $\hat s$. Hence
+    $\{\text{real output} = s\}\subseteq\{\text{collision}\}\cup\{\hat s = s\}$. Since $\hat s$ is independent of $s$ and $s$ is
+    uniform on the nonzero strings, $P(\hat s = s) = \sum_tP(\hat s = t)P(s = t)\le\frac1{2^n - 1}$.</p>
+    <p><b>The decision version.</b> The same argument bounds how well $q$ queries can tell a random two-to-one $f$ from a random
+    one-to-one $f$: the one-to-one function <i>is</i> the free oracle, so the two transcripts differ only on the collision event,
+    and the advantage is at most $\binom q2/(2^n - 1)$. This is the form in Simon's paper.</p>
+    <p><b>A slightly sharper count.</b> Conditioning on the absence of a collision, $s$ is uniform on the nonzero strings outside
+    $D$, of which there are at least $2^n - 1 - \binom q2$; using that instead of step 4's union gives the same order. The
+    constant does not matter for $\Omega(2^{n/2})$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the classical lower bound</p>
+  <h2>$\Omega(2^{n/2})$, and a matching upper bound</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">corollary (Simon, 1994)</span>
+        <p class="small">Every randomised algorithm that finds $s$ with probability $\ge\tfrac23$ on every valid $f$ makes</p>
+        $$q \ \ge\ \sqrt{\tfrac43(2^n - 1) - 2}\ \approx\ 1.15\cdot2^{n/2}$$
+        <p class="small">queries. So the randomised query complexity is $\Omega(2^{n/2})$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Averaging gives a deterministic algorithm with success $\ge\tfrac23$ on the hard distribution; the collision bound gives $\big(\binom q2 + 1\big)/(2^n - 1)\ge\tfrac23$, i.e. $q^2 &gt; q(q - 1)\ge\tfrac43(2^n - 1) - 2$. ∎</p>
+      </div>
+      <p class="small"><b>Tight.</b> Classically, $O(2^{n/2})$ queries do suffice: for even $n$, query every $(a, 0)$ and $(0, b)$ with $a, b$ of length $n/2$. Two of them differ by $s$, so a collision is certain. The square root is the <span class="term">birthday bound</span>.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 250" width="430" role="img" aria-label="queries needed against n on a logarithmic axis from 1 to 10 to the 15: the quantum expected count, about n plus 0.6, stays near 100; the classical lower bound rises as a straight line to 1.3 times 10 to the 15 at n equals 100">
+<line x1="60" y1="210" x2="420" y2="210" class="ink" stroke-width="1.2"/><line x1="60" y1="30" x2="60" y2="210" class="ink" stroke-width="1.2"/>
+<g class="rule" stroke-width="0.8" stroke-dasharray="3 3"><line x1="60" y1="155" x2="420" y2="155"/><line x1="60" y1="100" x2="420" y2="100"/><line x1="60" y1="45" x2="420" y2="45"/></g>
+<g font-size="11" text-anchor="end"><text x="54" y="214">1</text><text x="54" y="159">10⁵</text><text x="54" y="104">10¹⁰</text><text x="54" y="49">10¹⁵</text></g>
+<g font-size="11" text-anchor="middle"><text x="60" y="226">0</text><text x="150" y="226">25</text><text x="240" y="226">50</text><text x="330" y="226">75</text><text x="420" y="226">100</text></g>
+<text x="240" y="244" font-size="12" text-anchor="middle" class="soft">n</text>
+<polyline points="67.2,206.0 74.4,202.7 81.6,199.4 88.8,196.1 96.0,192.8 103.2,189.4 110.4,186.1 117.6,182.8 124.8,179.5 132.0,176.2 139.2,172.9 146.4,169.6 153.6,166.3 160.8,163.0 168.0,159.6 175.2,156.3 182.4,153.0 189.6,149.7 196.8,146.4 204.0,143.1 211.2,139.8 218.4,136.5 225.6,133.2 232.8,129.8 240.0,126.5 247.2,123.2 254.4,119.9 261.6,116.6 268.8,113.3 276.0,110.0 283.2,106.7 290.4,103.4 297.6,100.0 304.8,96.7 312.0,93.4 319.2,90.1 326.4,86.8 333.6,83.5 340.8,80.2 348.0,76.9 355.2,73.5 362.4,70.2 369.6,66.9 376.8,63.6 384.0,60.3 391.2,57.0 398.4,53.7 405.6,50.4 412.8,47.1 420.0,43.7" fill="none" class="warn" stroke-width="2"/>
+<polyline points="67.2,206.7 74.4,202.8 81.6,201.0 88.8,199.7 96.0,198.7 103.2,197.9 110.4,197.2 117.6,196.6 124.8,196.0 132.0,195.5 139.2,195.1 146.4,194.7 153.6,194.3 160.8,194.0 168.0,193.7 175.2,193.4 182.4,193.1 189.6,192.8 196.8,192.5 204.0,192.3 211.2,192.1 218.4,191.9 225.6,191.6 232.8,191.4 240.0,191.3 247.2,191.1 254.4,190.9 261.6,190.7 268.8,190.6 276.0,190.4 283.2,190.2 290.4,190.1 297.6,189.9 304.8,189.8 312.0,189.7 319.2,189.5 326.4,189.4 333.6,189.3 340.8,189.1 348.0,189.0 355.2,188.9 362.4,188.8 369.6,188.7 376.8,188.6 384.0,188.5 391.2,188.4 398.4,188.3 405.6,188.2 412.8,188.1 420.0,188.0" fill="none" class="unit" stroke-width="2"/>
+<text x="72" y="56" font-size="12" class="warn">classical, success ⅔:</text><text x="72" y="72" font-size="12" class="warn">at least 1.15 · 2^(n/2)</text>
+<text x="250" y="180" font-size="12" class="unit halo">quantum: &lt; n + 1 on average</text>
+<text x="414" y="36" font-size="11" text-anchor="end" class="warn">1.3 × 10¹⁵</text>
+</svg>
+        <p class="cap">On a log scale the classical bound is a straight line of slope $\tfrac12\log_{10}2$ per bit; the quantum count barely leaves the floor.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The algebra.</b> $\frac{\binom q2 + 1}{2^n - 1}\ge\frac23 \iff \binom q2\ge\frac23(2^n - 1) - 1 \iff q(q-1)\ge\frac43(2^n - 1) - 2$, and
+    $q^2 &gt; q(q - 1)$. For large $n$, $\sqrt{4/3} = 1.1547$. Exactly computed minima: $q\ge4$ at $n = 3$; $q\ge1\,300\,077\,228\,592\,328\approx1.30\times10^{15}$ at
+    $n = 100$. For comparison, $2^{50} = 1.13\times10^{15}$.</p>
+    <p><b>The matching upper bound, for even $n$.</b> Write strings as $(a, b)$ with halves of length $n/2$. Query all $(a, 0)$ and
+    all $(0, b)$: $2\cdot2^{n/2} - 1$ distinct strings (the zero string is in both families). For $s = (s_L, s_R)$ the two
+    queries $(s_L, 0)$ and $(0, s_R)$ differ by $s$ — when one half of $s$ is zero they are $(0,0)$ and $s$ itself — so they
+    collide. This is deterministic and always succeeds: $D(\text{Simon}) = O(2^{n/2})$, so the randomised bound is tight up to a
+    constant. A randomised alternative is the birthday paradox: about $2^{n/2}$ uniformly random queries collide with constant
+    probability.</p>
+    <p><b>The birthday bound.</b> The collision bound is the birthday paradox seen from the other side:
+    with $q$ queries there are $\binom q2\approx q^2/2$ pairs, each colliding with probability about $2^{-n}$, so collisions
+    become likely only near $q\approx2^{n/2}$ — the same square root that makes 23 people enough for a shared birthday among 365
+    days.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the classical lower bound</p>
+  <h2>Running example: $n = 3$ against $n = 100$</h2>
+  <div class="cols wide-left">
+    <div>
+      <table class="dense">
+        <thead><tr><th></th><th class="num">$n = 3$</th><th class="num">$n = 100$</th><th class="num">$n = 200$</th></tr></thead>
+        <tbody>
+          <tr><td>quantum: expected runs $\sum_{k&lt;n}\frac1{1 - 2^{-k}}$</td><td class="num">$3.33$</td><td class="num">$100.6$</td><td class="num">$200.6$</td></tr>
+          <tr><td>quantum: elimination, $\approx n^3$ bit operations</td><td class="num">$27$</td><td class="num">$10^6$</td><td class="num">$8\times10^6$</td></tr>
+          <tr><td>classical: $2^{n/2}$</td><td class="num">$2.8$</td><td class="num">$1.1\times10^{15}$</td><td class="num">$1.3\times10^{30}$</td></tr>
+          <tr><td>classical, success $\tfrac23$: at least</td><td class="num">$4$</td><td class="num">$1.3\times10^{15}$</td><td class="num">$1.5\times10^{30}$</td></tr>
+          <tr><td>at $10^9$ classical queries a second</td><td class="num">—</td><td class="num">15 days</td><td class="num">$4.6\times10^{13}$ years</td></tr>
+        </tbody>
+      </table>
+      <p class="small">At $n = 3$ there is nothing to separate: <span class="ref" data-ref="coll">four classical queries</span> always suffice (problem P9), against $3.3$ quantum ones on average. At $n = 100$ the gap is thirteen orders of magnitude; at $n = 200$ the classical cost exceeds the age of the universe, $1.4\times10^{10}$ years, three-thousandfold.</p>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">compare like with like</span>
+        <p class="small">The quantum column counts queries <b>to a quantum oracle</b>, each a circuit of the same size as one classical evaluation of $f$. The gap is in the number of evaluations, not in a claim about any particular hardware.</p>
+      </div>
+      <p class="small"><b>Where the exponent comes from.</b> A classical query learns one point of one pair; only a <b>second</b> point of the <b>same</b> pair helps, and finding one is a birthday search. A quantum run learns one linear equation on $s$ from <b>every</b> pair at once.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Each number, computed.</b> Expected quantum runs: $\tfrac{10}3 = 3.333$; $100.607$; $200.607$. Elimination: $n^3 = 27$,
+    $10^6$, $8\times10^6$. $2^{n/2}$: $2.83$, $1.126\times10^{15}$, $1.268\times10^{30}$. The success-$\tfrac23$ minimum from the
+    collision bound: $4$; $1.300\times10^{15}$; $1.464\times10^{30}$. At $10^9$ queries per second: $1.300\times10^{15}$ s$/10^9$
+    $= 1.30\times10^6$ s $= 15.0$ days; $1.464\times10^{21}$ s $= 4.64\times10^{13}$ years, against the universe's
+    $1.38\times10^{10}$.</p>
+    <p><b>An honest note on $n = 100$.</b> Fifteen days is long but not impossible for a large classical cluster; the
+    separation is about growth, and at $n = 200$ no classical machine will ever finish. Doubling $n$ squares the classical
+    cost and doubles the quantum one.</p>
+    <p><b>Why the quantum circuits are the same size.</b> Unit 10: a classical circuit of size $g$ for $f$ becomes a garbage-free
+    reversible $U_f$ of size $O(g)$. So each quantum query costs a constant factor more than a classical evaluation, and the
+    $2n$ Hadamards and $n$ meters per run are a lower-order cost.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · the classical lower bound</p>
+  <h2>What has been separated, and what has not</h2>
+  <div class="cols">
+    <div>
+      <div class="box good"><span class="label">proved</span>
+        <p class="small">In the query model: quantum $O(n)$, randomised $\Omega(2^{n/2})$, deterministic $\Omega(2^{n/2})$. Both sides are theorems, with no unproved assumption.</p>
+      </div>
+      <div class="box def"><span class="label">an <span class="term">oracle separation</span></span>
+        <p class="small">A statement that two kinds of machine differ when both are given the same black box. Simon's problem gives one between polynomial-time quantum and randomised computation, relative to the oracle $f$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box warn"><span class="label">not proved</span>
+        <p class="small">That any <b>explicit</b> function — one given as a circuit — is hard classically. With the circuit in hand, a classical algorithm may read it. If $f(x) = Mx$ for a matrix $M$ with kernel $\{0, s\}$, Gaussian elimination on $M$ finds $s$ in $O(n^3)$ time — and a structured $f$ can be easy even as a black box.</p>
+      </div>
+      <div class="box warn"><span class="label">not proved either</span>
+        <p class="small">That quantum computers beat classical ones on unrestricted computation. That would separate complexity classes, which nobody can do; an oracle separation is evidence, not proof.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>In unit 12's language</b> (unit 12 is not on this unit's path; this is a forward pointer). The classes BPP and BQP
+    can be given access to an oracle. Turning Simon's problem into a language — say, "the first bit of $s$ is 1", with a
+    family of Simon functions built into the oracle by diagonalisation — gives an oracle $O$ with
+    $\mathrm{BQP}^O\not\subseteq\mathrm{BPP}^O$ (stated here, not proved: the diagonalisation is standard, and the query bounds of this section are the whole of its content). Bernstein and Vazirani had already found a superpolynomial oracle separation
+    (recursive Fourier sampling, unit 13); Simon's was the first exponential one.</p>
+    <p><b>Why oracle separations are not proofs.</b> There are oracles relative to which P = NP and others relative to which
+    P ≠ NP (T. Baker, J. Gill and R. Solovay, <i>SIAM J. Comput.</i> 4, 431, 1975, cited): a black box can tilt a comparison either way, so a relativised statement says
+    nothing definite about the unrelativised one. What Simon's problem does say is that any proof of BPP = BQP would have to
+    use the inside of circuits, not just their input–output behaviour.</p>
+    <p><b>The linear example.</b> If $M$ is an $n\times n$ matrix over $\mathbb F_2$ with kernel exactly $\{0, s\}$, then
+    $f(x) = Mx$ satisfies the promise: $Mx = Mx'$ iff $x\oplus x'\in\ker M$. Given $M$, elimination finds $\ker M$ directly. It
+    is easy even as a black box: the $n$ queries $f(e_0), \dots, f(e_{n-1})$ on the standard basis vectors return the columns of
+    $M$, and elimination does the rest — $n$ classical queries, no collision needed. That is no contradiction. The lower bound
+    is about the <i>worst</i> Simon function, and its proof used a uniformly random one, whose values on different pairs are
+    unrelated; linearity is extra structure, and a classical algorithm exploits it. Every hard instance must lack such
+    structure, which is exactly why the separation says nothing about explicit circuits.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 6</p>
+  <h2>From Simon to Shor</h2>
+  <p>Replace $\oplus$ by $+$, $\mathbb Z_2^n$ by $\mathbb Z_N$, and the Hadamard transform by the Fourier transform: the next two units.</p>
+</section>
+
+<section>
+  <p class="eyebrow">14 · from Simon to Shor</p>
+  <h2>The paper Shor read</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>1994.</b> Daniel Simon wrote down this problem and both bounds. Peter Shor, at Bell Labs, read the paper and saw the template: a function constant on the cosets of a hidden subgroup, a Hadamard-like transform, and classical post-processing of the samples.</p>
+      <p class="small">He asked what happens over the integers, where the hidden structure is a <b>period</b> $r$ with $f(x) = f(x + r)$. That spring he found an algorithm for discrete logarithms, and then one for factoring.</p>
+      <p class="small">The two papers appeared <b>consecutively</b>: <i>FOCS 1994</i>, pages 116–123 and 124–134; and again in <i>SIAM J. Comput.</i> 26(5), 1997, pages 1474–1483 and 1484–1509.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 460 190" width="560" role="img" aria-label="a timeline from 1984 to 1998: Deutsch 1985, Deutsch and Jozsa 1992, Bernstein and Vazirani 1993, Simon and Shor 1994 side by side, and both journal versions in 1997">
+<line x1="30" y1="100" x2="440" y2="100" class="ink" stroke-width="1.4"/>
+<g class="ink" stroke-width="1"><line x1="68.6" y1="94" x2="68.6" y2="106"/><line x1="268.6" y1="94" x2="268.6" y2="106"/><line x1="297.1" y1="94" x2="297.1" y2="106"/><line x1="325.7" y1="94" x2="325.7" y2="106"/><line x1="411.4" y1="94" x2="411.4" y2="106"/></g>
+<circle cx="68.6" cy="100" r="5" class="fill-ink"/><circle cx="268.6" cy="100" r="5" class="fill-ink"/><circle cx="297.1" cy="100" r="5" class="fill-ink"/><circle cx="325.7" cy="100" r="7" class="fill-accent"/><circle cx="411.4" cy="100" r="5" class="fill-unit"/>
+<g font-size="11" text-anchor="middle"><text x="68.6" y="122">1985</text><text x="268.6" y="122">1992</text><text x="297.1" y="122">1993</text><text x="325.7" y="122">1994</text><text x="411.4" y="122">1997</text></g>
+<text x="68.6" y="84" font-size="12" text-anchor="middle">Deutsch</text>
+<text x="250" y="150" font-size="12" text-anchor="middle">Deutsch–Jozsa</text>
+<line x1="268.6" y1="106" x2="258" y2="138" class="rule" stroke-width="1"/>
+<text x="268" y="62" font-size="12" text-anchor="end">Bernstein–Vazirani</text>
+<line x1="297.1" y1="94" x2="270" y2="66" class="rule" stroke-width="1"/>
+<text x="325.7" y="40" font-size="13" text-anchor="middle" class="accent">Simon → Shor</text>
+<text x="325.7" y="58" font-size="11" text-anchor="middle" class="soft">FOCS, back to back</text>
+<line x1="325.7" y1="64" x2="325.7" y2="92" class="accent" stroke-width="1.2"/>
+<text x="411.4" y="150" font-size="12" text-anchor="middle" class="unit">SIAM J. Comput.</text>
+<text x="411.4" y="166" font-size="11" text-anchor="middle" class="soft">26(5): both</text>
+</svg>
+        <p class="cap">Before Simon, the best separation against randomised algorithms was recursive Fourier sampling's superpolynomial one (unit 13); none was exponential.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Sources.</b> D. R. Simon, "On the power of quantum computation", <i>Proc. 35th Annual Symposium on Foundations of
+    Computer Science</i> (1994), 116–123; journal version <i>SIAM J. Comput.</i> 26 (1997), 1474–1483. P. W. Shor, "Algorithms
+    for quantum computation: discrete logarithms and factoring", same proceedings, 124–134; journal version "Polynomial-time
+    algorithms for prime factorization and discrete logarithms on a quantum computer", <i>SIAM J. Comput.</i> 26 (1997),
+    1484–1509. Shor's own account of how Simon's algorithm led him to period finding is in P. W. Shor, "The early days of
+    quantum computation", arXiv:2208.09964 (2022) — cited for the history, which this deck does not need for any argument.</p>
+    <p><b>The earlier algorithms.</b> D. Deutsch, <i>Proc. R. Soc. Lond. A</i> 400 (1985), 97; D. Deutsch and R. Jozsa,
+    <i>Proc. R. Soc. Lond. A</i> 439 (1992), 553; E. Bernstein and U. Vazirani, <i>Proc. 25th STOC</i> (1993), journal version
+    <i>SIAM J. Comput.</i> 26 (1997), 1411–1473 — the same issue as Simon's and Shor's. Unit 13 did all three.</p>
+    <p><b>What Shor kept and what he changed.</b> He kept the shape: superpose, query once, transform, measure, repeat, then
+    post-process classically. He changed the group from $\mathbb Z_2^n$ to the integers (truncated to $\mathbb Z_{2^t}$), the
+    transform from $H^{\otimes n}$ to the Fourier transform over $\mathbb Z_{2^t}$, and the post-processing from Gaussian
+    elimination to continued fractions. The new difficulty is that $r$ need not divide $2^t$, so the samples are only
+    concentrated <i>near</i> the right values; unit 15's phase estimation and unit 16's continued fractions handle exactly that.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · from Simon to Shor</p>
+  <h2>Replace $\mathbb Z_2^n$ by $\mathbb Z_N$</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th></th><th>Simon (this unit)</th><th>order finding (unit 16)</th></tr></thead>
+        <tbody>
+          <tr><td>group</td><td>$\mathbb Z_2^n$, operation $\oplus$</td><td>$\mathbb Z$, truncated to $\mathbb Z_{2^t}$; operation $+$</td></tr>
+          <tr><td>promise</td><td>$f(x) = f(x\oplus s)$</td><td>$f(x) = a^x \bmod N = f(x + r)$</td></tr>
+          <tr><td>hidden</td><td>the subgroup $\{0, s\}$</td><td>the subgroup $r\mathbb Z$</td></tr>
+          <tr><td>characters</td><td>$(-1)^{x\cdot y}$, real</td><td>$e^{2\pi ixy/2^t}$, complex (unit 15)</td></tr>
+          <tr><td>transform</td><td>$H^{\otimes n}$</td><td>the quantum Fourier transform</td></tr>
+          <tr><td>one sample</td><td>$y$ uniform on $s^\perp$</td><td>$y$ near a multiple of $2^t/r$</td></tr>
+          <tr><td>post-processing</td><td>elimination over $\mathbb F_2$</td><td>continued fractions</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 240" width="430" role="img" aria-label="two circuits one above the other: Simon's, with H on n qubits, the oracle, H again and a meter; and order finding, with H on t qubits, the oracle computing a to the x mod N, the quantum Fourier transform and a meter; only the transform box differs">
+<text x="10" y="18" font-size="13" class="accent">Simon</text>
+<line x1="40" y1="45" x2="400" y2="45" class="ink" stroke-width="1.6"/><line x1="40" y1="85" x2="400" y2="85" class="ink" stroke-width="1.6"/>
+<line x1="56" y1="52" x2="64" y2="38" class="ink" stroke-width="1.2"/><text x="66" y="36" font-size="10">n</text>
+<rect x="90" y="29" width="50" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="115" y="50" font-size="13" text-anchor="middle">H⊗ⁿ</text>
+<rect x="170" y="29" width="56" height="72" rx="4" class="fill-ground ink" stroke-width="1.6"/><text x="198" y="70" font-size="14" text-anchor="middle">U<tspan font-size="10" dy="3">f</tspan></text>
+<rect x="256" y="29" width="50" height="32" class="fill-soft accent" stroke-width="2"/><text x="281" y="50" font-size="13" text-anchor="middle">H⊗ⁿ</text>
+<rect x="336" y="29" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 342 55 A 11 11 0 0 1 364 55" fill="none" class="ink" stroke-width="1.3"/><line x1="353" y1="55" x2="362" y2="36" class="ink" stroke-width="1.3"/>
+<text x="10" y="138" font-size="13" class="alt">order finding</text>
+<line x1="40" y1="165" x2="400" y2="165" class="ink" stroke-width="1.6"/><line x1="40" y1="205" x2="400" y2="205" class="ink" stroke-width="1.6"/>
+<line x1="56" y1="172" x2="64" y2="158" class="ink" stroke-width="1.2"/><text x="66" y="156" font-size="10">t</text>
+<rect x="90" y="149" width="50" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="115" y="170" font-size="13" text-anchor="middle">H⊗ᵗ</text>
+<rect x="164" y="149" width="68" height="72" rx="4" class="fill-ground ink" stroke-width="1.6"/><text x="198" y="182" font-size="12" text-anchor="middle">aˣ mod N</text>
+<rect x="256" y="149" width="50" height="32" class="fill-soft alt" stroke-width="2"/><text x="281" y="170" font-size="13" text-anchor="middle">QFT</text>
+<rect x="336" y="149" width="34" height="32" class="fill-ground ink" stroke-width="1.5"/><path d="M 342 175 A 11 11 0 0 1 364 175" fill="none" class="ink" stroke-width="1.3"/><line x1="353" y1="175" x2="362" y2="156" class="ink" stroke-width="1.3"/>
+<line x1="281" y1="64" x2="281" y2="144" class="rule" stroke-width="1.4" stroke-dasharray="4 4"/>
+<text x="290" y="112" font-size="12" class="soft">the one box that changes</text>
+</svg>
+        <p class="cap">Same shape, one box changed. Making the new box efficient is unit 15; reading its samples is unit 16.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the transform must change.</b> $H^{\otimes n}$ is the Fourier transform of the group $\mathbb Z_2^n$: its matrix
+    entries are the characters $(-1)^{x\cdot y}$, the homomorphisms from $\mathbb Z_2^n$ to $\{\pm1\}$ (unit 13). The
+    cancellation in <i>Worked: the amplitude of y, for any s</i> used exactly one property:
+    $(-1)^{(x\oplus s)\cdot y} = (-1)^{x\cdot y}(-1)^{s\cdot y}$, a character turning the group operation into
+    multiplication. For a function periodic under $+$ the same cancellation needs characters of $\mathbb Z_N$ — the complex
+    roots of unity $e^{2\pi ixy/N}$ — and $H^{\otimes n}$ does not supply them. Problem P11 on the sheet shows the failure
+    concretely on $\mathbb Z_4\times\mathbb Z_4$.</p>
+    <p><b>The frame unit 16 names.</b> Both problems are instances of the hidden subgroup problem: given $f$ on a group $G$,
+    constant on the cosets of an unknown subgroup $K$ and distinct on distinct cosets, find $K$. Simon's is $G = \mathbb Z_2^n$,
+    $K = \{0, s\}$; order finding is $G = \mathbb Z$, $K = r\mathbb Z$. This unit does not develop the general problem.</p>
+    <p><b>An honest difference.</b> Over $\mathbb Z_2^n$ the samples lie exactly in $s^\perp$; over the truncated integers the
+    period need not divide $2^t$, and the samples are only peaked near multiples of $2^t/r$. That is why unit 16 needs
+    continued fractions and an error analysis where this unit needed only exact linear algebra.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · from Simon to Shor</p>
+  <h2>The running example, closed</h2>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 440 250" width="540" role="img" aria-label="a flow from the function table, through one run giving a sample uniform on four strings, to two independent samples, to elimination and s equals 110; below, the classical path: four queries and a collision giving the same s">
+<rect x="10" y="20" width="96" height="44" rx="6" class="fill-ground ink" stroke-width="1.4"/><text x="58" y="40" font-size="12" text-anchor="middle">f on 3 bits</text><text x="58" y="56" font-size="11" text-anchor="middle" class="soft">4 pairs</text>
+<line x1="106" y1="42" x2="126" y2="42" class="ink" stroke-width="1.4"/><polygon points="132,42 122,37 122,47" class="fill-ink"/>
+<rect x="132" y="20" width="96" height="44" rx="6" class="fill-ground unit" stroke-width="1.6"/><text x="180" y="40" font-size="12" text-anchor="middle">one run</text><text x="180" y="56" font-size="11" text-anchor="middle" class="soft">y ∈ s⊥, ¼ each</text>
+<line x1="228" y1="42" x2="248" y2="42" class="ink" stroke-width="1.4"/><polygon points="254,42 244,37 244,47" class="fill-ink"/>
+<rect x="254" y="20" width="84" height="44" rx="6" class="fill-ground unit" stroke-width="1.6"/><text x="296" y="40" font-size="12" text-anchor="middle">001, 110</text><text x="296" y="56" font-size="11" text-anchor="middle" class="soft">10/3 runs</text>
+<line x1="338" y1="42" x2="358" y2="42" class="ink" stroke-width="1.4"/><polygon points="364,42 354,37 354,47" class="fill-ink"/>
+<rect x="364" y="20" width="70" height="44" rx="6" class="fill-soft good" stroke-width="1.8"/><text x="399" y="47" font-size="14" text-anchor="middle" class="mono">110</text>
+<text x="66" y="126" font-size="12" class="soft">classically:</text>
+<rect x="132" y="112" width="206" height="44" rx="6" class="fill-ground warn" stroke-width="1.6"/><text x="235" y="132" font-size="12" text-anchor="middle" class="mono">000, 001, 010, 100</text><text x="235" y="148" font-size="11" text-anchor="middle" class="soft">collision at the 4th query</text>
+<line x1="58" y1="64" x2="58" y2="134" class="ink" stroke-width="1.4"/><line x1="58" y1="134" x2="126" y2="134" class="ink" stroke-width="1.4"/><polygon points="132,134 122,129 122,139" class="fill-ink"/>
+<line x1="338" y1="134" x2="399" y2="134" class="ink" stroke-width="1.4"/><line x1="399" y1="134" x2="399" y2="70" class="ink" stroke-width="1.4"/><polygon points="399,64 394,74 404,74" class="fill-ink"/>
+<text x="220" y="196" font-size="12" text-anchor="middle">n = 3: a tie.  n = 100: about 101 runs against 1.3 × 10¹⁵ queries.</text>
+<text x="220" y="222" font-size="12" text-anchor="middle" class="alt">ℤ₂³ → ℤ<tspan font-size="9" dy="3">N</tspan><tspan dy="-3">, H⊗³ → QFT: unit 16's order finding</tspan></text>
+</svg>
+        <p class="cap">Two routes to $s = 110$. Only one of them scales.</p>
+      </div>
+    </div>
+    <div>
+      <ul class="small">
+        <li><b>Section 1.</b> $f$ pairs the corners of the cube along $s = 110$, one value per pair.</li>
+        <li><b>Section 2.</b> <span class="ref" data-ref="run">One run</span>: sixteen amplitudes $\pm\tfrac14$, outcome uniform on $\{000, 001, 110, 111\}$, sum $1$.</li>
+        <li><b>Section 3.</b> <span class="ref" data-ref="solve">Samples $001$ and $110$</span>: echelon form, back-substitution, $s = 110$, checked.</li>
+        <li><b>Section 4.</b> Two runs suffice with probability $\tfrac38$; $\tfrac{10}3$ runs on average, below $n + 1 = 4$.</li>
+        <li><b>Section 5.</b> <span class="ref" data-ref="coll">Four classical queries</span> and a collision; success $\tfrac23$ needs at least four.</li>
+        <li><b>Section 6.</b> Replace $\mathbb Z_2^3$ by $\mathbb Z_N$ and $\oplus$ by $+$, and the same circuit with a new transform finds a period: units 15 and 16.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What the example could and could not show.</b> At $n = 3$ every quantity was computable by hand, which is why it was
+    chosen; and at $n = 3$ there is no separation at all — four classical queries against about three quantum runs. The
+    example checks the mechanism; the theorems of sections 4 and 5 supply the scaling, which no small example can.</p>
+    <p><b>The same function, under $+$.</b> Read the eight inputs as the integers $0, \dots, 7$. The pairs $\{0, 6\}$, $\{1, 7\}$,
+    $\{2, 4\}$, $\{3, 5\}$ are not cosets of any subgroup of $\mathbb Z_8$: the only subgroup of order 2 is $\{0, 4\}$, and $0$ and $6$ do not differ by $4$ modulo $8$: the hidden structure is
+    an XOR-structure, and only a transform built from $\mathbb Z_2^3$'s characters sees it. Conversely a function of period $r$
+    under $+$ needs $\mathbb Z_N$'s characters. Each group has its own transform; unit 15 builds them all at once.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · summary</p>
+  <h2>What this unit bought, and where it stops</h2>
+  <div class="cols">
+    <div class="box good"><span class="label">the toolkit</span>
+      <ul class="small">
+        <li><b>Simon's problem</b>: two-to-one with a hidden XOR-period; the first exponential separation against randomised algorithms in the query model.</li>
+        <li><b>One run</b>: $y$ uniform on $s^\perp$, because the two members of a pair cancel unless $y\cdot s = 0$; the coset-state picture.</li>
+        <li><b>Linear algebra over $\mathbb F_2$</b>: $\dim W^\perp = n - \dim W$, $(W^\perp)^\perp = W$, elimination in $O(n^3)$; self-orthogonal vectors are harmless.</li>
+        <li><b>Counting runs</b>: $\prod_k(1 - 2^{-k}) = 0.2888$, the tail bound, and fewer than $n + 1$ runs on average.</li>
+        <li><b>The lower bound</b>: averaging, lazy sampling, the collision bound $\binom q2/(2^n - 1)$, and $\Omega(2^{n/2})$.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Reading</h3>
+      <p class="small">Simon's paper (<i>SIAM J. Comput.</i> 26, 1997, 1474–1483): the algorithm and the lower bound, both short. R. de Wolf, <i>Quantum Computing: Lecture Notes</i> (arXiv:1907.09415), the chapter on Simon's algorithm; its classical lower bound is this unit's in other words. Skip the chapters after it until units 15–16.</p>
+      <h3>Next</h3>
+      <p class="small"><b>15</b> Fourier on finite abelian groups, the QFT and phase estimation. <b>16</b> Shor. <b>17</b> Grover, the unstructured counterpart, where the speed-up is only quadratic.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What was left out, on purpose.</b> The hidden subgroup problem in general (unit 16). Exact quantum algorithms for Simon's
+    problem (Brassard and Høyer 1997; problem P9 cites it). Linear algebra over $\mathbb F_q$ for general $q$ and anything about
+    finite fields beyond $\mathbb F_2$. Simon's problem with a hidden subspace of dimension $k$ instead of one vector $s$ — problem P4
+    does it; the algorithm is the same.</p>
+    <p><b>Reading notes.</b> Simon's journal paper states the lower bound for the decision version (one-to-one against
+    two-to-one) and proves it with an argument equivalent to the coupling here. De Wolf's notes are free and careful; their
+    convention for $H^{\otimes n}$ is this course's. Textbook treatments that present Simon's problem as one case of the hidden
+    subgroup problem are best read after unit 16, which builds that frame.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">14 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>On paper and without notes, you can:</p>
+    <ul>
+      <li>prove the quantum upper bound: one run returns $y$ uniform on $s^\perp$, $n - 1$ independent samples determine $s$, and the expected number of runs is below $n + 1$ — so $O(n)$ queries;</li>
+      <li>prove the classical randomised lower bound $\Omega(2^{n/2})$: averaging to a deterministic algorithm, lazy sampling, and the collision bound $\binom q2/(2^n - 1)$;</li>
+      <li>compute $\prod_{k\ge1}(1 - 2^{-k}) = 0.2888$ to four places, with a tail bound that proves the digits.</li>
+    </ul>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Failing it is unambiguous</h3>
+      <p class="small">An amplitude computation that never uses $(x\oplus s)\cdot y = x\cdot y\oplus s\cdot y$; "$n - 1$ samples suffice" with no independence condition; a lower bound that bounds collisions for a <b>fixed</b> list of queries but not an adaptive one; or $0.2888$ quoted without a bound on the tail.</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p class="small">The sheet: <code>./qc problems 14</code>. When the checkpoint is true: <code>./qc done 14</code>.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p>Try one thing not in the deck before opening the sheet: run the circuit by hand on $n = 2$ with $s = 01$, for any $f$ you
+    like that satisfies the promise. You should find the outcomes $00$ and $10$ with probability $\tfrac12$ each — the two strings
+    with $y_1 = 0$ — and one sample $10$ then gives $s = 01$.</p>
+    <p><b>The trap in the second item.</b> An adaptive algorithm chooses each query after seeing the previous answers, so a
+    union bound over a fixed list of pairs is not a proof. The coupling with the free oracle is what makes the queries
+    independent of $s$; without it the argument is incomplete.</p>
+  </aside>
+</section>
+
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>

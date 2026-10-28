@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 · Problems — Circuits: reversible classical computation, and exact universality</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/sheet.css">
+</head>
+<body data-trunk="c">
+<main class="sheet">
+
+<header class="sheet-head">
+<p class="eyebrow">Part C · unit 10 · problems</p>
+<h1>Circuits: reversible classical computation, and exact universality</h1>
+<p class="sheet-links"><a href="slides.html">the slides</a> · <a href="../../CURRICULUM.html#u10">the curriculum</a></p>
+<div class="checkpoint"><b>Checkpoint.</b> On paper and without notes, you prove CNOT plus one-qubit gates exactly universal —
+the two-level decomposition with its count \(\tfrac{d(d-1)}2\), the Gray-code step, many controls from one, and the ABC construction
+with its phase gate — and you build the seven-T Toffoli circuit and verify it on all eight basis inputs by its phase table: the seven
+terms sum to \(4abx\).</div>
+<p class="howto">Work each problem on paper first. Under it, <b>Hints</b> opens a ladder one rung at a
+time — each rung appears only once the one before it is open, and the last gives the first line of the
+working — and <b>Worked solution</b> has the whole thing: the idea, the working, then a check. Read the
+solution after your attempt, including when you got it right. <kbd>F</kbd> folds everything back;
+<kbd>D</kbd> switches dark and light.</p>
+<div class="preamble">
+<p>Twelve problems, the last optional, about five hours. Work them on paper first.</p>
+<p>Conventions, as in the deck: \(\braket{u|v}\) is conjugate-linear in the first slot; \(\ket0 = (1, 0)\), \(\ket1 = (0, 1)\),
+\(\ket\pm = (\ket0 \pm \ket1)/\sqrt2\). Qubit 0 is the leftmost symbol of a ket, the most significant bit of an index and the top wire
+of a circuit, so \(\ket{abc}\) is basis vector \(4a + 2b + c\). A circuit drawn \(G_1\) then \(G_2\) is the operator \(G_2G_1\). \(X, Y, Z\) are the
+Pauli matrices, \(H = (X + Z)/\sqrt2\), \(S = \mathrm{diag}(1, i)\), \(T = \mathrm{diag}(1, e^{i\pi/4})\), \(R_P(\theta) = e^{-i\theta P/2}\);
+\(\mathrm{CNOT}_{01} = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X\) has control 0; \(C(U) = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes U\), and \(C^k(U)\) has \(k\) controls.
+\(P(\alpha) = \mathrm{diag}(1, e^{i\alpha})\). The Toffoli is \(\mathrm{TOF}\ket{a, b, c} = \ket{a, b, c\oplus ab}\).</p>
+<p>Some solutions end with an optional check by the course's referee, <code>qclib</code>, run from the
+course directory with <code>uv run python</code>. Every solution is complete without it. Problem P12 is the one place in
+the course where a solution is code, and it is optional.</p>
+</div>
+<ul class="toc">
+<li><a class="medium" href="#p1" title="Three CNOTs make a SWAP, and one cannot">P1</a></li>
+<li><a class="medium" href="#p2" title="Deferred measurement, in general">P2</a></li>
+<li><a class="routine" href="#p3" title="XOR the long way">P3</a></li>
+<li><a class="medium" href="#p4" title="A two-bit adder, uncomputed">P4</a></li>
+<li><a class="medium" href="#p5" title="Garbage destroys interference">P5</a></li>
+<li><a class="routine" href="#p6" title="The Toffoli is not enough for quantum">P6</a></li>
+<li><a class="medium" href="#p7" title="Controlled-S, two ways">P7</a></li>
+<li><a class="medium" href="#p8" title="Controlled-controlled-U">P8</a></li>
+<li><a class="hard" href="#p9" title="How many two-level factors">P9</a></li>
+<li><a class="medium" href="#p10" title="A Gray code across the cube">P10</a></li>
+<li><a class="routine" href="#p11" title="Counting parameters">P11</a></li>
+<li><a class="medium" href="#p12" title="Optional: write your own statevector simulator">P12</a></li>
+</ul>
+</header>
+
+<h2 class="group">The model, and measurement</h2>
+
+<section class="problem" id="p1">
+<h3><span class="pno">P1</span> Three CNOTs make a SWAP, and one cannot <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: circuits as products on basis states, conjugating a CNOT by Hadamards, the Schmidt rank of an operator as a lower bound</p>
+<div class="statement">
+<p>\(\mathrm{SWAP}\ket{x, y} = \ket{y, x}\) on two qubits.</p>
+<ol>
+<li>Show that \(\mathrm{CNOT}_{01}\,\mathrm{CNOT}_{10}\,\mathrm{CNOT}_{01} = \mathrm{SWAP}\), where \(\mathrm{CNOT}_{10}\) has control 1 and target 0. Does the order of the three
+matter?</li>
+<li>Show that \((H\otimes H)\,\mathrm{CNOT}_{01}\,(H\otimes H) = \mathrm{CNOT}_{10}\), and so write SWAP using CNOTs of one orientation only. Give the gate
+count.</li>
+<li>Every two-qubit operator can be written \(M = \sum_{i=1}^rA_i\otimes B_i\); the least such \(r\) is its <em>operator Schmidt rank</em>. Show that
+\(\mathrm{CNOT}\) has rank 2 and \(\mathrm{SWAP}\) has rank 4, and that multiplying by one-qubit gates on either side, \((L_1\otimes L_2)M(R_1\otimes R_2)\),
+does not change the rank. Conclude that no circuit with a single CNOT, however many one-qubit gates surround it, is SWAP.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Parts 1–2 are identities between \(4\times4\) unitaries: check them on the four basis states (part 1) or by a one-line
+matrix identity (part 2). Part 3 is a statement about a tensor in a space of the form \(V\otimes W\), with \(V = W\) the
+\(2\times2\) matrices — unit 03's Schmidt rank, applied to operators instead of states.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: track the pair of bits \((x, y)\) through the three gates; each CNOT replaces one bit by the XOR of both. Part 2:
+\(HXH = Z\), and \(\mathrm{CNOT}_{01} = \tfrac12(I\otimes I + Z\otimes I + I\otimes X - Z\otimes X)\). Part 3: write SWAP in the Pauli basis, and use
+that the four Paulis are a basis of the \(2\times2\) matrices (unit 02).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \((x, y)\xrightarrow{\mathrm{CNOT}_{01}}(x, x\oplus y)\xrightarrow{\mathrm{CNOT}_{10}}(x\oplus x\oplus y,\ x\oplus y) = (y, x\oplus y)\). For part 3,
+\(\mathrm{SWAP} = \tfrac12(I\otimes I + X\otimes X + Y\otimes Y + Z\otimes Z)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A circuit of CNOTs is a reversible map of bit pairs, so part 1 is three XORs. Part 3 needs an invariant
+that one-qubit gates cannot change: how many product terms an operator needs.</p>
+<p><strong>1.</strong> On basis states, \((x, y)\mapsto(x, x\oplus y)\mapsto(y, x\oplus y)\mapsto(y, y\oplus x\oplus y) = (y, x)\). A linear map is fixed by the basis, so the
+product is SWAP. The order does matter in general, but here the circuit is a palindrome: reversed it is the same three gates.
+The other alternation, \(\mathrm{CNOT}_{10}\mathrm{CNOT}_{01}\mathrm{CNOT}_{10}\), is also SWAP (the same computation with the roles of the qubits exchanged).</p>
+<p><strong>2.</strong> Write \(\mathrm{CNOT}_{01} = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X = \tfrac12(I + Z)\otimes I + \tfrac12(I - Z)\otimes X\), i.e.
+\(\tfrac12(I\otimes I + Z\otimes I + I\otimes X - Z\otimes X)\). Conjugating by \(H\otimes H\) conjugates each factor: \(HIH = I\), \(HZH = X\), \(HXH = Z\). So the
+result is \(\tfrac12(I\otimes I + X\otimes I + I\otimes Z - X\otimes Z) = \tfrac12(I + Z)\otimes I + \tfrac12(I - Z)\otimes X\) with the factors exchanged —
+\(I\otimes\ket0\!\bra0 + X\otimes\ket1\!\bra1 = \mathrm{CNOT}_{10}\). Hence</p>
+\[ \mathrm{SWAP} = \mathrm{CNOT}_{01}\,(H\otimes H)\,\mathrm{CNOT}_{01}\,(H\otimes H)\,\mathrm{CNOT}_{01}: \]
+<p>3 CNOTs and 4 Hadamards, 7 gates (as one-qubit gates on the same wire in the same layer, \(H\otimes H\) is two gates).</p>
+<p><strong>3. The ranks.</strong> \(\mathrm{CNOT} = \ket0\!\bra0\otimes I + \ket1\!\bra1\otimes X\) has \(r\le2\); it is not a single product \(A\otimes B\), since then every
+block \(A_{ij}B\) would be a multiple of one matrix \(B\), but its diagonal blocks are \(I\) and \(X\), not proportional. So \(r = 2\). For SWAP,
+expand in Paulis: \(\mathrm{SWAP} = \tfrac12\sum_{P\in\{I, X, Y, Z\}}P\otimes P\) (checked on basis states below). With the four Paulis linearly independent, unit 03's
+theorem says the rank of \(\sum_iA_i\otimes B_i\) with \(\{A_i\}\) and \(\{B_i\}\) both linearly independent is the number of terms: 4.</p>
+<p><strong>Invariance.</strong> The map \(M\mapsto(L_1\otimes L_2)M(R_1\otimes R_2)\) sends \(A\otimes B\) to \(L_1AR_1\otimes L_2BR_2\), so it sends an \(r\)-term expression
+to an \(r\)-term one; its inverse (with \(L_i^{-1}, R_i^{-1}\)) does the same. So the rank is unchanged.</p>
+<p><strong>Conclusion.</strong> A circuit with one CNOT is \((L_1\otimes L_2)\,\mathrm{CNOT}\,(R_1\otimes R_2)\) after merging one-qubit gates on each wire (a CNOT
+of either orientation; \(\mathrm{CNOT}_{10}\) also has rank 2, by part 2). Its rank is 2, and SWAP's is 4. Two CNOTs are not enough
+either, and three are optimal — that needs more than ranks (cited: G. Vidal and C. M. Dawson, <i>Phys. Rev. A</i> 69, 010301, 2004).</p>
+<p><strong>Check.</strong> The Pauli expansion of SWAP on \(\ket{01}\): \(I\otimes I\) gives \(\ket{01}\); \(X\otimes X\) gives \(\ket{10}\); \(Y\otimes Y\ket{01} = (i\ket1)(-i\ket0) = \ket{10}\);
+\(Z\otimes Z\ket{01} = -\ket{01}\). Sum \(\tfrac12(\ket{01} + \ket{10} + \ket{10} - \ket{01}) = \ket{10}\) ✓. On \(\ket{00}\): \(\tfrac12(\ket{00} + \ket{11} - \ket{11} + \ket{00}) = \ket{00}\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+swap = Circuit(2).cx(0, 1).cx(1, 0).cx(0, 1).unitary()
+print(np.allclose(swap, gates.SWAP))                       # True
+flip = Circuit(2).h(0).h(1).cx(0, 1).h(0).h(1).unitary()
+print(np.allclose(flip, Circuit(2).cx(1, 0).unitary()))   # True: CNOT turned round</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p2">
+<h3><span class="pno">P2</span> Deferred measurement, in general <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the measurement postulate as a product of projectors, commuting a projector past gates it only controls, the chain rule for outcome probabilities</p>
+<div class="statement">
+<p>A circuit on \(\ket\psi\) alternates blocks of gates and meters: \(U_1\), meter on qubit \(q_1\) (outcome \(m_1\)), \(U_2\), meter on \(q_2\), …,
+meter on \(q_r\), \(U_{r+1}\), then a final measurement \(\{Q_k\}\) of the qubits never metered. The block \(U_j\) may depend on the earlier outcomes
+\(m_1, \dots, m_{j-1}\) (classical control), and a qubit already metered is used afterwards <em>only as a control</em>: every gate of \(U_j\) is
+block diagonal in the computational basis of each \(q_i\), \(i \lt j\).</p>
+<ol>
+<li>Write the probability of the outcomes \((m_1, \dots, m_r, k)\) as a squared norm of a single vector.</li>
+<li>Define the deferred circuit: each classically controlled block replaced by the quantum-controlled
+\(\tilde U_j = \sum_{m'}\ket{m'}\!\bra{m'}_{q_1\dots q_{j-1}}\otimes U_j(m')\), all meters moved to the end. Prove it gives the same joint distribution.</li>
+<li>Prove that, for every outcome, the two circuits also leave the same post-measurement state.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer to part 1 is \(\lVert Q_k\beta\rVert^2\) for an unnormalised branch vector \(\beta\) built from the \(U_j\) and the projectors
+\(P_{m_j}\) on \(q_j\); part 2 is an operator identity showing the deferred circuit produces the same \(\beta\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Each meter multiplies the probability by \(\lVert P_m\phi\rVert^2\) and divides the state by its square root, so the normalisations
+telescope. For part 2, two facts: \(P_{m_i}\) on \(q_i\) commutes with every later block, because those blocks only control on \(q_i\);
+and \(\ket{m}\!\bra m\tilde U_j = \ket m\!\bra m U_j(m)\), the projector picks the branch.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: \(\Pr(m_1, \dots, m_r, k) = \lVert Q_k\beta_m\rVert^2\) with \(\beta_m = U_{r+1}(m)\,P_{m_r}\,U_r(m)\cdots P_{m_1}\,U_1\psi\), where \(U_j(m)\) uses only \(m_1..m_{j-1}\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The early meters cut the state into branches and the later gates act branch by branch; a controlled
+block does exactly the same thing to the same branches, it just never normalises them. Moving each projector to the end
+of the circuit is legal because nothing after a meter touches that qubit except as a control.</p>
+<p><strong>1.</strong> Let \(\phi_0 = \psi\). By unit 01's rule, the first meter gives \(m_1\) with probability \(\lVert P_{m_1}U_1\psi\rVert^2\) and leaves
+\(P_{m_1}U_1\psi\) divided by its norm. Conditioned on that, the second meter gives \(m_2\) with probability \(\lVert P_{m_2}U_2(m_1)P_{m_1}U_1\psi\rVert^2/\lVert P_{m_1}U_1\psi\rVert^2\),
+and so on: the joint probability is the product of conditionals, and the denominators cancel the previous numerators. So</p>
+\[ \Pr(m_1, \dots, m_r, k) = \lVert Q_k\,\beta_m\rVert^2,\qquad \beta_m = U_{r+1}(m)\,P_{m_r}\,U_r(m)\cdots U_2(m)\,P_{m_1}\,U_1\,\psi . \]
+<p>(If some branch has probability zero, both sides are zero.)</p>
+<p><strong>2.</strong> Let \(\mathcal P_m = P_{m_1}\otimes\cdots\otimes P_{m_r}\) on the metered qubits and \(W = \tilde U_{r+1}\cdots\tilde U_1\) (with \(\tilde U_1 = U_1\)). The deferred circuit
+measures everything at the end, so its probability is \(\lVert(\mathcal P_m\otimes Q_k)W\psi\rVert^2 = \lVert Q_k\,\mathcal P_mW\psi\rVert^2\) (\(Q_k\) acts on other qubits and commutes with
+\(\mathcal P_m\)). Now peel the blocks off from the left, carrying the projectors through them. Write
+\(\Pi_{\lt j} = P_{m_1}\cdots P_{m_{j-1}}\), the projectors on the qubits metered before block \(j\). Two facts:</p>
+<ul>
+<li><b>Selection.</b> \(\Pi_{\lt j}\tilde U_j = \Pi_{\lt j}U_j(m)\), because \(\Pi_{\lt j}\ket{m'}\!\bra{m'} = 0\) unless \(m' = (m_1, \dots, m_{j-1})\).</li>
+<li><b>Passing.</b> \(\Pi_{\lt j}U_j(m) = U_j(m)\,\Pi_{\lt j}\): every gate of \(U_j(m)\) is block diagonal in the basis of each \(q_i\), \(i \lt j\), by hypothesis.</li>
+</ul>
+<p>Start with \(\mathcal P_m\tilde U_{r+1} = \Pi_{\lt r+1}\tilde U_{r+1} = U_{r+1}(m)\,\mathcal P_m\). Next, \(\mathcal P_m\tilde U_r = P_{m_r}\,\Pi_{\lt r}\tilde U_r = P_{m_r}\,U_r(m)\,\Pi_{\lt r}\):
+\(P_{m_r}\) stays where it is (\(U_r\) may act on \(q_r\), which is metered only after it), and the rest pass through. Each step leaves one
+projector behind and carries the others on, down to \(\tilde U_1 = U_1\), which only \(P_{m_1}\) reaches. So</p>
+\[ \mathcal P_mW\psi = U_{r+1}(m)\,P_{m_r}\,U_r(m)\cdots P_{m_1}\,U_1\,\psi = \beta_m , \]
+<p>and both distributions are \(\lVert Q_k\beta_m\rVert^2\). \(\blacksquare\)</p>
+<p><strong>3.</strong> The early circuit ends, given the outcomes, in \(Q_k\beta_m\) normalised; the deferred one in \((\mathcal P_m\otimes Q_k)W\psi = Q_k\beta_m\)
+normalised. The same vector.</p>
+<p><strong>Check.</strong> With \(r = 1\), \(U_1 = I\) and \(U_2(m) = U_m\) this is the deck's theorem: \(\beta_m = U_mP_m\psi = (P_m\otimes U_m)\psi\) when \(U_m\) acts on the
+other qubits. And the deck's worked example: \(\psi = \ket\chi\ket+\), \(U_2(1) = H\) on qubit 1, gives \(\beta_1 = s\ket1\ket0\), \(\lVert\beta_1\rVert^2 = s^2 = \Pr(10)\) ✓.</p>
+<p><strong>Where the hypothesis was used.</strong> Only in the first bullet. If a later gate acted on \(q_i\) as anything but a control —
+an \(H\), say — \(P_{m_i}\) could not be moved past it, and the counterexample on the deck's warning (measure \(\ket+\), then \(H\)) shows the
+statement fails.</p>
+</div></details>
+</section>
+
+<h2 class="group">Reversible classical computation</h2>
+
+<section class="problem" id="p3">
+<h3><span class="pno">P3</span> XOR the long way <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: compiling a NAND circuit into Toffoli gadgets, Bennett's compute–copy–uncompute, counting gates and work qubits</p>
+<div class="statement">
+<p>XOR is four NANDs: \(n_1 = \mathrm{NAND}(a, b)\), \(n_2 = \mathrm{NAND}(a, n_1)\), \(n_3 = \mathrm{NAND}(b, n_1)\), \(a\oplus b = \mathrm{NAND}(n_2, n_3)\).</p>
+<ol>
+<li>Check the four-NAND formula on all four inputs.</li>
+<li>Compile it into Toffolis with the deck's gadget, then apply Bennett's trick to produce the clean oracle
+\(\ket{a, b}\ket{0000}\ket y\mapsto\ket{a, b}\ket{0000}\ket{y\oplus a\oplus b}\). Count the gates of each kind and the work qubits.</li>
+<li>Compare with the best circuit you can find for the same oracle.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a circuit on 7 qubits and a gate count — a number for each of \(X\), Toffoli and CNOT.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>The NAND gadget needs its target at \(\ket1\): an \(X\) on a fresh \(\ket0\). Each NAND gets its own work qubit \(w_1, \dots, w_4\). Bennett:
+the forward circuit, one CNOT from \(w_4\) to \(y\), the forward circuit reversed — including the \(X\)'s, so the work qubits return to
+\(\ket0\), not \(\ket1\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First lines: \(X\) on \(w_1..w_4\); Toffoli \((a, b; w_1)\), Toffoli \((a, w_1; w_2)\), Toffoli \((b, w_1; w_3)\), Toffoli \((w_2, w_3; w_4)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> One gadget per gate, one work qubit per gate, then compute–copy–uncompute: the general recipe, at its
+general price.</p>
+<p><strong>1.</strong> \(ab = 00\): \(n_1 = 1\), \(n_2 = \mathrm{NAND}(0, 1) = 1\), \(n_3 = 1\), output \(\mathrm{NAND}(1, 1) = 0\) ✓. \(01\): \(n_1 = 1\), \(n_2 = 1\), \(n_3 = \mathrm{NAND}(1, 1) = 0\),
+output \(1\) ✓. \(10\): symmetric, \(1\) ✓. \(11\): \(n_1 = 0\), \(n_2 = n_3 = 1\), output \(0\) ✓.</p>
+<p><strong>2. Forward circuit</strong> \(C\) on \(a, b, w_1, w_2, w_3, w_4\): \(X\) on each \(w_i\) (they become \(\ket1\)); then Toffolis \((a, b; w_1)\), \((a, w_1; w_2)\),
+\((b, w_1; w_3)\), \((w_2, w_3; w_4)\). Each Toffoli sets its target to \(1\oplus(\text{AND of controls}) = \) NAND, and never changes a control, so
+\(w_4 = a\oplus b\) at the end. <strong>Copy:</strong> CNOT \((w_4; y)\). <strong>Uncompute:</strong> \(C^{-1}\), the same gates in reverse order (each is its own
+inverse), ending with the four \(X\)'s, which return the \(w_i\) from \(\ket1\) to \(\ket0\).</p>
+<p><strong>Count.</strong> 8 \(X\), 8 Toffolis, 1 CNOT: <strong>17 gates</strong>, 4 work qubits, 7 qubits in all.</p>
+<p><strong>3.</strong> Two CNOTs, \((a; y)\) then \((b; y)\), with no work qubits: \(y\mapsto y\oplus a\oplus b\). XOR is linear, and reversible circuits do linear
+functions with CNOTs alone. Bennett's recipe is general, not economical; its value is that it works for <em>every</em> circuit at a
+constant factor — here \(2\times\) the 8-gate forward circuit, plus one.</p>
+<p><strong>Check.</strong> On \(ab = 11\), \(y = 0\): forward gives \(w = (0, 1, 1, 0)\); the copy leaves \(y = 0 = 1\oplus1\) ✓; reversing restores \(w = (1, 1, 1, 1)\) and the
+\(X\)'s give \(0000\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+fwd = Circuit(7)                                  # wires a b w1 w2 w3 w4 y
+for w in (2, 3, 4, 5):
+    fwd.x(w)                                      # NAND targets start at 1
+fwd.ccx(0, 1, 2).ccx(0, 2, 3).ccx(1, 2, 4).ccx(3, 4, 5)
+oracle = Circuit(7).extend(fwd).cx(5, 6).extend(fwd.inverse())
+for a in (0, 1):
+    for b in (0, 1):
+        out = oracle.run(f"{a}{b}00000").probabilities().argmax()
+        print(a, b, f"{out:07b}")                 # a b 0000 a^b
+print(len(oracle), dict(oracle.counts()))
+# 17 {'x': 4, 'ccx': 4, 'cx': 1, 'ccx†': 4, 'x†': 4}</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p4">
+<h3><span class="pno">P4</span> A two-bit adder, uncomputed <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: chaining the deck's one-bit adder, deciding when a carry can be uncomputed, counting work qubits and gates</p>
+<div class="statement">
+<p>Two-bit numbers \(a = 2a_1 + a_0\) and \(b = 2b_1 + b_0\) sit on four wires. Build a circuit of Toffolis and CNOTs with work qubits
+starting at \(\ket0\) that leaves \(a\) unchanged and the three-bit sum \(a + b\) on wires \(b_1, b_0\) and one extra wire \(z\) (as \(4z + 2b_1 + b_0\)),
+with every other work qubit returned to \(\ket0\). Give the number of work qubits and of gates, and check \(a = b = 3\).</p>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a circuit on six wires — \(a_1, a_0, b_1, b_0\), a carry \(c\) and the top bit \(z\) — with about seven gates.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Bit 0 is a half adder: carry \(c = a_0b_0\), sum \(a_0\oplus b_0\). Bit 1 is the deck's full adder with \(c_{\rm in} = c\), but arranged so the sum
+lands on \(b_1\) and \(c\) is left unchanged. Then \(c\) is garbage: uncompute it while \(b_0\) still holds \(b_0\), and only then overwrite \(b_0\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First lines: Toffoli \((a_0, b_0; c)\); Toffoli \((a_1, b_1; z)\); CNOT \((a_1; b_1)\); Toffoli \((c, b_1; z)\); CNOT \((c; b_1)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A ripple of the deck's adder. The intermediate carry is needed by bit 1 and by nobody afterwards, so it is
+garbage, and the order of the last steps is chosen so that it can be uncomputed from inputs that are still intact.</p>
+<p><strong>The circuit</strong>, gate by gate on basis states:</p>
+<ol>
+<li>Toffoli \((a_0, b_0; c)\): \(c = a_0b_0\), the carry out of bit 0.</li>
+<li>Toffoli \((a_1, b_1; z)\): \(z = a_1b_1\).</li>
+<li>CNOT \((a_1; b_1)\): \(b_1\to a_1\oplus b_1\).</li>
+<li>Toffoli \((c, b_1; z)\): \(z = a_1b_1\oplus c(a_1\oplus b_1) = \mathrm{maj}(a_1, b_1, c)\), the top bit (the deck's carry argument).</li>
+<li>CNOT \((c; b_1)\): \(b_1\to a_1\oplus b_1\oplus c = s_1\).</li>
+<li>Toffoli \((a_0, b_0; c)\): \(c\to a_0b_0\oplus a_0b_0 = 0\) — legal because \(a_0\) and \(b_0\) are untouched so far.</li>
+<li>CNOT \((a_0; b_0)\): \(b_0\to a_0\oplus b_0 = s_0\).</li>
+</ol>
+<p><strong>Count.</strong> 4 Toffolis and 3 CNOTs, <strong>7 gates</strong>; <strong>2 work qubits</strong>, of which \(c\) returns to \(\ket0\) and \(z\) carries the top
+bit of the sum. Six wires in all.</p>
+<p><strong>Why it is right.</strong> \(a + b = (a_0 + b_0) + 2(a_1 + b_1) = s_0 + 2c + 2(a_1 + b_1)\), and \(a_1 + b_1 + c = s_1 + 2\,\mathrm{maj}(a_1, b_1, c)\): so
+\(a + b = s_0 + 2s_1 + 4z\).</p>
+<p><strong>Check \(a = b = 3\)</strong> (\(a_1 = a_0 = b_1 = b_0 = 1\)): \(c = 1\); \(z = 1\); \(b_1 = 0\); \(z = 1\oplus1\cdot0 = 1\); \(b_1 = 0\oplus1 = 1\); \(c = 1\oplus1 = 0\); \(b_0 = 1\oplus1 = 0\).
+Output \(z b_1 b_0 = 110 = 6 = 3 + 3\) ✓, \(c = 0\) ✓. Also \(a = 2\), \(b = 1\): \(c = 0\), \(z = 0\), \(b_1 = 1\), \(z = 0\), \(b_1 = 1\), \(c = 0\), \(b_0 = 1\): \(011 = 3\) ✓.</p>
+<p><strong>What goes wrong in the other order.</strong> Writing \(s_0\) onto \(b_0\) first and uncomputing \(c\) afterwards needs \(a_0b_0 = a_0\,\overline{s_0}\):
+an extra pair of \(X\) gates around the Toffoli. Still possible, but the order above is cheaper.</p>
+<h4>With the referee</h4>
+<pre><code>from qclib import Circuit
+c = Circuit(6)                                   # wires a1 a0 b1 b0 c z
+c.ccx(1, 3, 4)                                   # c = a0 b0
+c.ccx(0, 2, 5).cx(0, 2).ccx(4, 2, 5).cx(4, 2)    # bit 1: z = carry, b1 = s1
+c.ccx(1, 3, 4).cx(1, 3)                          # clear c; b0 = s0
+ok = True
+for a in range(4):
+    for b in range(4):
+        out = f"{c.run(f'{a:02b}{b:02b}00').probabilities().argmax():06b}"
+        ok &amp;= out[:2] == f"{a:02b}" and out[4] == "0" and int(out[5] + out[2:4], 2) == a + b
+print(ok, len(c), dict(c.counts()))              # True 7 {'ccx': 4, 'cx': 3}</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p5">
+<h3><span class="pno">P5</span> Garbage destroys interference <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the oracle on \(\ket-\) as a phase, the probability formula with a garbage register, the overlap of garbage states</p>
+<div class="statement">
+<p>Take one input bit and \(f(x) = x\), so \(U_f\ket x\ket y = \ket x\ket{y\oplus x}\) is a CNOT.</p>
+<ol>
+<li>Show \(U_f\ket x\ket- = (-1)^{f(x)}\ket x\ket-\). Prepare \(\ket+\ket-\), apply \(U_f\), then \(H\) on the first qubit and measure it. What is
+\(\Pr(1)\)?</li>
+<li>Now use a careless oracle that leaves a garbage qubit holding a copy of \(x\): \(\ket x\ket y\ket0\mapsto\ket x\ket{y\oplus x}\ket x\). Repeat. What is
+\(\Pr(1)\)?</li>
+<li>In general the garbage is \(\ket{g(x)}\), unit vectors with overlap \(\gamma = \braket{g(0)|g(1)}\). Show \(\Pr(1) = \tfrac12(1 + \mathrm{Re}\,\gamma)\), and read off
+parts 1 and 2.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Each answer is a probability; part 3's formula interpolates between \(1\) and \(\tfrac12\).</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(X\ket- = -\ket-\), so XORing a bit into \(\ket-\) multiplies by \((-1)^{\text{bit}}\). With garbage, the state before the last \(H\) is
+\(\tfrac1{\sqrt2}\sum_x(-1)^x\ket x\ket{g(x)}\ket-\); expand \(H\) on the first qubit and collect the \(\ket1\) part.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 3: after \(H\), the \(\ket1\) component is \(\tfrac12\big(\ket{g(0)} + \ket{g(1)}\big)\ket-\), since \((-1)^x\) and the \(H\) sign \((-1)^x\) multiply to \(1\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The oracle writes \(f(x)\) as a sign — a relative phase between the branches \(x = 0\) and \(x = 1\). A relative
+phase is visible only if the branches can interfere, and a garbage record of \(x\) stops them, exactly as unit 01's which-path
+detector did.</p>
+<p><strong>1.</strong> \(U_f\ket x\ket- = \ket x\tfrac1{\sqrt2}(\ket{f(x)} - \ket{1\oplus f(x)})\), which is \(\ket x\ket-\) if \(f(x) = 0\) and \(-\ket x\ket-\) if \(f(x) = 1\) ("phase
+kickback"; unit 13 makes it the engine of every query algorithm). So \(U_f\ket+\ket- = \tfrac1{\sqrt2}(\ket0 - \ket1)\ket- = \ket-\ket-\),
+and \(H\ket- = \ket1\): \(\Pr(1) = 1\).</p>
+<p><strong>3 first</strong>, as it contains both. Before the last \(H\): \(\tfrac1{\sqrt2}\big(\ket0\ket{g(0)} - \ket1\ket{g(1)}\big)\ket-\). Apply \(H\) to qubit 0:</p>
+\[ \tfrac12\Big[\ket0\big(\ket{g(0)} - \ket{g(1)}\big) + \ket1\big(\ket{g(0)} + \ket{g(1)}\big)\Big]\ket- . \]
+<p>So \(\Pr(1) = \tfrac14\lVert g(0) + g(1)\rVert^2 = \tfrac14(1 + 1 + \gamma + \bar\gamma) = \tfrac12(1 + \mathrm{Re}\,\gamma)\), and \(\Pr(0) = \tfrac12(1 - \mathrm{Re}\,\gamma)\); they sum to 1 ✓.</p>
+<p><strong>Read off.</strong> No garbage (or garbage that does not depend on \(x\)): \(\gamma = 1\), \(\Pr(1) = 1\) — part 1. A copy of \(x\): \(\ket{g(x)} = \ket x\),
+\(\gamma = \braket{0|1} = 0\), <strong>\(\Pr(1) = \tfrac12\)</strong> — part 2: the measurement is a coin toss and says nothing about \(f\).</p>
+<p><strong>Check.</strong> Part 2 directly: the state is \(\tfrac1{\sqrt2}(\ket{00} - \ket{11})\ket-\) on (input, garbage, target); \(H\) on the input gives
+\(\tfrac12(\ket{00} + \ket{10} - \ket{01} + \ket{11})\ket-\), and the input reads \(1\) on the terms \(\ket{10}\) and \(\ket{11}\): \(\tfrac14 + \tfrac14 = \tfrac12\) ✓.</p>
+<p><strong>The cure.</strong> Uncompute the garbage before the \(H\) — a second CNOT from the input to the garbage qubit — and \(\gamma\) returns
+to 1. This is why every oracle in Part D is built clean.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+clean = Circuit(2).h(0).x(1).h(1).cx(0, 1).h(0)            # U_f for f(x) = x is a CNOT
+dirty = Circuit(3).h(0).x(1).h(1).cx(0, 1).cx(0, 2).h(0)   # ... plus a garbage copy of x
+print(np.round(clean.run().probabilities([0]), 6), np.round(dirty.run().probabilities([0]), 6))
+# [0. 1.] [0.5 0.5]</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p6">
+<h3><span class="pno">P6</span> The Toffoli is not enough for quantum <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: products of permutation and monomial matrices, why a non-classical gate is needed</p>
+<div class="statement">
+<ol>
+<li>Prove that every circuit of \(X\), CNOT, Toffoli and SWAP gates, on any number of qubits, is a permutation matrix.</li>
+<li>Conclude that such a circuit, started on a basis state, ends on a basis state, and every measurement of it is deterministic.
+In particular it never produces \(\ket+\) on any qubit.</li>
+<li>Add the diagonal gates \(Z, S, T\) and \(CZ\). Show the conclusion of part 2 survives: no superposition is created. Which gate of the
+deck breaks it?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a closure statement: a set of matrices closed under multiplication and under extension by identities.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A permutation matrix sends each basis vector to a basis vector. A <em>monomial</em> matrix sends each basis vector to a basis vector times
+a unit complex number. Check each gate, then that placing it on chosen wires and multiplying keep the property.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line: if \(G\ket u = \ket{\pi(u)}\) on its wires, then on the whole register \(G\ket{x}\) is the basis state with the bits on those wires
+replaced by \(\pi\) of them.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Classical gates move basis states to basis states; phases only decorate them. A superposition needs a gate
+that sends one basis state to a combination of several.</p>
+<p><strong>1.</strong> Each gate is a bijection of bit strings on its wires: \(X\) flips, CNOT XORs, Toffoli XORs an AND, SWAP exchanges. Placed on
+wires \(Q\) of an \(n\)-qubit register (the deck's definition) it maps \(\ket x\) to \(\ket{x'}\), where \(x'\) is \(x\) with the bits on \(Q\) replaced by
+their image — a bijection of \(\{0, 1\}^n\), so a permutation matrix. A product of permutation matrices is the matrix of the composite
+bijection, again a permutation matrix.</p>
+<p><strong>2.</strong> So \(U\ket x = \ket{\sigma(x)}\) for some bijection \(\sigma\). Measuring any qubit of \(\ket{\sigma(x)}\) gives its bit with probability 1. \(\ket+\) on a
+qubit would mean probability \(\tfrac12\) of each outcome on it — impossible.</p>
+<p><strong>3.</strong> \(Z, S, T, CZ\) are diagonal with unit-modulus entries: \(D\ket x = e^{i\theta(x)}\ket x\). Call a matrix <em>monomial</em> if \(M\ket x = e^{i\theta(x)}\ket{\sigma(x)}\)
+for a bijection \(\sigma\). Permutation and diagonal unitary gates are monomial; extending to more wires keeps the form; and products of
+monomial matrices are monomial (\(M'M\ket x = e^{i\theta(x)}e^{i\theta'(\sigma(x))}\ket{\sigma'(\sigma(x))}\)). So from \(\ket x\) the output is \(e^{i\phi}\ket{\sigma(x)}\): a basis state up to
+global phase, and all measurements are again deterministic. The deck's gate that breaks this is \(H\) (and, in the ABC construction,
+\(R_y\)): \(H\ket0 = \ket+\) has two non-zero amplitudes.</p>
+<p><strong>Check.</strong> The seven-T Toffoli circuit contains two \(H\)'s, and between them its state <em>is</em> a superposition (on \(\ket{110}\), \(H\) on \(c\) gives
+\(\ket{11}\ket+\)); the \(H\)'s are what let \(T\) phases, which alone are monomial, build a permutation that phases alone could not.</p>
+<p><strong>What adding \(H\) buys</strong> (cited, for later): Toffoli and \(H\) together are universal for quantum computation in the sense of
+approximation with real amplitudes (Y. Shi, <i>Quantum Inf. Comput.</i> 3, 84, 2003; D. Aharonov, 2003). Unit 11 is about what "approximate"
+means there.</p>
+</div></details>
+</section>
+
+<h2 class="group">Exact universality</h2>
+
+<section class="problem" id="p7">
+<h3><span class="pno">P7</span> Controlled-S, two ways <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: the ABC construction with \(\gamma = 0\), the phase-polynomial argument, counting \(T\) gates</p>
+<div class="statement">
+<ol>
+<li>Write \(S = e^{i\alpha}R_z(\beta)R_y(\gamma)R_z(\delta)\) and build \(C(S)\) by the ABC construction. Simplify every gate.</li>
+<li>Show that \(T\) on both qubits, then \(\mathrm{CNOT}_{01}\), then \(T^\dagger\) on qubit 1, then \(\mathrm{CNOT}_{01}\), is exactly \(C(S)\), by computing its action on the
+four basis states.</li>
+<li>How many \(T\)-type gates does each use, if \(R_z(\pm\tfrac\pi4)\) counts as one?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Two circuits on two wires, each with two CNOTs and a few diagonal gates, and one integer each for part 3.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(S = e^{i\pi/4}R_z(\tfrac\pi2)\) (unit 02), so \(\gamma = 0\) and only \(\beta + \delta = \tfrac\pi2\) is fixed. For part 2, the deck's phase-polynomial lemma:
+track which XOR each wire holds when a \(T\) or \(T^\dagger\) acts.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First lines: take \(\alpha = \tfrac\pi4\), \(\beta = \tfrac\pi2\), \(\gamma = \delta = 0\); then \(A = R_z(\tfrac\pi2)\), \(B = R_z(-\tfrac\pi4)\), \(C = R_z(-\tfrac\pi4)\), \(P(\tfrac\pi4) = T\). For part 2, on
+\(\ket{c, t}\) the phases are \(c\), \(t\) and \(-(c\oplus t)\), in units of \(\pi/4\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A diagonal controlled gate is a phase on the basis state \(\ket{11}\); both constructions are ways of writing the
+function \(2ct\) (which is \(1\) on \(\ket{11}\), times \(\tfrac\pi2\)) as a combination of single bits and their XOR.</p>
+<p><strong>1.</strong> \(R_z(\tfrac\pi2) = \mathrm{diag}(e^{-i\pi/4}, e^{i\pi/4})\), so \(e^{i\pi/4}R_z(\tfrac\pi2) = \mathrm{diag}(1, i) = S\): \(\alpha = \tfrac\pi4\), \(\beta = \tfrac\pi2\), \(\gamma = \delta = 0\). The deck's formulas
+give</p>
+\[ A = R_z(\tfrac\pi2),\qquad B = R_z(-\tfrac\pi4),\qquad C = R_z(-\tfrac\pi4),\qquad P(\tfrac\pi4) = T . \]
+<p>Check: \(ABC = R_z(\tfrac\pi2 - \tfrac\pi4 - \tfrac\pi4) = I\) ✓; \(XBX = R_z(\tfrac\pi4)\), so \(AXBXC = R_z(\tfrac\pi2 + \tfrac\pi4 - \tfrac\pi4) = R_z(\tfrac\pi2) = e^{-i\pi/4}S\) ✓. The circuit:
+\(R_z(-\tfrac\pi4)\) on the target, CNOT, \(R_z(-\tfrac\pi4)\), CNOT, \(R_z(\tfrac\pi2)\) on the target and \(T\) on the control.</p>
+<p><strong>2.</strong> On \(\ket{c, t}\): \(T\otimes T\) gives \(e^{i\pi(c + t)/4}\); the CNOT makes the target \(c\oplus t\); \(T^\dagger\) gives \(e^{-i\pi(c\oplus t)/4}\); the second
+CNOT restores \(t\). Total phase \(e^{i\pi(c + t - c\oplus t)/4}\), and \(c + t - c\oplus t\) is \(0, 0, 0, 2\) on \(00, 01, 10, 11\). So the circuit is
+\(\mathrm{diag}(1, 1, 1, e^{i\pi/2}) = \mathrm{diag}(1, 1, 1, i) = C(S)\) exactly ✓.</p>
+<p><strong>3.</strong> Part 2: three (\(T, T, T^\dagger\)). Part 1: \(R_z(-\tfrac\pi4)\) twice and \(T\) once — three — plus an \(R_z(\tfrac\pi2)\), which is \(S\) up to phase and
+is not a \(T\)-type gate. Both cost <strong>3</strong>. (\(R_z(\pm\tfrac\pi4)\) is \(T^{\pm1}\) only up to a global phase, but the ABC circuit as written is exactly \(C(S)\), as the
+check below confirms, so no phase is lost.)</p>
+<p><strong>Check.</strong> On \(\ket{11}\) in part 1, step by step: \(C\ket1 = e^{-i\pi/8}\ket1\); CNOT: \(\ket0\); \(B\ket0 = e^{i\pi/8}\ket0\); CNOT: \(\ket1\); \(A\ket1 = e^{i\pi/4}\ket1\);
+\(T\) on the control: \(e^{i\pi/4}\). Total \(e^{-i\pi/8 + i\pi/8 + i\pi/4 + i\pi/4} = e^{i\pi/2} = i\) ✓. On \(\ket{01}\) the CNOTs are idle, the target stays \(\ket1\), and
+\(C, B, A\) multiply it by \(e^{-i\pi/8}e^{-i\pi/8}e^{i\pi/4} = 1\) ✓; on \(\ket{00}\), by \(e^{i\pi/8}e^{i\pi/8}e^{-i\pi/4} = 1\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates
+cs = gates.controlled(gates.S)
+t_way = Circuit(2).t(0).t(1).cx(0, 1).tdg(1).cx(0, 1)
+abc = Circuit(2).rz(-np.pi / 4, 1).cx(0, 1).rz(-np.pi / 4, 1).cx(0, 1).rz(np.pi / 2, 1).phase(np.pi / 4, 0)
+print(np.allclose(t_way.unitary(), cs), np.allclose(abc.unitary(), cs))   # True True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p8">
+<h3><span class="pno">P8</span> Controlled-controlled-U <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: square roots of unitaries by the spectral theorem, Barenco's construction, counting gates through the ABC construction</p>
+<div class="statement">
+<ol>
+<li>Show every one-qubit unitary \(U\) has a unitary square root \(V\), \(V^2 = U\).</li>
+<li>Prove that, in time order, \(C(V)\) from \(b\) onto the target, \(\mathrm{CNOT}\) \(a\to b\), \(C(V^\dagger)\) from \(b\), \(\mathrm{CNOT}\) \(a\to b\), \(C(V)\) from \(a\), is
+\(C^2(U)\) with controls \(a, b\).</li>
+<li>Compiling each controlled gate by the ABC construction, count the CNOTs and the one-qubit gates for a generic \(U\).</li>
+<li>For \(U = Z\), name \(V\), and say what the circuit becomes.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is the functional calculus of unit 00; part 2 a sum of exponents; part 3 two integers; part 4 a named gate.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>A unitary is normal with eigenvalues \(e^{i\theta_j}\). In part 2, on basis states the target receives a power of \(V\) from each controlled gate,
+and all these powers commute. In part 3, each controlled gate costs two CNOTs and at most four one-qubit gates.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: the exponents are \(b\), then \(-(a\oplus b)\) (the middle gate sees \(b\) after the first CNOT), then \(a\); and \(b - (a\oplus b) + a = 2ab\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Split \(U\) into two halves and let each control apply one half; the CNOTs arrange that the halves cancel unless both
+controls are on.</p>
+<p><strong>1.</strong> By the spectral theorem (unit 00) \(U = \sum_je^{i\theta_j}P_j\) with orthogonal projectors summing to \(I\). Put \(V = \sum_je^{i\theta_j/2}P_j\): it is
+unitary (\(V^\dagger V = \sum|e^{i\theta_j/2}|^2P_j = I\)) and \(V^2 = \sum e^{i\theta_j}P_j = U\). (There are several square roots; any one works.)</p>
+<p><strong>2.</strong> On \(\ket{a, b}\ket\psi\): the first gate applies \(V^b\); the CNOT makes the second wire \(a\oplus b\); the middle gate applies \(V^{-(a\oplus b)}\); the
+CNOT restores \(b\); the last gate applies \(V^a\). Powers of one operator commute, so the target receives \(V^{b - (a\oplus b) + a}\). For bits,
+\(b - (a\oplus b) + a = 2ab\) (\(00\): \(0\); \(01\): \(1 - 1 + 0 = 0\); \(10\): \(0 - 1 + 1 = 0\); \(11\): \(1 - 0 + 1 = 2\)). So the target receives \(V^{2ab} = U^{ab}\), and the controls
+end as they began: this is \(C^2(U)\) on the basis, hence everywhere. \(\blacksquare\)</p>
+<p><strong>3.</strong> Three controlled gates, each 2 CNOTs and at most 4 one-qubit gates (\(A, B, C\) and \(P(\alpha)\)), plus the 2 CNOTs between them:
+<strong>8 CNOTs</strong> and at most <strong>12 one-qubit gates</strong>, so at most 20 gates. (Adjacent one-qubit gates on the same wire can be merged, which can
+lower the 12.) For \(U = X\) the deck's version uses \(V = HSH\) and gets 8 CNOTs, 9 \(T\)-type and 2 \(H\): 19.</p>
+<p><strong>4.</strong> \(U = Z\): \(V = S\), since \(S^2 = \mathrm{diag}(1, i^2) = Z\). The circuit is \(C(S)\) from \(b\), CNOT, \(C(S^\dagger)\) from \(b\), CNOT, \(C(S)\) from \(a\) — and
+with problem P7's \(C(S)\) it becomes a CNOT–\(T\) network, a phase polynomial for \(4abx\) once more. It is \(C^2(Z)\), the middle of the
+seven-T Toffoli.</p>
+<p><strong>Check.</strong> On \(\ket{11}\ket\psi\): \(V\), then \(b\to0\) so the middle gate is idle, then \(b\to1\), then \(V\): \(V^2\ket\psi = U\ket\psi\) ✓. On \(\ket{01}\ket\psi\) the
+CNOTs do nothing (\(a = 0\)), so \(b = 1\) throughout: \(V\), then \(V^\dagger\), and the last gate is idle: \(V^\dagger V = I\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit, gates, linalg
+rng = np.random.default_rng(7)
+U, _ = np.linalg.qr(rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)))
+w, P = np.linalg.eig(U)
+V = P @ np.diag(np.sqrt(w)) @ np.linalg.inv(P)                # a square root of U
+c = (Circuit(3).controlled(V, [1], [2]).cx(0, 1)
+     .controlled(linalg.dagger(V), [1], [2]).cx(0, 1).controlled(V, [0], [2]))
+print(np.allclose(V @ V, U), np.allclose(c.unitary(), gates.controlled(U, 2)))   # True True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p9">
+<h3><span class="pno">P9</span> How many two-level factors <span class="tag hard">hard</span></h3>
+<p class="exercises">exercises: running the two-level construction by hand, a connectivity lower bound, a parameter-count lower bound</p>
+<div class="statement">
+<p>Let \(U = \tfrac13\begin{pmatrix}1 &amp; 2 &amp; 2\\ 2 &amp; 1 &amp; -2\\ 2 &amp; -2 &amp; 1\end{pmatrix}\).</p>
+<ol>
+<li>Check that \(U\) is unitary, and run the deck's construction on it. Show that it uses all \(\tfrac{3\cdot2}2 = 3\) factors, and write \(U\) as their
+product.</li>
+<li>Prove that if a product of two-level unitaries has every entry non-zero, the pairs \(\{s, t\}\) they act on, as edges on the vertices
+\(1, \dots, d\), form a connected graph — so at least \(d - 1\) factors are needed. Exhibit a \(d\times d\) unitary with every entry non-zero, for
+every \(d\ge3\).</li>
+<li>Using the deck's counting argument, show that a generic \(d\times d\) unitary needs at least \(d^2/4\) two-level factors in any decomposition.
+How far is the construction's \(\tfrac{d(d-1)}2\) from this?</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Part 1 is three \(3\times3\) matrices with entries involving \(\sqrt5\); part 2 a graph argument; part 3 a dimension count ending in a ratio
+below 2.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: the first factor acts on rows 1, 2 with \((a, b) = (\tfrac13, \tfrac23)\), so \(n = \tfrac{\sqrt5}3\). Part 2: a two-level unitary on \(\{s, t\}\) maps the span
+of the basis vectors of any union of graph components to itself. Try \(I - \tfrac2dJ\), \(J\) the all-ones matrix. Part 3: each two-level factor
+is a point of \(U(2)\), 4 real parameters, and the choice of pair is discrete.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 1: \(W_1 = \tfrac1{\sqrt5}\begin{pmatrix}1 &amp; 2\\ 2 &amp; -1\end{pmatrix}\) on rows 1, 2, and \(W_1U\) has first column \((\tfrac{\sqrt5}3, 0, \tfrac23)\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> The construction's count is an upper bound. Two lower bounds bracket the truth: connectivity gives \(d - 1\) for some
+unitaries, and counting parameters gives \(d^2/4\) for almost all — so the construction is within a factor 2 of optimal.</p>
+<p><strong>1. Unitary.</strong> Rows \((1, 2, 2), (2, 1, -2), (2, -2, 1)\) have squared length \(9\) and pairwise dot products \(2 + 2 - 4 = 0\), \(2 - 4 + 2 = 0\),
+\(4 - 2 - 2 = 0\); divided by 3 they are orthonormal, and \(U\) is real, so \(UU^\dagger = I\) ✓.</p>
+<p><strong>Step 1</strong> (rows 1, 2 of column 1): \(a = \tfrac13\), \(b = \tfrac23\), \(n = \tfrac{\sqrt5}3\); \(W_1 = \tfrac1n\begin{pmatrix}a &amp; b\\ b &amp; -a\end{pmatrix} = \tfrac1{\sqrt5}\begin{pmatrix}1 &amp; 2\\ 2 &amp; -1\end{pmatrix}\). New rows:
+\(r_1' = (r_1 + 2r_2)/\sqrt5 = \tfrac1{3\sqrt5}(5, 4, -2)\), \(r_2' = (2r_1 - r_2)/\sqrt5 = \tfrac1{3\sqrt5}(0, 3, 6) = \tfrac1{\sqrt5}(0, 1, 2)\), \(r_3\) unchanged.</p>
+<p><strong>Step 2</strong> (rows 1, 3): \(a = \tfrac{\sqrt5}3\), \(b = \tfrac23\), \(n = 1\); \(W_2 = \begin{pmatrix}\sqrt5/3 &amp; 2/3\\ 2/3 &amp; -\sqrt5/3\end{pmatrix}\) on rows 1, 3. New row 1:
+\(\tfrac{\sqrt5}3r_1' + \tfrac23r_3 = \tfrac19(5, 4, -2) + \tfrac19(4, -4, 2) = (1, 0, 0)\). New row 3: \(\tfrac23r_1' - \tfrac{\sqrt5}3r_3 = \tfrac1{9\sqrt5}\big((10, 8, -4) - (10, -10, 5)\big) = \tfrac1{\sqrt5}(0, 2, -1)\).</p>
+<p><strong>Step 3.</strong> Now \(W_2W_1U = 1\oplus\tfrac1{\sqrt5}\begin{pmatrix}1 &amp; 2\\ 2 &amp; -1\end{pmatrix} =: W_3\), two-level on rows 2, 3. Each \(W_i\) is real symmetric and
+orthogonal, so \(W_i^{-1} = W_i\), and</p>
+\[ U = W_1\,W_2\,W_3 , \]
+<p>all three non-trivial: no entry the construction zeroed was zero to begin with.</p>
+<p><strong>2. Connectivity.</strong> Let the factors' pairs form a graph on \(\{1, \dots, d\}\), and suppose it is disconnected; let \(K\) be one component,
+not everything. Each factor acts on a pair inside one component, so it maps \(\mathrm{span}\{\ket j : j\in K\}\) into itself (a pair inside \(K\) is
+mixed within \(K\); a pair outside \(K\) leaves \(K\)'s vectors fixed). So the product does too: its entries \(\braket{i|M|j}\) with \(j\in K\), \(i\notin K\) vanish.
+Hence every-entry-non-zero forces a connected graph, and a connected graph on \(d\) vertices has at least \(d - 1\) edges. <strong>Example:</strong>
+\(R = I - \tfrac2dJ\) with \(J\) the all-ones matrix. It is real symmetric, and \(J^2 = dJ\) gives \(R^2 = I - \tfrac4dJ + \tfrac4{d^2}dJ = I\), so \(R\) is orthogonal. Its
+entries are \(1 - \tfrac2d\) and \(-\tfrac2d\), all non-zero for \(d\ge3\).</p>
+<p><strong>3. Counting.</strong> Fix the sequence of pairs used by \(m\) factors (finitely many choices). The product is the image of the smooth map
+\(U(2)^m\to U(d)\), from a manifold of dimension \(4m\). If \(4m \lt d^2 = \dim U(d)\) the image has measure zero (Sard, easy case, as in the deck), and so
+does the finite union over pair sequences. So a generic unitary needs \(m\ge d^2/4\). The construction uses \(\tfrac{d(d-1)}2\), and
+\(\tfrac{d(d-1)/2}{d^2/4} = \tfrac{2(d-1)}d \lt 2\): within a factor of 2.</p>
+<p><strong>Check.</strong> \(d = 3\): bounds \(d - 1 = 2\) and \(\lceil 9/4\rceil = 3\); the construction used 3 on \(U\), so for a generic \(3\times3\) unitary three factors are
+exactly optimal. \(d = 2\): \(\lceil 4/4\rceil = 1 = \tfrac{2\cdot1}2\) ✓.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import linalg
+U = np.array([[1, 2, 2], [2, 1, -2], [2, -2, 1]]) / 3
+def two(i, j, m):
+    W = np.eye(3); W[np.ix_([i, j], [i, j])] = m; return W
+r5 = np.sqrt(5)
+W1 = two(0, 1, np.array([[1, 2], [2, -1]]) / r5)
+W2 = two(0, 2, np.array([[r5, 2], [2, -r5]]) / 3)
+W3 = two(1, 2, np.array([[1, 2], [2, -1]]) / r5)
+print(linalg.is_unitary(U), np.allclose(W2 @ W1 @ U, W3), np.allclose(W1 @ W2 @ W3, U))
+# True True True</code></pre>
+</div></details>
+</section>
+
+<section class="problem" id="p10">
+<h3><span class="pno">P10</span> A Gray code across the cube <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: Gray codes, swaps as multiply-controlled \(X\) gates with open controls, conjugating a two-level unitary into place</p>
+<div class="statement">
+<p>Let \(\tilde U = \begin{pmatrix}u_{00} &amp; u_{01}\\ u_{10} &amp; u_{11}\end{pmatrix}\) be a one-qubit unitary, and \(G\) the three-qubit two-level unitary acting as \(\tilde U\) on \(\ket{000}, \ket{111}\) (in that
+order) and fixing the other six basis states.</p>
+<ol>
+<li>Write a Gray code from \(000\) to \(111\).</li>
+<li>Build \(G\) as a circuit of multiply-controlled gates, drawing controls on \(0\) as open circles, and give the gate count.</li>
+<li>Verify the circuit on \(\ket{000}\) and on \(\ket{001}\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The Gray code has four strings; the circuit has two swaps, one controlled \(\tilde U\), and the two swaps undone — five multiply-controlled
+gates.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Flip the bits one at a time, last bit first: \(000, 001, 011, 111\). Each swap \(\ket{g_i}\leftrightarrow\ket{g_{i+1}}\) is an \(X\) on the bit they differ in,
+controlled by the other two bits taking their common values.</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First gate: swap \(\ket{000}\leftrightarrow\ket{001}\) — an \(X\) on qubit 2 with open controls on qubits 0 and 1.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Walk \(\ket{000}\) along an edge path of the cube until it is a neighbour of \(\ket{111}\), apply \(\tilde U\) on that edge, and walk back.</p>
+<p><strong>1.</strong> \(g_1 = 000\), \(g_2 = 001\), \(g_3 = 011\), \(g_4 = 111\).</p>
+<p><strong>2.</strong> In time order:</p>
+<ol>
+<li>\(\Sigma_1\): swap \(\ket{000}\leftrightarrow\ket{001}\): \(X\) on qubit 2, open controls on qubits 0, 1.</li>
+<li>\(\Sigma_2\): swap \(\ket{001}\leftrightarrow\ket{011}\): \(X\) on qubit 1, open control on qubit 0, filled control on qubit 2.</li>
+<li>\(\tilde U\) on qubit 0, filled controls on qubits 1 and 2 — the neighbours \(\ket{011}, \ket{111}\) differ in qubit 0, and \(\ket{011}\) has qubit 0 equal to
+0, so \(\tilde U\) appears in its own order.</li>
+<li>\(\Sigma_2\) again, then \(\Sigma_1\) again (swaps are their own inverses).</li>
+</ol>
+<p>Five gates, each with two controls: four \(C^2(X)\) gates (Toffolis, with \(X\)'s for the open controls — six \(X\) pairs in all if not merged) and
+one \(C^2(\tilde U)\). This is the deck's lemma with \(\Pi = \Sigma_2\Sigma_1\): \(G = \Sigma_1\Sigma_2\,U'\,\Sigma_2\Sigma_1\).</p>
+<p><strong>3.</strong> \(\ket{000}\): \(\Sigma_1\to\ket{001}\), \(\Sigma_2\to\ket{011}\), then \(\tilde U\) on qubit 0: \(u_{00}\ket{011} + u_{10}\ket{111}\). \(\Sigma_2\) maps \(\ket{011}\to\ket{001}\) and leaves \(\ket{111}\)
+(qubit 0 is 1); \(\Sigma_1\) maps \(\ket{001}\to\ket{000}\) and leaves \(\ket{111}\). Result \(u_{00}\ket{000} + u_{10}\ket{111}\) — the first column of \(\tilde U\) on \(\ket{000}, \ket{111}\) ✓.
+\(\ket{001}\): \(\Sigma_1\to\ket{000}\); \(\Sigma_2\) ignores it (qubit 2 is 0); the controlled \(\tilde U\) ignores it; \(\Sigma_2\) ignores it; \(\Sigma_1\to\ket{001}\). Fixed ✓.</p>
+<p><strong>Check</strong> the norm: \(|u_{00}|^2 + |u_{10}|^2 = 1\) because \(\tilde U\) is unitary ✓. A different Gray code, such as \(000, 100, 110, 111\), gives an equally good
+circuit with \(\tilde U\) on qubit 2.</p>
+<h4>With the referee</h4>
+<pre><code>import numpy as np
+from qclib import Circuit
+rng = np.random.default_rng(3)
+Ut, _ = np.linalg.qr(rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)))
+def swaps(c):                                   # 000&lt;-&gt;001, then 001&lt;-&gt;011
+    return c.x(0).x(1).ccx(0, 1, 2).x(0).x(1).x(0).ccx(0, 2, 1).x(0)
+c = swaps(Circuit(3)).controlled(Ut, [1, 2], [0])
+c.extend(swaps(Circuit(3)).inverse())
+target = np.eye(8, dtype=complex)
+target[np.ix_([0, 7], [0, 7])] = Ut                # two-level on |000&gt;, |111&gt;
+print(np.allclose(c.unitary(), target))            # True</code></pre>
+</div></details>
+</section>
+
+<h2 class="group">Counting</h2>
+
+<section class="problem" id="p11">
+<h3><span class="pno">P11</span> Counting parameters <span class="tag routine">routine</span></h3>
+<p class="exercises">exercises: the dimension \(4^n - 1\), the counting lower bound, the same bound for CNOT and one-qubit gates</p>
+<div class="statement">
+<ol>
+<li>For \(n = 1, 2, 3, 10\), give the number of real parameters of an \(n\)-qubit unitary up to global phase, and the deck's lower bound on the
+number of gates (each on at most two qubits) that a generic one needs.</li>
+<li>In a circuit of CNOTs and one-qubit gates only the one-qubit gates carry parameters. Show that a generic \(n\)-qubit unitary then needs at
+least \((4^n - 1)/3\) one-qubit gates, and evaluate this for the same \(n\).</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>Eight numbers in part 1 and four in part 2; the last of each is in the tens or hundreds of thousands.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>Part 1: \(4^n - 1\) and \(\lceil(4^n - 1)/16\rceil\). Part 2: a one-qubit gate is a point of \(U(2)\), 4 parameters, but its phase is a global phase of the whole
+circuit; so the circuit with \(g\) one-qubit gates is the image of \(SU(2)^g\times U(1)\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First line of part 2: the image of a smooth map from a manifold of dimension \(3g + 1\) into \(U(2^n)\), of dimension \(4^n\), has measure zero unless
+\(3g + 1\ge4^n\).</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> Compare the dimension of what a circuit can reach with the dimension of all unitaries.</p>
+<p><strong>1.</strong> \(4^n - 1\) and the bound \(\lceil(4^n - 1)/16\rceil\):</p>
+<ul>
+<li>\(n = 1\): \(3\) parameters; bound \(\lceil 3/16\rceil = 1\).</li>
+<li>\(n = 2\): \(15\); bound \(\lceil 15/16\rceil = 1\).</li>
+<li>\(n = 3\): \(63\); bound \(\lceil 63/16\rceil = \lceil3.94\rceil = 4\).</li>
+<li>\(n = 10\): \(4^{10} - 1 = 1\,048\,575\); bound \(\lceil 65\,535.94\rceil = 65\,536 = 4^8\approx6.6\times10^4\) gates.</li>
+</ul>
+<p><strong>2.</strong> Fix the positions of the CNOTs and one-qubit gates. Write each one-qubit gate as \(e^{i\varphi_j}V_j\) with \(V_j\in SU(2)\); the phases
+commute out of the product as one global phase \(e^{i\sum\varphi_j}\). So the reachable set is the image of
+\(SU(2)^g\times U(1)\to U(2^n)\), a smooth map from dimension \(3g + 1\). If \(3g + 1 \lt 4^n\) its image has measure zero (Sard, as in the deck),
+and there are finitely many layouts for each \(g\) and each number of CNOTs — countably many in all, and a countable union of
+measure-zero sets has measure zero. So generically \(g\ge(4^n - 1)/3\):</p>
+<ul>
+<li>\(n = 1\): \(1\). \(n = 2\): \(5\). \(n = 3\): \(21\). \(n = 10\): \(349\,525\approx3.5\times10^5\).</li>
+</ul>
+<p>(\(4^n - 1\) is divisible by 3, since \(4\equiv1\bmod 3\), so these are whole numbers.)</p>
+<p><strong>Check.</strong> \(n = 1\): one one-qubit gate makes every one-qubit unitary, so the bound 1 is attained ✓. \(n = 2\): the deck's controlled-\(H\) used
+four one-qubit gates — fewer than 5, which is no contradiction, because controlled-\(H\) is a special unitary, not a generic one. The
+optimal circuits for a generic two-qubit gate use three CNOTs with one-qubit gates around and between them (cited: Vatan and
+Williams, <i>Phys. Rev. A</i> 69, 032315, 2004).</p>
+<p><strong>Reading the numbers.</strong> At \(n = 10\), ten qubits, a generic unitary already needs tens of thousands of gates; the bound grows
+by a factor 4 per qubit. The unitaries algorithms use are the rare exceptions with polynomial circuits.</p>
+</div></details>
+</section>
+
+<section class="problem" id="p12">
+<h3><span class="pno">P12</span> Optional: write your own statevector simulator <span class="tag medium">medium</span></h3>
+<p class="exercises">exercises: a gate on chosen wires as a tensor contraction, the qubit order, testing against an independent implementation (optional; nothing later depends on it)</p>
+<div class="statement">
+<p>An \(n\)-qubit state is a vector of \(2^n\) amplitudes. Reshape it to an array with \(n\) axes of length 2 — axis \(j\) is qubit \(j\), qubit 0 first —
+and a \(k\)-qubit gate to an array with \(2k\) axes (\(k\) output, then \(k\) input). Applying the gate to wires \(q_1, \dots, q_k\) is contracting its input
+axes with the state's axes \(q_1, \dots, q_k\).</p>
+<ol>
+<li>Explain, from the definition of a gate on chosen wires in the deck, why that contraction is the right operation.</li>
+<li>Write a function <code>apply(psi, gate, qubits, n)</code> in NumPy that does it in about ten lines.</li>
+<li>Test it against <code>qclib</code>'s <code>Circuit(...).run()</code> on 200 random circuits of \(H, T, S\), CNOT and Toffoli gates on 3 to 6 qubits.</li>
+</ol>
+</div>
+<details class="hints"><summary>Hints · 3 rungs</summary><div>
+<details class="rung"><summary>Rung 1</summary><div>
+<p>The answer is a short function using <code>reshape</code>, <code>np.tensordot</code> and <code>np.moveaxis</code>, plus a test loop.</p>
+<details class="rung"><summary>Rung 2</summary><div>
+<p>\(\braket{y|G_{(Q)}|x} = \braket{y_Q|G|x_Q}\prod_{j\notin Q}\delta_{y_jx_j}\) says: the new amplitude at \(y\) is \(\sum_{x_Q}G_{y_Q, x_Q}\,\psi_{x_Q, y_{\text{rest}}}\) — a sum over the gate's input
+indices only. <code>tensordot</code> puts the gate's output axes first; <code>moveaxis</code> must put them back on wires \(q_1, \dots, q_k\).</p>
+<details class="rung"><summary>Rung 3</summary><div>
+<p>First lines: <code>t = psi.reshape((2,) * n)</code>; <code>g = gate.reshape((2,) * (2 * k))</code>;
+<code>t = np.tensordot(g, t, axes=(list(range(k, 2 * k)), list(qubits)))</code>.</p>
+</div></details></div></details></div></details>
+</div></details>
+<details class="solution"><summary>Worked solution</summary><div>
+<p><strong>Idea.</strong> A gate on \(k\) wires is a matrix in those \(k\) indices and the identity in the rest; as arrays, that is a contraction over
+\(k\) axes. It costs \(O(2^n\cdot2^k)\) operations instead of the \(4^n\) of building the full matrix.</p>
+<p><strong>1.</strong> With \(\psi_x = \braket{x|\psi}\), \((G_{(Q)}\psi)_y = \sum_x\braket{y|G_{(Q)}|x}\psi_x = \sum_{x_Q}\braket{y_Q|G|x_Q}\,\psi_{x_Q\cup y_{\text{rest}}}\): the delta functions fix every index
+off \(Q\). Reshaping a vector of length \(2^n\) to shape \((2, \dots, 2)\) in C order makes the first axis the most significant bit — qubit 0, the
+course's convention — so the index \(x\) of the vector is the multi-index \((x_0, \dots, x_{n-1})\) of the array. The gate's matrix, reshaped to
+\((2,)\times2k\), has entry \(G[y_{q_1}, \dots, y_{q_k}, x_{q_1}, \dots, x_{q_k}]\) — again most significant first, matching the order <code>qubits</code> is given in.</p>
+<p><strong>2.</strong></p>
+<pre><code>import numpy as np
+
+def apply(psi, gate, qubits, n):
+    """Apply a 2^k x 2^k gate to the listed qubits (in that order) of an n-qubit state."""
+    k = len(qubits)
+    t = psi.reshape((2,) * n)                    # one axis per qubit, qubit 0 first
+    g = gate.reshape((2,) * (2 * k))             # k output axes, then k input axes
+    t = np.tensordot(g, t, axes=(list(range(k, 2 * k)), list(qubits)))
+    t = np.moveaxis(t, list(range(k)), list(qubits))   # new axes back to their wires
+    return t.reshape(-1)</code></pre>
+<p><code>tensordot</code> returns the gate's \(k\) output axes followed by the state's untouched axes in their old order; <code>moveaxis</code> sends output axis
+\(i\) to position \(q_i\), and the untouched axes slide into the remaining positions in order — where they were.</p>
+<p><strong>3.</strong></p>
+<pre><code>from qclib import Circuit, gates
+
+rng = np.random.default_rng(1)
+menu = [(gates.H, 1), (gates.T, 1), (gates.S, 1), (gates.CX, 2), (gates.CCX, 3)]
+worst = 0.0
+for trial in range(200):
+    n = int(rng.integers(3, 7))
+    psi = np.zeros(2**n, dtype=complex); psi[0] = 1
+    c = Circuit(n)
+    for _ in range(30):
+        g, k = menu[rng.integers(len(menu))]
+        qs = [int(q) for q in rng.choice(n, size=k, replace=False)]
+        psi = apply(psi, g, qs, n)
+        c.gate(g, *qs)
+    worst = max(worst, np.abs(psi - c.run().vector).max())
+print(worst &lt; 1e-12)                             # True</code></pre>
+<p><strong>Check.</strong> By hand first: \(\ket{00}\), \(H\) on qubit 0, CNOT with <code>qubits = [0, 1]</code>, gives amplitudes \((0.7071, 0, 0, 0.7071)\) — \(\ket{\Phi^+}\), norm 1 ✓.
+With <code>qubits = [1, 0]</code> the CNOT's control is qubit 1, which is \(\ket0\), so nothing happens: \((0.7071, 0, 0.7071, 0)\) — a test that the order of
+<code>qubits</code> is respected. The random test then compares 200 circuits of 30 gates each, with controls and targets in every order.</p>
+<p><strong>The trap.</strong> Leaving out <code>moveaxis</code> passes every test where the gate acts on wires \(0, \dots, k-1\) in order and fails the rest: the output
+axes land on the wrong qubits. Reading the state in Qiskit's order (qubit 0 least significant) reverses every index.</p>
+</div></details>
+</section>
+
+<footer class="sheet-foot">When the checkpoint above is true: <code>./qc done 10</code>.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/sheet.js"></script>
+</body>
+</html>

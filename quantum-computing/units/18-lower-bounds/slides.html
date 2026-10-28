@@ -1,0 +1,1662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>18 · Lower bounds: what quantum computers provably cannot do</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../slides/deck.css">
+</head>
+<body data-trunk="d">
+<!-- The running example, once: what each <span class="ref"> on the slides shows on hover. -->
+<div class="refs" hidden>
+  <template data-ref="or"><span class="ref-name">the running example: OR on $N$ bits</span>$\mathrm{OR}_N(x) = 1$ iff some $x_i = 1$: is anything marked? <span class="ref-note">Grover answers it with order $\sqrt N$ queries (unit 17). The hybrid argument proves at least $\sqrt N/6$; the polynomial method proves order $\sqrt N$ again. For $N = 2^{20}$: at least $174$, against Grover's $490$ for success $\tfrac23$</span></template>
+  <template data-ref="par"><span class="ref-name">set against it: parity on $N$ bits</span>$\mathrm{PARITY}_N(x) = x_0\oplus x_1\oplus\cdots\oplus x_{N-1}$: is the number of ones odd? <span class="ref-note">Deutsch's algorithm on the pairs $(x_0, x_1), (x_2, x_3), \dots$ answers it exactly with $N/2$ queries. Its approximate degree is $N$, so nothing does better, even with error $\tfrac13$</span></template>
+  <template data-ref="hyb"><span class="ref-name">the hybrid numbers, $N = 2^{20}$</span>Some $w$ has query magnitude $q_w\le T/N$, so the marked-$w$ run ends within $2T/\sqrt N$ of the empty run. <span class="ref-note">Telling them apart with error $\tfrac13$ needs distance $\ge0.338$, hence $T\ge0.169\sqrt N = 173.2$, so $T\ge174$. For Grover at $T = 804$ the bound is $1.570$ and the true distance $1.414$</span></template>
+  <template data-ref="orpoly"><span class="ref-name">OR as a polynomial</span>$\mathrm{OR}_N = 1 - \prod_i(1 - x_i)$, degree $N$. <span class="ref-note">Symmetrised, an approximation becomes a one-variable $q(k)$ with $q(0)\le\tfrac13$ and $q(k)\in[\tfrac23, \tfrac43]$ for $k\ge1$. Least degree: $6$ for $N = 64$, about $0.7\sqrt N$ in general, $\Theta(\sqrt N)$ by Nisan–Szegedy and Paturi</span></template>
+  <template data-ref="parpoly"><span class="ref-name">parity as a polynomial</span>$\mathrm{PARITY}_N = \tfrac12\big(1 - \prod_i(1 - 2x_i)\big)$, degree $N$. <span class="ref-note">Symmetrised, any approximation must cross $\tfrac12$ between every pair of neighbouring integers $0, 1, \dots, N$: $N$ roots, so degree $N$ even approximately, and $T\ge N/2$</span></template>
+</div>
+<div class="reveal"><div class="slides">
+
+<!-- ================================================================== -->
+<section class="title-slide">
+  <p class="eyebrow">Part D · algorithms · spine</p>
+  <div class="unit-no">18</div>
+  <h1>Lower bounds: what quantum computers provably cannot do</h1>
+  <p class="lede">Every speed-up so far fed on structure. Take the structure away and almost nothing is left: search needs order $\sqrt N$ queries, so Grover is optimal; parity needs exactly $N/2$; and for total functions the quantum count is never below a constant times the fourth root of the classical one.</p>
+  <p class="meta"><span>needs 17, 12</span><span>~3 h slides + 5½ h problems</span><span>problems: <code>./qc problems 18</code></span></p>
+  <aside class="notes">
+    <p>Units 13–17 built algorithms. Each one beat its classical rivals by exploiting something: Deutsch–Jozsa a promise
+    about the function's shape, Grover nothing at all but the ability to interfere. This unit asks the opposite
+    question — what can a quantum algorithm <b>not</b> do — and answers it in the one model where such statements can
+    be proved, the query model of unit 13.</p>
+    <p>Two methods are proved in full. The <b>hybrid argument</b> (Bennett, Bernstein, Brassard and Vazirani, <i>SIAM J.
+    Comput.</i> 26, 1510, 1997) watches where an algorithm looks and flips a bit it hardly looks at. The <b>polynomial
+    method</b> (Beals, Buhrman, Cleve, Mosca and de Wolf, <i>J. ACM</i> 48, 778, 2001) observes that after $T$ queries an
+    acceptance probability is a polynomial of degree at most $2T$ in the input bits, and turns lower bounds into questions
+    about degree. A third, the adversary method, is named and not developed.</p>
+    <h4>How to read this deck</h4>
+    <p>One pair of functions runs through it: OR and parity on $N$ bits. Proofs are on the slides when they are one line
+    and in these notes under <b>Full proof</b> when they are not; anything imported is labelled <i>cited</i>, with where
+    its proof is. Every number was computed. The tools used are unit 00 (inner products, Cauchy–Schwarz, the adjoint,
+    the parallelogram law), unit 01 (projective measurement and the Born rule), unit 03 (tensor products), unit 10
+    (reversible oracles, deferred measurement, uncomputation), unit 11 (the operator norm and the telescoping of
+    <i>Errors add along a circuit</i>), unit 12 (BQP, oracles, relativisation), unit 13 (the query model, the phase
+    oracle, decision trees, Deutsch and Deutsch–Jozsa) and unit 17 (Grover's rotation, its iteration counts, and the
+    random iteration counts of Boyer, Brassard, Høyer and Tapp). What is new — query magnitudes, multilinear degree,
+    approximate degree, symmetrisation — is defined here.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · overview</p>
+  <h2>Is anything marked, and is the count odd?</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the running example: <span class="ref" data-ref="or">OR</span> and <span class="ref" data-ref="par">parity</span> on $N$ bits</span>
+        <p class="small">An input is a string $x = x_0x_1\cdots x_{N-1}$ of bits, reachable only by queries. Two questions about it:</p>
+        $$\mathrm{OR}_N(x) = 1\iff\text{some }x_i = 1,$$
+        $$\mathrm{PARITY}_N(x) = x_0\oplus x_1\oplus\cdots\oplus x_{N-1}.$$
+        <p class="small">Classically each needs order $N$ queries. Quantumly, Grover answers OR with order $\sqrt N$ (unit 17), and Deutsch's algorithm on pairs answers parity with $N/2$ (unit 13).</p>
+        <p class="small"><b>Can anything quantum do better?</b> No: OR needs order $\sqrt N$ — proved twice — and parity needs exactly $N/2$.</p>
+      </div>
+      <p class="small"><b>The plan.</b> <b>1</b> the hybrid argument · <b>2</b> polynomials · <b>3</b> symmetrisation · <b>4</b> parity · <b>5</b> what this says.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 232" width="470" role="img" aria-label="queries needed for N = 2 to the 20, on a logarithmic axis: for OR, the hybrid lower bound 174, Grover 804, classical about N; for parity, quantum exactly N/2 = 524288 and classical N">
+<line x1="70" y1="196" x2="440" y2="196" class="ink" stroke-width="1.3"/>
+<line x1="70.0" y1="196" x2="70.0" y2="201" class="ink" stroke-width="1.2"/><text x="70.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">0</tspan></text>
+<line x1="144.0" y1="196" x2="144.0" y2="201" class="ink" stroke-width="1.2"/><text x="144.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">4</tspan></text>
+<line x1="218.0" y1="196" x2="218.0" y2="201" class="ink" stroke-width="1.2"/><text x="218.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">8</tspan></text>
+<line x1="292.0" y1="196" x2="292.0" y2="201" class="ink" stroke-width="1.2"/><text x="292.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">12</tspan></text>
+<line x1="366.0" y1="196" x2="366.0" y2="201" class="ink" stroke-width="1.2"/><text x="366.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">16</tspan></text>
+<line x1="440.0" y1="196" x2="440.0" y2="201" class="ink" stroke-width="1.2"/><text x="440.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">20</tspan></text>
+<text x="255" y="230" font-size="12" text-anchor="middle" class="soft">queries, logarithmic scale</text>
+<text x="62" y="67" font-size="14" text-anchor="end">OR</text>
+<line x1="207.7" y1="62" x2="440.0" y2="62" class="rule" stroke-width="7"/>
+<line x1="207.7" y1="62" x2="248.5" y2="62" class="unit" stroke-width="7"/>
+<circle cx="207.7" cy="62" r="5" class="fill-accent"/>
+<text x="207.7" y="86" font-size="12" text-anchor="middle" class="fill-accent halo">≥ 174</text>
+<circle cx="248.5" cy="62" r="5" class="fill-unit"/>
+<text x="248.5" y="48" font-size="12" text-anchor="middle" class="fill-unit halo">Grover 804</text>
+<circle cx="440.0" cy="62" r="5" class="fill-ink"/>
+<text x="440.0" y="48" font-size="12" text-anchor="end" class="soft halo">classical ~N</text>
+<text x="62" y="145" font-size="14" text-anchor="end">parity</text>
+<line x1="421.5" y1="140" x2="440.0" y2="140" class="unit" stroke-width="7"/>
+<circle cx="421.5" cy="140" r="5" class="fill-unit"/><circle cx="440.0" cy="140" r="5" class="fill-ink"/>
+<text x="415.5" y="126" font-size="12" text-anchor="end" class="fill-unit halo">quantum N/2 = 524 288</text>
+<text x="440.0" y="162" font-size="12" text-anchor="end" class="soft halo">classical N</text>
+<line x1="255.0" y1="30" x2="255.0" y2="196" class="soft accent" stroke-width="1" stroke-dasharray="3 4"/>
+<text x="255.0" y="24" font-size="11" text-anchor="middle" class="soft">√N = 1024</text>
+</svg>
+        <p class="cap">The answers this deck proves, for $N = 2^{20}$. Quantum search gains a square root and no more; parity gains a factor of two and no more.</p>
+      </div>
+      <p class="small muted">A <span class="term" data-term="query magnitude">dotted underline</span> is a glossary term (click, or <kbd>G</kbd>); a solid one like <span class="ref" data-ref="or">OR</span> is the running example (hover); <kbd>N</kbd> shows the notes, where the longer proofs live.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why these two.</b> They are the two extremes of the polynomial method. OR has full degree $N$ but approximate
+    degree only order $\sqrt N$, which is exactly the room Grover uses. Parity has full degree <i>and</i> full approximate
+    degree, so the quantum saving collapses to the factor of two Deutsch already had on two bits. Between them they show
+    what each method can and cannot see.</p>
+    <p><b>The classical counts, proved.</b> Deterministically both need $N$: an adversary answers $0$ to every query, and
+    until the last bit is read, setting it to $0$ or $1$ changes both OR (the rest being $0$) and parity — unit 13's fooling
+    pair. With coins, parity still needs $N$: a tree of depth below $N$ leaves some bit unread on every path, and under the
+    uniform distribution that bit makes its answer a fair coin, so by unit 13's averaging some input is answered correctly
+    with probability at most $\tfrac12$. OR needs at least $N/3$: take $x = 0^N$ with probability $\tfrac12$ and a single
+    uniformly placed $1$ otherwise. A depth-$k$ tree run on $0^N$ follows one path, reading $k$ positions, and outputs some
+    $a$. If $a = 1$ it is wrong on half the mass. If $a = 0$ it is right on a single-$1$ input only if the $1$ sits on that
+    path, which has probability $k/N$. So its success is at most $\tfrac12 + \tfrac{k}{2N}$, and success $\tfrac23$ needs
+    $k\ge N/3$.</p>
+    <p><b>The figure's numbers.</b> $174$ is the hybrid argument's lower bound with its sharp constant (section 1); $804$
+    is unit 17's iteration count for near-certainty, and $490$ queries already reach success $\tfrac23$ when at most one bit is $1$; $N/2 = 524\,288$
+    for parity. The axis is logarithmic, so the gap between $174$ and $804$ looks small: it is a factor $4.6$.</p>
+    <p>The course's optional simulator is not needed anywhere in this deck; the problem sheet uses it to check three
+    answers.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · overview</p>
+  <h2>What a lower bound has to beat</h2>
+  <div class="cols">
+    <div>
+      <div class="box def"><span class="label">the input, through an oracle</span>
+        <p class="small">The input is $x\in\{0, 1\}^N$, reached only through unit 13's oracle with $f(i) = x_i$:</p>
+        $$O_x\ket i\ket b = \ket i\ket{b\oplus x_i},$$
+        <p class="small">the bit oracle, and by kickback the phase oracle $O_x^\pm\ket i = (-1)^{x_i}\ket i$. Each is one query. Both are the identity when $x = 0^N$.</p>
+      </div>
+      <div class="box def"><span class="label">a $T$-query algorithm (unit 13)</span>
+        <p class="small">Fixed unitaries $U_0, \dots, U_T$ on index, target and work registers; on input $x$ it prepares</p>
+        $$\ket{\psi_T^x} = U_T\,O_x\,U_{T-1}\cdots U_1\,O_x\,U_0\ket{0\cdots0}$$
+        <p class="small">and accepts if an output qubit reads $1$, with probability $p(x)$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 640 190" width="640" role="img" aria-label="a T-query algorithm: fixed unitaries U0 to UT alternate with T applications of the oracle O_x on the index and target registers; the work register passes alongside; psi_t is the state just before query t+1; at the end an output qubit is measured">
+<line x1="80" y1="40" x2="600" y2="40" class="ink" stroke-width="1.5"/>
+<text x="74" y="45" font-size="13" text-anchor="end">index |i⟩</text>
+<line x1="80" y1="80" x2="600" y2="80" class="ink" stroke-width="1.5"/>
+<text x="74" y="85" font-size="13" text-anchor="end">target |b⟩</text>
+<line x1="80" y1="130" x2="600" y2="130" class="ink" stroke-width="1.5"/>
+<text x="74" y="135" font-size="13" text-anchor="end">work |w⟩</text>
+<rect x="90" y="22" width="46" height="126" class="fill-ground unit" stroke-width="1.6"/><text x="113.0" y="90.0" font-size="16" text-anchor="middle">U<tspan font-size="11" dy="4">0</tspan></text>
+<rect x="200" y="22" width="46" height="126" class="fill-ground unit" stroke-width="1.6"/><text x="223.0" y="90.0" font-size="16" text-anchor="middle">U<tspan font-size="11" dy="4">1</tspan></text>
+<rect x="400" y="22" width="46" height="126" class="fill-ground unit" stroke-width="1.6"/><text x="423.0" y="90.0" font-size="16" text-anchor="middle">U<tspan font-size="11" dy="4">T−1</tspan></text>
+<rect x="510" y="22" width="46" height="126" class="fill-ground unit" stroke-width="1.6"/><text x="533.0" y="90.0" font-size="16" text-anchor="middle">U<tspan font-size="11" dy="4">T</tspan></text>
+<rect x="150" y="24" width="40" height="72" class="fill-ground accent" stroke-width="1.6"/><text x="170.0" y="65.0" font-size="16" text-anchor="middle">O<tspan font-size="11" dy="4">x</tspan></text>
+<rect x="260" y="24" width="40" height="72" class="fill-ground accent" stroke-width="1.6"/><text x="280.0" y="65.0" font-size="16" text-anchor="middle">O<tspan font-size="11" dy="4">x</tspan></text>
+<rect x="460" y="24" width="40" height="72" class="fill-ground accent" stroke-width="1.6"/><text x="480.0" y="65.0" font-size="16" text-anchor="middle">O<tspan font-size="11" dy="4">x</tspan></text>
+<text x="345" y="88" font-size="20" text-anchor="middle">⋯</text>
+<rect x="566" y="115" width="34" height="30" class="fill-ground ink" stroke-width="1.5"/><path d="M 572 139 A 11 11 0 0 1 594 139" fill="none" class="ink" stroke-width="1.3"/><line x1="583" y1="139" x2="592" y2="121" class="ink" stroke-width="1.3"/>
+<line x1="145" y1="10" x2="145" y2="160" class="accent" stroke-width="1.1" stroke-dasharray="4 4"/>
+<line x1="255" y1="10" x2="255" y2="160" class="accent" stroke-width="1.1" stroke-dasharray="4 4"/>
+<line x1="455" y1="10" x2="455" y2="160" class="accent" stroke-width="1.1" stroke-dasharray="4 4"/>
+<text x="145" y="178" font-size="14" text-anchor="middle" class="fill-accent">ψ<tspan font-size="10" dy="3">0</tspan></text>
+<text x="255" y="178" font-size="14" text-anchor="middle" class="fill-accent">ψ<tspan font-size="10" dy="3">1</tspan></text>
+<text x="455" y="178" font-size="14" text-anchor="middle" class="fill-accent">ψ<tspan font-size="10" dy="3">T−1</tspan></text>
+<text x="560" y="178" font-size="14" text-anchor="middle" class="fill-accent">ψ<tspan font-size="10" dy="3">T</tspan></text>
+<line x1="560" y1="10" x2="560" y2="160" class="accent" stroke-width="1.1" stroke-dasharray="4 4"/>
+</svg>
+        <p class="cap">$\ket{\psi_t}$ is the state just before query $t + 1$, and $\ket{\psi_T}$ the final one. $O_x$ acts on index and target; the work register passes by.</p>
+      </div>
+      <div class="box def"><span class="label">bounded error, and the two counts</span>
+        <p class="small">It computes $f$ with bounded error if $|p(x) - f(x)|\le\tfrac13$ for every $x$. $\ Q(f)$: the least such $T$; $\ Q_E(f)$: the least for $p = f$ exactly.</p>
+      </div>
+      <div class="box warn"><span class="label">every algorithm at once</span>
+        <p class="small">A lower bound must hold for <b>every</b> choice of $U_0, \dots, U_T$ — any size, any work register, measurements deferred to the end (unit 10). Only the number of oracle calls counts.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Matching unit 13.</b> Unit 13's input was a function $f:\{0, 1\}^n\to\{0, 1\}$, equivalently its truth table of
+    $N = 2^n$ bits. Here the truth table is the object: $x_i = f(i)$, and $O_x$ is unit 13's $U_f$. When $N$ is not a power of
+    two, pad the index register and set the extra $x_i = 0$; nothing below changes. On the full space the oracle is
+    $O_x\otimes I_{\text{work}}$, and the notation drops the $\otimes I$.</p>
+    <p><b>Bit or phase.</b> Unit 13 built $O_x^\pm$ from one call to $O_x$ with the target in $\ket-$, and its problem sheet
+    built $O_x$ back from a controlled $O_x^\pm$. Every bound below is proved for an oracle that is the identity on index
+    values $i$ with $x_i = 0$ — true of both forms — so either may be used.</p>
+    <p><b>Why measurements can wait.</b> Unit 10's deferred-measurement principle replaces a mid-circuit measurement and
+    classically controlled gates by controlled gates and one measurement at the end, without changing any outcome
+    probability. So every query algorithm, adaptive or not, has the form on the slide, and $p(x) = \lVert P_{\rm acc}
+    \ket{\psi_T^x}\rVert^2$ for the projection $P_{\rm acc}$ onto "output qubit reads $1$" (unit 01's Born rule).</p>
+    <p><b>Notation.</b> $Q(f)$ is unit 13's $Q_{1/3}(f)$. Unit 13 also proved $Q(f)\le R(f)\le D(f)$: a classical
+    algorithm is a quantum one that happens to query basis states.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 1</p>
+  <h2>The hybrid argument</h2>
+  <p>Run the algorithm on the empty input, find the position it hardly looks at, and mark that one: the final state barely moves.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the hybrid argument</p>
+  <h2>Where an algorithm looks</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Run the algorithm on $x = 0^N$ — the <b>empty oracle</b>, which is $I$ — and call its states $\ket{\psi_0}, \dots, \ket{\psi_T}$. Let $P_w = \ket w\!\bra w$ on the index register (times $I$ elsewhere).</p>
+      <div class="box def"><span class="label">the <span class="term">query magnitude</span> of position $w$</span>
+        $$q_w = \sum_{t=0}^{T-1}\lVert P_w\ket{\psi_t}\rVert^2 :$$
+        <p class="small">how often the index would be found at $w$ just before a query, summed over the $T$ queries.</p>
+      </div>
+      <div class="box thm"><span class="label">lemma</span>
+        <p class="small">$\sum_w q_w = T$, so some $w$ has $q_w\le T/N$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 196" width="470" role="img" aria-label="query magnitudes q_w for N = 8 on the empty oracle. Left, a classical scan of positions 0, 1, 2: q = 1 there and 0 elsewhere, T = 3. Right, Grover with two iterations: q_w = 1/4 for every w, T = 2. A dashed line marks T/N in each">
+<text x="110" y="18" font-size="13" text-anchor="middle">classical scan, T = 3</text>
+<line x1="10" y1="150" x2="210" y2="150" class="ink" stroke-width="1.2"/>
+<rect x="16.0" y="60.0" width="16" height="90.0" class="fill-unit"/>
+<text x="24.0" y="165" font-size="11" text-anchor="middle" class="mono">0</text>
+<rect x="40.5" y="60.0" width="16" height="90.0" class="fill-unit"/>
+<text x="48.5" y="165" font-size="11" text-anchor="middle" class="mono">1</text>
+<rect x="65.0" y="60.0" width="16" height="90.0" class="fill-unit"/>
+<text x="73.0" y="165" font-size="11" text-anchor="middle" class="mono">2</text>
+<text x="97.5" y="165" font-size="11" text-anchor="middle" class="mono">3</text>
+<text x="122.0" y="165" font-size="11" text-anchor="middle" class="mono">4</text>
+<text x="146.5" y="165" font-size="11" text-anchor="middle" class="mono">5</text>
+<text x="171.0" y="165" font-size="11" text-anchor="middle" class="mono">6</text>
+<text x="195.5" y="165" font-size="11" text-anchor="middle" class="mono">7</text>
+<line x1="10" y1="116.2" x2="210" y2="116.2" class="accent" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="214" y="112.2" font-size="11" text-anchor="end" class="fill-accent halo">T/N = 3/8</text>
+<text x="355" y="18" font-size="13" text-anchor="middle">Grover, T = 2</text>
+<line x1="255" y1="150" x2="455" y2="150" class="ink" stroke-width="1.2"/>
+<rect x="261.0" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="269.0" y="165" font-size="11" text-anchor="middle" class="mono">0</text>
+<rect x="285.5" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="293.5" y="165" font-size="11" text-anchor="middle" class="mono">1</text>
+<rect x="310.0" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="318.0" y="165" font-size="11" text-anchor="middle" class="mono">2</text>
+<rect x="334.5" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="342.5" y="165" font-size="11" text-anchor="middle" class="mono">3</text>
+<rect x="359.0" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="367.0" y="165" font-size="11" text-anchor="middle" class="mono">4</text>
+<rect x="383.5" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="391.5" y="165" font-size="11" text-anchor="middle" class="mono">5</text>
+<rect x="408.0" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="416.0" y="165" font-size="11" text-anchor="middle" class="mono">6</text>
+<rect x="432.5" y="127.5" width="16" height="22.5" class="fill-unit"/>
+<text x="440.5" y="165" font-size="11" text-anchor="middle" class="mono">7</text>
+<line x1="255" y1="127.5" x2="455" y2="127.5" class="accent" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="459" y="121.5" font-size="11" text-anchor="end" class="fill-accent halo">T/N = 1/4</text>
+<text x="10" y="186" font-size="12" class="soft">q<tspan font-size="9" dy="3">w</tspan><tspan dy="-3"> against w; the bars sum to T</tspan></text>
+</svg>
+        <p class="cap">Two algorithms on the empty oracle, $N = 8$. A scan never looks at $3, \dots, 7$; Grover looks everywhere equally.</p>
+      </div>
+      <p class="small"><b>For <span class="ref" data-ref="or">OR</span>.</b> Grover's empty-oracle states are all $\ket s$, since $O = I$ and $D\ket s = \ket s$; so $\lVert P_w\ket s\rVert^2 = 1/N$ and $q_w = T/N$ for every $w$ exactly.</p>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The $P_w$ are orthogonal projections summing to $I$, so $\sum_w\lVert P_w\ket{\psi_t}\rVert^2 = 1$ for each $t$; add over the $T$ queries, and take the least term. $\blacksquare$</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Reading $q_w$.</b> Measuring the index register of $\ket{\psi_t}$ would give $w$ with probability $\lVert
+    P_w\ket{\psi_t}\rVert^2$ (unit 01). The algorithm does not measure; $q_w$ is bookkeeping about the empty run, a number
+    attached to each position saying how much the algorithm leans on it.</p>
+    <p><b>The two bar charts.</b> A classical scan of positions $0, 1, 2$ is a quantum algorithm whose states are basis
+    states: before query $t + 1$ the index is $\ket t$, and on the empty oracle every answer is $0$, so the scan proceeds
+    to the next position. Hence $q_0 = q_1 = q_2 = 1$ and the rest are $0$, summing to $T = 3$. Grover with two
+    iterations on $N = 8$ has $q_w = 2\cdot\tfrac18 = \tfrac14$ for each of the eight, summing to $T = 2$.</p>
+    <p><b>The quantum version of an unread bit.</b> Unit 13's fooling pairs used a position a deterministic tree never
+    reads: flipping it changes the answer and not the run. A quantum algorithm may read every position a little. The
+    lemma says it cannot read every position <i>much</i>: there is a total budget of $T$, so some position gets at most
+    $T/N$ of it. The next slides show that flipping a position with small $q_w$ changes the final state by little.</p>
+    <p><b>Why the empty input.</b> For OR the two inputs to be told apart are $0^N$ and a single $1$. The empty run is the
+    one the algorithm cannot avoid making, and it decides which positions are lightly watched — before anyone chooses
+    where to put the $1$. That order of quantifiers is the whole argument.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the hybrid argument</p>
+  <h2>Marking one position moves the final state by little</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Let $O_w$ be the oracle of the input $e_w$, whose only $1$ is at $w$, and $\ket{\psi_t^w}$ the algorithm's states on it.</p>
+      <div class="box thm"><span class="label">the <span class="term">hybrid argument</span> (Bennett, Bernstein, Brassard, Vazirani 1997)</span>
+        $$\big\lVert\ket{\psi_T^w} - \ket{\psi_T}\big\rVert\ \le\ 2\sum_{t=0}^{T-1}\lVert P_w\ket{\psi_t}\rVert .$$
+      </div>
+      <p class="small">The final states differ by a sum of $T$ <b>perturbations</b>, one per query: the $t$-th is the error made by answering query $t + 1$ with $O_w$ instead of $I$, carried to the end by unitaries that keep its length.</p>
+      <p class="small">The intermediate <b>hybrids</b> answer the first $k$ queries with $I$ and the rest with $O_w$. Consecutive hybrids differ in one query.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 360 275" width="360" role="img" aria-label="the Grover plane for N = 64: the states G^j|s⟩ at angles (2j+1)θ for j = 0 to 6 lie on the unit circle; consecutive ones are joined by chords of length 1/4 each, the six perturbations of the hybrid argument; the straight chord from |s⟩ to the final state has length 1.366, the polygon 1.5">
+<line x1="70" y1="250" x2="300" y2="250" class="ink" stroke-width="1.2"/>
+<line x1="70" y1="250" x2="70" y2="20" class="ink" stroke-width="1.2"/>
+<text x="302" y="254" font-size="13">|w<tspan font-size="10" dy="-6">⊥</tspan><tspan dy="6">⟩</tspan></text>
+<text x="76" y="30" font-size="13">|w⟩</text>
+<path d="M280.0,250.0 L279.9,244.4 L279.7,238.8 L279.3,233.2 L278.8,227.7 L278.1,222.1 L277.3,216.6 L276.4,211.1 L275.3,205.6 L274.0,200.2 L272.6,194.7 L271.1,189.4 L269.4,184.0 L267.5,178.8 L265.6,173.5 L263.5,168.3 L261.2,163.2 L258.9,158.2 L256.3,153.2 L253.7,148.2 L250.9,143.4 L248.0,138.6 L245.0,133.9 L241.8,129.3 L238.6,124.8 L235.2,120.3 L231.7,116.0 L228.0,111.7 L224.3,107.6 L220.5,103.5 L216.5,99.5 L212.4,95.7 L208.3,92.0 L204.0,88.3 L199.7,84.8 L195.2,81.4 L190.7,78.2 L186.1,75.0 L181.4,72.0 L176.6,69.1 L171.8,66.3 L166.8,63.7 L161.8,61.1 L156.8,58.8 L151.7,56.5 L146.5,54.4 L141.2,52.5 L136.0,50.6 L130.6,48.9 L125.3,47.4 L119.8,46.0 L114.4,44.7 L108.9,43.6 L103.4,42.7 L97.9,41.9 L92.3,41.2 L86.8,40.7 L81.2,40.3 L75.6,40.1 L70.0,40.0" fill="none" class="rule" stroke-width="1.2"/>
+<line x1="278.4" y1="223.8" x2="57.7" y2="40.4" class="accent" stroke-width="2.2" stroke-dasharray="6 4"/>
+<path d="M278.4,223.8 L265.3,172.9 L240.1,126.9 L204.2,88.5 L160.0,60.3 L110.1,43.9 L57.7,40.4" fill="none" class="unit" stroke-width="2.6"/>
+<circle cx="278.4" cy="223.8" r="3.6" class="fill-unit"/>
+<circle cx="265.3" cy="172.9" r="3.6" class="fill-unit"/>
+<circle cx="240.1" cy="126.9" r="3.6" class="fill-unit"/>
+<circle cx="204.2" cy="88.5" r="3.6" class="fill-unit"/>
+<circle cx="160.0" cy="60.3" r="3.6" class="fill-unit"/>
+<circle cx="110.1" cy="43.9" r="3.6" class="fill-unit"/>
+<circle cx="57.7" cy="40.4" r="3.6" class="fill-unit"/>
+<text x="286.4" y="227.8" font-size="13" class="halo">|s⟩ = ψ<tspan font-size="9" dy="3">6</tspan></text>
+<text x="49.7" y="44.4" font-size="13" text-anchor="end" class="halo">ψ<tspan font-size="9" dy="-6">w</tspan><tspan font-size="9" dy="9">6</tspan></text>
+<text x="285.4" y="198.8" font-size="12" text-anchor="middle" class="fill-unit">¼</text>
+<text x="265.0" y="147.1" font-size="12" text-anchor="middle" class="fill-unit">¼</text>
+<text x="232.4" y="102.1" font-size="12" text-anchor="middle" class="fill-unit">¼</text>
+<text x="189.6" y="66.6" font-size="12" text-anchor="middle" class="fill-unit">¼</text>
+<text x="139.4" y="42.8" font-size="12" text-anchor="middle" class="fill-unit">¼</text>
+<text x="84.9" y="32.1" font-size="12" text-anchor="middle" class="fill-unit">¼</text>
+<text x="154.0" y="144.1" font-size="12" text-anchor="end" class="fill-accent halo">1.366</text>
+</svg>
+        <p class="cap">Grover on $N = 64$ for $T = 6$ iterations, in unit 17's plane. The hybrids are the Grover states $G^j\ket s$; the six perturbations are chords of length $2/\sqrt{64} = \tfrac14$. Polygon $1.5$, straight chord $1.366$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The hybrids, precisely.</b> Let $\ket{h_k}$ be the final state when queries $1, \dots, k$ are answered by $I$ and
+    queries $k + 1, \dots, T$ by $O_w$. Then $\ket{h_0} = \ket{\psi_T^w}$ and $\ket{h_T} = \ket{\psi_T}$, and
+    $\ket{h_t} - \ket{h_{t+1}}$ comes from a single query, number $t + 1$, answered two ways on the same incoming state
+    $\ket{\psi_t}$: it equals $V(O_w - I)\ket{\psi_t}$ for the unitary $V$ that runs the rest of the $O_w$-algorithm. So
+    $$\ket{\psi_T^w} - \ket{\psi_T} = \sum_{t=0}^{T-1}\big(\ket{h_t} - \ket{h_{t+1}}\big),\qquad \big\lVert\ket{h_t} - \ket{h_{t+1}}\big\rVert = \lVert(O_w - I)\ket{\psi_t}\rVert\le2\lVert P_w\ket{\psi_t}\rVert .$$
+    This is unit 11's <i>Errors add along a circuit</i>, replacing one gate at a time, applied to the oracle gates; the
+    worked example that follows does the same telescoping by induction, every line.</p>
+    <p><b>The figure, computed.</b> In Grover's case the incoming state is always $\ket s$, and $V$ is a power of $G = DO_w$,
+    so $\ket{h_k} = G^{T-k}\ket s$: the hybrids are Grover's own iterates, at angles $(2j + 1)\theta$ from
+    $\ket{w^\perp}$ with $\sin\theta = 1/\sqrt{64} = \tfrac18$, $\theta = 0.1253$. Consecutive iterates are $2\theta$ apart on
+    the unit circle, a chord of $2\sin\theta = \tfrac14$, which is exactly $2\lVert P_w\ket s\rVert$: each perturbation meets
+    its bound with equality. The six chords add to $1.5$; the straight chord from $\ket s$ to $G^6\ket s$ is
+    $2\sin6\theta = 1.366$. The final success probability is $\sin^213\theta = 0.9966$, unit 17's peak at six iterations.</p>
+    <p><b>The name.</b> A <i>hybrid</i> is a run that is part one algorithm, part the other. The technique is everywhere in
+    cryptography under the same name: to show two experiments are indistinguishable, walk from one to the other one step
+    at a time and bound each step.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the hybrid argument · example</p>
+  <h2>Worked: the key inequality, every line</h2>
+  <div class="box ex"><span class="label">$\big\lVert\ket{\psi_T^w} - \ket{\psi_T}\big\rVert\le2\sum_t\lVert P_w\ket{\psi_t}\rVert$, by induction on $t$</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>(a) The two runs</b> start at the same $\ket{\psi_0} = \ket{\psi_0^w} = U_0\ket{0\cdots0}$, and then</p>
+      $$\ket{\psi_{t+1}} = U_{t+1}\ket{\psi_t},\quad \ket{\psi_{t+1}^w} = U_{t+1}O_w\ket{\psi_t^w},$$
+      <p class="small">the empty oracle being $I$. Write $d_t = \lVert\ket{\psi_t^w} - \ket{\psi_t}\rVert$, so $d_0 = 0$.</p>
+      <p class="small"><b>(b) Subtract, and add and subtract $O_w\ket{\psi_t}$:</b></p>
+      $$\begin{aligned}\ket{\psi_{t+1}^w} - \ket{\psi_{t+1}} = U_{t+1}\Big[&O_w\big(\ket{\psi_t^w} - \ket{\psi_t}\big)\\ &+ (O_w - I)\ket{\psi_t}\Big].\end{aligned}$$
+      <p class="small"><b>(c) Take norms.</b> $U_{t+1}$ and $O_w$ are unitary, so they keep lengths; by the triangle inequality</p>
+      $$d_{t+1}\le d_t + \lVert(O_w - I)\ket{\psi_t}\rVert .$$
+    </div>
+    <div>
+      <p class="small"><b>(d) The oracle only acts at $w$.</b> $O_w$ is the identity on index values $i\ne w$, so $O_w(I - P_w) = I - P_w$, that is, $O_w - I = (O_w - I)P_w$. And $\lVert O_w - I\rVert\le\lVert O_w\rVert + \lVert I\rVert = 2$ in unit 11's operator norm. So</p>
+      $$\lVert(O_w - I)\ket{\psi_t}\rVert\le2\lVert P_w\ket{\psi_t}\rVert .$$
+      <p class="small"><b>(e) Unroll</b> from $d_0 = 0$:</p>
+      $$d_T\le2\sum_{t=0}^{T-1}\lVert P_w\ket{\psi_t}\rVert .\qquad\blacksquare$$
+      <div class="box good"><span class="label">check: Grover on four items, one iteration</span>
+        <p class="small">$\ket{\psi_0} = \ket s$, $\lVert P_w\ket s\rVert = \tfrac12$: bound $1$. True: $\ket{\psi_1^w} = \ket w$ (unit 17), $\ket{\psi_1} = \ket s$, and $\lVert\ket w - \ket s\rVert^2 = 2 - 2\braket{w|s} = 1$. Equality ✓.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Step (d) for each oracle.</b> For the phase oracle, $O_w^\pm = I - 2P_w$ and $O_w^\pm - I = -2P_w$ exactly, so the
+    inequality is an equality. For the bit oracle, $O_w = P_w\otimes X + (I - P_w)\otimes I$ on index and target, so
+    $O_w - I = P_w\otimes(X - I)$; the eigenvalues of $X - I$ are $0$ and $-2$, so its norm is $2$. In both cases the bound
+    $2$ is attained, and the factor cannot be improved in general.</p>
+    <p><b>Step (b) in words.</b> The difference after query $t + 1$ has two sources: the difference already present,
+    which $O_w$ and $U_{t+1}$ carry forward without changing its length, and the new error from answering this query
+    with $O_w$ rather than $I$ on the empty run's state. Nothing is lost in the first part and nothing gained; the second
+    part is what the query magnitudes control.</p>
+    <p><b>The check in full.</b> On $N = 4$ with $w$ marked, $\ket s = \tfrac12\sum_i\ket i$, and unit 17's one iteration
+    $G = DO_w$ sends it to $\ket w$ exactly ($\theta = \pi/6$, $3\theta = \pi/2$). On the empty oracle $G = D$ fixes
+    $\ket s$. So the distance is $\lVert\ket w - \ket s\rVert = \sqrt{2 - 2\cdot\tfrac12} = 1$, and the bound is
+    $2\lVert P_w\ket s\rVert = 2\cdot\tfrac12 = 1$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the hybrid argument</p>
+  <h2>Cauchy–Schwarz turns T perturbations into 2T/√N</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">corollary</span>
+        <p class="small">For every $w$, $\ \big\lVert\ket{\psi_T^w} - \ket{\psi_T}\big\rVert\le2\sqrt{T\,q_w}$. For a $w$ with $q_w\le T/N$:</p>
+        $$\big\lVert\ket{\psi_T^w} - \ket{\psi_T}\big\rVert\le\frac{2T}{\sqrt N}.$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Cauchy–Schwarz in $\mathbb R^T$, on $(1, \dots, 1)$ and $a_t = \lVert P_w\ket{\psi_t}\rVert$: $\ \sum_ta_t\le\sqrt T\sqrt{\sum_ta_t^2} = \sqrt{Tq_w}$. Then $q_w\le T/N$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>For <span class="ref" data-ref="hyb">Grover on $N = 2^{20}$</span>.</b> Every $a_t = 1/\sqrt N$, so Cauchy–Schwarz is an equality and the bound is $2T/1024$. The truth is the chord $2\sin T\theta$, $\ \theta = \arcsin2^{-10}$. At $T = 804$:</p>
+      $$\text{bound } 1.570,\qquad\text{truth } 1.414 .$$
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 430 235" width="430" role="img" aria-label="Grover with N = 2 to the 20: the hybrid bound 2T over 1024 grows as a straight line in the number of iterations T, while the true distance 2 sin(T theta) follows a sine arch; at T = 804 they are 1.570 and 1.414">
+<line x1="50.0" y1="200" x2="418.76" y2="200" class="ink" stroke-width="1.2"/>
+<line x1="50.0" y1="200" x2="50.0" y2="27.5" class="ink" stroke-width="1.2"/>
+<text x="50.0" y="216" font-size="12" text-anchor="middle" class="mono">0</text>
+<text x="138.4" y="216" font-size="12" text-anchor="middle" class="mono">402</text>
+<text x="226.9" y="216" font-size="12" text-anchor="middle" class="mono">804</text>
+<text x="315.3" y="216" font-size="12" text-anchor="middle" class="mono">1206</text>
+<text x="403.8" y="216" font-size="12" text-anchor="middle" class="mono">1608</text>
+<text x="42.0" y="204.0" font-size="12" text-anchor="end" class="mono">0</text>
+<text x="42.0" y="129.0" font-size="12" text-anchor="end" class="mono">1</text>
+<text x="42.0" y="54.0" font-size="12" text-anchor="end" class="mono">2</text>
+<text x="403.8" y="232" font-size="13" text-anchor="end">iterations T</text>
+<line x1="50.0" y1="200" x2="309.2" y2="27.4" class="accent" stroke-width="2" stroke-dasharray="6 4"/>
+<path d="M50.0,200.0 L51.2,199.2 L52.4,198.4 L53.5,197.6 L54.7,196.8 L55.9,196.1 L57.1,195.3 L58.3,194.5 L59.5,193.7 L60.6,192.9 L61.8,192.1 L63.0,191.3 L64.2,190.6 L65.4,189.8 L66.6,189.0 L67.7,188.2 L68.9,187.4 L70.1,186.6 L71.3,185.8 L72.5,185.1 L73.7,184.3 L74.8,183.5 L76.0,182.7 L77.2,181.9 L78.4,181.1 L79.6,180.4 L80.8,179.6 L81.9,178.8 L83.1,178.0 L84.3,177.2 L85.5,176.5 L86.7,175.7 L87.9,174.9 L89.0,174.1 L90.2,173.4 L91.4,172.6 L92.6,171.8 L93.8,171.0 L95.0,170.3 L96.1,169.5 L97.3,168.7 L98.5,167.9 L99.7,167.2 L100.9,166.4 L102.1,165.6 L103.2,164.9 L104.4,164.1 L105.6,163.3 L106.8,162.6 L108.0,161.8 L109.2,161.1 L110.3,160.3 L111.5,159.5 L112.7,158.8 L113.9,158.0 L115.1,157.3 L116.3,156.5 L117.4,155.8 L118.6,155.0 L119.8,154.3 L121.0,153.5 L122.2,152.8 L123.4,152.0 L124.5,151.3 L125.7,150.5 L126.9,149.8 L128.1,149.0 L129.3,148.3 L130.5,147.6 L131.6,146.8 L132.8,146.1 L134.0,145.4 L135.2,144.6 L136.4,143.9 L137.6,143.2 L138.7,142.4 L139.9,141.7 L141.1,141.0 L142.3,140.3 L143.5,139.5 L144.7,138.8 L145.8,138.1 L147.0,137.4 L148.2,136.7 L149.4,136.0 L150.6,135.2 L151.8,134.5 L152.9,133.8 L154.1,133.1 L155.3,132.4 L156.5,131.7 L157.7,131.0 L158.8,130.3 L160.0,129.6 L161.2,128.9 L162.4,128.2 L163.6,127.5 L164.8,126.8 L165.9,126.2 L167.1,125.5 L168.3,124.8 L169.5,124.1 L170.7,123.4 L171.9,122.8 L173.0,122.1 L174.2,121.4 L175.4,120.7 L176.6,120.1 L177.8,119.4 L179.0,118.7 L180.1,118.1 L181.3,117.4 L182.5,116.8 L183.7,116.1 L184.9,115.5 L186.1,114.8 L187.2,114.2 L188.4,113.5 L189.6,112.9 L190.8,112.2 L192.0,111.6 L193.2,111.0 L194.3,110.3 L195.5,109.7 L196.7,109.1 L197.9,108.4 L199.1,107.8 L200.3,107.2 L201.4,106.6 L202.6,106.0 L203.8,105.4 L205.0,104.8 L206.2,104.1 L207.4,103.5 L208.5,102.9 L209.7,102.3 L210.9,101.7 L212.1,101.1 L213.3,100.6 L214.5,100.0 L215.6,99.4 L216.8,98.8 L218.0,98.2 L219.2,97.6 L220.4,97.1 L221.6,96.5 L222.7,95.9 L223.9,95.4 L225.1,94.8 L226.3,94.2 L227.5,93.7 L228.7,93.1 L229.8,92.6 L231.0,92.0 L232.2,91.5 L233.4,90.9 L234.6,90.4 L235.8,89.9 L236.9,89.3 L238.1,88.8 L239.3,88.3 L240.5,87.7 L241.7,87.2 L242.9,86.7 L244.0,86.2 L245.2,85.7 L246.4,85.2 L247.6,84.7 L248.8,84.2 L250.0,83.7 L251.1,83.2 L252.3,82.7 L253.5,82.2 L254.7,81.7 L255.9,81.2 L257.1,80.7 L258.2,80.3 L259.4,79.8 L260.6,79.3 L261.8,78.9 L263.0,78.4 L264.1,77.9 L265.3,77.5 L266.5,77.0 L267.7,76.6 L268.9,76.1 L270.1,75.7 L271.2,75.3 L272.4,74.8 L273.6,74.4 L274.8,74.0 L276.0,73.5 L277.2,73.1 L278.3,72.7 L279.5,72.3 L280.7,71.9 L281.9,71.5 L283.1,71.0 L284.3,70.6 L285.4,70.3 L286.6,69.9 L287.8,69.5 L289.0,69.1 L290.2,68.7 L291.4,68.3 L292.5,67.9 L293.7,67.6 L294.9,67.2 L296.1,66.8 L297.3,66.5 L298.5,66.1 L299.6,65.8 L300.8,65.4 L302.0,65.1 L303.2,64.7 L304.4,64.4 L305.6,64.1 L306.7,63.7 L307.9,63.4 L309.1,63.1 L310.3,62.8 L311.5,62.4 L312.7,62.1 L313.8,61.8 L315.0,61.5 L316.2,61.2 L317.4,60.9 L318.6,60.6 L319.8,60.3 L320.9,60.0 L322.1,59.8 L323.3,59.5 L324.5,59.2 L325.7,58.9 L326.9,58.7 L328.0,58.4 L329.2,58.2 L330.4,57.9 L331.6,57.7 L332.8,57.4 L334.0,57.2 L335.1,56.9 L336.3,56.7 L337.5,56.5 L338.7,56.2 L339.9,56.0 L341.1,55.8 L342.2,55.6 L343.4,55.4 L344.6,55.2 L345.8,55.0 L347.0,54.8 L348.2,54.6 L349.3,54.4 L350.5,54.2 L351.7,54.0 L352.9,53.8 L354.1,53.7 L355.3,53.5 L356.4,53.3 L357.6,53.2 L358.8,53.0 L360.0,52.8 L361.2,52.7 L362.3,52.5 L363.5,52.4 L364.7,52.3 L365.9,52.1 L367.1,52.0 L368.3,51.9 L369.4,51.7 L370.6,51.6 L371.8,51.5 L373.0,51.4 L374.2,51.3 L375.4,51.2 L376.5,51.1 L377.7,51.0 L378.9,50.9 L380.1,50.8 L381.3,50.8 L382.5,50.7 L383.6,50.6 L384.8,50.5 L386.0,50.5 L387.2,50.4 L388.4,50.4 L389.6,50.3 L390.7,50.3 L391.9,50.2 L393.1,50.2 L394.3,50.1 L395.5,50.1 L396.7,50.1 L397.8,50.1 L399.0,50.0 L400.2,50.0 L401.4,50.0 L402.6,50.0 L403.8,50.0" fill="none" class="unit" stroke-width="2.2"/>
+<line x1="226.9" y1="200" x2="226.9" y2="82.2" class="rule" stroke-width="1" stroke-dasharray="3 3"/>
+<circle cx="226.9" cy="82.2" r="4" class="fill-accent"/><circle cx="226.9" cy="94.0" r="4" class="fill-unit"/>
+<text x="218.9" y="78.2" font-size="12" text-anchor="end" class="fill-accent halo">bound 1.570</text>
+<text x="234.9" y="110.0" font-size="12" class="fill-unit halo">truth 1.414</text>
+<text x="313.2" y="31.5" font-size="12" class="fill-accent halo">2T/√N</text>
+<text x="336.0" y="98.8" font-size="12" class="fill-unit halo">2 sin Tθ</text>
+</svg>
+        <p class="cap">The bound meets the truth at $T = 0$ and $T = 1$, and is its tangent at $0$ to seven figures. Grover spreads its queries evenly, so only the bending of the arc is lost.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Where the square root comes from.</b> The $T$ perturbations have lengths $2a_t$ with $\sum_ta_t^2 = q_w$. If the
+    algorithm puts a total weight $q_w$ on position $w$, the best it can do to move the final state is to spread that
+    weight evenly over the queries, and then the perturbations add up to $2\sqrt{Tq_w}$. With $q_w\le T/N$ this is
+    $2T/\sqrt N$: the distance grows linearly in $T$ but with slope $1/\sqrt N$, so reaching a constant takes $T$ of
+    order $\sqrt N$.</p>
+    <p><b>The numbers.</b> $\theta = \arcsin2^{-10} = 9.7656\times10^{-4}$. The bound at $T = 804$ is $2\cdot804/1024 = 1.5703$.
+    The truth: the empty run stays at $\ket s$ (angle $\theta$), the marked run reaches angle $(2T + 1)\theta$, and two unit
+    vectors at angle $2T\theta$ are a chord $2\sin T\theta$ apart: $2\sin(0.78516) = 1.4139$. The ratio is $0.90$. The
+    curve and the line agree to first order because $\sin T\theta\approx T\theta$ and $\theta\approx1/\sqrt N$; in fact
+    $\sin T\theta\le T\sin\theta$ for all $T$, which is the bound, for Grover, proved by trigonometry alone.</p>
+    <p><b>An uneven algorithm.</b> If the query weight on $w$ is concentrated in a few queries, Cauchy–Schwarz is lossy,
+    and the true distance is smaller still. The corollary is a worst case over how the algorithm schedules its looks.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the hybrid argument</p>
+  <h2>Close states, close probabilities</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma</span>
+        <p class="small">Let $\ket\psi, \ket\varphi$ be unit vectors with $\lVert\ket\psi - \ket\varphi\rVert = \varepsilon$, and $P$ a projection, $p = \lVert P\ket\psi\rVert^2$, $p' = \lVert P\ket\varphi\rVert^2$. Then</p>
+        $$|p - p'|\ \le\ \varepsilon\sqrt{1 - \varepsilon^2/4}\ \le\ \varepsilon .$$
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$R = 2P - I$ is Hermitian, $R^2 = I$, $\bra\psi R\ket\psi = 2p - 1$. The cross terms $\bra\psi R\ket\varphi - \bra\varphi R\ket\psi$ are imaginary, so</p>
+        $$\begin{aligned}2(p - p') &= \mathrm{Re}\,\big\langle\psi - \varphi\big|R\big|\psi + \varphi\big\rangle\\ &\le\varepsilon\,\lVert\psi + \varphi\rVert = \varepsilon\sqrt{4 - \varepsilon^2},\end{aligned}$$
+        <p class="small">by Cauchy–Schwarz, $\lVert R\rVert = 1$, and the parallelogram law. Swap $\psi$ and $\varphi$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>Checks.</b> $\varphi = -\psi$, a global phase: $\varepsilon = 2$, bound $0$ ✓. Orthogonal: $\varepsilon = \sqrt2$, bound $1$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 240" width="300" role="img" aria-label="two unit vectors psi and phi at angles to the accept axis whose squared cosines are 2/3 and 1/3; the chord between them has length 0.338">
+<line x1="40" y1="210" x2="240" y2="210" class="ink" stroke-width="1.2"/>
+<line x1="40" y1="210" x2="40" y2="20" class="ink" stroke-width="1.2"/>
+<text x="240" y="228" font-size="12" text-anchor="end" class="soft">reject</text>
+<text x="46" y="30" font-size="12" class="soft">accept (range of P)</text>
+<path d="M210.0,210.0 L209.9,205.5 L209.8,201.0 L209.5,196.4 L209.0,191.9 L208.5,187.4 L207.8,183.0 L207.1,178.5 L206.2,174.1 L205.1,169.7 L204.0,165.3 L202.8,160.9 L201.4,156.6 L199.9,152.3 L198.3,148.1 L196.6,143.9 L194.8,139.8 L192.9,135.7 L190.8,131.6 L188.7,127.6 L186.5,123.7 L184.1,119.8 L181.7,116.0 L179.1,112.3 L176.5,108.6 L173.7,105.0 L170.9,101.5 L167.9,98.1 L164.9,94.7 L161.8,91.4 L158.6,88.2 L155.3,85.1 L151.9,82.1 L148.5,79.1 L145.0,76.3 L141.4,73.5 L137.7,70.9 L134.0,68.3 L130.2,65.9 L126.3,63.5 L122.4,61.3 L118.4,59.2 L114.3,57.1 L110.2,55.2 L106.1,53.4 L101.9,51.7 L97.7,50.1 L93.4,48.6 L89.1,47.2 L84.7,46.0 L80.3,44.9 L75.9,43.8 L71.5,42.9 L67.0,42.2 L62.6,41.5 L58.1,41.0 L53.6,40.5 L49.0,40.2 L44.5,40.1 L40.0,40.0" fill="none" class="rule" stroke-width="1.2"/>
+<line x1="40" y1="210" x2="138.1" y2="71.2" class="unit" stroke-width="2.4"/>
+<line x1="138.1" y1="71.2" x2="40" y2="71.2" class="unit" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="146.1" y="69.2" font-size="15" class="fill-unit halo">ψ</text>
+<line x1="40" y1="210" x2="178.8" y2="111.9" class="alt" stroke-width="2.4"/>
+<line x1="178.8" y1="111.9" x2="40" y2="111.9" class="alt" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="186.8" y="109.9" font-size="15" class="fill-alt halo">φ</text>
+<line x1="138.1" y1="71.2" x2="178.8" y2="111.9" class="accent" stroke-width="2"/>
+<text x="168.5" y="95.5" font-size="12" class="fill-accent halo">ε = 0.338</text>
+<text x="36" y="75.2" font-size="11" text-anchor="end" class="fill-unit">√(2/3)</text>
+<text x="36" y="115.9" font-size="11" text-anchor="end" class="alt">√(1/3)</text>
+</svg>
+        <p class="cap">The extreme case, which attains the bound: accepting with probabilities $\tfrac23$ and $\tfrac13$ needs the states $\varepsilon\ge0.338$ apart.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> $R^2 = 4P^2 - 4P + I = I$ since $P^2 = P$, and $R^\dagger = R$, so $R$ is unitary with $\lVert R\rVert
+    = 1$. $\bra\psi R\ket\psi = 2\bra\psi P\ket\psi - 1 = 2\lVert P\psi\rVert^2 - 1 = 2p - 1$, using $P = P^\dagger P$. Expand
+    $$\big\langle\psi - \varphi\big|R\big|\psi + \varphi\big\rangle = \bra\psi R\ket\psi - \bra\varphi R\ket\varphi + \bra\psi R\ket\varphi - \bra\varphi R\ket\psi .$$
+    Since $R$ is Hermitian, $\bra\varphi R\ket\psi = \overline{\bra\psi R\ket\varphi}$, so the last two terms are $z - \bar z
+    = 2i\,\mathrm{Im}\,z$, purely imaginary. The real part is therefore $(2p - 1) - (2p' - 1) = 2(p - p')$. Cauchy–Schwarz
+    (unit 00) bounds it by $\lVert\psi - \varphi\rVert\,\lVert R(\psi + \varphi)\rVert = \varepsilon\lVert\psi + \varphi\rVert$,
+    and for unit vectors $\lVert\psi + \varphi\rVert^2 + \lVert\psi - \varphi\rVert^2 = 4$. Exchanging the roles gives the
+    bound on $p' - p$.</p>
+    <p><b>Attained.</b> In the figure $\ket\psi$ and $\ket\varphi$ are real, at angles $\alpha$ and $\beta$ from the accept
+    axis with $\alpha + \beta = \pi/2$ and $\sin(\beta - \alpha) = \tfrac13$. Then $p = \cos^2\alpha = \tfrac12(1 + \sin(\beta -
+    \alpha)) = \tfrac23$, $p' = \tfrac13$, and $\varepsilon = 2\sin\tfrac{\beta - \alpha}2 = 0.3382$; and
+    $0.3382\sqrt{1 - 0.3382^2/4} = 0.3333$.</p>
+    <p><b>Phases.</b> $\lVert\psi - \varphi\rVert$ depends on the representatives chosen; the lemma holds for every choice,
+    so one may take the phase that makes $\varepsilon$ smallest. Unit 11's <i>distance up to phase</i> bounded outcome
+    probabilities by $2d$ for <i>operators</i>; this is the sharper statement for two <i>states</i>. Unit 21 will recognise
+    $\varepsilon\sqrt{1 - \varepsilon^2/4}$, minimised over phases, as the trace distance of two pure states.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · the hybrid argument</p>
+  <h2>Search needs order √N queries</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (Bennett, Bernstein, Brassard, Vazirani 1997)</span>
+        <p class="small">Every algorithm computing $\mathrm{OR}_N$ with error at most $\tfrac13$ makes $T\ge\sqrt N/6$ queries — even if promised that at most one bit is $1$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">Take $w$ with $q_w\le T/N$. The algorithm accepts $0^N$ with probability $p(0^N)\le\tfrac13$ and $e_w$ with $p(e_w)\ge\tfrac23$. By the lemma and the corollary,</p>
+        $$\begin{aligned}\tfrac13\le p(e_w) - p(0^N)&\le\big\lVert\ket{\psi_T^w} - \ket{\psi_T}\big\rVert\\ &\le2T/\sqrt N .\qquad\blacksquare\end{aligned}$$
+      </div>
+      <p class="small"><b>Search</b> is no easier: an algorithm that finds a marked $w$ gives OR with one more query, to check it.</p>
+    </div>
+    <div>
+      <div class="box ex"><span class="label">the numbers for <span class="ref" data-ref="hyb">$N = 2^{20}$</span></span>
+        <p class="small"><b>Simple constant:</b> $T\ge1024/6 = 170.7$, so $T\ge171$.</p>
+        <p class="small"><b>Sharp lemma:</b> $\tfrac13\le\varepsilon\sqrt{1 - \varepsilon^2/4}$ forces $\varepsilon^2\ge2 - \tfrac{4\sqrt2}3$, $\ \varepsilon\ge0.3382$, so $T\ge0.1691\sqrt N = 173.2$: $\ T\ge174$.</p>
+        <p class="small"><b>Grover:</b> $489$ iterations give $\sin^2(979\,\theta) = 0.6674\ge\tfrac23$; with the check, $490$ queries. Near-certainty takes $804$.</p>
+      </div>
+      <div class="box good"><span class="label">Grover is optimal</span>
+        <p class="small">Up to a constant factor: between $174$ and $490$ queries at $N = 2^{20}$ for this promise problem. No quantum algorithm searches an unstructured space faster than order $\sqrt N$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The order of choices.</b> The algorithm is fixed first; its empty run fixes the $q_w$; then $w$ is chosen with
+    $q_w\le T/N$. The algorithm must be right on <i>every</i> input, in particular on $0^N$ and on $e_w$, and those two are
+    the only inputs the proof uses — which is why the bound holds under the promise "at most one $1$".</p>
+    <p><b>The sharp constant.</b> $g(\varepsilon) = \varepsilon\sqrt{1 - \varepsilon^2/4}$ increases on $[0, \sqrt2]$, so
+    $g(\varepsilon)\ge\tfrac13$ needs $\varepsilon\ge\varepsilon_*$ with $\varepsilon_*^2(1 - \varepsilon_*^2/4) = \tfrac19$:
+    a quadratic in $\varepsilon_*^2$ whose smaller root is $2 - 2\sqrt{8/9} = 2 - 4\sqrt2/3 = 0.11438$, so $\varepsilon_* =
+    0.33820$ and $T\ge\tfrac12\varepsilon_*\sqrt N = 0.16910\sqrt N$. Problem P6 derives it in full.</p>
+    <p><b>Grover's side.</b> $\theta = \arcsin2^{-10}$; success after $k$ iterations is $\sin^2((2k + 1)\theta)$ (unit 17).
+    $k = 488$ gives $0.6655$, $k = 489$ gives $0.6674$. Measure, then query the result and accept iff it is marked: on
+    $0^N$ this never accepts, on $e_w$ it accepts with probability $0.6674$. So $490$ queries suffice under the promise. The
+    lower and upper bounds differ by a factor $2.8$.</p>
+    <p><b>Exact optimality</b> (cited): Zalka (<i>Phys. Rev. A</i> 60, 2746, 1999) proved that Grover's iteration count is
+    optimal to leading order, not merely up to a constant: no algorithm reaches success near $1$ with fewer than
+    $(\pi/4)\sqrt N(1 - o(1))$ queries. The proof sharpens exactly the two steps above — the triangle inequality is replaced
+    by tracking angles.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 2</p>
+  <h2>Polynomials</h2>
+  <p>After $T$ queries, every amplitude is a polynomial of degree at most $T$ in the input bits. Lower bounds become questions about degree.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · polynomials</p>
+  <h2>Every function on the cube is one polynomial</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">multilinear polynomial</span> of a function</span>
+        <p class="small">Every $f:\{0, 1\}^N\to\mathbb R$ equals $\ p(x) = \sum_{S\subseteq\{0, \dots, N-1\}}c_S\,x_S,\ \ x_S = \prod_{i\in S}x_i$, for unique real $c_S$. Its <span class="term">degree</span> $\deg f$ is the largest $|S|$ with $c_S\ne0$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Exists:</b> $\ p(x) = \sum_af(a)\prod_{a_i = 1}x_i\prod_{a_i = 0}(1 - x_i)$; each product is $1$ at $x = a$ and $0$ at every other point of the cube. <b>Unique:</b> if a nonzero multilinear $r$ vanishes on the cube, take $S$ minimal with $c_S\ne0$: then $r(1_S) = c_S$, which is not $0$. $\blacksquare$</p>
+      </div>
+      <p class="small"><b>The running example.</b> <span class="ref" data-ref="orpoly">$\mathrm{OR}_N = 1 - \prod_i(1 - x_i)$</span>, top coefficient $(-1)^{N+1}$; <span class="ref" data-ref="parpoly">$\mathrm{PARITY}_N = \tfrac12\big(1 - \prod_i(1 - 2x_i)\big)$</span>, as $\prod_i(1 - 2x_i) = (-1)^{|x|}$, top coefficient $(-1)^{N+1}2^{N-1}$. Both have degree $N$.</p>
+      <p class="small"><b>Check, $N = 2$:</b> $\mathrm{OR}_2 = x_0 + x_1 - x_0x_1$ and $\mathrm{PARITY}_2 = x_0 + x_1 - 2x_0x_1$; at $11$ they give $1$ and $0$ ✓.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 245" width="300" role="img" aria-label="the cube {0,1}^3 with OR at each vertex: 0 at 000 and 1 at the other seven">
+<line x1="70.0" y1="200.0" x2="130.0" y2="150.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="200.0" x2="200.0" y2="200.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="200.0" x2="70.0" y2="80.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="80.0" x2="130.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="80.0" x2="200.0" y2="80.0" class="rule" stroke-width="1.5"/>
+<line x1="200.0" y1="200.0" x2="260.0" y2="150.0" class="rule" stroke-width="1.5"/>
+<line x1="200.0" y1="200.0" x2="200.0" y2="80.0" class="rule" stroke-width="1.5"/>
+<line x1="200.0" y1="80.0" x2="260.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="130.0" y1="150.0" x2="260.0" y2="150.0" class="rule" stroke-width="1.5"/>
+<line x1="130.0" y1="150.0" x2="130.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="130.0" y1="30.0" x2="260.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="260.0" y1="150.0" x2="260.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<circle cx="70.0" cy="200.0" r="5" class="fill-ink"/>
+<text x="61.0" y="217.0" font-size="11" class="mono soft halo" text-anchor="middle">000</text>
+<text x="79.0" y="192.0" font-size="14" class="halo">0</text>
+<circle cx="70.0" cy="80.0" r="5" class="fill-unit"/>
+<text x="61.0" y="97.0" font-size="11" class="mono soft halo" text-anchor="middle">001</text>
+<text x="79.0" y="72.0" font-size="14" class="halo">1</text>
+<circle cx="200.0" cy="200.0" r="5" class="fill-unit"/>
+<text x="191.0" y="217.0" font-size="11" class="mono soft halo" text-anchor="middle">010</text>
+<text x="209.0" y="192.0" font-size="14" class="halo">1</text>
+<circle cx="200.0" cy="80.0" r="5" class="fill-unit"/>
+<text x="191.0" y="97.0" font-size="11" class="mono soft halo" text-anchor="middle">011</text>
+<text x="209.0" y="72.0" font-size="14" class="halo">1</text>
+<circle cx="130.0" cy="150.0" r="5" class="fill-unit"/>
+<text x="121.0" y="167.0" font-size="11" class="mono soft halo" text-anchor="middle">100</text>
+<text x="139.0" y="142.0" font-size="14" class="halo">1</text>
+<circle cx="130.0" cy="30.0" r="5" class="fill-unit"/>
+<text x="121.0" y="47.0" font-size="11" class="mono soft halo" text-anchor="middle">101</text>
+<text x="139.0" y="22.0" font-size="14" class="halo">1</text>
+<circle cx="260.0" cy="150.0" r="5" class="fill-unit"/>
+<text x="251.0" y="167.0" font-size="11" class="mono soft halo" text-anchor="middle">110</text>
+<text x="269.0" y="142.0" font-size="14" class="halo">1</text>
+<circle cx="260.0" cy="30.0" r="5" class="fill-unit"/>
+<text x="251.0" y="47.0" font-size="11" class="mono soft halo" text-anchor="middle">111</text>
+<text x="269.0" y="22.0" font-size="14" class="halo">1</text>
+</svg>
+        <p class="cap">$\mathrm{OR}_3$ on the cube, $x_0$ running into the page. Its polynomial is $x_0 + x_1 + x_2 - x_0x_1 - x_0x_2 - x_1x_2 + x_0x_1x_2$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Multilinear.</b> On the cube $x_i^2 = x_i$, so any polynomial in $x_0, \dots, x_{N-1}$ can be reduced, without
+    changing its values there, to one in which no variable appears squared: replace every $x_i^k$ by $x_i$. This
+    <i>multilinearisation</i> never raises the degree. The theorem says the result is unique, so "the degree of $f$" is
+    well defined. There are $2^N$ monomials $x_S$ and $2^N$ points, and the theorem says the monomials form a basis of the
+    functions on the cube.</p>
+    <p><b>The top coefficient.</b> Reading off the existence formula, the coefficient of $x_0x_1\cdots x_{N-1}$ is
+    $c_{\rm top} = \sum_af(a)(-1)^{N - |a|}$: each factor $(1 - x_i)$ contributes $-x_i$. For OR this is $-(-1)^N$ (only
+    $a = 0^N$ has $f = 0$, and $\sum_a(-1)^{N-|a|} = 0$). For parity it is $\sum_{|a|\ \rm odd}(-1)^{N-|a|} =
+    (-1)^{N+1}2^{N-1}$. Both are nonzero, so both functions have degree exactly $N$.</p>
+    <p><b>The parity formula.</b> $1 - 2x_i$ is $1$ when $x_i = 0$ and $-1$ when $x_i = 1$, so the product is
+    $(-1)^{|x|}$, with $|x|$ the number of ones; and $\tfrac12(1 - (-1)^{|x|})$ is $0$ or $1$ as $|x|$ is even or odd. This is
+    the phase oracle's sign, $(-1)^{x_i} = 1 - 2x_i$, multiplied over all positions.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · polynomials</p>
+  <h2>A query raises the degree by at most one</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">lemma</span>
+        <p class="small">After $t$ queries, every amplitude of $\ket{\psi_t^x}$ is a complex multilinear polynomial in $x_0, \dots, x_{N-1}$ of degree at most $t$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, by induction on $t$</span>
+        <p class="small"><b>$t = 0$:</b> $U_0\ket{0\cdots0}$ does not depend on $x$; degree $0$.</p>
+        <p class="small"><b>A query.</b> $O_x$ sends $\ket{i, b, w}$ to $\ket{i, b\oplus x_i, w}$, so the new amplitude of $\ket{i, b, w}$ is the old one of $\ket{i, b\oplus x_i, w}$:</p>
+        $$\alpha'_{i,b,w} = (1 - x_i)\,\alpha_{i,b,w} + x_i\,\alpha_{i,1-b,w},$$
+        <p class="small">degree up by at most one; multilinearise. With $O_x^\pm$: $\alpha'_{i,w} = (1 - 2x_i)\alpha_{i,w}$, the same.</p>
+        <p class="small"><b>A unitary $U_t$.</b> Each new amplitude is a fixed linear combination of old ones: degree unchanged. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 560 150" width="560" role="img" aria-label="a two-query algorithm: U0, O_x, U1, O_x, U2; underneath, the bound on the amplitudes degree after each step: 0, 1, 1, 2, 2; the acceptance probability has degree at most 4">
+<line x1="30" y1="40" x2="520" y2="40" class="ink" stroke-width="1.5"/>
+<line x1="30" y1="90" x2="520" y2="90" class="ink" stroke-width="1.5"/>
+<rect x="50" y="22" width="46" height="86" class="fill-ground unit" stroke-width="1.6"/><text x="73.0" y="70.0" font-size="16" text-anchor="middle">U<tspan font-size="11" dy="4">0</tspan></text>
+<rect x="140" y="22" width="46" height="86" class="fill-ground accent" stroke-width="1.6"/><text x="163.0" y="70.0" font-size="16" text-anchor="middle">O<tspan font-size="11" dy="4">x</tspan></text>
+<rect x="230" y="22" width="46" height="86" class="fill-ground unit" stroke-width="1.6"/><text x="253.0" y="70.0" font-size="16" text-anchor="middle">U<tspan font-size="11" dy="4">1</tspan></text>
+<rect x="320" y="22" width="46" height="86" class="fill-ground accent" stroke-width="1.6"/><text x="343.0" y="70.0" font-size="16" text-anchor="middle">O<tspan font-size="11" dy="4">x</tspan></text>
+<rect x="410" y="22" width="46" height="86" class="fill-ground unit" stroke-width="1.6"/><text x="433.0" y="70.0" font-size="16" text-anchor="middle">U<tspan font-size="11" dy="4">2</tspan></text>
+<rect x="478" y="75" width="34" height="30" class="fill-ground ink" stroke-width="1.5"/><path d="M 484 99 A 11 11 0 0 1 506 99" fill="none" class="ink" stroke-width="1.3"/><line x1="495" y1="99" x2="504" y2="81" class="ink" stroke-width="1.3"/>
+<text x="30" y="132" font-size="13" text-anchor="middle" class="fill-unit">0</text>
+<text x="118" y="132" font-size="13" text-anchor="middle" class="fill-unit">0</text>
+<text x="208" y="132" font-size="13" text-anchor="middle" class="fill-unit">≤ 1</text>
+<text x="298" y="132" font-size="13" text-anchor="middle" class="fill-unit">≤ 1</text>
+<text x="388" y="132" font-size="13" text-anchor="middle" class="fill-unit">≤ 2</text>
+<text x="470" y="132" font-size="13" text-anchor="middle" class="fill-unit">≤ 2</text>
+<text x="30" y="148" font-size="11" class="soft">degree of every amplitude</text>
+<text x="540" y="148" font-size="12" text-anchor="end" class="fill-accent">acceptance probability: degree ≤ 4</text>
+</svg>
+        <p class="cap">The bound on the degree, step by step, for $T = 2$. Only the oracle can raise it, and by one each time.</p>
+      </div>
+      <p class="small"><b>The identity used.</b> $(1 - x_i)a + x_ib$ is $a$ when $x_i = 0$ and $b$ when $x_i = 1$: a case split written as a polynomial of degree one.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Complex coefficients.</b> The $U_t$ have complex entries, so the amplitudes are polynomials with complex
+    coefficients; their real and imaginary parts are real polynomials of the same or lower degree. That is all the next
+    slide needs.</p>
+    <p><b>Why a unitary cannot raise the degree.</b> $U_t$ does not depend on $x$. Its new amplitudes are
+    $\alpha'_j = \sum_k(U_t)_{jk}\alpha_k$ with constant coefficients, and a constant combination of polynomials of degree
+    at most $t$ has degree at most $t$.</p>
+    <p><b>Why the query raises it by one.</b> Multiplying a degree-$t$ polynomial by $x_i$ or by $1 - x_i$ gives degree
+    at most $t + 1$. Multilinearising afterwards — replacing $x_i^2$ by $x_i$ where $x_i$ already appeared — keeps the
+    values on the cube and never raises the degree. Intermediate measurements have been deferred (unit 10), so there is
+    nothing else in the circuit.</p>
+    <p><b>The point of view.</b> A classical $T$-query decision tree computes a function of degree at most $T$: summing,
+    over the accepting leaves, the product of $x_i$ or $1 - x_i$ along each path. The lemma says a quantum algorithm's
+    <i>amplitudes</i> are no worse; squaring them for probabilities is where the factor $2$ will enter.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · polynomials</p>
+  <h2>The polynomial method</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem: the <span class="term">polynomial method</span> (Beals, Buhrman, Cleve, Mosca, de Wolf 2001)</span>
+        <p class="small">After $T$ queries the acceptance probability $p(x)$ is a real multilinear polynomial of degree at most $2T$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$p(x) = \sum_{\rm accepting\ j}|\alpha_j(x)|^2 = \sum_j(\mathrm{Re}\,\alpha_j)^2 + (\mathrm{Im}\,\alpha_j)^2$, and $\mathrm{Re}\,\alpha_j, \mathrm{Im}\,\alpha_j$ are real polynomials of degree $\le T$. Multilinearise. $\blacksquare$</p>
+      </div>
+      <div class="box def"><span class="label"><span class="term">approximate degree</span></span>
+        <p class="small">$\widetilde{\deg}(f)$: the least degree of a real polynomial $p$ with $|p(x) - f(x)|\le\tfrac13$ at every $x\in\{0, 1\}^N$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="box thm"><span class="label">corollary</span>
+        $$Q_E(f)\ge\tfrac12\deg f,\qquad Q(f)\ge\tfrac12\widetilde{\deg}(f).$$
+        <p class="small">Exact: $p = f$ on the cube, so $p$ <b>is</b> $f$'s polynomial, by uniqueness. Bounded error: $p$ is within $\tfrac13$ of $f$.</p>
+      </div>
+      <p class="small"><b>The running example.</b> <span class="ref" data-ref="orpoly">OR</span> and <span class="ref" data-ref="parpoly">parity</span> have degree $N$: an exact algorithm for either needs $N/2$ queries. With bounded error, what matters is $\widetilde{\deg}$ — section 3 for OR, section 4 for parity.</p>
+      <div class="box warn"><span class="label">degree and approximate degree differ</span>
+        <p class="small">OR has degree $N$ but approximate degree of order $\sqrt N$. Exact and bounded-error query complexity can be far apart, and so can the two degrees.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Let $\alpha_j(x) = r_j(x) + i\,s_j(x)$ with $r_j, s_j$ real polynomials of degree at most $T$ — the
+    real and imaginary parts of the coefficients of $\alpha_j$. Then $|\alpha_j|^2 = r_j^2 + s_j^2$, a real polynomial of
+    degree at most $2T$; the sum over the accepting basis states $j$ is too; and reducing $x_i^2\to x_i$ gives a
+    multilinear one with the same values on the cube. That polynomial is $p$.</p>
+    <p><b>The corollaries.</b> If the algorithm is exact, $p(x) = f(x)$ for every $x$, so by the uniqueness of the
+    multilinear representation the multilinearised $p$ <i>is</i> $f$'s polynomial, of degree $\deg f\le2T$. If it has
+    bounded error, $p$ is a polynomial of degree at most $2T$ within $\tfrac13$ of $f$, so $\widetilde{\deg}(f)\le2T$.</p>
+    <p><b>Why $\tfrac13$ is not special.</b> Any constant error below $\tfrac12$ gives the same approximate degree up to
+    a constant factor: amplification by majority vote (unit 12) is a polynomial in $p$ of constant degree, so composing
+    raises the degree by a constant factor. The definition fixes $\tfrac13$ to match $Q(f)$.</p>
+    <p><b>History.</b> Minsky and Papert (<i>Perceptrons</i>, 1969) used polynomial degree to bound what perceptrons can
+    compute; Nisan and Szegedy (1994) studied degree and approximate degree as complexity measures; Beals, Buhrman, Cleve,
+    Mosca and de Wolf (FOCS 1998, <i>J. ACM</i> 48, 778, 2001) saw that quantum query algorithms produce exactly such
+    polynomials.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · polynomials · example</p>
+  <h2>Worked: Deutsch's amplitudes as polynomials</h2>
+  <div class="box ex"><span class="label">unit 13's one-query algorithm, on $x = x_0x_1$, with the bit oracle</span>
+  <div class="cols">
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 150" width="470" role="img" aria-label="Deutsch's circuit with the bit oracle O_x on index qubit 0 and target qubit 1: H on both, then O_x, then H on qubit 0 and a measurement; under each stage the degree of the amplitudes: 0, 1, 1; the probability of reading 1 is x0 xor x1, degree 2">
+<line x1="60" y1="40" x2="380" y2="40" class="ink" stroke-width="1.5"/>
+<text x="54" y="45" font-size="15" text-anchor="end">|0⟩</text>
+<line x1="60" y1="100" x2="380" y2="100" class="ink" stroke-width="1.5"/>
+<text x="54" y="105" font-size="15" text-anchor="end">|1⟩</text>
+<rect x="80" y="24" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="96.0" y="45.0" font-size="16" text-anchor="middle">H</text>
+<rect x="80" y="84" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="96.0" y="105.0" font-size="16" text-anchor="middle">H</text>
+<rect x="160" y="20" width="54" height="96" class="fill-ground accent" stroke-width="1.6"/><text x="187.0" y="73.0" font-size="16" text-anchor="middle">O<tspan font-size="11" dy="4">x</tspan></text>
+<rect x="262" y="24" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="278.0" y="45.0" font-size="16" text-anchor="middle">H</text>
+<rect x="318" y="25" width="34" height="30" class="fill-ground ink" stroke-width="1.5"/><path d="M 324 49 A 11 11 0 0 1 346 49" fill="none" class="ink" stroke-width="1.3"/><line x1="335" y1="49" x2="344" y2="31" class="ink" stroke-width="1.3"/>
+<text x="360" y="18" font-size="12" class="fill-unit">reads 1 w.p. x₀ ⊕ x₁</text>
+<line x1="135" y1="10" x2="135" y2="122" class="accent" stroke-width="1.1" stroke-dasharray="4 4"/>
+<text x="135" y="140" font-size="12" text-anchor="middle" class="fill-accent">deg 0</text>
+<line x1="238" y1="10" x2="238" y2="122" class="accent" stroke-width="1.1" stroke-dasharray="4 4"/>
+<text x="238" y="140" font-size="12" text-anchor="middle" class="fill-accent">deg 1</text>
+<line x1="306" y1="10" x2="306" y2="122" class="accent" stroke-width="1.1" stroke-dasharray="4 4"/>
+<text x="306" y="140" font-size="12" text-anchor="middle" class="fill-accent">deg 1</text>
+<text x="386" y="105" font-size="14">|−⟩</text>
+</svg>
+      </div>
+      <p class="small"><b>(a) Before the query</b>, qubit 0 the index and qubit 1 the target: $\ \tfrac12\big(\ket{00} - \ket{01} + \ket{10} - \ket{11}\big)$. Degree $0$.</p>
+      <p class="small"><b>(b) The query</b>, $\alpha'_{i,b} = (1 - x_i)\alpha_{i,b} + x_i\alpha_{i,1-b}$:</p>
+      $$\alpha'_{0,0} = \tfrac12(1 - x_0) - \tfrac12x_0 = \tfrac12 - x_0,$$
+      <p class="small">and likewise $\alpha'_{0,1} = -(\tfrac12 - x_0)$, $\ \alpha'_{1,0} = -\alpha'_{1,1} = \tfrac12 - x_1$. Degree $1$.</p>
+    </div>
+    <div>
+      <p class="small"><b>(c) $H$ on qubit 0:</b> $\ \beta_{0,b} = (\alpha'_{0,b} + \alpha'_{1,b})/\sqrt2$, $\ \beta_{1,b} = (\alpha'_{0,b} - \alpha'_{1,b})/\sqrt2$:</p>
+      $$\beta_{0,0} = \tfrac{1 - x_0 - x_1}{\sqrt2},\qquad \beta_{1,0} = \tfrac{x_1 - x_0}{\sqrt2},$$
+      <p class="small">with $\beta_{0,1} = -\beta_{0,0}$ and $\beta_{1,1} = -\beta_{1,0}$.</p>
+      <p class="small">Still degree $1$: the unitary did not raise it.</p>
+      <p class="small"><b>(d) Accept if qubit 0 reads $1$:</b></p>
+      $$p(x) = 2\beta_{1,0}^2 = (x_1 - x_0)^2,$$
+      <p class="small">which is $x_0 + x_1 - 2x_0x_1$ once multilinearised with $x_i^2 = x_i$.</p>
+      <p class="small">That is $\mathrm{PARITY}_2$'s polynomial: degree $2 = 2T$ ✓.</p>
+      <p class="small"><b>Normalised:</b> $P(\text{reads }0) = (1 - x_0 - x_1)^2 = 1 - x_0 - x_1 + 2x_0x_1$, and the two sum to $1$ ✓. At $x = 01$: $\beta_{1,0} = 1/\sqrt2$, $p = 1$ ✓.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Every amplitude in (b).</b> Before the query $\alpha_{0,0} = \alpha_{1,0} = \tfrac12$ and $\alpha_{0,1} = \alpha_{1,1} =
+    -\tfrac12$. For $i = 0$: $\alpha'_{0,0} = (1 - x_0)\cdot\tfrac12 + x_0\cdot(-\tfrac12) = \tfrac12 - x_0$ and $\alpha'_{0,1} =
+    (1 - x_0)(-\tfrac12) + x_0\cdot\tfrac12 = -\tfrac12 + x_0$. For $i = 1$ the same with $x_1$. These are unit 13's kickback
+    signs written as polynomials: $\tfrac12(1 - 2x_0) = \tfrac12(-1)^{x_0}$.</p>
+    <p><b>(c) in full.</b> $\beta_{0,0} = \tfrac1{\sqrt2}\big(\tfrac12(1 - 2x_0) + \tfrac12(1 - 2x_1)\big) = \tfrac1{\sqrt2}(1 - x_0 -
+    x_1)$, and $\beta_{1,0} = \tfrac1{\sqrt2}\big(\tfrac12(1 - 2x_0) - \tfrac12(1 - 2x_1)\big) = \tfrac1{\sqrt2}(x_1 - x_0)$. The
+    target-$1$ amplitudes are the negatives, because the target stays $\ket-$.</p>
+    <p><b>The lesson.</b> The polynomial method's bound is tight here: one query, degree $2$, and the function computed
+    has degree $2$. Deutsch's algorithm is exactly as good as degree allows. Section 4 shows the same is true for parity
+    on any $N$.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 3</p>
+  <h2>Symmetrisation</h2>
+  <p>Average a polynomial over every reordering of its inputs, and $N$ variables collapse to one: the number of ones.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · symmetrisation</p>
+  <h2>Averaging over the order of the bits</h2>
+  <div class="cols">
+    <div>
+      <p class="small">For a permutation $\pi$ of the positions, $(\pi x)_i = x_{\pi(i)}$. Write $|x|$ for the number of ones.</p>
+      <div class="box thm"><span class="label"><span class="term">symmetrisation</span> (Minsky and Papert 1969)</span>
+        <p class="small">Let $p$ be multilinear of degree $d$ and $p^{\rm sym}(x) = \frac1{N!}\sum_\pi p(\pi x)$. There is a one-variable polynomial $q$ of degree $\le d$ with</p>
+        $$p^{\rm sym}(x) = q(|x|)\quad\text{on the cube,}$$
+        <p class="small">and $q(k)$ is the average of $p$ over the layer $\{x : |x| = k\}$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">$p^{\rm sym}$ is symmetric, so the coefficient of $x_S$ depends only on $|S|$: $\ p^{\rm sym} = \sum_{j\le d}a_jV_j$, with $V_j = \sum_{|S| = j}x_S$. On the cube $V_j(x) = \binom{|x|}{j}$, a polynomial of degree $j$ in $|x|$. And $\pi x$ runs evenly over $x$'s layer. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 300 245" width="300" role="img" aria-label="the cube {0,1}^3 coloured by layer |x| = 0, 1, 2, 3, with p(x) = OR(x0, x1) at each vertex; averaged over a layer it gives 0, 2/3, 1, 1">
+<line x1="70.0" y1="200.0" x2="130.0" y2="150.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="200.0" x2="200.0" y2="200.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="200.0" x2="70.0" y2="80.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="80.0" x2="130.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="70.0" y1="80.0" x2="200.0" y2="80.0" class="rule" stroke-width="1.5"/>
+<line x1="200.0" y1="200.0" x2="260.0" y2="150.0" class="rule" stroke-width="1.5"/>
+<line x1="200.0" y1="200.0" x2="200.0" y2="80.0" class="rule" stroke-width="1.5"/>
+<line x1="200.0" y1="80.0" x2="260.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="130.0" y1="150.0" x2="260.0" y2="150.0" class="rule" stroke-width="1.5"/>
+<line x1="130.0" y1="150.0" x2="130.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="130.0" y1="30.0" x2="260.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<line x1="260.0" y1="150.0" x2="260.0" y2="30.0" class="rule" stroke-width="1.5"/>
+<circle cx="70.0" cy="200.0" r="5" class="fill-ink"/>
+<text x="61.0" y="217.0" font-size="11" class="mono soft halo" text-anchor="middle">000</text>
+<text x="79.0" y="192.0" font-size="14" class="halo">0</text>
+<circle cx="70.0" cy="80.0" r="5" class="fill-unit"/>
+<text x="61.0" y="97.0" font-size="11" class="mono soft halo" text-anchor="middle">001</text>
+<text x="79.0" y="72.0" font-size="14" class="halo">0</text>
+<circle cx="200.0" cy="200.0" r="5" class="fill-unit"/>
+<text x="191.0" y="217.0" font-size="11" class="mono soft halo" text-anchor="middle">010</text>
+<text x="209.0" y="192.0" font-size="14" class="halo">1</text>
+<circle cx="200.0" cy="80.0" r="5" class="fill-accent"/>
+<text x="191.0" y="97.0" font-size="11" class="mono soft halo" text-anchor="middle">011</text>
+<text x="209.0" y="72.0" font-size="14" class="halo">1</text>
+<circle cx="130.0" cy="150.0" r="5" class="fill-unit"/>
+<text x="121.0" y="167.0" font-size="11" class="mono soft halo" text-anchor="middle">100</text>
+<text x="139.0" y="142.0" font-size="14" class="halo">1</text>
+<circle cx="130.0" cy="30.0" r="5" class="fill-accent"/>
+<text x="121.0" y="47.0" font-size="11" class="mono soft halo" text-anchor="middle">101</text>
+<text x="139.0" y="22.0" font-size="14" class="halo">1</text>
+<circle cx="260.0" cy="150.0" r="5" class="fill-accent"/>
+<text x="251.0" y="167.0" font-size="11" class="mono soft halo" text-anchor="middle">110</text>
+<text x="269.0" y="142.0" font-size="14" class="halo">1</text>
+<circle cx="260.0" cy="30.0" r="5" class="fill-alt"/>
+<text x="251.0" y="47.0" font-size="11" class="mono soft halo" text-anchor="middle">111</text>
+<text x="269.0" y="22.0" font-size="14" class="halo">1</text>
+</svg>
+        <p class="cap">The layers $|x| = 0, 1, 2, 3$ of the cube, by colour. A symmetric function is constant on each layer. The numbers are $p = \mathrm{OR}(x_0, x_1)$, the next example.</p>
+      </div>
+      <p class="small"><b>For <span class="ref" data-ref="orpoly">OR</span>.</b> OR is constant on layers. So if $p$ is within $\tfrac13$ of OR everywhere, each layer average is too: $p^{\rm sym}$ approximates OR as well as $p$ does, with no larger degree.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Full proof.</b> Write $p = \sum_{|S|\le d}c_Sx_S$. Since $x_S(\pi x) = \prod_{i\in S}x_{\pi(i)} = x_{\pi(S)}$, each
+    $p\circ\pi = \sum_Sc_Sx_{\pi(S)}$ is multilinear of degree $d$, and so is their average. For a fixed $S$ with $|S| = j$,
+    as $\pi$ runs over all $N!$ permutations, $\pi(S)$ hits each $j$-element set exactly $j!(N - j)!$ times. Hence
+    $$p^{\rm sym} = \sum_Sc_S\frac{j!(N-j)!}{N!}V_{|S|} = \sum_{j=0}^da_jV_j,\qquad a_j = \binom Nj^{-1}\sum_{|S| = j}c_S .$$
+    On the cube, $V_j(x)$ counts the $j$-element subsets of the positions of the ones, so $V_j(x) = \binom{|x|}j =
+    |x|(|x| - 1)\cdots(|x| - j + 1)/j!$, a polynomial of degree $j$ in $|x|$. Set $q(k) = \sum_{j\le d}a_j\binom kj$.</p>
+    <p><b>The layer average.</b> For fixed $x$ with $|x| = k$, the map $\pi\mapsto\pi x$ hits each $y$ with $|y| = k$ exactly
+    $k!(N - k)!$ times, so $\frac1{N!}\sum_\pi p(\pi x)$ is the plain average of $p$ over the layer.</p>
+    <p><b>As an algorithm.</b> Symmetrising is what happens if the algorithm first relabels the positions by a uniformly
+    random permutation (shared randomness, free in the query model) and then runs. Its acceptance probability becomes
+    $p^{\rm sym}$. So for a function that does not care about the order of the bits, there is no loss in assuming the
+    algorithm does not either.</p>
+    <p><b>History.</b> Minsky and Papert proved this in <i>Perceptrons</i> (MIT Press, 1969) to show that a perceptron
+    computing parity needs a unit looking at all $N$ inputs — the same fact as section 4's, in another model.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · symmetrisation · example</p>
+  <h2>Worked: symmetrisation on three bits</h2>
+  <div class="box ex"><span class="label">$N = 3$: two polynomials, symmetrised and checked</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>(a) <span class="ref" data-ref="orpoly">$\mathrm{OR}_3$</span> itself.</b> Its polynomial is already symmetric:</p>
+      $$\mathrm{OR}_3 = V_1 - V_2 + V_3 .$$
+      <p class="small">With $V_j = \binom kj$ on the layer $|x| = k$:</p>
+      $$q(k) = k - \binom k2 + \binom k3 = \frac{k^3 - 6k^2 + 11k}6 .$$
+      <p class="small"><b>Check:</b> $q(0) = 0$; $\ q(1) = \tfrac{1 - 6 + 11}6 = 1$; $\ q(2) = \tfrac{8 - 24 + 22}6 = 1$; $\ q(3) = \tfrac{27 - 54 + 33}6 = 1$ ✓. Degree $3 = N$, as it must be.</p>
+    </div>
+    <div>
+      <p class="small"><b>(b) $p = \mathrm{OR}(x_0, x_1) = x_0 + x_1 - x_0x_1$</b>, which ignores $x_2$. Not symmetric, and not an approximation of $\mathrm{OR}_3$: $p(001) = 0$.</p>
+      <p class="small">Coefficients averaged by size: $a_1 = \tfrac{1 + 1 + 0}3 = \tfrac23$, $\ a_2 = \tfrac{-1 + 0 + 0}3 = -\tfrac13$. So</p>
+      $$q(k) = \tfrac23k - \tfrac13\binom k2 = \frac{k(5 - k)}6 .$$
+      <p class="small"><b>Check by layer averages:</b> $|x| = 1$: $p(100), p(010), p(001) = 1, 1, 0$, average $\tfrac23 = q(1)$ ✓; $|x| = 2$: $p = 1, 1, 1$, average $1 = q(2)$ ✓; $q(0) = 0$, $q(3) = 1$ ✓.</p>
+      <p class="small"><b>Read it:</b> $q(k)$ is the chance that two random positions contain a $1$. It is within $\tfrac13$ of OR at every layer — a degree-$2$ approximation, though $p$ was none.</p>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>(a) expanded.</b> $1 - (1 - x_0)(1 - x_1)(1 - x_2) = x_0 + x_1 + x_2 - x_0x_1 - x_0x_2 - x_1x_2 + x_0x_1x_2$, which is
+    $V_1 - V_2 + V_3$. On a layer of weight $k$, $V_1 = k$, $V_2 = \binom k2$, $V_3 = \binom k3$. Multiplying out:
+    $k - \tfrac{k(k-1)}2 + \tfrac{k(k-1)(k-2)}6 = \tfrac{6k - 3k^2 + 3k + k^3 - 3k^2 + 2k}6 = \tfrac{k^3 - 6k^2 + 11k}6$.</p>
+    <p><b>(b) in full.</b> The degree-one coefficients of $p$ are $c_{\{0\}} = c_{\{1\}} = 1$, $c_{\{2\}} = 0$, averaged over
+    the three singletons: $\tfrac23$. The degree-two ones are $c_{\{0,1\}} = -1$ and $0$ for the other two pairs: average
+    $-\tfrac13$. Then $q(k) = \tfrac23k - \tfrac13\cdot\tfrac{k(k-1)}2 = \tfrac{4k - k^2 + k}6 = \tfrac{k(5 - k)}6$.</p>
+    <p><b>The algorithm behind (b).</b> $p$ is the acceptance probability of the classical two-query algorithm "read $x_0$
+    and $x_1$, accept if either is $1$". Symmetrising it gives "read two random positions": with one $1$ among three
+    positions it is caught with probability $\tfrac23$, exactly at the edge of bounded error. So $\widetilde{\deg}(\mathrm{OR}_3)
+    \le2$ — and in fact it is $1$: $q(k) = (1 + k)/3$ takes the values $\tfrac13, \tfrac23, 1, \tfrac43$, within $\tfrac13$ of
+    $0, 1, 1, 1$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · symmetrisation</p>
+  <h2>OR, approximated by a curve</h2>
+  <div class="cols">
+    <div>
+      <p class="small">Let $p$ approximate <span class="ref" data-ref="orpoly">$\mathrm{OR}_N$</span> within $\tfrac13$, and $q$ its symmetrisation. Then $\deg q\le\deg p$ and</p>
+      $$q(0)\in\big[-\tfrac13, \tfrac13\big],\quad q(k)\in\big[\tfrac23, \tfrac43\big]\ (1\le k\le N).$$
+      <p class="small">Conversely any such $q$ gives $P(x) = q(x_0 + \cdots + x_{N-1})$, of degree $\le\deg q$, within $\tfrac13$ of OR. So</p>
+      <div class="box good"><span class="label">a question about one variable</span>
+        <p class="small">$\widetilde{\deg}(\mathrm{OR}_N)$ is the least degree of a one-variable polynomial that stays below $\tfrac13$ at $0$ and in $[\tfrac23, \tfrac43]$ at $1, 2, \dots, N$.</p>
+      </div>
+      <p class="small"><b>$N = 64$, computed</b> by linear programming: degree $5$ cannot (best error $0.345$); degree $6$ can (error $0.297$). So $\widetilde{\deg}(\mathrm{OR}_{64}) = 6$, and every bounded-error algorithm for $\mathrm{OR}_{64}$ makes at least $3$ queries.</p>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 250" width="470" role="img" aria-label="the best degree-6 polynomial approximating OR on 64 bits, as a function of the number k of ones: q(0) = 0.297, and q(k) stays between 0.703 and 1.297 for k = 1 to 64; the band from 2/3 to 4/3 is shaded for k at least 1 and the band up to 1/3 at k = 0">
+<rect x="56.0" y="50.0" width="378.0" height="80.0" class="fill-soft"/>
+<rect x="46.0" y="170.0" width="8" height="80.0" class="fill-soft"/>
+<line x1="50" y1="210.0" x2="444" y2="210.0" class="ink" stroke-width="1.2"/>
+<line x1="50" y1="246.0" x2="50" y2="36.0" class="ink" stroke-width="1.2"/>
+<line x1="46" y1="210.0" x2="50" y2="210.0" class="ink" stroke-width="1.2"/><text x="42" y="214.0" font-size="12" text-anchor="end">0</text>
+<line x1="46" y1="170.0" x2="50" y2="170.0" class="ink" stroke-width="1.2"/><text x="42" y="174.0" font-size="12" text-anchor="end">⅓</text>
+<line x1="46" y1="130.0" x2="50" y2="130.0" class="ink" stroke-width="1.2"/><text x="42" y="134.0" font-size="12" text-anchor="end">⅔</text>
+<line x1="46" y1="90.0" x2="50" y2="90.0" class="ink" stroke-width="1.2"/><text x="42" y="94.0" font-size="12" text-anchor="end">1</text>
+<line x1="46" y1="50.0" x2="50" y2="50.0" class="ink" stroke-width="1.2"/><text x="42" y="54.0" font-size="12" text-anchor="end">4⁄3</text>
+<text x="50" y="226.0" font-size="12" text-anchor="middle" class="mono">0</text>
+<text x="146" y="226.0" font-size="12" text-anchor="middle" class="mono">16</text>
+<text x="242" y="226.0" font-size="12" text-anchor="middle" class="mono">32</text>
+<text x="338" y="226.0" font-size="12" text-anchor="middle" class="mono">48</text>
+<text x="434" y="226.0" font-size="12" text-anchor="middle" class="mono">64</text>
+<text x="446" y="226.0" font-size="13">k</text>
+<path d="M50.0,174.4 L50.8,167.2 L51.5,160.3 L52.3,153.6 L53.1,147.3 L53.8,141.2 L54.6,135.4 L55.4,129.8 L56.2,124.5 L56.9,119.5 L57.7,114.7 L58.5,110.1 L59.2,105.7 L60.0,101.6 L60.8,97.7 L61.5,94.0 L62.3,90.5 L63.1,87.2 L63.9,84.1 L64.6,81.2 L65.4,78.4 L66.2,75.9 L66.9,73.5 L67.7,71.3 L68.5,69.2 L69.2,67.3 L70.0,65.5 L70.8,63.9 L71.5,62.5 L72.3,61.1 L73.1,59.9 L73.9,58.9 L74.6,57.9 L75.4,57.1 L76.2,56.4 L76.9,55.8 L77.7,55.3 L78.5,54.9 L79.2,54.6 L80.0,54.4 L80.8,54.3 L81.6,54.3 L82.3,54.4 L83.1,54.5 L83.9,54.7 L84.6,55.0 L85.4,55.4 L86.2,55.8 L86.9,56.3 L87.7,56.9 L88.5,57.5 L89.2,58.2 L90.0,58.9 L90.8,59.7 L91.6,60.5 L92.3,61.4 L93.1,62.3 L93.9,63.2 L94.6,64.2 L95.4,65.2 L96.2,66.2 L96.9,67.3 L97.7,68.4 L98.5,69.5 L99.3,70.7 L100.0,71.8 L100.8,73.0 L101.6,74.2 L102.3,75.4 L103.1,76.6 L103.9,77.9 L104.6,79.1 L105.4,80.3 L106.2,81.6 L106.9,82.8 L107.7,84.1 L108.5,85.3 L109.3,86.6 L110.0,87.8 L110.8,89.1 L111.6,90.3 L112.3,91.5 L113.1,92.8 L113.9,94.0 L114.6,95.2 L115.4,96.3 L116.2,97.5 L116.9,98.7 L117.7,99.8 L118.5,100.9 L119.3,102.0 L120.0,103.1 L120.8,104.2 L121.6,105.3 L122.3,106.3 L123.1,107.3 L123.9,108.3 L124.6,109.2 L125.4,110.2 L126.2,111.1 L127.0,112.0 L127.7,112.8 L128.5,113.7 L129.3,114.5 L130.0,115.3 L130.8,116.0 L131.6,116.8 L132.3,117.5 L133.1,118.2 L133.9,118.8 L134.6,119.4 L135.4,120.0 L136.2,120.6 L137.0,121.1 L137.7,121.6 L138.5,122.1 L139.3,122.5 L140.0,123.0 L140.8,123.3 L141.6,123.7 L142.3,124.0 L143.1,124.3 L143.9,124.6 L144.7,124.8 L145.4,125.0 L146.2,125.2 L147.0,125.3 L147.7,125.5 L148.5,125.5 L149.3,125.6 L150.0,125.6 L150.8,125.6 L151.6,125.6 L152.3,125.6 L153.1,125.5 L153.9,125.4 L154.7,125.2 L155.4,125.1 L156.2,124.9 L157.0,124.7 L157.7,124.4 L158.5,124.2 L159.3,123.9 L160.0,123.5 L160.8,123.2 L161.6,122.8 L162.4,122.4 L163.1,122.0 L163.9,121.6 L164.7,121.1 L165.4,120.7 L166.2,120.2 L167.0,119.6 L167.7,119.1 L168.5,118.5 L169.3,118.0 L170.0,117.4 L170.8,116.7 L171.6,116.1 L172.4,115.5 L173.1,114.8 L173.9,114.1 L174.7,113.4 L175.4,112.7 L176.2,112.0 L177.0,111.2 L177.7,110.4 L178.5,109.7 L179.3,108.9 L180.1,108.1 L180.8,107.3 L181.6,106.5 L182.4,105.7 L183.1,104.8 L183.9,104.0 L184.7,103.1 L185.4,102.3 L186.2,101.4 L187.0,100.5 L187.7,99.7 L188.5,98.8 L189.3,97.9 L190.1,97.0 L190.8,96.1 L191.6,95.2 L192.4,94.3 L193.1,93.4 L193.9,92.5 L194.7,91.6 L195.4,90.7 L196.2,89.8 L197.0,88.9 L197.8,88.0 L198.5,87.1 L199.3,86.2 L200.1,85.3 L200.8,84.4 L201.6,83.5 L202.4,82.7 L203.1,81.8 L203.9,80.9 L204.7,80.0 L205.4,79.2 L206.2,78.3 L207.0,77.5 L207.8,76.7 L208.5,75.9 L209.3,75.0 L210.1,74.2 L210.8,73.5 L211.6,72.7 L212.4,71.9 L213.1,71.1 L213.9,70.4 L214.7,69.7 L215.5,68.9 L216.2,68.2 L217.0,67.5 L217.8,66.9 L218.5,66.2 L219.3,65.6 L220.1,64.9 L220.8,64.3 L221.6,63.7 L222.4,63.1 L223.1,62.5 L223.9,62.0 L224.7,61.4 L225.5,60.9 L226.2,60.4 L227.0,59.9 L227.8,59.5 L228.5,59.0 L229.3,58.6 L230.1,58.2 L230.8,57.8 L231.6,57.4 L232.4,57.1 L233.2,56.8 L233.9,56.4 L234.7,56.1 L235.5,55.9 L236.2,55.6 L237.0,55.4 L237.8,55.2 L238.5,55.0 L239.3,54.8 L240.1,54.7 L240.8,54.6 L241.6,54.5 L242.4,54.4 L243.2,54.3 L243.9,54.3 L244.7,54.3 L245.5,54.3 L246.2,54.3 L247.0,54.3 L247.8,54.4 L248.5,54.5 L249.3,54.6 L250.1,54.7 L250.8,54.9 L251.6,55.0 L252.4,55.2 L253.2,55.4 L253.9,55.7 L254.7,55.9 L255.5,56.2 L256.2,56.5 L257.0,56.8 L257.8,57.2 L258.5,57.5 L259.3,57.9 L260.1,58.3 L260.9,58.7 L261.6,59.1 L262.4,59.6 L263.2,60.0 L263.9,60.5 L264.7,61.0 L265.5,61.6 L266.2,62.1 L267.0,62.7 L267.8,63.2 L268.5,63.8 L269.3,64.4 L270.1,65.0 L270.9,65.7 L271.6,66.3 L272.4,67.0 L273.2,67.7 L273.9,68.4 L274.7,69.1 L275.5,69.8 L276.2,70.6 L277.0,71.3 L277.8,72.1 L278.6,72.8 L279.3,73.6 L280.1,74.4 L280.9,75.2 L281.6,76.0 L282.4,76.8 L283.2,77.7 L283.9,78.5 L284.7,79.4 L285.5,80.2 L286.2,81.1 L287.0,82.0 L287.8,82.8 L288.6,83.7 L289.3,84.6 L290.1,85.5 L290.9,86.4 L291.6,87.3 L292.4,88.2 L293.2,89.1 L293.9,90.0 L294.7,90.9 L295.5,91.8 L296.3,92.7 L297.0,93.6 L297.8,94.5 L298.6,95.4 L299.3,96.3 L300.1,97.2 L300.9,98.1 L301.6,99.0 L302.4,99.8 L303.2,100.7 L303.9,101.6 L304.7,102.4 L305.5,103.3 L306.3,104.2 L307.0,105.0 L307.8,105.8 L308.6,106.7 L309.3,107.5 L310.1,108.3 L310.9,109.1 L311.6,109.8 L312.4,110.6 L313.2,111.4 L314.0,112.1 L314.7,112.8 L315.5,113.5 L316.3,114.2 L317.0,114.9 L317.8,115.6 L318.6,116.2 L319.3,116.9 L320.1,117.5 L320.9,118.1 L321.6,118.7 L322.4,119.2 L323.2,119.7 L324.0,120.3 L324.7,120.8 L325.5,121.2 L326.3,121.7 L327.0,122.1 L327.8,122.5 L328.6,122.9 L329.3,123.3 L330.1,123.6 L330.9,123.9 L331.7,124.2 L332.4,124.5 L333.2,124.7 L334.0,124.9 L334.7,125.1 L335.5,125.3 L336.3,125.4 L337.0,125.5 L337.8,125.6 L338.6,125.6 L339.3,125.6 L340.1,125.6 L340.9,125.6 L341.7,125.5 L342.4,125.4 L343.2,125.3 L344.0,125.2 L344.7,125.0 L345.5,124.8 L346.3,124.5 L347.0,124.3 L347.8,124.0 L348.6,123.6 L349.4,123.3 L350.1,122.9 L350.9,122.4 L351.7,122.0 L352.4,121.5 L353.2,121.0 L354.0,120.5 L354.7,119.9 L355.5,119.3 L356.3,118.7 L357.0,118.0 L357.8,117.3 L358.6,116.6 L359.4,115.9 L360.1,115.1 L360.9,114.3 L361.7,113.5 L362.4,112.7 L363.2,111.8 L364.0,110.9 L364.7,110.0 L365.5,109.0 L366.3,108.1 L367.1,107.1 L367.8,106.1 L368.6,105.0 L369.4,104.0 L370.1,102.9 L370.9,101.8 L371.7,100.7 L372.4,99.6 L373.2,98.4 L374.0,97.3 L374.7,96.1 L375.5,94.9 L376.3,93.7 L377.1,92.5 L377.8,91.3 L378.6,90.1 L379.4,88.8 L380.1,87.6 L380.9,86.3 L381.7,85.1 L382.4,83.8 L383.2,82.6 L384.0,81.3 L384.7,80.1 L385.5,78.8 L386.3,77.6 L387.1,76.4 L387.8,75.2 L388.6,74.0 L389.4,72.8 L390.1,71.6 L390.9,70.4 L391.7,69.3 L392.4,68.2 L393.2,67.1 L394.0,66.0 L394.8,65.0 L395.5,64.0 L396.3,63.0 L397.1,62.1 L397.8,61.2 L398.6,60.3 L399.4,59.5 L400.1,58.8 L400.9,58.0 L401.7,57.4 L402.4,56.8 L403.2,56.2 L404.0,55.7 L404.8,55.3 L405.5,55.0 L406.3,54.7 L407.1,54.5 L407.8,54.3 L408.6,54.3 L409.4,54.3 L410.1,54.4 L410.9,54.7 L411.7,55.0 L412.5,55.4 L413.2,55.9 L414.0,56.5 L414.8,57.2 L415.5,58.1 L416.3,59.1 L417.1,60.2 L417.8,61.4 L418.6,62.7 L419.4,64.2 L420.1,65.9 L420.9,67.7 L421.7,69.6 L422.5,71.7 L423.2,73.9 L424.0,76.4 L424.8,79.0 L425.5,81.7 L426.3,84.7 L427.1,87.8 L427.8,91.2 L428.6,94.7 L429.4,98.5 L430.2,102.4 L430.9,106.6 L431.7,111.0 L432.5,115.6 L433.2,120.5 L434.0,125.6" fill="none" class="unit" stroke-width="2"/>
+<circle cx="50.0" cy="174.4" r="2.2" class="fill-unit"/>
+<circle cx="56.0" cy="125.6" r="2.2" class="fill-unit"/>
+<circle cx="62.0" cy="91.9" r="2.2" class="fill-unit"/>
+<circle cx="68.0" cy="70.4" r="2.2" class="fill-unit"/>
+<circle cx="74.0" cy="58.7" r="2.2" class="fill-unit"/>
+<circle cx="80.0" cy="54.4" r="2.2" class="fill-unit"/>
+<circle cx="86.0" cy="55.7" r="2.2" class="fill-unit"/>
+<circle cx="92.0" cy="61.0" r="2.2" class="fill-unit"/>
+<circle cx="98.0" cy="68.8" r="2.2" class="fill-unit"/>
+<circle cx="104.0" cy="78.1" r="2.2" class="fill-unit"/>
+<circle cx="110.0" cy="87.8" r="2.2" class="fill-unit"/>
+<circle cx="116.0" cy="97.2" r="2.2" class="fill-unit"/>
+<circle cx="122.0" cy="105.8" r="2.2" class="fill-unit"/>
+<circle cx="128.0" cy="113.2" r="2.2" class="fill-unit"/>
+<circle cx="134.0" cy="118.9" r="2.2" class="fill-unit"/>
+<circle cx="140.0" cy="122.9" r="2.2" class="fill-unit"/>
+<circle cx="146.0" cy="125.2" r="2.2" class="fill-unit"/>
+<circle cx="152.0" cy="125.6" r="2.2" class="fill-unit"/>
+<circle cx="158.0" cy="124.3" r="2.2" class="fill-unit"/>
+<circle cx="164.0" cy="121.5" r="2.2" class="fill-unit"/>
+<circle cx="170.0" cy="117.4" r="2.2" class="fill-unit"/>
+<circle cx="176.0" cy="112.1" r="2.2" class="fill-unit"/>
+<circle cx="182.0" cy="106.0" r="2.2" class="fill-unit"/>
+<circle cx="188.0" cy="99.4" r="2.2" class="fill-unit"/>
+<circle cx="194.0" cy="92.4" r="2.2" class="fill-unit"/>
+<circle cx="200.0" cy="85.4" r="2.2" class="fill-unit"/>
+<circle cx="206.0" cy="78.6" r="2.2" class="fill-unit"/>
+<circle cx="212.0" cy="72.3" r="2.2" class="fill-unit"/>
+<circle cx="218.0" cy="66.7" r="2.2" class="fill-unit"/>
+<circle cx="224.0" cy="61.9" r="2.2" class="fill-unit"/>
+<circle cx="230.0" cy="58.2" r="2.2" class="fill-unit"/>
+<circle cx="236.0" cy="55.7" r="2.2" class="fill-unit"/>
+<circle cx="242.0" cy="54.4" r="2.2" class="fill-unit"/>
+<circle cx="248.0" cy="54.4" r="2.2" class="fill-unit"/>
+<circle cx="254.0" cy="55.7" r="2.2" class="fill-unit"/>
+<circle cx="260.0" cy="58.2" r="2.2" class="fill-unit"/>
+<circle cx="266.0" cy="61.9" r="2.2" class="fill-unit"/>
+<circle cx="272.0" cy="66.7" r="2.2" class="fill-unit"/>
+<circle cx="278.0" cy="72.3" r="2.2" class="fill-unit"/>
+<circle cx="284.0" cy="78.6" r="2.2" class="fill-unit"/>
+<circle cx="290.0" cy="85.4" r="2.2" class="fill-unit"/>
+<circle cx="296.0" cy="92.4" r="2.2" class="fill-unit"/>
+<circle cx="302.0" cy="99.4" r="2.2" class="fill-unit"/>
+<circle cx="308.0" cy="106.0" r="2.2" class="fill-unit"/>
+<circle cx="314.0" cy="112.1" r="2.2" class="fill-unit"/>
+<circle cx="320.0" cy="117.4" r="2.2" class="fill-unit"/>
+<circle cx="326.0" cy="121.5" r="2.2" class="fill-unit"/>
+<circle cx="332.0" cy="124.3" r="2.2" class="fill-unit"/>
+<circle cx="338.0" cy="125.6" r="2.2" class="fill-unit"/>
+<circle cx="344.0" cy="125.2" r="2.2" class="fill-unit"/>
+<circle cx="350.0" cy="122.9" r="2.2" class="fill-unit"/>
+<circle cx="356.0" cy="118.9" r="2.2" class="fill-unit"/>
+<circle cx="362.0" cy="113.2" r="2.2" class="fill-unit"/>
+<circle cx="368.0" cy="105.8" r="2.2" class="fill-unit"/>
+<circle cx="374.0" cy="97.2" r="2.2" class="fill-unit"/>
+<circle cx="380.0" cy="87.8" r="2.2" class="fill-unit"/>
+<circle cx="386.0" cy="78.1" r="2.2" class="fill-unit"/>
+<circle cx="392.0" cy="68.8" r="2.2" class="fill-unit"/>
+<circle cx="398.0" cy="61.0" r="2.2" class="fill-unit"/>
+<circle cx="404.0" cy="55.7" r="2.2" class="fill-unit"/>
+<circle cx="410.0" cy="54.4" r="2.2" class="fill-unit"/>
+<circle cx="416.0" cy="58.7" r="2.2" class="fill-unit"/>
+<circle cx="422.0" cy="70.4" r="2.2" class="fill-unit"/>
+<circle cx="428.0" cy="91.9" r="2.2" class="fill-unit"/>
+<circle cx="434.0" cy="125.6" r="2.2" class="fill-unit"/>
+<text x="60" y="178.4" font-size="12" class="fill-accent halo">q(0) = 0.297</text>
+<text x="230" y="36.0" font-size="12" text-anchor="middle" class="soft">must stay in the band for k = 1, …, 64</text>
+</svg>
+        <p class="cap">The best degree-$6$ approximation of $\mathrm{OR}_{64}$, as $q(k)$. Only the integer points are constrained. It must climb from below $\tfrac13$ to above $\tfrac23$ in one step, then stay in a band for $63$ more.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why both directions.</b> Symmetrising does not raise the degree and keeps the approximation (<i>Averaging over the order of the bits</i>).
+    Conversely, $x_0 + \cdots + x_{N-1}$ has degree $1$, so substituting it into $q$ gives a polynomial in $x$ of degree at
+    most $\deg q$, whose value at $x$ is $q(|x|)$. So the least degree over $N$-variable approximations equals the least
+    over one-variable ones.</p>
+    <p><b>The computation.</b> For each $d$, minimise $\varepsilon$ subject to $|q(k) - \mathrm{OR}(k)|\le\varepsilon$ at
+    $k = 0, \dots, 64$, over polynomials $q$ of degree $d$ — a linear programme in $q$'s coefficients (written in the
+    Chebyshev basis on $[0, 64]$, for numerical stability). The optimum is $0.3449$ at $d = 5$ and $0.2965$ at $d = 6$. The
+    figure's polynomial has $q(0) = 0.2965$ and $q(k)$ between $0.7035$ and $1.2965$ on $k = 1, \dots, 64$, touching both
+    edges of its own band, as a best approximation does.</p>
+    <p><b>Against Grover, and against the hybrid argument.</b> Unit 17's six-qubit check: $N = 64$, one marked item, peak
+    at $6$ iterations — under the promise of exactly one $1$; an algorithm right on every input needs more. The lower
+    bound from degree is $3$. The hybrid argument gives only $\sqrt{64}/6 = 1.33$, so $2$, even with its sharp constant
+    ($0.169\cdot8 = 1.35$). At $N = 1024$ the computed degree $22$ gives $11$ against the hybrid's $6$. The polynomial
+    method's constant is better here, but it has to be computed, one $N$ at a time; the hybrid argument's comes in
+    closed form.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · symmetrisation</p>
+  <h2>The approximate degree of OR is order √N</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (Nisan and Szegedy 1994; Paturi 1992) — cited</span>
+        $$\widetilde{\deg}(\mathrm{OR}_N) = \Theta(\sqrt N).$$
+      </div>
+      <p class="small"><b>Why √N.</b> $q$ climbs by $\ge\tfrac13$ between $k = 0$ and $1$, so $q'\ge\tfrac13$ somewhere there; yet it stays in a band of height $\tfrac53$ along $[0, N]$. The <span class="term">Markov brothers' inequality</span> (cited): a degree-$d$ polynomial with $|q|\le1$ on $[-1, 1]$ has $|q'|\le d^2$ there. Rescaled to $[0, N]$, $|q'|\le\tfrac53d^2/N$, so $d^2\ge N/5$.</p>
+      <p class="small">The missing step — that a band at the integers forces one on the interval when $d\ll\sqrt N$ — is Ehlich–Zeller (1964) and Rivlin–Cheney (1966), cited.</p>
+      <div class="box good"><span class="label"><span class="ref" data-ref="or">Grover is optimal</span>, a second time</span>
+        <p class="small">$Q(\mathrm{OR}_N)\ge\tfrac12\widetilde{\deg}(\mathrm{OR}_N) = \Omega(\sqrt N)$. And conversely: unit 17's random iteration counts give a bounded-error algorithm with $O(\sqrt N)$ queries, so $\widetilde{\deg}(\mathrm{OR}_N)\le2Q = O(\sqrt N)$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 -12 430 252" width="430" role="img" aria-label="the exact approximate degree of OR on N bits, computed by linear programming for N = 4 to 1024, plotted against the square root of N: the points 2, 2, 3, 4, 6, 8, 11, 15, 22 lie close to the line 0.7 times root N">
+<line x1="50" y1="200.0" x2="413" y2="200.0" class="ink" stroke-width="1.2"/>
+<line x1="50" y1="200.0" x2="50" y2="12.5" class="ink" stroke-width="1.2"/>
+<text x="50" y="216.0" font-size="12" text-anchor="middle" class="mono">0</text>
+<text x="138" y="216.0" font-size="12" text-anchor="middle" class="mono">8</text>
+<text x="226" y="216.0" font-size="12" text-anchor="middle" class="mono">16</text>
+<text x="314" y="216.0" font-size="12" text-anchor="middle" class="mono">24</text>
+<text x="402" y="216.0" font-size="12" text-anchor="middle" class="mono">32</text>
+<text x="44" y="204.0" font-size="12" text-anchor="end" class="mono">0</text>
+<text x="44" y="166.5" font-size="12" text-anchor="end" class="mono">5</text>
+<text x="44" y="129.0" font-size="12" text-anchor="end" class="mono">10</text>
+<text x="44" y="91.5" font-size="12" text-anchor="end" class="mono">15</text>
+<text x="44" y="54.0" font-size="12" text-anchor="end" class="mono">20</text>
+<text x="413" y="232.0" font-size="13" text-anchor="end">√N</text>
+<text x="54" y="8.5" font-size="13">approximate degree of OR<tspan font-size="10" dy="3">N</tspan></text>
+<line x1="50" y1="200.0" x2="413" y2="26.8" class="accent" stroke-width="1.3" stroke-dasharray="5 4"/>
+<text x="347" y="48.2" font-size="12" text-anchor="end" class="fill-accent halo">0.7√N</text>
+<circle cx="72.0" cy="185.0" r="4" class="fill-unit"/>
+<circle cx="81.1" cy="185.0" r="4" class="fill-unit"/>
+<circle cx="94.0" cy="177.5" r="4" class="fill-unit"/>
+<circle cx="112.2" cy="170.0" r="4" class="fill-unit"/>
+<circle cx="138.0" cy="155.0" r="4" class="fill-unit"/>
+<circle cx="174.5" cy="140.0" r="4" class="fill-unit"/>
+<circle cx="226.0" cy="117.5" r="4" class="fill-unit"/>
+<circle cx="298.9" cy="87.5" r="4" class="fill-unit"/>
+<circle cx="402.0" cy="35.0" r="4" class="fill-unit"/>
+<text x="146.0" y="171.0" font-size="11" class="soft halo">N = 64: 6</text>
+<text x="404.0" y="55.0" font-size="11" text-anchor="middle" class="soft halo">N = 1024: 22</text>
+</svg>
+        <p class="cap">$\widetilde{\deg}(\mathrm{OR}_N)$ computed exactly, by the linear programme of <i>OR, approximated by a curve</i>, for $N = 4, \dots, 1024$: close to $0.7\sqrt N$.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The sketch in full.</b> By the mean value theorem there is $\xi\in(0, 1)$ with $q'(\xi) = q(1) - q(0)\ge\tfrac23 -
+    \tfrac13 = \tfrac13$. Suppose $-\tfrac13\le q\le\tfrac43$ on the whole interval $[0, N]$, so $|q - \tfrac12|\le\tfrac56$.
+    Put $t = 2k/N - 1$, mapping $[0, N]$ to $[-1, 1]$, and $r(t) = \tfrac65(q(k) - \tfrac12)$, so $|r|\le1$. Markov gives
+    $|r'(t)|\le d^2$, and $q'(k) = \tfrac56\cdot\tfrac2N\,r'(t)$, so $|q'|\le\tfrac53d^2/N$. Then $\tfrac13\le\tfrac53d^2/N$, i.e.
+    $d\ge\sqrt{N/5} = 0.447\sqrt N$. The computed values, about $0.7\sqrt N$, respect it.</p>
+    <p><b>What is cited.</b> The band is only promised at the integers $0, \dots, N$; between them $q$ could in principle
+    swing far out. The lemma of Ehlich and Zeller (1964) and Rivlin and Cheney (1966) says a polynomial of degree
+    $d\le c\sqrt N$ bounded at the integers is bounded on the interval by a constant multiple, which rescues the argument
+    with a smaller constant. Nisan and Szegedy, "On the degree of Boolean functions as real polynomials",
+    <i>Computational Complexity</i> 4, 301 (1994), give exactly this proof; Paturi (STOC 1992) determined the approximate
+    degree of every symmetric function. The Markov inequality is A. A. Markov's (1889); his brother V. A. Markov extended
+    it to higher derivatives (1892). It is cited, not proved here: a proof is in Borwein and Erdélyi, <i>Polynomials and
+    Polynomial Inequalities</i> (Springer, 1995), chapter 5.</p>
+    <p><b>The upper bound from an algorithm.</b> Unit 17 proved that choosing the iteration count at random from a growing
+    range finds a marked item in expected $O(\sqrt{N/M})$ queries when $M\ge1$ items are marked. Stop after three times
+    the bound for $M = 1$ and output "nothing marked" if no checked candidate was marked: on $0^N$ it never errs, and
+    otherwise Markov's inequality on the running time bounds the error by $\tfrac13$. The polynomial method turns that
+    algorithm into a polynomial of degree $O(\sqrt N)$ approximating OR — explicit constructions use Chebyshev
+    polynomials. Here an algorithm proves a theorem about polynomials.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · symmetrisation</p>
+  <h2>Three methods, two proved</h2>
+  <table class="dense">
+    <thead><tr><th>method</th><th>the idea</th><th>for OR</th><th>for parity</th><th>here</th></tr></thead>
+    <tbody>
+      <tr><td><span class="term">hybrid argument</span> (BBBV 1997)</td><td>a lightly watched position can be marked unnoticed</td><td>$T\ge\sqrt N/6$</td><td>only order $\sqrt N$</td><td>proved</td></tr>
+      <tr><td>polynomial method (BBCMdW 2001)</td><td>$T$ queries give degree $\le2T$</td><td>$\Omega(\sqrt N)$, via $\widetilde{\deg}$ (cited)</td><td>$N/2$, exactly</td><td>proved</td></tr>
+      <tr><td><span class="term">adversary method</span> (Ambainis 2002)</td><td>weighted pairs of inputs with different answers; each query makes bounded progress separating them</td><td>$\Omega(\sqrt N)$</td><td>$\Omega(N)$</td><td>named</td></tr>
+      <tr><td>negative-weight adversary</td><td>the same, with weights allowed to be negative</td><td colspan="2">$\Theta(Q(f))$ for every $f$: tight (Reichardt 2011)</td><td>cited</td></tr>
+    </tbody>
+  </table>
+  <div class="cols">
+    <div class="box good"><span class="label">what each is good at</span>
+      <p class="small">The hybrid argument gives explicit constants and needs nothing but the triangle inequality. The polynomial method turns query bounds into approximation theory and handles every symmetric function at once.</p>
+    </div>
+    <div class="box warn"><span class="label">and where each stops</span>
+      <p class="small">Neither is tight for every function. The adversary method with negative weights is — the quantum query complexity of any $f$ is a semidefinite programme's value, up to a constant.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Why the hybrid argument stops near $\sqrt N$.</b> As used here it compares one input with its neighbours that
+    differ in a single bit, and the budget $\sum_wq_w = T$ spreads over $N$ of them; the square root comes from
+    Cauchy–Schwarz. For parity it gives the same order $\sqrt N$, not the true $N/2$. The adversary method generalises it:
+    many pairs of inputs at once, each weighted.</p>
+    <p><b>The adversary method, named.</b> A. Ambainis, "Quantum lower bounds by quantum arguments", <i>J. Comput. Syst.
+    Sci.</i> 64, 750 (2002): if every $x$ with $f(x) = 0$ is related to at least $m$ inputs $y$ with $f(y) = 1$, every such
+    $y$ to at least $m'$ such $x$, and each position distinguishes at most $l$ and $l'$ of those relations from each side,
+    then $Q(f) = \Omega(\sqrt{mm'/ll'})$. For OR with $0^N$ related to each $e_w$: $m = N$, $m' = 1$, $l = l' = 1$, giving
+    $\Omega(\sqrt N)$. For parity, relating inputs that differ in one bit: $m = m' = N$, $l = l' = 1$, giving $\Omega(N)$.
+    Not proved in this course.</p>
+    <p><b>Tightness, cited.</b> Høyer, Lee and Špalek (STOC 2007) allowed negative weights; Reichardt (SODA 2011, and with
+    Lee, Mittal, Špalek and Szegedy, FOCS 2011) proved the resulting bound equals $Q(f)$ up to a constant factor, for every
+    function — by constructing algorithms that meet it. The polynomial method is not tight in general: Ambainis (FOCS 2003)
+    found total functions whose degree, and so their approximate degree, is polynomially smaller than their quantum
+    query complexity.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 4</p>
+  <h2>Parity: exactly N/2</h2>
+  <p>Full degree even approximately, so the polynomial method gives $N/2$; Deutsch's algorithm on pairs meets it.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · parity</p>
+  <h2>Parity has full degree, even approximately</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">$\deg(\mathrm{PARITY}_N) = \widetilde{\deg}(\mathrm{PARITY}_N) = N$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">The degree is $N$ by the top coefficient. Let $p$ approximate parity within $\tfrac13$ and $q$ be its symmetrisation. Parity is $k\bmod2$ on layer $k$, so</p>
+        $$q(k)\le\tfrac13\ (k\text{ even}),\qquad q(k)\ge\tfrac23\ (k\text{ odd}).$$
+        <p class="small">So $q - \tfrac12$ changes sign between $k$ and $k + 1$ for each $k = 0, \dots, N - 1$: $N$ roots by the intermediate value theorem. It is not zero, so $\deg p\ge\deg q\ge N$. $\blacksquare$</p>
+      </div>
+      <div class="box good"><span class="label">corollary</span>
+        <p class="small">Even with error $\tfrac13$, every algorithm for <span class="ref" data-ref="parpoly">parity</span> makes $T\ge N/2$ queries.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 430 225" width="430" role="img" aria-label="the parity of 4 bits symmetrised: the degree-4 polynomial through 0, 1, 0, 1, 0 at k = 0 to 4; it crosses the line one half four times, once between each pair of neighbours">
+<line x1="50" y1="190" x2="390" y2="190" class="ink" stroke-width="1.2"/>
+<line x1="50" y1="190" x2="50" y2="22.0" class="ink" stroke-width="1.2"/>
+<line x1="50" y1="130.0" x2="390" y2="130.0" class="accent" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="392" y="134.0" font-size="12" class="fill-accent">½</text>
+<text x="42" y="194.0" font-size="12" text-anchor="end">0</text>
+<text x="42" y="74.0" font-size="12" text-anchor="end">1</text>
+<text x="50" y="206.0" font-size="12" text-anchor="middle" class="mono">0</text>
+<text x="130" y="206.0" font-size="12" text-anchor="middle" class="mono">1</text>
+<text x="210" y="206.0" font-size="12" text-anchor="middle" class="mono">2</text>
+<text x="290" y="206.0" font-size="12" text-anchor="middle" class="mono">3</text>
+<text x="370" y="206.0" font-size="12" text-anchor="middle" class="mono">4</text>
+<text x="392" y="206.0" font-size="13">k</text>
+<path d="M50.0,190.0 L51.1,181.6 L52.1,173.4 L53.2,165.6 L54.3,158.0 L55.4,150.7 L56.4,143.6 L57.5,136.8 L58.6,130.3 L59.6,124.0 L60.7,117.9 L61.8,112.1 L62.8,106.6 L63.9,101.2 L65.0,96.1 L66.1,91.3 L67.1,86.6 L68.2,82.2 L69.3,77.9 L70.3,73.9 L71.4,70.1 L72.5,66.5 L73.5,63.1 L74.6,59.9 L75.7,56.8 L76.8,54.0 L77.8,51.3 L78.9,48.8 L80.0,46.5 L81.0,44.3 L82.1,42.4 L83.2,40.5 L84.2,38.9 L85.3,37.4 L86.4,36.0 L87.5,34.8 L88.5,33.7 L89.6,32.8 L90.7,32.0 L91.7,31.4 L92.8,30.9 L93.9,30.5 L94.9,30.2 L96.0,30.0 L97.1,30.0 L98.2,30.1 L99.2,30.3 L100.3,30.6 L101.4,31.0 L102.4,31.5 L103.5,32.1 L104.6,32.8 L105.7,33.6 L106.7,34.4 L107.8,35.4 L108.9,36.5 L109.9,37.6 L111.0,38.8 L112.1,40.1 L113.1,41.4 L114.2,42.8 L115.3,44.3 L116.4,45.9 L117.4,47.5 L118.5,49.1 L119.6,50.9 L120.6,52.6 L121.7,54.5 L122.8,56.3 L123.8,58.2 L124.9,60.2 L126.0,62.2 L127.1,64.2 L128.1,66.3 L129.2,68.4 L130.3,70.5 L131.3,72.7 L132.4,74.9 L133.5,77.1 L134.5,79.3 L135.6,81.6 L136.7,83.8 L137.8,86.1 L138.8,88.4 L139.9,90.7 L141.0,93.0 L142.0,95.4 L143.1,97.7 L144.2,100.0 L145.3,102.4 L146.3,104.7 L147.4,107.0 L148.5,109.3 L149.5,111.6 L150.6,114.0 L151.7,116.3 L152.7,118.5 L153.8,120.8 L154.9,123.1 L156.0,125.3 L157.0,127.5 L158.1,129.7 L159.2,131.9 L160.2,134.1 L161.3,136.2 L162.4,138.3 L163.4,140.4 L164.5,142.5 L165.6,144.5 L166.7,146.5 L167.7,148.4 L168.8,150.4 L169.9,152.3 L170.9,154.1 L172.0,155.9 L173.1,157.7 L174.1,159.5 L175.2,161.2 L176.3,162.8 L177.4,164.5 L178.4,166.1 L179.5,167.6 L180.6,169.1 L181.6,170.5 L182.7,171.9 L183.8,173.3 L184.8,174.6 L185.9,175.8 L187.0,177.0 L188.1,178.2 L189.1,179.3 L190.2,180.3 L191.3,181.4 L192.3,182.3 L193.4,183.2 L194.5,184.0 L195.6,184.8 L196.6,185.6 L197.7,186.2 L198.8,186.9 L199.8,187.4 L200.9,187.9 L202.0,188.4 L203.0,188.8 L204.1,189.1 L205.2,189.4 L206.3,189.6 L207.3,189.8 L208.4,189.9 L209.5,190.0 L210.5,190.0 L211.6,189.9 L212.7,189.8 L213.7,189.6 L214.8,189.4 L215.9,189.1 L217.0,188.8 L218.0,188.4 L219.1,187.9 L220.2,187.4 L221.2,186.9 L222.3,186.2 L223.4,185.6 L224.4,184.8 L225.5,184.0 L226.6,183.2 L227.7,182.3 L228.7,181.4 L229.8,180.3 L230.9,179.3 L231.9,178.2 L233.0,177.0 L234.1,175.8 L235.2,174.6 L236.2,173.3 L237.3,171.9 L238.4,170.5 L239.4,169.1 L240.5,167.6 L241.6,166.1 L242.6,164.5 L243.7,162.8 L244.8,161.2 L245.9,159.5 L246.9,157.7 L248.0,155.9 L249.1,154.1 L250.1,152.3 L251.2,150.4 L252.3,148.4 L253.3,146.5 L254.4,144.5 L255.5,142.5 L256.6,140.4 L257.6,138.3 L258.7,136.2 L259.8,134.1 L260.8,131.9 L261.9,129.7 L263.0,127.5 L264.0,125.3 L265.1,123.1 L266.2,120.8 L267.3,118.5 L268.3,116.3 L269.4,114.0 L270.5,111.6 L271.5,109.3 L272.6,107.0 L273.7,104.7 L274.7,102.4 L275.8,100.0 L276.9,97.7 L278.0,95.4 L279.0,93.0 L280.1,90.7 L281.2,88.4 L282.2,86.1 L283.3,83.8 L284.4,81.6 L285.5,79.3 L286.5,77.1 L287.6,74.9 L288.7,72.7 L289.7,70.5 L290.8,68.4 L291.9,66.3 L292.9,64.2 L294.0,62.2 L295.1,60.2 L296.2,58.2 L297.2,56.3 L298.3,54.5 L299.4,52.6 L300.4,50.9 L301.5,49.1 L302.6,47.5 L303.6,45.9 L304.7,44.3 L305.8,42.8 L306.9,41.4 L307.9,40.1 L309.0,38.8 L310.1,37.6 L311.1,36.5 L312.2,35.4 L313.3,34.4 L314.3,33.6 L315.4,32.8 L316.5,32.1 L317.6,31.5 L318.6,31.0 L319.7,30.6 L320.8,30.3 L321.8,30.1 L322.9,30.0 L324.0,30.0 L325.1,30.2 L326.1,30.5 L327.2,30.9 L328.3,31.4 L329.3,32.0 L330.4,32.8 L331.5,33.7 L332.5,34.8 L333.6,36.0 L334.7,37.4 L335.8,38.9 L336.8,40.5 L337.9,42.4 L339.0,44.3 L340.0,46.5 L341.1,48.8 L342.2,51.3 L343.2,54.0 L344.3,56.8 L345.4,59.9 L346.5,63.1 L347.5,66.5 L348.6,70.1 L349.7,73.9 L350.7,77.9 L351.8,82.2 L352.9,86.6 L353.9,91.3 L355.0,96.1 L356.1,101.2 L357.2,106.6 L358.2,112.1 L359.3,117.9 L360.4,124.0 L361.4,130.3 L362.5,136.8 L363.6,143.6 L364.6,150.7 L365.7,158.0 L366.8,165.6 L367.9,173.4 L368.9,181.6 L370.0,190.0" fill="none" class="unit" stroke-width="2"/>
+<circle cx="50" cy="190.0" r="4.5" class="fill-unit"/>
+<circle cx="130" cy="70.0" r="4.5" class="fill-unit"/>
+<circle cx="210" cy="190.0" r="4.5" class="fill-unit"/>
+<circle cx="290" cy="70.0" r="4.5" class="fill-unit"/>
+<circle cx="370" cy="190.0" r="4.5" class="fill-unit"/>
+<circle cx="58.6" cy="130.0" r="4" fill="none" class="accent" stroke-width="1.6"/>
+<circle cx="158.2" cy="130.0" r="4" fill="none" class="accent" stroke-width="1.6"/>
+<circle cx="261.8" cy="130.0" r="4" fill="none" class="accent" stroke-width="1.6"/>
+<circle cx="361.4" cy="130.0" r="4" fill="none" class="accent" stroke-width="1.6"/>
+</svg>
+        <p class="cap">$N = 4$: the polynomial through $0, 1, 0, 1, 0$, of degree $4$. Anything within $\tfrac13$ of it at the integers must also cross $\tfrac12$ four times.</p>
+      </div>
+      <p class="small">Against <span class="ref" data-ref="or">OR</span>: OR's $q$ must jump once and then sit still, which a degree near $\sqrt N$ manages; parity's must turn round at every integer, which needs them all.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The sign changes.</b> At each integer $k$, $q(k) - \tfrac12$ is $\le-\tfrac16$ for even $k$ and $\ge\tfrac16$ for odd
+    $k$. A continuous function with opposite signs at $k$ and $k + 1$ has a root strictly between them, so there are at
+    least $N$ distinct roots in $(0, N)$. A nonzero polynomial of degree $d$ has at most $d$ roots, and $q - \tfrac12$ is
+    nonzero because it is $\le-\tfrac16$ at $k = 0$. So $d\ge N$.</p>
+    <p><b>The figure, computed.</b> The interpolant is $q(k) = \tfrac12\big(1 - \sum_{j=0}^4\binom kj(-2)^j\big)$, which is
+    $\tfrac12(1 - (1 - 2)^k)$ at the integers. It crosses $\tfrac12$ at $k = 0.108, 1.353, 2.647, 3.892$, and peaks at about
+    $1.333$ between $3$ and $4$. The crossings are where the proof's roots are.</p>
+    <p><b>Exact and approximate agree.</b> For OR the two degrees are $N$ and order $\sqrt N$; for parity both are $N$.
+    That is why bounded error buys nothing for parity: a quantum algorithm allowed to err a third of the time still needs
+    $N/2$ queries.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · parity</p>
+  <h2>Deutsch on pairs</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>The experiment.</b> Unit 13's interferometer: one photon through two paths, a slab of phase $0$ or $\pi$ in each, tells with certainty whether the slabs are equal. For $N$ slabs, pair them up: $N/2$ photons. <i>Parity has full degree</i> says no interferometer, however clever, uses fewer.</p>
+      <div class="box thm"><span class="label">theorem: parity in $\lceil N/2\rceil$ queries, exactly</span>
+        <p class="small">For each pair $(x_{2p}, x_{2p+1})$ run Deutsch's algorithm with the index in $\tfrac1{\sqrt2}(\ket{2p} + \ket{2p + 1})$; output the XOR of the $N/2$ answers. For odd $N$ read the last bit classically.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small">With the target in $\ket-$, kickback gives $\tfrac1{\sqrt2}\big((-1)^{x_{2p}}\ket{2p} + (-1)^{x_{2p+1}}\ket{2p+1}\big)$: Deutsch's state on the last index qubit, with $p$ on the others. $H$ there leaves $\pm\ket p\ket{x_{2p}\oplus x_{2p+1}}$. XOR of the pairs is the XOR of all. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 160" width="470" role="img" aria-label="Deutsch on the pair (x_2p, x_2p+1) for N = 4: index qubit 0 holds p, set by X if p = 1; index qubit 1 gets H before and after the query O_x; the target qubit 2 is prepared in |−⟩ by X and H; measuring qubit 1 gives x_2p xor x_2p+1">
+<line x1="60" y1="35" x2="400" y2="35" class="ink" stroke-width="1.5"/>
+<text x="54" y="40" font-size="15" text-anchor="end">|p⟩</text>
+<line x1="60" y1="85" x2="400" y2="85" class="ink" stroke-width="1.5"/>
+<text x="54" y="90" font-size="15" text-anchor="end">|0⟩</text>
+<line x1="60" y1="135" x2="400" y2="135" class="ink" stroke-width="1.5"/>
+<text x="54" y="140" font-size="15" text-anchor="end">|0⟩</text>
+<rect x="110" y="69" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="126.0" y="90.0" font-size="16" text-anchor="middle">H</text>
+<rect x="70" y="119" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="86.0" y="140.0" font-size="16" text-anchor="middle">X</text>
+<rect x="110" y="119" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="126.0" y="140.0" font-size="16" text-anchor="middle">H</text>
+<rect x="180" y="17" width="54" height="136" class="fill-ground accent" stroke-width="1.6"/><text x="207.0" y="90.0" font-size="16" text-anchor="middle">O<tspan font-size="11" dy="4">x</tspan></text>
+<rect x="270" y="69" width="32" height="32" class="fill-ground unit" stroke-width="1.6"/><text x="286.0" y="90.0" font-size="16" text-anchor="middle">H</text>
+<rect x="326" y="70" width="34" height="30" class="fill-ground ink" stroke-width="1.5"/><path d="M 332 94 A 11 11 0 0 1 354 94" fill="none" class="ink" stroke-width="1.3"/><line x1="343" y1="94" x2="352" y2="76" class="ink" stroke-width="1.3"/>
+<text x="368" y="64" font-size="12" class="fill-unit">x<tspan font-size="9" dy="3">2p</tspan><tspan dy="-3"> ⊕ x</tspan><tspan font-size="9" dy="3">2p+1</tspan></text>
+<text x="406" y="40" font-size="14">|p⟩</text><text x="406" y="140" font-size="14">|−⟩</text>
+</svg>
+        <p class="cap">One pair, $N = 4$. The index is $i = 2p + b$ with qubit 0 holding $p$; the query sees only the two positions $2p$ and $2p + 1$.</p>
+      </div>
+      <p class="small"><b>Check:</b> each run ends in a basis state up to sign, so its reading is certain; $N/2$ runs, one query each.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The interferometer, recalled.</b> In unit 13, a half-silvered mirror splits a photon into two paths, each with a
+    glass slab adding phase $0$ or $\pi$ (that is, $\pi x_i$), and a second half-silvered mirror recombines them; detector
+    $D_0$ fires with probability $\sin^2\tfrac{\pi(x_1 - x_0)}2 = x_0\oplus x_1$. One photon, through both slabs, gives the
+    parity of two bits, and no photon through one slab says anything about the parity. The quantum circuit is the same
+    device: $H$ is the splitter, the oracle the slabs, the measurement the detectors.</p>
+    <p><b>The proof in full.</b> Qubit 0 is set to $p$ by an $X$ when $p = 1$; qubit 1 gets $H$, giving index state
+    $\tfrac1{\sqrt2}(\ket{p0} + \ket{p1}) = \tfrac1{\sqrt2}(\ket{2p} + \ket{2p + 1})$ — qubit 0 is the more significant bit. The
+    target is prepared in $\ket-$ by $X$ then $H$. The phase oracle multiplies $\ket{2p + b}$ by $(-1)^{x_{2p+b}}$. Factoring
+    out $(-1)^{x_{2p}}$ leaves $\tfrac1{\sqrt2}(\ket0 + (-1)^{x_{2p}\oplus x_{2p+1}}\ket1)$ on qubit 1, which is $\ket+$ or $\ket-$,
+    and $H$ maps those to $\ket0$ and $\ket1$.</p>
+    <p><b>Counting.</b> Each run uses one query and its index never leaves $\{2p, 2p + 1\}$. Runs may share a circuit — the
+    answer of one pair is written into a fresh qubit and the next pair begins — or be separate; the count is $N/2$ either
+    way, and the final XOR is classical post-processing, free in the query model.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · parity · example</p>
+  <h2>Worked: parity of four bits in two queries</h2>
+  <div class="box ex"><span class="label">$N = 4$, $\ x = 1011$: two runs, and why one query cannot do it</span>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Run 1, pair $(x_0, x_1) = (1, 0)$.</b> Qubits 0, 1, 2 start in $\ket{000}$; then $X$ and $H$ on the target, $H$ on qubit 1:</p>
+      $$\ket0\ket+\ket- = \tfrac1{\sqrt2}\big(\ket{00} + \ket{01}\big)\ket- .$$
+      <p class="small">The query multiplies $\ket{00}$ by $(-1)^{x_0} = -1$ and $\ket{01}$ by $(-1)^{x_1} = +1$:</p>
+      $$\tfrac1{\sqrt2}\big(-\ket{00} + \ket{01}\big)\ket- = -\ket0\ket-\ket- .$$
+      <p class="small">$H$ on qubit 1: $\ -\ket0\ket1\ket-$. It reads $1 = x_0\oplus x_1$ ✓.</p>
+      <p class="small"><b>Run 2, pair $(x_2, x_3) = (1, 1)$.</b> Start from $\ket1\ket+\ket-$; both signs are $-1$:</p>
+      $$-\tfrac1{\sqrt2}\big(\ket{10} + \ket{11}\big)\ket- = -\ket1\ket+\ket- ,$$
+      <p class="small">and $H$ on qubit 1 gives $-\ket1\ket0\ket-$. It reads $0 = x_2\oplus x_3$ ✓.</p>
+    </div>
+    <div>
+      <p class="small"><b>Output</b> $1\oplus0 = 1$, and $x = 1011$ has three ones ✓. Two queries; every state normalised, every reading certain.</p>
+      <p class="small"><b>One query is impossible.</b> One query gives an acceptance probability of degree $\le2$. But</p>
+      $$\mathrm{PARITY}_4 = \tfrac12\Big(1 - \prod_{i=0}^3(1 - 2x_i)\Big)$$
+      <p class="small">has top coefficient $-\tfrac12(-2)^4 = -8$: degree $4$. Even approximately: <span class="ref" data-ref="parpoly">$\widetilde{\deg} = 4$</span> by <i>Parity has full degree</i>, so $T\ge2$.</p>
+      <div class="box good"><span class="label">the factor two, nothing more</span>
+        <p class="small">Classically every bit must be read: $4$ queries. Quantumly $2$, and the polynomial method says $2$ is the floor.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+  <aside class="notes">
+    <p><b>Run 1 in components.</b> $\ket0\ket+\ket- = \tfrac12(\ket{000} - \ket{001} + \ket{010} - \ket{011})$, four amplitudes
+    $\pm\tfrac12$, norm $1$. Through the bit oracle: indices $0$ ($x_0 = 1$) swap the target, $\ket{000}\leftrightarrow\ket{001}$,
+    turning $\tfrac12(\ket{000} - \ket{001})$ into $\tfrac12(\ket{001} - \ket{000}) = -\tfrac12(\ket{000} - \ket{001})$; index $1$
+    ($x_1 = 0$) is untouched. That is the kickback sign $-1$ on $\ket{00}$ only. Then $\tfrac1{\sqrt2}(-\ket0 + \ket1) =
+    -\ket-$ on qubit 1, and $H\ket- = \ket1$.</p>
+    <p><b>Run 2.</b> Both index values $2 = \ket{10}$ and $3 = \ket{11}$ carry $x = 1$, so both pick up $-1$: a global sign
+    on qubit 1's $\ket+$, which $H$ sends to $\ket0$. Equal bits, reading $0$, exactly Deutsch's constant case.</p>
+    <p><b>The top coefficient.</b> In $\prod_i(1 - 2x_i)$ the coefficient of $x_0x_1x_2x_3$ is $(-2)^4 = 16$; with the
+    factor $-\tfrac12$ it is $-8$. The problem sheet's P3 does general $N$, and checks this run with the referee.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · parity</p>
+  <h2>Exactly N/2</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem</span>
+        <p class="small">For $f = \mathrm{PARITY}_N$:</p>
+        $$Q_E(f) = Q(f) = \lceil N/2\rceil,$$
+        <p class="small">while $D(\mathrm{PARITY}_N) = N$, and even a randomised algorithm with error $\tfrac13$ needs $N$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof</span>
+        <p class="small"><b>Lower:</b> $Q(\mathrm{PARITY}_N)\ge\tfrac12\widetilde{\deg} = N/2$, and $T$ is an integer. <b>Upper:</b> Deutsch on pairs, exact, $\lceil N/2\rceil$ queries. And $Q\le Q_E$. <b>Classical:</b> an unread bit leaves the answer a fair coin (notes). $\blacksquare$</p>
+      </div>
+      <p class="small"><b>Check, $N = 2$:</b> $Q_E = 1$ is unit 13's Deutsch, and $D = 2$ is unit 13's two classical queries ✓.</p>
+    </div>
+    <div>
+      <table class="dense">
+        <thead><tr><th><span class="ref" data-ref="par">parity</span></th><th class="num">$N = 4$</th><th class="num">$N = 2^{20}$</th></tr></thead>
+        <tbody>
+          <tr><td>quantum, exact or bounded error</td><td class="num">2</td><td class="num">524 288</td></tr>
+          <tr><td>classical, even with coins</td><td class="num">4</td><td class="num">1 048 576</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">the extreme case of the method</span>
+        <p class="small">Full approximate degree, so the quantum saving is the bare factor of two Deutsch already had on two bits — on every $N$, and provably no more.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Classical, with coins.</b> Take $x$ uniform on $\{0, 1\}^N$. A deterministic tree of depth $k\lt N$ outputs at each
+    leaf having read at most $k$ bits; given the answers on that path, some bit is unread and uniform, so parity is a fair
+    coin and the leaf is right with probability exactly $\tfrac12$. So every depth-$k$ tree is right with probability
+    $\tfrac12$ on uniform $x$, and by unit 13's averaging every randomised algorithm of depth $k\lt N$ is right with
+    probability at most $\tfrac12$ on some $x$. Error $\tfrac13$ is impossible below $N$; and $N$ queries suffice, reading
+    everything.</p>
+    <p><b>Odd $N$.</b> The lower bound $T\ge N/2$ with $T$ an integer gives $T\ge(N + 1)/2$; the algorithm pairs $N - 1$ bits
+    in $(N - 1)/2$ queries and reads the last one directly: $(N + 1)/2$.</p>
+    <p><b>The exact query complexity of total functions</b> is a subject of its own; parity is one of the few functions
+    where it is known exactly for every $N$, and it is known because the lower bound (degree) and the upper bound
+    (Deutsch) meet.</p>
+  </aside>
+</section>
+
+<!-- ================================================================== -->
+<section class="divider">
+  <p class="eyebrow">section 5</p>
+  <h2>What this says</h2>
+  <p>Without a promise the quantum saving is at most polynomial; an oracle relative to which NP is not in BQP.</p>
+</section>
+
+<section>
+  <p class="eyebrow">18 · what this says</p>
+  <h2>Total functions: at most a fourth power</h2>
+  <div class="cols">
+    <div>
+      <p class="small">A <span class="term">total function</span> is defined on every $x\in\{0, 1\}^N$ — no promise. OR and parity are total.</p>
+      <div class="box thm"><span class="label">theorem (Aaronson, Ben-David, Kothari, Rao, Tal 2021) — cited</span>
+        <p class="small">For every total $f:\{0, 1\}^N\to\{0, 1\}$, $\ D(f) = O\big(Q(f)^4\big)$.</p>
+      </div>
+      <p class="small">Its proof rests on Huang's <span class="term">sensitivity theorem</span> (2019). Beals et al. had $D = O(Q^6)$ in 2001. The fourth power is tight up to logarithms: a total "pointer" function has $D$ near $N$ and $Q$ near $N^{1/4}$ (Ambainis et al. 2016, cited).</p>
+      <div class="box good"><span class="label">corollary: no exponential speed-up without a promise</span>
+        <p class="small">$Q(f)\ge(D(f)/C)^{1/4}$. If $D(f) = N$, as for OR and parity, then $Q(f) = \Omega(N^{1/4})$ — never polylogarithmic in $N$.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 430 250" width="430" role="img" aria-label="exponents: horizontal, log D over log N; vertical, log Q over log N. Total functions must lie on or above the line Q = D to the one quarter. OR sits at (1, 1/2), parity at (1, 1), the pointer function near (1, 1/4); Deutsch–Jozsa, a promise problem, sits at the bottom, below the line">
+<polygon points="70,210 370,210 370,167.5" class="fill-soft"/>
+<line x1="70" y1="210" x2="385" y2="210" class="ink" stroke-width="1.2"/>
+<line x1="70" y1="210" x2="70" y2="26.399999999999977" class="ink" stroke-width="1.2"/>
+<line x1="70" y1="210" x2="370" y2="40" class="rule" stroke-width="1.2" stroke-dasharray="3 4"/>
+<line x1="70" y1="210" x2="370" y2="167.5" class="accent" stroke-width="1.6"/>
+<text x="292.0" y="204.9" font-size="10" text-anchor="middle" class="soft">no total function here</text>
+<text x="196.0" y="184.2" font-size="11" text-anchor="middle" class="fill-accent halo">Q = D<tspan font-size="8" dy="-5">1/4</tspan></text>
+<text x="235.0" y="108.5" font-size="11" text-anchor="end" class="soft halo">Q = D</text>
+<text x="70" y="226" font-size="12" text-anchor="middle" class="mono">0</text>
+<text x="370" y="226" font-size="12" text-anchor="middle" class="mono">1</text>
+<line x1="66" y1="167.5" x2="70" y2="167.5" class="ink" stroke-width="1.2"/><text x="62" y="171.5" font-size="12" text-anchor="end" class="mono">¼</text>
+<line x1="66" y1="125.0" x2="70" y2="125.0" class="ink" stroke-width="1.2"/><text x="62" y="129.0" font-size="12" text-anchor="end" class="mono">½</text>
+<line x1="66" y1="40.0" x2="70" y2="40.0" class="ink" stroke-width="1.2"/><text x="62" y="44.0" font-size="12" text-anchor="end" class="mono">1</text>
+<text x="154.0" y="240" font-size="12" text-anchor="middle">log D / log N</text>
+<text x="76" y="26.399999999999977" font-size="12">log Q / log N</text>
+<circle cx="370.0" cy="40.0" r="5" class="fill-unit"/>
+<text x="360.0" y="44.0" font-size="12" text-anchor="end" class="halo">parity</text>
+<circle cx="370.0" cy="125.0" r="5" class="fill-unit"/>
+<text x="360.0" y="129.0" font-size="12" text-anchor="end" class="halo">OR</text>
+<circle cx="370.0" cy="167.5" r="5" class="fill-unit"/>
+<text x="360.0" y="157.5" font-size="12" text-anchor="end" class="halo">pointer (2016)</text>
+<circle cx="370.0" cy="210.0" r="5" class="fill-warn"/>
+<text x="378.0" y="240.0" font-size="12" text-anchor="end" class="halo">Deutsch–Jozsa: a promise</text>
+</svg>
+        <p class="cap">Exponents of $D$ and $Q$, as powers of $N$. Total functions live on or above the line $Q = D^{1/4}$; <span class="ref" data-ref="or">OR</span> at $\tfrac12$, <span class="ref" data-ref="par">parity</span> at $1$. Deutsch–Jozsa, a promise problem, sits below.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The corollary in one line.</b> If $D(f)\le C\,Q(f)^4$ then $Q(f)\ge(D(f)/C)^{1/4}$. An exponential speed-up would
+    need a family with $Q(f_N)$ polylogarithmic in $D(f_N)$, and $(D/C)^{1/4}$ eventually exceeds every power of $\log D$.
+    For OR, $D = N$ and $Q = \Theta(\sqrt N)$: $D = \Theta(Q^2)$. For parity, $D = N$ and $Q = N/2$. Both sit comfortably
+    inside the theorem.</p>
+    <p><b>Sensitivity, named.</b> The sensitivity $s(f)$ is the largest number of single-bit flips that change $f$ at one
+    input. Huang ("Induced subgraphs of hypercubes and a proof of the Sensitivity Conjecture", <i>Ann. Math.</i> 190, 949,
+    2019) proved $s(f)\ge\sqrt{\deg f}$, settling a thirty-year-old question in two pages. Aaronson, Ben-David, Kothari, Rao
+    and Tal (STOC 2021, "Degree vs. approximate degree and quantum implications of Huang's sensitivity theorem") combined
+    it with the polynomial method to get the fourth power. Not proved here.</p>
+    <p><b>The tight example.</b> Ambainis, Balodis, Belovs, Lee, Santha and Smotrovs (STOC 2016; <i>J. ACM</i> 64, 32,
+    2017) built a total function from "pointers" with $D(f) = \Omega(N/\log N)$ and $Q(f) = \tilde O(N^{1/4})$. Its point on
+    the figure is drawn at $(1, \tfrac14)$, ignoring the logarithms.</p>
+    <p><b>The figure's axes</b> are $\log D/\log N$ and $\log Q/\log N$, so a function with $D\approx N^a$ and $Q\approx N^b$
+    sits at $(a, b)$. The shaded triangle below $b = a/4$ is empty of total functions.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · what this says</p>
+  <h2>Promises: where exponential speed-ups live</h2>
+  <div class="cols">
+    <div>
+      <p class="small"><b>Deutsch–Jozsa</b> (unit 13): $N = 2^n$ bits, promised constant, $|x|\in\{0, N\}$, or balanced, $|x| = N/2$. The amplitude of $\ket{0^n}$ is $N^{-1}\sum_i(-1)^{x_i} = 1 - 2|x|/N$, so one query accepts with</p>
+      $$p(x) = \Big(1 - \frac{2|x|}N\Big)^2,$$
+      <p class="small">a polynomial of degree $2$ (as $|x|$ is linear), equal to $1$ on constant and $0$ on balanced inputs.</p>
+      <p class="small">Yet $D = N/2 + 1$ (unit 13): an exponential gap. No contradiction — the theorem is about total functions, and off the promise $p$ takes every value in between.</p>
+      <div class="box warn"><span class="label">a promise is a gift of structure</span>
+        <p class="small">Its natural total version, "is $x\in\{0^N, 1^N\}$?", has approximate degree $\Omega(\sqrt N)$ (problem P9), and <b>every</b> total version needs $\Omega(N^{1/4})$ queries, by the fourth-power theorem (notes). The low degree lives only on the promise.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 420 215" width="420" role="img" aria-label="Deutsch–Jozsa's probability of the all-zero outcome, (1 − 2k/N) squared, against the fraction k/N of ones: 1 at 0 and at 1, 0 at one half; the three promised layers are marked; between them the curve takes every value">
+<line x1="50" y1="180" x2="370" y2="180" class="ink" stroke-width="1.2"/>
+<line x1="50" y1="180" x2="50" y2="30.5" class="ink" stroke-width="1.2"/>
+<text x="42" y="184.0" font-size="12" text-anchor="end">0</text>
+<text x="42" y="54.0" font-size="12" text-anchor="end">1</text>
+<text x="50.0" y="196.0" font-size="12" text-anchor="middle" class="mono">0</text>
+<text x="200.0" y="196.0" font-size="12" text-anchor="middle" class="mono">N/2</text>
+<text x="350.0" y="196.0" font-size="12" text-anchor="middle" class="mono">N</text>
+<text x="372" y="196.0" font-size="13">|x|</text>
+<path d="M50.0,50.0 L51.5,52.6 L53.0,55.2 L54.5,57.7 L56.0,60.2 L57.5,62.7 L59.0,65.2 L60.6,67.6 L62.1,70.1 L63.6,72.5 L65.1,74.8 L66.6,77.2 L68.1,79.5 L69.6,81.8 L71.1,84.0 L72.6,86.2 L74.1,88.4 L75.6,90.6 L77.1,92.8 L78.6,94.9 L80.2,97.0 L81.7,99.1 L83.2,101.1 L84.7,103.2 L86.2,105.2 L87.7,107.1 L89.2,109.1 L90.7,111.0 L92.2,112.9 L93.7,114.7 L95.2,116.6 L96.7,118.4 L98.2,120.2 L99.7,121.9 L101.3,123.7 L102.8,125.4 L104.3,127.1 L105.8,128.7 L107.3,130.3 L108.8,131.9 L110.3,133.5 L111.8,135.1 L113.3,136.6 L114.8,138.1 L116.3,139.6 L117.8,141.0 L119.3,142.4 L120.9,143.8 L122.4,145.2 L123.9,146.5 L125.4,147.8 L126.9,149.1 L128.4,150.4 L129.9,151.6 L131.4,152.8 L132.9,154.0 L134.4,155.2 L135.9,156.3 L137.4,157.4 L138.9,158.5 L140.5,159.5 L142.0,160.5 L143.5,161.5 L145.0,162.5 L146.5,163.5 L148.0,164.4 L149.5,165.3 L151.0,166.1 L152.5,167.0 L154.0,167.8 L155.5,168.6 L157.0,169.3 L158.5,170.1 L160.1,170.8 L161.6,171.5 L163.1,172.1 L164.6,172.7 L166.1,173.4 L167.6,173.9 L169.1,174.5 L170.6,175.0 L172.1,175.5 L173.6,176.0 L175.1,176.4 L176.6,176.8 L178.1,177.2 L179.6,177.6 L181.2,177.9 L182.7,178.3 L184.2,178.6 L185.7,178.8 L187.2,179.1 L188.7,179.3 L190.2,179.4 L191.7,179.6 L193.2,179.7 L194.7,179.8 L196.2,179.9 L197.7,180.0 L199.2,180.0 L200.8,180.0 L202.3,180.0 L203.8,179.9 L205.3,179.8 L206.8,179.7 L208.3,179.6 L209.8,179.4 L211.3,179.3 L212.8,179.1 L214.3,178.8 L215.8,178.6 L217.3,178.3 L218.8,177.9 L220.4,177.6 L221.9,177.2 L223.4,176.8 L224.9,176.4 L226.4,176.0 L227.9,175.5 L229.4,175.0 L230.9,174.5 L232.4,173.9 L233.9,173.4 L235.4,172.7 L236.9,172.1 L238.4,171.5 L239.9,170.8 L241.5,170.1 L243.0,169.3 L244.5,168.6 L246.0,167.8 L247.5,167.0 L249.0,166.1 L250.5,165.3 L252.0,164.4 L253.5,163.5 L255.0,162.5 L256.5,161.5 L258.0,160.5 L259.5,159.5 L261.1,158.5 L262.6,157.4 L264.1,156.3 L265.6,155.2 L267.1,154.0 L268.6,152.8 L270.1,151.6 L271.6,150.4 L273.1,149.1 L274.6,147.8 L276.1,146.5 L277.6,145.2 L279.1,143.8 L280.7,142.4 L282.2,141.0 L283.7,139.6 L285.2,138.1 L286.7,136.6 L288.2,135.1 L289.7,133.5 L291.2,131.9 L292.7,130.3 L294.2,128.7 L295.7,127.1 L297.2,125.4 L298.7,123.7 L300.3,121.9 L301.8,120.2 L303.3,118.4 L304.8,116.6 L306.3,114.7 L307.8,112.9 L309.3,111.0 L310.8,109.1 L312.3,107.1 L313.8,105.2 L315.3,103.2 L316.8,101.1 L318.3,99.1 L319.8,97.0 L321.4,94.9 L322.9,92.8 L324.4,90.6 L325.9,88.4 L327.4,86.2 L328.9,84.0 L330.4,81.8 L331.9,79.5 L333.4,77.2 L334.9,74.8 L336.4,72.5 L337.9,70.1 L339.4,67.6 L341.0,65.2 L342.5,62.7 L344.0,60.2 L345.5,57.7 L347.0,55.2 L348.5,52.6 L350.0,50.0" fill="none" class="unit" stroke-width="2"/>
+<circle cx="50.0" cy="50.0" r="5.5" class="fill-accent"/>
+<circle cx="200.0" cy="180.0" r="5.5" class="fill-accent"/>
+<circle cx="350.0" cy="50.0" r="5.5" class="fill-accent"/>
+<text x="200.0" y="166.0" font-size="12" text-anchor="middle" class="fill-accent halo">balanced: 0</text>
+<text x="62.0" y="54.0" font-size="12" class="fill-accent halo">constant: 1</text>
+<text x="125.0" y="135.5" font-size="11" text-anchor="middle" class="soft halo">off the promise</text>
+</svg>
+        <p class="cap">Deutsch–Jozsa's acceptance probability against $|x|$. The promise keeps the input on the three marked layers, where a parabola is enough.</p>
+      </div>
+      <p class="small"><b>Search has no promise to give.</b> <span class="ref" data-ref="or">OR</span> must be right on every layer, so its curve is forced to jump and stay flat — and that costs order $\sqrt N$.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The polynomial method for promise problems.</b> When $f$ is defined only on a set $P$ of inputs, the acceptance
+    probability is still a polynomial of degree at most $2T$ on the whole cube and still lies in $[0, 1]$ everywhere —
+    it must be within $\tfrac13$ of $f$ only on $P$. The fewer the inputs in $P$, the easier it is to find low-degree
+    polynomials, and the weaker the lower bound. Deutsch–Jozsa's promise set is three layers out of $N + 1$, and degree
+    $2$ suffices.</p>
+    <p><b>Simon and Shor</b>, which the learner may have met in units 14–16, are promise problems of the same kind: the
+    input is promised to be periodic, or constant on the cosets of a hidden subgroup. Their exponential speed-ups are
+    consistent with the fourth-power theorem only because of those promises. Grover's problem promises nothing, and gets
+    a square root.</p>
+    <p><b>Every total extension.</b> Write $\mathrm{CONST}_N(x) = 1$ iff $x\in\{0^N, 1^N\}$; problem P9 proves its approximate degree is at least that of $\mathrm{OR}_{N-1}$. Not only $\mathrm{CONST}_N$ pays. If a total $f$ agrees with Deutsch–Jozsa on the promise, a deterministic algorithm for $f$
+    decides Deutsch–Jozsa, so $D(f)\ge N/2 + 1$ (unit 13), and the fourth-power theorem gives $Q(f)\ge\big((N/2 + 1)/C\big)^{1/4}$.
+    Whether every such $f$ needs order $\sqrt N$, as $\mathrm{CONST}_N$ does, is not claimed here.</p>
+    <p><b>The check.</b> At $|x| = 0$ and $|x| = N$, $p = 1$; at $|x| = N/2$, $p = 0$; at $|x| = N/4$, off the promise, $p =
+    \tfrac14$. The amplitude formula is unit 13's: after $H^{\otimes n}$, the phase oracle and $H^{\otimes n}$, the
+    amplitude of $\ket{0^n}$ is $2^{-n}\sum_i(-1)^{x_i}$, and $\sum_i(-1)^{x_i} = (N - |x|) - |x|$.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · what this says</p>
+  <h2>Relative to an oracle, NP is not in BQP</h2>
+  <div class="cols">
+    <div>
+      <div class="box thm"><span class="label">theorem (Bennett, Bernstein, Brassard, Vazirani 1997)</span>
+        <p class="small">Let $A$ be a <span class="term">random oracle</span>, each string $y$ in $A$ independently with probability $2^{-|y|}$. With probability $1$, $\ L_A = \{1^n : A\text{ has a string of length }n\}$ is in $\mathsf{NP}^A$, not in $\mathsf{BQP}^A$.</p>
+      </div>
+      <div class="box proof"><span class="label">proof, sketched</span>
+        <p class="small"><b>In $\mathsf{NP}^A$:</b> the witness is the string; one query checks it. <b>Not in $\mathsf{BQP}^A$:</b> $M$ makes $T\le\mathrm{poly}(n)$ queries on $1^n$. With probability $0.74$, $A$ has at most one string of length $n$. Average the hybrid bound over the $N = 2^n$ strings:</p>
+        $$\frac1N\sum_w\big\lVert\ket{\psi_T^w} - \ket{\psi_T}\big\rVert\le\frac{2T}{\sqrt N}\to0,$$
+        <p class="small">so $M$, if right on "none", is wrong on "$\{w\}$" for most $w$, and errs at $1^n$ with probability $\ge0.3$, independently at well-separated $n$. $\blacksquare$</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 400 205" width="400" role="img" aria-label="the number of marked strings of length 20 when each is marked with probability 2 to the minus 20: probabilities 0.368, 0.368, 0.184, 0.061, 0.015 for 0 to 4 marked">
+<line x1="30" y1="170" x2="390" y2="170" class="ink" stroke-width="1.2"/>
+<rect x="40" y="59.6" width="40" height="110.4" class="fill-unit"/>
+<text x="60" y="53.6" font-size="12" text-anchor="middle" class="mono">0.368</text>
+<text x="60" y="186" font-size="12" text-anchor="middle" class="mono">0</text>
+<rect x="110" y="59.6" width="40" height="110.4" class="fill-unit"/>
+<text x="130" y="53.6" font-size="12" text-anchor="middle" class="mono">0.368</text>
+<text x="130" y="186" font-size="12" text-anchor="middle" class="mono">1</text>
+<rect x="180" y="114.8" width="40" height="55.2" class="fill-soft"/>
+<text x="200" y="108.8" font-size="12" text-anchor="middle" class="mono">0.184</text>
+<text x="200" y="186" font-size="12" text-anchor="middle" class="mono">2</text>
+<rect x="250" y="151.6" width="40" height="18.4" class="fill-soft"/>
+<text x="270" y="145.6" font-size="12" text-anchor="middle" class="mono">0.061</text>
+<text x="270" y="186" font-size="12" text-anchor="middle" class="mono">3</text>
+<rect x="320" y="165.4" width="40" height="4.6" class="fill-soft"/>
+<text x="340" y="159.4" font-size="12" text-anchor="middle" class="mono">0.015</text>
+<text x="340" y="186" font-size="12" text-anchor="middle" class="mono">4</text>
+<text x="210" y="204" font-size="12" text-anchor="middle" class="soft">marked strings of length n = 20</text>
+</svg>
+        <p class="cap">How many strings of length $20$ the random oracle holds, computed: $0$ and $1$ each have probability $0.368$, close to $1/e$.</p>
+      </div>
+      <p class="small">The oracle unit 12 promised: black-box search over NP witnesses gains a square root and no more.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>The sketch, with the missing steps.</b> (1) <i>The averaged bound.</i> For each $t$, by Cauchy–Schwarz over $w$,
+    $\sum_w\lVert P_w\ket{\psi_t}\rVert\le\sqrt N\big(\sum_w\lVert P_w\ket{\psi_t}\rVert^2\big)^{1/2} = \sqrt N$; summing the
+    hybrid bound over $w$ and $t$ gives $\sum_w\lVert\ket{\psi_T^w} - \ket{\psi_T}\rVert\le2T\sqrt N$. Here the states are
+    $M$'s on input $1^n$, with $A$ fixed off length $n$; "none" and "$\{w\}$" differ only at the string $w$. (2) <i>Most $w$
+    fool $M$.</i> If $M$ accepts "none" with probability $\le\tfrac13$, then to accept "$\{w\}$" with probability
+    $\ge\tfrac23$ it needs distance $\ge\tfrac13$ there (the lemma); by Markov's inequality on the average, that happens for
+    at most a fraction $6T/\sqrt N$ of the $w$. (3) <i>Probabilities.</i> Given everything off length $n$, the number of
+    strings at length $n$ is $0$ with probability $(1 - 2^{-n})^{2^n}$ and $1$ with probability $(1 - 2^{-n})^{2^n - 1}$ —
+    $0.368$ each at $n = 20$, tending to $1/e = 0.3679$ — and given one, it is uniform. So $M$ fails at $1^n$ with
+    probability at least $\min\big(0.36, 0.36(1 - 6T/\sqrt N)\big)\ge0.3$ for large $n$, whatever happens elsewhere.</p>
+    <p>(4) <i>Independence.</i> Choose lengths $n_1\lt n_2\lt\cdots$ with $n_{j+1}$ beyond every length $M$ can query on
+    $1^{n_j}$. The event "$M$ right at $1^{n_j}$" depends only on lengths below $n_{j+1}$, and given all lengths except
+    $n_k$, "$M$ right at $1^{n_k}$" has probability at most $0.7$. So $M$ is right at all of $1^{n_1}, \dots, 1^{n_k}$ with
+    probability at most $0.7^k\to0$. (5) There are countably many machines, and a countable union of probability-zero
+    events has probability zero. Problem P11 asks for this argument.</p>
+    <p><b>What it shows.</b> Unit 12 stated that relative to some oracle NP is not contained in BQP; here is that oracle —
+    in fact almost every oracle. Relative to it, a quantum computer searching $2^n$ candidate witnesses needs order
+    $2^{n/2}$ queries, Grover's count, and no more cleverness helps.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · what this says</p>
+  <h2>What it does not say</h2>
+  <div class="cols">
+    <div>
+      <div class="box warn"><span class="label">not a proof that NP ⊄ BQP</span>
+        <p class="small">A SAT formula is not a black box: its witnesses are checked by a circuit an algorithm can read. And the proof relativises, so by unit 12 it cannot settle the unrelativised question. Grover-level speed-ups for NP are the most a black-box method can give; whether structure gives more is open.</p>
+      </div>
+      <div class="box good"><span class="label">what it does say</span>
+        <p class="small">An algorithm that uses a problem only through a membership test — brute force, in any clever order — gains a square root and no more. Exponential speed-ups need structure: a promise like Deutsch–Jozsa's, or the periodicity Fourier sampling finds.</p>
+      </div>
+    </div>
+    <div>
+      <p class="small"><b>Between a square root and nothing</b>, total problems, quantum queries against classical:</p>
+      <table class="dense">
+        <thead><tr><th>problem</th><th class="num">quantum</th><th class="num">classical</th><th>status</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ref" data-ref="or">OR</span> (search)</td><td class="num">$\Theta(N^{1/2})$</td><td class="num">$\Theta(N)$</td><td>proved here</td></tr>
+          <tr><td><span class="term">element distinctness</span></td><td class="num">$\Theta(N^{2/3})$</td><td class="num">$\Theta(N)$</td><td>cited</td></tr>
+          <tr><td><span class="ref" data-ref="par">parity</span></td><td class="num">$N/2$</td><td class="num">$N$</td><td>proved here</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Element distinctness — are $x_0, \dots, x_{N-1}$ all different? — sits between: Ambainis's algorithm (2004) and the Aaronson–Shi lower bound (2004), by a cleverer polynomial method.</p>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>Relativisation, recalled.</b> Unit 12: a proof that works relative to every oracle cannot prove a statement that
+    fails relative to some oracle. Relative to a PSPACE-complete oracle $B$, NP is inside BQP, since $\mathsf{NP}^B\subseteq
+    \mathsf{PSPACE}^B = \mathsf{PSPACE}\subseteq\mathsf{P}^B\subseteq\mathsf{BQP}^B$; relative to the random oracle here, it is not. So no relativising argument decides the question, and this deck's arguments
+    relativise: they never look inside the oracle.</p>
+    <p><b>Element distinctness</b> has inputs $x_i$ from a larger alphabet, queried by $\ket i\ket b\mapsto\ket i\ket{b\oplus
+    x_i}$ with $b$ a register. The upper bound is A. Ambainis, "Quantum walk algorithm for element distinctness", FOCS
+    2004 (<i>SIAM J. Comput.</i> 37, 210, 2007); the lower bound S. Aaronson and Y. Shi, "Quantum lower bounds for the
+    collision and the element distinctness problems", <i>J. ACM</i> 51, 595 (2004). An $\Omega(\sqrt N)$ lower bound follows
+    from OR in a few lines — problem P12 — and the classical $\Theta(N)$ the same way.</p>
+    <p><b>Why this matters for cryptography.</b> A cipher's key search is unstructured: Grover's square root is the
+    attack (unit 17), and this unit says it is the best black-box attack, which is why doubling key lengths is a complete
+    answer to it. Structured problems — factoring, discrete logarithm — are another matter, as Shor showed.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · close</p>
+  <h2>OR and parity, side by side</h2>
+  <div class="cols">
+    <div>
+      <table class="dense">
+        <thead><tr><th></th><th><span class="ref" data-ref="or">OR</span></th><th><span class="ref" data-ref="par">parity</span></th></tr></thead>
+        <tbody>
+          <tr><td>classical</td><td>order $N$</td><td>$N$</td></tr>
+          <tr><td>quantum upper bound</td><td>Grover, $O(\sqrt N)$</td><td>Deutsch on pairs, $N/2$</td></tr>
+          <tr><td>quantum lower bound</td><td>hybrid: $\sqrt N/6$; degree: $\Omega(\sqrt N)$</td><td>degree: $N/2$</td></tr>
+          <tr><td>degree, approximate degree</td><td>$N$, $\ \Theta(\sqrt N)$</td><td>$N$, $\ N$</td></tr>
+          <tr><td>$N = 2^{20}$</td><td>$174$ to $490$, if at most one $1$</td><td>$524\,288$ exactly</td></tr>
+        </tbody>
+      </table>
+      <div class="box good"><span class="label">one has a quadratic speed-up, the other a factor of two</span>
+        <p class="small">OR needs one jump and then flatness, which a polynomial of degree $\sqrt N$ can draw. Parity needs a turn at every integer, which takes degree $N$. The query count follows the degree.</p>
+      </div>
+    </div>
+    <div>
+      <div class="fig">
+        <svg viewBox="0 0 470 232" width="470" role="img" aria-label="queries needed for N = 2 to the 20, on a logarithmic axis: for OR, the hybrid lower bound 174, Grover 804, classical about N; for parity, quantum exactly N/2 = 524288 and classical N">
+<line x1="70" y1="196" x2="440" y2="196" class="ink" stroke-width="1.3"/>
+<line x1="70.0" y1="196" x2="70.0" y2="201" class="ink" stroke-width="1.2"/><text x="70.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">0</tspan></text>
+<line x1="144.0" y1="196" x2="144.0" y2="201" class="ink" stroke-width="1.2"/><text x="144.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">4</tspan></text>
+<line x1="218.0" y1="196" x2="218.0" y2="201" class="ink" stroke-width="1.2"/><text x="218.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">8</tspan></text>
+<line x1="292.0" y1="196" x2="292.0" y2="201" class="ink" stroke-width="1.2"/><text x="292.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">12</tspan></text>
+<line x1="366.0" y1="196" x2="366.0" y2="201" class="ink" stroke-width="1.2"/><text x="366.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">16</tspan></text>
+<line x1="440.0" y1="196" x2="440.0" y2="201" class="ink" stroke-width="1.2"/><text x="440.0" y="216" font-size="12" text-anchor="middle" class="mono">2<tspan font-size="9" dy="-5">20</tspan></text>
+<text x="255" y="230" font-size="12" text-anchor="middle" class="soft">queries, logarithmic scale</text>
+<text x="62" y="67" font-size="14" text-anchor="end">OR</text>
+<line x1="207.7" y1="62" x2="440.0" y2="62" class="rule" stroke-width="7"/>
+<line x1="207.7" y1="62" x2="248.5" y2="62" class="unit" stroke-width="7"/>
+<circle cx="207.7" cy="62" r="5" class="fill-accent"/>
+<text x="207.7" y="86" font-size="12" text-anchor="middle" class="fill-accent halo">≥ 174</text>
+<circle cx="248.5" cy="62" r="5" class="fill-unit"/>
+<text x="248.5" y="48" font-size="12" text-anchor="middle" class="fill-unit halo">Grover 804</text>
+<circle cx="440.0" cy="62" r="5" class="fill-ink"/>
+<text x="440.0" y="48" font-size="12" text-anchor="end" class="soft halo">classical ~N</text>
+<text x="62" y="145" font-size="14" text-anchor="end">parity</text>
+<line x1="421.5" y1="140" x2="440.0" y2="140" class="unit" stroke-width="7"/>
+<circle cx="421.5" cy="140" r="5" class="fill-unit"/><circle cx="440.0" cy="140" r="5" class="fill-ink"/>
+<text x="415.5" y="126" font-size="12" text-anchor="end" class="fill-unit halo">quantum N/2 = 524 288</text>
+<text x="440.0" y="162" font-size="12" text-anchor="end" class="soft halo">classical N</text>
+<line x1="255.0" y1="30" x2="255.0" y2="196" class="soft accent" stroke-width="1" stroke-dasharray="3 4"/>
+<text x="255.0" y="24" font-size="11" text-anchor="middle" class="soft">√N = 1024</text>
+</svg>
+        <p class="cap">The overview's chart, now with every mark proved: the hybrid and polynomial bounds below, Grover and Deutsch above.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">
+    <p><b>What carries forward.</b> Unit 19 builds Hamiltonian simulation, where the speed-up over classical methods comes
+    from structure of a different kind: the input is a Hamiltonian, a sum of local terms, not a black box. Branch 20 asks
+    what a quantum computer can verify rather than compute, and finds a problem it is believed unable to solve.</p>
+    <p><b>Reading.</b> R. de Wolf, <i>Quantum Computing: Lecture Notes</i> (arXiv:1907.09415), the chapters on query lower
+    bounds: the hybrid argument, the polynomial method and the adversary method, with proofs. Buhrman and de Wolf,
+    "Complexity measures and decision tree complexity: a survey" (2002), for degree and approximate degree; its sections
+    on certificate and block sensitivity can be skipped, as nothing here uses them. Nielsen and Chuang, sections 6.6 and 6.7, for
+    the BBBV argument and the polynomial method in another notation.</p>
+    <p><b>What was left out, on purpose.</b> The adversary method's proof; the exact approximate degree of OR (Paturi's
+    constant); time–space trade-offs; lower bounds on gate counts, which no one can prove.</p>
+  </aside>
+</section>
+
+<section>
+  <p class="eyebrow">18 · checkpoint</p>
+  <h2>Done when</h2>
+  <div class="box good"><span class="label">checkpoint</span>
+    <p>You prove $\Omega(\sqrt N)$ for search by the hybrid argument — every line, from the query magnitudes to $T\ge\sqrt N/6$ — and exactly $N/2$ for parity by the polynomial method: the lower bound from symmetrisation and the $N$ sign changes, the upper bound from Deutsch's algorithm on pairs. For $N = 2^{20}$ that is at least $171$ queries for search and exactly $524\,288$ for parity.</p>
+  </div>
+  <p class="small">Then <code>./qc done 18</code>. The problem sheet's P3 and P6 are the checkpoint's two computations; P4 is its symmetrisation proof.</p>
+  <aside class="notes">
+    <p><b>How to test yourself.</b> Without notes, write the hybrid argument from the definition of a query algorithm:
+    the recursion for the difference of the two runs, the bound $2\lVert P_w\psi_t\rVert$ on one query's error, the sum
+    of the query magnitudes, Cauchy–Schwarz, and the lemma on close states. Then, separately, prove that $T$ queries give
+    degree $2T$, symmetrise an approximation of parity, and count its sign changes. If either takes more than a page,
+    something is being carried that need not be.</p>
+    <p><b>Next.</b> Unit 19: Hamiltonian simulation, Feynman's reason for the whole enterprise.</p>
+  </aside>
+</section>
+
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="../../slides/deck.js"></script>
+</body>
+</html>
