@@ -1,6 +1,7 @@
 """`mr` — the one command for working through a unit.
 
     mr ready              before unit 00: the readiness sheet — does the assumed background hold?
+    mr refresh            the readiness deck: that background in one fast pass, for a reader gone rusty
     mr slides 01          open the unit's slides in a browser (rebuilds its glossary.js)
     mr problems 01        open the unit's problem sheet in a browser: every problem with its
                           hint ladder and its worked solution folded underneath
@@ -30,6 +31,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 UNITS = ROOT / "units"
+# The readiness sheet and its refresher deck: kept out of units(), which is the curriculum,
+# but a unit to the glossary and deck tools, which find it by this name.
+READY = UNITS / "readiness"
 PROGRESS = ROOT / "progress.json"
 BUILD = ROOT / "BUILD-STATE.json"
 # Every unit in the curriculum, in order. A unit fitted in after the numbering was
@@ -48,6 +52,8 @@ def number(unit: Path) -> str:
 
 
 def find_unit(key: str) -> Path:
+    if key == READY.name:
+        return READY
     key = key.zfill(2)
     hits = [p for p in units() if number(p) == key]
     if not hits:
@@ -162,6 +168,7 @@ def main(argv=None):
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("ready", help="open the readiness sheet: the course's assumed background, tested")
+    sub.add_parser("refresh", help="open the readiness deck: the assumed background, revised fast")
     for name in ("slides", "problems"):
         sub.add_parser(name).add_argument("unit")
     sub.add_parser("glossary").add_argument("unit", nargs="?")
@@ -197,6 +204,9 @@ def main(argv=None):
         if not page.exists():
             sys.exit(f"{page.relative_to(ROOT)} is not written yet")
         _open(page)
+    elif args.cmd == "refresh":
+        _glossary([READY])
+        _open(READY / "slides.html")
     elif args.cmd == "slides":
         unit = find_unit(args.unit)
         _glossary([unit])
@@ -207,10 +217,10 @@ def main(argv=None):
             sys.exit(f"{page.relative_to(ROOT)} is not written yet")
         _open(page)
     elif args.cmd == "glossary":
-        chosen = [find_unit(args.unit)] if args.unit else units()
+        chosen = [find_unit(args.unit)] if args.unit else units() + [READY]
         sys.exit(1 if _glossary(chosen, verbose=True) else 0)
     elif args.cmd == "site":
-        warnings = _glossary(units())
+        warnings = _glossary(units() + [READY])
         out = ROOT / "_site"
         code = subprocess.call([sys.executable, str(ROOT / "mrlib" / "site_build.py"), str(out)], cwd=ROOT)
         if code or warnings:

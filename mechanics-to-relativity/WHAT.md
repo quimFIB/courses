@@ -162,6 +162,84 @@ resume that.
   Computing course moved into `published-courses/` beside this one and went
   live with it.
 
+- 2026-10-29: **a refresher deck for the readiness sheet**
+  (`units/readiness/slides.html`, `./mr refresh`), at the learner's request. It is for a
+  reader who fails the sheet because the background has rusted rather than because it was
+  never learnt. 60 slides, 19 figures, one section per sheet group, and one running example
+  through all five: the spring $\dot u = Ju$. Calculus finds its period; analysis licenses
+  differentiating its series term by term; linear algebra sees $R(t)$ as orthogonal;
+  Picard's iteration (a contraction) proves there is one solution and produces the Taylor
+  polynomials; $t\mapsto R(t)$ is a homomorphism onto $SO(2)$ whose orbits are the energy
+  circles. Its examples are near relatives of the sheet's problems, chosen not to give away
+  their answers. The deck says plainly that it restores recognition, not speed: a section
+  that reads as *new* sends the reader to the sheet's book, and the calculus group still
+  needs the drill. The sheet's checkpoint is the deck's last slide, word for word.
+  - Same day, at the learner's request: **a "smallest cases" slide before every concept
+    slide** (22 of them), each holding two or three examples small enough to show one idea
+    and nothing else. Examples: x/n converging on [0, 1] but not on ℝ, a basis vector
+    doubled, sin(n²x)/n, the three unit balls, Picard's iteration on ẋ = x, and S₃
+    permuting three points. This deliberately breaks `AUTHORING.md`'s ceiling of five
+    worked examples: the deck is a refresher, not a unit, and the examples are its main
+    tool. Where an example sits close to a sheet problem (P11's subtle failure, for
+    instance), the slide says so and stops rather than give the answer.
+  - The sheet gained a "Rusty, or new?" paragraph and a header link; README and
+    `CURRICULUM.html` name the deck.
+  - `mrlib/cli.py` knows `units/readiness` by name (`find_unit("readiness")`, so
+    `./mr glossary readiness` and `deck-check.sh readiness` work), and the full glossary
+    build and `./mr site` include it.
+  - `mrlib/site_build.py` copies the deck, glossary and sheet, but gives them a line in the
+    index intro instead of a unit card.
+  - Checks: glossary (43 terms, all resolve), deck-check (no overflow, terms and keys ok),
+    sheet-check and `./mr site` (139 files, every link lands) all pass. Every number on
+    the slides was recomputed. Claims about other units were checked against those decks,
+    and two were corrected before they shipped. The figure generator lives in a session
+    scratchpad only; `slides.html` is the source now.
+  - **Independently verified, 2026-10-29.** Three agents worked from the file alone: one
+    on the mathematics of sections 0–2, one on sections 3 to the end, and one on whether a
+    rusty reader can follow it and whether it keeps the contract. Their findings totalled
+    57, about 50 distinct once the overlaps between reports are merged. Every number in
+    the deck recomputed correctly. The real defects were in hypotheses, wording and what
+    the deck gave away. All were re-derived before applying; 92 edits in all.
+    - **False as written:**
+      - The alternating-series test as stated (it needs aₙ ≥ 0).
+      - A smallest-case box that read as "xⁿ converges uniformly".
+      - "Uniqueness needed completeness" on the closing slide. Two fixed points of a
+        contraction coincide in any metric space; completeness gives existence.
+      - The overview's "differentiated only on bounded times" (the uniformity is
+        bounded; differentiation holds at every t).
+      - A bilinear form described as having "covector slots".
+    - **Spoilers of the sheet, removed:**
+      - P7's convergence proof.
+      - P10's one-line orthogonality proof.
+      - P4's last rung (the deck now integrates a geometric series where it differentiated one).
+      - P11's "explain the gap".
+      - P12's orbits and kernel.
+      - P8's "exactly when"; the deck keeps only the easy direction.
+    - **Signature (1,3) was wrong in this course's own convention.** Unit 26 uses
+      (−,+,+,+), which is (3,1) as the deck and the sheet's P9 count (positive, negative).
+      Fixed in the deck, its glossary and the sheet's P9 exercises line.
+    - **Seven claims about other units were false** and have been corrected. Unit 07's
+      modes are M-orthogonal, not perpendicular. Unit 20 cites dominated convergence.
+      "Contravariant" first appears in unit 18. Γ is in unit 09. Unit 01 is not the
+      course's first proof. Unit 00's stated assumptions omit metric spaces and groups.
+    - **Undefined or overloaded symbols:**
+      - P on two more slides.
+      - Φ, Q, D, B, S_N, δ, e, and O(2) used before the groups section.
+      - The spring's time horizon renamed τ, because T was also the contraction map.
+    - **Smaller fixes:**
+      - Stale positional cross-references now name their slides.
+      - Six unproved claims now carry a one-line proof or a citation.
+    - **Not changed, deliberately:**
+      - The 2D basis (1,0), (1,1) stays. It is P8's 3D basis cut down, a near relative by
+        design.
+      - Four hints the reviewer judged acceptable (P2, P3, P9, P10 rungs) stay.
+      - q stays both the quadratic form (section 3) and the contraction constant
+        (section 4), since the two never meet on one slide.
+    - **Open:** the Sutherland locator now names "the chapters on compactness and on
+      sequential compactness", on the reviewer's belief that the plain compactness
+      chapter is open-cover only. It is unchecked against the book; it belongs with
+      `CITATIONS.md`.
+
 `./mr todo` is the live version of which units are written and verified; trust it over this file.
 
 ## Next, in order
