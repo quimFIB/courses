@@ -152,7 +152,8 @@ def index_html(units: list[dict]) -> str:
   in a deck), a reading mode (<b>R</b>) and <b>M</b> to come back here, and a problem sheet with a hint ladder
   and a worked solution folded under every problem. Commands such as <code>./mr problems 07</code> in the decks
   refer to the course repository. See also the <a href="CURRICULUM.html">curriculum</a>, and before unit 00
-  the <a href="units/readiness/problems.html">readiness sheet</a>.</p>
+  the <a href="units/readiness/problems.html">readiness sheet</a>, with a
+  <a href="units/readiness/slides.html">refresher deck</a> for a reader whose background has gone rusty.</p>
 {chr(10).join(cards)}
   <footer>{_hub_link()}Decks need a network connection for reveal.js, KaTeX and fonts. Built from the course sources by
   <code>mrlib/site_build.py</code>.</footer>
@@ -163,7 +164,8 @@ def index_html(units: list[dict]) -> str:
 
 
 def build(out: Path) -> list[str]:
-    units = sorted(p for p in (ROOT / "units").iterdir() if (p / "slides.html").exists())
+    units = sorted(p for p in (ROOT / "units").iterdir()
+                   if (p / "slides.html").exists() and p.name != "readiness")
     if out.exists():
         shutil.rmtree(out)
     copied = []
@@ -187,12 +189,15 @@ def build(out: Path) -> list[str]:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             copied.append(str(rel))
-    ready = ROOT / "units" / "readiness" / "problems.html"
-    if ready.exists():                          # the readiness sheet: no deck, so not a unit card
-        dst = out / "units" / "readiness" / "problems.html"
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ready, dst)
-        copied.append("units/readiness/problems.html")
+    # The readiness sheet and its refresher deck come before unit 00 and are not part of the
+    # curriculum, so they get a line in the intro rather than a unit card.
+    for name in UNIT_FILES:
+        src = ROOT / "units" / "readiness" / name
+        if src.exists():
+            dst = out / "units" / "readiness" / name
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            copied.append(f"units/readiness/{name}")
     if (ROOT / "CURRICULUM.html").exists():
         shutil.copy2(ROOT / "CURRICULUM.html", out / "CURRICULUM.html")
         copied.append("CURRICULUM.html")  # the case the 42 problem sheets link to

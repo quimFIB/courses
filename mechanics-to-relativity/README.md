@@ -21,6 +21,7 @@ cdnjs, so reading slides needs a network connection.
 
 ```fish
 ./mr ready              # the readiness sheet: the assumed background, tested, with where to fill gaps
+./mr refresh            # the refresher deck: that background in one fast pass, if it has gone rusty
 ```
 
 ## Working a unit

@@ -1,4 +1,4 @@
-A 17-unit self-study course on circuits and how electrical power is transferred, derived from Maxwell's equations and assuming Mechanics to Relativity through unit 24 — all 17 units built and verified (00–10 read by the learner); the capstone specced and on hold; being moved into published-courses/ without the capstone.
+A 17-unit self-study course on circuits and how electrical power is transferred, derived from Maxwell's equations and assuming Mechanics to Relativity through unit 24 — all 17 units built and verified, published 2026-10-28 at quimfib.github.io/courses/circuits-and-power/ (units 00–10 read by the learner, 11–16 not yet); the capstone specced and on hold, left out of the published version.
 
 # State, 2026-10-27
 
@@ -552,12 +552,14 @@ written and verified.
    now").** The spec is written; build it, with hand-written briefs, only when the learner says
    so. Estimate: about an hour. When it is built, remove its rule from the repository's
    local `.git/info/exclude` (kept there so that no committed file mentions it) and restore the cut curriculum section and unit sentences recorded in that spec.
-5. **Published-in-waiting (2026-10-28).** The learner said: "once everything is
+5. **Published, 2026-10-28** (commit 6ce12e2, pushed to main; live at
+   quimfib.github.io/courses/circuits-and-power/, checked: pages 200, the 11
+   links into Mechanics to Relativity live, WHAT.md and build/ 404). The learner said: "once everything is
    verified, can we put a version of the course into published-courses/
    without the capstone?" They chose to strip the capstone, move the course
    rather than copy it, and commit then ask before pushing. Done:
    - the course now lives at `courses/published-courses/circuits-and-power/`,
-     committed on the branch `circuits-and-power`, NOT pushed;
+     merged into main and pushed;
    - the capstone is cut from the curriculum and from units 13–15, with the
      cut text kept in `build/spec/capstone.md`, excluded from git by
      `.git/info/exclude`; specs 11–15 no longer mention it;
@@ -570,5 +572,4 @@ written and verified.
    - the workspace CLAUDE.md and the index.html card were updated.
 
    The combined build (`site/build_all.py`) gives 4 courses, and all 11 links
-   into Mechanics to Relativity resolve. **Next: the learner says push.** Then
-   merge into main, push, check the live site, and update the dashboard card.
+   into Mechanics to Relativity resolve. Done: the learner said "push it".
